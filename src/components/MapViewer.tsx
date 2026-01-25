@@ -12,6 +12,8 @@ import {
 interface MapViewerProps {
   mapPath: string;
   onMapLoaded?: (mapName: string) => void;
+  width?: number;
+  height?: number;
 }
 
 const styles = {
@@ -19,11 +21,13 @@ const styles = {
     position: "relative" as const,
     width: "100%",
     height: "100%",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
   },
   canvas: {
-    width: "100%",
-    height: "100%",
     display: "block",
+    backgroundColor: "#000",
   },
   overlay: {
     position: "absolute" as const,
@@ -66,7 +70,7 @@ const styles = {
   },
 };
 
-export function MapViewer({ mapPath, onMapLoaded }: MapViewerProps) {
+export function MapViewer({ mapPath, onMapLoaded, width = 1440, height = 900 }: MapViewerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rendererRef = useRef<MapRenderer | null>(null);
   const keysPressed = useRef<Set<string>>(new Set());
@@ -78,9 +82,12 @@ export function MapViewer({ mapPath, onMapLoaded }: MapViewerProps) {
   // Initialize renderer
   useEffect(() => {
     if (!rendererRef.current) {
-      rendererRef.current = createMapRenderer();
+      const renderer = createMapRenderer();
+      renderer.camera.width = width;
+      renderer.camera.height = height;
+      rendererRef.current = renderer;
     }
-  }, []);
+  }, [width, height]);
 
   // Load map when mapPath changes
   useEffect(() => {
@@ -148,27 +155,15 @@ export function MapViewer({ mapPath, onMapLoaded }: MapViewerProps) {
     };
   }, [mapPath, onMapLoaded]);
 
-  // Handle canvas resize
-  const handleResize = useCallback(() => {
+  // Set canvas size
+  useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas || !rendererRef.current) return;
-
-    const parent = canvas.parentElement;
-    if (!parent) return;
-
-    const width = parent.clientWidth;
-    const height = parent.clientHeight;
 
     canvas.width = width;
     canvas.height = height;
     setCameraSize(rendererRef.current, width, height);
-  }, []);
-
-  useEffect(() => {
-    handleResize();
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, [handleResize]);
+  }, [width, height]);
 
   // Handle keyboard input
   useEffect(() => {
@@ -248,6 +243,8 @@ export function MapViewer({ mapPath, onMapLoaded }: MapViewerProps) {
       <canvas
         ref={canvasRef}
         style={styles.canvas}
+        width={width}
+        height={height}
         tabIndex={0}
       />
       {isLoading && (

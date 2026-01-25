@@ -2,6 +2,7 @@
  * Game Manager - Central game controller
  * Ties together all game systems based on JxqyHD architecture
  */
+import { decodeGb2312 } from "../core/utils";
 import type {
   GameVariables,
   Vector2,
@@ -615,6 +616,46 @@ export class GameManager {
       console.log(`[GameManager] Initial game state loaded`);
     } catch (error) {
       console.warn(`[GameManager] Error loading initial game state:`, error);
+    }
+  }
+
+  /**
+   * Initialize game - load starting map from game.ini and run Begin.txt
+   * This is the main entry point for starting a new game
+   */
+  async initGame(): Promise<void> {
+    console.log("[GameManager] Initializing new game...");
+    
+    // Load game.ini to get starting map
+    const gameIniPath = "/resources/save/game/Game.ini";
+    console.log(`[GameManager] Loading game config from: ${gameIniPath}`);
+    
+    try {
+      const response = await fetch(gameIniPath);
+      const buffer = await response.arrayBuffer();
+      
+      // Decode GB2312 encoded ini file
+      const iniText = decodeGb2312(buffer);
+      
+      // Parse [State] section to get Map
+      const mapMatch = iniText.match(/Map=(.+\.map)/i);
+      if (!mapMatch) {
+        throw new Error("No Map entry found in game.ini");
+      }
+      
+      const startingMap = mapMatch[1].trim();
+      console.log(`[GameManager] Starting map from game.ini: ${startingMap}`);
+      
+      // Load the starting map - this will trigger onMapChange callback
+      await this.loadMap(startingMap);
+      
+      // Run the map's Begin.txt initialization script
+      await this.initMap();
+      
+      console.log("[GameManager] Game initialization completed");
+    } catch (error) {
+      console.error("[GameManager] Failed to initialize game:", error);
+      throw error;
     }
   }
 
