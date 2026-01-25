@@ -14,18 +14,13 @@ import { ObjRenderer, getObjRenderer, resetObjRenderer } from "../engine/objRend
 import { DialogUI, SelectionUI, TopGui, BottomGui, BottomStateGui } from "./ui";
 
 interface GameProps {
-  initialMapPath?: string;
   width?: number;
   height?: number;
-  runInitScript?: boolean; // Whether to run Begin.txt initialization script
 }
 
 export const Game: React.FC<GameProps> = ({
-  // Story begins on map_002_凌绝峰峰顶 (player kneeling at father's grave)
-  initialMapPath = "/resources/map/map_002_凌绝峰峰顶.map",
   width = 800,
   height = 600,
-  runInitScript = true, // Run Begin.txt by default
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const gameManagerRef = useRef<GameManager | null>(null);
@@ -121,49 +116,21 @@ export const Game: React.FC<GameProps> = ({
       // Connect character renderer to game manager for custom action files
       gameManager.setCharacterRenderer(charRenderer);
 
-      // Load initial map
-      setLoadingText("加载地图...");
-      const mapData = await loadMap(initialMapPath);
-      if (mapData) {
-        gameManager.setMapData(mapData);
-        const mapName = initialMapPath.split("/").pop()?.replace(".map", "") || "";
+      // Load player sprites (required before running script)
+      setLoadingText("加载角色...");
+      await charRenderer.loadPlayerSprites("npc006");
 
-        // Set map name for script loading
-        gameManager.setCurrentMapName(mapName);
-
-        await loadMapMpcs(renderer, mapData, mapName, (progress) =>
-          setLoadProgress(progress)
-        );
-
-        // Load player sprites
-        setLoadingText("加载角色...");
-        await charRenderer.loadPlayerSprites("npc006");
-
-        // Run initialization script if enabled
-        if (runInitScript) {
-          setLoadingText("执行初始化脚本...");
-          console.log("[Game] Running initialization script (Begin.txt)...");
-          try {
-            await gameManager.initMap();
-            console.log("[Game] Initialization script completed");
-            // Check if dialog was shown
-            const guiState = gameManager.getGuiManager().getState();
-            console.log("[Game] Dialog visible after init:", guiState.dialog.isVisible);
-            console.log("[Game] Dialog text after init:", guiState.dialog.text);
-          } catch (e) {
-            console.warn("[Game] Failed to run Begin.txt:", e);
-            // Fallback to default initialization
-            gameManager.getPlayerController().setPosition(24, 39);
-            gameManager.getPlayerController().setDirection(3);
-          }
-        } else {
-          // Default position if not running script
-          gameManager.getPlayerController().setPosition(24, 39);
-          gameManager.getPlayerController().setDirection(3);
-        }
-
-        // Set initial event
-        gameManager.setEventId(0);
+      // Run game initialization script - this will load the starting map via LoadMap command
+      setLoadingText("执行初始化脚本...");
+      console.log("[Game] Running game initialization...");
+      try {
+        // The script system will handle loading the initial map
+        // Begin.txt in the starting map will set player position, load resources, etc.
+        await gameManager.initGame();
+        console.log("[Game] Game initialization completed");
+      } catch (e) {
+        console.error("[Game] Failed to initialize game:", e);
+        throw e;
       }
 
       setIsLoading(false);
@@ -176,7 +143,7 @@ export const Game: React.FC<GameProps> = ({
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [initialMapPath, width, height]);
+  }, [width, height]);
 
   // Game loop
   useEffect(() => {
