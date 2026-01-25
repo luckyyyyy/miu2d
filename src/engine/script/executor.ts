@@ -134,6 +134,10 @@ export class ScriptExecutor {
    * Load and run a script file
    */
   async runScript(scriptPath: string): Promise<void> {
+    // Set isRunning = true BEFORE any await to prevent race conditions
+    // This ensures that isRunning() returns true immediately after runScript() is called
+    this.state.isRunning = true;
+
     let script: ScriptData | undefined = this.scriptCache.get(scriptPath);
     if (!script) {
       const loadedScript = await loadScript(scriptPath);
@@ -145,12 +149,12 @@ export class ScriptExecutor {
 
     if (!script) {
       console.error(`Failed to load script: ${scriptPath}`);
+      this.state.isRunning = false; // Reset if load failed
       return;
     }
 
     this.state.currentScript = script;
     this.state.currentLine = 0;
-    this.state.isRunning = true;
     this.state.isPaused = false;
     this.state.waitingForInput = false;
 
@@ -388,14 +392,11 @@ export class ScriptExecutor {
 
       case "runscript": {
         const scriptFile = this.resolveString(params[0] || "");
-        // Push current state to call stack
-        if (this.state.currentScript) {
-          this.state.callStack.push({
-            script: this.state.currentScript,
-            line: this.state.currentLine + 1,
-          });
-        }
+        console.log(`[ScriptExecutor] RunScript: ${scriptFile}`);
+        // Start the new script (it will replace current script state)
         await this.context.runScript(scriptFile);
+        // After sub-script completes, the current script should not continue
+        // This matches C#'s behavior where RunScript creates independent ScriptRunner
         return false;
       }
 

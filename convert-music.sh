@@ -18,46 +18,33 @@ echo "Converting WMA files to MP3..."
 echo "Source directory: $MUSIC_DIR"
 
 # Count files
-total=$(find "$MUSIC_DIR" -type f -name "*.wma" | wc -l)
+total=$(find "$MUSIC_DIR" -type f -name "*.wma" 2>/dev/null | wc -l)
 current=0
 
 # Convert each WMA file to MP3
-find "$MUSIC_DIR" -type f -name "*.wma" | while read wma_file; do
+find "$MUSIC_DIR" -type f -name "*.wma" 2>/dev/null | sort | while IFS= read -r wma_file; do
     current=$((current + 1))
-    basename=$(basename "$wma_file" .wma)
+    filename=$(basename "$wma_file")
+    basename="${filename%.wma}"
     mp3_file="${wma_file%.wma}.mp3"
 
-    # Skip if MP3 already exists
-    if [ -f "$mp3_file" ]; then
-        echo "[$current/$total] Skipping (already exists): $(basename "$mp3_file")"
-    else
-        echo "[$current/$total] Converting: $(basename "$wma_file")"
+    # Skip if MP3 already exists and is newer than WMA
+    if [ -f "$mp3_file" ] && [ "$mp3_file" -nt "$wma_file" ]; then
+        echo "[$current/$total] ✓ Skipping (already exists): $filename"
+        continue
+    fi
 
-        # Convert with good quality settings
-        ffmpeg -i "$wma_file" -acodec libmp3lame -b:a 192k "$mp3_file" -loglevel error -y
+    echo "[$current/$total] Converting: $filename"
 
-        if [ $? -eq 0 ]; then
-            echo "  ✓ Created: $(basename "$mp3_file")"
+    # Convert with good quality settings, suppress verbose output
+    if ffmpeg -i "$wma_file" -acodec libmp3lame -b:a 192k "$mp3_file" -loglevel warning -y 2>&1 | grep -v "^Enter command:"; then
+        if [ -f "$mp3_file" ]; then
+            echo "  ✓ Created: ${filename%.wma}.mp3"
         else
-            echo "  ✗ Failed to convert: $(basename "$wma_file")"
-            continue
+            echo "  ✗ Failed to create MP3 file"
         fi
-    fi
-
-    # Create case-variant symlinks for compatibility
-    # e.g., if MC001.mp3 exists, create Mc001.mp3 -> MC001.mp3
-    dir=$(dirname "$mp3_file")
-    base_lower=$(echo "$basename" | tr '[:upper:]' '[:lower:]')
-    base_upper=$(echo "$basename" | tr '[:lower:]' '[:upper:]')
-
-    # Create lowercase variant if basename is not all lowercase
-    if [ "$basename" != "$base_lower" ]; then
-        ln -sf "$(basename "$mp3_file")" "$dir/${base_lower}.mp3" 2>/dev/null
-    fi
-
-    # Create uppercase variant if basename is not all uppercase
-    if [ "$basename" != "$base_upper" ]; then
-        ln -sf "$(basename "$mp3_file")" "$dir/${base_upper}.mp3" 2>/dev/null
+    else
+        echo "  ✗ Failed to convert: $filename"
     fi
 done
 

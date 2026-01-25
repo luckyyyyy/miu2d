@@ -61,7 +61,7 @@ export async function loadAsf(url: string): Promise<AsfData | null> {
   try {
     const response = await fetch(url);
     if (!response.ok) {
-      console.warn(`Failed to load ASF: ${url}`);
+      console.log(`Failed to load ASF: ${url}`);
       return null;
     }
 

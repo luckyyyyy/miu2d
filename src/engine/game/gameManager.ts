@@ -65,6 +65,7 @@ export class GameManager {
   // Trap management (like C#'s _ingnoredTrapsIndex and _traps)
   private ignoredTrapIndices: Set<number> = new Set();
   private mapTraps: Map<string, Map<number, string>> = new Map(); // mapName -> (trapIndex -> scriptFile)
+  private isInRunMapTrap: boolean = false; // C#'s _isInRunMapTrap - prevents trap re-triggering
 
   constructor(config: GameManagerConfig = {}) {
     this.config = config;
@@ -412,13 +413,10 @@ export class GameManager {
     console.log(`[GameManager] Loading map: ${mapPath}`);
     this.currentMapPath = mapPath;
 
-    // Extract map name from path
-    const match = mapPath.match(/map_\d+_([^/]+)/);
-    if (match) {
-      this.currentMapName = match[0];
-    } else {
-      this.currentMapName = mapPath.split("/").pop()?.replace(".map", "") || "";
-    }
+    // Extract map name from path (without .map extension)
+    // Example: "map_002_凌绝峰峰顶.map" -> "map_002_凌绝峰峰顶"
+    let mapFileName = mapPath.split("/").pop() || mapPath;
+    this.currentMapName = mapFileName.replace(/\.map$/i, "");
     console.log(`[GameManager] Map name: ${this.currentMapName}`);
 
     // Clear NPCs and Objs (matches C# LoadMap behavior)
@@ -435,6 +433,32 @@ export class GameManager {
     // Load map data via callback
     if (this.config.onMapChange) {
       this.mapData = await this.config.onMapChange(mapPath);
+
+      // Debug: Log trap info for current map
+      if (this.mapData) {
+        console.log(`[GameManager] Map loaded: ${this.mapData.mapColumnCounts}x${this.mapData.mapRowCounts} tiles`);
+
+        // Show trap tiles from map file
+        const trapsInMap: { tile: string; trapIndex: number }[] = [];
+        for (let i = 0; i < this.mapData.tileInfos.length; i++) {
+          const tileInfo = this.mapData.tileInfos[i];
+          if (tileInfo.trapIndex > 0) {
+            const x = i % this.mapData.mapColumnCounts;
+            const y = Math.floor(i / this.mapData.mapColumnCounts);
+            trapsInMap.push({ tile: `(${x},${y})`, trapIndex: tileInfo.trapIndex });
+          }
+        }
+        // Show trap scripts configured for this map
+        const mapTraps = this.mapTraps.get(this.currentMapName);
+        if (mapTraps && mapTraps.size > 0) {
+          console.log(`[GameManager] Trap scripts for "${this.currentMapName}":`);
+          mapTraps.forEach((scriptFile, trapIndex) => {
+            console.log(`[GameManager]   Trap ${trapIndex} -> ${scriptFile}`);
+          });
+        } else {
+          console.log(`[GameManager] No trap scripts configured for "${this.currentMapName}"`);
+        }
+      }
     }
     console.log(`[GameManager] Map loaded successfully`);
   }
@@ -461,6 +485,9 @@ export class GameManager {
       // Index 1-7 = resources/save/rpgN/Game.ini
       const basePath = index === 0 ? "/resources/save/game" : `/resources/save/rpg${index}`;
       const gameIniPath = `${basePath}/Game.ini`;
+
+      // Load traps configuration (matches C#'s LoadTraps())
+      await this.loadTraps(basePath);
 
       const response = await fetch(gameIniPath);
       if (!response.ok) {
@@ -518,6 +545,56 @@ export class GameManager {
       console.log(`[GameManager] Game save loaded successfully`);
     } catch (error) {
       console.error(`[GameManager] Error loading game save:`, error);
+    }
+  }
+
+  /**
+   * Load trap configuration from Traps.ini
+   * Based on C#'s MapBase.LoadTrap
+   */
+  private async loadTraps(basePath: string): Promise<void> {
+    try {
+      const trapsPath = `${basePath}/Traps.ini`;
+      console.log(`[GameManager] Loading traps from: ${trapsPath}`);
+
+      const response = await fetch(trapsPath);
+      if (!response.ok) {
+        console.warn(`[GameManager] Traps.ini not found at ${trapsPath}, using defaults`);
+        return;
+      }
+
+      // Read and decode
+      const buffer = await response.arrayBuffer();
+      const content = decodeGb2312(buffer);
+
+      // Parse INI
+      const sections = this.parseIni(content);
+
+      // Clear existing trap mappings and ignored list (like C# does)
+      this.ignoredTrapIndices.clear();
+      this.mapTraps.clear();
+
+      // Load trap mappings for each map
+      for (const mapName in sections) {
+        const trapMapping = new Map<number, string>();
+        const section = sections[mapName];
+
+        for (const key in section) {
+          const trapIndex = parseInt(key, 10);
+          const scriptFile = section[key];
+          if (!isNaN(trapIndex)) {
+            trapMapping.set(trapIndex, scriptFile);
+          }
+        }
+
+        if (trapMapping.size > 0) {
+          this.mapTraps.set(mapName, trapMapping);
+        }
+      }
+
+      console.log(`[GameManager] Loaded trap config for ${this.mapTraps.size} maps`);
+    } catch (error) {
+      console.error(`[GameManager] Error loading traps:`, error);
     }
   }
 
@@ -706,6 +783,7 @@ export class GameManager {
    * Checks custom trap mapping first (from SetTrap/SetMapTrap), then defaults
    */
   private getTrapScriptFileName(trapIndex: number): string | null {
+
     // Check if trap is in ignored list
     if (this.ignoredTrapIndices.has(trapIndex)) {
       return null;
@@ -713,15 +791,19 @@ export class GameManager {
 
     // Check if there's a custom trap mapping for current map
     const mapTraps = this.mapTraps.get(this.currentMapName);
+
     if (mapTraps && mapTraps.has(trapIndex)) {
       const customScript = mapTraps.get(trapIndex)!;
+      console.log(`[GameManager] Using custom trap script: ${customScript}`);
       // Empty string means trap is removed
       if (customScript === "") return null;
       return customScript;
     }
 
     // Default trap file naming
-    return `Trap${trapIndex.toString().padStart(2, "0")}.txt`;
+    const defaultScript = `Trap${trapIndex.toString().padStart(2, "0")}.txt`;
+    console.log(`[GameManager] Using default trap script: ${defaultScript}`);
+    return defaultScript;
   }
 
   /**
@@ -757,10 +839,20 @@ export class GameManager {
    * Based on C#'s MapBase.RunTileTrapScript
    */
   private checkTrap(tile: Vector2): void {
-    if (!this.mapData) return;
+    if (!this.mapData) {
+      return;
+    }
 
-    // Don't run traps if a script is already running or waiting for input
-    if (this.scriptExecutor.isRunning() || this.scriptExecutor.isWaitingForInput()) return;
+    // C#: Don't run trap if already in trap script execution
+    // This prevents map transition traps from re-triggering before player position is updated
+    if (this.isInRunMapTrap) {
+      return;
+    }
+
+    // Don't run traps if waiting for input (dialog, selection, etc.)
+    if (this.scriptExecutor.isWaitingForInput()) {
+      return;
+    }
 
     const tileIndex = tile.x + tile.y * this.mapData.mapColumnCounts;
     const tileInfo = this.mapData.tileInfos[tileIndex];
@@ -770,13 +862,20 @@ export class GameManager {
 
       // Get trap script file name (handles ignored traps and custom mappings)
       const trapScriptName = this.getTrapScriptFileName(trapIndex);
-      if (!trapScriptName) return;
+      if (!trapScriptName) {
+        return;
+      }
 
       // Add to ignored list so it won't trigger again (until re-activated by SetTrap)
       this.ignoredTrapIndices.add(trapIndex);
 
+      // Set flag to prevent re-triggering during map transitions
+      this.isInRunMapTrap = true;
+
       const basePath = this.getScriptBasePath();
-      this.scriptExecutor.runScript(`${basePath}/${trapScriptName}`);
+      const scriptPath = `${basePath}/${trapScriptName}`;
+      console.log(`[GameManager] Triggering trap script: ${scriptPath}`);
+      this.scriptExecutor.runScript(scriptPath);
     }
   }
 
@@ -790,6 +889,11 @@ export class GameManager {
 
     // Update script executor
     this.scriptExecutor.update(deltaTime * 1000);
+
+    // C#: Reset trap flag when trap script finishes
+    if (this.isInRunMapTrap && !this.scriptExecutor.isRunning() && !this.scriptExecutor.isWaitingForInput()) {
+      this.isInRunMapTrap = false;
+    }
 
     // Update screen effects (fade in/out, etc.)
     this.screenEffects.update(deltaTime);
@@ -817,9 +921,14 @@ export class GameManager {
     // Update player
     this.playerController.update(deltaTime);
 
-    // Check for trap at player's position
-    const playerTile = this.playerController.getTilePosition();
-    this.checkTrap(playerTile);
+    // Check for trap at player's position (but not during trap script execution)
+    // C#'s update loop doesn't explicitly check this, but trap checking is only
+    // done in Player.CheckMapTrap() which is called during movement or SetPlayerPos
+    // We check here for continuous trap detection, but skip during map transitions
+    if (!this.isInRunMapTrap) {
+      const playerTile = this.playerController.getTilePosition();
+      this.checkTrap(playerTile);
+    }
 
     // Update NPCs
     this.npcManager.update(deltaTime);
