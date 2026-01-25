@@ -620,61 +620,16 @@ export class GameManager {
   }
 
   /**
-   * Initialize game - load starting map from game.ini and run Begin.txt
+   * Initialize game - run NewGame.txt script (matches C# implementation)
    * This is the main entry point for starting a new game
+   *
+   * C# equivalent: Loader.NewGame() -> ScriptExecuter.RunScript("NewGame.txt")
+   * NewGame.txt contains: LoadGame(0), PlayMovie(), RunScript("Begin.txt")
    */
   async initGame(): Promise<void> {
-    console.log("[GameManager] Initializing new game...");
-    
-    // Load game.ini to get starting map
-    const gameIniPath = "/resources/save/game/Game.ini";
-    console.log(`[GameManager] Loading game config from: ${gameIniPath}`);
-    
-    try {
-      const response = await fetch(gameIniPath);
-      const buffer = await response.arrayBuffer();
-      
-      // Decode GB2312 encoded ini file
-      const iniText = decodeGb2312(buffer);
-      
-      // Parse [State] section to get Map
-      const mapMatch = iniText.match(/Map=(.+\.map)/i);
-      if (!mapMatch) {
-        throw new Error("No Map entry found in game.ini");
-      }
-      
-      const startingMap = mapMatch[1].trim();
-      console.log(`[GameManager] Starting map from game.ini: ${startingMap}`);
-      
-      // Load the starting map - this will trigger onMapChange callback
-      await this.loadMap(startingMap);
-      
-      // Run the map's Begin.txt initialization script
-      await this.initMap();
-      
-      console.log("[GameManager] Game initialization completed");
-    } catch (error) {
-      console.error("[GameManager] Failed to initialize game:", error);
-      throw error;
-    }
-  }
-
-  /**
-   * Run map initialization script
-   */
-  async initMap(): Promise<void> {
-    // First, load initial game state (objects, NPCs from game.ini)
-    await this.loadInitialGameState();
-
-    const basePath = this.getScriptBasePath();
-    const scriptPath = `${basePath}/Begin.txt`;
-    console.log(`[GameManager] Initializing map, running script: ${scriptPath}`);
-    try {
-      await this.scriptExecutor.runScript(scriptPath);
-      console.log(`[GameManager] Map initialization completed`);
-    } catch (error) {
-      console.warn(`[GameManager] No Begin.txt found for map, skipping initialization:`, error);
-    }
+    console.log("[GameManager] Starting new game...");
+    await this.newGame();
+    console.log("[GameManager] Game initialization completed");
   }
 
   /**

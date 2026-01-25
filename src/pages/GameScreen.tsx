@@ -4,7 +4,11 @@ import { Game } from "../components";
 
 export default function GameScreen() {
   const navigate = useNavigate();
-  const [windowSize, setWindowSize] = useState({ width: 800, height: 600 });
+  // Initialize with actual window size to prevent double initialization
+  const [windowSize, setWindowSize] = useState(() => ({
+    width: Math.min(window.innerWidth, 1280),
+    height: Math.min(window.innerHeight - 20, 720),
+  }));
 
   useEffect(() => {
     const updateSize = () => {
@@ -13,7 +17,6 @@ export default function GameScreen() {
         height: Math.min(window.innerHeight - 20, 720),
       });
     };
-    updateSize();
     window.addEventListener("resize", updateSize);
     return () => window.removeEventListener("resize", updateSize);
   }, []);
@@ -21,7 +24,7 @@ export default function GameScreen() {
   return (
     <div className="w-full h-full flex items-center justify-center">
       <Game width={windowSize.width} height={windowSize.height} />
-      
+
       {/* Return to title button */}
       <button
         onClick={() => navigate("/")}
