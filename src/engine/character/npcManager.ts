@@ -17,9 +17,19 @@ export class NpcManager {
   private npcs: Map<string, NpcData> = new Map();
   private npcConfigCache: Map<string, CharacterConfig> = new Map();
   private isWalkable: (tile: Vector2) => boolean;
+  // Optional reference to character renderer for custom action files
+  private characterRenderer: any = null;
 
   constructor(isWalkable: (tile: Vector2) => boolean) {
     this.isWalkable = isWalkable;
+  }
+
+  /**
+   * Set character renderer reference
+   * This is needed to properly handle custom action files
+   */
+  setCharacterRenderer(renderer: any): void {
+    this.characterRenderer = renderer;
   }
 
   /**
@@ -74,13 +84,23 @@ export class NpcManager {
     }
 
     if (!config) {
-      console.warn(`Failed to load NPC config: ${configPath}`);
+      // loadNpcConfig already logged the error, just return null
       return null;
     }
 
     const id = generateId();
     const npc = createNpcData(id, config, tileX, tileY, direction);
     this.npcs.set(id, npc);
+
+    // Log NPC creation for debugging
+    console.log(`[NpcManager] Created NPC: ${config.name} at (${tileX}, ${tileY}), id=${id}, npcIni=${config.npcIni || 'none'}`);
+
+    // Auto-load sprites if renderer is available
+    if (this.characterRenderer && config.npcIni) {
+      this.characterRenderer.loadCharacterSprites(id, config.npcIni)
+        .catch((err: any) => console.warn(`[NpcManager] Failed to load sprites for NPC ${config!.name}:`, err));
+    }
+
     return npc;
   }
 
@@ -96,6 +116,16 @@ export class NpcManager {
     const id = generateId();
     const npc = createNpcData(id, config, tileX, tileY, direction);
     this.npcs.set(id, npc);
+
+    // Log NPC creation for debugging
+    console.log(`[NpcManager] Created NPC (with config): ${config.name} at (${tileX}, ${tileY}), id=${id}, npcIni=${config.npcIni || 'none'}`);
+
+    // Auto-load sprites if renderer is available
+    if (this.characterRenderer && config.npcIni) {
+      this.characterRenderer.loadCharacterSprites(id, config.npcIni)
+        .catch((err: any) => console.warn(`[NpcManager] Failed to load sprites for NPC ${config.name}:`, err));
+    }
+
     return npc;
   }
 
@@ -292,19 +322,8 @@ export class NpcManager {
   setNpcActionFile(name: string, stateType: number, asfFile: string): boolean {
     const npc = this.getNpc(name);
     if (!npc) {
-      console.warn(`NPC not found: ${name}`);
+      console.warn(`[NpcManager] NPC not found: ${name}`);
       return false;
-    }
-
-    // Store the action file mapping in sprite data
-    if (!npc.sprite) {
-      npc.sprite = {
-        basePath: "/resources/asf/character",
-        baseFileName: "",
-        isLoaded: false,
-        currentFrame: 0,
-        animationTime: 0,
-      };
     }
 
     // Store custom action files (state -> asf file)
@@ -312,10 +331,17 @@ export class NpcManager {
       npc.customActionFiles = new Map();
     }
     npc.customActionFiles.set(stateType, asfFile);
+    console.log(`[NpcManager] SetNpcActionFile: ${name}, state=${stateType}, file=${asfFile}`);
 
-    // If this is the current state, trigger a reload
-    if (npc.state === stateType) {
-      npc.sprite.isLoaded = false; // Mark for reload
+    // Notify character renderer to load the custom ASF
+    if (this.characterRenderer && this.characterRenderer.setNpcActionFile) {
+      this.characterRenderer.setNpcActionFile(npc.id, stateType, asfFile);
+
+      // Preload the ASF if this is the current state
+      if (npc.state === stateType && this.characterRenderer.preloadCustomActionFile) {
+        this.characterRenderer.preloadCustomActionFile(npc.id, stateType, asfFile)
+          .catch((err: any) => console.error(`Failed to preload custom action file:`, err));
+      }
     }
 
     return true;
@@ -377,38 +403,58 @@ export class NpcManager {
 
   /**
    * Load NPCs from a .npc file
-   * Based on C#'s NpcManager.Load
+   * Based on C#'s NpcManager.Load and Utils.GetNpcObjFilePath
    */
   async loadNpcFile(fileName: string): Promise<boolean> {
     console.log(`[NpcManager] Loading NPC file: ${fileName}`);
 
-    try {
-      // .npc files are in ini/save/ directory
-      const filePath = `/resources/ini/save/${fileName}`;
-      const response = await fetch(filePath);
+    // Try multiple paths like C# GetNpcObjFilePath
+    const paths = [
+      `/resources/save/game/${fileName}`,
+      `/resources/ini/save/${fileName}`,
+    ];
 
-      if (!response.ok) {
-        console.error(`[NpcManager] Failed to load NPC file: ${filePath}`);
-        return false;
-      }
-
-      // Decode with GBK
-      const buffer = await response.arrayBuffer();
-      let decoder: TextDecoder;
+    for (const filePath of paths) {
       try {
-        decoder = new TextDecoder("gbk");
-      } catch {
-        decoder = new TextDecoder("utf-8");
-      }
-      const content = decoder.decode(new Uint8Array(buffer));
+        console.log(`[NpcManager] Trying: ${filePath}`);
+        const response = await fetch(filePath);
 
-      await this.parseNpcFile(content);
-      console.log(`[NpcManager] Loaded ${this.npcs.size} NPCs`);
-      return true;
-    } catch (error) {
-      console.error(`[NpcManager] Error loading NPC file:`, error);
-      return false;
+        if (!response.ok) {
+          continue;
+        }
+
+        // Check if it's actually an INI file (not Vite's HTML fallback)
+        const contentType = response.headers.get('content-type') || '';
+        if (contentType.includes('text/html')) {
+          continue;
+        }
+
+        // Decode with GBK
+        const buffer = await response.arrayBuffer();
+        let decoder: TextDecoder;
+        try {
+          decoder = new TextDecoder("gbk");
+        } catch {
+          decoder = new TextDecoder("utf-8");
+        }
+        const content = decoder.decode(new Uint8Array(buffer));
+
+        // Check if content is HTML
+        if (content.trim().startsWith('<!DOCTYPE') || content.trim().startsWith('<html')) {
+          continue;
+        }
+
+        console.log(`[NpcManager] Parsing NPC file from: ${filePath}`);
+        await this.parseNpcFile(content);
+        console.log(`[NpcManager] Loaded ${this.npcs.size} NPCs`);
+        return true;
+      } catch (error) {
+        // Continue to next path
+      }
     }
+
+    console.error(`[NpcManager] Failed to load NPC file: ${fileName} (tried all paths)`);
+    return false;
   }
 
   /**
@@ -432,7 +478,11 @@ export class NpcManager {
   }
 
   /**
-   * Create NPC from INI section
+   * Create NPC from INI section (from .npc save files)
+   * Based on C# Character(KeyDataCollection) constructor
+   *
+   * NPC save files contain inline NPC data with NpcIni referencing resource files in npcres/
+   * This is different from loading character config files from ini/npc/
    */
   private async createNpcFromSection(section: Record<string, string>): Promise<void> {
     const name = section["Name"] || "";
@@ -440,20 +490,51 @@ export class NpcManager {
     const mapX = parseInt(section["MapX"] || "0", 10);
     const mapY = parseInt(section["MapY"] || "0", 10);
     const dir = parseInt(section["Dir"] || "4", 10);
+    const kind = parseInt(section["Kind"] || "0", 10);
+    const walkSpeed = parseInt(section["WalkSpeed"] || "1", 10);
+    const dialogRadius = parseInt(section["DialogRadius"] || "1", 10);
+    const visionRadius = parseInt(section["VisionRadius"] || "10", 10);
+    const scriptFile = section["ScriptFile"] || "";
+    const pathFinder = section["PathFinder"] === "1";
+    const action = parseInt(section["Action"] || "0", 10);
+    const relation = parseInt(section["Relation"] || "0", 10);
 
-    if (!npcIni) {
-      console.warn(`[NpcManager] NPC section missing NpcIni`);
-      return;
-    }
+    // When loading from .npc files, NpcIni directly references resource file in npcres/
+    // e.g., "npc146-武当山下酒肆老板.ini" -> "ini/npcres/npc146-武当山下酒肆老板.ini"
+    // We create the config directly from section data (like C# Character(KeyDataCollection))
 
-    // Load NPC from ini/npc/ directory
-    const npcPath = `/resources/ini/npc/${npcIni}`;
-    const npc = await this.addNpc(npcPath, mapX, mapY, dir as any);
+    const config: CharacterConfig = {
+      name: name,
+      npcIni: npcIni, // Resource file reference for sprite loading
+      kind: kind as any,
+      relation: relation as any,
+      scriptFile: scriptFile,
+      stats: {
+        name: name,
+        life: 100,
+        lifeMax: 100,
+        mana: 100,
+        manaMax: 100,
+        thew: 100,
+        thewMax: 100,
+        attack: 10,
+        defence: 10,
+        evade: 0,
+        exp: 0,
+        level: 1,
+        walkSpeed: walkSpeed,
+        visionRadius: visionRadius,
+        attackRadius: dialogRadius,
+        dialogRadius: dialogRadius,
+      },
+      pathFinder: pathFinder,
+    };
 
-    if (npc && name) {
-      // Override name if specified in save file
-      npc.config.name = name;
-    }
+    // Create NPC with inline config
+    const npc = this.addNpcWithConfig(config, mapX, mapY, dir as any);
+    npc.actionType = action;
+
+    console.log(`[NpcManager] Created NPC from section: ${name} at (${mapX}, ${mapY}), npcIni=${npcIni}`);
   }
 
   /**

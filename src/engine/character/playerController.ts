@@ -10,7 +10,7 @@ import {
   updateCharacterAnimation,
   walkTo,
 } from "./character";
-import { pixelToTile, getDirection, distance } from "../core/utils";
+import { pixelToTile, tileToPixel, getDirection, distance } from "../core/utils";
 
 export interface PlayerAction {
   type: "interact" | "attack" | "use_skill" | "use_item";
@@ -58,7 +58,8 @@ export class PlayerController {
    */
   setPosition(tileX: number, tileY: number): void {
     this.player.tilePosition = { x: tileX, y: tileY };
-    const pixel = { x: tileX * 64 + 32, y: tileY * 16 + 16 };
+    // C# uses ToPixelPosition directly (tile top-left corner)
+    const pixel = tileToPixel(tileX, tileY);
     this.player.pixelPosition = pixel;
     this.player.path = [];
     this.player.isMoving = false;

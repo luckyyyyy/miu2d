@@ -8,8 +8,6 @@ if (!rootElement) {
   throw new Error("Root element not found");
 }
 
-createRoot(rootElement).render(
-  <StrictMode>
-    <App />
-  </StrictMode>
-);
+// Removed StrictMode to prevent double useEffect calls in development
+// which causes game initialization to run twice
+createRoot(rootElement).render(<App />);

@@ -29,6 +29,10 @@ export interface CharacterSprite {
   isLoaded: boolean;
   basePath: string;
   baseFileName: string;
+  // Custom action files for specific states (state -> ASF file)
+  customActionFiles?: Map<number, string>;
+  // Cache for dynamically loaded ASF files
+  customAsfCache?: Map<number, AsfData | null>;
 }
 
 // Cache for sprite sets
@@ -160,7 +164,7 @@ export async function loadSpriteSet(
 }
 
 /**
- * Get ASF for a character state
+ * Get ASF for a character state (synchronous version - uses pre-loaded sprites only)
  */
 export function getAsfForState(spriteSet: SpriteSet, state: CharacterState): AsfData | null {
   switch (state) {
@@ -197,14 +201,96 @@ export function getAsfForState(spriteSet: SpriteSet, state: CharacterState): Asf
 }
 
 /**
+ * Get ASF for a character state, with support for custom action files
+ * This is the async version that can load custom ASF files dynamically
+ * Based on C# Character.SetState() which uses NpcIni[(int)state].Image
+ */
+export async function getAsfForStateAsync(
+  sprite: CharacterSprite,
+  state: CharacterState
+): Promise<AsfData | null> {
+  // Check if there's a custom ASF for this state
+  if (sprite.customActionFiles && sprite.customActionFiles.has(state)) {
+    // Initialize cache if needed
+    if (!sprite.customAsfCache) {
+      sprite.customAsfCache = new Map();
+    }
+
+    // Check cache first
+    if (sprite.customAsfCache.has(state)) {
+      return sprite.customAsfCache.get(state) || null;
+    }
+
+    // Load custom ASF
+    const customFileName = sprite.customActionFiles.get(state)!;
+    const customAsf = await loadCustomAsf(sprite.basePath, customFileName);
+    sprite.customAsfCache.set(state, customAsf);
+    return customAsf;
+  }
+
+  // Fall back to pre-loaded sprite set
+  return getAsfForState(sprite.spriteSet, state);
+}
+
+/**
+ * Load custom ASF file
+ * Based on C# ResFile.GetAsfFilePathBase() and SetNpcStateImage()
+ */
+async function loadCustomAsf(
+  basePath: string,
+  asfFileName: string
+): Promise<AsfData | null> {
+  // Try character path first, then interlude path (like C#)
+  const paths = [
+    `/resources/asf/character/${asfFileName}`,
+    `/resources/asf/interlude/${asfFileName}`,
+  ];
+
+  for (const path of paths) {
+    const asf = await loadAsf(path);
+    if (asf) {
+      console.log(`[Sprite] Loaded custom ASF: ${path}`);
+      return asf;
+    }
+  }
+
+  console.warn(`[Sprite] Failed to load custom ASF: ${asfFileName}`);
+  return null;
+}
+
+/**
  * Update sprite animation
+ * This should be called synchronously - async loading is handled by preloadCustomActionFile
  */
 export function updateSpriteAnimation(
   sprite: CharacterSprite,
   state: CharacterState,
   deltaTime: number
 ): void {
-  const asf = getAsfForState(sprite.spriteSet, state);
+  // Check for custom ASF first (from cache)
+  let asf: AsfData | null = null;
+
+  if (sprite.customActionFiles && sprite.customActionFiles.has(state)) {
+    // Try to get from cache
+    if (sprite.customAsfCache && sprite.customAsfCache.has(state)) {
+      asf = sprite.customAsfCache.get(state) || null;
+    }
+
+    // If not in cache, trigger async load and use default for now
+    if (!asf) {
+      console.warn(`[Sprite] Custom ASF not cached for state ${state}, loading async...`);
+      // Trigger load in background (will be available next frame)
+      getAsfForStateAsync(sprite, state).catch(err =>
+        console.error(`Failed to load custom ASF:`, err)
+      );
+      // Fall back to default sprite set for this frame
+      asf = getAsfForState(sprite.spriteSet, state);
+    }
+  } else {
+    // Use normal sprite set
+    asf = getAsfForState(sprite.spriteSet, state);
+  }
+
   if (!asf) return;
 
   sprite.currentAsf = asf;
@@ -237,6 +323,8 @@ export function resetSpriteAnimation(sprite: CharacterSprite): void {
 
 /**
  * Draw character sprite
+ * Uses sprite.currentAsf which is set by updateSpriteAnimation
+ * This ensures custom action files are used if available
  */
 export function drawCharacterSprite(
   ctx: CanvasRenderingContext2D,
@@ -246,7 +334,10 @@ export function drawCharacterSprite(
   direction: Direction,
   state: CharacterState
 ): void {
-  const asf = getAsfForState(sprite.spriteSet, state);
+  // Use currentAsf which is set by updateSpriteAnimation
+  // This ensures custom action files are respected
+  const asf = sprite.currentAsf;
+
   if (!asf || asf.frames.length === 0) {
     // Draw placeholder if no sprite loaded
     drawPlaceholder(ctx, x, y, "#4a90d9");
@@ -263,7 +354,7 @@ export function drawCharacterSprite(
     const frame = asf.frames[frameIdx];
     const canvas = getFrameCanvas(frame);
 
-    // Position: x,y is the foot position (world position)
+    // Position: x,y is the tile top-left corner (PositionInWorld in C#)
     // C# draws at: PositionInWorld.X - Texture.Left, PositionInWorld.Y - Texture.Bottom
     // Left and Bottom are offsets stored in the ASF header that properly align the sprite
     const drawX = x - asf.left;

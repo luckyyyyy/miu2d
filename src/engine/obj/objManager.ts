@@ -138,37 +138,56 @@ export class ObjManager {
   private asfCache: Map<string, AsfData | null> = new Map();
 
   /**
-   * Load objects from an .obj file (from ini/save/ directory)
+   * Load objects from an .obj file
+   * Based on C# Utils.GetNpcObjFilePath - tries save/game/ first, then ini/save/
    */
   async load(fileName: string): Promise<boolean> {
     console.log(`[ObjManager] Loading obj file: ${fileName}`);
     this.clearAll();
     this.fileName = fileName;
 
-    try {
-      // .obj files are in ini/save/ directory
-      const filePath = `/resources/ini/save/${fileName}`;
-      console.log(`[ObjManager] Fetching from: ${filePath}`);
+    // Try multiple paths like C# GetNpcObjFilePath
+    const paths = [
+      `/resources/save/game/${fileName}`,
+      `/resources/ini/save/${fileName}`,
+    ];
 
-      const response = await fetch(filePath);
-      if (!response.ok) {
-        console.error(`[ObjManager] Failed to load obj file: ${filePath}, status: ${response.status}`);
-        return false;
+    for (const filePath of paths) {
+      try {
+        console.log(`[ObjManager] Trying: ${filePath}`);
+        const response = await fetch(filePath);
+
+        if (!response.ok) {
+          continue;
+        }
+
+        // Check if it's actually an INI file (not Vite's HTML fallback)
+        const contentType = response.headers.get('content-type') || '';
+        if (contentType.includes('text/html')) {
+          continue;
+        }
+
+        // Read as binary and decode with GBK
+        const buffer = await response.arrayBuffer();
+        const decoder = getTextDecoder();
+        const content = decoder.decode(new Uint8Array(buffer));
+
+        // Check if content is HTML
+        if (content.trim().startsWith('<!DOCTYPE') || content.trim().startsWith('<html')) {
+          continue;
+        }
+
+        console.log(`[ObjManager] Parsing obj file from: ${filePath}`);
+        await this.parseObjFile(content);
+        console.log(`[ObjManager] Loaded ${this.objects.size} objects`);
+        return true;
+      } catch (error) {
+        // Continue to next path
       }
-
-      // Read as binary and decode with GBK
-      const buffer = await response.arrayBuffer();
-      const decoder = getTextDecoder();
-      const content = decoder.decode(new Uint8Array(buffer));
-
-      console.log(`[ObjManager] Parsing obj file, content length: ${content.length}`);
-      await this.parseObjFile(content);
-      console.log(`[ObjManager] Loaded ${this.objects.size} objects`);
-      return true;
-    } catch (error) {
-      console.error(`[ObjManager] Error loading obj file ${fileName}:`, error);
-      return false;
     }
+
+    console.error(`[ObjManager] Failed to load obj file: ${fileName} (tried all paths)`);
+    return false;
   }
 
   /**

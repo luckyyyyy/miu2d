@@ -146,7 +146,7 @@ export async function loadMapMpcs(
 /**
  * Get start and end tile indices for the current view
  */
-function getViewTileRange(
+export function getViewTileRange(
   camera: Camera,
   mapData: JxqyMapData
 ): { startX: number; startY: number; endX: number; endY: number } {
@@ -210,6 +210,100 @@ function drawTileLayer(
     drawX, drawY,
     frameCanvas.width + 0.5, frameCanvas.height + 0.5
   );
+}
+
+/**
+ * Draw a specific layer for the entire visible area
+ */
+export function renderLayer(
+  ctx: CanvasRenderingContext2D,
+  renderer: MapRenderer,
+  layer: "layer1" | "layer2" | "layer3"
+): void {
+  const { camera, mapData } = renderer;
+  if (!mapData || renderer.isLoading) return;
+
+  ctx.imageSmoothingEnabled = false;
+  const { startX, startY, endX, endY } = getViewTileRange(camera, mapData);
+
+  for (let row = startY; row < endY; row++) {
+    for (let col = startX; col < endX; col++) {
+      drawTileLayer(ctx, renderer, layer, col, row);
+    }
+  }
+}
+
+/**
+ * Draw layer 1 tile at a specific position (for interleaved rendering)
+ */
+export function drawLayer1TileAt(
+  ctx: CanvasRenderingContext2D,
+  renderer: MapRenderer,
+  col: number,
+  row: number
+): void {
+  if (!renderer.mapData || renderer.isLoading) return;
+  ctx.imageSmoothingEnabled = false;
+  drawTileLayer(ctx, renderer, "layer2", col, row);
+}
+
+/**
+ * Render map with interleaved character drawing (C# style)
+ * This method draws layer1 (ground), then interleaves layer2 tiles with characters row-by-row,
+ * then draws layer3 on top.
+ *
+ * @param drawCharactersAtRow - Callback to draw characters at a specific row
+ */
+export function renderMapInterleaved(
+  ctx: CanvasRenderingContext2D,
+  renderer: MapRenderer,
+  drawCharactersAtRow?: (row: number, startCol: number, endCol: number) => void
+): void {
+  const { camera, mapData } = renderer;
+
+  ctx.imageSmoothingEnabled = false;
+
+  // Don't render if no map data or still loading
+  if (!mapData || renderer.isLoading) {
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "24px Arial";
+    ctx.textAlign = "center";
+    ctx.fillText(
+      `加载中... ${Math.round(renderer.loadProgress * 100)}%`,
+      camera.width / 2,
+      camera.height / 2
+    );
+    return;
+  }
+
+  const { startX, startY, endX, endY } = getViewTileRange(camera, mapData);
+
+  // 1. Draw layer1 (ground) - entire visible area
+  for (let row = startY; row < endY; row++) {
+    for (let col = startX; col < endX; col++) {
+      drawTileLayer(ctx, renderer, "layer1", col, row);
+    }
+  }
+
+  // 2. Interleave layer2 with characters (row by row)
+  for (let row = startY; row < endY; row++) {
+    // Draw layer2 tiles for this row
+    for (let col = startX; col < endX; col++) {
+      drawTileLayer(ctx, renderer, "layer2", col, row);
+    }
+
+    // Draw characters at this row
+    if (drawCharactersAtRow) {
+      drawCharactersAtRow(row, startX, endX);
+    }
+  }
+
+  // 3. Draw layer3 (top objects) - entire visible area
+  for (let row = startY; row < endY; row++) {
+    for (let col = startX; col < endX; col++) {
+      drawTileLayer(ctx, renderer, "layer3", col, row);
+    }
+  }
 }
 
 /**

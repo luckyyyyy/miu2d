@@ -1,20 +1,123 @@
 /**
  * Character Renderer - handles loading and rendering character sprites
  * Based on JxqyHD character rendering system
+ *
+ * C# Reference: Engine/ResFile.cs, Engine/Character.cs
+ *
+ * NPC sprites are loaded via npcres/*.ini files which map states to ASF files:
+ * - NPC config (ini/npc/*.ini) has NpcIni=xxx.ini pointing to npcres file
+ * - NpcRes file (ini/npcres/*.ini) has sections like [Stand], [Walk] with Image=xxx.asf
+ * - ASF files are in asf/character/ or asf/interlude/
  */
 
 import type { NpcData, PlayerData, CharacterSpriteData, Direction, CharacterState } from "./core/types";
+import { CharacterState as CharState } from "./core/types";
 import {
   createCharacterSprite,
   loadSpriteSet,
   getAsfForState,
+  getAsfForStateAsync,
   updateSpriteAnimation,
   resetSpriteAnimation,
   drawCharacterSprite,
+  createEmptySpriteSet,
   type CharacterSprite,
   type SpriteSet,
 } from "./sprite";
-import { getFrameCanvas, getFrameIndex, type AsfData } from "./asf";
+import { loadAsf, getFrameCanvas, getFrameIndex, type AsfData } from "./asf";
+
+/**
+ * NpcRes state info parsed from ini/npcres/*.ini
+ * Based on C# ResStateInfo
+ */
+interface NpcResStateInfo {
+  imagePath: string;  // ASF file name
+  soundPath: string;  // WAV file name
+}
+
+/**
+ * Parse npcres INI file content
+ * Based on C# ResFile.ReadFile()
+ */
+function parseNpcResIni(content: string): Map<number, NpcResStateInfo> {
+  const stateMap = new Map<number, NpcResStateInfo>();
+  const sections: Record<string, Record<string, string>> = {};
+  let currentSection = "";
+
+  const lines = content.split(/\r?\n/);
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith(";") || trimmed.startsWith("//")) {
+      continue;
+    }
+
+    const sectionMatch = trimmed.match(/^\[([^\]]+)\]$/);
+    if (sectionMatch) {
+      currentSection = sectionMatch[1];
+      sections[currentSection] = {};
+      continue;
+    }
+
+    const eqIdx = trimmed.indexOf("=");
+    if (eqIdx > 0 && currentSection) {
+      const key = trimmed.substring(0, eqIdx).trim();
+      const value = trimmed.substring(eqIdx + 1).trim();
+      sections[currentSection][key] = value;
+    }
+  }
+
+  // Map section names to CharacterState (based on C# ResFile.GetState)
+  const stateNames: Record<string, number> = {
+    "Stand": CharState.Stand,
+    "Stand1": CharState.Stand1,
+    "Walk": CharState.Walk,
+    "Run": CharState.Run,
+    "Jump": CharState.Jump,
+    "Attack": CharState.Attack,
+    "Attack1": CharState.Attack1,
+    "Attack2": CharState.Attack2,
+    "Magic": CharState.Magic,
+    "Sit": CharState.Sit,
+    "Hurt": CharState.Hurt,
+    "Death": CharState.Death,
+    "FightStand": CharState.FightStand,
+    "FightWalk": CharState.FightWalk,
+    "FightRun": CharState.FightRun,
+    "FightJump": CharState.FightJump,
+  };
+
+  for (const [sectionName, keys] of Object.entries(sections)) {
+    const state = stateNames[sectionName];
+    if (state !== undefined && keys["Image"]) {
+      stateMap.set(state, {
+        imagePath: keys["Image"],
+        soundPath: keys["Sound"] || "",
+      });
+    }
+  }
+
+  return stateMap;
+}
+
+/**
+ * Load ASF file from character or interlude directory
+ * Based on C# ResFile.GetAsfFilePathBase()
+ */
+async function loadCharacterAsf(asfFileName: string): Promise<AsfData | null> {
+  const paths = [
+    `/resources/asf/character/${asfFileName}`,
+    `/resources/asf/interlude/${asfFileName}`,
+  ];
+
+  for (const path of paths) {
+    const asf = await loadAsf(path);
+    if (asf) {
+      return asf;
+    }
+  }
+
+  return null;
+}
 
 /**
  * Character Renderer manages sprite loading and rendering for all characters
@@ -26,6 +129,8 @@ export class CharacterRenderer {
   private spriteSets: Map<string, SpriteSet> = new Map();
   // Loading promises to prevent duplicate loads
   private loadingPromises: Map<string, Promise<SpriteSet>> = new Map();
+  // NpcRes cache (npcIni -> state map)
+  private npcResCache: Map<string, Map<number, NpcResStateInfo>> = new Map();
 
   /**
    * Get base file name from NPC INI path
@@ -58,20 +163,159 @@ export class CharacterRenderer {
   }
 
   /**
-   * Load sprites for a character
+   * Load NpcRes INI file to get state -> ASF mappings
+   * Based on C# ResFile.ReadFile(@"ini\npcres\" + fileName, ResType.Npc)
+   */
+  private async loadNpcRes(npcIni: string): Promise<Map<number, NpcResStateInfo> | null> {
+    // Check cache first
+    if (this.npcResCache.has(npcIni)) {
+      return this.npcResCache.get(npcIni)!;
+    }
+
+    try {
+      // npcIni is the filename like "npc006.ini" or "z-杨影枫.ini"
+      const filePath = `/resources/ini/npcres/${npcIni}`;
+      const response = await fetch(filePath);
+
+      if (!response.ok) {
+        console.warn(`[CharacterRenderer] NpcRes not found: ${filePath}`);
+        return null;
+      }
+
+      // Check if it's actually an INI file (not Vite's HTML fallback)
+      const contentType = response.headers.get('content-type') || '';
+      if (contentType.includes('text/html')) {
+        console.warn(`[CharacterRenderer] NpcRes is HTML (404 fallback): ${filePath}`);
+        return null;
+      }
+
+      // Decode with GBK for Chinese filenames
+      const buffer = await response.arrayBuffer();
+      let decoder: TextDecoder;
+      try {
+        decoder = new TextDecoder("gbk");
+      } catch {
+        decoder = new TextDecoder("utf-8");
+      }
+      const content = decoder.decode(new Uint8Array(buffer));
+
+      // Check if content is HTML
+      if (content.trim().startsWith('<!DOCTYPE') || content.trim().startsWith('<html')) {
+        console.warn(`[CharacterRenderer] NpcRes content is HTML: ${filePath}`);
+        return null;
+      }
+
+      const stateMap = parseNpcResIni(content);
+      console.log(`[CharacterRenderer] Loaded NpcRes: ${npcIni} with ${stateMap.size} states`);
+      this.npcResCache.set(npcIni, stateMap);
+      return stateMap;
+    } catch (error) {
+      console.warn(`[CharacterRenderer] Failed to load NpcRes: ${npcIni}`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Load sprites for a character from NpcRes INI file
+   * This is the new method that properly reads npcres/*.ini files
+   * Based on C# Character.SetNpcIni() and ResFile.ReadFile()
+   */
+  async loadSpritesFromNpcRes(characterId: string, npcIni: string): Promise<boolean> {
+    // Check if already loaded
+    if (this.sprites.has(characterId)) {
+      console.log(`[CharacterRenderer] Sprites already loaded for: ${characterId}`);
+      return true;
+    }
+
+    // Load NpcRes INI to get state mappings
+    const stateMap = await this.loadNpcRes(npcIni);
+    if (!stateMap || stateMap.size === 0) {
+      console.warn(`[CharacterRenderer] No state map for ${characterId} (${npcIni}), using fallback`);
+      // Fall back to old method
+      return false;
+    }
+
+    // Create sprite set by loading each state's ASF
+    const spriteSet = createEmptySpriteSet();
+    const loadPromises: Promise<void>[] = [];
+
+    // Map CharacterState to SpriteSet keys
+    const stateToKey: Record<number, keyof SpriteSet> = {
+      [CharState.Stand]: "stand",
+      [CharState.Stand1]: "stand1",
+      [CharState.Walk]: "walk",
+      [CharState.Run]: "run",
+      [CharState.Attack]: "attack",
+      [CharState.Attack1]: "attack1",
+      [CharState.Attack2]: "attack2",
+      [CharState.Magic]: "magic",
+      [CharState.Hurt]: "hurt",
+      [CharState.Death]: "death",
+      [CharState.Sit]: "sit",
+      [CharState.FightStand]: "stand",      // Use stand as fallback
+      [CharState.FightWalk]: "walk",        // Use walk as fallback
+      [CharState.FightRun]: "run",          // Use run as fallback
+    };
+
+    for (const [state, info] of stateMap) {
+      const key = stateToKey[state];
+      if (key && info.imagePath) {
+        const promise = loadCharacterAsf(info.imagePath).then(asf => {
+          if (asf) {
+            spriteSet[key] = asf;
+            console.log(`[CharacterRenderer] Loaded state ${state} (${key}): ${info.imagePath}`);
+          } else {
+            console.warn(`[CharacterRenderer] Failed to load ASF for state ${state}: ${info.imagePath}`);
+          }
+        });
+        loadPromises.push(promise);
+      }
+    }
+
+    await Promise.all(loadPromises);
+
+    // Check if we loaded at least the stand animation
+    if (!spriteSet.stand && !spriteSet.walk) {
+      console.warn(`[CharacterRenderer] No basic animations loaded for ${characterId}`);
+      return false;
+    }
+
+    // Create sprite instance
+    const sprite = createCharacterSprite("/resources/asf/character", npcIni);
+    sprite.spriteSet = spriteSet;
+    sprite.isLoaded = true;
+    this.sprites.set(characterId, sprite);
+
+    console.log(`[CharacterRenderer] Successfully loaded sprites for ${characterId} from NpcRes`);
+    return true;
+  }
+
+  /**
+   * Load sprites for a character (main entry point)
+   * First tries to load from NpcRes INI, then falls back to suffix-based loading
    */
   async loadCharacterSprites(
     characterId: string,
     npcIni: string,
     basePath: string = "/resources/asf/character"
   ): Promise<void> {
-    const baseFileName = this.getBaseFileName(npcIni);
-    const cacheKey = `${basePath}/${baseFileName}`;
-
     // Check if already loaded
     if (this.sprites.has(characterId)) {
       return;
     }
+
+    console.log(`[CharacterRenderer] Loading sprites for ${characterId}, npcIni=${npcIni}`);
+
+    // Try to load from NpcRes INI first (the correct C# way)
+    const loadedFromNpcRes = await this.loadSpritesFromNpcRes(characterId, npcIni);
+    if (loadedFromNpcRes) {
+      return;
+    }
+
+    // Fall back to suffix-based loading (legacy method)
+    console.log(`[CharacterRenderer] Falling back to suffix-based loading for ${characterId}`);
+    const baseFileName = this.getBaseFileName(npcIni);
+    const cacheKey = `${basePath}/${baseFileName}`;
 
     // Check if already loading
     let loadPromise = this.loadingPromises.get(cacheKey);
@@ -122,6 +366,71 @@ export class CharacterRenderer {
     if (sprite && sprite.isLoaded) {
       updateSpriteAnimation(sprite, state, deltaTime);
     }
+  }
+
+  /**
+   * Update all NPC animations
+   * This should be called every frame to ensure NPC sprites are properly animated
+   */
+  updateAllNpcAnimations(
+    npcs: Map<string, NpcData>,
+    deltaTime: number
+  ): void {
+    for (const [id, npc] of npcs) {
+      const sprite = this.sprites.get(id);
+      if (sprite && sprite.isLoaded) {
+        updateSpriteAnimation(sprite, npc.state, deltaTime);
+      }
+    }
+  }
+
+  /**
+   * Set custom action file for a character state
+   * Based on C# Character.SetNpcActionFile() and ResFile.SetNpcStateImage()
+   */
+  setNpcActionFile(
+    characterId: string,
+    stateType: number,
+    asfFile: string
+  ): void {
+    const sprite = this.sprites.get(characterId);
+    if (!sprite) {
+      console.warn(`[CharacterRenderer] Cannot set action file, character not found: ${characterId}`);
+      return;
+    }
+
+    // Initialize customActionFiles map if needed
+    if (!sprite.customActionFiles) {
+      sprite.customActionFiles = new Map();
+    }
+
+    // Store the custom action file
+    sprite.customActionFiles.set(stateType, asfFile);
+    console.log(`[CharacterRenderer] Set action file for ${characterId} state ${stateType}: ${asfFile}`);
+
+    // Clear cached ASF for this state to force reload
+    if (sprite.customAsfCache) {
+      sprite.customAsfCache.delete(stateType);
+    }
+  }
+
+  /**
+   * Preload custom action file for immediate use
+   * This ensures the ASF is loaded before it's needed
+   */
+  async preloadCustomActionFile(
+    characterId: string,
+    stateType: number,
+    asfFile: string
+  ): Promise<void> {
+    this.setNpcActionFile(characterId, stateType, asfFile);
+
+    const sprite = this.sprites.get(characterId);
+    if (!sprite) return;
+
+    // Trigger async load to populate cache
+    await getAsfForStateAsync(sprite, stateType);
+    console.log(`[CharacterRenderer] Preloaded custom action file for ${characterId} state ${stateType}`);
   }
 
   /**
