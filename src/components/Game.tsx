@@ -8,7 +8,7 @@ import { TILE_WIDTH, TILE_HEIGHT, CharacterState } from "../engine/core/types";
 import { tileToPixel, pixelToTile } from "../engine/core/utils";
 import { GameManager } from "../engine/game/gameManager";
 import { loadMap } from "../engine/map";
-import { loadMapMpcs, createMapRenderer, renderMap, type MapRenderer } from "../engine/renderer";
+import { loadMapMpcs, createMapRenderer, renderMap, renderMapInterleaved, renderLayer, getViewTileRange, type MapRenderer } from "../engine/renderer";
 import { CharacterRenderer, getCharacterRenderer, resetCharacterRenderer } from "../engine/characterRenderer";
 import { ObjRenderer, getObjRenderer, resetObjRenderer } from "../engine/objRenderer";
 import { DialogUI, SelectionUI, TopGui, BottomGui, BottomStateGui } from "./ui";
@@ -117,6 +117,9 @@ export const Game: React.FC<GameProps> = ({
         },
       });
       gameManagerRef.current = gameManager;
+
+      // Connect character renderer to game manager for custom action files
+      gameManager.setCharacterRenderer(charRenderer);
 
       // Load initial map
       setLoadingText("加载地图...");
@@ -229,42 +232,70 @@ export const Game: React.FC<GameProps> = ({
       ctx.fillStyle = "#1a1a2e";
       ctx.fillRect(0, 0, width, height);
 
-      // Draw map
-      if (!renderer.isLoading && renderer.mapData) {
-        renderMap(ctx, renderer);
-      }
-
-      // Draw characters using character renderer
+      // Prepare character/object renderers
       const charRenderer = characterRendererRef.current;
       const objRenderer = objRendererRef.current;
+
+      // Get all NPCs early for animation update
+      const allNpcs = gameManager.getNpcManager().getAllNpcs();
+
+      // Update player animation
       if (charRenderer) {
-        // Update player animation
         charRenderer.updateAnimation("player", player.state, cappedDeltaTime, player.direction);
+        // Update all NPC animations
+        charRenderer.updateAllNpcAnimations(allNpcs, cappedDeltaTime);
+      }
 
-        // Draw NPCs (sorted by Y for proper layering)
-        const npcs = gameManager.getNpcManager().getAllNpcs();
-        charRenderer.drawAllNpcs(ctx, npcs, renderer.camera.x, renderer.camera.y, width, height);
+      // Draw map with interleaved character rendering (C# style)
+      if (!renderer.isLoading && renderer.mapData) {
+        // Get objects for interleaved drawing
+        const allObjs = gameManager.getObjManager().getObjsInView({
+          x: renderer.camera.x,
+          y: renderer.camera.y,
+          width,
+          height,
+        });
 
-        // Draw interactive objects (sorted by Y for proper layering)
-        if (objRenderer) {
-          const objs = gameManager.getObjManager().getObjsInView({
-            x: renderer.camera.x,
-            y: renderer.camera.y,
-            width,
-            height,
-          });
-          // Log once per second to avoid spam
-          if (Math.floor(timestamp / 1000) !== Math.floor((lastTimeRef.current || 0) / 1000)) {
-            const totalObjs = gameManager.getObjManager().getAllObjs().length;
-            console.log(`[Game] Rendering ${objs.length} objs in view (${totalObjs} total)`);
-          }
-          objRenderer.drawAllObjs(ctx, objs, renderer.camera);
+        // Group NPCs and objects by their tile row
+        const npcsByRow = new Map<number, NpcData[]>();
+        for (const [, npc] of allNpcs) {
+          if (!npc.isVisible) continue;
+          const row = npc.tilePosition.y;
+          if (!npcsByRow.has(row)) npcsByRow.set(row, []);
+          npcsByRow.get(row)!.push(npc);
         }
 
-        // Draw player
-        charRenderer.drawPlayer(ctx, player, renderer.camera.x, renderer.camera.y);
-      } else {
-        // Fallback to simple drawing
+        // Add player to the appropriate row
+        const playerRow = player.tilePosition.y;
+
+        // Use interleaved rendering
+        renderMapInterleaved(ctx, renderer, (row: number, _startCol: number, _endCol: number) => {
+          // Draw NPCs at this row
+          const npcsAtRow = npcsByRow.get(row);
+          if (npcsAtRow && charRenderer) {
+            for (const npc of npcsAtRow) {
+              charRenderer.drawNpc(ctx, npc, renderer.camera.x, renderer.camera.y);
+            }
+          }
+
+          // Draw objects at this row
+          if (objRenderer) {
+            for (const obj of allObjs) {
+              if (obj.tilePosition.y === row) {
+                objRenderer.drawObj(ctx, obj, renderer.camera.x, renderer.camera.y);
+              }
+            }
+          }
+
+          // Draw player at their row
+          if (row === playerRow && charRenderer) {
+            charRenderer.drawPlayer(ctx, player, renderer.camera.x, renderer.camera.y);
+          }
+        });
+      }
+
+      // Fallback drawing if renderer not loaded
+      if (!charRenderer) {
         const npcs = gameManager.getNpcManager().getAllNpcs();
         for (const [, npc] of npcs) {
           if (!npc.isVisible) continue;

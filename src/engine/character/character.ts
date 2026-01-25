@@ -36,7 +36,9 @@ export function createNpcData(
     id,
     config,
     tilePosition: { x: tileX, y: tileY },
-    pixelPosition: { x: pixelPos.x + TILE_WIDTH / 2, y: pixelPos.y + TILE_HEIGHT },
+    // C# uses ToPixelPosition directly (tile top-left corner)
+    // Drawing offset is handled by ASF left/bottom values
+    pixelPosition: { x: pixelPos.x, y: pixelPos.y },
     direction,
     state: CharacterState.Stand,
     currentFrame: 0,
@@ -60,7 +62,9 @@ export function createPlayerData(
   return {
     config,
     tilePosition: { x: tileX, y: tileY },
-    pixelPosition: { x: pixelPos.x + TILE_WIDTH / 2, y: pixelPos.y + TILE_HEIGHT },
+    // C# uses ToPixelPosition directly (tile top-left corner)
+    // Drawing offset is handled by ASF left/bottom values
+    pixelPosition: { x: pixelPos.x, y: pixelPos.y },
     direction,
     state: CharacterState.Stand,
     currentFrame: 0,
@@ -94,9 +98,8 @@ export function updateCharacterMovement(
 
   // Get next waypoint
   const target = character.path[0];
+  // C# uses ToPixelPosition directly (no offset)
   const targetPixel = tileToPixel(target.x, target.y);
-  targetPixel.x += TILE_WIDTH / 2;
-  targetPixel.y += TILE_HEIGHT;
 
   // Calculate movement
   const dx = targetPixel.x - character.pixelPosition.x;
@@ -337,14 +340,37 @@ export function parseNpcConfig(content: string): CharacterConfig | null {
 
 /**
  * Load NPC configuration from URL
+ * Based on C# Character.cs - NPCs can be in ini\npc\ or ini\npcres\
  */
 export async function loadNpcConfig(url: string): Promise<CharacterConfig | null> {
+  console.log(`[loadNpcConfig] Loading: ${url}`);
+
+  // Try loading from the specified path first
+  let response = await tryFetchNpcConfig(url);
+
+  // If not found and url contains /ini/npc/, try /ini/npcres/
+  if (!response && url.includes('/ini/npc/')) {
+    const npcresUrl = url.replace('/ini/npc/', '/ini/npcres/');
+    console.log(`[loadNpcConfig] Not found, trying npcres: ${npcresUrl}`);
+    response = await tryFetchNpcConfig(npcresUrl);
+  }
+
+  // If not found and url contains /ini/npcres/, try /ini/npc/
+  if (!response && url.includes('/ini/npcres/')) {
+    const npcUrl = url.replace('/ini/npcres/', '/ini/npc/');
+    console.log(`[loadNpcConfig] Not found, trying npc: ${npcUrl}`);
+    response = await tryFetchNpcConfig(npcUrl);
+  }
+
+  if (!response) {
+    console.warn(`[loadNpcConfig] FAILED to load NPC config: ${url} (tried both npc and npcres directories)`);
+    return null;
+  }
+
+  console.log(`[loadNpcConfig] Successfully loaded from: ${response.url}`);
+
+
   try {
-    const response = await fetch(url);
-    if (!response.ok) {
-      console.warn(`Failed to load NPC config: ${url}`);
-      return null;
-    }
     // NPC config files are in GB2312 encoding (Chinese)
     const buffer = await response.arrayBuffer();
     const bytes = new Uint8Array(buffer);
@@ -371,4 +397,39 @@ export async function loadNpcConfig(url: string): Promise<CharacterConfig | null
     console.error(`Error loading NPC config ${url}:`, error);
     return null;
   }
+}
+
+/**
+ * Try to fetch NPC config from a URL
+ * Check if the response is actually an INI file, not HTML fallback
+ */
+async function tryFetchNpcConfig(url: string): Promise<Response | null> {
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      return null;
+    }
+    
+    // Check Content-Type - if it's HTML, it's probably Vite's fallback
+    const contentType = response.headers.get('content-type') || '';
+    if (contentType.includes('text/html')) {
+      return null;
+    }
+    
+    // Double-check by reading first few bytes to ensure it's not HTML
+    const clone = response.clone();
+    const text = await clone.text();
+    const trimmed = text.trim();
+    
+    // If starts with HTML tags, it's Vite's 404 fallback page
+    if (trimmed.startsWith('<!DOCTYPE') || trimmed.startsWith('<html')) {
+      return null;
+    }
+    
+    // Valid INI file
+    return response;
+  } catch {
+    // Ignore fetch errors
+  }
+  return null;
 }

@@ -131,6 +131,7 @@ export interface PlayerData {
   isMoving: boolean;
   targetPosition: Vector2 | null;
   sprite?: CharacterSpriteData; // Optional sprite data
+  customActionFiles?: Map<number, string>; // State -> ASF file mapping (like NPCs)
 }
 
 // ============= Script Types =============

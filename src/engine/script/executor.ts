@@ -491,6 +491,7 @@ export class ScriptExecutor {
         const npcName = this.resolveString(params[0] || "");
         const stateType = this.resolveNumber(params[1] || "0");
         const asfFile = this.resolveString(params[2] || "");
+        console.log(`[ScriptExecutor] SetNpcActionFile: name="${npcName}", state=${stateType}, file="${asfFile}"`);
         this.context.setNpcActionFile(npcName, stateType, asfFile);
         return true;
       }
@@ -758,19 +759,7 @@ export class ScriptExecutor {
         return true;
       }
 
-      case "loadobj": {
-        const objFile = this.resolveString(params[0] || "");
-        console.log(`LoadObj: ${objFile}`);
-        return true;
-      }
-
-      case "addobj": {
-        const objFile = this.resolveString(params[0] || "");
-        const x = this.resolveNumber(params[1] || "0");
-        const y = this.resolveNumber(params[2] || "0");
-        console.log(`AddObj: ${objFile} at (${x},${y})`);
-        return true;
-      }
+      // NOTE: loadobj and addobj are handled later in the switch (search for "Load Commands")
 
       case "delobj": {
         const objName = this.resolveString(params[0] || "");
@@ -844,12 +833,7 @@ export class ScriptExecutor {
       }
 
       // ============= Load Commands =============
-
-      case "loadnpc": {
-        const npcFile = this.resolveString(params[0] || "");
-        console.log(`LoadNpc: ${npcFile}`);
-        return true;
-      }
+      // NOTE: loadnpc is handled earlier in the switch (search for "loadnpc" above)
 
       case "loadobj": {
         const fileName = this.resolveString(params[0] || "");
@@ -864,6 +848,7 @@ export class ScriptExecutor {
         const x = this.resolveNumber(params[1] || "0");
         const y = this.resolveNumber(params[2] || "0");
         const direction = this.resolveNumber(params[3] || "0");
+        console.log(`[ScriptExecutor] AddObj: ${fileName} at (${x}, ${y}) dir=${direction}`);
         await this.context.addObj(fileName, x, y, direction);
         return true;
       }

@@ -37,6 +37,7 @@ export class GameManager {
   private guiManager: GuiManager;
   private audioManager: AudioManager;
   private screenEffects: ScreenEffects;
+  private characterRenderer: any = null;
 
   // Game state
   private variables: GameVariables = {};
@@ -84,6 +85,15 @@ export class GameManager {
 
     // Set up GUI event handler
     this.guiManager.setEventHandler((event, data) => this.handleGuiEvent(event, data));
+  }
+
+  /**
+   * Set character renderer for NPC and player custom action files
+   * This should be called after GameManager is created
+   */
+  setCharacterRenderer(renderer: any): void {
+    this.characterRenderer = renderer;
+    this.npcManager.setCharacterRenderer(renderer);
   }
 
   /**
@@ -180,24 +190,31 @@ export class GameManager {
         this.npcManager.npcGoto(name, x, y);
       },
       setNpcActionFile: (name, stateType, asfFile) => {
+        console.log(`[GameManager] SetNpcActionFile called: name="${name}", state=${stateType}, file="${asfFile}"`);
         // Set the action file for a specific state
         // Based on C#'s GetPlayerOrNpc - first checks player, then NPCs
         const player = this.playerController.getPlayer();
         if (player && player.config && player.config.name === name) {
           // For player, store in customActionFiles
-          if (!player.sprite) {
-            player.sprite = {
-              basePath: "/resources/asf/character",
-              baseFileName: "",
-              isLoaded: false,
-              currentFrame: 0,
-              animationTime: 0,
-            };
+          if (!player.customActionFiles) {
+            player.customActionFiles = new Map();
           }
-          // TODO: player needs customActionFiles support
-          console.log(`SetNpcActionFile for player: state=${stateType}, file=${asfFile}`);
+          player.customActionFiles.set(stateType, asfFile);
+          console.log(`[GameManager] SetNpcActionFile for player: state=${stateType}, file=${asfFile}`);
+
+          // Notify character renderer to load the custom ASF
+          if (this.characterRenderer && this.characterRenderer.setNpcActionFile) {
+            this.characterRenderer.setNpcActionFile('player', stateType, asfFile);
+
+            // Preload the ASF if this is the current state
+            if (player.state === stateType && this.characterRenderer.preloadCustomActionFile) {
+              this.characterRenderer.preloadCustomActionFile('player', stateType, asfFile)
+                .catch((err: any) => console.error(`Failed to preload player custom action file:`, err));
+            }
+          }
           return;
         }
+        console.log(`[GameManager] SetNpcActionFile for NPC: "${name}"`);
         this.npcManager.setNpcActionFile(name, stateType, asfFile);
       },
       npcSpecialAction: (name, asfFile) => {
