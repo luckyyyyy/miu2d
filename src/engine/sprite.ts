@@ -33,6 +33,12 @@ export interface CharacterSprite {
   customActionFiles?: Map<number, string>;
   // Cache for dynamically loaded ASF files
   customAsfCache?: Map<number, AsfData | null>;
+  // Special action state (C#: IsInSpecialAction, PlayCurrentDirOnce)
+  specialActionAsf?: AsfData | null;
+  isPlayingOnce?: boolean;
+  playOnceFrame?: number;
+  playOnceTotalFrames?: number;
+  leftFramesToPlay?: number; // C#: _leftFrameToPlay - decrements each frame
 }
 
 // Cache for sprite sets
@@ -259,6 +265,53 @@ async function loadCustomAsf(
 }
 
 /**
+ * Start playing a special action animation (plays once then ends)
+ * Based on C# Character.SetSpecialAction() and Sprite.PlayCurrentDirOnce()
+ */
+export function startSpecialAction(
+  sprite: CharacterSprite,
+  asf: AsfData
+): void {
+  sprite.specialActionAsf = asf;
+  sprite.isPlayingOnce = true;
+  sprite.playOnceFrame = 0;
+  // C#: PlayFrames(_frameEnd - CurrentFrameIndex + 1) sets _leftFrameToPlay
+  // We track remaining frames to play
+  sprite.playOnceTotalFrames = asf.framesPerDirection;
+  sprite.leftFramesToPlay = asf.framesPerDirection; // New: track remaining frames like C#
+  sprite.animationTime = 0;
+  console.log(`[Sprite] Started special action with ${asf.framesPerDirection} frames`);
+}
+
+/**
+ * Check if special action animation has finished playing
+ * Based on C# Sprite.IsPlayCurrentDirOnceEnd() which returns !IsInPlaying
+ * IsInPlaying = (_leftFrameToPlay > 0)
+ */
+export function isSpecialActionEnd(sprite: CharacterSprite): boolean {
+  // If not playing once, animation hasn't started
+  if (!sprite.isPlayingOnce) {
+    return false;
+  }
+  // C#: return !IsInPlaying where IsInPlaying = _leftFrameToPlay > 0
+  return (sprite.leftFramesToPlay ?? 0) <= 0;
+}
+
+/**
+ * End special action and reset state
+ * Based on C# Character.EndSpecialAction()
+ */
+export function endSpecialAction(sprite: CharacterSprite): void {
+  sprite.specialActionAsf = null;
+  sprite.isPlayingOnce = false;
+  sprite.playOnceFrame = 0;
+  sprite.playOnceTotalFrames = 0;
+  sprite.leftFramesToPlay = 0;
+  sprite.animationTime = 0;
+  console.log(`[Sprite] Ended special action`);
+}
+
+/**
  * Update sprite animation
  * This should be called synchronously - async loading is handled by preloadCustomActionFile
  */
@@ -267,6 +320,35 @@ export function updateSpriteAnimation(
   state: CharacterState,
   deltaTime: number
 ): void {
+  // If playing special action, update that instead
+  if (sprite.isPlayingOnce && sprite.specialActionAsf) {
+    const asf = sprite.specialActionAsf;
+    sprite.currentAsf = asf;
+    sprite.animationTime += deltaTime * 1000;
+
+    const frameInterval = asf.interval || 100;
+    while (sprite.animationTime >= frameInterval) {
+      sprite.animationTime -= frameInterval;
+      sprite.playOnceFrame = (sprite.playOnceFrame ?? 0) + 1;
+
+      // C#: Decrement _leftFrameToPlay each frame advance
+      if ((sprite.leftFramesToPlay ?? 0) > 0) {
+        sprite.leftFramesToPlay = (sprite.leftFramesToPlay ?? 0) - 1;
+      }
+
+      // Check if animation finished (don't loop for special actions)
+      if ((sprite.leftFramesToPlay ?? 0) <= 0) {
+        // Stay at last valid frame
+        sprite.playOnceFrame = Math.min(sprite.playOnceFrame ?? 0, (asf.framesPerDirection || 1) - 1);
+        break;
+      }
+    }
+
+    // Use playOnceFrame for rendering (clamp to valid range)
+    sprite.currentFrame = Math.min(sprite.playOnceFrame ?? 0, (asf.framesPerDirection || 1) - 1);
+    return;
+  }
+
   // Check for custom ASF first (from cache)
   let asf: AsfData | null = null;
 

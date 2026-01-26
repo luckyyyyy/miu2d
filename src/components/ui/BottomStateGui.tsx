@@ -1,12 +1,44 @@
 /**
- * BottomStateGui Component - based on JxqyHD Engine/Gui/BottomGui.cs
- * Shows life, thew (stamina), and mana orbs/bars
+ * BottomStateGui Component - based on JxqyHD Engine/Gui/ColumnGui.cs
+ * Shows life, thew (stamina), and mana using ASF images from resources
+ *
+ * C# Reference: ColumnGui.cs uses ColumnView for each stat bar
+ * Resources: asf/ui/column/ColLife.asf, ColThew.asf, ColMana.asf, panel9.asf
  */
-import React from "react";
-import type { UiSettings } from "../../engine/gui/uiConfig";
+import React, { useMemo } from "react";
+import { useAsfImage, useColumnView } from "./hooks";
+
+// UI配置 - 对应 UI_Settings.ini 中的 [BottomState] 部分
+const UI_CONFIG = {
+  panel: {
+    image: "asf/ui/column/panel9.asf",
+    leftAdjust: -320,  // 相对于屏幕中心的偏移
+    topAdjust: 0,
+  },
+  life: {
+    image: "asf/ui/column/ColLife.asf",
+    left: 11,
+    top: 22,
+    width: 48,
+    height: 46,
+  },
+  thew: {
+    image: "asf/ui/column/ColThew.asf",
+    left: 59,
+    top: 22,
+    width: 48,
+    height: 46,
+  },
+  mana: {
+    image: "asf/ui/column/ColMana.asf",
+    left: 113,
+    top: 22,
+    width: 48,
+    height: 46,
+  },
+};
 
 interface BottomStateGuiProps {
-  config?: UiSettings["bottom"];
   life: number;
   maxLife: number;
   thew: number;
@@ -17,174 +49,127 @@ interface BottomStateGuiProps {
   screenHeight: number;
 }
 
-const styles: Record<string, React.CSSProperties> = {
-  container: {
-    position: "absolute",
-    bottom: 16,
-    display: "flex",
-    alignItems: "flex-end",
-    gap: 12,
-    pointerEvents: "none",
-  },
-  orbContainer: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    gap: 4,
-  },
-  orb: {
-    position: "relative",
-    width: 64,
-    height: 64,
-    borderRadius: "50%",
-    overflow: "hidden",
-    background: "rgba(20, 25, 35, 0.9)",
-    border: "2px solid #555",
-    boxShadow: "inset 0 2px 8px rgba(0, 0, 0, 0.6), 0 2px 6px rgba(0, 0, 0, 0.4)",
-  },
-  orbFill: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    transition: "height 0.3s ease",
-  },
-  orbGlow: {
-    position: "absolute",
-    top: "15%",
-    left: "20%",
-    width: "30%",
-    height: "20%",
-    borderRadius: "50%",
-    background: "rgba(255, 255, 255, 0.3)",
-    filter: "blur(3px)",
-  },
-  orbValue: {
-    position: "absolute",
-    bottom: 4,
-    left: 0,
-    right: 0,
-    textAlign: "center",
-    fontSize: 11,
-    fontWeight: "bold",
-    color: "#fff",
-    textShadow: "0 1px 3px rgba(0, 0, 0, 0.8)",
-  },
-  label: {
-    fontSize: 12,
-    fontWeight: "bold",
-    color: "#ccc",
-    textShadow: "0 1px 2px rgba(0, 0, 0, 0.8)",
-  },
-  thewBar: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    gap: 4,
-  },
-  thewBarOuter: {
-    width: 24,
-    height: 48,
-    background: "rgba(20, 25, 35, 0.9)",
-    border: "2px solid #555",
-    borderRadius: 12,
-    overflow: "hidden",
-    display: "flex",
-    flexDirection: "column-reverse",
-    boxShadow: "inset 0 2px 6px rgba(0, 0, 0, 0.6)",
-  },
-  thewBarFill: {
-    width: "100%",
-    background: "linear-gradient(180deg, #ffe066 0%, #ffaa00 50%, #cc8800 100%)",
-    transition: "height 0.3s ease",
-    boxShadow: "inset 0 2px 4px rgba(255, 255, 255, 0.3)",
-  },
+/**
+ * ColumnView Component - renders a stat orb with fill based on percentage
+ * Based on C# Engine/Gui/Base/ColumnView.cs
+ */
+interface ColumnViewProps {
+  imagePath: string;
+  percent: number;
+  left: number;
+  top: number;
+}
+
+const ColumnView: React.FC<ColumnViewProps> = ({ imagePath, percent, left, top }) => {
+  const { dataUrl, width, height, isLoading } = useColumnView(imagePath, percent);
+
+  if (isLoading || !dataUrl) {
+    return null;
+  }
+
+  return (
+    <img
+      src={dataUrl}
+      alt=""
+      style={{
+        position: "absolute",
+        left: left,
+        top: top,
+        width: width,
+        height: height,
+        pointerEvents: "none",
+        imageRendering: "pixelated",
+      }}
+    />
+  );
 };
 
 export const BottomStateGui: React.FC<BottomStateGuiProps> = ({
-  config: _config,
   life,
   maxLife,
   thew,
   maxThew,
   mana,
   maxMana,
-  screenWidth: _screenWidth,
+  screenWidth,
   screenHeight: _screenHeight,
 }) => {
-  const lifePercent = maxLife > 0 ? Math.min(100, Math.max(0, (life / maxLife) * 100)) : 0;
-  const thewPercent = maxThew > 0 ? Math.min(100, Math.max(0, (thew / maxThew) * 100)) : 0;
-  const manaPercent = maxMana > 0 ? Math.min(100, Math.max(0, (mana / maxMana) * 100)) : 0;
+  // 加载面板背景
+  const panelImage = useAsfImage(UI_CONFIG.panel.image);
 
-  // Get life orb color based on percentage
-  const getLifeColor = () => {
-    if (lifePercent > 50) {
-      return "linear-gradient(180deg, #ff6666 0%, #cc3333 50%, #992222 100%)";
-    } else if (lifePercent > 25) {
-      return "linear-gradient(180deg, #ff8866 0%, #cc5533 50%, #993322 100%)";
-    }
-    return "linear-gradient(180deg, #ff4444 0%, #aa2222 50%, #771111 100%)";
-  };
+  // 计算百分比
+  const lifePercent = maxLife > 0 ? Math.max(0, Math.min(1, life / maxLife)) : 0;
+  const thewPercent = maxThew > 0 ? Math.max(0, Math.min(1, thew / maxThew)) : 0;
+  const manaPercent = maxMana > 0 ? Math.max(0, Math.min(1, mana / maxMana)) : 0;
 
-  const getManaColor = () => {
-    return "linear-gradient(180deg, #6699ff 0%, #3366cc 50%, #224499 100%)";
-  };
+  // 计算面板位置 - 对应 C# 中的 Position 计算
+  // Position = new Vector2(Globals.WindowWidth/2f + leftAdjust, Globals.WindowHeight - height + topAdjust)
+  const panelStyle = useMemo(() => {
+    const panelWidth = panelImage.width || 172;  // fallback size
+    const panelHeight = panelImage.height || 68;
+
+    return {
+      position: "absolute" as const,
+      left: screenWidth / 2 + UI_CONFIG.panel.leftAdjust,
+      bottom: 0 - UI_CONFIG.panel.topAdjust,
+      width: panelWidth,
+      height: panelHeight,
+      pointerEvents: "none" as const,
+    };
+  }, [screenWidth, panelImage.width, panelImage.height]);
+
+  // 如果面板图片还在加载，显示简单的占位
+  if (panelImage.isLoading) {
+    return (
+      <div style={{
+        ...panelStyle,
+        background: "rgba(20, 30, 50, 0.8)",
+        borderRadius: 4,
+      }} />
+    );
+  }
 
   return (
-    <div
-      style={{
-        ...styles.container,
-        left: 16,
-      }}
-    >
-      {/* 生命球 (Life Orb) */}
-      <div style={styles.orbContainer}>
-        <div style={styles.orb}>
-          <div
-            style={{
-              ...styles.orbFill,
-              height: `${lifePercent}%`,
-              background: getLifeColor(),
-            }}
-          />
-          <div style={styles.orbGlow} />
-          <span style={styles.orbValue}>
-            {Math.floor(life)}/{Math.floor(maxLife)}
-          </span>
-        </div>
-        <span style={styles.label}>生命</span>
-      </div>
+    <div style={panelStyle}>
+      {/* 背景面板 */}
+      {panelImage.dataUrl && (
+        <img
+          src={panelImage.dataUrl}
+          alt="状态栏"
+          style={{
+            position: "absolute",
+            left: 0,
+            top: 0,
+            width: panelImage.width,
+            height: panelImage.height,
+            imageRendering: "pixelated",
+          }}
+        />
+      )}
 
-      {/* 体力条 (Thew Bar) */}
-      <div style={styles.thewBar}>
-        <div style={styles.thewBarOuter}>
-          <div
-            style={{
-              ...styles.thewBarFill,
-              height: `${thewPercent}%`,
-            }}
-          />
-        </div>
-        <span style={styles.label}>体</span>
-      </div>
+      {/* 生命球 - Life */}
+      <ColumnView
+        imagePath={UI_CONFIG.life.image}
+        percent={lifePercent}
+        left={UI_CONFIG.life.left}
+        top={UI_CONFIG.life.top}
+      />
 
-      {/* 法力球 (Mana Orb) */}
-      <div style={styles.orbContainer}>
-        <div style={styles.orb}>
-          <div
-            style={{
-              ...styles.orbFill,
-              height: `${manaPercent}%`,
-              background: getManaColor(),
-            }}
-          />
-          <div style={styles.orbGlow} />
-          <span style={styles.orbValue}>
-            {Math.floor(mana)}/{Math.floor(maxMana)}
-          </span>
-        </div>
-        <span style={styles.label}>法力</span>
-      </div>
+      {/* 体力球 - Thew */}
+      <ColumnView
+        imagePath={UI_CONFIG.thew.image}
+        percent={thewPercent}
+        left={UI_CONFIG.thew.left}
+        top={UI_CONFIG.thew.top}
+      />
+
+      {/* 内力球 - Mana */}
+      <ColumnView
+        imagePath={UI_CONFIG.mana.image}
+        percent={manaPercent}
+        left={UI_CONFIG.mana.left}
+        top={UI_CONFIG.mana.top}
+      />
     </div>
   );
 };

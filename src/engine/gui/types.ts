@@ -74,10 +74,16 @@ export interface DialogGuiState {
   nameText: string;
   textProgress: number; // For typewriter effect
   isComplete: boolean;
+  // 选择模式 (Choose/Select 命令)
+  isInSelecting: boolean;
+  selectA: string;
+  selectB: string;
+  selection: number; // 0 or 1
 }
 
 export interface SelectionGuiState {
   isVisible: boolean;
+  message: string; // 消息文本（显示在选项上方）- 用于 ChooseEx
   options: SelectionOptionData[];
   selectedIndex: number;
   hoveredIndex: number;
@@ -201,12 +207,17 @@ export function createDefaultDialogState(): DialogGuiState {
     nameText: "",
     textProgress: 0,
     isComplete: true,
+    isInSelecting: false,
+    selectA: "",
+    selectB: "",
+    selection: -1,
   };
 }
 
 export function createDefaultSelectionState(): SelectionGuiState {
   return {
     isVisible: false,
+    message: "",
     options: [],
     selectedIndex: 0,
     hoveredIndex: -1,

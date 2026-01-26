@@ -11,7 +11,8 @@ import type {
   HudState,
   HotkeyAction,
 } from "./types";
-import { createDefaultGuiState, DEFAULT_HOTKEYS } from "./types";
+import { createDefaultGuiState } from "./types";
+import { getMemoListManager } from "../listManager";
 
 export type GuiEventHandler = (event: string, data?: any) => void;
 
@@ -23,6 +24,7 @@ export class GuiManager {
   constructor() {
     this.state = createDefaultGuiState();
   }
+
 
   /**
    * Set event handler
@@ -60,6 +62,11 @@ export class GuiManager {
       nameText: name,
       textProgress: 0,
       isComplete: false,
+      // 选择模式默认值 - 参考 C# DialogGui.cs
+      isInSelecting: false,
+      selectA: "",
+      selectB: "",
+      selection: 0,
     };
     this.emit("dialog:show", { text, portraitIndex, name });
   }
@@ -88,10 +95,60 @@ export class GuiManager {
   }
 
   /**
+   * Show dialog selection (Choose/Select command)
+   * 在对话框面板上显示选择，message 显示在文本区，选项A/B 显示在选择区
+   */
+  showDialogSelection(message: string, selectA: string, selectB: string): void {
+    this.state.dialog = {
+      isVisible: true,
+      text: message,
+      portraitIndex: 0,
+      portraitSide: "left",
+      nameText: "",
+      textProgress: message.length, // 立即显示完整文本
+      isComplete: true,
+      isInSelecting: true,
+      selectA,
+      selectB,
+      selection: -1,
+    };
+    this.emit("dialog:show", { text: message, isSelecting: true });
+  }
+
+  /**
+   * Handle dialog selection made
+   */
+  onDialogSelectionMade(selection: number): void {
+    this.state.dialog.selection = selection;
+    this.state.dialog.isInSelecting = false;
+    this.hideDialog();
+    this.emit("dialog:selection", { selection });
+  }
+
+  /**
+   * Check if dialog selection is complete
+   */
+  isDialogSelectionEnd(): boolean {
+    return !this.state.dialog.isInSelecting;
+  }
+
+  /**
+   * Get dialog selection result
+   */
+  getDialogSelection(): number {
+    return this.state.dialog.selection;
+  }
+
+  /**
    * Handle dialog click (advance or skip)
    */
   handleDialogClick(): boolean {
     if (!this.state.dialog.isVisible) return false;
+
+    // 如果在选择模式，不处理点击（由选项按钮处理）
+    if (this.state.dialog.isInSelecting) {
+      return false;
+    }
 
     if (!this.state.dialog.isComplete) {
       // Skip to end of text
@@ -124,15 +181,18 @@ export class GuiManager {
 
   /**
    * Show selection dialog
+   * @param options - 选项列表
+   * @param message - 可选的消息文本（显示在选项上方）
    */
-  showSelection(options: SelectionOptionData[]): void {
+  showSelection(options: SelectionOptionData[], message: string = ""): void {
     this.state.selection = {
       isVisible: true,
+      message,
       options,
       selectedIndex: 0,
       hoveredIndex: -1,
     };
-    this.emit("selection:show", options);
+    this.emit("selection:show", { options, message });
   }
 
   /**
@@ -260,6 +320,130 @@ export class GuiManager {
     this.state.hud.minimapVisible = !this.state.hud.minimapVisible;
   }
 
+  // ============= Panel Methods (对应 C# GuiManager 中的面板切换) =============
+
+  /**
+   * Toggle state panel (状态面板)
+   */
+  toggleStateGui(): void {
+    this.state.panels.state = !this.state.panels.state;
+    // 打开状态面板时关闭其他左侧面板
+    if (this.state.panels.state) {
+      this.state.panels.equip = false;
+      this.state.panels.xiulian = false;
+    }
+    this.emit("panel:state", this.state.panels.state);
+  }
+
+  /**
+   * Toggle equip panel (装备面板)
+   */
+  toggleEquipGui(): void {
+    this.state.panels.equip = !this.state.panels.equip;
+    // 打开装备面板时关闭其他左侧面板
+    if (this.state.panels.equip) {
+      this.state.panels.state = false;
+      this.state.panels.xiulian = false;
+    }
+    this.emit("panel:equip", this.state.panels.equip);
+  }
+
+  /**
+   * Toggle xiulian panel (修炼面板)
+   */
+  toggleXiuLianGui(): void {
+    this.state.panels.xiulian = !this.state.panels.xiulian;
+    // 打开修炼面板时关闭其他左侧面板
+    if (this.state.panels.xiulian) {
+      this.state.panels.state = false;
+      this.state.panels.equip = false;
+    }
+    this.emit("panel:xiulian", this.state.panels.xiulian);
+  }
+
+  /**
+   * Toggle goods panel (物品面板)
+   */
+  toggleGoodsGui(): void {
+    this.state.panels.goods = !this.state.panels.goods;
+    // 打开物品面板时关闭其他右侧面板
+    if (this.state.panels.goods) {
+      this.state.panels.magic = false;
+      this.state.panels.memo = false;
+    }
+    this.emit("panel:goods", this.state.panels.goods);
+  }
+
+  /**
+   * Toggle magic panel (武功面板)
+   */
+  toggleMagicGui(): void {
+    this.state.panels.magic = !this.state.panels.magic;
+    // 打开武功面板时关闭其他右侧面板
+    if (this.state.panels.magic) {
+      this.state.panels.goods = false;
+      this.state.panels.memo = false;
+    }
+    this.emit("panel:magic", this.state.panels.magic);
+  }
+
+  /**
+   * Toggle memo panel (任务面板)
+   */
+  toggleMemoGui(): void {
+    this.state.panels.memo = !this.state.panels.memo;
+    // 打开任务面板时关闭其他右侧面板
+    if (this.state.panels.memo) {
+      this.state.panels.goods = false;
+      this.state.panels.magic = false;
+    }
+    this.emit("panel:memo", this.state.panels.memo);
+  }
+
+  /**
+   * Show/hide system menu (系统菜单)
+   */
+  showSystem(show: boolean = true): void {
+    this.state.panels.system = show;
+    this.emit("panel:system", show);
+  }
+
+  /**
+   * Toggle system menu
+   */
+  toggleSystemGui(): void {
+    this.showSystem(!this.state.panels.system);
+  }
+
+  /**
+   * Close all panels
+   */
+  closeAllPanels(): void {
+    this.state.panels.state = false;
+    this.state.panels.equip = false;
+    this.state.panels.xiulian = false;
+    this.state.panels.goods = false;
+    this.state.panels.magic = false;
+    this.state.panels.memo = false;
+    this.state.panels.system = false;
+    this.emit("panel:closeAll");
+  }
+
+  /**
+   * Check if any panel is open
+   */
+  isAnyPanelOpen(): boolean {
+    return (
+      this.state.panels.state ||
+      this.state.panels.equip ||
+      this.state.panels.xiulian ||
+      this.state.panels.goods ||
+      this.state.panels.magic ||
+      this.state.panels.memo ||
+      this.state.panels.system
+    );
+  }
+
   // ============= Menu Methods =============
 
   /**
@@ -320,16 +504,32 @@ export class GuiManager {
 
   /**
    * Handle hotkey press
+   * Based on C# GuiManager.Update - handles ESC, F1-F7, Space etc.
    */
   handleHotkey(code: string): boolean {
-    // Check for dialog/selection input first
+    // Check for dialog input first (Space/Enter advances dialog)
+    // Note: In dialog mode, clicking anywhere also advances - handled in DialogUI
     if (this.state.dialog.isVisible) {
+      // If in selection mode, don't handle Space/Enter here
+      // Selection must be made by clicking
+      if (this.state.dialog.isInSelecting) {
+        // ESC doesn't close selection - must choose
+        return true; // Block other input while selecting
+      }
+      // Space/Enter advances non-selection dialog
       if (code === "Space" || code === "Enter") {
         this.handleDialogClick();
         return true;
       }
+      // ESC in edit mode also advances (from C#)
+      if (code === "Escape") {
+        this.handleDialogClick();
+        return true;
+      }
+      return true; // Block other input while dialog visible
     }
 
+    // Selection interface (ChooseEx) - separate from dialog
     if (this.state.selection.isVisible) {
       if (code === "ArrowUp" || code === "KeyW") {
         this.moveSelectionUp();
@@ -350,35 +550,86 @@ export class GuiManager {
         this.selectByIndex(index);
         return true;
       }
+      return true; // Block other input while selecting
     }
 
-    // Menu hotkeys
-    if (code === DEFAULT_HOTKEYS.inventory) {
-      this.toggleMenu("inventory");
-      return true;
+    // System menu open - ESC closes it
+    if (this.state.panels.system) {
+      if (code === "Escape") {
+        this.showSystem(false);
+        return true;
+      }
+      return true; // Block other input while system menu open
     }
-    if (code === DEFAULT_HOTKEYS.equipment) {
-      this.toggleMenu("equipment");
-      return true;
-    }
-    if (code === DEFAULT_HOTKEYS.magic) {
-      this.toggleMenu("magic");
-      return true;
-    }
-    if (code === DEFAULT_HOTKEYS.status) {
-      this.toggleMenu("status");
-      return true;
-    }
-    if (code === DEFAULT_HOTKEYS.system) {
-      if (this.state.menu.isOpen) {
-        this.closeMenu();
+
+    // ESC key handling - based on C# GuiManager.Update
+    // If any panel is open, close all panels; otherwise show system menu
+    if (code === "Escape") {
+      if (this.isAnyPanelOpen()) {
+        this.closeAllPanels();
       } else {
-        this.toggleMenu("system");
+        this.showSystem(true);
       }
       return true;
     }
-    if (code === DEFAULT_HOTKEYS.minimap) {
+
+    // F1 - State Panel (状态)
+    if (code === "F1") {
+      this.toggleStateGui();
+      return true;
+    }
+
+    // F2 - Equip Panel (装备)
+    if (code === "F2") {
+      this.toggleEquipGui();
+      return true;
+    }
+
+    // F3 - XiuLian Panel (修炼)
+    if (code === "F3") {
+      this.toggleXiuLianGui();
+      return true;
+    }
+
+    // F5 - Goods Panel (物品)
+    if (code === "F5") {
+      this.toggleGoodsGui();
+      return true;
+    }
+
+    // F6 - Magic Panel (武功)
+    if (code === "F6") {
+      this.toggleMagicGui();
+      return true;
+    }
+
+    // F7 - Memo Panel (任务)
+    if (code === "F7") {
+      this.toggleMemoGui();
+      return true;
+    }
+
+    // Tab - Toggle minimap/little map
+    if (code === "Tab") {
       this.toggleMinimap();
+      return true;
+    }
+
+    // Alternative hotkeys (I, M, E, T for common panels)
+    if (code === "KeyI") {
+      this.toggleGoodsGui();
+      return true;
+    }
+    if (code === "KeyM") {
+      this.toggleMagicGui();
+      return true;
+    }
+    if (code === "KeyE") {
+      this.toggleEquipGui();
+      return true;
+    }
+    if (code === "KeyT") {
+      this.toggleStateGui();
       return true;
     }
 
@@ -404,6 +655,54 @@ export class GuiManager {
       this.state.selection.isVisible ||
       this.state.menu.isOpen
     );
+  }
+
+  // ============= Memo Methods (任务系统) =============
+
+  /**
+   * Add memo text - based on C# GuiManager.AddMemo
+   */
+  addMemo(text: string): void {
+    const memoManager = getMemoListManager();
+    memoManager.addMemo(text);
+    this.updateMemoView();
+    this.emit("memo:added", { text });
+  }
+
+  /**
+   * Delete memo text - based on C# GuiManager.DelMemo
+   */
+  delMemo(text: string): void {
+    const memoManager = getMemoListManager();
+    memoManager.delMemo(text);
+    this.updateMemoView();
+    this.emit("memo:deleted", { text });
+  }
+
+  /**
+   * Add memo from TalkTextList ID - based on C# AddToMemo
+   */
+  async addToMemo(textId: number): Promise<void> {
+    const memoManager = getMemoListManager();
+    await memoManager.addToMemo(textId);
+    this.updateMemoView();
+    this.emit("memo:added", { textId });
+  }
+
+  /**
+   * Get all memos
+   */
+  getMemoList(): string[] {
+    const memoManager = getMemoListManager();
+    return memoManager.getAllMemos();
+  }
+
+  /**
+   * Update memo view - based on C# GuiManager.UpdateMemoView
+   * Triggers UI refresh for memo panel
+   */
+  updateMemoView(): void {
+    this.emit("memo:updated");
   }
 
   /**

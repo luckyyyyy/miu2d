@@ -2,7 +2,6 @@
  * Game Manager - Central game controller
  * Ties together all game systems based on JxqyHD architecture
  */
-import { decodeGb2312 } from "../core/utils";
 import type {
   GameVariables,
   Vector2,
@@ -22,7 +21,10 @@ import { BarrierType } from "../types";
 import { AudioManager, getAudioManager } from "../audio";
 import { ScreenEffects, getScreenEffects } from "../effects";
 import { ObjManager, getObjManager } from "../obj";
-import { getTalkTextList } from "../listManager";
+import { getTalkTextList, getMemoListManager } from "../listManager";
+import { getLevelManager, type LevelManager } from "../level";
+import { getCheatManager, type CheatManager } from "../cheat";
+import { GoodsListManager, type Good } from "../goods";
 
 export interface GameManagerConfig {
   onMapChange?: (mapPath: string) => Promise<JxqyMapData | null>;
@@ -38,6 +40,9 @@ export class GameManager {
   private guiManager: GuiManager;
   private audioManager: AudioManager;
   private screenEffects: ScreenEffects;
+  private levelManager: LevelManager;
+  private cheatManager: CheatManager;
+  private goodsListManager: GoodsListManager;
   private characterRenderer: any = null;
 
   // Game state
@@ -53,6 +58,9 @@ export class GameManager {
   private gameTime: number = 0;
   private isPaused: boolean = false;
 
+  // Goods UI version (increment to trigger re-render)
+  private goodsVersion: number = 0;
+
   // Event tracking
   private eventId: number = 0;
 
@@ -67,6 +75,14 @@ export class GameManager {
   private mapTraps: Map<string, Map<number, string>> = new Map(); // mapName -> (trapIndex -> scriptFile)
   private isInRunMapTrap: boolean = false; // C#'s _isInRunMapTrap - prevents trap re-triggering
 
+  // Camera movement (C#: Camera.IsInMove, MoveTo)
+  private isCameraMoving: boolean = false;
+  private cameraMoveTarget: Vector2 | null = null;
+  private cameraMoveSpeed: number = 0;
+  private cameraMoveDirection: number = 0;
+  private cameraMoveDistance: number = 0;
+  private cameraMoveStartPos: Vector2 | null = null;
+
   constructor(config: GameManagerConfig = {}) {
     this.config = config;
 
@@ -80,6 +96,29 @@ export class GameManager {
     this.guiManager = new GuiManager();
     this.audioManager = getAudioManager();
     this.screenEffects = getScreenEffects();
+    this.levelManager = getLevelManager();
+    this.cheatManager = getCheatManager();
+
+    // Initialize goods list manager
+    this.goodsListManager = new GoodsListManager();
+
+    // Set up goods manager callbacks for equip/unequip and UI updates
+    this.goodsListManager.setCallbacks({
+      onEquiping: (good: Good | null, currentEquip: Good | null) => {
+        if (good) this.playerController.equiping(good, currentEquip);
+      },
+      onUnEquiping: (good: Good | null) => {
+        if (good) this.playerController.unEquiping(good);
+      },
+      onUpdateView: () => {
+        // Increment version to trigger UI re-render
+        this.goodsVersion++;
+      },
+    });
+
+    // Set up system references for notifications
+    this.playerController.setGuiManager(this.guiManager);
+    this.cheatManager.setSystems(this.playerController, this.npcManager, this.guiManager);
 
     // Create script context
     const scriptContext = this.createScriptContext();
@@ -130,9 +169,13 @@ export class GameManager {
       showMessage: (text) => {
         this.guiManager.showMessage(text);
       },
-      showSelection: (options) => {
+      showDialogSelection: (message, selectA, selectB) => {
+        this.guiManager.showDialogSelection(message, selectA, selectB);
+      },
+      showSelection: (options, message) => {
         this.guiManager.showSelection(
-          options.map((o) => ({ ...o, enabled: true }))
+          options.map((o) => ({ ...o, enabled: true })),
+          message || ""
         );
       },
 
@@ -160,6 +203,72 @@ export class GameManager {
       },
       playerGoto: (x, y) => {
         this.playerController.walkToTile(x, y);
+      },
+      isPlayerGotoEnd: (destination) => {
+        // C#: IsCharacterMoveEndAndStanding
+        // Returns true only when player is at destination AND standing
+        const player = this.playerController.getPlayer();
+        if (!player) return true;
+
+        const atDestination =
+          player.tilePosition.x === destination.x &&
+          player.tilePosition.y === destination.y;
+
+        const isStanding =
+          player.state === CharacterState.Stand ||
+          player.state === CharacterState.Stand1;
+
+        if (atDestination && isStanding) {
+          return true;
+        }
+
+        // C#: If character is standing but not at destination, re-issue WalkTo
+        if (!atDestination && isStanding) {
+          this.playerController.walkToTile(destination.x, destination.y);
+        }
+
+        return false;
+      },
+      playerRunTo: (x, y) => {
+        this.playerController.runToTile(x, y);
+      },
+      isPlayerRunToEnd: (destination) => {
+        // C#: IsCharacterMoveEndAndStanding with isRun=true
+        const player = this.playerController.getPlayer();
+        if (!player) return true;
+
+        const atDestination =
+          player.tilePosition.x === destination.x &&
+          player.tilePosition.y === destination.y;
+
+        const isStanding =
+          player.state === CharacterState.Stand ||
+          player.state === CharacterState.Stand1;
+
+        if (atDestination && isStanding) {
+          return true;
+        }
+
+        // C#: If character is standing but not at destination, re-issue RunTo
+        if (!atDestination && isStanding) {
+          this.playerController.runToTile(destination.x, destination.y);
+        }
+
+        return false;
+      },
+      playerGotoDir: (direction, steps) => {
+        // C#: Character.WalkToDirection(direction, steps)
+        // Walk in specified direction for given number of steps
+        this.playerController.walkToDirection(direction, steps);
+      },
+      isPlayerGotoDirEnd: () => {
+        // C#: IsCharacterGotoDirEnd - check if character is standing
+        const player = this.playerController.getPlayer();
+        if (!player) return true;
+        return (
+          player.state === CharacterState.Stand ||
+          player.state === CharacterState.Stand1
+        );
       },
 
       // NPC
@@ -191,6 +300,79 @@ export class GameManager {
         }
         this.npcManager.npcGoto(name, x, y);
       },
+      isNpcGotoEnd: (name, destination) => {
+        // C#: IsCharacterMoveEndAndStanding for NPC
+        const player = this.playerController.getPlayer();
+        if (player && player.config && player.config.name === name) {
+          // It's the player
+          const atDestination =
+            player.tilePosition.x === destination.x &&
+            player.tilePosition.y === destination.y;
+
+          const isStanding =
+            player.state === CharacterState.Stand ||
+            player.state === CharacterState.Stand1;
+
+          if (atDestination && isStanding) {
+            return true;
+          }
+
+          if (!atDestination && isStanding) {
+            this.playerController.walkToTile(destination.x, destination.y);
+          }
+
+          return false;
+        }
+
+        // Check NPC
+        const npc = this.npcManager.getNpc(name);
+        if (!npc) return true;
+
+        const atDestination =
+          npc.tilePosition.x === destination.x &&
+          npc.tilePosition.y === destination.y;
+
+        const isStanding =
+          npc.state === CharacterState.Stand ||
+          npc.state === CharacterState.Stand1;
+
+        if (atDestination && isStanding) {
+          return true;
+        }
+
+        // C#: If character is standing but not at destination, re-issue WalkTo
+        if (!atDestination && isStanding) {
+          this.npcManager.npcGoto(name, destination.x, destination.y);
+        }
+
+        return false;
+      },
+      npcGotoDir: (name, direction, steps) => {
+        // C#: Character.WalkToDirection(direction, steps)
+        const player = this.playerController.getPlayer();
+        if (player && player.config && player.config.name === name) {
+          this.playerController.walkToDirection(direction, steps);
+          return;
+        }
+        this.npcManager.npcGotoDir(name, direction, steps);
+      },
+      isNpcGotoDirEnd: (name) => {
+        // C#: IsCharacterGotoDirEnd - check if character is standing
+        const player = this.playerController.getPlayer();
+        if (player && player.config && player.config.name === name) {
+          return (
+            player.state === CharacterState.Stand ||
+            player.state === CharacterState.Stand1
+          );
+        }
+
+        const npc = this.npcManager.getNpc(name);
+        if (!npc) return true;
+        return (
+          npc.state === CharacterState.Stand ||
+          npc.state === CharacterState.Stand1
+        );
+      },
       setNpcActionFile: (name, stateType, asfFile) => {
         console.log(`[GameManager] SetNpcActionFile called: name="${name}", state=${stateType}, file="${asfFile}"`);
         // Set the action file for a specific state
@@ -220,14 +402,87 @@ export class GameManager {
         this.npcManager.setNpcActionFile(name, stateType, asfFile);
       },
       npcSpecialAction: (name, asfFile) => {
-        const character = this.getCharacterByName(name);
-        if (character && 'specialActionAsf' in character) {
-          (character as NpcData).specialActionAsf = asfFile;
+        // Based on C# Character.SetSpecialAction():
+        // 1. Set IsInSpecialAction = true
+        // 2. Save current direction (_specialActionLastDirection)
+        // 3. Load and play the special action ASF (PlayCurrentDirOnce)
+        // 4. When animation ends, restore state and direction (in update loop)
+
+        const player = this.playerController.getPlayer();
+        const isPlayer = player.config.name === name;
+
+        if (isPlayer) {
+          // Player special action
+          console.log(`[GameManager] NpcSpecialAction for player: ${asfFile}`);
+          player.isInSpecialAction = true;
+          player.specialActionAsf = asfFile;
+          player.specialActionLastDirection = player.direction;
+          player.specialActionFrame = 0;
+
+          // Start the special action animation in renderer (async but we track via isInSpecialAction)
+          if (this.characterRenderer) {
+            this.characterRenderer.setSpecialAction('player', asfFile)
+              .then((success: boolean) => {
+                if (!success) {
+                  console.warn(`[GameManager] Failed to start player special action, clearing state`);
+                  player.isInSpecialAction = false;
+                }
+              })
+              .catch((err: any) => {
+                console.error(`Failed to start player special action:`, err);
+                player.isInSpecialAction = false;
+              });
+          }
+        } else {
+          // NPC special action
+          const npc = this.npcManager.getNpc(name);
+          if (npc) {
+            console.log(`[GameManager] NpcSpecialAction for NPC "${name}": ${asfFile}`);
+            npc.isInSpecialAction = true;
+            npc.specialActionAsf = asfFile;
+            npc.specialActionLastDirection = npc.direction;
+            npc.specialActionFrame = 0;
+
+            // Start the special action animation in renderer
+            if (this.characterRenderer) {
+              this.characterRenderer.setSpecialAction(npc.id, asfFile)
+                .then((success: boolean) => {
+                  if (!success) {
+                    console.warn(`[GameManager] Failed to start NPC special action, clearing state`);
+                    npc.isInSpecialAction = false;
+                  }
+                })
+                .catch((err: any) => {
+                  console.error(`Failed to start NPC special action:`, err);
+                  npc.isInSpecialAction = false;
+                });
+            }
+          } else {
+            console.warn(`[GameManager] NpcSpecialAction: NPC not found: ${name}`);
+          }
         }
       },
+      isNpcSpecialActionEnd: (name) => {
+        // C#: Check if IsInSpecialAction is false
+        const player = this.playerController.getPlayer();
+        if (player && player.config && player.config.name === name) {
+          return !player.isInSpecialAction;
+        }
+
+        const npc = this.npcManager.getNpc(name);
+        if (!npc) return true;
+        return !npc.isInSpecialAction;
+      },
       setNpcLevel: (name, level) => {
-        // Set NPC level for combat calculations
-        this.npcManager.setNpcLevel(name, level);
+        // C# checks if name matches player name first
+        if (this.playerController.getPlayer().config.name === name) {
+          // This is the player - use setLevelTo
+          console.log(`[GameManager] SetNpcLevel: setting player level to ${level}`);
+          this.playerController.setLevelTo(level);
+        } else {
+          // This is an NPC
+          this.npcManager.setNpcLevel(name, level);
+        }
       },
       setNpcDirection: (name, direction) => {
         this.npcManager.setNpcDirection(name, direction);
@@ -237,17 +492,23 @@ export class GameManager {
       },
 
       // Player
-      addGoods: (goodsName, count) => {
+      addGoods: async (goodsName, count) => {
         console.log(`AddGoods: ${goodsName} x${count}`);
-        // TODO: Implement inventory
+        // Add items one by one since addGoodToList doesn't support count
+        for (let i = 0; i < count; i++) {
+          await this.goodsListManager.addGoodToList(goodsName);
+        }
       },
       removeGoods: (goodsName, count) => {
         console.log(`RemoveGoods: ${goodsName} x${count}`);
-        // TODO: Implement inventory
+        this.goodsListManager.deleteGoodByName(goodsName, count);
       },
-      equipGoods: (equipType, goodsId) => {
-        console.log(`EquipGoods: type=${equipType}, id=${goodsId}`);
-        // TODO: Implement equipment
+      equipGoods: async (goodsIndex, equipSlot) => {
+        // equipSlot: 1=Head, 2=Neck, 3=Body, 4=Back, 5=Hand, 6=Wrist, 7=Foot
+        // Equip item from inventory index to equipment slot
+        const equipIndex = equipSlot + 200; // Convert to equipment index (201-207)
+        console.log(`EquipGoods: from index ${goodsIndex} to slot ${equipSlot} (index ${equipIndex})`);
+        this.goodsListManager.exchangeListItemAndEquiping(goodsIndex, equipIndex);
       },
       addMoney: (amount) => {
         this.playerController.addMoney(amount);
@@ -255,9 +516,22 @@ export class GameManager {
       addExp: (amount) => {
         this.playerController.addExp(amount);
       },
-      addToMemo: (memoId) => {
-        console.log(`AddToMemo: ${memoId}`);
-        // TODO: Implement memo/quest log
+
+      // Memo functions (任务系统)
+      addMemo: (text) => {
+        this.guiManager.addMemo(text);
+      },
+      delMemo: (text) => {
+        this.guiManager.delMemo(text);
+      },
+      addToMemo: async (memoId) => {
+        await this.guiManager.addToMemo(memoId);
+      },
+      delMemoById: async (memoId) => {
+        // Use MemoListManager directly for ID-based deletion
+        const memoManager = getMemoListManager();
+        await memoManager.delMemoById(memoId);
+        this.guiManager.updateMemoView();
       },
 
       // Obj (interactive objects)
@@ -300,6 +574,21 @@ export class GameManager {
         // Start fade out effect (screen goes to black)
         this.screenEffects.fadeOut();
       },
+      isFadeInEnd: () => {
+        return this.screenEffects.isFadeInEnd();
+      },
+      isFadeOutEnd: () => {
+        return this.screenEffects.isFadeOutEnd();
+      },
+      moveScreen: (direction, distance, speed) => {
+        // C#: Camera.MoveTo(direction, distance, speed)
+        // Move camera in specified direction
+        this.cameraMoveTo(direction, distance, speed);
+      },
+      isMoveScreenEnd: () => {
+        // C#: !Camera.IsInMove
+        return !this.isCameraMoving;
+      },
       changeMapColor: (r, g, b) => {
         // Change map tint color
         this.screenEffects.setMapColor(r, g, b);
@@ -308,9 +597,30 @@ export class GameManager {
         // Change sprite tint color
         this.screenEffects.setSpriteColor(r, g, b);
       },
-      setLevelFile: (file) => {
+      setLevelFile: async (file) => {
         // Set the experience/level configuration file
         this.levelFile = file;
+        // Build full path - handle case sensitivity issues
+        // Try exact case first, then fallback to lowercase
+        const basePath = `/resources/ini/level/`;
+        const paths = [
+          `${basePath}${file}`,
+          `${basePath}${file.toLowerCase()}`,
+        ];
+
+        for (const path of paths) {
+          try {
+            const response = await fetch(path, { method: 'HEAD' });
+            if (response.ok) {
+              await this.levelManager.setPlayerLevelFile(path);
+              console.log(`[GameManager] Level file set to: ${path}`);
+              return;
+            }
+          } catch {
+            // Try next path
+          }
+        }
+        console.warn(`[GameManager] Could not load level file: ${file}`);
       },
 
       // Wait for input
@@ -356,6 +666,13 @@ export class GameManager {
         this.scriptExecutor.onSelectionMade(data?.index || 0);
         break;
     }
+  }
+
+  /**
+   * Handle selection made (from DialogUI or SelectionUI)
+   */
+  onSelectionMade(index: number): void {
+    this.scriptExecutor.onSelectionMade(index);
   }
 
   /**
@@ -495,15 +812,8 @@ export class GameManager {
         return;
       }
 
-      // Read as binary and decode with GBK
-      const buffer = await response.arrayBuffer();
-      let decoder: TextDecoder;
-      try {
-        decoder = new TextDecoder("gbk");
-      } catch {
-        decoder = new TextDecoder("utf-8");
-      }
-      const content = decoder.decode(new Uint8Array(buffer));
+      // INI files in resources are now UTF-8 encoded
+      const content = await response.text();
 
       // Parse Game.ini
       const sections = this.parseIni(content);
@@ -542,6 +852,19 @@ export class GameManager {
         // TODO: Use chrIndex for player character selection
       }
 
+      // Load player from save
+      // Uses PlayerN.ini where N = player index (default 0)
+      const playerPath = `${basePath}/Player0.ini`;
+      console.log(`[GameManager] Loading player from: ${playerPath}`);
+      await this.playerController.loadFromFile(playerPath);
+
+      // Load goods from save
+      // Index 0 uses game folder (initial clean save state)
+      // Index 1-7 uses rpgN folders (player save slots)
+      const goodsPath = `${basePath}/Goods0.ini`;
+      console.log(`[GameManager] Loading goods from: ${goodsPath}`);
+      await this.goodsListManager.loadList(goodsPath);
+
       console.log(`[GameManager] Game save loaded successfully`);
     } catch (error) {
       console.error(`[GameManager] Error loading game save:`, error);
@@ -563,9 +886,8 @@ export class GameManager {
         return;
       }
 
-      // Read and decode
-      const buffer = await response.arrayBuffer();
-      const content = decodeGb2312(buffer);
+      // INI files are now UTF-8
+      const content = await response.text();
 
       // Parse INI
       const sections = this.parseIni(content);
@@ -641,6 +963,10 @@ export class GameManager {
     const talkTextList = getTalkTextList();
     await talkTextList.initialize();
 
+    // Initialize Level Manager
+    const levelManager = getLevelManager();
+    await levelManager.initialize();
+
     console.log("[GameManager] Global resources initialized");
   }
 
@@ -653,7 +979,21 @@ export class GameManager {
     this.eventId = 0;
     this.gameTime = 0;
 
-    // Run NewGame script
+    // Start with black screen - FadeIn() in Begin.txt will reveal the scene
+    this.screenEffects.setFadeTransparency(1);
+
+    // Reset memo list
+    const memoManager = getMemoListManager();
+    memoManager.renewList();
+
+    // Reset goods list
+    this.goodsListManager.renewList();
+
+    // Initialize player stats from level configuration (level 1)
+    await this.playerController.initializeFromLevelConfig(1);
+
+    // Run NewGame script - this will call LoadGame(0) to load initial save
+    // which includes goods, player data, etc. Then runs Begin.txt
     await this.scriptExecutor.runScript("/resources/script/common/NewGame.txt");
   }
 
@@ -670,9 +1010,8 @@ export class GameManager {
         return;
       }
 
-      const buffer = await response.arrayBuffer();
-      const decoder = new TextDecoder('gbk');
-      const content = decoder.decode(new Uint8Array(buffer));
+      // INI files in resources are now UTF-8 encoded
+      const content = await response.text();
       const sections = this.parseIni(content);
 
       const state = sections['State'];
@@ -725,8 +1064,15 @@ export class GameManager {
 
   /**
    * Handle keyboard input
+   * @param code Key code (e.g., 'KeyA', 'F12')
+   * @param shiftKey Whether shift is held
    */
-  handleKeyDown(code: string): boolean {
+  handleKeyDown(code: string, shiftKey: boolean = false): boolean {
+    // Cheat system takes priority
+    if (this.cheatManager.handleInput(code, shiftKey)) {
+      return true;
+    }
+
     // GUI takes priority
     if (this.guiManager.handleHotkey(code)) {
       return true;
@@ -759,8 +1105,30 @@ export class GameManager {
         return;
       }
 
-      // Otherwise, walk to clicked position
-      this.playerController.walkToTile(tile.x, tile.y);
+      // Note: Movement is now handled in update() via handleInput
+      // This click handler is for immediate actions like NPC interaction
+      // The continuous mouse-held movement is handled by checking input.isMouseDown in update()
+    }
+  }
+
+  /**
+   * Handle continuous mouse input for movement
+   * Based on C# Player.cs Update() - mouse held down = continuous movement
+   */
+  handleContinuousMouseInput(input: InputState): void {
+    // C#: if (mouseState.LeftButton == ButtonState.Pressed)
+    if (input.isMouseDown && input.clickedTile) {
+      const tile = input.clickedTile;
+
+      // Check for NPC at target (interaction takes priority over movement)
+      const npc = this.npcManager.getNpcAtTile(tile.x, tile.y);
+      if (npc && npc.config.kind === CharacterKind.Eventer) {
+        // Don't move, interaction is handled by click
+        return;
+      }
+
+      // C#: Movement is handled by playerController.handleInput()
+      // which checks isShiftDown for run mode
     }
   }
 
@@ -881,6 +1249,7 @@ export class GameManager {
 
   /**
    * Update game state
+   * Based on C# Player.cs Update() method
    */
   update(deltaTime: number, input: InputState): void {
     if (this.isPaused) return;
@@ -901,21 +1270,25 @@ export class GameManager {
     // Update GUI
     this.guiManager.update(deltaTime);
 
+    // Check for special action completion (C#: Character.Update() checks IsInSpecialAction)
+    this.updateSpecialActions();
+
     // Don't process game input if GUI is blocking
     if (this.guiManager.isBlockingInput()) {
       return;
     }
 
-    // Handle player input
-    if (input.clickedTile) {
-      this.handleClick(
-        input.mouseWorldX,
-        input.mouseWorldY,
-        input.isMouseDown ? "left" : "right"
-      );
+    // C#: Handle mouse held for continuous movement
+    // This is the key difference from click-based movement
+    // When mouse is held down, continuously update target position
+    if (input.isMouseDown && input.clickedTile) {
+      // Check for NPC interaction first (one-time on click)
+      // Movement handling is done in playerController.handleInput()
+      this.handleContinuousMouseInput(input);
     }
 
-    // Handle keyboard movement
+    // Handle keyboard movement and mouse-held movement
+    // C#: PlayerController checks isMouseDown and isShiftDown for run mode
     this.playerController.handleInput(input, 0, 0);
 
     // Update player
@@ -945,10 +1318,56 @@ export class GameManager {
     );
   }
 
+  /**
+   * Update special action states for player and NPCs
+   * Based on C# Character.Update() which checks IsInSpecialAction and IsPlayCurrentDirOnceEnd()
+   */
+  private updateSpecialActions(): void {
+    // Check player special action
+    const player = this.playerController.getPlayer();
+    if (player.isInSpecialAction && this.characterRenderer) {
+      if (this.characterRenderer.isSpecialActionEnd('player')) {
+        // Animation finished, restore state and direction
+        console.log(`[GameManager] Player special action ended, restoring direction: ${player.specialActionLastDirection}`);
+        player.isInSpecialAction = false;
+        if (player.specialActionLastDirection !== undefined) {
+          player.direction = player.specialActionLastDirection;
+        }
+        player.specialActionAsf = undefined;
+        player.specialActionFrame = undefined;
+        this.characterRenderer.endSpecialActionFor('player');
+      }
+    }
+
+    // Check NPC special actions
+    for (const [, npc] of this.npcManager.getAllNpcs()) {
+      if (npc.isInSpecialAction && this.characterRenderer) {
+        if (this.characterRenderer.isSpecialActionEnd(npc.id)) {
+          // Animation finished, restore state and direction
+          console.log(`[GameManager] NPC "${npc.config.name}" special action ended, restoring direction: ${npc.specialActionLastDirection}`);
+          npc.isInSpecialAction = false;
+          if (npc.specialActionLastDirection !== undefined) {
+            npc.direction = npc.specialActionLastDirection;
+          }
+          npc.specialActionAsf = undefined;
+          npc.specialActionFrame = undefined;
+          this.characterRenderer.endSpecialActionFor(npc.id);
+        }
+      }
+    }
+  }
+
   // ============= Getters =============
 
   getPlayerController(): PlayerController {
     return this.playerController;
+  }
+
+  /**
+   * Get current player data
+   */
+  getPlayer(): PlayerData {
+    return this.playerController.getPlayer();
   }
 
   getNpcManager(): NpcManager {
@@ -961,6 +1380,33 @@ export class GameManager {
 
   getGuiManager(): GuiManager {
     return this.guiManager;
+  }
+
+  getGoodsListManager(): GoodsListManager {
+    return this.goodsListManager;
+  }
+
+  /**
+   * Get goods version (for UI re-render triggering)
+   */
+  getGoodsVersion(): number {
+    return this.goodsVersion;
+  }
+
+  /**
+   * Increment goods version to trigger UI re-render
+   * Call this after money changes or inventory updates
+   */
+  incrementGoodsVersion(): void {
+    this.goodsVersion++;
+  }
+
+  /**
+   * Get memo list (任务记事)
+   * Uses MemoListManager to get all current memos
+   */
+  getMemoList(): string[] {
+    return this.guiManager.getMemoList();
   }
 
   getScriptExecutor(): ScriptExecutor {
@@ -1068,5 +1514,141 @@ export class GameManager {
    */
   getLevelFile(): string {
     return this.levelFile;
+  }
+
+  /**
+   * Get level manager
+   */
+  getLevelManager(): LevelManager {
+    return this.levelManager;
+  }
+
+  /**
+   * Get cheat manager
+   */
+  getCheatManager(): CheatManager {
+    return this.cheatManager;
+  }
+
+  /**
+   * Check if cheat mode is enabled
+   */
+  isCheatEnabled(): boolean {
+    return this.cheatManager.isEnabled();
+  }
+
+  /**
+   * Check if god mode is active
+   */
+  isGodMode(): boolean {
+    return this.cheatManager.isGodMode();
+  }
+
+  /**
+   * Move camera in a direction for a given distance
+   * Based on C# Camera.MoveTo(direction, distance, speed)
+   */
+  cameraMoveTo(direction: number, distance: number, speed: number): void {
+    // Direction is 8-way (0-7), same as character directions
+    // 0=North, 1=NorthEast, 2=East, 3=SouthEast, 4=South, 5=SouthWest, 6=West, 7=NorthWest
+    this.isCameraMoving = true;
+    this.cameraMoveDirection = direction;
+    this.cameraMoveDistance = distance;
+    this.cameraMoveSpeed = speed;
+    this.cameraMoveStartPos = null; // Will be set when camera position is available
+  }
+
+  /**
+   * Update camera movement (called from game loop)
+   */
+  updateCameraMovement(
+    cameraX: number,
+    cameraY: number,
+    deltaTime: number
+  ): { x: number; y: number } | null {
+    if (!this.isCameraMoving) {
+      return null;
+    }
+
+    // Initialize start position
+    if (!this.cameraMoveStartPos) {
+      this.cameraMoveStartPos = { x: cameraX, y: cameraY };
+    }
+
+    // Direction vectors (8-way)
+    const dirVectors = [
+      { x: 0, y: -1 },  // 0: North
+      { x: 1, y: -1 },  // 1: NorthEast
+      { x: 1, y: 0 },   // 2: East
+      { x: 1, y: 1 },   // 3: SouthEast
+      { x: 0, y: 1 },   // 4: South
+      { x: -1, y: 1 },  // 5: SouthWest
+      { x: -1, y: 0 },  // 6: West
+      { x: -1, y: -1 }, // 7: NorthWest
+    ];
+
+    const dir = dirVectors[this.cameraMoveDirection] || { x: 0, y: 0 };
+
+    // Calculate movement per frame
+    // C#: speed is pixels per frame at 60fps
+    const movePerSecond = this.cameraMoveSpeed * 60;
+    const moveAmount = movePerSecond * (deltaTime / 1000);
+
+    // Calculate new position
+    const newX = cameraX + dir.x * moveAmount;
+    const newY = cameraY + dir.y * moveAmount;
+
+    // Calculate distance moved from start
+    const dx = newX - this.cameraMoveStartPos.x;
+    const dy = newY - this.cameraMoveStartPos.y;
+    const distanceMoved = Math.sqrt(dx * dx + dy * dy);
+
+    // Check if we've moved far enough
+    if (distanceMoved >= this.cameraMoveDistance) {
+      // Move complete - calculate final position before clearing state
+      const startX = this.cameraMoveStartPos.x;
+      const startY = this.cameraMoveStartPos.y;
+
+      this.isCameraMoving = false;
+      this.cameraMoveStartPos = null;
+
+      // Return final position (exact distance)
+      const ratio = this.cameraMoveDistance / distanceMoved;
+      return {
+        x: startX + dx * ratio,
+        y: startY + dy * ratio,
+      };
+    }
+
+    return { x: newX, y: newY };
+  }
+
+  /**
+   * Check if camera is being moved by script
+   */
+  isCameraMovingByScript(): boolean {
+    return this.isCameraMoving;
+  }
+
+  /**
+   * Execute a script file or script content directly (for debug panel)
+   * @param input Can be:
+   *   - Script content: "Say(\"测试\")" or multi-line script commands
+   *   - Full path: "/resources/script/map/map_002/Begin.txt"
+   *   - Relative to current map: "Begin.txt"
+   *   - Common script: "common/NewGame.txt"
+   * @returns Error message if execution failed, null if successful
+   */
+  async executeScript(input: string): Promise<string | null> {
+    try {
+      const trimmed = input.trim();
+      console.log(`[GameManager] Executing script content directly`);
+      await this.scriptExecutor.runScriptContent(trimmed, "DebugPanel");
+      return null;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error(`[GameManager] Script execution error:`, error);
+      return errorMessage;
+    }
   }
 }

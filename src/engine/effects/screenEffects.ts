@@ -28,7 +28,9 @@ export interface ScreenEffectsState {
 }
 
 const DEFAULT_COLOR: Color = { r: 255, g: 255, b: 255, a: 255 };
-const FADE_SPEED = 0.03; // Same as C# implementation
+// C# uses 0.03 per frame at 60fps = 0.03 * 60 = 1.8 per second
+// Complete fade takes ~33 frames = ~550ms
+const FADE_SPEED_PER_SECOND = 1.8; // 1.0 / 0.55 seconds
 
 export class ScreenEffects {
   private state: ScreenEffectsState;
@@ -84,6 +86,14 @@ export class ScreenEffects {
   }
 
   /**
+   * Set fade transparency directly (for game initialization)
+   * 0 = fully transparent (normal), 1 = fully opaque (black)
+   */
+  setFadeTransparency(value: number): void {
+    this.state.fadeTransparency = Math.max(0, Math.min(1, value));
+  }
+
+  /**
    * Set map draw color (tinting)
    * Based on ScriptExecuter.ChangeMapColor() in C#
    */
@@ -132,18 +142,23 @@ export class ScreenEffects {
   /**
    * Update screen effects
    * Based on ScriptExecuter.Update() fade logic in C#
+   * C# uses 0.03 per frame at 60fps, so fade completes in ~550ms
+   * @param deltaTime - time elapsed in seconds
    */
   update(deltaTime: number): void {
+    // deltaTime is in seconds
+    const fadeStep = FADE_SPEED_PER_SECOND * deltaTime;
+
     // Fade out: transparency increases to 1
     if (this.state.isInFadeOut && this.state.fadeTransparency < 1) {
-      this.state.fadeTransparency += FADE_SPEED;
+      this.state.fadeTransparency += fadeStep;
       if (this.state.fadeTransparency > 1) {
         this.state.fadeTransparency = 1;
       }
     }
     // Fade in: transparency decreases to 0
     else if (this.state.isInFadeIn && this.state.fadeTransparency > 0) {
-      this.state.fadeTransparency -= FADE_SPEED;
+      this.state.fadeTransparency -= fadeStep;
       if (this.state.fadeTransparency <= 0) {
         this.state.fadeTransparency = 0;
         this.state.isInFadeIn = false;

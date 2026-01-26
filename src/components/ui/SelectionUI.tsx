@@ -1,139 +1,169 @@
 /**
- * Selection UI Component - displays multiple choice options
+ * Selection UI Component - based on JxqyHD Engine/Gui/SelectionGui.cs
+ * Displays multiple choice options with message text
+ *
+ * C# Reference: SelectionGui.cs shows message + options centered on screen
+ * with dark overlay, NO panel background (just black semi-transparent)
+ * Message in gold color, options in green (yellow on hover)
  */
-import React from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import type { SelectionGuiState } from "../../engine/gui/types";
 
 interface SelectionUIProps {
   state: SelectionGuiState;
+  screenWidth: number;
+  screenHeight: number;
   onSelect: (index: number) => void;
 }
 
-const styles: Record<string, React.CSSProperties> = {
-  overlay: {
-    position: "absolute",
-    top: "50%",
-    left: "50%",
-    transform: "translate(-50%, -50%)",
-    width: "90%",
-    maxWidth: 400,
-    pointerEvents: "auto",
-  },
-  container: {
-    background: "linear-gradient(180deg, rgba(30, 40, 60, 0.98) 0%, rgba(15, 20, 35, 0.99) 100%)",
-    border: "2px solid #5a7fbb",
-    borderRadius: 8,
-    padding: 0,
-    boxShadow: "0 8px 32px rgba(0, 0, 0, 0.6)",
-  },
-  header: {
-    background: "linear-gradient(90deg, #3a5a8a 0%, #2a3a5a 100%)",
-    padding: "12px 20px",
-    borderBottom: "1px solid #5a7fbb",
-    borderRadius: "6px 6px 0 0",
-  },
-  title: {
-    color: "#ffd700",
-    fontSize: 16,
-    fontWeight: "bold",
-    textAlign: "center" as const,
-    margin: 0,
-  },
-  optionList: {
-    padding: "12px 16px",
-  },
-  option: {
-    background: "linear-gradient(180deg, rgba(50, 70, 100, 0.6) 0%, rgba(30, 50, 80, 0.6) 100%)",
-    border: "1px solid rgba(90, 127, 187, 0.5)",
-    borderRadius: 6,
-    padding: "12px 16px",
-    marginBottom: 8,
-    cursor: "pointer",
-    transition: "all 0.2s ease",
-    display: "flex",
-    alignItems: "center",
-    gap: 12,
-  },
-  optionSelected: {
-    background: "linear-gradient(180deg, rgba(70, 100, 140, 0.8) 0%, rgba(50, 80, 120, 0.8) 100%)",
-    border: "1px solid #7a9fdb",
-    boxShadow: "0 0 10px rgba(100, 150, 220, 0.3)",
-  },
-  optionHovered: {
-    background: "linear-gradient(180deg, rgba(60, 90, 130, 0.7) 0%, rgba(40, 70, 110, 0.7) 100%)",
-    border: "1px solid #6a8fcb",
-  },
-  optionDisabled: {
-    opacity: 0.5,
-    cursor: "not-allowed",
-  },
-  optionNumber: {
-    width: 24,
-    height: 24,
-    borderRadius: "50%",
-    background: "#4a6fa5",
-    color: "#fff",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontSize: 12,
-    fontWeight: "bold",
-  },
-  optionText: {
-    color: "#e8e8e8",
-    fontSize: 14,
-    flex: 1,
-  },
-  footer: {
-    padding: "10px 16px",
-    borderTop: "1px solid rgba(90, 127, 187, 0.5)",
-  },
-  hint: {
-    color: "#8aa8d8",
-    fontSize: 12,
-    textAlign: "center" as const,
-  },
+// 颜色配置 - 对应 C# SelectionGui 中的颜色
+const COLORS = {
+  normal: "rgba(0, 255, 0, 0.8)", // 绿色 - 普通状态
+  hover: "rgba(255, 255, 0, 0.8)", // 黄色 - 悬停状态
+  message: "rgba(255, 215, 0, 0.8)", // 金色 - 消息文本
+  overlay: "rgba(0, 0, 0, 0.8)", // 黑色半透明遮罩
 };
 
-export const SelectionUI: React.FC<SelectionUIProps> = ({ state, onSelect }) => {
+// 布局配置
+const LAYOUT = {
+  lineHeight: 30,
+  lineGap: 5,
+  fontSize: 14,
+};
+
+/**
+ * 单个选项组件
+ */
+interface SelectionLineProps {
+  text: string;
+  isEnabled: boolean;
+  isHovered: boolean;
+  onSelect: () => void;
+  onHover: () => void;
+  onLeave: () => void;
+  style?: React.CSSProperties;
+}
+
+const SelectionLine: React.FC<SelectionLineProps> = ({
+  text,
+  isEnabled,
+  isHovered,
+  onSelect,
+  onHover,
+  onLeave,
+  style,
+}) => {
+  if (!isEnabled) return null;
+
+  return (
+    <div
+      style={{
+        textAlign: "center",
+        fontSize: LAYOUT.fontSize,
+        fontFamily: "SimSun, serif",
+        color: isHovered ? COLORS.hover : COLORS.normal,
+        cursor: "pointer",
+        lineHeight: `${LAYOUT.lineHeight}px`,
+        transition: "color 0.15s ease",
+        userSelect: "none",
+        ...style,
+      }}
+      onClick={onSelect}
+      onMouseEnter={onHover}
+      onMouseLeave={onLeave}
+    >
+      {text}
+    </div>
+  );
+};
+
+export const SelectionUI: React.FC<SelectionUIProps> = ({
+  state,
+  screenWidth,
+  screenHeight,
+  onSelect,
+}) => {
+  const [hoveredIndex, setHoveredIndex] = useState<number>(-1);
+
+  const handleSelect = useCallback(
+    (index: number) => {
+      const option = state.options[index];
+      if (option && option.enabled) {
+        onSelect(index);
+      }
+    },
+    [state.options, onSelect]
+  );
+
+  // 计算可见选项
+  const visibleOptions = useMemo(() => {
+    return state.options
+      .map((opt, index) => ({ ...opt, index }))
+      .filter((opt) => opt.enabled);
+  }, [state.options]);
+
+  // 计算内容起始Y位置 - C# 风格，从中间向上下扩展
+  // C#: var startY = (Globals.WindowHeight - (selections.Count + 1) * (lineHeight + lineGap)) / 2;
+  const totalLines = visibleOptions.length + (state.message ? 1 : 0);
+  const totalHeight = totalLines * (LAYOUT.lineHeight + LAYOUT.lineGap);
+  const startY = (screenHeight - totalHeight) / 2;
+
   if (!state.isVisible) return null;
 
   return (
-    <div style={styles.overlay}>
-      <div style={styles.container}>
-        <div style={styles.header}>
-          <p style={styles.title}>请选择</p>
+    <div
+      style={{
+        position: "absolute",
+        left: 0,
+        top: 0,
+        width: screenWidth,
+        height: screenHeight,
+        backgroundColor: COLORS.overlay,
+        pointerEvents: "auto",
+        zIndex: 100,
+      }}
+    >
+      {/* 消息文本（如果有） - 金色，居中 */}
+      {state.message && (
+        <div
+          style={{
+            position: "absolute",
+            left: 0,
+            top: startY,
+            width: screenWidth,
+            textAlign: "center",
+            fontSize: LAYOUT.fontSize,
+            fontFamily: "SimSun, serif",
+            color: COLORS.message,
+            lineHeight: `${LAYOUT.lineHeight}px`,
+            userSelect: "none",
+          }}
+        >
+          {state.message}
         </div>
-        <div style={styles.optionList}>
-          {state.options.map((option, index) => {
-            const isSelected = index === state.selectedIndex;
-            const isHovered = index === state.hoveredIndex;
-            const isDisabled = !option.enabled;
+      )}
 
-            return (
-              <div
-                key={index}
-                style={{
-                  ...styles.option,
-                  ...(isSelected ? styles.optionSelected : {}),
-                  ...(isHovered && !isSelected ? styles.optionHovered : {}),
-                  ...(isDisabled ? styles.optionDisabled : {}),
-                }}
-                onClick={() => !isDisabled && onSelect(index)}
-                onMouseEnter={() => {
-                  // Could add hover state update here
-                }}
-              >
-                <span style={styles.optionNumber}>{index + 1}</span>
-                <span style={styles.optionText}>{option.text}</span>
-              </div>
-            );
-          })}
-        </div>
-        <div style={styles.footer}>
-          <p style={styles.hint}>按数字键或点击选择 | ↑↓选择 空格确认</p>
-        </div>
-      </div>
+      {/* 选项列表 - 绿色，居中 */}
+      {visibleOptions.map(({ index, text, enabled }, idx) => (
+        <SelectionLine
+          key={index}
+          text={text}
+          isEnabled={enabled}
+          isHovered={hoveredIndex === index || state.selectedIndex === index}
+          onSelect={() => handleSelect(index)}
+          onHover={() => setHoveredIndex(index)}
+          onLeave={() => setHoveredIndex(-1)}
+          style={{
+            position: "absolute",
+            left: 0,
+            top:
+              startY +
+              (state.message ? 1 : 0) * (LAYOUT.lineHeight + LAYOUT.lineGap) +
+              idx * (LAYOUT.lineHeight + LAYOUT.lineGap),
+            width: screenWidth,
+          }}
+        />
+      ))}
     </div>
   );
 };
