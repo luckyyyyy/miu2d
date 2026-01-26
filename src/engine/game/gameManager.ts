@@ -86,12 +86,15 @@ export class GameManager {
   constructor(config: GameManagerConfig = {}) {
     this.config = config;
 
-    // Create walkability checker
+    // Create walkability checker (matches C# IsObstacleForCharacter - checks barrier+Trans+NPC+Obj)
     const isWalkable = (tile: Vector2) => this.isTileWalkable(tile);
+    // Create map-only obstacle checker (matches C# IsObstacle - only checks barrier 0x80)
+    // Used for diagonal blocking in pathfinding
+    const isMapObstacle = (tile: Vector2) => this.isMapOnlyObstacle(tile);
 
     // Initialize systems
-    this.playerController = new PlayerController(isWalkable);
-    this.npcManager = new NpcManager(isWalkable);
+    this.playerController = new PlayerController(isWalkable, isMapObstacle);
+    this.npcManager = new NpcManager(isWalkable, isMapObstacle);
     this.objManager = getObjManager();
     this.guiManager = new GuiManager();
     this.audioManager = getAudioManager();
@@ -206,7 +209,8 @@ export class GameManager {
       },
       isPlayerGotoEnd: (destination) => {
         // C#: IsCharacterMoveEndAndStanding
-        // Returns true only when player is at destination AND standing
+        // Returns true only when player is at destination AND standing,
+        // OR when path is null/empty (destination unreachable)
         const player = this.playerController.getPlayer();
         if (!player) return true;
 
@@ -222,9 +226,17 @@ export class GameManager {
           return true;
         }
 
-        // C#: If character is standing but not at destination, re-issue WalkTo
+        // C#: Check moveable - if Path is null or empty while standing,
+        // destination is unreachable, so return true (end)
         if (!atDestination && isStanding) {
-          this.playerController.walkToTile(destination.x, destination.y);
+          // Check if there's no valid path (destination unreachable)
+          if (!player.path || player.path.length === 0) {
+            // Try to walk once, if still no path, return true
+            const success = this.playerController.walkToTile(destination.x, destination.y);
+            if (!success || !player.path || player.path.length === 0) {
+              return true; // Destination unreachable, end the command
+            }
+          }
         }
 
         return false;
@@ -234,6 +246,8 @@ export class GameManager {
       },
       isPlayerRunToEnd: (destination) => {
         // C#: IsCharacterMoveEndAndStanding with isRun=true
+        // Returns true only when player is at destination AND standing,
+        // OR when path is null/empty (destination unreachable)
         const player = this.playerController.getPlayer();
         if (!player) return true;
 
@@ -249,9 +263,17 @@ export class GameManager {
           return true;
         }
 
-        // C#: If character is standing but not at destination, re-issue RunTo
+        // C#: Check moveable - if Path is null or empty while standing,
+        // destination is unreachable, so return true (end)
         if (!atDestination && isStanding) {
-          this.playerController.runToTile(destination.x, destination.y);
+          // Check if there's no valid path (destination unreachable)
+          if (!player.path || player.path.length === 0) {
+            // Try to run once, if still no path, return true
+            const success = this.playerController.runToTile(destination.x, destination.y);
+            if (!success || !player.path || player.path.length === 0) {
+              return true; // Destination unreachable, end the command
+            }
+          }
         }
 
         return false;
@@ -682,12 +704,15 @@ export class GameManager {
   private isTileWalkable(tile: Vector2): boolean {
     if (!this.mapData) return false; // No map data = obstacle
 
-    // Check map bounds - C# returns true (obstacle) when out of bounds
+    // Check map bounds using C# IsTileInMapViewRange logic:
+    // C#: return (col < MapColumnCounts && row < MapRowCounts - 1 && col >= 0 && row > 0);
+    // Note: row must be > 0 (not >= 0), and row must be < MapRowCounts - 1 (not < MapRowCounts)
+    // This excludes the first row (row=0) and last row (row=MapRowCounts-1) from walkable area
     if (
       tile.x < 0 ||
       tile.x >= this.mapData.mapColumnCounts ||
-      tile.y < 0 ||
-      tile.y >= this.mapData.mapRowCounts
+      tile.y <= 0 ||  // C#: row > 0 means row must be at least 1
+      tile.y >= this.mapData.mapRowCounts - 1  // C#: row < MapRowCounts - 1
     ) {
       return false; // Out of bounds = obstacle
     }
@@ -723,6 +748,146 @@ export class GameManager {
   }
 
   /**
+   * Check if a tile is a map-only obstacle (used for diagonal blocking in pathfinding)
+   * Matches C# JxqyMap.IsObstacle logic - ONLY checks map barrier (0x80)
+   * Does NOT check NPC/Obj - this is intentional per C# PathFinder.GetObstacleIndexList
+   */
+  private isMapOnlyObstacle(tile: Vector2): boolean {
+    if (!this.mapData) return true; // No map data = obstacle
+
+    // Check map bounds
+    if (
+      tile.x < 0 ||
+      tile.x >= this.mapData.mapColumnCounts ||
+      tile.y <= 0 ||
+      tile.y >= this.mapData.mapRowCounts - 1
+    ) {
+      return true; // Out of bounds = obstacle
+    }
+
+    // Check ONLY the Obstacle flag (0x80), NOT Trans (0x40) and NOT NPC/Obj
+    // C# IsObstacle: if ((type & Obstacle) == 0) return false;
+    const tileIndex = tile.x + tile.y * this.mapData.mapColumnCounts;
+    const tileInfo = this.mapData.tileInfos[tileIndex];
+    if (tileInfo) {
+      const barrier = tileInfo.barrierType;
+      const Obstacle = 0x80;
+      if ((barrier & Obstacle) !== 0) {
+        return true; // Has Obstacle flag = map obstacle
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * Debug: Print barrier data for map analysis
+   */
+  private debugPrintBarrierData(): void {
+    if (!this.mapData) return;
+
+    const cols = this.mapData.mapColumnCounts;
+    const rows = this.mapData.mapRowCounts;
+    const Obstacle = 0x80;
+    const Trans = 0x40;
+
+    console.log(`\n========== BARRIER DATA DEBUG ==========`);
+    console.log(`Map: ${this.currentMapName}`);
+    console.log(`Size: ${cols} columns x ${rows} rows`);
+    console.log(`Valid range: col [0, ${cols - 1}], row (0, ${rows - 2}]`);
+    console.log(`  (C# IsTileInMapViewRange: col >= 0 && col < ${cols} && row > 0 && row < ${rows - 1})`);
+
+    // Print walkability map using actual isTileWalkable (includes boundary check)
+    console.log(`\n--- Walkability map (using isTileWalkable, includes boundary) ---`);
+    console.log(`Legend: . = walkable, X = obstacle/boundary`);
+
+    // Print first few rows (top edge)
+    console.log(`\n--- Top edge (rows 0-5) ---`);
+    for (let y = 0; y <= Math.min(5, rows - 1); y++) {
+      let rowStr = `Row ${y.toString().padStart(3)}: `;
+      for (let x = 0; x < cols; x++) {
+        const walkable = this.isTileWalkable({ x, y });
+        rowStr += walkable ? '.' : 'X';
+      }
+      console.log(rowStr);
+    }
+
+    // Print last few rows (bottom edge)
+    console.log(`\n--- Bottom edge (rows ${rows - 6} to ${rows - 1}) ---`);
+    for (let y = Math.max(0, rows - 6); y < rows; y++) {
+      let rowStr = `Row ${y.toString().padStart(3)}: `;
+      for (let x = 0; x < cols; x++) {
+        const walkable = this.isTileWalkable({ x, y });
+        rowStr += walkable ? '.' : 'X';
+      }
+      console.log(rowStr);
+    }
+
+    // Print right edge detail (last 3 columns)
+    console.log(`\n--- Right edge (last 3 columns, all rows) ---`);
+    for (let y = 0; y < rows; y++) {
+      let rowStr = `Row ${y.toString().padStart(3)}: `;
+      for (let x = Math.max(0, cols - 3); x < cols; x++) {
+        const walkable = this.isTileWalkable({ x, y });
+        const idx = x + y * cols;
+        const barrier = this.mapData.tileInfos[idx].barrierType;
+        rowStr += `(${x},${y}):${walkable ? 'W' : 'X'}[${barrier.toString(16).padStart(2, '0')}] `;
+      }
+      console.log(rowStr);
+    }
+
+    // Print raw barrier values for edges
+    console.log(`\n--- Raw barrier values (hex) ---`);
+    console.log(`Row 0 (first 10 cols):`);
+    let raw0 = '';
+    for (let x = 0; x < Math.min(10, cols); x++) {
+      const idx = x + 0 * cols;
+      raw0 += this.mapData.tileInfos[idx].barrierType.toString(16).padStart(2, '0') + ' ';
+    }
+    console.log(`  ${raw0}`);
+
+    console.log(`Row 1 (first 10 cols):`);
+    let raw1 = '';
+    for (let x = 0; x < Math.min(10, cols); x++) {
+      const idx = x + 1 * cols;
+      raw1 += this.mapData.tileInfos[idx].barrierType.toString(16).padStart(2, '0') + ' ';
+    }
+    console.log(`  ${raw1}`);
+
+    console.log(`Row ${rows - 2} (first 10 cols):`);
+    let rawN2 = '';
+    for (let x = 0; x < Math.min(10, cols); x++) {
+      const idx = x + (rows - 2) * cols;
+      rawN2 += this.mapData.tileInfos[idx].barrierType.toString(16).padStart(2, '0') + ' ';
+    }
+    console.log(`  ${rawN2}`);
+
+    console.log(`Row ${rows - 1} (first 10 cols):`);
+    let rawN1 = '';
+    for (let x = 0; x < Math.min(10, cols); x++) {
+      const idx = x + (rows - 1) * cols;
+      rawN1 += this.mapData.tileInfos[idx].barrierType.toString(16).padStart(2, '0') + ' ';
+    }
+    console.log(`  ${rawN1}`);
+
+    // Count walkable tiles using actual isTileWalkable
+    let walkableCount = 0;
+    let obstacleCount = 0;
+    for (let y = 0; y < rows; y++) {
+      for (let x = 0; x < cols; x++) {
+        if (this.isTileWalkable({ x, y })) {
+          walkableCount++;
+        } else {
+          obstacleCount++;
+        }
+      }
+    }
+    console.log(`\nTotal walkable tiles: ${walkableCount}`);
+    console.log(`Total obstacle tiles: ${obstacleCount}`);
+    console.log(`========================================\n`);
+  }
+
+  /**
    * Load a map
    * Based on C#'s ScriptExecuter.LoadMap
    */
@@ -751,9 +916,13 @@ export class GameManager {
     if (this.config.onMapChange) {
       this.mapData = await this.config.onMapChange(mapPath);
 
-      // Debug: Log trap info for current map
+      // Debug: Log map info and barrier data
       if (this.mapData) {
         console.log(`[GameManager] Map loaded: ${this.mapData.mapColumnCounts}x${this.mapData.mapRowCounts} tiles`);
+        console.log(`[GameManager] Map pixel size: ${this.mapData.mapPixelWidth}x${this.mapData.mapPixelHeight}`);
+
+        // Debug: Print barrier data for analysis
+        // this.debugPrintBarrierData();
 
         // Show trap tiles from map file
         const trapsInMap: { tile: string; trapIndex: number }[] = [];
@@ -866,6 +1035,9 @@ export class GameManager {
       await this.goodsListManager.loadList(goodsPath);
 
       console.log(`[GameManager] Game save loaded successfully`);
+
+      // Debug: Print all obstacle objects
+      this.objManager.debugPrintObstacleObjs();
     } catch (error) {
       console.error(`[GameManager] Error loading game save:`, error);
     }

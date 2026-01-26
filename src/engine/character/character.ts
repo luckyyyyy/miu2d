@@ -167,22 +167,32 @@ export function updateCharacterMovement(
 /**
  * Set character to walk to a destination
  * Matches C# Character.WalkTo
+ * @param isWalkable - Full walkability check (map barrier + Trans + NPC + Obj)
+ * @param isMapObstacle - Map-only obstacle check (only 0x80 flag, for diagonal blocking)
  */
 export function walkTo(
   character: NpcData | PlayerData,
   destTile: Vector2,
-  isWalkable: (tile: Vector2) => boolean
+  isWalkable: (tile: Vector2) => boolean,
+  isMapObstacle?: (tile: Vector2) => boolean
 ): boolean {
   // Already at destination
   if (character.tilePosition.x === destTile.x && character.tilePosition.y === destTile.y) {
     return true;
   }
 
-  // Find path
-  const path = findPath(character.tilePosition, destTile, isWalkable);
+  // Debug: Check if target is walkable before findPath
+  const targetWalkable = isWalkable(destTile);
+  if (!targetWalkable) {
+    console.log(`[walkTo] Target (${destTile.x}, ${destTile.y}) is NOT walkable, should return empty path`);
+  }
+
+  // Find path with proper diagonal blocking
+  const path = findPath(character.tilePosition, destTile, isWalkable, 500, isMapObstacle);
 
   // No path found - stand immediately
   if (path.length === 0) {
+    console.log(`[walkTo] No path to (${destTile.x}, ${destTile.y}) from (${character.tilePosition.x}, ${character.tilePosition.y}), standing`);
     character.path = [];
     character.state = CharacterState.Stand;
     if ("isMoving" in character) {
@@ -208,11 +218,14 @@ export function walkTo(
  * Set character to run to a destination
  * Matches C# Character.RunTo
  * Running is faster than walking (speedFold=2 in MoveAlongPath)
+ * @param isWalkable - Full walkability check (map barrier + Trans + NPC + Obj)
+ * @param isMapObstacle - Map-only obstacle check (only 0x80 flag, for diagonal blocking)
  */
 export function runTo(
   character: NpcData | PlayerData,
   destTile: Vector2,
-  isWalkable: (tile: Vector2) => boolean
+  isWalkable: (tile: Vector2) => boolean,
+  isMapObstacle?: (tile: Vector2) => boolean
 ): boolean {
   // Already at destination
   if (character.tilePosition.x === destTile.x && character.tilePosition.y === destTile.y) {
@@ -226,15 +239,15 @@ export function runTo(
       character.targetPosition = destTile;
     }
     // Re-path to new destination
-    const path = findPath(character.tilePosition, destTile, isWalkable);
+    const path = findPath(character.tilePosition, destTile, isWalkable, 500, isMapObstacle);
     if (path.length > 0) {
       character.path = path.slice(1);
     }
     return true;
   }
 
-  // Find path
-  const path = findPath(character.tilePosition, destTile, isWalkable);
+  // Find path with proper diagonal blocking
+  const path = findPath(character.tilePosition, destTile, isWalkable, 500, isMapObstacle);
 
   // No path found - stand immediately (matches C#)
   if (path.length === 0) {

@@ -28,9 +28,13 @@ export class ObjRenderer {
     const screenY = pixelPos.y - obj.asf.bottom + obj.offY - cameraY;
 
     // Get the frame
-    const framesPerDir = obj.asf.framesPerDirection;
+    // Handle case where framesPerDirection is 0 (single frame shared across directions)
+    const framesPerDir = obj.asf.framesPerDirection || 1;
     const dir = Math.min(obj.direction, Math.max(0, obj.asf.directions - 1));
-    const frameIndex = dir * framesPerDir + (obj.currentFrame % framesPerDir);
+    const frameIndex = Math.min(
+      dir * framesPerDir + (obj.currentFrame % framesPerDir),
+      obj.asf.frames.length - 1
+    );
 
     if (frameIndex >= 0 && frameIndex < obj.asf.frames.length) {
       const frame = obj.asf.frames[frameIndex];

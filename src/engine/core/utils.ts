@@ -198,6 +198,71 @@ export function getNeighbors(tile: Vector2): Vector2[] {
 }
 
 /**
+ * Get walkable neighbors with diagonal blocking logic
+ * Matches C# PathFinder.FindNeighbors + GetObstacleIndexList
+ *
+ * Key insight: In isometric maps, when moving "straight" (N/S/E/W which skip 2 tiles),
+ * you actually pass through intermediate tiles. If those intermediate tiles are blocked,
+ * the straight movement should also be blocked.
+ *
+ * Direction layout:
+ * 3  4  5
+ * 2     6
+ * 1  0  7
+ *
+ * - If direction 1 (SouthWest) is obstacle → block 0 (South) and 2 (West)
+ * - If direction 3 (NorthWest) is obstacle → block 2 (West) and 4 (North)
+ * - If direction 5 (NorthEast) is obstacle → block 4 (North) and 6 (East)
+ * - If direction 7 (SouthEast) is obstacle → block 0 (South) and 6 (East)
+ */
+export function getWalkableNeighbors(
+  tile: Vector2,
+  isWalkable: (t: Vector2) => boolean,
+  isMapObstacle?: (t: Vector2) => boolean
+): Vector2[] {
+  const allNeighbors = getNeighbors(tile);
+  const blockedDirections = new Set<number>();
+
+  // Check each neighbor and apply diagonal blocking rules
+  for (let i = 0; i < allNeighbors.length; i++) {
+    const neighbor = allNeighbors[i];
+    if (!isWalkable(neighbor)) {
+      blockedDirections.add(i);
+
+      // Apply diagonal blocking: if a diagonal direction is a "hard" obstacle,
+      // also block the adjacent cardinal directions
+      // C# checks MapBase.Instance.IsObstacle (not IsObstacleForCharacter)
+      // IsObstacle is the raw map barrier, IsObstacleForCharacter also checks NPCs/Objs
+      const isHardObstacle = isMapObstacle ? isMapObstacle(neighbor) : !isWalkable(neighbor);
+
+      if (isHardObstacle) {
+        switch (i) {
+          case 1: // SouthWest → block South(0) and West(2)
+            blockedDirections.add(0);
+            blockedDirections.add(2);
+            break;
+          case 3: // NorthWest → block West(2) and North(4)
+            blockedDirections.add(2);
+            blockedDirections.add(4);
+            break;
+          case 5: // NorthEast → block North(4) and East(6)
+            blockedDirections.add(4);
+            blockedDirections.add(6);
+            break;
+          case 7: // SouthEast → block South(0) and East(6)
+            blockedDirections.add(0);
+            blockedDirections.add(6);
+            break;
+        }
+      }
+    }
+  }
+
+  // Return only non-blocked neighbors
+  return allNeighbors.filter((_, i) => !blockedDirections.has(i));
+}
+
+/**
  * Get tile position cost using pixel distance (matches C# GetTilePositionCost)
  */
 function getTilePositionCost(fromTile: Vector2, toTile: Vector2): number {
@@ -208,19 +273,27 @@ function getTilePositionCost(fromTile: Vector2, toTile: Vector2): number {
 
 /**
  * A* pathfinding - matches C# FindPathPerfect
+ * @param isWalkable - Full walkability check (map barrier + Trans + NPC + Obj)
+ * @param isMapObstacle - Map-only obstacle check (only 0x80 flag, for diagonal blocking)
  */
 export function findPath(
   start: Vector2,
   end: Vector2,
   isWalkable: (tile: Vector2) => boolean,
-  maxIterations: number = 500
+  maxIterations: number = 500,
+  isMapObstacle?: (tile: Vector2) => boolean
 ): Vector2[] {
   if (start.x === end.x && start.y === end.y) {
     return [];
   }
 
   // Check if end is walkable
-  if (!isWalkable(end)) {
+  const endWalkable = isWalkable(end);
+  if (!endWalkable) {
+    // Only log for tiles near the herb (23, 38) to reduce noise
+    if (end.x >= 20 && end.x <= 26 && end.y >= 35 && end.y <= 42) {
+      console.log(`[findPath] Target (${end.x}, ${end.y}) is NOT walkable, returning empty path`);
+    }
     return [];
   }
 
@@ -251,8 +324,11 @@ export function findPath(
       continue;
     }
 
-    // Check all neighbors
-    for (const next of getNeighbors(current)) {
+    // Get walkable neighbors with diagonal blocking logic (matches C# FindNeighbors)
+    // Pass isMapObstacle for correct diagonal blocking behavior
+    const neighbors = getWalkableNeighbors(current, isWalkable, isMapObstacle);
+
+    for (const next of neighbors) {
       const nextKey = key(next);
       const newCost = (costSoFar.get(key(current)) ?? 0) + getTilePositionCost(current, next);
 

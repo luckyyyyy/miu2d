@@ -17,13 +17,18 @@ export class NpcManager {
   private npcs: Map<string, NpcData> = new Map();
   private npcConfigCache: Map<string, CharacterConfig> = new Map();
   private isWalkable: (tile: Vector2) => boolean;
+  private isMapObstacle: ((tile: Vector2) => boolean) | undefined;
   // Optional reference to character renderer for custom action files
   private characterRenderer: any = null;
   // Store loaded NPC file name (like C# _fileName)
   private fileName: string = "";
 
-  constructor(isWalkable: (tile: Vector2) => boolean) {
+  constructor(
+    isWalkable: (tile: Vector2) => boolean,
+    isMapObstacle?: (tile: Vector2) => boolean
+  ) {
     this.isWalkable = isWalkable;
+    this.isMapObstacle = isMapObstacle;
   }
 
   /**
@@ -184,7 +189,7 @@ export class NpcManager {
     const npc = this.getNpc(name);
     if (!npc) return false;
 
-    return walkTo(npc, { x: tileX, y: tileY }, this.isWalkable);
+    return walkTo(npc, { x: tileX, y: tileY }, this.isWalkable, this.isMapObstacle);
   }
 
   /**
@@ -215,7 +220,7 @@ export class NpcManager {
 
     // Set direction and walk
     npc.direction = direction as Direction;
-    return walkTo(npc, { x: targetX, y: targetY }, this.isWalkable);
+    return walkTo(npc, { x: targetX, y: targetY }, this.isWalkable, this.isMapObstacle);
   }
 
   /**
@@ -294,7 +299,7 @@ export class NpcManager {
         // Get next patrol point
         const nextPoint = npc.actionPathTilePositions.shift()!;
         npc.actionPathTilePositions.push(nextPoint); // Loop
-        walkTo(npc, nextPoint, this.isWalkable);
+        walkTo(npc, nextPoint, this.isWalkable, this.isMapObstacle);
       }
     }
   }
