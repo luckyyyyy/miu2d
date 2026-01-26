@@ -32,6 +32,7 @@ export interface PlayerAction {
 export class PlayerController {
   private player: PlayerData;
   private isWalkable: (tile: Vector2) => boolean;
+  private isMapObstacle: ((tile: Vector2) => boolean) | undefined;
   private pendingAction: PlayerAction | null = null;
   private guiManager: GuiManager | null = null;
 
@@ -50,8 +51,12 @@ export class PlayerController {
   private addMagicEffectPercent: number = 0;
   private addMagicEffectAmount: number = 0;
 
-  constructor(isWalkable: (tile: Vector2) => boolean) {
+  constructor(
+    isWalkable: (tile: Vector2) => boolean,
+    isMapObstacle?: (tile: Vector2) => boolean
+  ) {
     this.isWalkable = isWalkable;
+    this.isMapObstacle = isMapObstacle;
 
     // Create default player config (based on C# Player.cs)
     const config: CharacterConfig = {
@@ -287,7 +292,7 @@ export class PlayerController {
    * Matches C# Character.WalkTo
    */
   walkToTile(tileX: number, tileY: number): boolean {
-    return walkTo(this.player, { x: tileX, y: tileY }, this.isWalkable);
+    return walkTo(this.player, { x: tileX, y: tileY }, this.isWalkable, this.isMapObstacle);
   }
 
   /**
@@ -324,7 +329,7 @@ export class PlayerController {
    * Matches C# Character.RunTo
    */
   runToTile(tileX: number, tileY: number): boolean {
-    return runTo(this.player, { x: tileX, y: tileY }, this.isWalkable);
+    return runTo(this.player, { x: tileX, y: tileY }, this.isWalkable, this.isMapObstacle);
   }
 
   /**

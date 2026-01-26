@@ -30,13 +30,14 @@ import { tileToPixel } from "../core/utils";
 
 // Object Kind enum matching C#
 export enum ObjKind {
-  Dynamic = 0,  // Animated, obstacle
-  Static = 1,   // Static, obstacle
-  Body = 2,     // Dead body
-  Sound = 3,    // Sound emitter (invisible)
-  Door = 5,     // Door
-  Trap = 6,     // Trap
-  Drop = 7,     // Dropped item
+  Dynamic = 0,    // Animated, obstacle
+  Static = 1,     // Static, obstacle
+  Body = 2,       // Dead body
+  LoopingSound = 3, // Looping sound emitter (invisible)
+  RandSound = 4,    // Random sound emitter (invisible)
+  Door = 5,       // Door
+  Trap = 6,       // Trap
+  Drop = 7,       // Dropped item
 }
 
 // Object state enum matching C#
@@ -264,8 +265,8 @@ export class ObjManager {
       resInfo: null,
     };
 
-    // Sound objects (Kind=3) are invisible
-    if (kind === ObjKind.Sound) {
+    // Sound objects (LoopingSound=3, RandSound=4) are invisible
+    if (kind === ObjKind.LoopingSound || kind === ObjKind.RandSound) {
       obj.isVisible = false;
     }
 
@@ -475,15 +476,16 @@ export class ObjManager {
 
   /**
    * Check if tile has obstacle
+   * Matches C# ObjManager.IsObstacle
    */
   isObstacle(tileX: number, tileY: number): boolean {
     for (const obj of this.objects.values()) {
-      if (
-        obj.tilePosition.x === tileX &&
-        obj.tilePosition.y === tileY &&
-        this.isObjObstacle(obj)
-      ) {
-        return true;
+      if (obj.isRemoved) continue; // Skip removed objects
+      if (obj.tilePosition.x === tileX && obj.tilePosition.y === tileY) {
+        const isObs = this.isObjObstacle(obj);
+        if (isObs) {
+          return true;
+        }
       }
     }
     return false;
@@ -553,6 +555,18 @@ export class ObjManager {
   }
 
   /**
+   * Debug: Print all obstacle objects
+   */
+  debugPrintObstacleObjs(): void {
+    console.log(`[ObjManager] Total objects: ${this.objects.size}, fileName: ${this.fileName}`);
+    for (const obj of this.objects.values()) {
+      if (this.isObjObstacle(obj)) {
+        console.log(`  Obstacle: "${obj.objName}" at (${obj.tilePosition.x}, ${obj.tilePosition.y}), kind=${obj.kind}, removed=${obj.isRemoved}`);
+      }
+    }
+  }
+
+  /**
    * Get current file name
    */
   getFileName(): string {
@@ -594,8 +608,8 @@ export class ObjManager {
         while (obj.animationTime >= interval) {
           obj.animationTime -= interval;
 
-          // Calculate frames for current direction
-          const framesPerDir = obj.asf.framesPerDirection;
+          // Calculate frames for current direction (ensure at least 1 to avoid division issues)
+          const framesPerDir = obj.asf.framesPerDirection || 1;
 
           obj.currentFrame++;
           if (obj.currentFrame >= framesPerDir) {
@@ -624,10 +638,13 @@ export class ObjManager {
     const screenX = pixelPos.x - obj.asf.left + obj.offX - cameraX;
     const screenY = pixelPos.y - obj.asf.bottom + obj.offY - cameraY;
 
-    // Get the frame
-    const framesPerDir = obj.asf.framesPerDirection;
-    const dir = Math.min(obj.direction, obj.asf.directions - 1);
-    const frameIndex = dir * framesPerDir + (obj.currentFrame % framesPerDir);
+    // Get the frame (ensure framesPerDir is at least 1 to avoid division issues)
+    const framesPerDir = obj.asf.framesPerDirection || 1;
+    const dir = Math.min(obj.direction, Math.max(0, obj.asf.directions - 1));
+    const frameIndex = Math.min(
+      dir * framesPerDir + (obj.currentFrame % framesPerDir),
+      obj.asf.frames.length - 1
+    );
 
     if (frameIndex >= 0 && frameIndex < obj.asf.frames.length) {
       const frame = obj.asf.frames[frameIndex];

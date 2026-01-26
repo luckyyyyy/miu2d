@@ -142,7 +142,8 @@ function parseAsf(buffer: ArrayBuffer): AsfData | null {
     frames.push(frame);
   }
 
-  const framesPerDirection = directions > 0 ? Math.floor(frameCount / directions) : frameCount;
+  // Ensure framesPerDirection is at least 1 to avoid division by zero
+  const framesPerDirection = directions > 0 ? Math.max(1, Math.floor(frameCount / directions)) : Math.max(1, frameCount);
 
   return {
     width,
@@ -240,10 +241,12 @@ export function getFrameCanvas(frame: AsfFrame): HTMLCanvasElement {
 export function getFrameIndex(asf: AsfData, direction: number, animFrame: number): number {
   if (!asf || asf.frameCount === 0) return 0;
 
-  const dir = Math.min(direction, asf.directions - 1);
-  const frame = animFrame % asf.framesPerDirection;
+  const dir = Math.min(direction, Math.max(0, asf.directions - 1));
+  const framesPerDir = asf.framesPerDirection || 1;
+  const frame = animFrame % framesPerDir;
 
-  return dir * asf.framesPerDirection + frame;
+  // Clamp to valid frame range
+  return Math.min(dir * framesPerDir + frame, asf.frames.length - 1);
 }
 
 /**

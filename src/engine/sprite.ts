@@ -276,11 +276,12 @@ export function startSpecialAction(
   sprite.isPlayingOnce = true;
   sprite.playOnceFrame = 0;
   // C#: PlayFrames(_frameEnd - CurrentFrameIndex + 1) sets _leftFrameToPlay
-  // We track remaining frames to play
-  sprite.playOnceTotalFrames = asf.framesPerDirection;
-  sprite.leftFramesToPlay = asf.framesPerDirection; // New: track remaining frames like C#
+  // We track remaining frames to play (ensure at least 1)
+  const framesPerDir = asf.framesPerDirection || 1;
+  sprite.playOnceTotalFrames = framesPerDir;
+  sprite.leftFramesToPlay = framesPerDir; // New: track remaining frames like C#
   sprite.animationTime = 0;
-  console.log(`[Sprite] Started special action with ${asf.framesPerDirection} frames`);
+  console.log(`[Sprite] Started special action with ${framesPerDir} frames`);
 }
 
 /**
@@ -379,17 +380,18 @@ export function updateSpriteAnimation(
   sprite.animationTime += deltaTime * 1000;
 
   const frameInterval = asf.interval || 100;
+  const framesPerDir = asf.framesPerDirection || 1;
   while (sprite.animationTime >= frameInterval) {
     sprite.animationTime -= frameInterval;
     sprite.currentFrame++;
 
-    if (sprite.currentFrame >= asf.framesPerDirection) {
+    if (sprite.currentFrame >= framesPerDir) {
       // Check if animation should loop
       const shouldLoop = state !== CharacterState.Death;
       if (shouldLoop) {
         sprite.currentFrame = 0;
       } else {
-        sprite.currentFrame = asf.framesPerDirection - 1;
+        sprite.currentFrame = framesPerDir - 1;
       }
     }
   }
