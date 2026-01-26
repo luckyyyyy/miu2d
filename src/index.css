@@ -1,5 +1,24 @@
 @import "tailwindcss";
 
+/* 游戏字体 - 本地加载 */
+/* ZCOOL XiaoWei (站酷小薮体) - 清秀的宋体风格，有古典感但不太书法化，适合武侠游戏 */
+/* Ma Shan Zheng (马善政楷书) - 用于标题，有毛笔风格 */
+@font-face {
+  font-family: 'ZCOOL XiaoWei';
+  src: url('/resources/fonts/ZCOOLXiaoWei-Regular.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Ma Shan Zheng';
+  src: url('/resources/fonts/MaShanZheng-Regular.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
 * {
   box-sizing: border-box;
   margin: 0;

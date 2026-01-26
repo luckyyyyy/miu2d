@@ -57,6 +57,12 @@ export * from "./audio";
 // Effects system
 export * from "./effects";
 
+// Level system
+export * from "./level";
+
+// Cheat system
+export * from "./cheat";
+
 // Game management
 export * from "./game";
 

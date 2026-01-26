@@ -27,26 +27,8 @@ class TalkTextListManager {
         return;
       }
 
-      // Try to decode as GB2312/GBK for Chinese characters
-      const buffer = await response.arrayBuffer();
-      const bytes = new Uint8Array(buffer);
-
-      let content: string;
-      try {
-        // Try GB2312/GBK first (for Chinese game content)
-        const decoder = new TextDecoder("gb2312");
-        content = decoder.decode(bytes);
-      } catch {
-        try {
-          // Fallback to GBK
-          const decoder = new TextDecoder("gbk");
-          content = decoder.decode(bytes);
-        } catch {
-          // Last resort: UTF-8
-          const decoder = new TextDecoder("utf-8");
-          content = decoder.decode(bytes);
-        }
-      }
+      // TalkIndex.txt in resources is now UTF-8 encoded
+      const content = await response.text();
 
       this.parseContent(content);
       this.isInitialized = true;

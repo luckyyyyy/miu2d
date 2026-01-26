@@ -21,6 +21,9 @@ import {
   resetSpriteAnimation,
   drawCharacterSprite,
   createEmptySpriteSet,
+  startSpecialAction,
+  isSpecialActionEnd,
+  endSpecialAction,
   type CharacterSprite,
   type SpriteSet,
 } from "./sprite";
@@ -189,15 +192,8 @@ export class CharacterRenderer {
         return null;
       }
 
-      // Decode with GBK for Chinese filenames
-      const buffer = await response.arrayBuffer();
-      let decoder: TextDecoder;
-      try {
-        decoder = new TextDecoder("gbk");
-      } catch {
-        decoder = new TextDecoder("utf-8");
-      }
-      const content = decoder.decode(new Uint8Array(buffer));
+      // INI files in resources are now UTF-8 encoded
+      const content = await response.text();
 
       // Check if content is HTML
       if (content.trim().startsWith('<!DOCTYPE') || content.trim().startsWith('<html')) {
@@ -431,6 +427,58 @@ export class CharacterRenderer {
     // Trigger async load to populate cache
     await getAsfForStateAsync(sprite, stateType);
     console.log(`[CharacterRenderer] Preloaded custom action file for ${characterId} state ${stateType}`);
+  }
+
+  /**
+   * Start a special action animation for a character
+   * Based on C# Character.SetSpecialAction()
+   *
+   * @param characterId - Character ID or "player"
+   * @param asfFileName - ASF file to play (e.g., "mpc001.asf")
+   * @returns Promise that resolves when ASF is loaded
+   */
+  async setSpecialAction(
+    characterId: string,
+    asfFileName: string
+  ): Promise<boolean> {
+    const sprite = this.sprites.get(characterId);
+    if (!sprite) {
+      console.warn(`[CharacterRenderer] Cannot set special action, character not found: ${characterId}`);
+      return false;
+    }
+
+    // Load the special action ASF
+    const asf = await loadCharacterAsf(asfFileName);
+    if (!asf) {
+      console.warn(`[CharacterRenderer] Failed to load special action ASF: ${asfFileName}`);
+      return false;
+    }
+
+    // Start playing the special action
+    startSpecialAction(sprite, asf);
+    console.log(`[CharacterRenderer] Started special action for ${characterId}: ${asfFileName}`);
+    return true;
+  }
+
+  /**
+   * Check if a character's special action has finished
+   * Based on C# Sprite.IsPlayCurrentDirOnceEnd()
+   */
+  isSpecialActionEnd(characterId: string): boolean {
+    const sprite = this.sprites.get(characterId);
+    if (!sprite) return true;
+    return isSpecialActionEnd(sprite);
+  }
+
+  /**
+   * End special action and restore character state
+   * Based on C# Character.EndSpecialAction()
+   */
+  endSpecialActionFor(characterId: string): void {
+    const sprite = this.sprites.get(characterId);
+    if (!sprite) return;
+    endSpecialAction(sprite);
+    console.log(`[CharacterRenderer] Ended special action for ${characterId}`);
   }
 
   /**

@@ -82,7 +82,7 @@ export interface ObjData {
   resInfo: ObjResInfo | null;
 }
 
-// Text decoder for GB2312 (GBK) encoding
+// Text decoder for GBK encoding (for .obj and .npc files which remain in GBK)
 let textDecoder: TextDecoder | null = null;
 
 function getTextDecoder(): TextDecoder {
@@ -90,7 +90,6 @@ function getTextDecoder(): TextDecoder {
     try {
       textDecoder = new TextDecoder("gbk");
     } catch {
-      // Fallback to utf-8 if gbk not supported
       textDecoder = new TextDecoder("utf-8");
     }
   }
@@ -98,7 +97,7 @@ function getTextDecoder(): TextDecoder {
 }
 
 /**
- * Parse INI-style content with GB2312 support
+ * Parse INI-style content
  */
 function parseObjIni(content: string): Record<string, Record<string, string>> {
   const sections: Record<string, Record<string, string>> = {};
@@ -154,7 +153,6 @@ export class ObjManager {
 
     for (const filePath of paths) {
       try {
-        console.log(`[ObjManager] Trying: ${filePath}`);
         const response = await fetch(filePath);
 
         if (!response.ok) {
@@ -167,10 +165,9 @@ export class ObjManager {
           continue;
         }
 
-        // Read as binary and decode with GBK
+        // .obj files remain in GBK encoding
         const buffer = await response.arrayBuffer();
-        const decoder = getTextDecoder();
-        const content = decoder.decode(new Uint8Array(buffer));
+        const content = getTextDecoder().decode(new Uint8Array(buffer));
 
         // Check if content is HTML
         if (content.trim().startsWith('<!DOCTYPE') || content.trim().startsWith('<html')) {
@@ -307,10 +304,8 @@ export class ObjManager {
         return null;
       }
 
-      // Decode with GBK
-      const buffer = await response.arrayBuffer();
-      const decoder = getTextDecoder();
-      const content = decoder.decode(new Uint8Array(buffer));
+      // INI files in resources are now UTF-8 encoded
+      const content = await response.text();
 
       const sections = parseObjIni(content);
 
@@ -399,9 +394,8 @@ export class ObjManager {
       const response = await fetch(filePath);
       if (!response.ok) return;
 
-      const buffer = await response.arrayBuffer();
-      const decoder = getTextDecoder();
-      const content = decoder.decode(new Uint8Array(buffer));
+      // INI files in resources are now UTF-8 encoded
+      const content = await response.text();
       const sections = parseObjIni(content);
 
       // Use INIT section as the object definition

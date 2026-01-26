@@ -56,38 +56,63 @@ export enum Direction {
 }
 
 // ============= Character Stats =============
+// Based on C# Character.cs fields
 export interface CharacterStats {
-  name: string;
+  // Basic stats
   life: number;
   lifeMax: number;
   mana: number;
   manaMax: number;
-  thew: number; // Stamina
+  thew: number; // Stamina (体力)
   thewMax: number;
+
+  // Combat stats
   attack: number;
-  defence: number;
-  evade: number;
+  attack2: number; // C#: Attack2
+  attack3: number; // C#: Attack3
+  attackLevel: number; // C#: AttackLevel
+  defend: number; // C#: Defend (防御)
+  defend2: number; // C#: Defend2
+  defend3: number; // C#: Defend3
+  evade: number; // C#: Evade (闪避)
+
+  // Experience & Level
   exp: number;
+  levelUpExp: number;
   level: number;
+  canLevelUp: number; // C#: CanLevelUp (是否可以升级)
+
+  // Movement & Interaction
   walkSpeed: number;
+  addMoveSpeedPercent: number; // C#: AddMoveSpeedPercent
   visionRadius: number;
   attackRadius: number;
   dialogRadius: number;
+
+  // Other
+  lum: number; // C#: Lum (亮度)
+  action: number; // C#: Action
 }
 
+// Based on C# Character.cs
 export interface CharacterConfig {
-  name: string;
+  name: string; // C#: Name
   npcIni: string;
   flyIni?: string;
+  flyIni2?: string; // C#: FlyIni2
   bodyIni?: string;
-  kind: CharacterKind;
-  relation: RelationType;
+  kind: CharacterKind; // C#: Kind
+  relation: RelationType; // C#: Relation
+  group: number; // C#: Group (分组)
+  noAutoAttackPlayer: number; // C#: NoAutoAttackPlayer
   stats: CharacterStats;
   scriptFile?: string;
+  scriptFileRight?: string; // C#: ScriptFileRight (右键脚本)
   deathScript?: string;
   timerScript?: string;
   timerInterval?: number;
-  pathFinder?: boolean;
+  pathFinder: number; // C#: PathFinder (寻路类型)
+  canInteractDirectly?: number; // C#: CanInteractDirectly
 }
 
 // ============= Sprite Types (forward declaration) =============
@@ -100,6 +125,7 @@ export interface CharacterSpriteData {
 }
 
 // ============= NPC Types =============
+// Based on C# Npc.cs (inherits Character)
 export interface NpcData {
   id: string;
   config: CharacterConfig;
@@ -111,14 +137,19 @@ export interface NpcData {
   path: Vector2[];
   isVisible: boolean;
   isAIDisabled: boolean;
-  actionPathTilePositions?: Vector2[]; // Patrol path
+  actionPathTilePositions?: Vector2[]; // Patrol path (C#: FixedPos)
   sprite?: CharacterSpriteData; // Optional sprite data
   specialActionAsf?: string; // For special animations
   customActionFiles?: Map<number, string>; // State -> ASF file mapping
   actionType?: number; // Action type for behavior
+  // Special action state (C#: IsInSpecialAction, _specialActionLastDirection)
+  isInSpecialAction?: boolean;
+  specialActionLastDirection?: Direction;
+  specialActionFrame?: number; // Current frame in special action
 }
 
 // ============= Player Types =============
+// Based on C# Player.cs (inherits Character)
 export interface PlayerData {
   config: CharacterConfig;
   tilePosition: Vector2;
@@ -126,12 +157,25 @@ export interface PlayerData {
   direction: Direction;
   state: CharacterState;
   currentFrame: number;
-  money: number;
   path: Vector2[];
   isMoving: boolean;
   targetPosition: Vector2 | null;
-  sprite?: CharacterSpriteData; // Optional sprite data
-  customActionFiles?: Map<number, string>; // State -> ASF file mapping (like NPCs)
+  sprite?: CharacterSpriteData;
+  customActionFiles?: Map<number, string>;
+
+  // Player-specific fields (C# Player.cs)
+  money: number; // C#: _money
+  doing: number; // C#: _doing
+  desX: number; // C#: _desX (目标X)
+  desY: number; // C#: _desY (目标Y)
+  belong: number; // C#: _belong (归属)
+  fight: number; // C#: _fight (战斗状态)
+
+  // Special action state (C#: IsInSpecialAction, _specialActionLastDirection)
+  isInSpecialAction?: boolean;
+  specialActionAsf?: string;
+  specialActionLastDirection?: Direction;
+  specialActionFrame?: number;
 }
 
 // ============= Script Types =============
@@ -162,6 +206,31 @@ export interface ScriptState {
   selectionResultVar?: string; // Variable name to store selection result
   isInTalk: boolean; // Whether currently in a Talk sequence
   talkQueue: { text: string; portraitIndex: number }[]; // Queue of talk dialogs
+
+  // Blocking wait states (C# ScriptRunner checks these each frame)
+  // PlayerGoto (C#: _playerGotoDesitination)
+  waitingForPlayerGoto: boolean;
+  playerGotoDestination: Vector2 | null;
+  // PlayerGotoDir (C#: WalkToDirection)
+  waitingForPlayerGotoDir: boolean;
+  // PlayerRunTo (C#: _playerRunToDestination)
+  waitingForPlayerRunTo: boolean;
+  playerRunToDestination: Vector2 | null;
+  // NpcGoto (C#: _npcGotoCharacter, _npcGotoDestionation)
+  waitingForNpcGoto: boolean;
+  npcGotoName: string | null;
+  npcGotoDestination: Vector2 | null;
+  // NpcGotoDir
+  waitingForNpcGotoDir: boolean;
+  npcGotoDirName: string | null;
+  // FadeIn/FadeOut
+  waitingForFadeIn: boolean;
+  waitingForFadeOut: boolean;
+  // NpcSpecialActionEx (C#: blocks until IsInSpecialAction = false)
+  waitingForNpcSpecialAction: boolean;
+  npcSpecialActionName: string | null;
+  // MoveScreen (C#: Camera.IsInMove)
+  waitingForMoveScreen: boolean;
 }
 
 // ============= Game Variables =============
@@ -227,15 +296,20 @@ export interface GameState {
 }
 
 // ============= Input Types =============
+// Based on C# Player.cs input handling
 export interface InputState {
   keys: Set<string>;
   mouseX: number;
   mouseY: number;
   mouseWorldX: number;
   mouseWorldY: number;
-  isMouseDown: boolean;
+  isMouseDown: boolean; // C#: MouseLeftButton == Pressed
   isRightMouseDown: boolean;
   clickedTile: Vector2 | null;
+  // New fields for continuous mouse movement (C# style)
+  isShiftDown: boolean; // C#: Keys.LeftShift || Keys.RightShift
+  isAltDown: boolean; // C#: Keys.LeftAlt || Keys.RightAlt
+  isCtrlDown: boolean; // C#: Keys.LeftControl || Keys.RightControl
 }
 
 // ============= Animation Types =============
@@ -273,27 +347,63 @@ export interface AsfData {
 export const TILE_WIDTH = 64;
 export const TILE_HEIGHT = 32;
 
-export const DEFAULT_WALK_SPEED = 160; // pixels per second
-export const DEFAULT_RUN_SPEED = 280;
+// C# Globals.cs: BaseSpeed = 100, RunSpeedFold = 8
+// Movement uses: Velocity * elapsedSeconds * speedFold
+// Walk: speedFold = WalkSpeed (default 1)
+// Run: speedFold = RunSpeedFold (default 8)
+export const BASE_SPEED = 100; // C#: Globals.BaseSpeed
+export const RUN_SPEED_FOLD = 8; // C#: Globals.RunSpeedFold (跑步速度是走路的8倍!)
+export const DEFAULT_WALK_SPEED = BASE_SPEED; // For compatibility
+export const DEFAULT_RUN_SPEED = BASE_SPEED * RUN_SPEED_FOLD;
 
 export const DIALOG_RADIUS = 3; // tiles
 
-// Default player stats
+// Default character stats (based on C# Character.cs defaults)
 export const DEFAULT_PLAYER_STATS: CharacterStats = {
-  name: "杨影枫",
+  // Basic stats
   life: 1000,
   lifeMax: 1000,
   mana: 1000,
   manaMax: 1000,
   thew: 1000,
   thewMax: 1000,
+
+  // Combat stats
   attack: 100,
-  defence: 10,
+  attack2: 0,
+  attack3: 0,
+  attackLevel: 0,
+  defend: 10,
+  defend2: 0,
+  defend3: 0,
   evade: 10,
+
+  // Experience & Level
   exp: 0,
+  levelUpExp: 100,
   level: 1,
+  canLevelUp: 1,
+
+  // Movement & Interaction
   walkSpeed: 1,
+  addMoveSpeedPercent: 0,
   visionRadius: 20,
   attackRadius: 10,
   dialogRadius: 3,
+
+  // Other
+  lum: 0,
+  action: 0,
+};
+
+// Default character config
+export const DEFAULT_CHARACTER_CONFIG: CharacterConfig = {
+  name: "",
+  npcIni: "",
+  kind: CharacterKind.Player,
+  relation: RelationType.Friend,
+  group: 0,
+  noAutoAttackPlayer: 0,
+  stats: { ...DEFAULT_PLAYER_STATS },
+  pathFinder: 0,
 };

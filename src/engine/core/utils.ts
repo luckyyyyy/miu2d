@@ -284,19 +284,20 @@ export function findPath(
 
 /**
  * Decode GB2312/GBK encoded buffer to string
- * Used for reading Chinese text from game resource files
+ * Used ONLY for reading Chinese text from BINARY game resource files (map, MPC)
+ * NOTE: Text files (.ini, .txt) in resources/ are now UTF-8, use response.text() instead
  */
 export function decodeGb2312(buffer: ArrayBuffer): string {
   const bytes = new Uint8Array(buffer);
-  
+
   try {
-    // Try GB2312 first (for Chinese text)
-    const decoder = new TextDecoder('gb2312');
+    // Try GBK (superset of GB2312, better compatibility)
+    const decoder = new TextDecoder('gbk');
     return decoder.decode(bytes);
   } catch {
     try {
-      // Fallback to GBK
-      const decoder = new TextDecoder('gbk');
+      // Fallback to GB2312
+      const decoder = new TextDecoder('gb2312');
       return decoder.decode(bytes);
     } catch {
       // Last resort: UTF-8

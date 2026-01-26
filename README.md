@@ -7,7 +7,6 @@
 原始游戏使用 C++ 开发，后来有玩家用 C# + XNA 框架进行了复刻（[JxqyHD](https://github.com/mapic91/JxqyHD)），本项目在此基础上使用 **TypeScript + React + Canvas** 技术将游戏移植到 Web 平台，让经典游戏能在浏览器中运行。
 
 ![游戏截图](screenshot.png)
-![游戏截图](screenshot2.png)
 
 ## 🎮 游戏简介
 
@@ -24,7 +23,7 @@
 
 ## ✨ 实现进度
 
-### 总体完成度：约 60%
+### 总体完成度：约 70%
 
 #### 已完成的核心功能
 
@@ -57,16 +56,20 @@
 - ✅ NPC 控制
 - ⚠️ 武功/战斗脚本（部分完成）
 
-**🖥️ 界面系统** (40%)
+**🖥️ 界面系统** (75%)
 - ✅ 对话框
 - ✅ 选项菜单
-- ✅ 信息栏
+- ✅ 信息栏（HUD）
 - ✅ 角色头像
 - ✅ 生命/内力/体力条
-- ❌ 背包界面（未实现）
-- ❌ 装备界面（未实现）
-- ❌ 武功界面（未实现）
-- ❌ 商店界面（未实现）
+- ✅ 背包界面（拖放支持）
+- ✅ 装备界面（7个装备栏位）
+- ✅ 武功界面
+- ✅ 状态界面（属性显示）
+- ✅ 系统菜单
+- ✅ 任务记录界面
+- ✅ 修炼界面
+- ⚠️ 商店界面（未实现）
 
 **⌨️ 操作系统** (90%)
 - ✅ 键盘控制（WASD/方向键）
@@ -74,28 +77,42 @@
 - ✅ 点击移动
 - ✅ NPC 交互
 
-**🎵 音效系统** (60%)
+**🎵 音效系统** (75%)
 - ✅ 背景音乐
-- ✅ 音乐切换
-- ❌ 音效（未实现）
+- ✅ 音乐切换/暂停/恢复
+- ✅ 音效播放
+- ✅ 音量控制
+
+**🎒 物品系统** (70%)
+- ✅ 物品数据解析（Good.ts）
+- ✅ 物品类型（药品/装备/事件物品）
+- ✅ 装备部位系统
+- ✅ 物品属性加成
+- ⚠️ 物品使用逻辑（部分完成）
+
+**✨ 特效系统** (50%)
+- ✅ 淡入淡出效果
+- ✅ 屏幕闪烁
+- ✅ 颜色滤镜（地图/精灵）
+- ⚠️ 天气效果（未实现）
+- ⚠️ 战斗特效（未实现）
 
 **🎮 其他系统**
-- ✅ 游戏管理器 (70%)
-- ✅ 屏幕特效 (30%)
+- ✅ 游戏管理器 (75%)
 - ✅ 物体系统 (50%)
 
 #### 待实现功能
 
 - ❌ **战斗系统** - 武功招式、伤害计算、敌人AI
-- ❌ **背包系统** - 物品管理、装备穿戴
 - ❌ **进阶功能** - 角色升级、任务系统、商店交易
 - ❌ **完善优化** - 存档界面、设置菜单、性能优化
+- ❌ **高级寻路** - A* 算法
 
 ---
 
 ## 📊 Implementation Progress
 
-### Overall Progress: **~60%**
+### Overall Progress: **~70%**
 
 | System | Progress | Status |
 |--------|----------|--------|
@@ -103,15 +120,15 @@
 | Character System | 70% | 🟢 Functional |
 | Sprite Animation | 75% | 🟢 Functional |
 | Script System | 85% | 🟢 Functional |
-| GUI System | 40% | 🟡 Partial |
+| GUI System | 75% | 🟢 Functional |
 | Input System | 90% | 🟢 Functional |
-| Audio System | 60% | 🟡 Partial |
-| Effects System | 30% | 🟡 Basic |
+| Audio System | 75% | 🟢 Functional |
+| Effects System | 50% | 🟡 Partial |
+| Inventory System | 70% | 🟢 Functional |
 | Object System | 50% | 🟡 Partial |
-| Game Management | 70% | 🟢 Functional |
+| Game Management | 75% | 🟢 Functional |
 | Combat System | 0% | 🔴 Not Started |
-| Inventory System | 0% | 🔴 Not Started |
-| Advanced Features | 0% | 🔴 Not Started |
+| Advanced Pathfinding | 0% | 🔴 Not Started |
 
 **Legend**: 🟢 Functional | 🟡 Partial/In Progress | 🔴 Not Started
 

@@ -50,7 +50,7 @@ export function createNpcData(
 }
 
 /**
- * Create default player data
+ * Create default player data (based on C# Player.cs)
  */
 export function createPlayerData(
   config: CharacterConfig,
@@ -68,20 +68,35 @@ export function createPlayerData(
     direction,
     state: CharacterState.Stand,
     currentFrame: 0,
-    money: 0,
     path: [],
     isMoving: false,
     targetPosition: null,
+    // Player-specific fields (C# Player.cs)
+    money: 0,
+    doing: 0,
+    desX: 0,
+    desY: 0,
+    belong: 0,
+    fight: 0,
   };
 }
 
 /**
  * Update character position along path
+ * Based on C# Character.MoveAlongPath
+ *
+ * C# Speed calculation:
+ * - Walk: MoveAlongPath(elapsedSeconds * ChangeMoveSpeedFold, WalkSpeed)
+ * - Run: MoveAlongPath(elapsedSeconds * ChangeMoveSpeedFold, Globals.RunSpeedFold)
+ * - Globals.RunSpeedFold = 8 (run is 8x faster than walk!)
+ *
+ * @param speedFold Speed multiplier (WalkSpeed=1 for walk, RunSpeedFold=8 for run)
  */
 export function updateCharacterMovement(
   character: NpcData | PlayerData,
   deltaTime: number,
-  _isWalkable: (tile: Vector2) => boolean
+  _isWalkable: (tile: Vector2) => boolean,
+  speedFold: number = 1
 ): CharacterUpdateResult {
   const result: CharacterUpdateResult = {
     moved: false,
@@ -123,14 +138,22 @@ export function updateCharacterMovement(
     }
   } else {
     // Move towards waypoint
-    const speed = (character.config.stats.walkSpeed || 1) * DEFAULT_WALK_SPEED;
+    // C#: MoveTo(direction, elapsedSeconds * speedFold)
+    // Velocity = Globals.BaseSpeed = 100
+    // So: moveDistance = Velocity * elapsedSeconds * speedFold * WalkSpeed
+    const walkSpeed = character.config.stats.walkSpeed || 1;
+    const baseSpeed = DEFAULT_WALK_SPEED; // C#: Globals.BaseSpeed = 100
+    const speed = baseSpeed * speedFold * walkSpeed;
     const moveDistance = speed * deltaTime;
     const ratio = Math.min(1, moveDistance / dist);
 
     character.pixelPosition.x += dx * ratio;
     character.pixelPosition.y += dy * ratio;
     character.direction = getDirection(character.pixelPosition, targetPixel);
-    character.state = CharacterState.Walk;
+    // Keep current state (Walk or Run) - don't override
+    if (character.state !== CharacterState.Walk && character.state !== CharacterState.Run) {
+      character.state = CharacterState.Walk;
+    }
     result.moved = true;
 
     // Update tile position
@@ -172,6 +195,61 @@ export function walkTo(
   // Set path (exclude starting position, already there)
   character.path = path.slice(1);
   character.state = CharacterState.Walk;
+
+  if ("isMoving" in character) {
+    character.isMoving = true;
+    character.targetPosition = destTile;
+  }
+
+  return true;
+}
+
+/**
+ * Set character to run to a destination
+ * Matches C# Character.RunTo
+ * Running is faster than walking (speedFold=2 in MoveAlongPath)
+ */
+export function runTo(
+  character: NpcData | PlayerData,
+  destTile: Vector2,
+  isWalkable: (tile: Vector2) => boolean
+): boolean {
+  // Already at destination
+  if (character.tilePosition.x === destTile.x && character.tilePosition.y === destTile.y) {
+    return true;
+  }
+
+  // C#: If already running, just update destination
+  // This allows smooth direction changes while running
+  if (character.state === CharacterState.Run) {
+    if ("targetPosition" in character) {
+      character.targetPosition = destTile;
+    }
+    // Re-path to new destination
+    const path = findPath(character.tilePosition, destTile, isWalkable);
+    if (path.length > 0) {
+      character.path = path.slice(1);
+    }
+    return true;
+  }
+
+  // Find path
+  const path = findPath(character.tilePosition, destTile, isWalkable);
+
+  // No path found - stand immediately (matches C#)
+  if (path.length === 0) {
+    character.path = [];
+    character.state = CharacterState.Stand;
+    if ("isMoving" in character) {
+      character.isMoving = false;
+      character.targetPosition = null;
+    }
+    return false;
+  }
+
+  // Set path and state to Run
+  character.path = path.slice(1);
+  character.state = CharacterState.Run; // Use Run state for animation
 
   if ("isMoving" in character) {
     character.isMoving = true;
@@ -243,6 +321,9 @@ export function parseNpcConfig(content: string): CharacterConfig | null {
   const lines = content.split("\n");
   const config: Partial<CharacterConfig> = {
     stats: {} as CharacterStats,
+    group: 0,
+    noAutoAttackPlayer: 0,
+    pathFinder: 0,
   };
 
   for (const line of lines) {
@@ -257,13 +338,15 @@ export function parseNpcConfig(content: string): CharacterConfig | null {
     switch (key.toLowerCase()) {
       case "name":
         config.name = value;
-        stats.name = value;
         break;
       case "npcini":
         config.npcIni = value;
         break;
       case "flyini":
         config.flyIni = value;
+        break;
+      case "flyini2":
+        config.flyIni2 = value;
         break;
       case "bodyini":
         config.bodyIni = value;
@@ -273,6 +356,12 @@ export function parseNpcConfig(content: string): CharacterConfig | null {
         break;
       case "relation":
         config.relation = parseInt(value, 10) as RelationType;
+        break;
+      case "group":
+        config.group = parseInt(value, 10);
+        break;
+      case "noautoattackplayer":
+        config.noAutoAttackPlayer = parseInt(value, 10);
         break;
       case "life":
         stats.life = parseInt(value, 10);
@@ -295,8 +384,23 @@ export function parseNpcConfig(content: string): CharacterConfig | null {
       case "attack":
         stats.attack = parseInt(value, 10);
         break;
-      case "defence":
-        stats.defence = parseInt(value, 10);
+      case "attack2":
+        stats.attack2 = parseInt(value, 10);
+        break;
+      case "attack3":
+        stats.attack3 = parseInt(value, 10);
+        break;
+      case "attacklevel":
+        stats.attackLevel = parseInt(value, 10);
+        break;
+      case "defend":
+        stats.defend = parseInt(value, 10);
+        break;
+      case "defend2":
+        stats.defend2 = parseInt(value, 10);
+        break;
+      case "defend3":
+        stats.defend3 = parseInt(value, 10);
         break;
       case "evade":
         stats.evade = parseInt(value, 10);
@@ -304,8 +408,20 @@ export function parseNpcConfig(content: string): CharacterConfig | null {
       case "exp":
         stats.exp = parseInt(value, 10);
         break;
+      case "levelupexp":
+        stats.levelUpExp = parseInt(value, 10);
+        break;
+      case "level":
+        stats.level = parseInt(value, 10);
+        break;
+      case "canlevelup":
+        stats.canLevelUp = parseInt(value, 10);
+        break;
       case "walkspeed":
         stats.walkSpeed = parseInt(value, 10);
+        break;
+      case "addmovespeedpercent":
+        stats.addMoveSpeedPercent = parseInt(value, 10);
         break;
       case "visionradius":
         stats.visionRadius = parseInt(value, 10);
@@ -313,8 +429,20 @@ export function parseNpcConfig(content: string): CharacterConfig | null {
       case "attackradius":
         stats.attackRadius = parseInt(value, 10);
         break;
+      case "dialogradius":
+        stats.dialogRadius = parseInt(value, 10);
+        break;
+      case "lum":
+        stats.lum = parseInt(value, 10);
+        break;
+      case "action":
+        stats.action = parseInt(value, 10);
+        break;
       case "scriptfile":
         config.scriptFile = value;
+        break;
+      case "scriptfileright":
+        config.scriptFileRight = value;
         break;
       case "deathscript":
         config.deathScript = value;
@@ -326,7 +454,10 @@ export function parseNpcConfig(content: string): CharacterConfig | null {
         config.timerInterval = parseInt(value, 10);
         break;
       case "pathfinder":
-        config.pathFinder = value === "1";
+        config.pathFinder = parseInt(value, 10);
+        break;
+      case "caninteractdirectly":
+        config.canInteractDirectly = parseInt(value, 10);
         break;
     }
   }
@@ -371,26 +502,8 @@ export async function loadNpcConfig(url: string): Promise<CharacterConfig | null
 
 
   try {
-    // NPC config files are in GB2312 encoding (Chinese)
-    const buffer = await response.arrayBuffer();
-    const bytes = new Uint8Array(buffer);
-
-    let content: string;
-    try {
-      // Try GB2312 first (for Chinese NPC names)
-      const decoder = new TextDecoder('gb2312');
-      content = decoder.decode(bytes);
-    } catch {
-      try {
-        // Fallback to GBK
-        const decoder = new TextDecoder('gbk');
-        content = decoder.decode(bytes);
-      } catch {
-        // Last resort: UTF-8
-        const decoder = new TextDecoder('utf-8');
-        content = decoder.decode(bytes);
-      }
-    }
+    // NPC config files in resources/ini are now UTF-8 encoded
+    const content = await response.text();
 
     return parseNpcConfig(content);
   } catch (error) {
@@ -409,23 +522,23 @@ async function tryFetchNpcConfig(url: string): Promise<Response | null> {
     if (!response.ok) {
       return null;
     }
-    
+
     // Check Content-Type - if it's HTML, it's probably Vite's fallback
     const contentType = response.headers.get('content-type') || '';
     if (contentType.includes('text/html')) {
       return null;
     }
-    
+
     // Double-check by reading first few bytes to ensure it's not HTML
     const clone = response.clone();
     const text = await clone.text();
     const trimmed = text.trim();
-    
+
     // If starts with HTML tags, it's Vite's 404 fallback page
     if (trimmed.startsWith('<!DOCTYPE') || trimmed.startsWith('<html')) {
       return null;
     }
-    
+
     // Valid INI file
     return response;
   } catch {
