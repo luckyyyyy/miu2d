@@ -14,6 +14,7 @@ export interface MapRenderer {
   isLoading: boolean;
   loadProgress: number;
   loadVersion: number; // Used to cancel stale loads
+  _cameraDebugLogged?: boolean; // Debug flag
 }
 
 /**

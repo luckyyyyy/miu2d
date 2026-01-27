@@ -281,7 +281,7 @@ export function startSpecialAction(
   sprite.playOnceTotalFrames = framesPerDir;
   sprite.leftFramesToPlay = framesPerDir; // New: track remaining frames like C#
   sprite.animationTime = 0;
-  console.log(`[Sprite] Started special action with ${framesPerDir} frames`);
+  console.log(`[Sprite] Started special action: isPlayingOnce=${sprite.isPlayingOnce}, leftFramesToPlay=${sprite.leftFramesToPlay}, framesPerDir=${framesPerDir}`);
 }
 
 /**
@@ -292,10 +292,16 @@ export function startSpecialAction(
 export function isSpecialActionEnd(sprite: CharacterSprite): boolean {
   // If not playing once, animation hasn't started
   if (!sprite.isPlayingOnce) {
+    console.log(`[Sprite] isSpecialActionEnd: not playing once`);
     return false;
   }
   // C#: return !IsInPlaying where IsInPlaying = _leftFrameToPlay > 0
-  return (sprite.leftFramesToPlay ?? 0) <= 0;
+  const remaining = sprite.leftFramesToPlay ?? 0;
+  const ended = remaining <= 0;
+  if (ended) {
+    console.log(`[Sprite] isSpecialActionEnd: animation ended (remaining=${remaining})`);
+  }
+  return ended;
 }
 
 /**
@@ -325,28 +331,30 @@ export function updateSpriteAnimation(
   if (sprite.isPlayingOnce && sprite.specialActionAsf) {
     const asf = sprite.specialActionAsf;
     sprite.currentAsf = asf;
-    sprite.animationTime += deltaTime * 1000;
 
+    // Convert deltaTime (seconds) to milliseconds
+    const deltaMs = deltaTime * 1000;
+    sprite.animationTime += deltaMs;
+
+    // C#: Uses Texture.Interval directly, no minimum limit
     const frameInterval = asf.interval || 100;
-    while (sprite.animationTime >= frameInterval) {
+
+    // Only advance frame if enough time has passed
+    if (sprite.animationTime >= frameInterval) {
       sprite.animationTime -= frameInterval;
+
+      // Advance frame
       sprite.playOnceFrame = (sprite.playOnceFrame ?? 0) + 1;
 
       // C#: Decrement _leftFrameToPlay each frame advance
       if ((sprite.leftFramesToPlay ?? 0) > 0) {
         sprite.leftFramesToPlay = (sprite.leftFramesToPlay ?? 0) - 1;
       }
-
-      // Check if animation finished (don't loop for special actions)
-      if ((sprite.leftFramesToPlay ?? 0) <= 0) {
-        // Stay at last valid frame
-        sprite.playOnceFrame = Math.min(sprite.playOnceFrame ?? 0, (asf.framesPerDirection || 1) - 1);
-        break;
-      }
     }
 
     // Use playOnceFrame for rendering (clamp to valid range)
-    sprite.currentFrame = Math.min(sprite.playOnceFrame ?? 0, (asf.framesPerDirection || 1) - 1);
+    const maxFrame = (asf.framesPerDirection || 1) - 1;
+    sprite.currentFrame = Math.min(sprite.playOnceFrame ?? 0, maxFrame);
     return;
   }
 

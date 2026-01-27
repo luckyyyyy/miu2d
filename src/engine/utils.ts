@@ -64,38 +64,6 @@ export function readFixedString(
   return readNullTerminatedString(data, offset, length);
 }
 
-/**
- * Parse INI file content into a nested object
- */
-export function parseIni(content: string): Record<string, Record<string, string>> {
-  const result: Record<string, Record<string, string>> = {};
-  let currentSection = "";
-
-  const lines = content.split(/\r?\n/);
-  for (const rawLine of lines) {
-    // Remove comments
-    const commentIndex = rawLine.indexOf("//");
-    const line = (commentIndex >= 0 ? rawLine.substring(0, commentIndex) : rawLine).trim();
-
-    if (!line) continue;
-
-    // Section header
-    if (line.startsWith("[") && line.endsWith("]")) {
-      currentSection = line.slice(1, -1).trim();
-      if (!result[currentSection]) {
-        result[currentSection] = {};
-      }
-      continue;
-    }
-
-    // Key=Value
-    const eqIndex = line.indexOf("=");
-    if (eqIndex > 0 && currentSection) {
-      const key = line.substring(0, eqIndex).trim();
-      const value = line.substring(eqIndex + 1).trim();
-      result[currentSection][key] = value;
-    }
-  }
-
-  return result;
-}
+// parseIni is exported from core/utils.ts
+// Re-export for backward compatibility
+export { parseIni } from "./core/utils";

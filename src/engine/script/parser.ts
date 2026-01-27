@@ -171,14 +171,27 @@ export function parseScript(content: string, fileName: string): ScriptData {
 
 /**
  * Load and parse a script file from URL
+ * Implements C# Utils.GetScriptFilePath fallback:
+ * 1. First tries map-specific path: script/map/{mapName}/{fileName}
+ * 2. Falls back to common path: script/common/{fileName}
  */
 export async function loadScript(url: string): Promise<ScriptData | null> {
   try {
-    const response = await fetch(url);
-    if (!response.ok) {
-      console.warn(`Failed to load script: ${url}`);
-      return null;
+    let response = await fetch(url);
+
+    // If map-specific script not found, try common folder
+    // C# Reference: Utils.GetScriptFilePath
+    if (!response.ok && url.includes("/script/map/")) {
+      const fileName = url.split("/").pop() || "";
+      const commonUrl = `/resources/script/common/${fileName}`;
+      console.log(`[loadScript] Map script not found, trying common: ${commonUrl}`);
+      response = await fetch(commonUrl);
+
+      if (response.ok) {
+        url = commonUrl; // Update url for logging
+      }
     }
+
     // Script files in resources/script are now UTF-8 encoded
     const content = await response.text();
 

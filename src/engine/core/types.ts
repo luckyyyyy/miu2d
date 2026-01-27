@@ -124,30 +124,6 @@ export interface CharacterSpriteData {
   animationTime: number;
 }
 
-// ============= NPC Types =============
-// Based on C# Npc.cs (inherits Character)
-export interface NpcData {
-  id: string;
-  config: CharacterConfig;
-  tilePosition: Vector2;
-  pixelPosition: Vector2;
-  direction: Direction;
-  state: CharacterState;
-  currentFrame: number;
-  path: Vector2[];
-  isVisible: boolean;
-  isAIDisabled: boolean;
-  actionPathTilePositions?: Vector2[]; // Patrol path (C#: FixedPos)
-  sprite?: CharacterSpriteData; // Optional sprite data
-  specialActionAsf?: string; // For special animations
-  customActionFiles?: Map<number, string>; // State -> ASF file mapping
-  actionType?: number; // Action type for behavior
-  // Special action state (C#: IsInSpecialAction, _specialActionLastDirection)
-  isInSpecialAction?: boolean;
-  specialActionLastDirection?: Direction;
-  specialActionFrame?: number; // Current frame in special action
-}
-
 // ============= Player Types =============
 // Based on C# Player.cs (inherits Character)
 export interface PlayerData {
@@ -206,6 +182,10 @@ export interface ScriptState {
   selectionResultVar?: string; // Variable name to store selection result
   isInTalk: boolean; // Whether currently in a Talk sequence
   talkQueue: { text: string; portraitIndex: number }[]; // Queue of talk dialogs
+
+  // C#: ScriptRunner.BelongObject - the NPC or Obj that triggered this script
+  // Used by commands like DelCurObj, SetObjScript, etc.
+  belongObject: { type: "npc" | "obj"; id: string } | null;
 
   // Blocking wait states (C# ScriptRunner checks these each frame)
   // PlayerGoto (C#: _playerGotoDesitination)
@@ -273,8 +253,8 @@ export interface GameState {
   // Player
   player: PlayerData;
 
-  // NPCs
-  npcs: Map<string, NpcData>;
+  // NPCs - count only (actual NPC management is in NpcManager)
+  npcCount: number;
 
   // Script
   scriptState: ScriptState;
@@ -353,8 +333,8 @@ export const TILE_HEIGHT = 32;
 // Run: speedFold = RunSpeedFold (default 8)
 export const BASE_SPEED = 100; // C#: Globals.BaseSpeed
 export const RUN_SPEED_FOLD = 8; // C#: Globals.RunSpeedFold (跑步速度是走路的8倍!)
-export const DEFAULT_WALK_SPEED = BASE_SPEED; // For compatibility
 export const DEFAULT_RUN_SPEED = BASE_SPEED * RUN_SPEED_FOLD;
+export const MIN_CHANGE_MOVE_SPEED_PERCENT = -90; // C#: Globals.MinChangeMoveSpeedPercent
 
 export const DIALOG_RADIUS = 3; // tiles
 

@@ -1,25 +1,21 @@
 /**
  * NPC Manager - based on JxqyHD Engine/NpcManager.cs
  * Manages all NPCs in the game
+ *
+ * Uses Npc class instances directly
  */
-import type { NpcData, CharacterConfig, Vector2 } from "../core/types";
+import type { CharacterConfig, Vector2 } from "../core/types";
 import { CharacterState, CharacterKind, Direction } from "../core/types";
-import {
-  createNpcData,
-  loadNpcConfig,
-  updateCharacterMovement,
-  updateCharacterAnimation,
-  walkTo,
-} from "./character";
-import { generateId, distance } from "../core/utils";
+import { Npc } from "./npc";
+import { loadNpcConfig } from "./resFile";
+import { generateId, distance, parseIni } from "../core/utils";
 
 export class NpcManager {
-  private npcs: Map<string, NpcData> = new Map();
+  // Internal storage uses Npc class instances
+  private npcs: Map<string, Npc> = new Map();
   private npcConfigCache: Map<string, CharacterConfig> = new Map();
   private isWalkable: (tile: Vector2) => boolean;
   private isMapObstacle: ((tile: Vector2) => boolean) | undefined;
-  // Optional reference to character renderer for custom action files
-  private characterRenderer: any = null;
   // Store loaded NPC file name (like C# _fileName)
   private fileName: string = "";
 
@@ -39,14 +35,6 @@ export class NpcManager {
   }
 
   /**
-   * Set character renderer reference
-   * This is needed to properly handle custom action files
-   */
-  setCharacterRenderer(renderer: any): void {
-    this.characterRenderer = renderer;
-  }
-
-  /**
    * Set walkability checker
    */
   setWalkabilityChecker(checker: (tile: Vector2) => boolean): void {
@@ -54,18 +42,18 @@ export class NpcManager {
   }
 
   /**
-   * Get all NPCs
+   * Get all NPC instances
    */
-  getAllNpcs(): Map<string, NpcData> {
+  getAllNpcs(): Map<string, Npc> {
     return this.npcs;
   }
 
   /**
    * Get NPC by name
    */
-  getNpc(name: string): NpcData | null {
+  getNpc(name: string): Npc | null {
     for (const [, npc] of this.npcs) {
-      if (npc.config.name === name) {
+      if (npc.name === name) {
         return npc;
       }
     }
@@ -75,7 +63,7 @@ export class NpcManager {
   /**
    * Get NPC by ID
    */
-  getNpcById(id: string): NpcData | null {
+  getNpcById(id: string): Npc | null {
     return this.npcs.get(id) || null;
   }
 
@@ -87,7 +75,7 @@ export class NpcManager {
     tileX: number,
     tileY: number,
     direction: Direction = 4
-  ): Promise<NpcData | null> {
+  ): Promise<Npc | null> {
     let config: CharacterConfig | undefined = this.npcConfigCache.get(configPath);
     if (!config) {
       const loaded = await loadNpcConfig(configPath);
@@ -102,16 +90,18 @@ export class NpcManager {
       return null;
     }
 
-    const id = generateId();
-    const npc = createNpcData(id, config, tileX, tileY, direction);
-    this.npcs.set(id, npc);
+    const npc = Npc.fromConfig(config, tileX, tileY, direction);
+    this.npcs.set(npc.id, npc);
+
+    // Set walkability checker for pathfinding
+    npc.setWalkabilityChecker(this.isWalkable, this.isMapObstacle);
 
     // Log NPC creation for debugging
-    console.log(`[NpcManager] Created NPC: ${config.name} at (${tileX}, ${tileY}), id=${id}, npcIni=${config.npcIni || 'none'}`);
+    console.log(`[NpcManager] Created NPC: ${config.name} at (${tileX}, ${tileY}), id=${npc.id}, npcIni=${config.npcIni || 'none'}`);
 
-    // Auto-load sprites if renderer is available
-    if (this.characterRenderer && config.npcIni) {
-      this.characterRenderer.loadCharacterSprites(id, config.npcIni)
+    // Auto-load sprites using Npc's own method
+    if (config.npcIni) {
+      npc.loadSpritesFromNpcIni(config.npcIni)
         .catch((err: any) => console.warn(`[NpcManager] Failed to load sprites for NPC ${config!.name}:`, err));
     }
 
@@ -126,17 +116,19 @@ export class NpcManager {
     tileX: number,
     tileY: number,
     direction: Direction = 4
-  ): NpcData {
-    const id = generateId();
-    const npc = createNpcData(id, config, tileX, tileY, direction);
-    this.npcs.set(id, npc);
+  ): Npc {
+    const npc = Npc.fromConfig(config, tileX, tileY, direction);
+    this.npcs.set(npc.id, npc);
+
+    // Set walkability checker for pathfinding
+    npc.setWalkabilityChecker(this.isWalkable, this.isMapObstacle);
 
     // Log NPC creation for debugging
-    console.log(`[NpcManager] Created NPC (with config): ${config.name} at (${tileX}, ${tileY}), id=${id}, npcIni=${config.npcIni || 'none'}`);
+    console.log(`[NpcManager] Created NPC (with config): ${config.name} at (${tileX}, ${tileY}), id=${npc.id}, npcIni=${config.npcIni || 'none'}`);
 
-    // Auto-load sprites if renderer is available
-    if (this.characterRenderer && config.npcIni) {
-      this.characterRenderer.loadCharacterSprites(id, config.npcIni)
+    // Auto-load sprites using Npc's own method
+    if (config.npcIni) {
+      npc.loadSpritesFromNpcIni(config.npcIni)
         .catch((err: any) => console.warn(`[NpcManager] Failed to load sprites for NPC ${config.name}:`, err));
     }
 
@@ -148,7 +140,7 @@ export class NpcManager {
    */
   deleteNpc(name: string): boolean {
     for (const [id, npc] of this.npcs) {
-      if (npc.config.name === name) {
+      if (npc.name === name) {
         this.npcs.delete(id);
         return true;
       }
@@ -177,8 +169,7 @@ export class NpcManager {
     const npc = this.getNpc(name);
     if (!npc) return false;
 
-    npc.tilePosition = { x: tileX, y: tileY };
-    npc.path = [];
+    npc.setPosition(tileX, tileY);
     return true;
   }
 
@@ -189,7 +180,7 @@ export class NpcManager {
     const npc = this.getNpc(name);
     if (!npc) return false;
 
-    return walkTo(npc, { x: tileX, y: tileY }, this.isWalkable, this.isMapObstacle);
+    return npc.walkTo({ x: tileX, y: tileY });
   }
 
   /**
@@ -200,42 +191,25 @@ export class NpcManager {
     const npc = this.getNpc(name);
     if (!npc) return false;
 
-    // Direction is 8-way (0-7)
-    const dirVectors = [
-      { x: 0, y: -2 },   // 0: North
-      { x: 1, y: -1 },   // 1: NorthEast
-      { x: 1, y: 0 },    // 2: East
-      { x: 1, y: 1 },    // 3: SouthEast
-      { x: 0, y: 2 },    // 4: South
-      { x: -1, y: 1 },   // 5: SouthWest
-      { x: -1, y: 0 },   // 6: West
-      { x: -1, y: -1 },  // 7: NorthWest
-    ];
-
-    const dir = dirVectors[direction] || { x: 0, y: 0 };
-
-    // Calculate target position
-    const targetX = npc.tilePosition.x + dir.x * steps;
-    const targetY = npc.tilePosition.y + dir.y * steps;
-
-    // Set direction and walk
-    npc.direction = direction as Direction;
-    return walkTo(npc, { x: targetX, y: targetY }, this.isWalkable, this.isMapObstacle);
+    // Use Character's walkToDirection method
+    npc.walkToDirection(direction, steps);
+    return true;
   }
 
   /**
    * Get closest interactable NPC to a position
    */
-  getClosestInteractableNpc(position: Vector2, maxDistance: number = 100): NpcData | null {
-    let closest: NpcData | null = null;
+  getClosestInteractableNpc(position: Vector2, maxDistance: number = 100): Npc | null {
+    let closest: Npc | null = null;
     let closestDist = Infinity;
 
     for (const [, npc] of this.npcs) {
       if (!npc.isVisible) continue;
       // Only eventer NPCs are interactable
-      if (npc.config.kind !== CharacterKind.Eventer) continue;
+      if (npc.kind !== CharacterKind.Eventer) continue;
 
-      const dist = distance(position, npc.pixelPosition);
+      const npcPos = { x: npc.positionInWorld.x, y: npc.positionInWorld.y };
+      const dist = distance(position, npcPos);
       if (dist < closestDist && dist < maxDistance) {
         closest = npc;
         closestDist = dist;
@@ -248,9 +222,9 @@ export class NpcManager {
   /**
    * Get NPC at tile position
    */
-  getNpcAtTile(tileX: number, tileY: number): NpcData | null {
+  getNpcAtTile(tileX: number, tileY: number): Npc | null {
     for (const [, npc] of this.npcs) {
-      if (npc.tilePosition.x === tileX && npc.tilePosition.y === tileY) {
+      if (npc.mapX === tileX && npc.mapY === tileY) {
         return npc;
       }
     }
@@ -262,7 +236,7 @@ export class NpcManager {
    */
   isObstacle(tileX: number, tileY: number): boolean {
     for (const [, npc] of this.npcs) {
-      if (npc.tilePosition.x === tileX && npc.tilePosition.y === tileY) {
+      if (npc.mapX === tileX && npc.mapY === tileY) {
         return true;
       }
     }
@@ -275,43 +249,20 @@ export class NpcManager {
   update(deltaTime: number): void {
     for (const [, npc] of this.npcs) {
       if (!npc.isVisible) continue;
-
-      // Update movement
-      updateCharacterMovement(npc, deltaTime, this.isWalkable);
-
-      // Update animation
-      updateCharacterAnimation(npc, deltaTime);
-
-      // AI behavior (for fighters)
-      if (!npc.isAIDisabled && npc.config.kind === CharacterKind.Fighter) {
-        this.updateNpcAI(npc, deltaTime);
-      }
-    }
-  }
-
-  /**
-   * Simple NPC AI update
-   */
-  private updateNpcAI(npc: NpcData, _deltaTime: number): void {
-    // Patrol behavior if has patrol path
-    if (npc.actionPathTilePositions && npc.actionPathTilePositions.length > 0) {
-      if (npc.path.length === 0) {
-        // Get next patrol point
-        const nextPoint = npc.actionPathTilePositions.shift()!;
-        npc.actionPathTilePositions.push(nextPoint); // Loop
-        walkTo(npc, nextPoint, this.isWalkable, this.isMapObstacle);
-      }
+      // Npc class handles its own update (movement, animation, AI)
+      npc.update(deltaTime);
     }
   }
 
   /**
    * Get visible NPCs in area
    */
-  getVisibleNpcs(centerX: number, centerY: number, radius: number): NpcData[] {
-    const result: NpcData[] = [];
+  getVisibleNpcs(centerX: number, centerY: number, radius: number): Npc[] {
+    const result: Npc[] = [];
     for (const [, npc] of this.npcs) {
       if (!npc.isVisible) continue;
-      const dist = distance({ x: centerX, y: centerY }, npc.pixelPosition);
+      const npcPos = { x: npc.positionInWorld.x, y: npc.positionInWorld.y };
+      const dist = distance({ x: centerX, y: centerY }, npcPos);
       if (dist <= radius) {
         result.push(npc);
       }
@@ -371,23 +322,24 @@ export class NpcManager {
       return false;
     }
 
-    // Store custom action files (state -> asf file)
-    if (!npc.customActionFiles) {
-      npc.customActionFiles = new Map();
-    }
-    npc.customActionFiles.set(stateType, asfFile);
-    console.log(`[NpcManager] SetNpcActionFile: ${name}, state=${stateType}, file=${asfFile}`);
+    // Check if this is the first time setting custom ASF for this state
+    const isFirstTimeSet = !npc.customActionFiles.has(stateType) ||
+                           !(npc as any)._customAsfCache?.has(stateType);
 
-    // Notify character renderer to load the custom ASF
-    if (this.characterRenderer && this.characterRenderer.setNpcActionFile) {
-      this.characterRenderer.setNpcActionFile(npc.id, stateType, asfFile);
+    // Use Npc class method directly
+    npc.setNpcActionFile(stateType, asfFile);
 
-      // Preload the ASF if this is the current state
-      if (npc.state === stateType && this.characterRenderer.preloadCustomActionFile) {
-        this.characterRenderer.preloadCustomActionFile(npc.id, stateType, asfFile)
-          .catch((err: any) => console.error(`Failed to preload custom action file:`, err));
-      }
-    }
+    // Preload the ASF file
+    npc.preloadCustomActionFile(stateType, asfFile)
+      .then(() => {
+        // Only update texture immediately if:
+        // 1. This is the first time setting custom ASF for this state
+        // 2. Current state matches the one we just loaded
+        if (isFirstTimeSet && npc.state === stateType) {
+          (npc as any)._updateTextureForState(stateType);
+        }
+      })
+      .catch((err: any) => console.error(`Failed to preload custom action file:`, err));
 
     return true;
   }
@@ -397,8 +349,8 @@ export class NpcManager {
    */
   getNpcActionFile(name: string, stateType: number): string | null {
     const npc = this.getNpc(name);
-    if (!npc || !npc.customActionFiles) return null;
-    return npc.customActionFiles.get(stateType) || null;
+    if (!npc) return null;
+    return npc.getCustomActionFile(stateType) || null;
   }
 
   /**
@@ -420,7 +372,7 @@ export class NpcManager {
     const npc = this.getNpc(name);
     if (!npc) return false;
 
-    npc.config.stats.level = level;
+    npc.level = level;
     return true;
   }
 
@@ -435,13 +387,13 @@ export class NpcManager {
     for (const [id, npc] of this.npcs) {
       // Check if NPC is an enemy (Fighter with Enemy relation or Fighter2)
       if (
-        npc.config.kind === CharacterKind.Fighter ||
-        npc.config.kind === CharacterKind.Fighter2 ||
-        npc.config.kind === CharacterKind.Flyer
+        npc.kind === CharacterKind.Fighter ||
+        npc.kind === CharacterKind.Fighter2 ||
+        npc.kind === CharacterKind.Flyer
       ) {
         // Mark for deletion (or set to death state)
         npc.state = CharacterState.Death;
-        npc.config.stats.life = 0;
+        npc.life = 0;
         toDelete.push(id);
         killed++;
       }
@@ -463,7 +415,7 @@ export class NpcManager {
     const npc = this.getNpc(name);
     if (!npc) return false;
 
-    npc.direction = direction as any;
+    npc.currentDirection = direction;
     return true;
   }
 
@@ -474,7 +426,7 @@ export class NpcManager {
     const npc = this.getNpc(name);
     if (!npc) return false;
 
-    npc.state = state as any;
+    npc.state = state as CharacterState;
     return true;
   }
 
@@ -554,7 +506,7 @@ export class NpcManager {
    * Parse NPC file content
    */
   private async parseNpcFile(content: string): Promise<void> {
-    const sections = this.parseIni(content);
+    const sections = parseIni(content);
 
     const loadPromises: Promise<void>[] = [];
 
@@ -643,40 +595,9 @@ export class NpcManager {
 
     // Create NPC with inline config
     const npc = this.addNpcWithConfig(config, mapX, mapY, dir as any);
+    // Set action type on the Npc instance
     npc.actionType = action;
 
     console.log(`[NpcManager] Created NPC from section: ${name} at (${mapX}, ${mapY}), npcIni=${npcIni}`);
-  }
-
-  /**
-   * Simple INI parser
-   */
-  private parseIni(content: string): Record<string, Record<string, string>> {
-    const sections: Record<string, Record<string, string>> = {};
-    let currentSection = "";
-
-    const lines = content.split(/\r?\n/);
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if (!trimmed || trimmed.startsWith(";") || trimmed.startsWith("//")) {
-        continue;
-      }
-
-      const sectionMatch = trimmed.match(/^\[([^\]]+)\]$/);
-      if (sectionMatch) {
-        currentSection = sectionMatch[1];
-        sections[currentSection] = {};
-        continue;
-      }
-
-      const eqIdx = trimmed.indexOf("=");
-      if (eqIdx > 0 && currentSection) {
-        const key = trimmed.substring(0, eqIdx).trim();
-        const value = trimmed.substring(eqIdx + 1).trim();
-        sections[currentSection][key] = value;
-      }
-    }
-
-    return sections;
   }
 }

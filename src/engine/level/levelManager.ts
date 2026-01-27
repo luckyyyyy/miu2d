@@ -366,16 +366,3 @@ export class LevelManager {
     return Math.max(...Array.from(this.playerLevelConfig.keys()));
   }
 }
-
-// Singleton instance
-let levelManagerInstance: LevelManager | null = null;
-
-/**
- * Get level manager singleton
- */
-export function getLevelManager(): LevelManager {
-  if (!levelManagerInstance) {
-    levelManagerInstance = new LevelManager();
-  }
-  return levelManagerInstance;
-}

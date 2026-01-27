@@ -1,36 +1,39 @@
 /**
  * GUI Manager - based on JxqyHD Engine/Gui/GuiManager.cs
  * Central controller for all GUI elements
+ *
+ * 事件驱动架构（方案A）:
+ * - 每次状态变化通过 EventEmitter 发送携带完整状态的事件
+ * - React 组件订阅事件并使用事件数据渲染
  */
-import type { Vector2 } from "../core/types";
+import type { EventEmitter } from "../core/eventEmitter";
+import type { MemoListManager } from "../listManager";
 import type {
   GuiManagerState,
-  DialogGuiState,
-  SelectionGuiState,
   SelectionOptionData,
-  HudState,
-  HotkeyAction,
 } from "./types";
 import { createDefaultGuiState } from "./types";
-import { getMemoListManager } from "../listManager";
-
-export type GuiEventHandler = (event: string, data?: any) => void;
+import {
+  GameEvents,
+  type UIDialogChangeEvent,
+  type UISelectionChangeEvent,
+  type UIPanelChangeEvent,
+  type UIMessageChangeEvent,
+  type UIDialogClosedEvent,
+  type UIMenuOpenEvent,
+  type UIMenuCloseEvent,
+  type UIMemoChangeEvent,
+} from "../core/gameEvents";
 
 export class GuiManager {
   private state: GuiManagerState;
-  private eventHandler: GuiEventHandler | null = null;
   private typewriterSpeed: number = 50; // ms per character
 
-  constructor() {
+  constructor(
+    private events: EventEmitter,
+    private memoListManager: MemoListManager
+  ) {
     this.state = createDefaultGuiState();
-  }
-
-
-  /**
-   * Set event handler
-   */
-  setEventHandler(handler: GuiEventHandler): void {
-    this.eventHandler = handler;
   }
 
   /**
@@ -41,10 +44,47 @@ export class GuiManager {
   }
 
   /**
-   * Emit event
+   * 发送对话框状态变化事件（携带完整状态）
    */
-  private emit(event: string, data?: any): void {
-    this.eventHandler?.(event, data);
+  private emitDialogChange(): void {
+    const event: UIDialogChangeEvent = {
+      dialog: { ...this.state.dialog },
+    };
+    this.events.emit(GameEvents.UI_DIALOG_CHANGE, event);
+  }
+
+  /**
+   * 发送选项框状态变化事件（携带完整状态）
+   */
+  private emitSelectionChange(): void {
+    const event: UISelectionChangeEvent = {
+      selection: { ...this.state.selection, options: [...this.state.selection.options] },
+    };
+    this.events.emit(GameEvents.UI_SELECTION_CHANGE, event);
+  }
+
+  /**
+   * 发送面板状态变化事件
+   */
+  private emitPanelChange(panel: keyof GuiManagerState["panels"] | null, isOpen: boolean): void {
+    const event: UIPanelChangeEvent = {
+      panel,
+      isOpen,
+      panels: { ...this.state.panels },
+    };
+    this.events.emit(GameEvents.UI_PANEL_CHANGE, event);
+  }
+
+  /**
+   * 发送消息状态变化事件
+   */
+  private emitMessageChange(): void {
+    const event: UIMessageChangeEvent = {
+      messageText: this.state.hud.messageText,
+      messageVisible: this.state.hud.messageVisible,
+      messageTimer: this.state.hud.messageTimer,
+    };
+    this.events.emit(GameEvents.UI_MESSAGE_CHANGE, event);
   }
 
   // ============= Dialog Methods =============
@@ -68,7 +108,7 @@ export class GuiManager {
       selectB: "",
       selection: 0,
     };
-    this.emit("dialog:show", { text, portraitIndex, name });
+    this.emitDialogChange();
   }
 
   /**
@@ -76,7 +116,9 @@ export class GuiManager {
    */
   hideDialog(): void {
     this.state.dialog.isVisible = false;
-    this.emit("dialog:hide");
+    this.emitDialogChange();
+    // 通知脚本系统对话框已关闭，以继续执行
+    this.events.emit(GameEvents.UI_DIALOG_CLOSED, {} as UIDialogClosedEvent);
   }
 
   /**
@@ -92,6 +134,7 @@ export class GuiManager {
   completeDialog(): void {
     this.state.dialog.textProgress = this.state.dialog.text.length;
     this.state.dialog.isComplete = true;
+    this.emitDialogChange();
   }
 
   /**
@@ -112,7 +155,7 @@ export class GuiManager {
       selectB,
       selection: -1,
     };
-    this.emit("dialog:show", { text: message, isSelecting: true });
+    this.emitDialogChange();
   }
 
   /**
@@ -122,7 +165,6 @@ export class GuiManager {
     this.state.dialog.selection = selection;
     this.state.dialog.isInSelecting = false;
     this.hideDialog();
-    this.emit("dialog:selection", { selection });
   }
 
   /**
@@ -157,7 +199,6 @@ export class GuiManager {
     } else {
       // Close dialog
       this.hideDialog();
-      this.emit("dialog:closed");
       return true;
     }
   }
@@ -169,11 +210,17 @@ export class GuiManager {
     if (!this.state.dialog.isVisible || this.state.dialog.isComplete) return;
 
     const charsToAdd = (deltaTime * 1000) / this.typewriterSpeed;
+    const prevProgress = this.state.dialog.textProgress;
     this.state.dialog.textProgress += charsToAdd;
 
     if (this.state.dialog.textProgress >= this.state.dialog.text.length) {
       this.state.dialog.textProgress = this.state.dialog.text.length;
       this.state.dialog.isComplete = true;
+    }
+
+    // 通知UI更新（只在有实际变化时 - 每个字符变化发送一次）
+    if (Math.floor(this.state.dialog.textProgress) !== Math.floor(prevProgress)) {
+      this.emitDialogChange();
     }
   }
 
@@ -192,7 +239,7 @@ export class GuiManager {
       selectedIndex: 0,
       hoveredIndex: -1,
     };
-    this.emit("selection:show", { options, message });
+    this.emitSelectionChange();
   }
 
   /**
@@ -200,7 +247,7 @@ export class GuiManager {
    */
   hideSelection(): void {
     this.state.selection.isVisible = false;
-    this.emit("selection:hide");
+    this.emitSelectionChange();
   }
 
   /**
@@ -216,6 +263,7 @@ export class GuiManager {
   moveSelectionUp(): void {
     if (this.state.selection.selectedIndex > 0) {
       this.state.selection.selectedIndex--;
+      this.emitSelectionChange();
     }
   }
 
@@ -225,6 +273,7 @@ export class GuiManager {
   moveSelectionDown(): void {
     if (this.state.selection.selectedIndex < this.state.selection.options.length - 1) {
       this.state.selection.selectedIndex++;
+      this.emitSelectionChange();
     }
   }
 
@@ -233,6 +282,7 @@ export class GuiManager {
    */
   setSelectionHover(index: number): void {
     this.state.selection.hoveredIndex = index;
+    this.emitSelectionChange();
   }
 
   /**
@@ -245,7 +295,6 @@ export class GuiManager {
     const selected = this.state.selection.options[selectedIndex];
     if (selected && selected.enabled) {
       this.hideSelection();
-      this.emit("selection:confirmed", { ...selected, index: selectedIndex });
       return selected;
     }
     return null;
@@ -290,7 +339,7 @@ export class GuiManager {
     this.state.hud.messageText = text;
     this.state.hud.messageVisible = true;
     this.state.hud.messageTimer = duration;
-    this.emit("message:show", { text, duration });
+    this.emitMessageChange();
   }
 
   /**
@@ -298,7 +347,7 @@ export class GuiManager {
    */
   hideMessage(): void {
     this.state.hud.messageVisible = false;
-    this.emit("message:hide");
+    this.emitMessageChange();
   }
 
   /**
@@ -332,7 +381,7 @@ export class GuiManager {
       this.state.panels.equip = false;
       this.state.panels.xiulian = false;
     }
-    this.emit("panel:state", this.state.panels.state);
+    this.emitPanelChange("state", this.state.panels.state);
   }
 
   /**
@@ -345,7 +394,7 @@ export class GuiManager {
       this.state.panels.state = false;
       this.state.panels.xiulian = false;
     }
-    this.emit("panel:equip", this.state.panels.equip);
+    this.emitPanelChange("equip", this.state.panels.equip);
   }
 
   /**
@@ -358,7 +407,7 @@ export class GuiManager {
       this.state.panels.state = false;
       this.state.panels.equip = false;
     }
-    this.emit("panel:xiulian", this.state.panels.xiulian);
+    this.emitPanelChange("xiulian", this.state.panels.xiulian);
   }
 
   /**
@@ -371,7 +420,7 @@ export class GuiManager {
       this.state.panels.magic = false;
       this.state.panels.memo = false;
     }
-    this.emit("panel:goods", this.state.panels.goods);
+    this.emitPanelChange("goods", this.state.panels.goods);
   }
 
   /**
@@ -384,7 +433,7 @@ export class GuiManager {
       this.state.panels.goods = false;
       this.state.panels.memo = false;
     }
-    this.emit("panel:magic", this.state.panels.magic);
+    this.emitPanelChange("magic", this.state.panels.magic);
   }
 
   /**
@@ -397,7 +446,7 @@ export class GuiManager {
       this.state.panels.goods = false;
       this.state.panels.magic = false;
     }
-    this.emit("panel:memo", this.state.panels.memo);
+    this.emitPanelChange("memo", this.state.panels.memo);
   }
 
   /**
@@ -405,7 +454,7 @@ export class GuiManager {
    */
   showSystem(show: boolean = true): void {
     this.state.panels.system = show;
-    this.emit("panel:system", show);
+    this.emitPanelChange("system", show);
   }
 
   /**
@@ -426,7 +475,7 @@ export class GuiManager {
     this.state.panels.magic = false;
     this.state.panels.memo = false;
     this.state.panels.system = false;
-    this.emit("panel:closeAll");
+    this.emitPanelChange(null, false);
   }
 
   /**
@@ -452,7 +501,7 @@ export class GuiManager {
   openMenu(menu: GuiManagerState["menu"]["currentMenu"]): void {
     this.state.menu.currentMenu = menu;
     this.state.menu.isOpen = true;
-    this.emit("menu:open", menu);
+    this.events.emit(GameEvents.UI_MENU_OPEN, { menu } as UIMenuOpenEvent);
   }
 
   /**
@@ -461,7 +510,7 @@ export class GuiManager {
   closeMenu(): void {
     this.state.menu.isOpen = false;
     this.state.menu.currentMenu = null;
-    this.emit("menu:close");
+    this.events.emit(GameEvents.UI_MENU_CLOSE, {} as UIMenuCloseEvent);
   }
 
   /**
@@ -663,38 +712,31 @@ export class GuiManager {
    * Add memo text - based on C# GuiManager.AddMemo
    */
   addMemo(text: string): void {
-    const memoManager = getMemoListManager();
-    memoManager.addMemo(text);
-    this.updateMemoView();
-    this.emit("memo:added", { text });
+    this.memoListManager.addMemo(text);
+    this.emitMemoChange("added", text);
   }
 
   /**
    * Delete memo text - based on C# GuiManager.DelMemo
    */
   delMemo(text: string): void {
-    const memoManager = getMemoListManager();
-    memoManager.delMemo(text);
-    this.updateMemoView();
-    this.emit("memo:deleted", { text });
+    this.memoListManager.delMemo(text);
+    this.emitMemoChange("deleted", text);
   }
 
   /**
    * Add memo from TalkTextList ID - based on C# AddToMemo
    */
   async addToMemo(textId: number): Promise<void> {
-    const memoManager = getMemoListManager();
-    await memoManager.addToMemo(textId);
-    this.updateMemoView();
-    this.emit("memo:added", { textId });
+    await this.memoListManager.addToMemo(textId);
+    this.emitMemoChange("added", undefined, textId);
   }
 
   /**
    * Get all memos
    */
   getMemoList(): string[] {
-    const memoManager = getMemoListManager();
-    return memoManager.getAllMemos();
+    return this.memoListManager.getAllMemos();
   }
 
   /**
@@ -702,7 +744,15 @@ export class GuiManager {
    * Triggers UI refresh for memo panel
    */
   updateMemoView(): void {
-    this.emit("memo:updated");
+    this.emitMemoChange("updated");
+  }
+
+  /**
+   * 发送任务备忘录变化事件
+   */
+  private emitMemoChange(action: "added" | "deleted" | "updated", text?: string, textId?: number): void {
+    const event: UIMemoChangeEvent = { action, text, textId };
+    this.events.emit(GameEvents.UI_MEMO_CHANGE, event);
   }
 
   /**

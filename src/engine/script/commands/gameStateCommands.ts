@@ -52,16 +52,21 @@ const gotoCommand: CommandHandler = (params, _result, helpers) => {
 
 /**
  * Return - Return from script
+ * When there's a parent script in callStack, restore it and continue execution
+ * When there's no parent, end the script completely
  */
 const returnCommand: CommandHandler = (_params, _result, helpers) => {
   if (helpers.state.callStack.length > 0) {
     const caller = helpers.state.callStack.pop()!;
+    console.log(`[ScriptExecutor] Return: restoring ${caller.script.fileName} at line ${caller.line}`);
     helpers.state.currentScript = caller.script;
     helpers.state.currentLine = caller.line;
+    // Return true to continue execution with parent script
+    return true;
   } else {
     helpers.endScript();
+    return false;
   }
-  return false;
 };
 
 /**

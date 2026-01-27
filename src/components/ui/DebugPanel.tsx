@@ -7,6 +7,7 @@
  */
 import React, { useState, useMemo } from "react";
 import type { GameVariables } from "../../engine/core/types";
+import type { MagicItemInfo } from "../../engine/magic";
 
 // All available goods files
 const ALL_GOODS = [
@@ -166,6 +167,29 @@ const ALL_GOODS = [
 
 const CATEGORIES = ["全部", "药品", "武器", "头饰", "项链", "衣服", "披风", "护腕", "鞋子", "秘籍", "事件"];
 
+// All available player magics (excluding sub-attack magics)
+const ALL_MAGICS = [
+  { name: "长剑", file: "player-magic-长剑.ini" },
+  { name: "风火雷", file: "player-magic-风火雷.ini" },
+  { name: "银钩铁划", file: "player-magic-银钩铁划.ini" },
+  { name: "沧海月明", file: "player-magic-沧海月明.ini" },
+  { name: "烈火情天", file: "player-magic-烈火情天.ini" },
+  { name: "蚀骨血刃", file: "player-magic-蚀骨血仞.ini" },
+  { name: "镇狱破天劲", file: "player-magic-镇狱破天劲.ini" },
+  { name: "孤烟逐云", file: "player-magic-孤烟逐云.ini" },
+  { name: "潮起月盈", file: "player-magic-潮起月盈.ini" },
+  { name: "漫天花雨", file: "player-magic-漫天花雨.ini" },
+  { name: "云生结海", file: "player-magic-云生结海.ini" },
+  { name: "推山填海", file: "player-magic-推山填海.ini" },
+  { name: "绝情断意剑", file: "player-magic-绝情断意剑.ini" },
+  { name: "逆转心经", file: "player-magic-逆转心经.ini" },
+  { name: "错骨分身", file: "player-magic-醉蝶狂舞.ini" },
+  { name: "金钟魔罩", file: "player-magic-金钟罩.ini" },
+  { name: "武道轮回法", file: "player-magic-武道德经.ini" },
+  { name: "清心咒", file: "player-magic-清心咒.ini" },
+  { name: "魂牵梦绕", file: "player-magic-魂牵梦绕.ini" },
+];
+
 interface DebugPanelProps {
   isGodMode: boolean;
   playerStats?: {
@@ -190,14 +214,21 @@ interface DebugPanelProps {
     objFile: string;
   };
   gameVariables?: GameVariables;
+  // 修炼武功信息
+  xiuLianMagic?: MagicItemInfo | null;
   onFullAll: () => void;
-  onLevelUp: () => void;
+  onSetLevel: (level: number) => void;
   onAddMoney: (amount: number) => void;
   onToggleGodMode: () => void;
   onReduceLife: () => void;
   onKillAllEnemies: () => void;
   onExecuteScript?: (scriptPath: string) => Promise<string | null>;
   onAddItem?: (itemFile: string) => Promise<void>;
+  // 武功相关回调
+  onAddMagic?: (magicFile: string) => Promise<void>;
+  onAddAllMagics?: () => Promise<void>;
+  onXiuLianLevelUp?: () => void;
+  onXiuLianLevelDown?: () => void;
 }
 
 /**
@@ -211,14 +242,19 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({
   playerPosition,
   loadedResources,
   gameVariables,
+  xiuLianMagic,
   onFullAll,
-  onLevelUp,
+  onSetLevel,
   onAddMoney,
   onToggleGodMode,
   onReduceLife,
   onKillAllEnemies,
   onExecuteScript,
   onAddItem,
+  onAddMagic,
+  onAddAllMagics,
+  onXiuLianLevelUp,
+  onXiuLianLevelDown,
 }) => {
   // Script execution state
   const [scriptPath, setScriptPath] = useState("");
@@ -227,10 +263,17 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({
   // Money amount state
   const [moneyAmount, setMoneyAmount] = useState("1000");
 
+  // Level setting state
+  const [targetLevel, setTargetLevel] = useState("80");
+
   // Item adding state
   const [selectedCategory, setSelectedCategory] = useState("全部");
   const [selectedItem, setSelectedItem] = useState("");
   const [isAddingItem, setIsAddingItem] = useState(false);
+
+  // Magic adding state
+  const [selectedMagic, setSelectedMagic] = useState("");
+  const [isAddingMagic, setIsAddingMagic] = useState(false);
 
   // Collapsed sections state
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({
@@ -276,6 +319,32 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({
       alert(`添加物品失败:\n${e instanceof Error ? e.message : String(e)}`);
     } finally {
       setIsAddingItem(false);
+    }
+  };
+
+  const handleAddMagic = async () => {
+    if (!onAddMagic || !selectedMagic) return;
+
+    setIsAddingMagic(true);
+    try {
+      await onAddMagic(selectedMagic);
+    } catch (e) {
+      alert(`添加武功失败:\n${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setIsAddingMagic(false);
+    }
+  };
+
+  const handleAddAllMagics = async () => {
+    if (!onAddAllMagics) return;
+
+    setIsAddingMagic(true);
+    try {
+      await onAddAllMagics();
+    } catch (e) {
+      alert(`添加武功失败:\n${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setIsAddingMagic(false);
     }
   };
 
@@ -377,9 +446,6 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({
           <button onClick={onFullAll} style={buttonStyle} title="生命、体力、内力全满">
             💚全满
           </button>
-          <button onClick={onLevelUp} style={buttonStyle} title="升一级">
-            ⬆️升级
-          </button>
           <button onClick={onToggleGodMode} style={godModeButtonStyle} title="开启/关闭无敌模式">
             {isGodMode ? "🛡️无敌中" : "🛡️无敌"}
           </button>
@@ -393,6 +459,37 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({
           </button>
           <button onClick={onKillAllEnemies} style={buttonStyle} title="秒杀所有敌人">
             💀秒杀
+          </button>
+        </div>
+        <div style={{ display: "flex", gap: "5px", alignItems: "center", marginBottom: "5px" }}>
+          <span style={{ fontSize: "12px" }}>⬆️等级</span>
+          <input
+            type="text"
+            value={targetLevel}
+            onChange={(e) => setTargetLevel(e.target.value)}
+            style={{
+              width: "50px",
+              padding: "4px 6px",
+              fontSize: "12px",
+              border: "1px solid #444",
+              borderRadius: "3px",
+              backgroundColor: "#1a1a2a",
+              color: "#ddd",
+              textAlign: "center",
+            }}
+            placeholder="80"
+          />
+          <button
+            onClick={() => {
+              const level = parseInt(targetLevel);
+              if (!isNaN(level) && level >= 1) {
+                onSetLevel(level);
+              }
+            }}
+            style={buttonStyle}
+            title="设置角色等级"
+          >
+            设置等级
           </button>
         </div>
         <div style={{ display: "flex", gap: "5px", alignItems: "center" }}>
@@ -483,6 +580,93 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({
           >
             {isAddingItem ? "添加中..." : "➕ 添加"}
           </button>
+        </div>
+      )}
+
+      {/* Add Magic */}
+      {onAddMagic && (
+        <div style={sectionStyle}>
+          <div style={{ color: "#888", marginBottom: "4px", fontSize: "13px" }}>⚔️ 添加武功</div>
+          <div style={{ display: "flex", gap: "5px", marginBottom: "5px" }}>
+            <select
+              value={selectedMagic}
+              onChange={(e) => setSelectedMagic(e.target.value)}
+              style={{
+                flex: 1,
+                padding: "4px",
+                fontSize: "12px",
+                border: "1px solid #444",
+                borderRadius: "3px",
+                backgroundColor: "#1a1a2a",
+                color: "#ddd",
+              }}
+            >
+              <option value="">选择武功...</option>
+              {ALL_MAGICS.map(magic => (
+                <option key={magic.file} value={magic.file}>{magic.name}</option>
+              ))}
+            </select>
+          </div>
+          <div style={{ display: "flex", gap: "5px" }}>
+            <button
+              onClick={handleAddMagic}
+              disabled={isAddingMagic || !selectedMagic}
+              style={{
+                ...buttonStyle,
+                flex: 1,
+                opacity: isAddingMagic || !selectedMagic ? 0.5 : 1,
+              }}
+            >
+              {isAddingMagic ? "添加中..." : "➕ 添加"}
+            </button>
+            <button
+              onClick={handleAddAllMagics}
+              disabled={isAddingMagic}
+              style={{
+                ...buttonStyle,
+                flex: 1,
+                opacity: isAddingMagic ? 0.5 : 1,
+              }}
+            >
+              全部武功
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* XiuLian Magic Level Control */}
+      {xiuLianMagic?.magic && (
+        <div style={sectionStyle}>
+          <div style={{ color: "#888", marginBottom: "4px", fontSize: "13px" }}>🔮 修炼武功</div>
+          <div style={{ fontSize: "12px", marginBottom: "5px" }}>
+            <span style={{ color: "#ffd700" }}>{xiuLianMagic.magic.name}</span>
+            <span style={{ color: "#aaa" }}> Lv.{xiuLianMagic.level}</span>
+            <span style={{ color: "#666" }}> / {xiuLianMagic.magic.maxLevel || 10}</span>
+          </div>
+          <div style={{ display: "flex", gap: "5px" }}>
+            <button
+              onClick={onXiuLianLevelDown}
+              disabled={xiuLianMagic.level <= 1}
+              style={{
+                ...buttonStyle,
+                flex: 1,
+                opacity: xiuLianMagic.level <= 1 ? 0.5 : 1,
+              }}
+            >
+              ⬇️ 降级
+            </button>
+            <button
+              onClick={onXiuLianLevelUp}
+              disabled={xiuLianMagic.level >= (xiuLianMagic.magic.maxLevel || 10)}
+              style={{
+                ...buttonStyle,
+                flex: 1,
+                opacity: xiuLianMagic.level >= (xiuLianMagic.magic.maxLevel || 10) ? 0.5 : 1,
+              }}
+            >
+              ⬆️ 升级
+            </button>
+          </div>
         </div>
       )}
 

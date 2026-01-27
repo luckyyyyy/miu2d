@@ -9,7 +9,6 @@ export {
   type Vector2,
   type CharacterStats,
   type CharacterConfig,
-  type NpcData,
   type PlayerData,
   type ScriptCode,
   type ScriptData,
@@ -31,7 +30,6 @@ export {
   Direction,
   TILE_WIDTH,
   TILE_HEIGHT,
-  DEFAULT_WALK_SPEED,
   DEFAULT_RUN_SPEED,
   DIALOG_RADIUS,
   DEFAULT_PLAYER_STATS,
@@ -63,10 +61,18 @@ export * from "./level";
 // Cheat system
 export * from "./cheat";
 
+// Resource management
+export * from "./resource";
+
 // Game management
 export * from "./game";
 
-// Sprite and character rendering
-export { loadAsf, clearAsfCache, getFrameCanvas, getFrameIndex, drawAsfFrame, type AsfData, type AsfFrame } from "./asf";
+// Sprite system (new class-based)
 export * from "./sprite";
-export * from "./characterRenderer";
+
+// ASF loading
+export { loadAsf, clearAsfCache, getFrameCanvas, getFrameIndex, drawAsfFrame, type AsfData, type AsfFrame } from "./asf";
+
+// Character rendering
+export * from "./character";
+

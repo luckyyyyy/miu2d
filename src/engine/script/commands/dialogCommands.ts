@@ -4,7 +4,6 @@
  */
 import type { CommandHandler, CommandHelpers, CommandRegistry } from "./types";
 import type { SelectionOption } from "../../core/types";
-import { getTalkTextList } from "../../listManager";
 
 /**
  * Say command - Show dialog with optional portrait
@@ -25,7 +24,7 @@ const talkCommand: CommandHandler = (params, _result, helpers) => {
   const startId = helpers.resolveNumber(params[0] || "0");
   const endId = helpers.resolveNumber(params[1] || "0");
 
-  const talkTextList = getTalkTextList();
+  const talkTextList = helpers.context.talkTextList;
   const details = talkTextList.getTextDetails(startId, endId);
 
   if (details.length > 0) {
@@ -76,7 +75,7 @@ const chooseCommand: CommandHandler = (params, _result, helpers) => {
 };
 
 /**
- * Message command - Show system message
+ * Message command - Show system message (direct text)
  */
 const messageCommand: CommandHandler = (params, _result, helpers) => {
   const text = helpers.resolveString(params[0] || "");
@@ -85,7 +84,8 @@ const messageCommand: CommandHandler = (params, _result, helpers) => {
 };
 
 /**
- * DisplayMessage command - alias for message
+ * DisplayMessage command - Show direct text message
+ * C# Reference: GuiManager.ShowMessage(Utils.RemoveStringQuotes(parameters[0]))
  */
 const displayMessageCommand: CommandHandler = (params, _result, helpers) => {
   const text = helpers.resolveString(params[0] || "");
@@ -94,11 +94,19 @@ const displayMessageCommand: CommandHandler = (params, _result, helpers) => {
 };
 
 /**
- * ShowMessage command - alias for message
+ * ShowMessage command - Show message from TalkTextList by ID
+ * C# Reference: TalkTextList.GetTextDetail(int.Parse(parameters[0])).Text
  */
 const showMessageCommand: CommandHandler = (params, _result, helpers) => {
-  const text = helpers.resolveString(params[0] || "");
-  helpers.context.showMessage(text);
+  const textId = helpers.resolveNumber(params[0] || "0");
+  const talkTextList = helpers.context.talkTextList;
+  const detail = talkTextList.getTextDetail(textId);
+
+  if (detail) {
+    helpers.context.showMessage(detail.text);
+  } else {
+    console.warn(`[ScriptExecutor] ShowMessage: no text found for ID ${textId}`);
+  }
   return true;
 };
 

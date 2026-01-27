@@ -224,9 +224,13 @@ export function getFrameCanvas(frame: AsfFrame): HTMLCanvasElement {
     return frame.canvas;
   }
 
+  // Ensure valid dimensions (minimum 1x1 to avoid rendering issues)
+  const width = Math.max(1, frame.width);
+  const height = Math.max(1, frame.height);
+
   const canvas = document.createElement("canvas");
-  canvas.width = frame.width;
-  canvas.height = frame.height;
+  canvas.width = width;
+  canvas.height = height;
   const ctx = canvas.getContext("2d");
   if (ctx) {
     ctx.putImageData(frame.imageData, 0, 0);

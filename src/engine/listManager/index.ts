@@ -1,5 +1,5 @@
 /**
  * List Manager - exports all list managers
  */
-export { getTalkTextList, resetTalkTextList, type TalkTextDetail } from "./talkTextList";
-export { MemoListManager, getMemoListManager, resetMemoListManager } from "./memoListManager";
+export { TalkTextListManager, type TalkTextDetail } from "./talkTextList";
+export { MemoListManager } from "./memoListManager";

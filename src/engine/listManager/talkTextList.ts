@@ -138,16 +138,4 @@ class TalkTextListManager {
   }
 }
 
-// Singleton instance
-let talkTextListInstance: TalkTextListManager | null = null;
-
-export function getTalkTextList(): TalkTextListManager {
-  if (!talkTextListInstance) {
-    talkTextListInstance = new TalkTextListManager();
-  }
-  return talkTextListInstance;
-}
-
-export function resetTalkTextList(): void {
-  talkTextListInstance = null;
-}
+export { TalkTextListManager };

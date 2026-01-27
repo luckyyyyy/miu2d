@@ -6,6 +6,7 @@ export { SelectionUI } from "./SelectionUI";
 export { HUD } from "./HUD";
 export { TopGui } from "./TopGui";
 export { BottomGui } from "./BottomGui";
+export type { BottomSlotDragData } from "./BottomGui";
 export { BottomStateGui } from "./BottomStateGui";
 export { TitleGui } from "./TitleGui";
 export { MessageGui } from "./MessageGui";
@@ -18,7 +19,7 @@ export type { EquipItemData, EquipSlots, EquipSlotType, DragData } from "./Equip
 export { GoodsGui } from "./GoodsGui";
 export type { GoodItemData } from "./GoodsGui";
 export { MagicGui } from "./MagicGui";
-export type { MagicItem } from "./MagicGui";
+export type { MagicItem, MagicDragData } from "./MagicGui";
 export { MemoGui } from "./MemoGui";
 export { SystemGui } from "./SystemGui";
 export { XiuLianGui } from "./XiuLianGui";
@@ -27,6 +28,10 @@ export type { XiuLianMagic } from "./XiuLianGui";
 // Item Tooltip
 export { ItemTooltip, defaultTooltipState } from "./ItemTooltip";
 export type { TooltipState } from "./ItemTooltip";
+
+// Magic Tooltip
+export { MagicTooltip, defaultMagicTooltipState } from "./MagicTooltip";
+export type { MagicTooltipState } from "./MagicTooltip";
 
 // Mission/Quest UI
 export { CurrentMissionHint } from "./CurrentMissionHint";

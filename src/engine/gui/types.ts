@@ -167,21 +167,7 @@ export interface GuiManagerState {
   menu: MenuState;
 
   // Panel visibility (mirrors JxqyHD GuiManager)
-  panels: {
-    state: boolean;      // 主角状态
-    equip: boolean;      // 装备
-    xiulian: boolean;    // 修炼
-    goods: boolean;      // 物品
-    magic: boolean;      // 武功
-    memo: boolean;       // 任务记事
-    system: boolean;     // 系统菜单
-    saveLoad: boolean;   // 存档读档
-    buy: boolean;        // 买卖
-    npcEquip: boolean;   // NPC装备
-    title: boolean;      // 标题画面
-    timer: boolean;      // 计时器
-    littleMap: boolean;  // 小地图
-  };
+  panels: PanelState;
 
   // Tooltip
   tooltipText: string;
@@ -195,6 +181,23 @@ export interface GuiManagerState {
 
   // Global UI state
   isVisible: boolean;  // 整体UI是否显示
+}
+
+// ============= Panel State =============
+export interface PanelState {
+  state: boolean;      // 主角状态
+  equip: boolean;      // 装备
+  xiulian: boolean;    // 修炼
+  goods: boolean;      // 物品
+  magic: boolean;      // 武功
+  memo: boolean;       // 任务记事
+  system: boolean;     // 系统菜单
+  saveLoad: boolean;   // 存档读档
+  buy: boolean;        // 买卖
+  npcEquip: boolean;   // NPC装备
+  title: boolean;      // 标题画面
+  timer: boolean;      // 计时器
+  littleMap: boolean;  // 小地图
 }
 
 // ============= Default States =============

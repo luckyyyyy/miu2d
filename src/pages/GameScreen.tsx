@@ -1,3 +1,12 @@
+/**
+ * GameScreen - 游戏页面
+ *
+ * 特点:
+ * - 游戏逻辑在单例引擎中运行
+ * - React只负责画布和UI
+ * - 窗口调整时只更新尺寸
+ */
+
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Game, DebugPanel } from "../components";
@@ -7,15 +16,15 @@ export default function GameScreen() {
   const navigate = useNavigate();
   const gameRef = useRef<GameHandle>(null);
   const [showDebug, setShowDebug] = useState(true);
-  // Force re-render for debug panel updates
   const [, forceUpdate] = useState({});
 
-  // Initialize with actual window size to prevent double initialization
+  // 窗口尺寸
   const [windowSize, setWindowSize] = useState(() => ({
     width: Math.min(window.innerWidth - (showDebug ? 280 : 0), 1280),
     height: Math.min(window.innerHeight - 20, 720),
   }));
 
+  // 监听窗口大小变化
   useEffect(() => {
     const updateSize = () => {
       setWindowSize({
@@ -27,7 +36,7 @@ export default function GameScreen() {
     return () => window.removeEventListener("resize", updateSize);
   }, [showDebug]);
 
-  // Update debug panel periodically
+  // 定期更新调试面板
   useEffect(() => {
     const interval = setInterval(() => {
       forceUpdate({});
@@ -35,11 +44,11 @@ export default function GameScreen() {
     return () => clearInterval(interval);
   }, []);
 
-  // Enable cheat mode by default (silent, no message)
+  // 默认启用作弊模式
   useEffect(() => {
-    const gm = gameRef.current?.getGameManager();
-    if (gm && !gm.isCheatEnabled()) {
-      gm.getCheatManager().toggleCheatMode(true); // silent=true
+    const engine = gameRef.current?.getEngine();
+    if (engine && !engine.isCheatEnabled()) {
+      engine.toggleCheatMode();
     }
   });
 
@@ -71,7 +80,7 @@ export default function GameScreen() {
         </button>
       </div>
 
-      {/* Debug Panel - Outside game area */}
+      {/* Debug Panel */}
       {showDebug && (
         <div className="w-[280px] bg-[#0d0d1a] p-2 overflow-y-auto">
           <DebugPanel
@@ -79,20 +88,94 @@ export default function GameScreen() {
             playerStats={gameRef.current?.getPlayerStats() ?? undefined}
             playerPosition={gameRef.current?.getPlayerPosition() ?? undefined}
             loadedResources={gameRef.current?.getLoadedResources() ?? undefined}
-            gameVariables={gameRef.current?.getGameManager()?.getVariables() ?? undefined}
+            gameVariables={gameRef.current?.getEngine()?.getGameManager()?.getVariables() ?? undefined}
+            xiuLianMagic={gameRef.current?.getEngine()?.getGameManager()?.getMagicListManager().getItemInfo(49) ?? undefined}
             onFullAll={() => gameRef.current?.cheatFullAll()}
-            onLevelUp={() => gameRef.current?.cheatLevelUp()}
+            onSetLevel={(level) => gameRef.current?.cheatSetLevel(level)}
             onAddMoney={(amount) => gameRef.current?.cheatAddMoney(amount)}
             onToggleGodMode={() => gameRef.current?.cheatToggleGodMode()}
             onReduceLife={() => gameRef.current?.cheatReduceLife()}
             onKillAllEnemies={() => gameRef.current?.cheatKillAllEnemies()}
             onExecuteScript={(path) => gameRef.current?.executeScript(path) ?? Promise.resolve("Game not initialized")}
             onAddItem={async (itemFile) => {
-              const gm = gameRef.current?.getGameManager();
+              const gm = gameRef.current?.getEngine()?.getGameManager();
               if (gm) {
                 const result = await gm.getGoodsListManager().addGoodToList(itemFile);
                 if (result.success && result.good) {
                   gm.getGuiManager().showMessage(`获得物品: ${result.good.name}`);
+                }
+                forceUpdate({});
+              }
+            }}
+            onAddMagic={async (magicFile) => {
+              const gm = gameRef.current?.getEngine()?.getGameManager();
+              if (gm) {
+                const [isNew, , magic] = await gm.getMagicListManager().addMagicToList(magicFile);
+                if (magic) {
+                  gm.getGuiManager().showMessage(isNew ? `习得武功: ${magic.name}` : `已拥有: ${magic.name}`);
+                }
+                forceUpdate({});
+              }
+            }}
+            onAddAllMagics={async () => {
+              const gm = gameRef.current?.getEngine()?.getGameManager();
+              if (gm) {
+                const allMagics = [
+                  "player-magic-长剑.ini",
+                  "player-magic-风火雷.ini",
+                  "player-magic-银钩铁划.ini",
+                  "player-magic-沧海月明.ini",
+                  "player-magic-烈火情天.ini",
+                  "player-magic-蚀骨血仞.ini",
+                  "player-magic-镇狱破天劲.ini",
+                  "player-magic-孤烟逐云.ini",
+                  "player-magic-潮起月盈.ini",
+                  "player-magic-漫天花雨.ini",
+                  "player-magic-云生结海.ini",
+                  "player-magic-推山填海.ini",
+                  "player-magic-绝情断意剑.ini",
+                  "player-magic-逆转心经.ini",
+                  "player-magic-醉蝶狂舞.ini",
+                  "player-magic-金钟罩.ini",
+                  "player-magic-武道德经.ini",
+                  "player-magic-清心咒.ini",
+                  "player-magic-魂牵梦绕.ini",
+                ];
+                let addedCount = 0;
+                for (const file of allMagics) {
+                  const [isNew] = await gm.getMagicListManager().addMagicToList(file);
+                  if (isNew) addedCount++;
+                }
+                gm.getGuiManager().showMessage(`习得 ${addedCount} 门武功`);
+                forceUpdate({});
+              }
+            }}
+            onXiuLianLevelUp={() => {
+              const gm = gameRef.current?.getEngine()?.getGameManager();
+              if (gm) {
+                const mlm = gm.getMagicListManager();
+                const xiuLian = mlm.getItemInfo(49);
+                if (xiuLian?.magic) {
+                  const newLevel = Math.min(xiuLian.level + 1, xiuLian.magic.maxLevel || 10);
+                  if (newLevel > xiuLian.level) {
+                    mlm.setMagicLevel(xiuLian.magic.fileName, newLevel);
+                    gm.getGuiManager().showMessage(`${xiuLian.magic.name} 升至 ${newLevel} 级`);
+                  }
+                }
+                forceUpdate({});
+              }
+            }}
+            onXiuLianLevelDown={() => {
+              const gm = gameRef.current?.getEngine()?.getGameManager();
+              if (gm) {
+                const mlm = gm.getMagicListManager();
+                const xiuLian = mlm.getItemInfo(49);
+                if (xiuLian?.magic) {
+                  const newLevel = Math.max(xiuLian.level - 1, 1);
+                  if (newLevel < xiuLian.level) {
+                    mlm.setMagicLevel(xiuLian.magic.fileName, newLevel);
+                    gm.getGuiManager().showMessage(`${xiuLian.magic.name} 降至 ${newLevel} 级`);
+                  }
                 }
                 forceUpdate({});
               }
