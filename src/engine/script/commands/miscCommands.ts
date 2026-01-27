@@ -3,7 +3,6 @@
  * Based on JxqyHD Engine/Script/ScriptExecuter.cs
  */
 import type { CommandHandler, CommandRegistry } from "./types";
-import { getTalkTextList } from "../../listManager";
 
 // ============= Audio Commands =============
 
@@ -165,21 +164,108 @@ const addObjCommand: CommandHandler = async (params, _result, helpers) => {
 };
 
 /**
- * DelObj - Delete object
+ * DelObj - Delete object by name
+ * C# Reference: ScriptExecuter.DelObj
  */
 const delObjCommand: CommandHandler = (params, _result, helpers) => {
   const objName = helpers.resolveString(params[0] || "");
-  console.log(`DelObj: ${objName}`);
+  console.log(`[ScriptExecutor] DelObj: ${objName}`);
+  helpers.context.delObj(objName);
+  return true;
+};
+
+/**
+ * DelCurObj - Delete the object that triggered this script
+ * C# Reference: ScriptExecuter.DelCurObj
+ * Uses the belongObject from script state
+ */
+const delCurObjCommand: CommandHandler = (_params, _result, helpers) => {
+  const belongObject = helpers.state.belongObject;
+  if (belongObject && belongObject.type === "obj") {
+    console.log(`[ScriptExecutor] DelCurObj: removing object ${belongObject.id}`);
+    // Use special marker to indicate delete by ID
+    helpers.context.delObj(`__id__:${belongObject.id}`);
+  } else {
+    console.warn(`[ScriptExecutor] DelCurObj: no belongObject or not an obj type`);
+  }
+  return true;
+};
+
+/**
+ * OpenBox - Play box opening animation
+ * C# Reference: ScriptExecuter.OpenBox
+ */
+const openBoxCommand: CommandHandler = (params, _result, helpers) => {
+  const objName = helpers.resolveString(params[0] || "");
+
+  if (objName) {
+    // Named object
+    console.log(`[ScriptExecutor] OpenBox: ${objName}`);
+    helpers.context.openBox(objName);
+  } else {
+    // Use belongObject (current object that triggered script)
+    const belongObject = helpers.state.belongObject;
+    if (belongObject && belongObject.type === "obj") {
+      console.log(`[ScriptExecutor] OpenBox (belongObject): ${belongObject.id}`);
+      helpers.context.openBox(belongObject.id);
+    } else {
+      console.warn(`[ScriptExecutor] OpenBox: no object specified and no belongObject`);
+    }
+  }
+  return true;
+};
+
+/**
+ * CloseBox - Play box closing animation
+ * C# Reference: ScriptExecuter.CloseBox
+ */
+const closeBoxCommand: CommandHandler = (params, _result, helpers) => {
+  const objName = helpers.resolveString(params[0] || "");
+
+  if (objName) {
+    console.log(`[ScriptExecutor] CloseBox: ${objName}`);
+    helpers.context.closeBox(objName);
+  } else {
+    const belongObject = helpers.state.belongObject;
+    if (belongObject && belongObject.type === "obj") {
+      console.log(`[ScriptExecutor] CloseBox (belongObject): ${belongObject.id}`);
+      helpers.context.closeBox(belongObject.id);
+    }
+  }
+  return true;
+};
+
+/**
+ * AddRandGoods - Add random goods from buy file
+ * C# Reference: ScriptExecuter.AddRandGoods
+ */
+const addRandGoodsCommand: CommandHandler = async (params, _result, helpers) => {
+  const buyFileName = helpers.resolveString(params[0] || "");
+  console.log(`[ScriptExecutor] AddRandGoods: ${buyFileName}`);
+  await helpers.context.addRandGoods(buyFileName);
   return true;
 };
 
 /**
  * SetObjScript - Set object script
+ * C# Reference: ScriptExecuter.SetObjScript
+ * When called as SetObjScript(, ) with empty name, uses belongObject
+ * When scriptFile is empty, the object becomes non-interactive
  */
 const setObjScriptCommand: CommandHandler = (params, _result, helpers) => {
-  const objName = helpers.resolveString(params[0] || "");
+  let objNameOrId = helpers.resolveString(params[0] || "");
   const scriptFile = helpers.resolveString(params[1] || "");
-  console.log(`SetObjScript: ${objName} -> ${scriptFile}`);
+
+  // If no name provided, use the object that triggered this script
+  if (!objNameOrId && helpers.state.belongObject?.type === "obj") {
+    objNameOrId = helpers.state.belongObject.id;
+  }
+
+  if (objNameOrId) {
+    helpers.context.setObjScript(objNameOrId, scriptFile);
+  } else {
+    console.warn(`[SetObjScript] No object specified and no belongObject`);
+  }
   return true;
 };
 
@@ -233,7 +319,7 @@ const memoCommand: CommandHandler = (params, _result, helpers) => {
  */
 const addToMemoCommand: CommandHandler = async (params, _result, helpers) => {
   const memoId = helpers.resolveNumber(params[0] || "0");
-  const talkTextList = getTalkTextList();
+  const talkTextList = helpers.context.talkTextList;
   const detail = talkTextList.getTextDetail(memoId);
   if (detail) {
     console.log(`[ScriptExecutor] AddToMemo ${memoId}: ${detail.text}`);
@@ -295,6 +381,9 @@ export function registerMiscCommands(registry: CommandRegistry): void {
   registry.set("loadobj", loadObjCommand);
   registry.set("addobj", addObjCommand);
   registry.set("delobj", delObjCommand);
+  registry.set("delcurobj", delCurObjCommand);
+  registry.set("openbox", openBoxCommand);
+  registry.set("closebox", closeBoxCommand);
   registry.set("setobjscript", setObjScriptCommand);
   registry.set("saveobj", saveObjCommand);
 

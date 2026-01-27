@@ -1,5 +1,5 @@
 /**
  * UI Hooks exports
  */
-export { useAsfImage, useMultipleAsfImages, useColumnView, getAsfFrameDataUrl } from "./useAsfImage";
-export type { AsfImageData } from "./useAsfImage";
+export { useAsfImage, useMultipleAsfImages, useColumnView, useAsfAnimation, getAsfFrameDataUrl } from "./useAsfImage";
+export type { AsfImageData, AsfAnimationData } from "./useAsfImage";

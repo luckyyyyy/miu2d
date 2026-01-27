@@ -49,7 +49,7 @@ export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
       >
         <div
           style={{
-            width: `${progress * 100}%`,
+            width: `${Math.min(progress, 100)}%`,
             height: "100%",
             background: "#4a90d9",
             borderRadius: 4,
@@ -58,7 +58,7 @@ export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
         />
       </div>
       <div style={{ marginTop: 10, fontSize: 14, color: "#888" }}>
-        {Math.round(progress * 100)}%
+        {Math.round(Math.min(progress, 100))}%
       </div>
     </div>
   );

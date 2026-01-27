@@ -8,8 +8,12 @@ import type {
   SelectionOption,
   Vector2,
 } from "../../core/types";
+import type { TalkTextListManager } from "../../listManager/talkTextList";
 
 export interface ScriptContext {
+  // System access
+  talkTextList: TalkTextListManager;
+
   // Game state access
   getVariable: (name: string) => number;
   setVariable: (name: string, value: number) => void;
@@ -70,6 +74,12 @@ export interface ScriptContext {
   // Obj (interactive objects) functions
   loadObj: (fileName: string) => Promise<void>;
   addObj: (fileName: string, x: number, y: number, direction: number) => Promise<void>;
+  delCurObj: () => void;  // C#: DelCurObj - removes the object that triggered the script
+  delObj: (objName: string) => void;  // C#: DelObj - removes object by name
+  openBox: (objName?: string) => void;  // C#: OpenBox - plays box opening animation
+  closeBox: (objName?: string) => void;  // C#: CloseBox - plays box closing animation
+  addRandGoods: (buyFileName: string) => Promise<void>;  // C#: AddRandGoods - adds random item from buy file
+  setObjScript: (objNameOrId: string, scriptFile: string) => void;  // C#: SetObjScript - set object script file
 
   // Trap functions
   setMapTrap: (trapIndex: number, trapFileName: string, mapName?: string) => void;

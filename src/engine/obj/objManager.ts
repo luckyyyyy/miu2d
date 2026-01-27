@@ -23,65 +23,19 @@
  * [Common]
  * Image=moc001_xxx.asf   <- ASF image in asf/object/
  * Sound=xxx.wav
+ *
+ * === Obj State Persistence ===
+ * When objects are modified (script changed, removed, etc.), we save their state
+ * in memory. When reloading the same map, we restore the saved state.
+ * This prevents issues like re-opening chests after map transitions.
  */
 import type { Vector2 } from "../core/types";
-import { loadAsf, type AsfData, getFrameCanvas } from "../asf";
-import { tileToPixel } from "../core/utils";
+import { parseIni } from "../core/utils";
+import { loadAsf, type AsfData } from "../asf";
+import { Obj, ObjKind, ObjState, type ObjResInfo } from "./obj";
 
-// Object Kind enum matching C#
-export enum ObjKind {
-  Dynamic = 0,    // Animated, obstacle
-  Static = 1,     // Static, obstacle
-  Body = 2,       // Dead body
-  LoopingSound = 3, // Looping sound emitter (invisible)
-  RandSound = 4,    // Random sound emitter (invisible)
-  Door = 5,       // Door
-  Trap = 6,       // Trap
-  Drop = 7,       // Dropped item
-}
-
-// Object state enum matching C#
-export enum ObjState {
-  Common = 0,
-  Open = 1,
-  Opened = 2,
-  Closed = 3,
-}
-
-export interface ObjResInfo {
-  imagePath: string;
-  soundPath: string;
-}
-
-export interface ObjData {
-  id: string;
-  objName: string;
-  objFile: string;       // Reference to objres file
-  kind: ObjKind;
-  tilePosition: Vector2;
-  direction: number;
-  frame: number;
-  offX: number;
-  offY: number;
-  damage: number;
-  lum: number;           // Luminosity
-  scriptFile: string;
-  scriptFileRight: string;
-  wavFile: string;
-  timerScriptFile: string;
-  timerScriptInterval: number;
-  canInteractDirectly: number;
-
-  // Runtime data
-  isVisible: boolean;
-  isRemoved: boolean;
-  currentFrame: number;
-  animationTime: number;
-
-  // Loaded resources
-  asf: AsfData | null;
-  resInfo: ObjResInfo | null;
-}
+// Re-export types
+export { ObjKind, ObjState, type ObjResInfo, Obj } from "./obj";
 
 // Text decoder for GBK encoding (for .obj and .npc files which remain in GBK)
 let textDecoder: TextDecoder | null = null;
@@ -98,44 +52,64 @@ function getTextDecoder(): TextDecoder {
 }
 
 /**
- * Parse INI-style content
+ * Saved state for an Obj (persists across map changes)
+ * Only stores modifications from the original state
  */
-function parseObjIni(content: string): Record<string, Record<string, string>> {
-  const sections: Record<string, Record<string, string>> = {};
-  let currentSection = "";
-
-  const lines = content.split(/\r?\n/);
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith(";") || trimmed.startsWith("//")) {
-      continue;
-    }
-
-    // Check for section header [SectionName]
-    const sectionMatch = trimmed.match(/^\[([^\]]+)\]$/);
-    if (sectionMatch) {
-      currentSection = sectionMatch[1];
-      sections[currentSection] = {};
-      continue;
-    }
-
-    // Parse key=value
-    const eqIdx = trimmed.indexOf("=");
-    if (eqIdx > 0 && currentSection) {
-      const key = trimmed.substring(0, eqIdx).trim();
-      const value = trimmed.substring(eqIdx + 1).trim();
-      sections[currentSection][key] = value;
-    }
-  }
-
-  return sections;
+interface ObjSavedState {
+  scriptFile: string;       // Current script file (empty = no script)
+  isRemoved: boolean;       // Whether the object was removed
+  currentFrameIndex: number; // Current animation frame (e.g., opened box)
 }
 
 export class ObjManager {
-  private objects: Map<string, ObjData> = new Map();
+  private objects: Map<string, Obj> = new Map();
   private fileName: string = "";
   private objResCache: Map<string, ObjResInfo> = new Map();
   private asfCache: Map<string, AsfData | null> = new Map();
+
+  /**
+   * Saved Obj states - persists across map changes
+   * Key format: "mapFileName_objId" (e.g., "jue001.obj_OBJ001_宝箱_25_58")
+   * This allows the same obj file to be used on different maps
+   */
+  private savedObjStates: Map<string, ObjSavedState> = new Map();
+
+  /**
+   * Get the storage key for an obj state
+   */
+  private getObjStateKey(objId: string): string {
+    return `${this.fileName}_${objId}`;
+  }
+
+  /**
+   * Save the current state of an obj (call when modified)
+   */
+  private saveObjState(obj: Obj): void {
+    const key = this.getObjStateKey(obj.id);
+    this.savedObjStates.set(key, {
+      scriptFile: obj.scriptFile,
+      isRemoved: obj.isRemoved,
+      currentFrameIndex: obj.currentFrameIndex,
+    });
+    console.log(`[ObjManager] Saved state for ${obj.objName}: script="${obj.scriptFile}", removed=${obj.isRemoved}, frame=${obj.currentFrameIndex}`);
+  }
+
+  /**
+   * Restore saved state to an obj (call after loading)
+   * @returns true if state was restored
+   */
+  private restoreObjState(obj: Obj): boolean {
+    const key = this.getObjStateKey(obj.id);
+    const saved = this.savedObjStates.get(key);
+    if (saved) {
+      obj.scriptFile = saved.scriptFile;
+      obj.isRemoved = saved.isRemoved;
+      obj.currentFrameIndex = saved.currentFrameIndex;
+      console.log(`[ObjManager] Restored state for ${obj.objName}: script="${saved.scriptFile}", removed=${saved.isRemoved}, frame=${saved.currentFrameIndex}`);
+      return true;
+    }
+    return false;
+  }
 
   /**
    * Load objects from an .obj file
@@ -192,7 +166,7 @@ export class ObjManager {
    * Parse .obj file content
    */
   private async parseObjFile(content: string): Promise<void> {
-    const sections = parseObjIni(content);
+    const sections = parseIni(content);
     console.log(`[ObjManager] Found ${Object.keys(sections).length} sections in obj file`);
 
     // Process each OBJ section
@@ -212,78 +186,49 @@ export class ObjManager {
   }
 
   /**
-   * Create an ObjData from INI section
+   * Create an Obj from INI section
    */
   private async createObjFromSection(
     sectionName: string,
     section: Record<string, string>
   ): Promise<void> {
-    const objName = section.ObjName || sectionName;
-    const objFile = section.ObjFile || "";
-    const kind = parseInt(section.Kind || "0", 10) as ObjKind;
-    const mapX = parseInt(section.MapX || "0", 10);
-    const mapY = parseInt(section.MapY || "0", 10);
-    const dir = parseInt(section.Dir || "0", 10);
-    const frame = parseInt(section.Frame || "0", 10);
-    const offX = parseInt(section.OffX || "0", 10);
-    const offY = parseInt(section.OffY || "0", 10);
-    const damage = parseInt(section.Damage || "0", 10);
-    const lum = parseInt(section.Lum || "0", 10);
-    const scriptFile = section.ScriptFile || "";
-    const scriptFileRight = section.ScriptFileRight || "";
-    const wavFile = section.WavFile || "";
-    const timerScriptFile = section.TimerScriptFile || "";
-    const timerScriptInterval = parseInt(section.TimerScriptInterval || "3000", 10);
-    const canInteractDirectly = parseInt(section.CanInteractDirectly || "0", 10);
+    const obj = new Obj();
+
+    // Load basic properties from section
+    obj.loadFromSection(section);
 
     // Create unique id for the object
-    const id = `${sectionName}_${objName}_${mapX}_${mapY}`;
-
-    const obj: ObjData = {
-      id,
-      objName,
-      objFile,
-      kind,
-      tilePosition: { x: mapX, y: mapY },
-      direction: dir,
-      frame,
-      offX,
-      offY,
-      damage,
-      lum,
-      scriptFile,
-      scriptFileRight,
-      wavFile,
-      timerScriptFile,
-      timerScriptInterval,
-      canInteractDirectly,
-      isVisible: true,
-      isRemoved: false,
-      currentFrame: frame,
-      animationTime: 0,
-      asf: null,
-      resInfo: null,
-    };
-
-    // Sound objects (LoopingSound=3, RandSound=4) are invisible
-    if (kind === ObjKind.LoopingSound || kind === ObjKind.RandSound) {
-      obj.isVisible = false;
-    }
+    const mapX = obj.tilePosition.x;
+    const mapY = obj.tilePosition.y;
+    const id = `${sectionName}_${obj.objName}_${mapX}_${mapY}`;
+    obj.id = id;
+    obj.fileName = this.fileName;
 
     // Load the objres file to get the image path
-    if (objFile) {
-      const resInfo = await this.loadObjRes(objFile);
+    if (obj.objFileName) {
+      const resInfo = await this.loadObjRes(obj.objFileName);
       if (resInfo) {
-        obj.resInfo = resInfo;
+        obj.objFile.set(ObjState.Common, resInfo);
         // Load the ASF
         if (resInfo.imagePath) {
           const asf = await this.loadObjAsf(resInfo.imagePath);
-          obj.asf = asf;
+          if (asf) {
+            obj.setAsfTexture(asf);
+          }
         }
       }
     }
 
-    console.log(`[ObjManager] Created obj: ${objName} (kind=${kind}) at (${mapX}, ${mapY}), asf=${obj.asf ? "loaded" : "null"}`);
+    // Restore saved state if exists (for objects modified in previous visits)
+    const wasRestored = this.restoreObjState(obj);
+
+    // Skip adding removed objects
+    if (obj.isRemoved) {
+      console.log(`[ObjManager] Skipping removed obj: ${obj.objName} at (${mapX}, ${mapY})`);
+      return;
+    }
+
+    console.log(`[ObjManager] Created obj: ${obj.objName} (kind=${obj.kind}) at (${mapX}, ${mapY}), texture=${obj.texture ? "loaded" : "null"}${wasRestored ? " [state restored]" : ""}`);
     this.objects.set(id, obj);
   }
 
@@ -308,7 +253,7 @@ export class ObjManager {
       // INI files in resources are now UTF-8 encoded
       const content = await response.text();
 
-      const sections = parseObjIni(content);
+      const sections = parseIni(content);
 
       // Get the Common section (or first available state)
       const commonSection = sections.Common || sections.Open || Object.values(sections)[0];
@@ -354,34 +299,9 @@ export class ObjManager {
   }
 
   /**
-   * Check if object is an obstacle
-   */
-  private isObjObstacle(obj: ObjData): boolean {
-    return (
-      obj.kind === ObjKind.Dynamic ||
-      obj.kind === ObjKind.Static ||
-      obj.kind === ObjKind.Door
-    );
-  }
-
-  /**
-   * Check if object is a body
-   */
-  private isObjBody(obj: ObjData): boolean {
-    return obj.kind === ObjKind.Body;
-  }
-
-  /**
-   * Check if object has interact script
-   */
-  private hasInteractScript(obj: ObjData): boolean {
-    return obj.scriptFile !== "";
-  }
-
-  /**
    * Add a single object
    */
-  addObj(obj: ObjData): void {
+  addObj(obj: Obj): void {
     this.objects.set(obj.id, obj);
   }
 
@@ -397,48 +317,36 @@ export class ObjManager {
 
       // INI files in resources are now UTF-8 encoded
       const content = await response.text();
-      const sections = parseObjIni(content);
+      const sections = parseIni(content);
 
       // Use INIT section as the object definition
       const initSection = sections.INIT || sections.Init || Object.values(sections)[0];
       if (!initSection) return;
 
+      const obj = new Obj();
+
+      // Load properties from section
+      obj.loadFromSection(initSection);
+
+      // Override position and direction
+      obj.setTilePosition(tileX, tileY);
+      obj.dir = direction;
+
       // Create a unique ID
       const id = `added_${fileName}_${tileX}_${tileY}_${Date.now()}`;
-
-      const obj: ObjData = {
-        id,
-        objName: initSection.ObjName || fileName,
-        objFile: initSection.ObjFile || "",
-        kind: parseInt(initSection.Kind || "0", 10) as ObjKind,
-        tilePosition: { x: tileX, y: tileY },
-        direction,
-        frame: 0,
-        offX: parseInt(initSection.OffX || "0", 10),
-        offY: parseInt(initSection.OffY || "0", 10),
-        damage: 0,
-        lum: parseInt(initSection.Lum || "0", 10),
-        scriptFile: initSection.ScriptFile || "",
-        scriptFileRight: "",
-        wavFile: "",
-        timerScriptFile: "",
-        timerScriptInterval: 3000,
-        canInteractDirectly: 0,
-        isVisible: true,
-        isRemoved: false,
-        currentFrame: 0,
-        animationTime: 0,
-        asf: null,
-        resInfo: null,
-      };
+      obj.id = id;
+      obj.fileName = fileName;
 
       // Load resources
-      if (obj.objFile) {
-        const resInfo = await this.loadObjRes(obj.objFile);
+      if (obj.objFileName) {
+        const resInfo = await this.loadObjRes(obj.objFileName);
         if (resInfo) {
-          obj.resInfo = resInfo;
+          obj.objFile.set(ObjState.Common, resInfo);
           if (resInfo.imagePath) {
-            obj.asf = await this.loadObjAsf(resInfo.imagePath);
+            const asf = await this.loadObjAsf(resInfo.imagePath);
+            if (asf) {
+              obj.setAsfTexture(asf);
+            }
           }
         }
       }
@@ -452,7 +360,7 @@ export class ObjManager {
   /**
    * Get object by name
    */
-  getObj(name: string): ObjData | undefined {
+  getObj(name: string): Obj | undefined {
     for (const obj of this.objects.values()) {
       if (obj.objName === name) {
         return obj;
@@ -462,10 +370,17 @@ export class ObjManager {
   }
 
   /**
+   * Get object by id
+   */
+  getObjById(id: string): Obj | undefined {
+    return this.objects.get(id);
+  }
+
+  /**
    * Get objects at tile position
    */
-  getObjsAtPosition(tile: Vector2): ObjData[] {
-    const result: ObjData[] = [];
+  getObjsAtPosition(tile: Vector2): Obj[] {
+    const result: Obj[] = [];
     for (const obj of this.objects.values()) {
       if (obj.tilePosition.x === tile.x && obj.tilePosition.y === tile.y) {
         result.push(obj);
@@ -482,8 +397,7 @@ export class ObjManager {
     for (const obj of this.objects.values()) {
       if (obj.isRemoved) continue; // Skip removed objects
       if (obj.tilePosition.x === tileX && obj.tilePosition.y === tileY) {
-        const isObs = this.isObjObstacle(obj);
-        if (isObs) {
+        if (obj.isObstacle) {
           return true;
         }
       }
@@ -494,13 +408,13 @@ export class ObjManager {
   /**
    * Get all objects in view area
    */
-  getObjsInView(viewRect: { x: number; y: number; width: number; height: number }): ObjData[] {
-    const result: ObjData[] = [];
+  getObjsInView(viewRect: { x: number; y: number; width: number; height: number }): Obj[] {
+    const result: Obj[] = [];
     for (const obj of this.objects.values()) {
-      if (!obj.isVisible || obj.isRemoved) continue;
+      if (!obj.isShow || obj.isRemoved) continue;
 
       // Calculate pixel position
-      const pixelPos = tileToPixel(obj.tilePosition.x, obj.tilePosition.y);
+      const pixelPos = obj.positionInWorld;
 
       // Check if in view (with some padding for large objects)
       const padding = 200;
@@ -519,7 +433,7 @@ export class ObjManager {
   /**
    * Get all objects
    */
-  getAllObjs(): ObjData[] {
+  getAllObjs(): Obj[] {
     return Array.from(this.objects.values());
   }
 
@@ -529,9 +443,69 @@ export class ObjManager {
   deleteObj(name: string): void {
     for (const [id, obj] of this.objects.entries()) {
       if (obj.objName === name) {
+        obj.isRemoved = true;  // C# sets IsRemoved = true
+        this.saveObjState(obj);  // Persist state for map reload
         this.objects.delete(id);
+        console.log(`[ObjManager] Deleted obj by name: ${name}`);
         break;
       }
+    }
+  }
+
+  /**
+   * Delete object by id
+   * C# Reference: Obj.IsRemoved = true
+   */
+  deleteObjById(id: string): void {
+    const obj = this.objects.get(id);
+    if (obj) {
+      obj.isRemoved = true;  // C# sets IsRemoved = true
+      this.saveObjState(obj);  // Persist state for map reload
+      this.objects.delete(id);
+      console.log(`[ObjManager] Deleted obj by id: ${id} (${obj.objName})`);
+    }
+  }
+
+  /**
+   * Open a box (play animation forward)
+   * C# Reference: Obj.OpenBox() -> PlayFrames(FrameEnd - CurrentFrameIndex)
+   */
+  openBox(objNameOrId: string): void {
+    const obj = this.getObj(objNameOrId) || this.objects.get(objNameOrId);
+    if (obj) {
+      obj.openBox();
+      this.saveObjState(obj);  // Persist state for map reload
+      console.log(`[ObjManager] OpenBox: ${obj.objName}`);
+    }
+  }
+
+  /**
+   * Close a box (play animation backward)
+   * C# Reference: Obj.CloseBox() -> PlayFrames(CurrentFrameIndex - FrameBegin, true)
+   */
+  closeBox(objNameOrId: string): void {
+    const obj = this.getObj(objNameOrId) || this.objects.get(objNameOrId);
+    if (obj) {
+      obj.closeBox();
+      this.saveObjState(obj);  // Persist state for map reload
+      console.log(`[ObjManager] CloseBox: ${obj.objName}`);
+    }
+  }
+
+  /**
+   * Set script file for an object
+   * C# Reference: ScriptExecuter.SetObjScript - target.ScriptFile = scriptFileName
+   * When scriptFile is empty, the object becomes non-interactive
+   */
+  setObjScript(objNameOrId: string, scriptFile: string): void {
+    // Try by name first, then by id
+    const obj = this.getObj(objNameOrId) || this.objects.get(objNameOrId);
+    if (obj) {
+      obj.scriptFile = scriptFile;
+      this.saveObjState(obj);  // Persist state for map reload
+      console.log(`[ObjManager] SetObjScript: ${obj.objName} -> "${scriptFile}"`);
+    } else {
+      console.warn(`[ObjManager] SetObjScript: Object not found: ${objNameOrId}`);
     }
   }
 
@@ -540,7 +514,7 @@ export class ObjManager {
    */
   clearBodies(): void {
     for (const [id, obj] of this.objects.entries()) {
-      if (this.isObjBody(obj)) {
+      if (obj.isBody) {
         this.objects.delete(id);
       }
     }
@@ -560,7 +534,7 @@ export class ObjManager {
   debugPrintObstacleObjs(): void {
     console.log(`[ObjManager] Total objects: ${this.objects.size}, fileName: ${this.fileName}`);
     for (const obj of this.objects.values()) {
-      if (this.isObjObstacle(obj)) {
+      if (obj.isObstacle) {
         console.log(`  Obstacle: "${obj.objName}" at (${obj.tilePosition.x}, ${obj.tilePosition.y}), kind=${obj.kind}, removed=${obj.isRemoved}`);
       }
     }
@@ -576,12 +550,12 @@ export class ObjManager {
   /**
    * Get closest interactable object
    */
-  getClosestInteractableObj(tile: Vector2, maxDistance: number = 3): ObjData | null {
-    let closest: ObjData | null = null;
+  getClosestInteractableObj(tile: Vector2, maxDistance: number = 3): Obj | null {
+    let closest: Obj | null = null;
     let minDist = maxDistance;
 
     for (const obj of this.objects.values()) {
-      if (!obj.isVisible || obj.isRemoved || !this.hasInteractScript(obj)) continue;
+      if (!obj.isShow || obj.isRemoved || !obj.hasInteractScript) continue;
 
       const dist = Math.abs(obj.tilePosition.x - tile.x) + Math.abs(obj.tilePosition.y - tile.y);
       if (dist <= minDist) {
@@ -595,28 +569,14 @@ export class ObjManager {
 
   /**
    * Update all objects (animation, timers, etc.)
+   * C# Reference: Obj.Update - handles animation, timer scripts, removal
    */
   update(deltaTime: number): void {
     for (const obj of this.objects.values()) {
-      if (!obj.isVisible || obj.isRemoved || !obj.asf) continue;
+      if (obj.isRemoved) continue;
 
-      // Update animation for dynamic/animated objects
-      if (obj.kind === ObjKind.Dynamic || obj.kind === ObjKind.Trap || obj.kind === ObjKind.Drop) {
-        const interval = obj.asf.interval || 100;
-        obj.animationTime += deltaTime * 1000;
-
-        while (obj.animationTime >= interval) {
-          obj.animationTime -= interval;
-
-          // Calculate frames for current direction (ensure at least 1 to avoid division issues)
-          const framesPerDir = obj.asf.framesPerDirection || 1;
-
-          obj.currentFrame++;
-          if (obj.currentFrame >= framesPerDir) {
-            obj.currentFrame = 0;
-          }
-        }
-      }
+      // Call the object's update method (handles animation, timers, etc.)
+      obj.update(deltaTime);
     }
   }
 
@@ -625,32 +585,14 @@ export class ObjManager {
    */
   drawObj(
     ctx: CanvasRenderingContext2D,
-    obj: ObjData,
+    obj: Obj,
     cameraX: number,
-    cameraY: number
+    cameraY: number,
+    isHighlighted: boolean = false
   ): void {
-    if (!obj.isVisible || obj.isRemoved || !obj.asf) return;
+    if (!obj.isShow || obj.isRemoved) return;
 
-    // Calculate screen position
-    const pixelPos = tileToPixel(obj.tilePosition.x, obj.tilePosition.y);
-
-    // C# draws at: PositionInWorld.X - Texture.Left + OffX, PositionInWorld.Y - Texture.Bottom + OffY
-    const screenX = pixelPos.x - obj.asf.left + obj.offX - cameraX;
-    const screenY = pixelPos.y - obj.asf.bottom + obj.offY - cameraY;
-
-    // Get the frame (ensure framesPerDir is at least 1 to avoid division issues)
-    const framesPerDir = obj.asf.framesPerDirection || 1;
-    const dir = Math.min(obj.direction, Math.max(0, obj.asf.directions - 1));
-    const frameIndex = Math.min(
-      dir * framesPerDir + (obj.currentFrame % framesPerDir),
-      obj.asf.frames.length - 1
-    );
-
-    if (frameIndex >= 0 && frameIndex < obj.asf.frames.length) {
-      const frame = obj.asf.frames[frameIndex];
-      const canvas = getFrameCanvas(frame);
-      ctx.drawImage(canvas, screenX, screenY);
-    }
+    obj.draw(ctx, cameraX, cameraY, isHighlighted);
   }
 
   /**
@@ -674,9 +616,7 @@ export class ObjManager {
 
     // Sort by Y position for proper layering (objects lower on screen drawn last)
     objsInView.sort((a, b) => {
-      const aY = tileToPixel(a.tilePosition.x, a.tilePosition.y).y;
-      const bY = tileToPixel(b.tilePosition.x, b.tilePosition.y).y;
-      return aY - bY;
+      return a.positionInWorld.y - b.positionInWorld.y;
     });
 
     // Draw each object
@@ -684,14 +624,4 @@ export class ObjManager {
       this.drawObj(ctx, obj, cameraX, cameraY);
     }
   }
-}
-
-// Singleton instance
-let objManagerInstance: ObjManager | null = null;
-
-export function getObjManager(): ObjManager {
-  if (!objManagerInstance) {
-    objManagerInstance = new ObjManager();
-  }
-  return objManagerInstance;
 }

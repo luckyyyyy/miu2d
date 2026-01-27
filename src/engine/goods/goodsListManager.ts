@@ -422,13 +422,6 @@ export class GoodsListManager {
   }
 
   /**
-   * Get item at index (alias for getItemInfo for compatibility)
-   */
-  getListItem(index: number): GoodsItemInfo | null {
-    return this.getItemInfo(index);
-  }
-
-  /**
    * Simple exchange of two items (no equipment handling)
    * Used for swapping items within inventory
    */
@@ -733,18 +726,4 @@ export class GoodsListManager {
     }
     return good.imagePath;
   }
-}
-
-// ============= Singleton =============
-let instance: GoodsListManager | null = null;
-
-export function getGoodsListManager(): GoodsListManager {
-  if (!instance) {
-    instance = new GoodsListManager();
-  }
-  return instance;
-}
-
-export function resetGoodsListManager(): void {
-  instance = null;
 }

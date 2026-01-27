@@ -1,0 +1,450 @@
+/**
+ * Magic Loader - based on JxqyHD Engine/Magic.cs
+ * 加载和解析武功配置文件
+ */
+
+import {
+  type MagicData,
+  MagicMoveKind,
+  MagicSpecialKind,
+  MagicAddonEffect,
+  SideEffectDamageType,
+  RestorePropertyType,
+  createDefaultMagicData,
+} from "./types";
+
+// 武功缓存
+const magicCache = new Map<string, MagicData>();
+
+/**
+ * 解析武功配置文件内容
+ * 对应 C# Magic.Load()
+ */
+export function parseMagicIni(content: string, fileName: string): MagicData {
+  const magic = createDefaultMagicData();
+  magic.fileName = fileName;
+
+  const lines = content.split(/\r?\n/);
+  let currentSection = "Init";
+  const levels = new Map<number, Partial<MagicData>>();
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith(";") || trimmed.startsWith("#")) {
+      continue;
+    }
+
+    // 检查节标题
+    const sectionMatch = trimmed.match(/^\[(.+)\]$/);
+    if (sectionMatch) {
+      currentSection = sectionMatch[1];
+      continue;
+    }
+
+    // 解析键值对
+    const eqIdx = trimmed.indexOf("=");
+    if (eqIdx === -1) continue;
+
+    const key = trimmed.substring(0, eqIdx).trim();
+    const value = trimmed.substring(eqIdx + 1).trim();
+
+    if (currentSection === "Init") {
+      assignMagicValue(magic, key, value);
+    } else if (currentSection.startsWith("Level")) {
+      const levelMatch = currentSection.match(/^Level(\d+)$/);
+      if (levelMatch) {
+        const levelNum = parseInt(levelMatch[1], 10);
+        if (!levels.has(levelNum)) {
+          levels.set(levelNum, {});
+        }
+        const levelData = levels.get(levelNum)!;
+        assignLevelValue(levelData, key, value);
+      }
+    }
+  }
+
+  // 存储等级数据
+  if (levels.size > 0) {
+    magic.levels = levels;
+  }
+
+  return magic;
+}
+
+/**
+ * 为武功数据赋值
+ * 对应 C# Magic.AssignToValue()
+ */
+function assignMagicValue(magic: MagicData, key: string, value: string): void {
+  try {
+    switch (key) {
+      // 字符串属性
+      case "Name":
+        magic.name = value;
+        break;
+      case "Intro":
+        magic.intro = value;
+        break;
+      case "Type":
+        magic.type = value;
+        break;
+      case "ActionFile":
+        magic.actionFile = value;
+        break;
+
+      // 图像资源 - 存储相对路径（如果值为空则不设置）
+      case "Image":
+        if (value) magic.image = `asf/magic/${value}`;
+        break;
+      case "Icon":
+        if (value) magic.icon = `asf/magic/${value}`;
+        break;
+      case "FlyingImage":
+        if (value) magic.flyingImage = `asf/effect/${value}`;
+        break;
+      case "VanishImage":
+        if (value) magic.vanishImage = `asf/effect/${value}`;
+        break;
+      case "SuperModeImage":
+        if (value) magic.superModeImage = `asf/effect/${value}`;
+        break;
+      case "LeapImage":
+        if (value) magic.leapImage = `asf/effect/${value}`;
+        break;
+      case "UseActionFile":
+        if (value) magic.useActionFile = `asf/character/${value}`;
+        break;
+
+      // 声音资源
+      case "FlyingSound":
+        magic.flyingSound = value;
+        break;
+      case "VanishSound":
+        magic.vanishSound = value;
+        break;
+
+      // 关联武功文件
+      case "AttackFile":
+        magic.attackFile = value;
+        break;
+
+      // 数值属性
+      case "Speed":
+        magic.speed = parseInt(value, 10) || 8;
+        break;
+      case "MoveKind":
+        magic.moveKind = parseInt(value, 10) || MagicMoveKind.NoMove;
+        break;
+      case "Region":
+        magic.region = parseInt(value, 10) || 0;
+        break;
+      case "SpecialKind":
+        magic.specialKind = parseInt(value, 10) || MagicSpecialKind.None;
+        break;
+      case "SpecialKindValue":
+        magic.specialKindValue = parseInt(value, 10) || 0;
+        break;
+      case "SpecialKindMilliSeconds":
+        magic.specialKindMilliSeconds = parseInt(value, 10) || 0;
+        break;
+      case "AlphaBlend":
+        magic.alphaBlend = parseInt(value, 10) || 0;
+        break;
+      case "FlyingLum":
+        magic.flyingLum = parseInt(value, 10) || 0;
+        break;
+      case "VanishLum":
+        magic.vanishLum = parseInt(value, 10) || 0;
+        break;
+      case "WaitFrame":
+        magic.waitFrame = parseInt(value, 10) || 0;
+        break;
+      case "LifeFrame":
+        // 注意：LifeFrame=0 是有效值，表示播放一轮动画
+        // 不能用 || 默认值，因为 0 是 falsy
+        magic.lifeFrame = value === "" ? 4 : parseInt(value, 10);
+        break;
+      case "Belong":
+        magic.belong = parseInt(value, 10) || 0;
+        break;
+      case "Effect":
+        magic.effect = parseInt(value, 10) || 0;
+        break;
+      case "Effect2":
+        magic.effect2 = parseInt(value, 10) || 0;
+        break;
+      case "Effect3":
+        magic.effect3 = parseInt(value, 10) || 0;
+        break;
+      case "EffectExt":
+        magic.effectExt = parseInt(value, 10) || 0;
+        break;
+      case "EffectMana":
+        magic.effectMana = parseInt(value, 10) || 0;
+        break;
+      case "ManaCost":
+        magic.manaCost = parseInt(value, 10) || 0;
+        break;
+      case "ThewCost":
+        magic.thewCost = parseInt(value, 10) || 0;
+        break;
+      case "LifeCost":
+        magic.lifeCost = parseInt(value, 10) || 0;
+        break;
+      case "LevelupExp":
+        magic.levelupExp = parseInt(value, 10) || 0;
+        break;
+      case "ColdMilliSeconds":
+        magic.coldMilliSeconds = parseInt(value, 10) || 0;
+        break;
+      case "Count":
+        magic.count = parseInt(value, 10) || 1;
+        break;
+      case "MaxCount":
+        magic.maxCount = parseInt(value, 10) || 0;
+        break;
+      case "MaxLevel":
+        magic.maxLevel = parseInt(value, 10) || 10;
+        break;
+      case "PassThrough":
+        magic.passThrough = parseInt(value, 10) || 0;
+        break;
+      case "PassThroughWall":
+        magic.passThroughWall = parseInt(value, 10) || 0;
+        break;
+      case "AttackAll":
+        magic.attackAll = parseInt(value, 10) || 0;
+        break;
+      case "NoInterruption":
+        magic.noInterruption = parseInt(value, 10) || 0;
+        break;
+      case "VibratingScreen":
+        magic.vibratingScreen = parseInt(value, 10) || 0;
+        break;
+      case "BodyRadius":
+        magic.bodyRadius = parseInt(value, 10) || 0;
+        break;
+      case "TraceEnemy":
+        magic.traceEnemy = parseInt(value, 10) || 0;
+        break;
+      case "TraceSpeed":
+        magic.traceSpeed = parseInt(value, 10) || 0;
+        break;
+      case "TraceEnemyDelayMilliseconds":
+        magic.traceEnemyDelayMilliseconds = parseInt(value, 10) || 0;
+        break;
+      case "Bounce":
+        magic.bounce = parseInt(value, 10) || 0;
+        break;
+      case "BounceHurt":
+        magic.bounceHurt = parseInt(value, 10) || 0;
+        break;
+      case "Ball":
+        magic.ball = parseInt(value, 10) || 0;
+        break;
+      case "DisableUse":
+        magic.disableUse = parseInt(value, 10) || 0;
+        break;
+      case "LifeFullToUse":
+        magic.lifeFullToUse = parseInt(value, 10) || 0;
+        break;
+      case "RangeEffect":
+        magic.rangeEffect = parseInt(value, 10) || 0;
+        break;
+      case "RangeAddLife":
+        magic.rangeAddLife = parseInt(value, 10) || 0;
+        break;
+      case "RangeAddMana":
+        magic.rangeAddMana = parseInt(value, 10) || 0;
+        break;
+      case "RangeAddThew":
+        magic.rangeAddThew = parseInt(value, 10) || 0;
+        break;
+      case "RangeDamage":
+        magic.rangeDamage = parseInt(value, 10) || 0;
+        break;
+      case "RangeRadius":
+        magic.rangeRadius = parseInt(value, 10) || 0;
+        break;
+      case "RangeTimeInerval":
+        magic.rangeTimeInterval = parseInt(value, 10) || 0;
+        break;
+      case "LeapTimes":
+        magic.leapTimes = parseInt(value, 10) || 0;
+        break;
+      case "LeapFrame":
+        magic.leapFrame = parseInt(value, 10) || 0;
+        break;
+      case "EffectReducePercentage":
+        magic.effectReducePercentage = parseInt(value, 10) || 0;
+        break;
+      case "SideEffectProbability":
+        magic.sideEffectProbability = Math.min(100, Math.max(0, parseInt(value, 10) || 0));
+        break;
+      case "SideEffectPercent":
+        magic.sideEffectPercent = parseInt(value, 10) || 0;
+        break;
+      case "SideEffectType":
+        magic.sideEffectType = parseInt(value, 10) || SideEffectDamageType.Life;
+        break;
+      case "RestoreProbability":
+        magic.restoreProbability = Math.min(100, Math.max(0, parseInt(value, 10) || 0));
+        break;
+      case "RestorePercent":
+        magic.restorePercent = parseInt(value, 10) || 0;
+        break;
+      case "RestoreType":
+        magic.restoreType = parseInt(value, 10) || RestorePropertyType.Life;
+        break;
+      default:
+        // 忽略未知属性
+        break;
+    }
+  } catch (error) {
+    console.warn(`[MagicLoader] Error parsing ${key}=${value}:`, error);
+  }
+}
+
+/**
+ * 为等级数据赋值
+ */
+function assignLevelValue(levelData: Partial<MagicData>, key: string, value: string): void {
+  const numValue = parseInt(value, 10);
+  switch (key) {
+    case "Effect":
+      levelData.effect = numValue || 0;
+      break;
+    case "Effect2":
+      levelData.effect2 = numValue || 0;
+      break;
+    case "Effect3":
+      levelData.effect3 = numValue || 0;
+      break;
+    case "ManaCost":
+      levelData.manaCost = numValue || 0;
+      break;
+    case "ThewCost":
+      levelData.thewCost = numValue || 0;
+      break;
+    case "LifeCost":
+      levelData.lifeCost = numValue || 0;
+      break;
+    case "LevelupExp":
+      levelData.levelupExp = numValue || 0;
+      break;
+    case "Speed":
+      levelData.speed = numValue || 8;
+      break;
+    case "MoveKind":
+      levelData.moveKind = numValue || MagicMoveKind.NoMove;
+      break;
+    case "ColdMilliSeconds":
+      levelData.coldMilliSeconds = numValue || 0;
+      break;
+    default:
+      // 其他属性也可以被等级覆盖
+      break;
+  }
+}
+
+/**
+ * 获取指定等级的武功数据
+ * 对应 C# Magic.GetLevel()
+ */
+export function getMagicAtLevel(baseMagic: MagicData, level: number): MagicData {
+  if (!baseMagic.levels || !baseMagic.levels.has(level)) {
+    // 没有等级数据，返回基础数据的副本
+    const copy = { ...baseMagic };
+    copy.currentLevel = level;
+    copy.effectLevel = level;
+    return copy;
+  }
+
+  // 合并等级数据
+  const levelData = baseMagic.levels.get(level)!;
+  const merged: MagicData = {
+    ...baseMagic,
+    ...levelData,
+    currentLevel: level,
+    effectLevel: level,
+    levels: baseMagic.levels, // 保留等级引用
+  };
+
+  return merged;
+}
+
+/**
+ * 异步加载武功配置文件
+ */
+export async function loadMagic(fileName: string, useCache: boolean = true): Promise<MagicData | null> {
+  // 规范化文件名
+  const normalizedName = fileName.replace(/\\/g, "/");
+  const cacheKey = normalizedName.toLowerCase();
+
+  // 检查缓存
+  if (useCache && magicCache.has(cacheKey)) {
+    return magicCache.get(cacheKey)!;
+  }
+
+  try {
+    // 构建文件路径
+    let filePath = normalizedName;
+    if (!filePath.startsWith("ini/magic/") && !filePath.startsWith("/")) {
+      filePath = `ini/magic/${normalizedName}`;
+    }
+    if (!filePath.startsWith("/")) {
+      filePath = `/resources/${filePath}`;
+    }
+
+    const response = await fetch(filePath);
+    if (!response.ok) {
+      console.warn(`[MagicLoader] Failed to load: ${filePath}`);
+      return null;
+    }
+
+    const content = await response.text();
+    const magic = parseMagicIni(content, normalizedName);
+
+    // 缓存
+    if (useCache) {
+      magicCache.set(cacheKey, magic);
+    }
+
+    console.log(`[MagicLoader] Loaded magic: ${magic.name} (${magic.fileName})`);
+    return magic;
+  } catch (error) {
+    console.error(`[MagicLoader] Error loading ${fileName}:`, error);
+    return null;
+  }
+}
+
+/**
+ * 同步获取已缓存的武功
+ */
+export function getCachedMagic(fileName: string): MagicData | null {
+  const cacheKey = fileName.toLowerCase().replace(/\\/g, "/");
+  return magicCache.get(cacheKey) || null;
+}
+
+/**
+ * 清除武功缓存
+ */
+export function clearMagicCache(): void {
+  magicCache.clear();
+}
+
+/**
+ * 预加载多个武功
+ */
+export async function preloadMagics(fileNames: string[]): Promise<Map<string, MagicData>> {
+  const results = new Map<string, MagicData>();
+  await Promise.all(
+    fileNames.map(async (fileName) => {
+      const magic = await loadMagic(fileName);
+      if (magic) {
+        results.set(fileName, magic);
+      }
+    })
+  );
+  return results;
+}

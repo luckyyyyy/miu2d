@@ -4,12 +4,17 @@
  *
  * C# Reference: XiuLianGui.cs shows magic info, level, exp, and introduction
  * Resources loaded from UI_Settings.ini
+ *
+ * 修炼武功存储在 MagicListManager 的 xiuLianIndex (索引 49)
+ * 支持从武功面板(MagicGui)和快捷栏(BottomGui)拖放武功到此处进行修炼
  */
-import React, { useMemo } from "react";
-import { useAsfImage } from "./hooks";
+import React, { useMemo, useCallback } from "react";
+import { useAsfImage, useAsfAnimation } from "./hooks";
 import { useXiuLianGuiConfig } from "./useUISettings";
+import type { MagicItemInfo } from "../../engine/magic";
+import type { MagicDragData } from "./MagicGui";
 
-// 修炼中的武功数据
+// 修炼中的武功数据 - 兼容旧接口
 export interface XiuLianMagic {
   id: string;
   name: string;
@@ -20,30 +25,100 @@ export interface XiuLianMagic {
   intro: string;
 }
 
+// BottomGui 的拖拽数据类型
+interface BottomMagicDragData {
+  bottomSlot: number;
+  listIndex: number;
+}
+
 interface XiuLianGuiProps {
   isVisible: boolean;
-  magic: XiuLianMagic | null;
+  // 旧接口
+  magic?: XiuLianMagic | null;
+  // 新接口：直接传入 MagicItemInfo
+  magicInfo?: MagicItemInfo | null;
   screenWidth: number;
   onMagicClick?: () => void;
-  onMagicDrop?: (magicId: string) => void;
   onClose: () => void;
+  // 拖放支持
+  onDrop?: (sourceIndex: number) => void;  // 接收从其他地方拖来的武功
+  onDragStart?: (data: MagicDragData) => void;  // 可以把修炼武功拖出去
+  onDragEnd?: () => void;
+  // 外部拖拽数据（用于判断是否可以放下）
+  dragData?: MagicDragData | null;
+  // BottomGui 的拖拽数据
+  bottomDragData?: BottomMagicDragData | null;
+  // Tooltip 支持
+  onMagicHover?: (magicInfo: MagicItemInfo | null, x: number, y: number) => void;
+  onMagicLeave?: () => void;
 }
 
 export const XiuLianGui: React.FC<XiuLianGuiProps> = ({
   isVisible,
   magic,
+  magicInfo,
   screenWidth,
   onMagicClick,
+  onDrop,
+  onDragStart,
+  onDragEnd,
+  dragData,
+  bottomDragData,
+  onMagicHover,
+  onMagicLeave,
 }) => {
   // 从 UI_Settings.ini 加载配置
   const config = useXiuLianGuiConfig();
+
+  // 优先使用新接口数据
+  const displayMagic = magicInfo?.magic;
+  const displayLevel = magicInfo?.level ?? magic?.level ?? 0;
+  const displayExp = magicInfo?.exp ?? magic?.exp ?? 0;
+  const displayLevelUpExp = displayMagic?.levelupExp ?? magic?.levelUpExp ?? 0;
+  const displayName = displayMagic?.name ?? magic?.name ?? "";
+  const displayIntro = displayMagic?.intro ?? magic?.intro ?? "";
+  const iconPath = displayMagic?.image ?? magic?.iconPath ?? null;
+  const hasMagic = !!(displayMagic || magic);
 
   // 加载面板背景
   const panelImage = useAsfImage(
     config?.panel.image || "asf/ui/common/panel6.asf"
   );
-  // 加载武功图标
-  const magicIcon = useAsfImage(magic?.iconPath ?? null, 0);
+  // 加载武功图标 - 使用动态动画播放
+  const magicIcon = useAsfAnimation(iconPath, true, true);
+
+  // 处理拖放
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    // 调用 onDrop，由 GameUI 处理具体的交换逻辑
+    // 支持从 MagicGui 或 BottomGui 拖拽到此处
+    if (dragData && dragData.storeIndex > 0) {
+      // 从 MagicGui 拖拽（使用 storeIndex）
+      onDrop?.(dragData.storeIndex);
+    } else if (bottomDragData && bottomDragData.listIndex > 0) {
+      // 从 BottomGui 拖拽（使用 listIndex）
+      onDrop?.(bottomDragData.listIndex);
+    }
+    onDragEnd?.();
+  }, [dragData, bottomDragData, onDrop, onDragEnd]);
+
+  const handleDragStart = useCallback((e: React.DragEvent) => {
+    if (hasMagic) {
+      e.dataTransfer.effectAllowed = "move";
+      // 查找武功图标img元素作为拖拽图像
+      const img = e.currentTarget.querySelector('img') as HTMLImageElement;
+      if (img) {
+        e.dataTransfer.setDragImage(img, img.width / 2, img.height / 2);
+      }
+      // 修炼槽的 storeIndex 使用 xiuLianIndex (49)
+      onDragStart?.({ type: "magic", storeIndex: 49 });
+    }
+  }, [hasMagic, onDragStart]);
 
   // 计算面板位置 - C#: Globals.WindowWidth / 2f - Width + leftAdjust
   const panelStyle = useMemo(() => {
@@ -82,7 +157,7 @@ export const XiuLianGui: React.FC<XiuLianGuiProps> = ({
         />
       )}
 
-      {/* 武功图标槽 */}
+      {/* 武功图标槽 - 支持拖放 */}
       <div
         style={{
           position: "absolute",
@@ -90,18 +165,29 @@ export const XiuLianGui: React.FC<XiuLianGuiProps> = ({
           top: config.magicImage.top,
           width: config.magicImage.width,
           height: config.magicImage.height,
-          border: "1px solid rgba(100, 100, 100, 0.3)",
-          borderRadius: 2,
-          background: "rgba(0, 0, 0, 0.1)",
-          cursor: magic ? "pointer" : "default",
+          cursor: hasMagic ? "pointer" : "default",
         }}
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}
         onClick={onMagicClick}
-        title={magic?.name || "拖放武功到此处进行修炼"}
+        onMouseEnter={(e) => {
+          if (hasMagic && magicInfo) {
+            onMagicHover?.(magicInfo, e.clientX, e.clientY);
+          }
+        }}
+        onMouseMove={(e) => {
+          if (hasMagic && magicInfo) {
+            onMagicHover?.(magicInfo, e.clientX, e.clientY);
+          }
+        }}
+        onMouseLeave={() => onMagicLeave?.()}
       >
-        {magic && magicIcon.dataUrl && (
+        {hasMagic && magicIcon.dataUrl && (
           <img
             src={magicIcon.dataUrl}
-            alt={magic.name}
+            alt={displayName}
+            draggable={true}
+            onDragStart={handleDragStart}
             style={{
               position: "absolute",
               left: (config.magicImage.width - magicIcon.width) / 2,
@@ -109,7 +195,7 @@ export const XiuLianGui: React.FC<XiuLianGuiProps> = ({
               width: magicIcon.width,
               height: magicIcon.height,
               imageRendering: "pixelated",
-              pointerEvents: "none",
+              cursor: "pointer",
             }}
           />
         )}
@@ -126,7 +212,7 @@ export const XiuLianGui: React.FC<XiuLianGuiProps> = ({
           color: config.levelText.color,
         }}
       >
-        {magic ? `${magic.level}/10` : "1/10"}
+        {hasMagic ? `${displayLevel}/10` : "0/10"}
       </div>
 
       {/* 经验 */}
@@ -140,7 +226,7 @@ export const XiuLianGui: React.FC<XiuLianGuiProps> = ({
           color: config.expText.color,
         }}
       >
-        {magic ? `${magic.exp}/${magic.levelUpExp}` : "0/0"}
+        {hasMagic ? `${displayExp}/${displayLevelUpExp}` : "0/0"}
       </div>
 
       {/* 武功名称 */}
@@ -155,7 +241,7 @@ export const XiuLianGui: React.FC<XiuLianGuiProps> = ({
           color: config.nameText.color,
         }}
       >
-        {magic?.name || ""}
+        {displayName}
       </div>
 
       {/* 武功介绍 */}
@@ -175,7 +261,7 @@ export const XiuLianGui: React.FC<XiuLianGuiProps> = ({
           wordBreak: "break-all",
         }}
       >
-        {magic?.intro || ""}
+        {displayIntro}
       </div>
     </div>
   );

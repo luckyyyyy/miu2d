@@ -254,20 +254,3 @@ export class ScreenEffects {
     return { ...this.state };
   }
 }
-
-// Singleton instance
-let screenEffectsInstance: ScreenEffects | null = null;
-
-export function getScreenEffects(): ScreenEffects {
-  if (!screenEffectsInstance) {
-    screenEffectsInstance = new ScreenEffects();
-  }
-  return screenEffectsInstance;
-}
-
-export function resetScreenEffects(): void {
-  if (screenEffectsInstance) {
-    screenEffectsInstance.init();
-  }
-  screenEffectsInstance = null;
-}

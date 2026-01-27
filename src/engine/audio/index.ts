@@ -1,5 +1,5 @@
 /**
  * Audio module exports
  */
-export { AudioManager, getAudioManager, resetAudioManager } from "./audioManager";
+export { AudioManager } from "./audioManager";
 export type { AudioManagerConfig } from "./audioManager";

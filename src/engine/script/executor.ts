@@ -41,6 +41,8 @@ export class ScriptExecutor {
       callStack: [],
       isInTalk: false,
       talkQueue: [],
+      // C#: ScriptRunner.BelongObject - the target that triggered this script
+      belongObject: null,
       // Blocking wait states
       waitingForPlayerGoto: false,
       playerGotoDestination: null,
@@ -90,8 +92,16 @@ export class ScriptExecutor {
 
   /**
    * Load and run a script file
+   * Following C# ScriptManager.RunScript - adds to script list and continues from there
+   *
+   * @param scriptPath Path to the script file
+   * @param belongObject Optional target (NPC or Obj) that triggered this script
+   *                     C# Reference: ScriptRunner.BelongObject
    */
-  async runScript(scriptPath: string): Promise<void> {
+  async runScript(
+    scriptPath: string,
+    belongObject?: { type: "npc" | "obj"; id: string }
+  ): Promise<void> {
     // Set isRunning = true BEFORE any await to prevent race conditions
     this.state.isRunning = true;
 
@@ -106,8 +116,22 @@ export class ScriptExecutor {
 
     if (!script) {
       console.error(`Failed to load script: ${scriptPath}`);
-      this.state.isRunning = false;
+      // Don't set isRunning = false here if we have parent script in callStack
+      if (this.state.callStack.length === 0) {
+        this.state.isRunning = false;
+      }
       return;
+    }
+
+    // Save current script state to callStack before switching (like C# LinkedList)
+    // Save currentLine as-is; after Return, the execute loop will do currentLine++
+    // which will move to the next command after RunScript
+    if (this.state.currentScript) {
+      this.state.callStack.push({
+        script: this.state.currentScript,
+        line: this.state.currentLine, // Will be incremented by execute loop after Return
+      });
+      console.log(`[ScriptExecutor] Pushed to callStack: ${this.state.currentScript.fileName} at line ${this.state.currentLine}`);
     }
 
     this.state.currentScript = script;
@@ -115,6 +139,12 @@ export class ScriptExecutor {
     this.state.isPaused = false;
     this.state.waitingForInput = false;
 
+    // Set belongObject if provided (for commands like DelCurObj)
+    if (belongObject) {
+      this.state.belongObject = belongObject;
+    }
+
+    console.log(`[ScriptExecutor] Running script: ${scriptPath}`);
     await this.execute();
   }
 
@@ -152,7 +182,9 @@ export class ScriptExecutor {
 
       if (this.state.currentLine >= this.state.currentScript.codes.length) {
         this.endScript();
-        return;
+        // After endScript(), if we restored a parent script, continue the loop
+        // Otherwise isRunning will be false and loop will exit naturally
+        continue;
       }
 
       const code = this.state.currentScript.codes[this.state.currentLine];
@@ -249,12 +281,24 @@ export class ScriptExecutor {
   }
 
   /**
-   * End current script
+   * End current script and restore parent script if available
+   * Following C# ScriptManager behavior - when script ends, continue with parent
    */
   private endScript(): void {
-    this.state.isRunning = false;
-    this.state.currentScript = null;
-    this.state.currentLine = 0;
+    // Check if there's a parent script in the callStack
+    if (this.state.callStack.length > 0) {
+      const parent = this.state.callStack.pop()!;
+      console.log(`[ScriptExecutor] Restoring from callStack: ${parent.script.fileName} at line ${parent.line}`);
+      this.state.currentScript = parent.script;
+      this.state.currentLine = parent.line;
+      // Keep isRunning = true, continue executing parent script
+      // The execute() loop will continue from here
+    } else {
+      // No parent script, fully end execution
+      this.state.isRunning = false;
+      this.state.currentScript = null;
+      this.state.currentLine = 0;
+    }
   }
 
   /**

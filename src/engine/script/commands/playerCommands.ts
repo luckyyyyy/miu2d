@@ -95,6 +95,17 @@ const addGoodsCommand: CommandHandler = (params, _result, helpers) => {
 };
 
 /**
+ * AddRandGoods - Add random item from buy file
+ * C# Reference: ScriptExecuter.AddRandGoods
+ */
+const addRandGoodsCommand: CommandHandler = async (params, _result, helpers) => {
+  const buyFileName = helpers.resolveString(params[0] || "");
+  console.log(`[ScriptExecutor] AddRandGoods: ${buyFileName}`);
+  await helpers.context.addRandGoods(buyFileName);
+  return true;
+};
+
+/**
  * DelGoods - Remove items from inventory
  */
 const delGoodsCommand: CommandHandler = (params, _result, helpers) => {
@@ -227,6 +238,7 @@ export function registerPlayerCommands(registry: CommandRegistry): void {
 
   // Inventory
   registry.set("addgoods", addGoodsCommand);
+  registry.set("addrandgoods", addRandGoodsCommand);
   registry.set("delgoods", delGoodsCommand);
   registry.set("equipgoods", equipGoodsCommand);
 

@@ -299,20 +299,3 @@ export class AudioManager {
     this.soundCache.clear();
   }
 }
-
-// Singleton instance
-let audioManagerInstance: AudioManager | null = null;
-
-export function getAudioManager(): AudioManager {
-  if (!audioManagerInstance) {
-    audioManagerInstance = new AudioManager();
-  }
-  return audioManagerInstance;
-}
-
-export function resetAudioManager(): void {
-  if (audioManagerInstance) {
-    audioManagerInstance.dispose();
-    audioManagerInstance = null;
-  }
-}

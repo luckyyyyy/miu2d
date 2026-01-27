@@ -17,7 +17,7 @@ export default function TitleScreen() {
 
   const handleLoad = () => {
     // TODO: 实现读取存档功能
-    console.log("读取存档 - 暂未实现");
+    navigate("/game");
   };
 
   const handleTeam = () => {

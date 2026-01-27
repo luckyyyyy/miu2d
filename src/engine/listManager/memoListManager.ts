@@ -7,7 +7,7 @@
  * Text is split into lines of 10 characters max (Chinese)
  */
 
-import { getTalkTextList, type TalkTextDetail } from "./talkTextList";
+import type { TalkTextListManager } from "./talkTextList";
 
 /**
  * Split string into lines based on character count (for Chinese text display)
@@ -45,9 +45,7 @@ export class MemoListManager {
   private memoList: string[] = [];
   private onUpdateCallbacks: Set<() => void> = new Set();
 
-  constructor() {
-    // Initialize empty memo list
-  }
+  constructor(private talkTextList: TalkTextListManager) {}
 
   /**
    * Register update callback (for UI refresh)
@@ -192,12 +190,11 @@ export class MemoListManager {
    */
   async addToMemo(textId: number): Promise<void> {
     try {
-      const textList = getTalkTextList();
       // Ensure TalkTextList is initialized
-      if (!textList.isReady()) {
-        await textList.initialize();
+      if (!this.talkTextList.isReady()) {
+        await this.talkTextList.initialize();
       }
-      const detail = textList.getTextDetail(textId);
+      const detail = this.talkTextList.getTextDetail(textId);
       if (detail) {
         console.log(`[MemoListManager] Adding memo from ID ${textId}: "${detail.text}"`);
         this.addMemo(detail.text);
@@ -214,12 +211,11 @@ export class MemoListManager {
    */
   async delMemoById(textId: number): Promise<void> {
     try {
-      const textList = getTalkTextList();
       // Ensure TalkTextList is initialized
-      if (!textList.isReady()) {
-        await textList.initialize();
+      if (!this.talkTextList.isReady()) {
+        await this.talkTextList.initialize();
       }
-      const detail = textList.getTextDetail(textId);
+      const detail = this.talkTextList.getTextDetail(textId);
       if (detail) {
         this.delMemo(detail.text);
       }
@@ -227,21 +223,4 @@ export class MemoListManager {
       console.error(`[MemoListManager] Failed to delete memo by text ID ${textId}:`, err);
     }
   }
-}
-
-// Singleton instance
-let memoListManagerInstance: MemoListManager | null = null;
-
-export function getMemoListManager(): MemoListManager {
-  if (!memoListManagerInstance) {
-    memoListManagerInstance = new MemoListManager();
-  }
-  return memoListManagerInstance;
-}
-
-export function resetMemoListManager(): void {
-  if (memoListManagerInstance) {
-    memoListManagerInstance.renewList();
-  }
-  memoListManagerInstance = null;
 }
