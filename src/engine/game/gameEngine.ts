@@ -326,6 +326,8 @@ export class GameEngine {
             return this.handleMapChange(mapPath);
           },
           getCanvas: () => this.getCanvas(),
+          // 加载存档后立即将摄像机居中到玩家位置（避免摄像机飞过去）
+          centerCameraOnPlayer: () => this.centerCameraOnPlayer(),
         }
       );
 
@@ -534,6 +536,12 @@ export class GameEngine {
     // 保存之前的状态，用于恢复
     const previousState = this.state;
 
+    // 确保屏幕是黑的，防止在地图加载过程中看到摄像机移动
+    // 如果脚本已经执行了 FadeOut，这里只是确保；如果没有，这会立即设置黑屏
+    if (!this.screenEffects.isScreenBlack()) {
+      this.screenEffects.setFadeTransparency(1);
+    }
+
     // 设置为 loading 状态，这样 UI 会显示加载浮层
     this.state = "loading";
     this.emitLoadProgress(0, "加载地图...");
@@ -568,6 +576,10 @@ export class GameEngine {
 
         // 更新游戏管理器的地图名称
         this.gameManager.setCurrentMapName(mapName);
+
+        // 地图加载后立即居中摄像机到玩家位置
+        // 这样在后续 SetPlayerPos + FadeIn 时摄像机已经准备好
+        this.centerCameraOnPlayer();
 
         // 发送地图加载事件
         this.events.emit(GameEvents.GAME_MAP_LOAD, {
@@ -756,9 +768,16 @@ export class GameEngine {
       const targetCameraX = player.pixelPosition.x - width / 2;
       const targetCameraY = player.pixelPosition.y - height / 2;
 
-      // 平滑跟随
-      this.mapRenderer.camera.x += (targetCameraX - this.mapRenderer.camera.x) * 0.1;
-      this.mapRenderer.camera.y += (targetCameraY - this.mapRenderer.camera.y) * 0.1;
+      // 当屏幕接近全黑时，直接跳转到目标位置
+      // 这样在 FadeOut + LoadMap + SetPlayerPos + FadeIn 的过程中，用户不会看到摄像机移动
+      if (this.screenEffects.isScreenBlack()) {
+        this.mapRenderer.camera.x = targetCameraX;
+        this.mapRenderer.camera.y = targetCameraY;
+      } else {
+        // 平滑跟随
+        this.mapRenderer.camera.x += (targetCameraX - this.mapRenderer.camera.x) * 0.1;
+        this.mapRenderer.camera.y += (targetCameraY - this.mapRenderer.camera.y) * 0.1;
+      }
     }
 
     // 限制相机在地图范围内
@@ -773,6 +792,35 @@ export class GameEngine {
         Math.min(this.mapRenderer.camera.y, mapData.mapPixelHeight - height)
       );
     }
+  }
+
+  /**
+   * 立即将摄像机居中到玩家位置
+   * 用于加载存档后避免摄像机从 (0,0) 飞到玩家位置
+   */
+  private centerCameraOnPlayer(): void {
+    if (!this.gameManager || !this.mapRenderer) return;
+
+    const player = this.gameManager.getPlayer();
+    if (!player) return;
+
+    const { width, height } = this.config;
+
+    // 直接设置摄像机位置到玩家中心（无平滑过渡）
+    let targetX = player.pixelPosition.x - width / 2;
+    let targetY = player.pixelPosition.y - height / 2;
+
+    // 限制在地图范围内
+    const mapData = this.gameManager.getMapData();
+    if (mapData) {
+      targetX = Math.max(0, Math.min(targetX, mapData.mapPixelWidth - width));
+      targetY = Math.max(0, Math.min(targetY, mapData.mapPixelHeight - height));
+    }
+
+    this.mapRenderer.camera.x = targetX;
+    this.mapRenderer.camera.y = targetY;
+
+    console.log(`[GameEngine] Camera centered on player at (${targetX}, ${targetY})`);
   }
 
   /**

@@ -438,12 +438,12 @@ export class MagicSprite extends Sprite {
     this._totalFrames = value;
   }
 
-  /** 帧计时器 - 使用父类的 _animationTime */
+  /** 帧计时器 - 使用父类的 _elapsedMilliSecond */
   get frameElapsed(): number {
-    return this._animationTime;
+    return this._elapsedMilliSecond;
   }
   set frameElapsed(value: number) {
-    this._animationTime = value;
+    this._elapsedMilliSecond = value;
   }
 
   /** 已过时间 */
@@ -533,8 +533,9 @@ export class MagicSprite extends Sprite {
 
   /**
    * 设置方向（从向量）
+   * Override: 同时设置 _moveDirection 用于武功移动计算
    */
-  setDirectionFromVector(direction: Vector2): void {
+  override setDirectionFromVector(direction: Vector2): void {
     if (direction.x !== 0 || direction.y !== 0) {
       this._moveDirection = normalizeVector(direction);
       this._currentDirection = getDirectionIndex(this._moveDirection, 8);
@@ -552,7 +553,7 @@ export class MagicSprite extends Sprite {
     this._velocity = 0;
     // 重置帧到开始，准备播放消失动画
     this._currentFrameIndex = 0;
-    this._animationTime = 0;
+    this._elapsedMilliSecond = 0;
     this._playedFrames = 0;
   }
 
@@ -573,8 +574,8 @@ export class MagicSprite extends Sprite {
       framesToPlay = Math.floor((this._magic.lifeFrame * 10) / interval);
     }
 
-    // 使用父类的 playFrames 方法
-    this.playFrames(0, Math.max(0, framesToPlay - 1));
+    // C#: playFrames(count, reverse = false) - play specified number of frames
+    this.playFrames(Math.max(1, framesToPlay));
   }
 
   /**

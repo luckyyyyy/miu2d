@@ -311,6 +311,58 @@ export class ObjManager {
   }
 
   /**
+   * Load an Obj from ini/obj/ file without adding to manager
+   * C#: new Obj(@"ini\obj\" + fileName)
+   * Used for BodyIni loading
+   */
+  static async loadObjFromFile(fileName: string): Promise<Obj | null> {
+    try {
+      // Load from ini/obj/ directory
+      const filePath = `/resources/ini/obj/${fileName}`;
+      const content = await resourceLoader.loadText(filePath);
+      if (!content) return null;
+
+      const sections = parseIni(content);
+
+      // Use INIT section as the object definition
+      const initSection = sections.INIT || sections.Init || Object.values(sections)[0];
+      if (!initSection) return null;
+
+      const obj = new Obj();
+
+      // Load properties from section
+      obj.loadFromSection(initSection);
+
+      // Create a unique ID
+      const id = `body_${fileName}_${Date.now()}`;
+      obj.id = id;
+      obj.fileName = fileName;
+
+      // Load resources (objFile)
+      if (obj.objFileName) {
+        const objResPath = `/resources/ini/objres/${obj.objFileName}`;
+        const resInfo = await resourceLoader.loadIni<ObjResInfo>(objResPath, parseObjResIni, "objRes");
+        if (resInfo) {
+          obj.objFile.set(ObjState.Common, resInfo);
+          if (resInfo.imagePath) {
+            // Load ASF file
+            const asfPath = `/resources/asf/object/${resInfo.imagePath}`;
+            const asf = await loadAsf(asfPath);
+            if (asf) {
+              obj.setAsfTexture(asf);
+            }
+          }
+        }
+      }
+
+      return obj;
+    } catch (error) {
+      console.error(`Error loading obj from file ${fileName}:`, error);
+      return null;
+    }
+  }
+
+  /**
    * Add a single object
    */
   addObj(obj: Obj): void {

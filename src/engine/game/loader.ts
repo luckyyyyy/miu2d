@@ -80,6 +80,8 @@ export interface LoaderDependencies {
   getCanvas?: () => HTMLCanvasElement | null;
   // 进度回调（可选，用于报告加载进度）
   onProgress?: LoadProgressCallback;
+  // 立即将摄像机居中到玩家位置（用于加载存档后避免摄像机飞过去）
+  centerCameraOnPlayer?: () => void;
 }
 
 /**
@@ -371,6 +373,10 @@ export class Loader {
     } = this.deps;
 
     try {
+      // Step 0: 立即设置屏幕全黑，防止在加载过程中看到摄像机移动
+      // C# Reference: 存档加载时画面保持黑色直到 FadeIn
+      screenEffects.setFadeTransparency(1);
+
       // Step 1: 停止所有正在运行的脚本 (0-5%)
       // C# Reference: ScriptManager.Clear()
       this.reportProgress(0, "停止脚本...");
@@ -515,8 +521,13 @@ export class Loader {
       // TODO: 加载并行脚本
       // TODO: 加载选项设置
 
-      // Step 13: 重置屏幕特效并执行淡入 (98-100%)
+      // Step 13: 立即居中摄像机到玩家位置 (98%)
+      // 必须在 fadeIn 之前完成，否则会看到摄像机移动
       this.reportProgress(98, "完成加载...");
+      console.log(`[Loader] Centering camera on player...`);
+      this.deps.centerCameraOnPlayer?.();
+
+      // Step 14: 执行淡入效果 (98-100%)
       // 加载存档后屏幕应该从黑屏淡入到正常
       console.log(`[Loader] Starting fade in effect...`);
       screenEffects.fadeIn();

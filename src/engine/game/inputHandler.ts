@@ -482,8 +482,8 @@ export class InputHandler {
     // C# Reference: Character.StartInteract - turn to face each other
     const dx = npc.pixelPosition.x - player.pixelPosition.x;
     const dy = npc.pixelPosition.y - player.pixelPosition.y;
-    player.setDirectionFromVector(dx, dy);
-    npc.setDirectionFromVector(-dx, -dy);
+    player.setDirectionFromDelta(dx, dy);
+    npc.setDirectionFromDelta(-dx, -dy);
 
     // Stop player movement
     player.stopMovement();
@@ -559,7 +559,7 @@ export class InputHandler {
     const objPixelPos = obj.positionInWorld;
     const dx = objPixelPos.x - player.pixelPosition.x;
     const dy = objPixelPos.y - player.pixelPosition.y;
-    player.setDirectionFromVector(dx, dy);
+    player.setDirectionFromDelta(dx, dy);
 
     // Stop player movement
     player.stopMovement();

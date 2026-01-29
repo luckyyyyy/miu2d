@@ -10,6 +10,7 @@ import { loadNpcConfig } from "./resFile";
 import { generateId, distance, parseIni, getViewTileDistance } from "../core/utils";
 import { resourceLoader } from "../resource/resourceLoader";
 import type { AudioManager } from "../audio";
+import type { ObjManager } from "../obj/objManager";
 
 // Type alias for position (use Vector2 for consistency)
 type Position = Vector2;
@@ -53,6 +54,10 @@ export class NpcManager {
   // Audio manager for playing NPC sounds (e.g., death sound)
   private _audioManager: AudioManager | null = null;
 
+  // ObjManager reference for adding dead body objects
+  // C#: ObjManager.AddObj(npc.BodyIni)
+  private _objManager: ObjManager | null = null;
+
   constructor(
     isWalkable: (tile: Vector2) => boolean,
     isMapObstacle?: (tile: Vector2) => boolean
@@ -80,6 +85,15 @@ export class NpcManager {
     for (const npc of this.npcs.values()) {
       npc.setAudioManager(audioManager);
     }
+  }
+
+  /**
+   * Set ObjManager reference for adding dead body objects
+   * Called by GameManager to connect NPC system to object system
+   * C#: NpcManager.Update adds npc.BodyIni to ObjManager when NPC dies
+   */
+  setObjManager(objManager: ObjManager): void {
+    this._objManager = objManager;
   }
 
   /**
@@ -439,10 +453,47 @@ export class NpcManager {
    * Based on C# NpcManager.Update
    */
   update(deltaTime: number): void {
-    for (const [, npc] of this.npcs) {
+    // C#: Update each NPC and handle death body addition
+    const npcsToDelete: string[] = [];
+
+    for (const [id, npc] of this.npcs) {
       if (!npc.isVisible) continue;
       // Npc class handles its own update (movement, animation, AI)
       npc.update(deltaTime);
+
+      // Handle dead NPC body addition
+      if (npc.isDeath && npc.isBodyIniAdded === 0) {
+        npc.isBodyIniAdded = 1;
+
+        // Add body object only if valid and not a special death
+        if (npc.isBodyIniOk && !npc.notAddBody && this._objManager) {
+          const bodyObj = npc.bodyIniObj!;
+          bodyObj.positionInWorld = { ...npc.positionInWorld };
+          bodyObj.currentDirection = npc.currentDirection;
+
+          if (npc.reviveMilliseconds > 0) {
+            bodyObj.isRemoved = false;
+            bodyObj.millisecondsToRemove = npc.leftMillisecondsToRevive;
+          }
+
+          this._objManager.addObj(bodyObj);
+          console.log(`[NpcManager] Added body object for dead NPC: ${npc.name}`);
+        }
+
+        // TODO: Drop items when NPC dies (not implemented yet)
+
+        // C#: if (npc.ReviveMilliseconds == 0) { DeleteNpc(node); }
+        // Remove NPC if no revive time
+        if (npc.reviveMilliseconds === 0) {
+          npcsToDelete.push(id);
+        }
+      }
+    }
+
+    // Delete NPCs marked for removal (must be done after iteration)
+    for (const id of npcsToDelete) {
+      this.npcs.delete(id);
+      console.log(`[NpcManager] Removed dead NPC with id: ${id}`);
     }
 
     // C#: Update death infos - decrease leftFrameToKeep and remove expired entries

@@ -241,6 +241,15 @@ export class ScreenEffects {
   }
 
   /**
+   * 检查屏幕是否接近全黑（用于判断是否可以安全地跳转摄像机）
+   * 使用 0.95 阈值是因为 FadeIn 开始后透明度会立即下降，
+   * 我们需要在前几帧内仍然返回 true
+   */
+  isScreenBlack(): boolean {
+    return this.state.fadeTransparency > 0.95;
+  }
+
+  /**
    * Check if currently fading
    */
   isFading(): boolean {

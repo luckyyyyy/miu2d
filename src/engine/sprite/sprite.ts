@@ -184,26 +184,32 @@ export class Sprite {
   protected _mapY: number = 0;
   // C#: _velocity
   protected _velocity: number = 0;
-  // C#: _currentDirection
-  protected _currentDirection: number = 4; // Default: South
-  // C#: _texture (current ASF)
+  // C#: _currentDirection (C# default is 0)
+  protected _currentDirection: number = 0;
+  // C#: _texture (current ASF) - C# uses Asf.Empty, we use null
   protected _texture: AsfData | null = null;
   // C#: _currentFrameIndex
   protected _currentFrameIndex: number = 0;
   // C#: _frameBegin, _frameEnd
   protected _frameBegin: number = 0;
   protected _frameEnd: number = 0;
-  // C#: _isInPlaying
-  protected _isInPlaying: boolean = false;
   // C#: _isPlayReverse
   protected _isPlayReverse: boolean = false;
   // C#: _leftFrameToPlay
   protected _leftFrameToPlay: number = 0;
-  // C#: _isShow
+  // C#: _movedDistance - tracks distance moved
+  protected _movedDistance: number = 0;
+  // C#: FrameAdvanceCount - how many frames advanced in last update
+  protected _frameAdvanceCount: number = 0;
+  // Note: _isShow is not in C# Sprite, but used in our implementation
   protected _isShow: boolean = true;
 
-  // Animation timing
-  protected _animationTime: number = 0;
+  // C#: _elapsedMilliSecond
+  protected _elapsedMilliSecond: number = 0;
+
+  // Static draw colors (C#: _drawColor, _rainDrawColor)
+  static drawColor: string = "white";
+  static rainDrawColor: string = "white";
 
   // Sprite resources
   protected _basePath: string = "";
@@ -281,8 +287,25 @@ export class Sprite {
     return this._currentDirection;
   }
 
+  /**
+   * C#: CurrentDirection setter
+   * Handles direction wrapping and updates frameBegin/frameEnd
+   */
   set currentDirection(value: number) {
-    this._currentDirection = value;
+    const last = this._currentDirection;
+    const directionCount = this._texture?.directions || 1;
+    this._currentDirection = value % directionCount;
+    if (this._currentDirection < 0) {
+      this._currentDirection = (this._currentDirection + directionCount) % directionCount;
+    }
+    // C#: Calculate frame range for this direction
+    const framesPerDir = this._texture?.framesPerDirection || 1;
+    this._frameBegin = this._currentDirection * framesPerDir;
+    this._frameEnd = this._frameBegin + framesPerDir - 1;
+    // C#: If direction changed, reset frame index
+    if (last !== this._currentDirection) {
+      this._currentFrameIndex = this._frameBegin;
+    }
   }
 
   // ============= Texture/Animation =============
@@ -291,19 +314,36 @@ export class Sprite {
     return this._texture;
   }
 
+  /**
+   * C#: Texture setter
+   * Resets animation state and recalculates frame range
+   */
   set texture(value: AsfData | null) {
     this._texture = value;
-    if (value) {
-      this._frameEnd = (value.framesPerDirection || 1) - 1;
-    }
+    // C#: Reset elapsed time
+    this._elapsedMilliSecond = 0;
+    // C#: Recalculate frame range by re-setting direction
+    // This triggers currentDirection setter which calculates frameBegin/frameEnd
+    this.currentDirection = this._currentDirection;
+    // C#: Reset to frame begin
+    this._currentFrameIndex = this._frameBegin;
   }
 
   get currentFrameIndex(): number {
     return this._currentFrameIndex;
   }
 
+  /**
+   * C#: CurrentFrameIndex setter with auto wrap-around
+   */
   set currentFrameIndex(value: number) {
     this._currentFrameIndex = value;
+    // C#: Auto wrap around within frame range
+    if (this._currentFrameIndex > this._frameEnd) {
+      this._currentFrameIndex = this._frameBegin;
+    } else if (this._currentFrameIndex < this._frameBegin) {
+      this._currentFrameIndex = this._frameEnd;
+    }
   }
 
   get isInPlaying(): boolean {
@@ -316,6 +356,74 @@ export class Sprite {
 
   set isShow(value: boolean) {
     this._isShow = value;
+  }
+
+  // C#: MovedDistance property
+  get movedDistance(): number {
+    return this._movedDistance;
+  }
+
+  set movedDistance(value: number) {
+    this._movedDistance = value;
+  }
+
+  // C#: FrameAdvanceCount property
+  get frameAdvanceCount(): number {
+    return this._frameAdvanceCount;
+  }
+
+  // C#: FrameBegin property (read-only)
+  get frameBegin(): number {
+    return this._frameBegin;
+  }
+
+  // C#: FrameEnd property (read-only)
+  get frameEnd(): number {
+    return this._frameEnd;
+  }
+
+  // C#: Interval property
+  get interval(): number {
+    return this._texture?.interval || 0;
+  }
+
+  // C#: FrameCountsPerDirection property
+  get frameCountsPerDirection(): number {
+    return this._texture?.framesPerDirection || 1;
+  }
+
+  // C#: Width property
+  get width(): number {
+    return this._texture?.width || 0;
+  }
+
+  // C#: Height property
+  get height(): number {
+    return this._texture?.height || 0;
+  }
+
+  // C#: Size property
+  get size(): Vector2 {
+    return { x: this.width, y: this.height };
+  }
+
+  // C#: RegionInWorld property (virtual)
+  get regionInWorld(): { x: number; y: number; width: number; height: number } {
+    const beginPos = this.regionInWorldBeginPosition;
+    return {
+      x: beginPos.x,
+      y: beginPos.y,
+      width: this.width,
+      height: this.height,
+    };
+  }
+
+  // C#: ReginInWorldBeginPosition property (virtual)
+  get regionInWorldBeginPosition(): Vector2 {
+    return {
+      x: Math.floor(this._positionInWorld.x) - (this._texture?.left || 0),
+      y: Math.floor(this._positionInWorld.y) - (this._texture?.bottom || 0),
+    };
   }
 
   // ============= Sprite Set =============
@@ -360,32 +468,35 @@ export class Sprite {
   }
 
   /**
-   * C#: PlayFrames(begin, end)
+   * C#: PlayFrames(count, reverse = false)
+   * Play specified number of frames then stop
+   * @param count Frame count to play
+   * @param reverse Play from current index backwards
    */
-  playFrames(begin: number, end: number): void {
-    this._frameBegin = begin;
-    this._frameEnd = end;
-    this._currentFrameIndex = begin;
-    this._leftFrameToPlay = end - begin + 1;
-    this._isPlayReverse = false;
-    this._isInPlaying = true;
+  playFrames(count: number, reverse: boolean = false): void {
+    this._leftFrameToPlay = count;
+    this._isPlayReverse = reverse;
   }
 
   /**
    * C#: PlayCurrentDirOnce()
-   * Plays current direction animation once. Won't restart if already playing.
+   * Plays from current frame to end of direction once. Won't restart if already playing.
    */
   playCurrentDirOnce(): void {
     // C#: if (IsInPlaying) return;
     if (this.isInPlaying) return;
-    if (!this._texture) return;
-    const framesPerDir = this._texture.framesPerDirection || 1;
-    this._frameBegin = 0;
-    this._frameEnd = framesPerDir - 1;
-    this._currentFrameIndex = 0;
-    this._leftFrameToPlay = framesPerDir;
-    this._isPlayReverse = false;
-    this._isInPlaying = true;
+    // C#: PlayFrames(_frameEnd - CurrentFrameIndex + 1)
+    this.playFrames(this._frameEnd - this._currentFrameIndex + 1);
+  }
+
+  /**
+   * C#: PlayCurrentDirOnceReverse()
+   * Plays from current frame to beginning of direction once in reverse.
+   */
+  playCurrentDirOnceReverse(): void {
+    if (this.isInPlaying) return;
+    // C#: PlayFrames(_currentFrameIndex - _frameBegin + 1, true)
+    this.playFrames(this._currentFrameIndex - this._frameBegin + 1, true);
   }
 
   /**
@@ -404,58 +515,164 @@ export class Sprite {
   }
 
   /**
-   * C#: Update(gameTime)
+   * C#: IsFrameAtBegin()
    */
-  update(deltaTime: number): void {
-    if (!this._texture || !this._isShow) return;
+  isFrameAtBegin(): boolean {
+    return this._currentFrameIndex === this._frameBegin;
+  }
 
-    const deltaMs = deltaTime * 1000;
-    this._animationTime += deltaMs;
+  /**
+   * C#: IsFrameAtEnd()
+   */
+  isFrameAtEnd(): boolean {
+    return this._currentFrameIndex === this._frameEnd;
+  }
 
-    const frameInterval = this._texture.interval || 100;
-
-    while (this._animationTime >= frameInterval) {
-      this._animationTime -= frameInterval;
-      this._advanceFrame();
+  /**
+   * C#: SetDirectionValue(direction)
+   * Set direction without triggering frame recalculation if out of range
+   */
+  setDirectionValue(direction: number): void {
+    const directionCount = this._texture?.directions || 1;
+    if (directionCount > direction) {
+      // Direction in current texture direction count range
+      this.setDirection(direction);
+    } else {
+      // Direction not in range - just store the value
+      this._currentDirection = direction;
     }
   }
 
   /**
-   * Advance animation frame
-   * C#: CurrentFrameIndex setter automatically wraps around
-   * C# Reference: Sprite.Update() - frame advances first, then _leftFrameToPlay decrements
+   * C#: Update(gameTime)
+   * @param deltaTime Delta time in seconds
+   * @param speedFold Speed multiplier (default 1)
    */
-  protected _advanceFrame(): void {
-    // C# order: first advance frame, then decrement _leftFrameToPlay
-    if (this._isPlayReverse) {
-      this._currentFrameIndex--;
-      if (this._currentFrameIndex < this._frameBegin) {
-        // C#: When playing once, stop at last frame instead of looping
-        if (this._leftFrameToPlay === 1) {
-          // This is the last frame - stay here, don't loop
-          this._currentFrameIndex = this._frameBegin;
-        } else {
-          this._currentFrameIndex = this._frameEnd;
-        }
-      }
-    } else {
-      this._currentFrameIndex++;
-      // C#: CurrentFrameIndex setter always wraps around
-      if (this._currentFrameIndex > this._frameEnd) {
-        // C#: When playing once, stop at last frame instead of looping
-        if (this._leftFrameToPlay === 1) {
-          // This is the last frame - stay here, don't loop
-          this._currentFrameIndex = this._frameEnd;
-        } else {
-          this._currentFrameIndex = this._frameBegin;
-        }
-      }
-    }
+  update(deltaTime: number, speedFold: number = 1): void {
+    if (!this._texture) return;
 
-    // C# Reference: after frame advances, decrement _leftFrameToPlay
-    if (this._leftFrameToPlay > 0) {
-      this._leftFrameToPlay--;
+    const deltaMs = deltaTime * 1000 * speedFold;
+    this._elapsedMilliSecond += deltaMs;
+    this._frameAdvanceCount = 0;
+
+    const interval = this._texture.interval || 100;
+
+    // C#: Only advance if elapsed > interval
+    if (this._elapsedMilliSecond > interval) {
+      this._elapsedMilliSecond -= interval;
+
+      // C#: Advance frame based on reverse flag
+      if (this.isInPlaying && this._isPlayReverse) {
+        this.currentFrameIndex--;
+      } else {
+        this.currentFrameIndex++;
+      }
+      this._frameAdvanceCount = 1;
+
+      // C#: Decrement frames left to play
+      if (this._leftFrameToPlay > 0) {
+        this._leftFrameToPlay--;
+      }
     }
+  }
+
+  /**
+   * C#: MoveTo(direction, elapsedSeconds)
+   * Move sprite in direction with normalized vector
+   */
+  moveTo(direction: Vector2, elapsedSeconds: number, speedRatio: number = 1.0): void {
+    if (direction.x !== 0 || direction.y !== 0) {
+      // Normalize direction
+      const length = Math.sqrt(direction.x * direction.x + direction.y * direction.y);
+      const normalized = { x: direction.x / length, y: direction.y / length };
+      this.moveToNoNormalizeDirection(normalized, elapsedSeconds, speedRatio);
+    }
+  }
+
+  /**
+   * C#: MoveToNoNormalizeDirection(direction, elapsedSeconds, speedRatio)
+   * Move sprite in direction without normalizing
+   */
+  moveToNoNormalizeDirection(direction: Vector2, elapsedSeconds: number, speedRatio: number = 1.0): void {
+    this.setDirectionFromVector(direction);
+    const moveX = direction.x * this._velocity * elapsedSeconds * speedRatio;
+    const moveY = direction.y * this._velocity * elapsedSeconds * speedRatio;
+    this.positionInWorld = {
+      x: this._positionInWorld.x + moveX,
+      y: this._positionInWorld.y + moveY,
+    };
+    const moveLength = Math.sqrt(moveX * moveX + moveY * moveY);
+    this._movedDistance += moveLength;
+  }
+
+  /**
+   * C#: SetDirection(Vector2 direction)
+   * Calculate direction index from movement vector
+   */
+  setDirectionFromVector(direction: Vector2): void {
+    if ((direction.x !== 0 || direction.y !== 0) && this._texture && this._texture.directions !== 0) {
+      this.currentDirection = this.getDirectionIndex(direction, this._texture.directions);
+    }
+  }
+
+  /**
+   * C#: SetDirection(int direction)
+   */
+  setDirection(direction: number): void {
+    this.currentDirection = direction;
+  }
+
+  /**
+   * C#: Utils.GetDirectionIndex
+   * Get direction index from vector based on direction count
+   * Please see ../Helper/SetDirection.jpg in C# project
+   */
+  protected getDirectionIndex(direction: Vector2, directionCount: number): number {
+    if ((direction.x === 0 && direction.y === 0) || directionCount < 1) return 0;
+
+    const twoPi = Math.PI * 2;
+    // Normalize direction
+    const length = Math.sqrt(direction.x * direction.x + direction.y * direction.y);
+    const normalizedX = direction.x / length;
+    const normalizedY = direction.y / length;
+
+    // C#: var angle = Math.Acos(Vector2.Dot(direction, new Vector2(0, 1)));
+    // Dot product with (0, 1) = direction.Y (since normalized)
+    // Clamp to [-1, 1] to avoid acos domain errors
+    const dot = Math.max(-1, Math.min(1, normalizedY));
+    let angle = Math.acos(dot);
+
+    // C#: if (direction.X > 0) angle = twoPi - angle;
+    if (normalizedX > 0) angle = twoPi - angle;
+
+    // C#: var halfAnglePerDirection = Math.PI / directionCount;
+    const halfAnglePerDirection = Math.PI / directionCount;
+
+    // C#: var region = (int)(angle / halfAnglePerDirection);
+    let region = Math.floor(angle / halfAnglePerDirection);
+
+    // C#: if (region % 2 != 0) region++;
+    if (region % 2 !== 0) region++;
+
+    // C#: region %= 2 * directionCount;
+    region %= 2 * directionCount;
+
+    // C#: return region / 2;
+    return Math.floor(region / 2);
+  }
+
+  /**
+   * C#: GetCurrentTexture()
+   * Returns the current frame's canvas/texture
+   */
+  getCurrentTexture(): HTMLCanvasElement | OffscreenCanvas | null {
+    if (!this._texture) return null;
+    const dir = Math.min(this._currentDirection, this._texture.directions - 1);
+    const frameIdx = getFrameIndex(this._texture, dir, this._currentFrameIndex);
+    if (frameIdx >= 0 && frameIdx < this._texture.frames.length) {
+      return getFrameCanvas(this._texture.frames[frameIdx]);
+    }
+    return null;
   }
 
   /**
