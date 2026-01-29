@@ -22,6 +22,7 @@ import { loadNpcRes, loadCharacterAsf } from "./resFile";
 import { applyConfigToCharacter, extractConfigFromCharacter, extractStatsFromCharacter, type CharacterInstance } from "./iniParser";
 import type { AsfData } from "../sprite/asf";
 import type { AudioManager } from "../audio";
+import type { Obj } from "../obj/obj";
 
 /** 加载中状态标记（-1），确保后续 state 变更时触发纹理更新 */
 export const LOADING_STATE = -1 as CharacterState;
@@ -69,7 +70,7 @@ export abstract class Character extends Sprite implements CharacterInstance {
     attackRadius: number = 0; // C#: 默认 0，getter 返回 1 如果是 0
     dialogRadius: number = 0; // C#: 默认 0，getter 返回 1 如果是 0
   protected _destinationMoveTilePosition: Vector2 = { x: 0, y: 0 };
-  protected _movedDistance: number = 0;
+  // Note: _movedDistance is inherited from Sprite base class
 
   // === State ===
   protected _state: CharacterState = CharacterState.Stand; // 保留 setter 逻辑
@@ -101,6 +102,9 @@ export abstract class Character extends Sprite implements CharacterInstance {
     flyInis: string = ""; // 保留 setter 逻辑
   protected _flyIniInfos: Array<{ useDistance: number; magicIni: string }> = [];
   bodyIni: string = "";
+  bodyIniObj: Obj | null = null;
+  isBodyIniAdded: number = 0;
+  notAddBody: boolean = false;
   scriptFile: string = "";
   scriptFileRight: string = "";
   deathScript: string = "";
@@ -372,7 +376,7 @@ export abstract class Character extends Sprite implements CharacterInstance {
     if (this._state !== value) {
       this._state = value;
       this._currentFrameIndex = 0;
-      this._animationTime = 0;
+      this._elapsedMilliSecond = 0;
       // Update texture based on state - check custom ASF cache first
       this._updateTextureForState(value);
       // Play state sound effect
@@ -523,6 +527,15 @@ export abstract class Character extends Sprite implements CharacterInstance {
   /** C#: IsInFighting */
   get isInFighting(): boolean {
     return this._isInFighting;
+  }
+
+  /** 检查尸体物体是否有效 */
+  get isBodyIniOk(): boolean {
+    return (
+      this.bodyIniObj !== null &&
+      this.bodyIniObj.objFile !== null &&
+      this.bodyIniObj.objFile.size > 0
+    );
   }
 
   /** C#: IsInDeathing */
@@ -949,11 +962,12 @@ export abstract class Character extends Sprite implements CharacterInstance {
   }
 
   /**
-   * C#: MoveTo(direction, elapsedSeconds) / MoveToNoNormalizeDirection
-   * Move character in a direction
+   * C#: Character specific movement by direction index
+   * Move character in a direction (8-direction index)
+   * This is different from Sprite.moveTo which takes a Vector2
    * C# Sprite.cs line 267: MovedDistance += move.Length();
    */
-  moveTo(direction: number, elapsedSeconds: number): void {
+  moveToDirection(direction: number, elapsedSeconds: number): void {
     // C#: ChangeMoveSpeedFold = 1 + AddMoveSpeedPercent / 100 (min -90%)
     const speedPercent = Math.max(MIN_CHANGE_MOVE_SPEED_PERCENT, this.addMoveSpeedPercent);
     const changeMoveSpeedFold = 1 + speedPercent / 100;
@@ -1013,7 +1027,7 @@ export abstract class Character extends Sprite implements CharacterInstance {
     this._positionInWorld.y += moveY;
 
     // Update direction for animation
-    this.setDirectionFromVector(normalizedDir.x, normalizedDir.y);
+    this.setDirectionFromDelta(normalizedDir.x, normalizedDir.y);
 
     // C# Sprite.cs: MovedDistance += move.Length();
     this._movedDistance += Math.sqrt(moveX * moveX + moveY * moveY);
@@ -1304,7 +1318,7 @@ export abstract class Character extends Sprite implements CharacterInstance {
     // C#: SetDirection(DestinationMovePositionInWorld - PositionInWorld);
     const dx = endPixelPos.x - startPixelPos.x;
     const dy = endPixelPos.y - startPixelPos.y;
-    this.setDirectionFromVector(dx, dy);
+    this.setDirectionFromDelta(dx, dy);
 
     // C#: PlayCurrentDirOnce();
     this.playCurrentDirOnce();
@@ -1712,10 +1726,11 @@ export abstract class Character extends Sprite implements CharacterInstance {
 
   /**
    * C#: SetDirection(positionInWorld - PositionInWorld)
-   * Set direction based on a vector (e.g., direction to target)
+   * Set direction based on a delta vector (e.g., direction to target)
    * Used when interacting to face each other
+   * Note: Different signature from Sprite.setDirectionFromVector
    */
-  setDirectionFromVector(dx: number, dy: number): void {
+  setDirectionFromDelta(dx: number, dy: number): void {
     // Use getDirectionFromVector utility which returns 8-direction based on angle
     this._currentDirection = getDirectionFromVector({ x: dx, y: dy });
   }
@@ -2448,6 +2463,21 @@ export abstract class Character extends Sprite implements CharacterInstance {
     // C# Reference: Character.Initlize() calls Set() which sets Texture
     this._updateTextureForState(this._state);
 
+    // Load BodyIni object if specified
+    // C#: BodyIni = new Obj(@"ini\obj\" + keyData.Value)
+    if (this.bodyIni) {
+      try {
+        const { ObjManager } = await import("../obj/objManager");
+        const bodyObj = await ObjManager.loadObjFromFile(this.bodyIni);
+        if (bodyObj) {
+          this.bodyIniObj = bodyObj;
+          console.log(`[Character] Loaded BodyIni: ${this.bodyIni}`);
+        }
+      } catch (err) {
+        console.warn(`[Character] Failed to load BodyIni ${this.bodyIni}:`, err);
+      }
+    }
+
     console.log(`[Character] Loaded sprites from NpcRes: ${iniFile}`);
     return true;
   }
@@ -2557,7 +2587,7 @@ export abstract class Character extends Sprite implements CharacterInstance {
     // Just do the cleanup work
     this._state = CharacterState.Stand;
     this._currentFrameIndex = 0;
-    this._animationTime = 0;
+    this._elapsedMilliSecond = 0;
     this._leftFrameToPlay = 0;
     // Update texture with custom ASF support
     this._updateTextureForState(CharacterState.Stand);

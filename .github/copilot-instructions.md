@@ -411,11 +411,34 @@ const content = decoder.decode(buffer);
 - 常量: `UPPER_SNAKE_CASE` (TILE_WIDTH)
 - 接口: `PascalCase` (CharacterData)
 - 文件: TS用 `camelCase.ts`, React用 `PascalCase.tsx`
+- **禁止**：属性名使用 `_` 下划线前缀（除非是必须隐藏的私有字段且有对应的 getter/setter 逻辑）
+
+### 类属性规范
+- **禁止无意义的 getter/setter**：如果只是简单返回或设置值，直接使用公共属性
+- **只在需要时使用 getter**：
+  - ✅ 计算属性（如 `get isBodyIniOk()` 需要检查多个条件）
+  - ✅ 有副作用的 setter（如设置值时需要触发其他逻辑）
+  - ❌ 简单的值存取（直接用 `public` 属性）
+
+```typescript
+// ❌ 错误：无意义的 getter/setter
+protected _name: string = "";
+get name(): string { return this._name; }
+set name(value: string) { this._name = value; }
+
+// ✅ 正确：直接使用公共属性
+name: string = "";
+
+// ✅ 正确：有逻辑的计算属性
+get isBodyIniOk(): boolean {
+  return this.bodyIniObj !== null && this.bodyIniObj.objFile.size > 0;
+}
+```
 
 ### 注释规范
-- 标注对应的 C# 文件
-- 解释复杂的游戏逻辑
-- 说明与 C# 版本的差异
+- **禁止**：`// C#: xxx` 这类照搬 C# 的注释
+- **推荐**：用中文解释复杂的游戏逻辑
+- **推荐**：说明与 C# 版本的重要差异（用自然语言，不是 C# 代码）
 
 ---
 

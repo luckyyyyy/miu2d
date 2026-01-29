@@ -1026,19 +1026,32 @@ export class Player extends Character {
   // === Helpers ===
 
   /**
-   * Update animation (calls Sprite.update)
+   * Update animation (calls Sprite.update directly)
    */
   private updateAnimation(deltaTime: number): void {
     // Call Sprite.update directly (not Character.update to avoid recursion)
     if (this._texture && this._isShow) {
       const deltaMs = deltaTime * 1000;
-      this._animationTime += deltaMs;
+      this._elapsedMilliSecond += deltaMs;
 
       const frameInterval = this._texture.interval || 100;
 
-      while (this._animationTime >= frameInterval) {
-        this._animationTime -= frameInterval;
-        this._advanceFrame();
+      // C#: Only advance if elapsed > interval
+      if (this._elapsedMilliSecond > frameInterval) {
+        this._elapsedMilliSecond -= frameInterval;
+
+        // C#: Advance frame based on reverse flag
+        if (this.isInPlaying && this._isPlayReverse) {
+          this.currentFrameIndex--;
+        } else {
+          this.currentFrameIndex++;
+        }
+        this._frameAdvanceCount = 1;
+
+        // C#: Decrement frames left to play
+        if (this._leftFrameToPlay > 0) {
+          this._leftFrameToPlay--;
+        }
       }
     }
   }

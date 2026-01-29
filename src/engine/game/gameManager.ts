@@ -71,6 +71,8 @@ export interface GameManagerConfig {
   onMapChange?: (mapPath: string) => Promise<JxqyMapData | null>;
   onLoadComplete?: () => void;
   getCanvas?: () => HTMLCanvasElement | null;
+  // 立即将摄像机居中到玩家位置（用于加载存档后避免摄像机飞过去）
+  centerCameraOnPlayer?: () => void;
 }
 
 /**
@@ -182,6 +184,9 @@ export class GameManager {
     // Set audio manager for NPC sounds (death sound, etc.)
     // C# Reference: Character.SetState() plays sound via NpcIni[(int)state].Sound
     this.npcManager.setAudioManager(this.audioManager);
+    // Set ObjManager for adding body objects when NPCs die
+    // C#: NpcManager.Update adds npc.BodyIni to ObjManager when NPC dies
+    this.npcManager.setObjManager(this.objManager);
     this.guiManager = new GuiManager(this.events, this.memoListManager);
 
     // Set collision checker managers
@@ -300,6 +305,8 @@ export class GameManager {
       },
       getCurrentMapName: () => this.currentMapName,
       getCanvas: () => this.config.getCanvas?.() ?? null,
+      // 加载存档后立即居中摄像机（避免摄像机飞过去）
+      centerCameraOnPlayer: () => this.config.centerCameraOnPlayer?.(),
     });
 
     // Subscribe to GUI events via EventEmitter
