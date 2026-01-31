@@ -17,7 +17,6 @@ import { DebugPanel, Game, GameCursorContainer, SaveLoadGui, SaveLoadPanel, Sett
 import { logger } from "../engine/core/logger";
 import { GameEngine } from "../engine/game/gameEngine";
 import { resourceLoader } from "../engine/resource/resourceLoader";
-import { GameEvents, type ReturnToTitleEvent } from "../engine/core/gameEvents";
 
 // 侧边栏宽度常量
 const SIDEBAR_WIDTH = 48;
@@ -97,9 +96,11 @@ export default function GameScreen() {
   const [, forceUpdate] = useState({});
   // 标题界面读档弹窗状态
   const [showTitleLoadModal, setShowTitleLoadModal] = useState(false);
+  // 标记是否已经处理过 URL 参数（防止从游戏返回标题后再次自动进入）
+  const urlLoadHandledRef = useRef(false);
 
   // 获取 URL 参数
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const urlLoadSlot = useMemo(() => {
     const loadParam = searchParams.get("load");
     if (loadParam) {
@@ -114,9 +115,10 @@ export default function GameScreen() {
   // 实际使用的 loadSlot（优先使用 loadSlotOverride，然后是 URL 参数）
   const loadSlot = loadSlotOverride ?? urlLoadSlot;
 
-  // 如果 URL 有 load 参数，直接进入游戏
+  // 如果 URL 有 load 参数，直接进入游戏（只处理一次）
   useEffect(() => {
-    if (urlLoadSlot && gamePhase === "title") {
+    if (urlLoadSlot && gamePhase === "title" && !urlLoadHandledRef.current) {
+      urlLoadHandledRef.current = true;
       setGamePhase("playing");
       setActivePanel("debug"); // 游戏中默认显示调试面板
     }
@@ -212,13 +214,19 @@ export default function GameScreen() {
     // 销毁引擎
     GameEngine.destroy();
 
+    // 清除 URL 中的 load 参数，防止自动重新进入游戏
+    if (searchParams.has("load")) {
+      searchParams.delete("load");
+      setSearchParams(searchParams, { replace: true });
+    }
+
     // 重置状态
     setGamePhase("title");
     setActivePanel("none");
     setLoadSlotOverride(undefined);
 
     logger.log("[GameScreen] Returned to title");
-  }, []);
+  }, [searchParams, setSearchParams]);
 
   // 定期更新调试面板（只在游戏中）
   useEffect(() => {
@@ -229,20 +237,6 @@ export default function GameScreen() {
     }, 500);
     return () => clearInterval(interval);
   }, [gamePhase]);
-
-  // 监听返回标题事件
-  useEffect(() => {
-    if (gamePhase !== "playing") return;
-
-    const engine = getEngine();
-    if (!engine) return;
-
-    const unsub = engine.getEvents().on(GameEvents.RETURN_TO_TITLE, (_event: ReturnToTitleEvent) => {
-      handleReturnToTitle();
-    });
-
-    return () => unsub();
-  }, [gamePhase, getEngine, handleReturnToTitle]);
 
   // 标题界面 - 开始新游戏
   const handleNewGame = useCallback(() => {
@@ -602,6 +596,7 @@ export default function GameScreen() {
               width={windowSize.width}
               height={windowSize.height}
               loadSlot={loadSlot}
+              onReturnToTitle={handleReturnToTitle}
             />
           </GameCursorContainer>
         </>

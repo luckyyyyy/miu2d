@@ -297,6 +297,8 @@ export class GameEngine implements IEngineContext {
       GameEngine.instance.stop();
       GameEngine.instance.events.clear();
       GameEngine.instance = null;
+      // 同时清除便捷函数的缓存
+      engineInstance = null;
     }
   }
 
@@ -1966,4 +1968,12 @@ export function getGameEngine(config?: GameEngineConfig): GameEngine {
     engineInstance = GameEngine.getInstance(config);
   }
   return engineInstance;
+}
+
+/**
+ * 清除便捷函数的引擎实例缓存
+ * 在 GameEngine.destroy() 后调用
+ */
+export function clearEngineInstance(): void {
+  engineInstance = null;
 }
