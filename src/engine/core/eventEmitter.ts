@@ -51,7 +51,6 @@ export class EventEmitter {
    */
   emit<T = any>(event: string, data?: T): void {
     const callbacks = this.listeners.get(event);
-    logger.log(`[EventEmitter] emit: ${event}, listeners: ${callbacks?.size ?? 0}`);
     if (callbacks) {
       callbacks.forEach((callback) => {
         try {
