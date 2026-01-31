@@ -29,6 +29,14 @@ export class DeathInfo {
   }
 }
 
+/** 视野区域类型 */
+export interface ViewRect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 /** NpcManager 类 - 对应 C# NpcManager.cs */
 export class NpcManager {
   // Internal storage uses Npc class instances
@@ -42,6 +50,12 @@ export class NpcManager {
 
   // C#: DeathInfos - tracks recently dead characters for CheckKeepDistanceWhenFriendDeath
   private _deathInfos: DeathInfo[] = [];
+
+  // === 性能优化：预计算视野内 NPC ===
+  // C# Reference: NpcManager._npcInView, UpdateNpcsInView()
+  // 在 Update 阶段预计算，Render 阶段直接使用，避免每帧重复遍历
+  private _npcsInView: Npc[] = [];
+  private _npcsByRow: Map<number, Npc[]> = new Map();
 
   /**
    * 获取 Player（通过 IEngineContext）
@@ -152,17 +166,74 @@ export class NpcManager {
     return this.npcs;
   }
 
+  // === 性能优化：预计算视野内 NPC ===
+
+  /**
+   * 在 Update 阶段预计算视野内 NPC（每帧调用一次）
+   * C# Reference: NpcManager.UpdateNpcsInView()
+   * 同时按行分组，供交错渲染使用
+   */
+  updateNpcsInView(viewRect: ViewRect): void {
+    // 清空上一帧的缓存
+    this._npcsInView.length = 0;
+    this._npcsByRow.clear();
+
+    const viewRight = viewRect.x + viewRect.width;
+    const viewBottom = viewRect.y + viewRect.height;
+
+    for (const [, npc] of this.npcs) {
+      // C#: if (viewRegion.Intersects(npc.RegionInWorld))
+      const region = npc.regionInWorld;
+      const regionRight = region.x + region.width;
+      const regionBottom = region.y + region.height;
+
+      // AABB 交集检测
+      if (
+        region.x < viewRight &&
+        regionRight > viewRect.x &&
+        region.y < viewBottom &&
+        regionBottom > viewRect.y
+      ) {
+        this._npcsInView.push(npc);
+
+        // 同时按行分组（用于交错渲染）
+        if (npc.isVisible) {
+          const row = npc.tilePosition.y;
+          let list = this._npcsByRow.get(row);
+          if (!list) {
+            list = [];
+            this._npcsByRow.set(row, list);
+          }
+          list.push(npc);
+        }
+      }
+    }
+  }
+
+  /**
+   * 获取预计算的视野内 NPC 列表（只读）
+   * C# Reference: NpcManager.NpcsInView property
+   * 在 Render 阶段使用，避免重复计算
+   */
+  get npcsInView(): readonly Npc[] {
+    return this._npcsInView;
+  }
+
+  /**
+   * 获取指定行的 NPC 列表（用于交错渲染）
+   * 返回预计算的结果，避免每帧重建 Map
+   */
+  getNpcsAtRow(row: number): readonly Npc[] {
+    return this._npcsByRow.get(row) ?? [];
+  }
+
   /**
    * Get NPCs within a view region
    * C# Reference: NpcManager.GetNpcsInView()
    * Returns NPCs whose RegionInWorld intersects with viewRect
+   * 注意：渲染时优先使用预计算的 npcsInView 和 getNpcsAtRow
    */
-  getNpcsInView(viewRect: {
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-  }): Npc[] {
+  getNpcsInView(viewRect: ViewRect): Npc[] {
     const result: Npc[] = [];
     const viewRight = viewRect.x + viewRect.width;
     const viewBottom = viewRect.y + viewRect.height;

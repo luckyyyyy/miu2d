@@ -381,13 +381,6 @@ export interface MagicItemInfo {
 }
 
 /**
- * @deprecated Use MagicSprite class instead
- * MagicSpriteState interface is replaced by MagicSprite class which extends Sprite
- * See: src/engine/magic/magicSprite.ts
- */
-// Old MagicSpriteState interface removed - now using MagicSprite class
-
-/**
  * 武功使用参数
  */
 export interface UseMagicParams {

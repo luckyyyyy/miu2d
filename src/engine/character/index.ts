@@ -35,7 +35,6 @@ export {
 export { NpcManager } from "./npcManager";
 // ResFile utilities - INI file loading (based on C# ResFile.cs)
 export {
-  clearNpcResCache,
   // ASF loading
   loadCharacterAsf,
   loadNpcConfig,

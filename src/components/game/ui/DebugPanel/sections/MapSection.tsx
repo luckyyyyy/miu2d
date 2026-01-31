@@ -17,7 +17,7 @@ export const MapSection: React.FC<MapSectionProps> = ({
   triggeredTrapIds,
 }) => {
   return (
-    <Section title="地图信息">
+    <Section title="地图信息" defaultOpen={false}>
       <div className="space-y-px">
         <DataRow label="地图" value={loadedResources.mapName || "N/A"} />
         <DataRow label="NPC数" value={loadedResources.npcCount} />

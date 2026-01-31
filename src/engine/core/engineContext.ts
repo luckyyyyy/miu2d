@@ -69,8 +69,16 @@ export interface INpcManager {
   getAllNpcs(): Map<string, INpc>;
 
   /**
+   * 获取预计算的视野内 NPC 列表（只读）
+   * C# Reference: NpcManager.NpcsInView property
+   * 在 Update 阶段预计算，Render 阶段直接使用
+   */
+  readonly npcsInView: readonly INpc[];
+
+  /**
    * 获取视野内的 NPC
    * C# Reference: NpcManager.GetNpcsInView()
+   * 注意：渲染时优先使用预计算的 npcsInView
    */
   getNpcsInView(viewRect: { x: number; y: number; width: number; height: number }): INpc[];
 

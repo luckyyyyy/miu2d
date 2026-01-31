@@ -10,6 +10,7 @@ import {
   CharacterSection,
   ItemMagicSection,
   MapSection,
+  PerformanceSection,
   QuickActionsSection,
   ResourceSection,
   ScriptExecuteSection,
@@ -26,6 +27,7 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({
   playerPosition,
   loadedResources,
   resourceStats,
+  performanceStats,
   gameVariables,
   xiuLianMagic,
   triggeredTrapIds,
@@ -67,6 +69,9 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({
         className="flex-1 overflow-y-auto"
         style={{ scrollbarWidth: "thin", scrollbarColor: "#52525b transparent" }}
       >
+        {/* 性能统计 */}
+        {performanceStats && <PerformanceSection performanceStats={performanceStats} />}
+
         {/* 角色状态 */}
         {playerStats && (
           <CharacterSection playerStats={playerStats} playerPosition={playerPosition} />

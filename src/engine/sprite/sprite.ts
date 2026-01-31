@@ -578,17 +578,6 @@ export class Sprite {
     }
   }
 
-  /** @deprecated 使用 drawHighlight 替代 */
-  protected drawHighlightEdge(
-    ctx: CanvasRenderingContext2D,
-    canvas: HTMLCanvasElement | OffscreenCanvas,
-    screenX: number,
-    screenY: number,
-    color: string
-  ): void {
-    ctx.drawImage(getOuterEdge(canvas, color), screenX, screenY);
-  }
-
   // ============= 自定义动作文件 =============
 
   setCustomActionFile(state: number, asfFile: string): void {

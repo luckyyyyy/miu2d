@@ -2123,17 +2123,11 @@ export class Player extends Character {
       }
     }
 
-    // 检测与视野内 NPC 的碰撞（优化：使用 getNpcsInView 而不是遍历所有 NPC）
+    // 检测与视野内 NPC 的碰撞
+    // 性能优化：使用 Update 阶段预计算的 npcsInView，已经过滤了视野外的 NPC
     const npcManager = engine.getNpcManager();
     if (npcManager) {
-      // 构建视野区域（玩家周围的区域）
-      const viewRect = {
-        x: playerRegion.x - 100,
-        y: playerRegion.y - 100,
-        width: playerRegion.width + 200,
-        height: playerRegion.height + 200,
-      };
-      const npcsInView = npcManager.getNpcsInView(viewRect);
+      const npcsInView = npcManager.npcsInView;
 
       for (const npc of npcsInView) {
         if (!npc.isVisible || npc.isHide) continue;

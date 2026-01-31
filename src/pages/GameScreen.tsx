@@ -525,6 +525,7 @@ export default function GameScreen() {
                     playerPosition={debugManager?.getPlayerPosition() ?? undefined}
                     loadedResources={debugManager?.getLoadedResources() ?? undefined}
                     resourceStats={resourceLoader.getStats()}
+                    performanceStats={getEngine()?.getPerformanceStats()}
                     gameVariables={debugManager?.getGameVariables()}
                     xiuLianMagic={debugManager?.getXiuLianMagic() ?? undefined}
                     triggeredTrapIds={debugManager?.getTriggeredTrapIds()}
