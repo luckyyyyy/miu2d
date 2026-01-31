@@ -14,7 +14,7 @@
  */
 
 // Class-based exports
-export { Character } from "./character";
+export { Character, type MagicToUseInfoItem } from "./character";
 // INI Parser - data-driven config parsing (new, replaces verbose switch-case)
 export {
   applyConfigToCharacter,
@@ -35,8 +35,9 @@ export {
 export { NpcManager } from "./npcManager";
 // ResFile utilities - INI file loading (based on C# ResFile.cs)
 export {
-  // ASF loading
+  // Image loading (ASF/MPC with optional SHD shadow)
   loadCharacterAsf,
+  loadCharacterImage,
   loadNpcConfig,
   loadNpcRes,
   // NpcRes (state -> ASF mappings)

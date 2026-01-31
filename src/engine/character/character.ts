@@ -42,12 +42,27 @@ import {
   extractConfigFromCharacter,
   extractStatsFromCharacter,
 } from "./iniParser";
-import { loadCharacterAsf, loadNpcRes } from "./resFile";
+import { loadCharacterAsf, loadCharacterImage, loadNpcRes } from "./resFile";
 import { getEffectAmount } from "../magic/effects/common";
 import { LevelManager } from "./level/levelManager";
+import type { Npc } from "./npc";
 
 /** 加载中状态标记（-1），确保后续 state 变更时触发纹理更新 */
 export const LOADING_STATE = -1 as CharacterState;
+
+/**
+ * 被攻击时使用的武功信息项
+ * C# Reference: Character.MagicToUseInfoItem
+ * 来源可以是装备（from 为装备文件名）或武功（from 为武功文件名）
+ */
+export interface MagicToUseInfoItem {
+  /** 来源标识（装备或武功文件名），用于移除时匹配 */
+  from: string;
+  /** 武功数据 */
+  magic: MagicData;
+  /** 武功释放方向：0=攻击者方向, 1=武功精灵反方向, 2=NPC当前朝向 */
+  dir: number;
+}
 
 /** 战斗状态超时时间（秒），超过此时间无战斗动作则自动退出战斗状态 */
 const MAX_NON_FIGHT_SECONDS = 7;
@@ -245,6 +260,16 @@ export abstract class Character extends Sprite implements CharacterInstance {
   // === SummonedByMagicSprite (C#: SummonedByMagicSprite) ===
   // 召唤来源 - 记录召唤此角色的武功精灵
   summonedByMagicSprite: MagicSprite | null = null;
+
+  // === SummonedNpcs (C#: _summonedNpcs) ===
+  // 召唤的 NPC 字典 - 按武功文件名分组，用于限制召唤数量
+  // C# Reference: Dictionary<string, LinkedList<Npc>> _summonedNpcs
+  protected _summonedNpcs: Map<string, Npc[]> = new Map();
+
+  // === MagicToUseWhenAttackedList (C#: MagicToUseWhenAttackedList) ===
+  // 被攻击时触发的武功列表（来自装备或武功附带效果）
+  // C# Reference: LinkedList<MagicToUseInfoItem> MagicToUseWhenAttackedList
+  magicToUseWhenAttackedList: MagicToUseInfoItem[] = [];
 
   // === MagicSpritesInEffect (C#: LinkedList<MagicSprite> MagicSpritesInEffect) ===
   protected _magicSpritesInEffect: MagicSprite[] = [];
@@ -958,6 +983,86 @@ export abstract class Character extends Sprite implements CharacterInstance {
   follow(target: Character): void {
     this.followTarget = target;
     this.isFollowTargetFound = true;
+  }
+
+  // === SummonedNpcs Management (C#: _summonedNpcs) ===
+
+  /**
+   * 获取指定武功召唤的 NPC 数量
+   * C# Reference: Character.SummonedNpcsCount(Magic magic)
+   * @param magicFileName 武功文件名
+   */
+  summonedNpcsCount(magicFileName: string): number {
+    const list = this._summonedNpcs.get(magicFileName);
+    return list ? list.length : 0;
+  }
+
+  /**
+   * 添加召唤的 NPC
+   * C# Reference: Character.AddSummonedNpc(Magic magic, Npc npc)
+   * @param magicFileName 武功文件名
+   * @param npc 召唤的 NPC
+   */
+  addSummonedNpc(magicFileName: string, npc: Npc): void {
+    let list = this._summonedNpcs.get(magicFileName);
+    if (!list) {
+      list = [];
+      this._summonedNpcs.set(magicFileName, list);
+    }
+    list.push(npc);
+  }
+
+  /**
+   * 移除最早召唤的 NPC（当超过 MaxCount 时调用）
+   * C# Reference: Character.RemoveFirstSummonedNpc(Magic magic)
+   * 会同时让该 NPC 死亡
+   * @param magicFileName 武功文件名
+   */
+  removeFirstSummonedNpc(magicFileName: string): void {
+    const list = this._summonedNpcs.get(magicFileName);
+    if (!list || list.length === 0) return;
+
+    const npc = list.shift(); // 移除第一个（最早召唤的）
+    if (npc) {
+      npc.death();
+    }
+  }
+
+  /**
+   * 清理已死亡的召唤 NPC
+   * C# Reference: Character.Update() 中的 foreach(var item in _summonedNpcs)
+   * 在 update 循环中调用
+   */
+  protected cleanupDeadSummonedNpcs(): void {
+    for (const [magicFileName, list] of this._summonedNpcs) {
+      // 过滤掉已死亡的 NPC
+      const aliveNpcs = list.filter(npc => !npc.isDeath);
+      if (aliveNpcs.length !== list.length) {
+        this._summonedNpcs.set(magicFileName, aliveNpcs);
+      }
+    }
+  }
+
+  // === MagicToUseWhenAttackedList Management ===
+
+  /**
+   * 移除指定来源的被攻击触发武功
+   * C# Reference: Character.RemoveMagicToUseWhenAttackedList(string from)
+   * @param from 来源标识（装备或武功文件名）
+   */
+  removeMagicToUseWhenAttackedList(from: string): void {
+    this.magicToUseWhenAttackedList = this.magicToUseWhenAttackedList.filter(
+      item => item.from !== from
+    );
+  }
+
+  /**
+   * 添加被攻击触发武功到列表
+   * C# Reference: Character.MagicToUseWhenAttackedList.AddLast(new MagicToUseInfoItem {...})
+   * @param info 武功信息项
+   */
+  addMagicToUseWhenAttackedList(info: MagicToUseInfoItem): void {
+    this.magicToUseWhenAttackedList.push(info);
   }
 
   /**
@@ -2862,6 +2967,10 @@ export abstract class Character extends Sprite implements CharacterInstance {
 
     const deltaMs = deltaTime * 1000;
 
+    // === SummonedNpcs Cleanup - 清理已死亡的召唤 NPC ===
+    // C# Reference: Character.Update - foreach(var item in _summonedNpcs)
+    this.cleanupDeadSummonedNpcs();
+
     // === LifeMilliseconds - 召唤物存活时间 ===
     // C# Reference: Character.Update - if (_lifeMilliseconds > 0)
     if (this._lifeMilliseconds > 0) {
@@ -3603,7 +3712,9 @@ export abstract class Character extends Sprite implements CharacterInstance {
     for (const [state, info] of stateMap) {
       const key = stateToKey[state];
       if (key && info.imagePath) {
-        const promise = loadCharacterAsf(info.imagePath).then((asf) => {
+        // Use loadCharacterImage which handles both ASF and MPC formats
+        // MPC files can have optional SHD shadow data
+        const promise = loadCharacterImage(info.imagePath, info.shadePath).then((asf) => {
           if (asf) {
             spriteSet[key] = asf;
           }

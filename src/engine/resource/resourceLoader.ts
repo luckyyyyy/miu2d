@@ -35,6 +35,7 @@ export type ResourceType =
   | "level" // 游戏配置
   | "asf"
   | "mpc"
+  | "shd"
   | "script" // 二进制解析结果
   | "other";
 
@@ -69,6 +70,7 @@ export interface ResourceStats {
     level: { requests: number; hits: number; dedupeHits: number; loads: number };
     asf: { requests: number; hits: number; dedupeHits: number; loads: number };
     mpc: { requests: number; hits: number; dedupeHits: number; loads: number };
+    shd: { requests: number; hits: number; dedupeHits: number; loads: number };
     script: { requests: number; hits: number; dedupeHits: number; loads: number };
     other: { requests: number; hits: number; dedupeHits: number; loads: number };
   };
@@ -127,6 +129,7 @@ class ResourceLoaderImpl {
       level: { requests: 0, hits: 0, dedupeHits: 0, loads: 0 },
       asf: { requests: 0, hits: 0, dedupeHits: 0, loads: 0 },
       mpc: { requests: 0, hits: 0, dedupeHits: 0, loads: 0 },
+      shd: { requests: 0, hits: 0, dedupeHits: 0, loads: 0 },
       script: { requests: 0, hits: 0, dedupeHits: 0, loads: 0 },
       other: { requests: 0, hits: 0, dedupeHits: 0, loads: 0 },
     },
@@ -819,6 +822,7 @@ class ResourceLoaderImpl {
         level: { requests: 0, hits: 0, dedupeHits: 0, loads: 0 },
         asf: { requests: 0, hits: 0, dedupeHits: 0, loads: 0 },
         mpc: { requests: 0, hits: 0, dedupeHits: 0, loads: 0 },
+        shd: { requests: 0, hits: 0, dedupeHits: 0, loads: 0 },
         script: { requests: 0, hits: 0, dedupeHits: 0, loads: 0 },
         other: { requests: 0, hits: 0, dedupeHits: 0, loads: 0 },
       },

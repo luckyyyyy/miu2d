@@ -14,6 +14,7 @@ import { parseIni } from "../core/utils";
 import { resourceLoader } from "../resource/resourceLoader";
 import { type AsfData, loadAsf } from "../sprite/asf";
 import { ResourcePath } from "@/config/resourcePaths";
+import { loadMpcWithShadow } from "../resource/mpc";
 
 // Re-export from iniParser for backward compatibility
 export {
@@ -26,7 +27,8 @@ export {
  * Based on C# ResStateInfo
  */
 export interface NpcResStateInfo {
-  imagePath: string; // ASF file name
+  imagePath: string; // ASF or MPC file name
+  shadePath: string; // SHD file name (for MPC only)
   soundPath: string; // WAV file name
 }
 
@@ -67,6 +69,7 @@ export function parseNpcResIni(content: string): Map<number, NpcResStateInfo> {
     if (state !== undefined && keys.Image) {
       stateMap.set(state, {
         imagePath: keys.Image,
+        shadePath: keys.Shade || "",
         soundPath: keys.Sound || "",
       });
     }
@@ -97,6 +100,71 @@ export async function loadCharacterAsf(asfFileName: string): Promise<AsfData | n
 
   logger.warn(`[ResFile] ASF not found: ${asfFileName}`);
   return null;
+}
+
+/**
+ * Load character sprite image (ASF or MPC format)
+ * Based on C# ResFile.GetStateInfo() which checks file extension
+ *
+ * @param imagePath - Image filename (can be .asf or .mpc)
+ * @param shadePath - Optional SHD shadow filename (for MPC only)
+ * @returns AsfData if successful, null otherwise
+ */
+export async function loadCharacterImage(
+  imagePath: string,
+  shadePath?: string
+): Promise<AsfData | null> {
+  const ext = imagePath.toLowerCase().slice(-4);
+  const encodedImageName = encodeURIComponent(imagePath);
+
+  if (ext === ".mpc") {
+    // MPC format - load from mpc/character/ directory with optional SHD
+    const mpcPath = ResourcePath.mpcCharacter(encodedImageName);
+    let shdPath: string | undefined;
+    if (shadePath) {
+      shdPath = ResourcePath.mpcCharacter(encodeURIComponent(shadePath));
+    }
+
+    const mpc = await loadMpcWithShadow(mpcPath, shdPath);
+    if (mpc) {
+      // Convert MPC to AsfData format for unified handling
+      return mpcToAsfData(mpc);
+    }
+    logger.warn(`[ResFile] MPC not found: ${imagePath}`);
+    return null;
+  }
+
+  // Default: ASF format
+  return loadCharacterAsf(imagePath);
+}
+
+/**
+ * Convert MPC data to AsfData format
+ * This allows unified sprite handling regardless of source format
+ */
+function mpcToAsfData(mpc: import("../core/mapTypes").Mpc): AsfData {
+  const directions = mpc.head.direction || 1;
+  const frameCount = mpc.head.frameCounts;
+  const framesPerDirection = directions > 0 ? Math.floor(frameCount / directions) : frameCount;
+
+  return {
+    width: mpc.head.globleWidth,
+    height: mpc.head.globleHeight,
+    frameCount: frameCount,
+    directions: directions,
+    colorCount: mpc.head.colourCounts,
+    interval: mpc.head.interval,
+    left: mpc.head.left,
+    bottom: mpc.head.bottom,
+    framesPerDirection: framesPerDirection,
+    frames: mpc.frames.map((frame) => ({
+      width: frame.width,
+      height: frame.height,
+      imageData: frame.imageData,
+      canvas: null, // Will be created on first render if needed
+    })),
+    isLoaded: true,
+  };
 }
 
 /**

@@ -1888,6 +1888,18 @@ export class Player extends Character {
       this.addMoveSpeedPercent += equip.changeMoveSpeedPercent;
       this._addMagicEffectPercent += equip.addMagicEffectPercent;
       this._addMagicEffectAmount += equip.addMagicEffectAmount;
+
+      // C# Reference: Character.Equiping - MagicToUseWhenBeAttacked 处理
+      // if (!string.IsNullOrEmpty(equip.MagicToUseWhenBeAttacked.GetValue())) {
+      //     MagicToUseWhenAttackedList.AddLast(new MagicToUseInfoItem { From = equip.FileName, Magic = ..., Dir = ... });
+      // }
+      if (equip.magicToUseWhenBeAttacked) {
+        this.loadAndAddEquipMagicToUseWhenBeAttacked(
+          equip.fileName,
+          equip.magicToUseWhenBeAttacked,
+          equip.magicDirectionWhenBeAttacked
+        );
+      }
     }
 
     if (this.life > this.lifeMax) this.life = this.lifeMax;
@@ -1933,9 +1945,44 @@ export class Player extends Character {
     this._addMagicEffectPercent -= equip.addMagicEffectPercent;
     this._addMagicEffectAmount -= equip.addMagicEffectAmount;
 
+    // C# Reference: Character.UnEquiping - MagicToUseWhenBeAttacked 处理
+    // if (!string.IsNullOrEmpty(equip.MagicToUseWhenBeAttacked.GetValue())) {
+    //     RemoveMagicToUseWhenAttackedList(equip.FileName);
+    // }
+    if (equip.magicToUseWhenBeAttacked) {
+      this.removeMagicToUseWhenAttackedList(equip.fileName);
+    }
+
     if (this.life > this.lifeMax) this.life = this.lifeMax;
     if (this.thew > this.thewMax) this.thew = this.thewMax;
     if (this.mana > this.manaMax) this.mana = this.manaMax;
+  }
+
+  /**
+   * 异步加载并添加装备的被攻击触发武功
+   * C# Reference: Character.Equiping - MagicToUseWhenAttackedList.AddLast
+   */
+  private async loadAndAddEquipMagicToUseWhenBeAttacked(
+    equipFileName: string,
+    magicFileName: string,
+    direction: number
+  ): Promise<void> {
+    try {
+      const baseMagic = await loadMagic(magicFileName);
+      if (!baseMagic) {
+        logger.warn(`[Player] Failed to load MagicToUseWhenBeAttacked: ${magicFileName}`);
+        return;
+      }
+      const magic = getMagicAtLevel(baseMagic, this.attackLevel);
+      this.addMagicToUseWhenAttackedList({
+        from: equipFileName,
+        magic,
+        dir: direction,
+      });
+      logger.log(`[Player] Added MagicToUseWhenBeAttacked from equip ${equipFileName}: ${magic.name}`);
+    } catch (err) {
+      logger.error(`[Player] Error loading MagicToUseWhenBeAttacked: ${err}`);
+    }
   }
 
   useDrug(drug: Good): boolean {

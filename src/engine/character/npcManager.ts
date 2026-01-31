@@ -758,27 +758,25 @@ export class NpcManager {
         }
 
         // C#: ObjManager.AddObj(GoodDrop.GetDropObj(npc)) - 掉落物品
-        // 召唤出来的 NPC 不掉落物品（isSummoned 由上面已计算）
-        // 构造 DropCharacter 接口需要的数据
-        if (!isSummoned) {
-          const dropCharacter: DropCharacter = {
-            name: npc.name,
-            level: npc.level,
-            tilePosition: { ...npc.tilePosition },
-            isEnemy: npc.isEnemy,
-            expBonus: npc.expBonus,
-            noDropWhenDie: npc.noDropWhenDie,
-            dropIni: npc.dropIni,
-          };
+        // 注意：C# 中掉落逻辑不检查是否为召唤 NPC，所有满足条件的 NPC 都可以掉落
+        // GoodDrop.GetDropObj 内部会检查 IsEnemy 和 NoDropWhenDie
+        const dropCharacter: DropCharacter = {
+          name: npc.name,
+          level: npc.level,
+          tilePosition: { ...npc.tilePosition },
+          isEnemy: npc.isEnemy,
+          expBonus: npc.expBonus,
+          noDropWhenDie: npc.noDropWhenDie,
+          dropIni: npc.dropIni,
+        };
 
-          // 异步获取掉落物品并添加到场景
-          // 使用 void 操作符表明我们有意不等待这个 Promise
-          void getDropObj(dropCharacter, isDropEnabled).then((dropObj) => {
-            if (dropObj && objManager) {
-              objManager.addObj(dropObj);
-            }
-          });
-        }
+        // 异步获取掉落物品并添加到场景
+        // 使用 void 操作符表明我们有意不等待这个 Promise
+        void getDropObj(dropCharacter, isDropEnabled).then((dropObj) => {
+          if (dropObj && objManager) {
+            objManager.addObj(dropObj);
+          }
+        });
 
         // C#: if (npc.ReviveMilliseconds == 0) { DeleteNpc(node); }
         // Remove NPC if no revive time

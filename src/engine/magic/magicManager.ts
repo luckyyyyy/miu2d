@@ -438,7 +438,7 @@ export class MagicManager {
 
   /**
    * 处理被攻击时使用的武功
-   * C# Reference: MagicSprite.CharacterHited - MagicToUseWhenBeAttacked
+   * C# Reference: MagicSprite.CharacterHited - MagicToUseWhenBeAttacked + MagicToUseWhenAttackedList
    *
    * enum BeAttackedUseMagicDirection:
    * - Attacker (0): 攻击者位置
@@ -450,40 +450,47 @@ export class MagicManager {
     target: Character,
     attacker: Character | null
   ): void {
-    if (!target.magicToUseWhenBeAttacked) return;
-
-    // 获取武功数据（NPC 已预加载，Player 需要加载）
-    let magicData: MagicData | null = null;
-    if (target.isPlayer && this.player) {
-      // Player 的 magicToUseWhenBeAttacked 需要动态加载
-      loadMagic(target.magicToUseWhenBeAttacked).then((baseMagic) => {
-        if (!baseMagic) return;
-        const magic = getMagicAtLevel(baseMagic, target.level);
-        this.triggerBeAttackedMagic(sprite, target, attacker, magic);
-      }).catch((err) => {
-        logger.error(`[MagicManager] Failed to load MagicToUseWhenBeAttacked: ${err}`);
-      });
-    } else {
-      // NPC 的武功数据可能已预加载
-      const npc = target as { _magicToUseWhenBeAttackedData?: MagicData };
-      if (npc._magicToUseWhenBeAttackedData) {
-        this.triggerBeAttackedMagic(sprite, target, attacker, npc._magicToUseWhenBeAttackedData);
+    // 1. 处理角色自身的 magicToUseWhenBeAttacked（来自 INI 配置）
+    if (target.magicToUseWhenBeAttacked) {
+      // 获取武功数据（NPC 已预加载，Player 需要加载）
+      if (target.isPlayer && this.player) {
+        // Player 的 magicToUseWhenBeAttacked 需要动态加载
+        loadMagic(target.magicToUseWhenBeAttacked).then((baseMagic) => {
+          if (!baseMagic) return;
+          const magic = getMagicAtLevel(baseMagic, target.level);
+          this.triggerBeAttackedMagic(sprite, target, attacker, magic, target.magicDirectionWhenBeAttacked);
+        }).catch((err) => {
+          logger.error(`[MagicManager] Failed to load MagicToUseWhenBeAttacked: ${err}`);
+        });
+      } else {
+        // NPC 的武功数据可能已预加载
+        const npc = target as { _magicToUseWhenBeAttackedData?: MagicData };
+        if (npc._magicToUseWhenBeAttackedData) {
+          this.triggerBeAttackedMagic(sprite, target, attacker, npc._magicToUseWhenBeAttackedData, target.magicDirectionWhenBeAttacked);
+        }
       }
+    }
+
+    // 2. 处理 MagicToUseWhenAttackedList（来自装备或武功附带效果）
+    // C# Reference: foreach(var info in character.MagicToUseWhenAttackedList) { MagicManager.UseMagic(...) }
+    for (const info of target.magicToUseWhenAttackedList) {
+      this.triggerBeAttackedMagic(sprite, target, attacker, info.magic, info.dir);
     }
   }
 
   /**
    * 触发被攻击武功
+   * @param dirType 方向类型：0=攻击者, 1=武功精灵反方向, 2=NPC当前朝向
    */
   private triggerBeAttackedMagic(
     sprite: MagicSprite,
     character: Character,
     attacker: Character | null,
-    magic: MagicData
+    magic: MagicData,
+    dirType: number
   ): void {
     // C#: BeAttackedUseMagicDirection
     // 0 = Attacker, 1 = MagicSpriteOppDirection, 2 = CurrentNpcDirection
-    const dirType = character.magicDirectionWhenBeAttacked;
     let destination: Vector2;
     let target: Character | null = null;
 
@@ -531,7 +538,7 @@ export class MagicManager {
       targetId,
     });
 
-    logger.log(`[MagicManager] MagicToUseWhenBeAttacked triggered: ${magic.name}`);
+    logger.log(`[MagicManager] MagicToUseWhenBeAttacked triggered: ${magic.name} (dir=${dirType})`);
   }
 
   /**
@@ -845,8 +852,8 @@ export class MagicManager {
         break;
 
       case MagicMoveKind.Summon:
-        // 召唤 NPC 武功
-        this.addSummonMagicSprite(userId, magic, destination, true);
+        // 召唤 NPC 武功 (异步执行，fire-and-forget)
+        void this.addSummonMagicSprite(userId, magic, destination, true);
         break;
 
       case MagicMoveKind.VMove:
@@ -2260,16 +2267,94 @@ export class MagicManager {
   /**
    * 召唤 NPC 武功
    * C# Reference: MagicManager.UseMagic case 22
+   * 在目标位置召唤一个 NPC，支持 MaxCount 限制
    */
-  private addSummonMagicSprite(
+  private async addSummonMagicSprite(
     userId: string,
     magic: MagicData,
     destination: Vector2,
     destroyOnEnd: boolean
-  ): void {
+  ): Promise<void> {
     logger.log(`[MagicManager] Summon magic: ${magic.name}, npcFile=${magic.npcFile}`);
-    // TODO: 使用 NpcManager 创建 NPC
-    this.addFixedPositionMagicSprite(userId, magic, destination, destroyOnEnd);
+
+    if (!magic.npcFile) {
+      logger.warn(`[MagicManager] Summon magic ${magic.name} has no npcFile`);
+      return;
+    }
+
+    const belongCharacter = this.getBelongCharacter(userId);
+    if (!belongCharacter) {
+      logger.warn(`[MagicManager] Cannot summon: belongCharacter not found for ${userId}`);
+      return;
+    }
+
+    // C# Reference: 检查召唤数量限制
+    // if (belongCharacter.SummonedNpcsCount(belongMagic) >= belongMagic.MaxCount)
+    //     belongCharacter.RemoveFirstSummonedNpc(belongMagic);
+    if (magic.maxCount > 0 && belongCharacter.summonedNpcsCount(magic.fileName) >= magic.maxCount) {
+      belongCharacter.removeFirstSummonedNpc(magic.fileName);
+    }
+
+    // 寻找可用的召唤位置
+    let summonTile = pixelToTile(destination.x, destination.y);
+    const collisionChecker = getEngineContext()?.getCollisionChecker();
+    if (collisionChecker && !collisionChecker.isTileWalkable(summonTile)) {
+      // 尝试找到邻近可通行的格子
+      const neighbors = [
+        { x: summonTile.x - 1, y: summonTile.y },
+        { x: summonTile.x + 1, y: summonTile.y },
+        { x: summonTile.x, y: summonTile.y - 1 },
+        { x: summonTile.x, y: summonTile.y + 1 },
+      ];
+      const validNeighbor = neighbors.find(n => collisionChecker.isTileWalkable(n));
+      if (validNeighbor) {
+        summonTile = validNeighbor;
+      } else {
+        logger.warn(`[MagicManager] Cannot find valid tile for summon at ${JSON.stringify(destination)}`);
+        return;
+      }
+    }
+
+    // 计算召唤 NPC 的朝向（朝向施法者）
+    const summonPos = tileToPixel(summonTile.x, summonTile.y);
+    const dx = summonPos.x - belongCharacter.pixelPosition.x;
+    const dy = summonPos.y - belongCharacter.pixelPosition.y;
+    let direction = 4; // 默认向下
+    if (Math.abs(dx) > Math.abs(dy)) {
+      direction = dx > 0 ? 6 : 2; // 右 或 左
+    } else if (Math.abs(dy) > 0) {
+      direction = dy > 0 ? 4 : 0; // 下 或 上
+    }
+
+    // 创建召唤的 NPC
+    const npc = await this.npcManager.addNpc(magic.npcFile, summonTile.x, summonTile.y, direction as any);
+    if (!npc) {
+      logger.warn(`[MagicManager] Failed to create summoned NPC from ${magic.npcFile}`);
+      return;
+    }
+
+    // C# Reference: 设置召唤 NPC 的关系和属性
+    // if (belongCharacter.IsPlayer || belongCharacter.IsFighterFriend) { npc.Relation = Friend; }
+    // else { npc.Kind = Fighter; npc.Relation = belongCharacter.Relation; }
+    if (belongCharacter.isPlayer || belongCharacter.isFighterFriend) {
+      npc.relation = 2; // RelationType.Friend
+    } else {
+      npc.kind = 2; // CharacterKind.Fighter
+      npc.relation = belongCharacter.relation;
+    }
+
+    // 添加到召唤列表
+    belongCharacter.addSummonedNpc(magic.fileName, npc);
+
+    // 创建固定位置的武功精灵作为视觉效果
+    this.addFixedPositionMagicSprite(userId, magic, summonPos, destroyOnEnd);
+
+    // 注意：C# 中 npc.SummonedByMagicSprite = this（MagicSprite），但这里我们需要在
+    // addFixedPositionMagicSprite 之后获取创建的 MagicSprite 并设置
+    // 由于异步问题，这里简化处理，让 NPC 的 summonedByMagicSprite 稍后设置
+    // TODO: 完善 summonedByMagicSprite 关联
+
+    logger.log(`[MagicManager] Summoned NPC ${npc.name} at tile (${summonTile.x}, ${summonTile.y})`);
   }
 
   // ========== 更新循环 ==========
