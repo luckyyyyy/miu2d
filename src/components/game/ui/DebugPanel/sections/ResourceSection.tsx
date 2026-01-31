@@ -7,6 +7,13 @@ import type { ResourceStats } from "@/engine/resource/resourceLoader";
 import { DataRow } from "../DataRow";
 import { Section } from "../Section";
 
+/** 格式化字节大小 */
+function formatSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(2)} MB`;
+}
+
 interface ResourceSectionProps {
   resourceStats: ResourceStats;
 }
@@ -50,6 +57,11 @@ export const ResourceSection: React.FC<ResourceSectionProps> = ({ resourceStats 
             label="缓存条目"
             value={resourceStats.cacheEntries}
             valueColor="text-blue-400"
+          />
+          <DataRow
+            label="缓存大小"
+            value={formatSize(resourceStats.cacheSizeBytes)}
+            valueColor="text-purple-400"
           />
           <DataRow
             label="失败"

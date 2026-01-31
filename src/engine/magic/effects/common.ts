@@ -130,29 +130,6 @@ export function addMagicEffect(
 }
 
 /**
- * 计算伤害值 (旧版 - 不包含命中率)
- * @deprecated Use dealDamage which handles hit rate calculation via takeDamageFromMagic
- */
-export function calculateDamage(
-  caster: CharacterRef,
-  target: CharacterRef,
-  magic: { effect: number; effectExt: number }
-): number {
-  const attack = getAttack(caster);
-  const defend = getDefend(target);
-
-  // 基础伤害 = 武功效果 + 攻击力 - 防御力
-  let damage = magic.effect + magic.effectExt + attack - defend;
-
-  // 随机浮动 ±10%
-  const variance = 0.1;
-  const randomFactor = 1 + (Math.random() * 2 - 1) * variance;
-  damage = Math.floor(damage * randomFactor);
-
-  return Math.max(1, damage); // 最小 1 点伤害
-}
-
-/**
  * 对目标造成伤害
  *
  * C# Reference: MagicSprite.CharacterHited + MagicManager.GetEffectAmount

@@ -333,7 +333,8 @@ export class InputHandler {
 
     // Check NPCs first (priority over objects)
     // C# Reference: Player.cs - iterates NpcsInView for OutEdgeNpc
-    const npcsInView = npcManager.getNpcsInView(viewRect);
+    // 性能优化：使用 Update 阶段预计算的 npcsInView，避免重复遍历
+    const npcsInView = npcManager.npcsInView;
     for (const npc of npcsInView) {
       // C# check: if (!one.IsInteractive || !one.IsVisible || one.IsDeath) continue;
       if (!npc.isInteractive || !npc.isVisible || npc.isDeath) continue;
@@ -348,7 +349,8 @@ export class InputHandler {
 
     // Check Objects if no NPC found
     // C# Reference: Player.cs - iterates ObjsInView for OutEdgeObj
-    const visibleObjs = objManager.getObjsInView(viewRect);
+    // 性能优化：使用 Update 阶段预计算的 objsInView，避免重复遍历
+    const visibleObjs = objManager.objsInView;
     for (const obj of visibleObjs) {
       // C# check: if (!one.IsInteractive || one.ScriptFileJustTouch > 0 || one.IsRemoved) continue;
       if (!obj.isInteractive || obj.scriptFileJustTouch > 0 || obj.isRemoved) continue;

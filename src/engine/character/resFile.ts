@@ -117,12 +117,3 @@ export async function loadNpcRes(npcIni: string): Promise<Map<number, NpcResStat
   logger.log(`[ResFile] Loaded NpcRes: ${npcIni} with ${stateMap.size} states`);
   return stateMap;
 }
-
-/**
- * Clear NpcRes cache (now delegates to resourceLoader)
- * @deprecated Use resourceLoader.clearCache("npcRes") instead
- */
-export function clearNpcResCache(): void {
-  // Note: This clears ALL parsed config cache, not just npcRes
-  resourceLoader.clearCache("npcRes");
-}

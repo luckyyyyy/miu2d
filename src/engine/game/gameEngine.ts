@@ -36,7 +36,6 @@
 // 子系统
 import { AudioManager } from "../audio";
 import type { Character } from "../character/character";
-import type { Npc } from "../character/npc";
 import { type IEngineContext, setEngineContext } from "../core/engineContext";
 import { EventEmitter } from "../core/eventEmitter";
 import { GameEvents, type GameLoadProgressEvent } from "../core/gameEvents";
@@ -66,6 +65,7 @@ import { TimerManager } from "../timer";
 import { WeatherManager } from "../weather";
 import { GameManager } from "./gameManager";
 import { MapTrapManager } from "./mapTrapManager";
+import { PerformanceStats, type PerformanceStatsData } from "./performanceStats";
 import { ResourcePath } from "@/config/resourcePaths";
 
 export interface GameEngineConfig {
@@ -130,6 +130,9 @@ export class GameEngine implements IEngineContext {
   private animationFrameId: number = 0;
   private lastTime: number = 0;
   private isRunning: boolean = false;
+
+  // 性能统计
+  private readonly performanceStats = new PerformanceStats();
 
   // 配置
   private config: GameEngineConfig;
@@ -732,6 +735,9 @@ export class GameEngine implements IEngineContext {
   private gameLoop(timestamp: number): void {
     if (!this.isRunning) return;
 
+    // 标记帧开始
+    this.performanceStats.beginFrame();
+
     // 计算 deltaTime
     const deltaTime = this.lastTime ? (timestamp - this.lastTime) / 1000 : 0;
     this.lastTime = timestamp;
@@ -740,10 +746,17 @@ export class GameEngine implements IEngineContext {
     const cappedDeltaTime = Math.min(deltaTime, 0.1);
 
     // 更新游戏逻辑
+    this.performanceStats.beginUpdate();
     this.update(cappedDeltaTime);
+    this.performanceStats.endUpdate();
 
     // 渲染
+    this.performanceStats.beginRender();
     this.render();
+    this.performanceStats.endRender();
+
+    // 标记帧结束并更新统计
+    this.performanceStats.endFrame(cappedDeltaTime);
 
     // 继续循环
     this.animationFrameId = requestAnimationFrame((time) => this.gameLoop(time));
@@ -757,14 +770,30 @@ export class GameEngine implements IEngineContext {
 
     const { width, height } = this.config;
 
-    // Update mouse hover state for interaction highlights
-    // C# Reference: Player.cs HandleMouseInput - updates OutEdgeNpc/OutEdgeObj
+    // 计算视野区域（复用于多个子系统）
     const viewRect = {
       x: this.mapRenderer.camera.x,
       y: this.mapRenderer.camera.y,
       width,
       height,
     };
+
+    // === 性能优化：Update 阶段预计算视野内对象 ===
+    // C# Reference: JxqyGame.UpdatePlaying 中调用 UpdateNpcsInView, UpdateObjsInView
+    // 这样 Render 阶段直接使用预计算结果，避免每帧重复遍历
+    this.gameManager.getNpcManager().updateNpcsInView(viewRect);
+    this.gameManager.getObjManager().updateObjsInView(viewRect);
+
+    // 更新性能统计中的对象数量
+    const magicMgr = this.gameManager.getMagicManager();
+    this.performanceStats.updateObjectStats(
+      this.gameManager.getNpcManager().npcsInView.length,
+      this.gameManager.getObjManager().objsInView.length,
+      magicMgr ? magicMgr.getMagicSprites().size + magicMgr.getEffectSprites().size : 0
+    );
+
+    // Update mouse hover state for interaction highlights
+    // C# Reference: Player.cs HandleMouseInput - updates OutEdgeNpc/OutEdgeObj
     this.gameManager.updateMouseHover(
       this.inputState.mouseWorldX,
       this.inputState.mouseWorldY,
@@ -986,30 +1015,13 @@ export class GameEngine implements IEngineContext {
     const hoverTarget = interactionManager.getHoverTarget();
     const edgeColor = interactionManager.getEdgeColor();
 
-    // 视野区域
-    const viewRect = {
-      x: renderer.camera.x,
-      y: renderer.camera.y,
-      width,
-      height,
-    };
+    // === 性能优化：使用 Update 阶段预计算的视野内对象 ===
+    // C# Reference: MapBase.Draw 中直接使用 NpcManager.NpcsInView, ObjManager.ObjsInView
+    // 不再每帧重新计算和分组，直接使用预计算的按行分组结果
+    const npcManager = this.gameManager.getNpcManager();
+    const objManager = this.gameManager.getObjManager();
 
-    // 获取视野内的 NPC（优化：只处理可见区域的 NPC）
-    const npcsInView = this.gameManager.getNpcManager().getNpcsInView(viewRect);
-
-    // 获取视野内的物体
-    const allObjs = this.gameManager.getObjManager().getObjsInView(viewRect);
-
-    // 按行分组 NPC（只处理视野内的）
-    const npcsByRow = new Map<number, Npc[]>();
-    for (const npc of npcsInView) {
-      if (!npc.isVisible) continue;
-      const row = npc.tilePosition.y;
-      if (!npcsByRow.has(row)) npcsByRow.set(row, []);
-      npcsByRow.get(row)?.push(npc);
-    }
-
-    // 获取武功精灵并按行分组
+    // 获取武功精灵并按行分组（TODO: 考虑将 MagicManager 也加入预计算）
     const magicMgr = this.gameManager.getMagicManager();
     const magicSpritesByRow = new Map<number, any[]>();
     const effectSpritesByRow = new Map<number, any[]>();
@@ -1031,23 +1043,20 @@ export class GameEngine implements IEngineContext {
 
     // 交错渲染（不在这里绘制高亮边缘）
     renderMapInterleaved(ctx, renderer, (row: number) => {
-      // 渲染该行的NPC
-      const npcsAtRow = npcsByRow.get(row);
-      if (npcsAtRow) {
-        for (const npc of npcsAtRow) {
-          if (npc.isSpritesLoaded()) {
-            npc.draw(ctx, renderer.camera.x, renderer.camera.y);
-          } else {
-            this.drawCharacterPlaceholder(ctx, npc, renderer.camera, width, height);
-          }
+      // 渲染该行的 NPC（使用预计算的按行分组）
+      const npcsAtRow = npcManager.getNpcsAtRow(row);
+      for (const npc of npcsAtRow) {
+        if (npc.isSpritesLoaded()) {
+          npc.draw(ctx, renderer.camera.x, renderer.camera.y);
+        } else {
+          this.drawCharacterPlaceholder(ctx, npc, renderer.camera, width, height);
         }
       }
 
-      // 渲染该行的物体
-      for (const obj of allObjs) {
-        if (obj.tilePosition.y === row) {
-          this.objRenderer?.drawObj(ctx, obj, renderer.camera.x, renderer.camera.y);
-        }
+      // 渲染该行的物体（使用预计算的按行分组）
+      const objsAtRow = objManager.getObjsAtRow(row);
+      for (const obj of objsAtRow) {
+        this.objRenderer?.drawObj(ctx, obj, renderer.camera.x, renderer.camera.y);
       }
 
       // 渲染玩家
@@ -1672,6 +1681,13 @@ export class GameEngine implements IEngineContext {
    */
   getMapData(): JxqyMapData | null {
     return this._gameManager?.getMapData() ?? null;
+  }
+
+  /**
+   * 获取性能统计数据
+   */
+  getPerformanceStats(): PerformanceStatsData {
+    return this.performanceStats.getStats();
   }
 }
 

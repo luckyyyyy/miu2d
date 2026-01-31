@@ -5,6 +5,7 @@
 export { CharacterSection } from "./CharacterSection";
 export { ItemMagicSection } from "./ItemMagicSection";
 export { MapSection } from "./MapSection";
+export { PerformanceSection } from "./PerformanceSection";
 export { QuickActionsSection } from "./QuickActionsSection";
 export { ResourceSection } from "./ResourceSection";
 export { ScriptExecuteSection } from "./ScriptExecuteSection";

@@ -7,7 +7,6 @@
 // 通用效果函数
 export {
   addMagicEffect,
-  calculateDamage,
   dealDamage,
   deductCost,
   getEffectAmount,

@@ -3,6 +3,7 @@
  */
 
 import type { GameVariables } from "@/engine/core/types";
+import type { PerformanceStatsData } from "@/engine/game/performanceStats";
 import type { MagicItemInfo } from "@/engine/magic";
 import type { ResourceStats } from "@/engine/resource/resourceLoader";
 
@@ -53,6 +54,7 @@ export interface DebugPanelProps {
   playerPosition?: { x: number; y: number };
   loadedResources?: LoadedResources;
   resourceStats?: ResourceStats;
+  performanceStats?: PerformanceStatsData;
   gameVariables?: GameVariables;
   xiuLianMagic?: MagicItemInfo | null;
   triggeredTrapIds?: number[];

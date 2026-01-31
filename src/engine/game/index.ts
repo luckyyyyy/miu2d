@@ -25,6 +25,11 @@ export { SpecialActionHandler } from "./specialActionHandler";
 export type { CanvasRenderInfo, GameEngineConfig, GameEngineState } from "./gameEngine";
 // Game Engine (Singleton)
 export { GameEngine, getGameEngine } from "./gameEngine";
+
+// Performance Stats
+export { PerformanceStats } from "./performanceStats";
+export type { PerformanceStatsData } from "./performanceStats";
+
 export type {
   InteractionTarget,
   InteractionTargetType,

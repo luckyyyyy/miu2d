@@ -97,6 +97,12 @@ export class ObjManager {
   private objects: Obj[] = [];
   private fileName: string = "";
 
+  // === 性能优化：预计算视野内物体 ===
+  // C# Reference: ObjManager._objInView, UpdateObjsInView()
+  // 在 Update 阶段预计算，Render 阶段直接使用
+  private _objsInView: Obj[] = [];
+  private _objsByRow: Map<number, Obj[]> = new Map();
+
   /**
    * 获取 AudioManager（通过 IEngineContext）
    */
@@ -392,8 +398,69 @@ export class ObjManager {
     return false;
   }
 
+  // === 性能优化：预计算视野内物体 ===
+
+  /**
+   * 在 Update 阶段预计算视野内物体（每帧调用一次）
+   * C# Reference: ObjManager.UpdateObjsInView()
+   * 同时按行分组，供交错渲染使用
+   */
+  updateObjsInView(viewRect: { x: number; y: number; width: number; height: number }): void {
+    // 清空上一帧的缓存
+    this._objsInView.length = 0;
+    this._objsByRow.clear();
+
+    const padding = 200;
+    const viewLeft = viewRect.x - padding;
+    const viewRight = viewRect.x + viewRect.width + padding;
+    const viewTop = viewRect.y - padding;
+    const viewBottom = viewRect.y + viewRect.height + padding;
+
+    for (const obj of this.objects) {
+      if (!obj.isShow || obj.isRemoved) continue;
+
+      const pixelPos = obj.positionInWorld;
+
+      if (
+        pixelPos.x >= viewLeft &&
+        pixelPos.x <= viewRight &&
+        pixelPos.y >= viewTop &&
+        pixelPos.y <= viewBottom
+      ) {
+        this._objsInView.push(obj);
+
+        // 同时按行分组（用于交错渲染）
+        const row = obj.tilePosition.y;
+        let list = this._objsByRow.get(row);
+        if (!list) {
+          list = [];
+          this._objsByRow.set(row, list);
+        }
+        list.push(obj);
+      }
+    }
+  }
+
+  /**
+   * 获取预计算的视野内物体列表（只读）
+   * C# Reference: ObjManager.ObjsInView property
+   * 在 Render 阶段使用，避免重复计算
+   */
+  get objsInView(): readonly Obj[] {
+    return this._objsInView;
+  }
+
+  /**
+   * 获取指定行的物体列表（用于交错渲染）
+   * 返回预计算的结果，避免每帧重建 Map
+   */
+  getObjsAtRow(row: number): readonly Obj[] {
+    return this._objsByRow.get(row) ?? [];
+  }
+
   /**
    * Get all objects in view area
+   * 注意：渲染时优先使用预计算的 objsInView 和 getObjsAtRow
    */
   getObjsInView(viewRect: { x: number; y: number; width: number; height: number }): Obj[] {
     const result: Obj[] = [];
@@ -703,30 +770,11 @@ export class ObjManager {
 
   /**
    * Draw all objects in view
+   * 使用预计算的 _objsInView 列表
    */
-  drawAllObjs(
-    ctx: CanvasRenderingContext2D,
-    cameraX: number,
-    cameraY: number,
-    viewWidth: number,
-    viewHeight: number
-  ): void {
-    const viewRect = {
-      x: cameraX,
-      y: cameraY,
-      width: viewWidth,
-      height: viewHeight,
-    };
-
-    const objsInView = this.getObjsInView(viewRect);
-
-    // Sort by Y position for proper layering (objects lower on screen drawn last)
-    objsInView.sort((a, b) => {
-      return a.positionInWorld.y - b.positionInWorld.y;
-    });
-
-    // Draw each object
-    for (const obj of objsInView) {
+  drawAllObjs(ctx: CanvasRenderingContext2D, cameraX: number, cameraY: number): void {
+    // 使用预计算的视野内物体列表（已在 updateViewCache 中排序）
+    for (const obj of this._objsInView) {
       this.drawObj(ctx, obj, cameraX, cameraY);
     }
   }
