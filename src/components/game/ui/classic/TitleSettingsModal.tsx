@@ -12,7 +12,7 @@ import {
   getSelectedGameId,
   switchGame,
 } from "@/config/resourcePaths";
-import { loadAudioSettings, saveAudioSettings } from "./SidePanel";
+import { loadAudioSettings, saveAudioSettings } from "@/components/common";
 
 // ============= 类型定义 =============
 

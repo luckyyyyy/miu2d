@@ -53,12 +53,12 @@ import {
   TopGui,
   VideoPlayer,
   XiuLianGui,
+  slotTypeToEquipPosition,
 } from "./ui";
-import type { DragData, EquipSlotType } from "./ui/EquipGui";
-import { slotTypeToEquipPosition } from "./ui/EquipGui";
-import type { TooltipState } from "./ui/ItemTooltip";
-import type { MagicDragData } from "./ui/MagicGui";
-import type { MagicTooltipState } from "./ui/MagicTooltip";
+import type { DragData, EquipSlotType } from "./ui";
+import type { TooltipState } from "./ui";
+import type { MagicDragData } from "./ui";
+import type { MagicTooltipState } from "./ui";
 
 interface GameUIProps {
   engine: GameEngine | null;
