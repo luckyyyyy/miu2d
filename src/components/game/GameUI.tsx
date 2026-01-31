@@ -1,15 +1,15 @@
 /**
- * GameUI - 游戏UI组件
+ * GameUI - 游戏UI组件 (使用 UIBridge 架构)
  *
  * 职责:
  * 1. 渲染所有UI组件
- * 2. 通过hooks获取游戏状态
- * 3. 处理UI交互
+ * 2. 通过 UIBridge 获取游戏状态
+ * 3. 通过 dispatch 派发 UI 交互动作
  *
  * 特点:
- * - 不直接依赖GameManager，通过GameEngine获取状态
- * - 仅在UI面板打开时获取详细数据
+ * - 不直接依赖 GameManager，通过 UIBridge 获取状态
  * - 使用事件驱动的状态更新
+ * - 所有交互通过 UIAction 类型约束
  */
 
 import type React from "react";
@@ -26,7 +26,9 @@ import type { MagicItemInfo } from "@/engine/magic";
 import type { Good } from "@/engine/player/goods";
 import { GoodKind } from "@/engine/player/goods";
 import type { TimerState } from "@/engine/timer";
-import { useGameUI } from "@/hooks";
+import type { ShopItemInfo } from "@/engine/gui/buyManager";
+import type { UIEquipSlotName } from "@/engine/ui/contract";
+import { useUIBridge } from "./adapters";
 import {
   BottomGui,
   BottomStateGui,
@@ -64,16 +66,142 @@ interface GameUIProps {
   height: number;
 }
 
+// 将 EquipSlotType 转换为 UIEquipSlotName
+const equipSlotToUISlot = (slot: EquipSlotType): UIEquipSlotName => {
+  const mapping: Record<EquipSlotType, UIEquipSlotName> = {
+    head: "head",
+    neck: "neck",
+    body: "body",
+    back: "back",
+    hand: "hand",
+    wrist: "wrist",
+    foot: "foot",
+  };
+  return mapping[slot];
+};
+
 /**
  * GameUI Component
  */
 export const GameUI: React.FC<GameUIProps> = ({ engine, width, height }) => {
-  // 使用 useGameUI hook 获取UI状态 (方案A: 事件驱动)
-  const { dialogState, selectionState, multiSelectionState, panelState, messageState, goodsData, magicData, buyData } =
-    useGameUI(engine);
+  // 使用 UIBridge hook 获取UI状态 - 用于派发动作和获取面板状态
+  const { dispatch, panels, dialog, selection, multiSelection, message } = useUIBridge(engine);
 
-  // 获取玩家数据
+  // 获取玩家数据 - 直接从 engine 获取 (读取需要与现有组件类型兼容)
   const player = engine?.getPlayer();
+
+  // 更新触发器 - 用于强制重新计算数据
+  const [updateTrigger, setUpdateTrigger] = useState(0);
+
+  // 订阅数据变化事件
+  useEffect(() => {
+    if (!engine) return;
+    const events = engine.getEvents();
+
+    // 订阅物品/武功/商店变化 - 使用正确的事件名称
+    const unsubs = [
+      events.on("ui:goods:change", () => setUpdateTrigger((v) => v + 1)),
+      events.on("ui:magic:change", () => setUpdateTrigger((v) => v + 1)),
+      events.on("ui:buy:change", () => setUpdateTrigger((v) => v + 1)),
+      events.on("ui:panel:change", () => setUpdateTrigger((v) => v + 1)),
+    ];
+
+    return () => unsubs.forEach((unsub) => unsub());
+  }, [engine]);
+
+  // 获取物品数据（与现有组件类型兼容）
+  const goodsData = useMemo(() => {
+    if (!engine) {
+      return { items: [], equips: {}, bottomGoods: [], money: 0 };
+    }
+
+    const goodsManager = engine.getGoodsListManager();
+    if (!goodsManager) {
+      return { items: [], equips: {}, bottomGoods: [], money: 0 };
+    }
+
+    // 底栏物品
+    const bottomGoods: ({ good: Good; count: number } | null)[] = [];
+    for (let i = 221; i <= 223; i++) {
+      const entry = goodsManager.getItemInfo(i);
+      if (entry?.good) {
+        bottomGoods.push({ good: entry.good, count: entry.count });
+      } else {
+        bottomGoods.push(null);
+      }
+    }
+
+    // 背包物品
+    const items: ({ good: Good; count: number } | null)[] = [];
+    for (let i = 1; i <= 198; i++) {
+      const entry = goodsManager.getItemInfo(i);
+      if (entry?.good) {
+        items.push({ good: entry.good, count: entry.count });
+      } else {
+        items.push(null);
+      }
+    }
+
+    // 装备
+    type EquipSlots = Partial<Record<EquipSlotType, { good: Good; count: number } | null>>;
+    const equips: EquipSlots = {};
+    const equipIndices = [201, 202, 203, 204, 205, 206, 207];
+    const equipSlots: EquipSlotType[] = ["head", "neck", "body", "back", "hand", "wrist", "foot"];
+
+    equipIndices.forEach((index, i) => {
+      const entry = goodsManager.getItemInfo(index);
+      if (entry?.good) {
+        equips[equipSlots[i]] = { good: entry.good, count: entry.count };
+      }
+    });
+
+    const playerMoney = engine.getPlayer()?.money ?? 0;
+    return { items, equips, bottomGoods, money: playerMoney };
+  }, [engine, panels?.goods, panels?.equip, updateTrigger]);
+
+  // 获取武功数据
+  const magicData = useMemo(() => {
+    if (!engine) {
+      return { storeMagics: [], bottomMagics: [], xiuLianMagic: null };
+    }
+
+    const bottomMagics = engine.getBottomMagics();
+    const storeMagics = engine.getStoreMagics();
+    const gameManager = engine.getGameManager();
+    const xiuLianMagic = gameManager?.getMagicListManager().getItemInfo(49) ?? null;
+
+    return { storeMagics, bottomMagics, xiuLianMagic };
+  }, [engine, panels?.magic, panels?.xiulian, updateTrigger]);
+
+  // 获取商店数据
+  const buyData = useMemo(() => {
+    const defaultData: {
+      items: (ShopItemInfo | null)[];
+      buyPercent: number;
+      numberValid: boolean;
+      canSellSelfGoods: boolean;
+    } = {
+      items: [],
+      buyPercent: 100,
+      numberValid: false,
+      canSellSelfGoods: true,
+    };
+
+    if (!engine) return defaultData;
+
+    const gameManager = engine.getGameManager();
+    if (!gameManager) return defaultData;
+
+    const buyManager = gameManager.getBuyManager();
+    if (!buyManager || !buyManager.isOpen()) return defaultData;
+
+    return {
+      items: buyManager.getGoodsArray(),
+      buyPercent: buyManager.getBuyPercent(),
+      numberValid: buyManager.isNumberValid(),
+      canSellSelfGoods: buyManager.getCanSellSelfGoods(),
+    };
+  }, [engine, panels?.buy, updateTrigger]);
 
   // 获取悬停的NPC (用于血条显示) - 使用 useRef 存储当前NPC以避免频繁重渲染
   const [hoveredNpc, setHoveredNpc] = useState<Npc | null>(null);
@@ -237,7 +365,7 @@ export const GameUI: React.FC<GameUIProps> = ({ engine, width, height }) => {
 
   // Update minimap state when littleMap panel is visible
   useEffect(() => {
-    if (!engine || !panelState?.littleMap) return;
+    if (!engine || !panels?.littleMap) return;
 
     let animationFrameId: number;
 
@@ -301,36 +429,37 @@ export const GameUI: React.FC<GameUIProps> = ({ engine, width, height }) => {
         cancelAnimationFrame(animationFrameId);
       }
     };
-  }, [engine, panelState?.littleMap]);
+  }, [engine, panels?.littleMap]);
+
+  // ============= Panel Toggles =============
+
+  const togglePanel = useCallback(
+    (panel: "state" | "equip" | "xiulian" | "goods" | "magic" | "memo" | "system" | "littleMap") => {
+      dispatch({ type: "TOGGLE_PANEL", panel });
+    },
+    [dispatch]
+  );
 
   // ============= Equipment Handlers =============
 
   const handleEquipRightClick = useCallback(
     (slot: EquipSlotType) => {
-      const goodsManager = engine?.getGoodsListManager();
-      if (!goodsManager) return;
-      const slotIndex = slotTypeToEquipPosition(slot) + 200;
-      goodsManager.unEquipGood(slotIndex);
+      dispatch({ type: "UNEQUIP_ITEM", slot: equipSlotToUISlot(slot) });
     },
-    [engine]
+    [dispatch]
   );
 
   const handleEquipDrop = useCallback(
     (slot: EquipSlotType, data: DragData) => {
-      const goodsManager = engine?.getGoodsListManager();
-      if (!goodsManager) return;
-      const slotIndex = slotTypeToEquipPosition(slot) + 200;
-
       if (data.type === "goods") {
-        goodsManager.exchangeListItemAndEquiping(data.index, slotIndex);
+        dispatch({ type: "EQUIP_ITEM", fromIndex: data.index, toSlot: equipSlotToUISlot(slot) });
       } else if (data.type === "equip" && data.sourceSlot) {
-        const sourceIndex = slotTypeToEquipPosition(data.sourceSlot) + 200;
-        goodsManager.exchangeListItem(sourceIndex, slotIndex);
+        dispatch({ type: "SWAP_EQUIP_SLOTS", fromSlot: equipSlotToUISlot(data.sourceSlot), toSlot: equipSlotToUISlot(slot) });
       }
 
       setDragData(null);
     },
-    [engine]
+    [dispatch]
   );
 
   const handleEquipDragStart = useCallback((slot: EquipSlotType, good: Good) => {
@@ -347,65 +476,36 @@ export const GameUI: React.FC<GameUIProps> = ({ engine, width, height }) => {
 
   const handleGoodsRightClick = useCallback(
     (index: number) => {
-      const goodsManager = engine?.getGoodsListManager();
-      if (!goodsManager) return;
       const actualIndex = index + 1;
-      const entry = goodsManager.getItemInfo(actualIndex);
-
-      if (!entry || !entry.good) return;
 
       // 如果商店打开，右键物品是卖给商店
-      const gameManager = engine?.getGameManager();
-      const buyManager = gameManager?.getBuyManager();
-      if (buyManager?.isOpen()) {
-        const sellPrice = entry.good.sellPrice;
-        if (sellPrice > 0) {
-          if (buyManager.getCanSellSelfGoods()) {
-            // 卖出物品：获得金钱，物品从背包移除，加入商店
-            const player = engine?.getPlayer();
-            if (player) {
-              player.money += sellPrice;
-            }
-            // 从背包删除物品
-            goodsManager.deleteGood(entry.good.fileName);
-            // 添加到商店库存
-            buyManager.addGood(entry.good);
-          } else {
-            gameManager?.getGuiManager().showMessage("当前只能买物品");
-          }
-        }
+      if (panels?.buy) {
+        dispatch({ type: "SELL_ITEM", bagIndex: actualIndex });
         return;
       }
 
       // 商店未打开时，右键是使用/装备物品
-      if (entry.good.kind === GoodKind.Equipment) {
-        const equipIndex = entry.good.part + 200;
-        goodsManager.exchangeListItemAndEquiping(actualIndex, equipIndex);
-      } else if (entry.good.kind === GoodKind.Drug) {
-        goodsManager.usingGood(actualIndex);
-      }
+      dispatch({ type: "USE_ITEM", index: actualIndex });
     },
-    [engine]
+    [dispatch, panels?.buy]
   );
 
   const handleGoodsDrop = useCallback(
     (targetIndex: number, data: DragData) => {
-      const goodsManager = engine?.getGoodsListManager();
-      if (!goodsManager) return;
       const actualTargetIndex = targetIndex + 1;
 
       if (data.type === "goods") {
-        goodsManager.exchangeListItem(data.index, actualTargetIndex);
+        dispatch({ type: "SWAP_ITEMS", fromIndex: data.index, toIndex: actualTargetIndex });
       } else if (data.type === "equip") {
-        goodsManager.exchangeListItemAndEquiping(actualTargetIndex, data.index);
+        dispatch({ type: "EQUIP_ITEM", fromIndex: actualTargetIndex, toSlot: equipSlotToUISlot(data.sourceSlot!) });
       } else if (data.type === "bottom") {
         // 从底栏拖回背包
-        goodsManager.exchangeListItem(data.index, actualTargetIndex);
+        dispatch({ type: "SWAP_ITEMS", fromIndex: data.index, toIndex: actualTargetIndex });
       }
 
       setDragData(null);
     },
-    [engine]
+    [dispatch]
   );
 
   const handleGoodsDragStart = useCallback((index: number, good: Good) => {
@@ -420,12 +520,11 @@ export const GameUI: React.FC<GameUIProps> = ({ engine, width, height }) => {
   // 物品拖拽到底栏 (Z/X/C 快捷栏) - 只允许药品
   const handleGoodsDropOnBottom = useCallback(
     (targetBottomSlot: number) => {
-      const goodsManager = engine?.getGoodsListManager();
-      if (!goodsManager || !dragData) return;
+      if (!dragData) return;
 
       // 只有药品(Drug)可以放到快捷栏
       if (dragData.good.kind !== GoodKind.Drug) {
-        engine?.getGameManager()?.getGuiManager().showMessage("只有药品可以放到快捷栏");
+        dispatch({ type: "SHOW_MESSAGE", text: "只有药品可以放到快捷栏" });
         setDragData(null);
         return;
       }
@@ -435,15 +534,15 @@ export const GameUI: React.FC<GameUIProps> = ({ engine, width, height }) => {
 
       if (dragData.type === "goods") {
         // 从背包拖到底栏
-        goodsManager.exchangeListItem(dragData.index, targetIndex);
+        dispatch({ type: "SWAP_ITEMS", fromIndex: dragData.index, toIndex: targetIndex });
       } else if (dragData.type === "bottom") {
         // 底栏内交换
-        goodsManager.exchangeListItem(dragData.index, targetIndex);
+        dispatch({ type: "SWAP_ITEMS", fromIndex: dragData.index, toIndex: targetIndex });
       }
 
       setDragData(null);
     },
-    [engine, dragData]
+    [dispatch, dragData]
   );
 
   // 从底栏开始拖拽物品
@@ -468,14 +567,9 @@ export const GameUI: React.FC<GameUIProps> = ({ engine, width, height }) => {
   // 使用底栏物品 (Z/X/C)
   const handleUseBottomGood = useCallback(
     (bottomSlot: number) => {
-      const goodsManager = engine?.getGoodsListManager();
-      if (!goodsManager) return;
-
-      const actualIndex = 221 + bottomSlot;
-      const player = engine?.getPlayer();
-      goodsManager.usingGood(actualIndex, player?.level ?? 1);
+      dispatch({ type: "USE_BOTTOM_ITEM", slotIndex: bottomSlot });
     },
-    [engine]
+    [dispatch]
   );
 
   // ============= Magic Handlers =============
@@ -487,9 +581,8 @@ export const GameUI: React.FC<GameUIProps> = ({ engine, width, height }) => {
 
   const handleBottomMagicDragStart = useCallback(
     (bottomSlot: number) => {
-      const gameManager = engine?.getGameManager();
-      if (!gameManager) return;
-      const listIndex = gameManager.getMagicListManager().bottomIndexToListIndex(bottomSlot);
+      // Get the list index from bottom slot
+      const listIndex = engine?.getGameManager()?.getMagicListManager()?.bottomIndexToListIndex(bottomSlot) ?? (bottomSlot + 41);
       setBottomMagicDragData({ bottomSlot, listIndex });
       setMagicDragData(null);
     },
@@ -503,68 +596,51 @@ export const GameUI: React.FC<GameUIProps> = ({ engine, width, height }) => {
 
   const handleMagicDropOnStore = useCallback(
     (targetStoreIndex: number, source: MagicDragData) => {
-      const gameManager = engine?.getGameManager();
-      if (!gameManager) return;
-
       if (source && source.storeIndex > 0) {
-        gameManager.getMagicListManager().exchangeListItem(source.storeIndex, targetStoreIndex);
+        dispatch({ type: "SWAP_MAGIC", fromIndex: source.storeIndex, toIndex: targetStoreIndex });
       } else if (bottomMagicDragData) {
-        gameManager
-          .getMagicListManager()
-          .exchangeListItem(bottomMagicDragData.listIndex, targetStoreIndex);
+        dispatch({ type: "SWAP_MAGIC", fromIndex: bottomMagicDragData.listIndex, toIndex: targetStoreIndex });
       }
 
       setMagicDragData(null);
       setBottomMagicDragData(null);
     },
-    [engine, bottomMagicDragData]
+    [dispatch, bottomMagicDragData]
   );
 
   const handleMagicDropOnBottom = useCallback(
     (targetBottomSlot: number) => {
-      if (!engine) return;
-
       if (magicDragData) {
-        engine.handleMagicDrop(magicDragData.storeIndex, targetBottomSlot);
+        dispatch({ type: "ASSIGN_MAGIC_TO_BOTTOM", magicIndex: magicDragData.storeIndex, bottomSlot: targetBottomSlot });
       } else if (bottomMagicDragData) {
-        const gameManager = engine.getGameManager();
-        const targetListIndex = gameManager
-          ?.getMagicListManager()
-          .bottomIndexToListIndex(targetBottomSlot);
+        const targetListIndex = engine?.getGameManager()?.getMagicListManager()?.bottomIndexToListIndex(targetBottomSlot);
         if (targetListIndex !== undefined) {
-          gameManager
-            ?.getMagicListManager()
-            .exchangeListItem(bottomMagicDragData.listIndex, targetListIndex);
+          dispatch({ type: "SWAP_MAGIC", fromIndex: bottomMagicDragData.listIndex, toIndex: targetListIndex });
         }
       }
 
       setMagicDragData(null);
       setBottomMagicDragData(null);
     },
-    [engine, magicDragData, bottomMagicDragData]
+    [dispatch, engine, magicDragData, bottomMagicDragData]
   );
 
   const handleMagicDropOnXiuLian = useCallback(
     (sourceIndex: number) => {
-      const gameManager = engine?.getGameManager();
-      if (!gameManager) return;
-
       const xiuLianIndex = 49;
 
       if (magicDragData && magicDragData.storeIndex > 0) {
-        gameManager.getMagicListManager().exchangeListItem(magicDragData.storeIndex, xiuLianIndex);
+        dispatch({ type: "SWAP_MAGIC", fromIndex: magicDragData.storeIndex, toIndex: xiuLianIndex });
       } else if (bottomMagicDragData) {
-        gameManager
-          .getMagicListManager()
-          .exchangeListItem(bottomMagicDragData.listIndex, xiuLianIndex);
+        dispatch({ type: "SWAP_MAGIC", fromIndex: bottomMagicDragData.listIndex, toIndex: xiuLianIndex });
       } else if (sourceIndex > 0 && sourceIndex !== xiuLianIndex) {
-        gameManager.getMagicListManager().exchangeListItem(sourceIndex, xiuLianIndex);
+        dispatch({ type: "SWAP_MAGIC", fromIndex: sourceIndex, toIndex: xiuLianIndex });
       }
 
       setMagicDragData(null);
       setBottomMagicDragData(null);
     },
-    [engine, magicDragData, bottomMagicDragData]
+    [dispatch, magicDragData, bottomMagicDragData]
   );
 
   const handleXiuLianDragStart = useCallback((data: MagicDragData) => {
@@ -609,17 +685,17 @@ export const GameUI: React.FC<GameUIProps> = ({ engine, width, height }) => {
   // ============= Hide Tooltips when Panels Close =============
   // 当物品/装备面板关闭时，隐藏ItemTooltip
   useEffect(() => {
-    if (!panelState?.goods && !panelState?.equip && !panelState?.buy) {
+    if (!panels?.goods && !panels?.equip && !panels?.buy) {
       setTooltip((prev) => ({ ...prev, isVisible: false }));
     }
-  }, [panelState?.goods, panelState?.equip, panelState?.buy]);
+  }, [panels?.goods, panels?.equip, panels?.buy]);
 
   // 当武功/修炼面板关闭时，隐藏MagicTooltip
   useEffect(() => {
-    if (!panelState?.magic && !panelState?.xiulian) {
+    if (!panels?.magic && !panels?.xiulian) {
       setMagicTooltip((prev) => ({ ...prev, isVisible: false }));
     }
-  }, [panelState?.magic, panelState?.xiulian]);
+  }, [panels?.magic, panels?.xiulian]);
 
   // ============= Shop Handlers =============
 
@@ -641,56 +717,16 @@ export const GameUI: React.FC<GameUIProps> = ({ engine, width, height }) => {
   // 商店物品右键购买
   const handleShopItemRightClick = useCallback(
     async (index: number) => {
-      const gameManager = engine?.getGameManager();
-      if (!gameManager) return;
-
-      const buyManager = gameManager.getBuyManager();
-      const player = engine?.getPlayer();
-      if (!buyManager || !player) return;
-
-      // 尝试购买物品
       // index 是从 0 开始的显示索引，需要 +1 转为商店物品索引
-      const success = await buyManager.buyGood(
-        index + 1,
-        player.money,
-        async (fileName) => {
-          // 尝试将物品添加到玩家背包
-          const goodsManager = engine?.getGoodsListManager();
-          if (!goodsManager) return false;
-          const result = await goodsManager.addGoodToList(fileName);
-          return result.success;
-        },
-        (amount) => {
-          // 扣除金钱
-          player.money -= amount;
-        }
-      );
-
-      if (success) {
-        logger.log(`[Shop] Purchased item at index ${index + 1}`);
-      }
+      dispatch({ type: "BUY_ITEM", shopIndex: index + 1 });
     },
-    [engine]
+    [dispatch]
   );
 
   // 关闭商店
   const handleShopClose = useCallback(() => {
-    const gameManager = engine?.getGameManager();
-    if (!gameManager) return;
-
-    const buyManager = gameManager.getBuyManager();
-    buyManager.endBuy();
-    gameManager.getGuiManager().closeBuyGui();
-  }, [engine]);
-
-  // ============= Panel Toggles =============
-
-  const togglePanel = useCallback(
-    (panel: "state" | "equip" | "xiulian" | "goods" | "magic" | "memo" | "system" | "littleMap") => {
-      engine?.togglePanel(panel);
-    },
-    [engine]
-  );
+    dispatch({ type: "CLOSE_SHOP" });
+  }, [dispatch]);
 
   if (!engine) return null;
 
@@ -742,48 +778,26 @@ export const GameUI: React.FC<GameUIProps> = ({ engine, width, height }) => {
             handleUseBottomGood(index);
           } else {
             // 武功槽点击 - 使用武功
-            engine?.useMagicByBottomSlot(index - 3);
+            dispatch({ type: "USE_MAGIC_BY_BOTTOM", bottomSlot: index - 3 });
           }
         }}
         onItemRightClick={(index) => {
           if (index < 3) {
             // 物品槽右键
-            const gameManager = engine?.getGameManager();
-            const buyManager = gameManager?.getBuyManager();
-
             // 如果商店打开，卖物品
-            if (buyManager?.isOpen()) {
-              const goodsManager = engine?.getGoodsListManager();
-              const bottomSlot = index;
-              const actualIndex = 221 + bottomSlot;
-              const entry = goodsManager?.getItemInfo(actualIndex);
-
-              if (entry?.good && entry.good.sellPrice > 0) {
-                if (buyManager.getCanSellSelfGoods()) {
-                  const player = engine?.getPlayer();
-                  if (player) {
-                    player.money += entry.good.sellPrice;
-                  }
-                  goodsManager?.deleteGood(entry.good.fileName);
-                  buyManager.addGood(entry.good);
-                } else {
-                  gameManager?.getGuiManager().showMessage("当前只能买物品");
-                }
-              }
+            if (panels?.buy) {
+              dispatch({ type: "SELL_ITEM", bagIndex: 221 + index });
             } else {
               // 商店未打开，使用物品
               handleUseBottomGood(index);
             }
           } else {
             // 武功槽右键 - 设置为当前武功
-            engine
-              ?.getGameManager()
-              ?.getMagicListManager()
-              .setCurrentMagicByBottomIndex(index - 3);
+            dispatch({ type: "SET_CURRENT_MAGIC_BY_BOTTOM", bottomIndex: index - 3 });
           }
         }}
         onMagicRightClick={(magicIndex) => {
-          engine?.getGameManager()?.getMagicListManager().setCurrentMagicByBottomIndex(magicIndex);
+          dispatch({ type: "SET_CURRENT_MAGIC_BY_BOTTOM", bottomIndex: magicIndex });
         }}
         onDragStart={(data) => {
           if (data.type === "magic") {
@@ -823,41 +837,47 @@ export const GameUI: React.FC<GameUIProps> = ({ engine, width, height }) => {
       />
 
       {/* Dialog - 使用事件驱动状态 */}
-      {dialogState?.isVisible && (
+      {dialog?.isVisible && (
         <DialogUI
-          state={dialogState}
+          state={dialog}
           screenWidth={width}
           screenHeight={height}
-          onClose={() => engine?.getGameManager()?.getGuiManager().handleDialogClick()}
-          onSelectionMade={(selection) => {
-            engine?.getGameManager()?.getGuiManager().onDialogSelectionMade(selection);
-            engine?.onSelectionMade(selection);
+          onClose={() => dispatch({ type: "DIALOG_CLICK" })}
+          onSelectionMade={(sel) => {
+            dispatch({ type: "DIALOG_SELECT", selection: sel });
           }}
         />
       )}
 
       {/* Selection - 使用事件驱动状态 */}
-      {selectionState?.isVisible && (
+      {selection?.isVisible && (
         <SelectionUI
-          state={selectionState}
+          state={{
+            ...selection,
+            options: selection.options.map((o) => ({ ...o })),
+          }}
           screenWidth={width}
           screenHeight={height}
-          onSelect={(index) => engine?.getGameManager()?.getGuiManager().selectByIndex(index)}
+          onSelect={(index) => dispatch({ type: "SELECTION_CHOOSE", index })}
         />
       )}
 
       {/* Multi-Selection - 多选UI */}
-      {multiSelectionState?.isVisible && (
+      {multiSelection?.isVisible && (
         <SelectionMultipleUI
-          state={multiSelectionState}
+          state={{
+            ...multiSelection,
+            options: multiSelection.options.map((o) => ({ ...o })),
+            selectedIndices: [...multiSelection.selectedIndices],
+          }}
           screenWidth={width}
           screenHeight={height}
-          onToggleSelection={(index) => engine?.getGameManager()?.getGuiManager().toggleMultiSelection(index)}
+          onToggleSelection={(index) => dispatch({ type: "MULTI_SELECTION_TOGGLE", index })}
         />
       )}
 
       {/* State Panel - 使用事件驱动状态 */}
-      {panelState?.state && player && (
+      {panels?.state && player && (
         <StateGui
           isVisible={true}
           stats={{
@@ -880,7 +900,7 @@ export const GameUI: React.FC<GameUIProps> = ({ engine, width, height }) => {
       )}
 
       {/* Equip Panel */}
-      {panelState?.equip && (
+      {panels?.equip && (
         <EquipGui
           isVisible={true}
           equips={goodsData.equips}
@@ -896,7 +916,7 @@ export const GameUI: React.FC<GameUIProps> = ({ engine, width, height }) => {
       )}
 
       {/* XiuLian Panel */}
-      {panelState?.xiulian && (
+      {panels?.xiulian && (
         <XiuLianGui
           isVisible={true}
           magicInfo={magicData.xiuLianMagic}
@@ -913,7 +933,7 @@ export const GameUI: React.FC<GameUIProps> = ({ engine, width, height }) => {
       )}
 
       {/* Goods Panel */}
-      {panelState?.goods && (
+      {panels?.goods && (
         <GoodsGui
           isVisible={true}
           items={goodsData.items}
@@ -930,13 +950,13 @@ export const GameUI: React.FC<GameUIProps> = ({ engine, width, height }) => {
       )}
 
       {/* Magic Panel */}
-      {panelState?.magic && (
+      {panels?.magic && (
         <MagicGui
           isVisible={true}
           magicInfos={magicData.storeMagics}
           screenWidth={width}
           onMagicClick={(storeIndex) => logger.log("Magic clicked:", storeIndex)}
-          onMagicRightClick={(storeIndex) => engine?.handleMagicRightClick(storeIndex)}
+          onMagicRightClick={(storeIndex) => dispatch({ type: "SET_CURRENT_MAGIC", magicIndex: storeIndex })}
           onClose={() => togglePanel("magic")}
           onDragStart={handleMagicDragStart}
           onDragEnd={handleMagicDragEnd}
@@ -948,7 +968,7 @@ export const GameUI: React.FC<GameUIProps> = ({ engine, width, height }) => {
       )}
 
       {/* Memo Panel */}
-      {panelState?.memo && (
+      {panels?.memo && (
         <MemoGui
           isVisible={true}
           memos={engine?.memoListManager?.getAllMemos() ?? []}
@@ -958,7 +978,7 @@ export const GameUI: React.FC<GameUIProps> = ({ engine, width, height }) => {
       )}
 
       {/* Buy/Shop Panel */}
-      {panelState?.buy && (
+      {panels?.buy && buyData.items.length > 0 && (
         <BuyGui
           isVisible={true}
           items={buyData.items}
@@ -973,47 +993,41 @@ export const GameUI: React.FC<GameUIProps> = ({ engine, width, height }) => {
       )}
 
       {/* System Menu */}
-      {panelState?.system && (
+      {panels?.system && (
         <SystemGui
           isVisible={true}
           screenWidth={width}
           screenHeight={height}
-          onSaveLoad={() => engine?.getGameManager()?.getGuiManager().showSaveLoad(true)}
-          onOption={() =>
-            engine?.getGameManager()?.getGuiManager().showMessage("请用游戏设置程序进行设置")
-          }
+          onSaveLoad={() => dispatch({ type: "SHOW_SAVE_LOAD", visible: true })}
+          onOption={() => dispatch({ type: "SHOW_MESSAGE", text: "请用游戏设置程序进行设置" })}
           onExit={() => {
-            engine?.getGameManager()?.getGuiManager().showSystem(false);
+            dispatch({ type: "SHOW_SYSTEM", visible: false });
           }}
-          onReturn={() => engine?.getGameManager()?.getGuiManager().showSystem(false)}
+          onReturn={() => dispatch({ type: "SHOW_SYSTEM", visible: false })}
         />
       )}
 
       {/* SaveLoad Panel (存档/读档界面) */}
-      {panelState?.saveLoad && (
+      {panels?.saveLoad && (
         <SaveLoadGui
           isVisible={true}
           screenWidth={width}
           screenHeight={height}
           canSave={engine?.getGameManager()?.isSaveEnabled() ?? false}
           onSave={async (index) => {
-            const result = await engine?.saveGameToSlot(index);
-            return result ?? false;
+            dispatch({ type: "SAVE_GAME", slotIndex: index });
+            return true;
           }}
           onLoad={async (index) => {
-            try {
-              await engine?.loadGameFromSlot(index);
-              return true;
-            } catch {
-              return false;
-            }
+            dispatch({ type: "LOAD_GAME", slotIndex: index });
+            return true;
           }}
-          onClose={() => engine?.getGameManager()?.getGuiManager().showSaveLoad(false)}
+          onClose={() => dispatch({ type: "SHOW_SAVE_LOAD", visible: false })}
         />
       )}
 
       {/* LittleMap (小地图) - Tab键打开 */}
-      {panelState?.littleMap && (
+      {panels?.littleMap && (
         <LittleMapGui
           isVisible={true}
           screenWidth={width}
@@ -1027,22 +1041,17 @@ export const GameUI: React.FC<GameUIProps> = ({ engine, width, height }) => {
           onClose={() => togglePanel("littleMap")}
           onMapClick={(worldPos) => {
             // 点击小地图移动玩家 - C#: LittleMapGui.RegisterHadler
-            const player = engine?.getPlayer();
-            if (player && engine) {
-              // 使用正确的等距坐标转换 - C#: MapBase.ToTilePosition
-              const tile = toTilePosition(worldPos.x, worldPos.y);
-              player.walkTo(tile);
-              // 关闭小地图
-              togglePanel("littleMap");
-            }
+            dispatch({ type: "MINIMAP_CLICK", worldX: worldPos.x, worldY: worldPos.y });
+            // 关闭小地图
+            togglePanel("littleMap");
           }}
         />
       )}
 
       {/* Message Notification - 使用事件驱动状态 */}
       <MessageGui
-        isVisible={messageState.messageVisible}
-        message={messageState.messageText}
+        isVisible={message?.isVisible ?? false}
+        message={message?.text ?? ""}
         screenWidth={width}
         screenHeight={height}
       />

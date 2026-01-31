@@ -59,10 +59,12 @@ import {
 } from "../map/renderer";
 import { ObjManager } from "../obj";
 import { ObjRenderer } from "../obj/objRenderer";
-import type { GoodsListManager } from "../player/goods";
+import { GoodKind, getEquipSlotIndex, type GoodsListManager } from "../player/goods";
 import type { Player } from "../player/player";
 import { TimerManager } from "../timer";
 import { WeatherManager } from "../weather";
+import type { IUIBridge, UIPanelName } from "../ui/contract";
+import { UIBridge, type UIBridgeDeps } from "../ui/uiBridge";
 import { GameManager } from "./gameManager";
 import { MapTrapManager } from "./mapTrapManager";
 import { PerformanceStats, type PerformanceStatsData } from "./performanceStats";
@@ -109,6 +111,7 @@ export class GameEngine implements IEngineContext {
   private _gameManager: GameManager | null = null;
   private _mapRenderer: MapRenderer | null = null;
   private _objRenderer: ObjRenderer | null = null;
+  private _uiBridge: UIBridge | null = null;
 
   // 断言已初始化的 getter（内部使用，避免大量 ?. 检查）
   private get gameManager(): GameManager {
@@ -130,6 +133,11 @@ export class GameEngine implements IEngineContext {
   private animationFrameId: number = 0;
   private lastTime: number = 0;
   private isRunning: boolean = false;
+
+  // 帧率控制 - 锁定 60 FPS（与 C# XNA 版本一致）
+  private static readonly TARGET_FPS = 60;
+  private static readonly FRAME_INTERVAL = 1000 / GameEngine.TARGET_FPS; // ~16.67ms
+  private nextFrameTime: number = 0;
 
   // 性能统计
   private readonly performanceStats = new PerformanceStats();
@@ -368,6 +376,9 @@ export class GameEngine implements IEngineContext {
           logger.error(`[GameEngine] Timer script failed: ${fullPath}`, err);
         });
       });
+
+      // ========== 阶段4：创建 UI 桥接器 ==========
+      this._uiBridge = this.createUIBridge();
 
       this.isEngineInitialized = true;
       this.emitLoadProgress(40, "引擎初始化完成");
@@ -687,10 +698,11 @@ export class GameEngine implements IEngineContext {
 
     this.isRunning = true;
     this.lastTime = performance.now();
+    this.nextFrameTime = performance.now(); // 初始化帧率控制
     this.state = "running";
 
     this.animationFrameId = requestAnimationFrame((time) => this.gameLoop(time));
-    logger.log("[GameEngine] Game loop started");
+    logger.log("[GameEngine] Game loop started (60 FPS locked)");
   }
 
   /**
@@ -731,23 +743,35 @@ export class GameEngine implements IEngineContext {
 
   /**
    * 游戏主循环
+   * 锁定 60 FPS，与 C# XNA 版本保持一致
    */
   private gameLoop(timestamp: number): void {
     if (!this.isRunning) return;
 
+    // 帧率控制：检查是否到达下一帧时间
+    if (timestamp < this.nextFrameTime) {
+      // 还没到下一帧，继续等待
+      this.animationFrameId = requestAnimationFrame((time) => this.gameLoop(time));
+      return;
+    }
+
+    // 更新下一帧目标时间
+    // 使用累加方式保持稳定帧率，避免漂移
+    this.nextFrameTime += GameEngine.FRAME_INTERVAL;
+    // 防止掉帧后追帧：如果落后太多，重置到当前时间
+    if (timestamp - this.nextFrameTime > GameEngine.FRAME_INTERVAL * 2) {
+      this.nextFrameTime = timestamp + GameEngine.FRAME_INTERVAL;
+    }
+
     // 标记帧开始
     this.performanceStats.beginFrame();
 
-    // 计算 deltaTime
-    const deltaTime = this.lastTime ? (timestamp - this.lastTime) / 1000 : 0;
-    this.lastTime = timestamp;
-
-    // 限制 deltaTime 防止大跳跃
-    const cappedDeltaTime = Math.min(deltaTime, 0.1);
+    // 固定 deltaTime = 1/60 秒（与 C# XNA IsFixedTimeStep 一致）
+    const fixedDeltaTime = 1 / GameEngine.TARGET_FPS;
 
     // 更新游戏逻辑
     this.performanceStats.beginUpdate();
-    this.update(cappedDeltaTime);
+    this.update(fixedDeltaTime);
     this.performanceStats.endUpdate();
 
     // 渲染
@@ -756,7 +780,7 @@ export class GameEngine implements IEngineContext {
     this.performanceStats.endRender();
 
     // 标记帧结束并更新统计
-    this.performanceStats.endFrame(cappedDeltaTime);
+    this.performanceStats.endFrame(fixedDeltaTime);
 
     // 继续循环
     this.animationFrameId = requestAnimationFrame((time) => this.gameLoop(time));
@@ -1497,6 +1521,249 @@ export class GameEngine implements IEngineContext {
    */
   getTimerManager(): TimerManager {
     return this.timerManager;
+  }
+
+  /**
+   * 获取 UI 桥接器
+   * 用于 UI 层与引擎通信
+   */
+  getUIBridge(): IUIBridge | null {
+    return this._uiBridge;
+  }
+
+  /**
+   * 创建 UI 桥接器
+   * 私有方法，在初始化时调用
+   */
+  private createUIBridge(): UIBridge {
+    // Helper to convert slot name to equip index
+    // Equipment slot indices: 201-207 (Head, Neck, Body, Back, Hand, Wrist, Foot)
+    const slotNameToIndex = (slot: string): number => {
+      const mapping: Record<string, number> = {
+        head: 201, neck: 202, body: 203, back: 204,
+        hand: 205, wrist: 206, foot: 207,
+      };
+      return mapping[slot] ?? 201;
+    };
+
+    const deps: UIBridgeDeps = {
+      events: this.events,
+      getPlayer: () => this._gameManager?.getPlayer() ?? null,
+      getGoodsListManager: () => this._gameManager?.getGoodsListManager() ?? null,
+      getMagicListManager: () => this._gameManager?.getMagicListManager() ?? null,
+      getBuyManager: () => this._gameManager?.getBuyManager() ?? null,
+      getMemoListManager: () => this.memoListManager,
+      getTimerManager: () => this.timerManager,
+
+      // Panel toggles
+      togglePanel: (panel: UIPanelName) => this.togglePanel(panel as keyof GuiManagerState["panels"]),
+
+      // Actions
+      useItem: (index: number) => {
+        const goodsManager = this._gameManager?.getGoodsListManager();
+        const entry = goodsManager?.getItemInfo(index);
+        if (entry?.good) {
+          if (entry.good.kind === GoodKind.Equipment) {
+            const equipIndex = getEquipSlotIndex(entry.good.part);
+            if (equipIndex > 0) {
+              goodsManager?.exchangeListItemAndEquiping(index, equipIndex);
+            }
+          } else if (entry.good.kind === GoodKind.Drug) {
+            goodsManager?.usingGood(index);
+          }
+        }
+      },
+      equipItem: (fromIndex: number, toSlot: string) => {
+        const slotIndex = slotNameToIndex(toSlot);
+        this._gameManager?.getGoodsListManager()?.exchangeListItemAndEquiping(fromIndex, slotIndex);
+      },
+      unequipItem: (slot: string) => {
+        const slotIndex = slotNameToIndex(slot);
+        this._gameManager?.getGoodsListManager()?.unEquipGood(slotIndex);
+      },
+      swapItems: (fromIndex: number, toIndex: number) => {
+        this._gameManager?.getGoodsListManager()?.exchangeListItem(fromIndex, toIndex);
+      },
+      useBottomItem: (slotIndex: number) => {
+        const actualIndex = 221 + slotIndex;
+        const player = this._gameManager?.getPlayer();
+        this._gameManager?.getGoodsListManager()?.usingGood(actualIndex, player?.level ?? 1);
+      },
+      swapEquipSlots: (fromSlot: string, toSlot: string) => {
+        const fromIndex = slotNameToIndex(fromSlot);
+        const toIndex = slotNameToIndex(toSlot);
+        this._gameManager?.getGoodsListManager()?.exchangeListItem(fromIndex, toIndex);
+      },
+      useMagic: async (magicIndex: number) => {
+        // Use magic by right-clicking (assigns to bottom slot first)
+        this._gameManager?.handleMagicRightClick(magicIndex);
+      },
+      useMagicByBottom: async (bottomSlot: number) => {
+        await this._gameManager?.useMagicByBottomSlot(bottomSlot);
+      },
+      setCurrentMagic: (magicIndex: number) => {
+        // Convert store index to bottom index first
+        // Note: setCurrentMagicByBottomIndex expects a bottom slot index (0-4)
+        // This action is typically used when clicking a magic slot in the UI
+        // For now, we'll use handleMagicRightClick to move it to bottom slot
+        this._gameManager?.handleMagicRightClick(magicIndex);
+      },
+      setCurrentMagicByBottom: (bottomIndex: number) => {
+        this._gameManager?.getMagicListManager()?.setCurrentMagicByBottomIndex(bottomIndex);
+      },
+      swapMagic: (fromIndex: number, toIndex: number) => {
+        this._gameManager?.getMagicListManager()?.exchangeListItem(fromIndex, toIndex);
+      },
+      assignMagicToBottom: (magicIndex: number, bottomSlot: number) => {
+        this.handleMagicDrop(magicIndex, bottomSlot);
+      },
+      setXiuLianMagic: (magicIndex: number) => {
+        const xiuLianIndex = 49;
+        this._gameManager?.getMagicListManager()?.exchangeListItem(magicIndex, xiuLianIndex);
+      },
+      buyItem: async (shopIndex: number) => {
+        const buyManager = this._gameManager?.getBuyManager();
+        const player = this._gameManager?.getPlayer();
+        if (!buyManager || !player) return false;
+
+        return buyManager.buyGood(
+          shopIndex,
+          player.money,
+          async (fileName) => {
+            const goodsManager = this._gameManager?.getGoodsListManager();
+            if (!goodsManager) return false;
+            const result = await goodsManager.addGoodToList(fileName);
+            return result.success;
+          },
+          (amount) => {
+            player.money -= amount;
+          }
+        );
+      },
+      sellItem: (bagIndex: number) => {
+        const goodsManager = this._gameManager?.getGoodsListManager();
+        const buyManager = this._gameManager?.getBuyManager();
+        const player = this._gameManager?.getPlayer();
+        if (!goodsManager || !buyManager || !player) return;
+
+        const entry = goodsManager.getItemInfo(bagIndex);
+        if (entry?.good && entry.good.sellPrice > 0 && buyManager.getCanSellSelfGoods()) {
+          player.money += entry.good.sellPrice;
+          goodsManager.deleteGood(entry.good.fileName);
+          buyManager.addGood(entry.good);
+        }
+      },
+      closeShop: () => {
+        const buyManager = this._gameManager?.getBuyManager();
+        const guiManager = this._gameManager?.getGuiManager();
+        buyManager?.endBuy();
+        guiManager?.closeBuyGui();
+      },
+      saveGame: async (slotIndex: number) => {
+        return this.saveGameToSlot(slotIndex);
+      },
+      loadGame: async (slotIndex: number) => {
+        try {
+          await this.loadGameFromSlot(slotIndex);
+          return true;
+        } catch {
+          return false;
+        }
+      },
+      showSaveLoad: (visible: boolean) => {
+        this._gameManager?.getGuiManager()?.showSaveLoad(visible);
+      },
+      minimapClick: (worldX: number, worldY: number) => {
+        const player = this._gameManager?.getPlayer();
+        if (player) {
+          const tile = pixelToTile(worldX, worldY);
+          player.walkTo(tile);
+          this.togglePanel("littleMap");
+        }
+      },
+      dialogClick: () => {
+        this._gameManager?.getGuiManager()?.handleDialogClick();
+      },
+      dialogSelect: (selection: number) => {
+        this._gameManager?.getGuiManager()?.onDialogSelectionMade(selection);
+        this.onSelectionMade(selection);
+      },
+      selectionChoose: (index: number) => {
+        this._gameManager?.getGuiManager()?.selectByIndex(index);
+      },
+      multiSelectionToggle: (index: number) => {
+        this._gameManager?.getGuiManager()?.toggleMultiSelection(index);
+      },
+      showMessage: (text: string) => {
+        this._gameManager?.getGuiManager()?.showMessage(text);
+      },
+      showSystem: (visible: boolean) => {
+        this._gameManager?.getGuiManager()?.showSystem(visible);
+      },
+      onVideoEnd: () => {
+        this.events.emit(GameEvents.UI_VIDEO_END, {});
+      },
+
+      // Getters for snapshot
+      getPanels: () => {
+        const state = this._gameManager?.getGuiManager()?.getState();
+        return state?.panels ?? {
+          state: false,
+          equip: false,
+          xiulian: false,
+          goods: false,
+          magic: false,
+          memo: false,
+          system: false,
+          saveLoad: false,
+          buy: false,
+          npcEquip: false,
+          title: false,
+          timer: false,
+          littleMap: false,
+        };
+      },
+      getDialogState: () => {
+        const state = this._gameManager?.getGuiManager()?.getState();
+        return state?.dialog ?? {
+          isVisible: false,
+          text: "",
+          portraitIndex: 0,
+          portraitSide: "left" as const,
+          nameText: "",
+          textProgress: 0,
+          isComplete: true,
+          isInSelecting: false,
+          selectA: "",
+          selectB: "",
+          selection: -1,
+        };
+      },
+      getSelectionState: () => {
+        const state = this._gameManager?.getGuiManager()?.getState();
+        return state?.selection ?? {
+          isVisible: false,
+          message: "",
+          options: [],
+          selectedIndex: 0,
+          hoveredIndex: -1,
+        };
+      },
+      getMultiSelectionState: () => {
+        const state = this._gameManager?.getGuiManager()?.getState();
+        return state?.multiSelection ?? {
+          isVisible: false,
+          message: "",
+          options: [],
+          columns: 1,
+          selectionCount: 1,
+          selectedIndices: [],
+        };
+      },
+      canSaveGame: () => this._gameManager?.isSaveEnabled() ?? false,
+    };
+
+    return new UIBridge(deps);
   }
 
   /**
