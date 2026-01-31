@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Game, type GameHandle } from "@/components/game/Game";
-import { GameCursorContainer } from "@/components/game/ui/GameCursor";
+import { GameCursorContainer } from "@/components/game/ui";
 
 // 计算游戏尺寸的纯函数
 function calculateGameSize() {
