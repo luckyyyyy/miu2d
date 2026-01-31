@@ -1,11 +1,16 @@
 /**
  * MPC file parser - matches C# Engine/Mpc.cs implementation
+ *
+ * MPC files can optionally have associated SHD (shadow) files.
+ * When SHD is present, shadow data is used as the base layer,
+ * and MPC color pixels are drawn on top.
  */
 
 import { getLittleEndianInt } from "../core/binaryUtils";
 import { logger } from "../core/logger";
 import type { Mpc, MpcFrame, MpcHead } from "../core/mapTypes";
 import { resourceLoader } from "./resourceLoader";
+import { type Shd, loadShd } from "./shd";
 
 /**
  * Parse an MPC file buffer into an Mpc object
@@ -92,6 +97,9 @@ export async function parseMpc(buffer: ArrayBuffer): Promise<Mpc | null> {
 
     const pixelData = new Uint8ClampedArray(width * height * 4);
     let dataIdx = 0;
+    // C#: var dataend = datastart + datalen - 20;
+    // dataStart is already at: frameStart + 20 (4+4+4+8)
+    // so dataEnd = dataStart + dataLen - 20 = frameStart + dataLen
     const dataEnd = frameDataStart + dataOffsets[j] + dataLen;
 
     while (dataStart < dataEnd && dataIdx < width * height) {
@@ -153,24 +161,52 @@ export async function parseMpc(buffer: ArrayBuffer): Promise<Mpc | null> {
  * Uses unified resourceLoader for caching parsed results
  */
 export async function loadMpc(url: string): Promise<Mpc | null> {
-  // parseMpc is async but synchronous in implementation
-  // Use loadParsedBinary with a sync wrapper
   return resourceLoader.loadParsedBinary<Mpc>(
     url,
-    (buffer) => {
-      // Call parseMpc synchronously (it's async for historical reasons but doesn't use await internally)
-      // We need to handle this differently since parseMpc is async
-      // Instead, parse synchronously inline
-      return parseMpcBuffer(buffer);
-    },
+    (buffer) => parseMpcBuffer(buffer, null),
     "mpc"
   );
 }
 
 /**
- * Sync version of MPC parsing for resourceLoader
+ * Load an MPC file with optional SHD shadow file
+ * Based on C# Mpc(string path, string shdFileName) constructor
+ *
+ * When SHD is provided, shadow data serves as the base layer
+ * and MPC color pixels are drawn on top (preserving shadow under transparent areas)
+ *
+ * @param mpcUrl - URL to the MPC file
+ * @param shdUrl - Optional URL to the SHD shadow file
  */
-function parseMpcBuffer(buffer: ArrayBuffer): Mpc | null {
+export async function loadMpcWithShadow(
+  mpcUrl: string,
+  shdUrl?: string
+): Promise<Mpc | null> {
+  // Load SHD first if provided
+  let shd: Shd | null = null;
+  if (shdUrl) {
+    shd = await loadShd(shdUrl);
+    if (!shd) {
+      logger.warn(`[MPC] SHD file not found: ${shdUrl}, loading MPC without shadow`);
+    }
+  }
+
+  // Load and parse MPC with SHD data
+  const buffer = await resourceLoader.loadBinary(mpcUrl);
+  if (!buffer) {
+    logger.error(`[MPC] Failed to load: ${mpcUrl}`);
+    return null;
+  }
+
+  return parseMpcBuffer(buffer, shd);
+}
+
+/**
+ * Sync version of MPC parsing for resourceLoader
+ * @param buffer - MPC file buffer
+ * @param shd - Optional pre-loaded SHD shadow data
+ */
+function parseMpcBuffer(buffer: ArrayBuffer, shd: Shd | null): Mpc | null {
   try {
     const data = new Uint8Array(buffer);
 
@@ -244,24 +280,50 @@ function parseMpcBuffer(buffer: ArrayBuffer): Mpc | null {
         continue;
       }
 
-      const pixelData = new Uint8ClampedArray(width * height * 4);
+      // Check if we have SHD shadow data for this frame
+      // C#: var hasShd = (_shd != null) && (_shd.GetFrameData(j) != null);
+      const shdFrame = shd && j >= 0 && j < shd.frames.length ? shd.frames[j] : null;
+      const hasShd = shdFrame !== null && shdFrame.width === width && shdFrame.height === height;
+
+      // If we have SHD, use shadow data as base; otherwise create empty array
+      // C#: var data = hasShd ? _shd.GetFrameData(j) : new Color[width * height];
+      let pixelData: Uint8ClampedArray;
+      if (hasShd && shdFrame) {
+        // Copy SHD data as base (shadow layer)
+        pixelData = new Uint8ClampedArray(shdFrame.data);
+      } else {
+        pixelData = new Uint8ClampedArray(width * height * 4);
+      }
+
       let dataIdx = 0;
+      // C#: var dataend = datastart + datalen - 20;
+      // dataStart is already at: frameStart + 20 (4+4+4+8)
+      // so dataEnd = dataStart + dataLen - 20 = frameStart + dataLen
       const dataEnd = frameDataStart + dataOffsets[j] + dataLen;
 
       while (dataStart < dataEnd && dataIdx < width * height) {
         const byte = data[dataStart];
         if (byte > 0x80) {
+          // Transparent pixels
           const transparentCount = byte - 0x80;
-          for (let ti = 0; ti < transparentCount && dataIdx < width * height; ti++) {
-            const idx = dataIdx * 4;
-            pixelData[idx] = 0;
-            pixelData[idx + 1] = 0;
-            pixelData[idx + 2] = 0;
-            pixelData[idx + 3] = 0;
-            dataIdx++;
+          // C#: if (!hasShd) { for (...) data[dataidx++] = Color.Transparent; } else { dataidx += transparentCount; }
+          if (!hasShd) {
+            // No shadow - fill with transparent
+            for (let ti = 0; ti < transparentCount && dataIdx < width * height; ti++) {
+              const idx = dataIdx * 4;
+              pixelData[idx] = 0;
+              pixelData[idx + 1] = 0;
+              pixelData[idx + 2] = 0;
+              pixelData[idx + 3] = 0;
+              dataIdx++;
+            }
+          } else {
+            // Has shadow - keep shadow data, just advance index
+            dataIdx += transparentCount;
           }
           dataStart++;
         } else {
+          // Colored pixels - always overwrite (both with and without SHD)
           const colorCount = byte;
           dataStart++;
           for (let ci = 0; ci < colorCount && dataIdx < width * height; ci++) {
@@ -292,7 +354,9 @@ function parseMpcBuffer(buffer: ArrayBuffer): Mpc | null {
         dataIdx++;
       }
 
-      const imageData = new ImageData(pixelData, width, height);
+      // Create ImageData from pixel data
+      const imageData = new ImageData(width, height);
+      imageData.data.set(pixelData);
       frames.push({ width, height, imageData });
     }
 

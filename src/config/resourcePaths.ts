@@ -153,7 +153,12 @@ export const ResourceDirs = {
     magic: "asf/magic",
   },
   /** MPC 资源包目录 */
-  mpc: "mpc",
+  mpc: {
+    root: "mpc",
+    map: "mpc/map",
+    character: "mpc/character",
+    object: "mpc/object",
+  },
   /** INI 配置文件目录 */
   ini: {
     root: "ini",
@@ -370,9 +375,21 @@ export const ResourcePath = {
   },
 
   // --- MPC ---
-  /** MPC 资源包路径 */
+  /** MPC 资源包路径（地图用） */
   mpc(fileName: string): string {
-    return buildPath(`${ResourceDirs.mpc}/${fileName}`);
+    return buildPath(`${ResourceDirs.mpc.root}/${fileName}`);
+  },
+  /** MPC 地图资源路径 */
+  mpcMap(fileName: string): string {
+    return buildPath(`${ResourceDirs.mpc.map}/${fileName}`);
+  },
+  /** MPC 角色精灵路径 */
+  mpcCharacter(fileName: string): string {
+    return buildPath(`${ResourceDirs.mpc.character}/${fileName}`);
+  },
+  /** MPC 物体精灵路径 */
+  mpcObject(fileName: string): string {
+    return buildPath(`${ResourceDirs.mpc.object}/${fileName}`);
   },
 
   // --- 通用 ---
