@@ -45,6 +45,7 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({
   onAddAllMagics,
   onXiuLianLevelUp,
   onXiuLianLevelDown,
+  onReduceLife,
 }) => {
   // 检查脚本是否正在执行
   const isScriptRunning = !!(currentScriptInfo && !currentScriptInfo.isCompleted);
@@ -93,6 +94,7 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({
           onKillAllEnemies={onKillAllEnemies}
           onSetLevel={onSetLevel}
           onAddMoney={onAddMoney}
+          onReduceLife={onReduceLife}
         />
 
         {/* 物品/武功 */}

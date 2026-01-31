@@ -11,6 +11,7 @@ interface QuickActionsSectionProps {
   onFullAll: () => void;
   onToggleGodMode: () => void;
   onKillAllEnemies: () => void;
+  onReduceLife: () => void;
   onSetLevel: (level: number) => void;
   onAddMoney: (amount: number) => void;
 }
@@ -20,6 +21,7 @@ export const QuickActionsSection: React.FC<QuickActionsSectionProps> = ({
   onFullAll,
   onToggleGodMode,
   onKillAllEnemies,
+  onReduceLife,
   onSetLevel,
   onAddMoney,
 }) => {
@@ -50,6 +52,13 @@ export const QuickActionsSection: React.FC<QuickActionsSectionProps> = ({
             className={`${btnClass} flex-1 text-red-400`}
           >
             秒杀
+          </button>
+          <button
+            type="button"
+            onClick={onReduceLife}
+            className={`${btnClass} flex-1 text-red-400`}
+          >
+            扣血
           </button>
         </div>
 

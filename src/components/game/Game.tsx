@@ -13,6 +13,7 @@ import type React from "react";
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from "react";
 import type { DebugManager } from "@/engine/debug";
 import { GameEvents, type UIPanelChangeEvent } from "@/engine/core/gameEvents";
+import { logger } from "@/engine/core/logger";
 import type { GameEngine } from "@/engine/game/gameEngine";
 import { useGameEngine } from "@/hooks";
 import { GameCanvas, type GameCanvasHandle } from "./GameCanvas";
@@ -35,13 +36,15 @@ export interface GameProps {
   height?: number;
   /** 可选：从存档槽位加载 (1-7) */
   loadSlot?: number;
+  /** 返回标题界面回调 */
+  onReturnToTitle?: () => void;
 }
 
 /**
  * Game Component
  */
 export const Game = forwardRef<GameHandle, GameProps>(
-  ({ width = 800, height = 600, loadSlot }, ref) => {
+  ({ width = 800, height = 600, loadSlot, onReturnToTitle }, ref) => {
     const canvasRef = useRef<GameCanvasHandle>(null);
     const containerRef = useRef<HTMLDivElement>(null);
 
@@ -52,6 +55,22 @@ export const Game = forwardRef<GameHandle, GameProps>(
       autoStart: true,
       loadSlot,
     });
+
+    // 监听返回标题事件
+    useEffect(() => {
+      if (!engine || !onReturnToTitle) return;
+
+      logger.log("[Game] Setting up RETURN_TO_TITLE listener");
+      const unsub = engine.getEvents().on(GameEvents.RETURN_TO_TITLE, () => {
+        logger.log("[Game] RETURN_TO_TITLE event received");
+        onReturnToTitle();
+      });
+
+      return () => {
+        logger.log("[Game] Cleaning up RETURN_TO_TITLE listener");
+        unsub();
+      };
+    }, [engine, onReturnToTitle]);
 
     // UI强制更新（用于部分需要刷新的场景）
     const [, setForceUpdate] = useState({});
