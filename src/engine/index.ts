@@ -54,5 +54,7 @@ export * from "./resource";
 export * from "./script";
 // Sprite system (new class-based)
 export * from "./sprite";
+// UI Bridge (for multi-UI support)
+export * from "./ui";
 // Weather system
 export * from "./weather";

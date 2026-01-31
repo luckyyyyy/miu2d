@@ -11,3 +11,6 @@ export { MapViewer } from "./MapViewer";
 
 // UI 组件
 export * from "./ui";
+
+// UI 适配器
+export * from "./adapters";

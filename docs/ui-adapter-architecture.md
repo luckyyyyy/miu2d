@@ -1,5 +1,25 @@
 # UI 适配器架构方案
 
+## 实现状态
+
+✅ **已完成：**
+- `src/engine/ui/contract.ts` - UI 数据契约定义
+- `src/engine/ui/uiBridge.ts` - UIBridge 实现（引擎与 UI 的桥梁）
+- `src/components/game/adapters/useUIBridge.ts` - React Hook 适配器
+- `src/engine/game/gameEngine.ts` - UIBridge 集成
+- `src/components/game/GameUI.tsx` - 已迁移使用 UIBridge
+- `src/hooks/useGameUI.ts` - 已删除（不再需要）
+
+---
+
+## 当前架构
+
+采用混合模式：
+- **动作派发**: 所有 UI 交互通过 `dispatch(UIAction)` 统一派发
+- **状态读取**:
+  - 面板可见性、对话、选择、消息等通过 UIBridge 订阅获取
+  - 物品、武功、商店数据从 engine 直接读取（保持与现有组件类型兼容）
+
 ## 背景
 
 为了支持未来开发现代化 Web UI，需要将 UI 层与引擎完全解耦，实现多套 UI 可插拔。
