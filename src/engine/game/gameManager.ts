@@ -500,13 +500,11 @@ export class GameManager {
       // Return to title
       returnToTitle: () => {
         // C# Reference: ScriptExecuter.ReturnToTitle()
-        logger.log("[GameManager] ReturnToTitle called");
         // 1. 清除并行脚本
         this.scriptExecutor.clearParallelScripts();
         // 2. 停止所有脚本执行
         this.scriptExecutor.stopAllScripts();
         // 3. 发送返回标题事件，由 React 层处理 GUI 和状态重置
-        logger.log("[GameManager] Emitting RETURN_TO_TITLE event");
         this.events.emit(GameEvents.RETURN_TO_TITLE, {});
       },
     });
