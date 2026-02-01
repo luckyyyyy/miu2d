@@ -16,8 +16,8 @@ export {
   preloadMagics,
 } from "./magicLoader";
 
-// Magic Manager
-export { MagicManager, type MagicManagerDeps } from "./magicManager";
+// Magic Manager (refactored)
+export { MagicManager, type MagicManagerDeps } from "./manager";
 // Magic Renderer
 export { MagicRenderer, magicRenderer } from "./magicRenderer";
 // MagicSprite class (inherits from Sprite)
