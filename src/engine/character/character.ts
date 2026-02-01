@@ -1,6 +1,11 @@
 /**
  * Character 基类 - 对应 C# Character.cs
  * Player 和 NPC 的基类，继承自 Sprite
+ *
+ * 功能模块分布：
+ * - traits/combatUtils.ts: 战斗计算工具函数
+ * - traits/magicUtils.ts: 武功列表解析工具函数
+ * - traits/movementUtils.ts: 移动计算工具函数
  */
 
 import type { AudioManager } from "../audio";
@@ -50,6 +55,32 @@ import { loadCharacterAsf, loadCharacterImage, loadNpcRes } from "./resFile";
 import { getEffectAmount } from "../magic/effects/common";
 import { LevelManager } from "./level/levelManager";
 import type { Npc } from "./npc";
+// 工具函数模块
+import {
+  calculateHitRate,
+  hasImmunityShield,
+  calculateSimpleShieldReduction,
+  calculateShieldReduction,
+  calculateDeathExp,
+  applyMinimumDamage,
+  capDamageToLife,
+} from "./traits/combatUtils";
+import {
+  parseMagicList as parseMagicListUtil,
+  parseMagicListNoDistance as parseMagicListNoDistanceUtil,
+  getRandomMagicWithUseDistance as getRandomMagicWithUseDistanceUtil,
+} from "./traits/magicUtils";
+import {
+  DIRECTION_VECTORS,
+  TILE_OFFSETS,
+  JUMP_SPEED_FOLD,
+  DISTANCE_OFFSET,
+  calculateSpeedMultiplier,
+  findNeighborInDirection as findNeighborInDirectionUtil,
+  findDistanceTileInDirection as findDistanceTileInDirectionUtil,
+  isAtTileCenter,
+  pixelDistance,
+} from "./traits/movementUtils";
 
 /** 加载中状态标记（-1），确保后续 state 变更时触发纹理更新 */
 export const LOADING_STATE = -1 as CharacterState;
@@ -1703,29 +1734,14 @@ export abstract class Character extends Sprite implements CharacterInstance {
   /**
    * C#: Character specific movement by direction index
    * Move character in a direction (8-direction index)
-   * This is different from Sprite.moveTo which takes a Vector2
-   * C# Sprite.cs line 267: MovedDistance += move.Length();
+   * Uses DIRECTION_VECTORS from traits/movementUtils.ts
    */
   moveToDirection(direction: number, elapsedSeconds: number): void {
-    // C#: ChangeMoveSpeedFold = 1 + AddMoveSpeedPercent / 100 (min -90%)
-    const speedPercent = Math.max(MIN_CHANGE_MOVE_SPEED_PERCENT, this.addMoveSpeedPercent);
-    const changeMoveSpeedFold = 1 + speedPercent / 100;
+    const changeMoveSpeedFold = calculateSpeedMultiplier(this.addMoveSpeedPercent);
     const speed = BASE_SPEED * this.walkSpeed * changeMoveSpeedFold;
     const moveDistance = speed * elapsedSeconds;
 
-    // Direction vectors (normalized) - C# uses Vector2.Normalize()
-    const vectors = [
-      { x: 0, y: -1 }, // North
-      { x: Math.SQRT1_2, y: -Math.SQRT1_2 }, // NorthEast (1/√2)
-      { x: 1, y: 0 }, // East
-      { x: Math.SQRT1_2, y: Math.SQRT1_2 }, // SouthEast
-      { x: 0, y: 1 }, // South
-      { x: -Math.SQRT1_2, y: Math.SQRT1_2 }, // SouthWest
-      { x: -1, y: 0 }, // West
-      { x: -Math.SQRT1_2, y: -Math.SQRT1_2 }, // NorthWest
-    ];
-
-    const vec = vectors[direction] || { x: 0, y: 0 };
+    const vec = DIRECTION_VECTORS[direction] || { x: 0, y: 0 };
     const moveX = vec.x * moveDistance;
     const moveY = vec.y * moveDistance;
     this._positionInWorld.x += moveX;
@@ -1744,19 +1760,14 @@ export abstract class Character extends Sprite implements CharacterInstance {
   /**
    * C# Sprite.cs: MoveTo(Vector2 direction, float elapsedSeconds)
    * Move character in a direction vector (not index)
-   * The direction vector is normalized before use
+   * Uses calculateSpeedMultiplier from traits/movementUtils.ts
    */
   moveToVector(direction: Vector2, elapsedSeconds: number): void {
-    // C# Sprite.cs line 259-263: direction.Normalize(); MoveToNoNormalizeDirection(direction, elapsedSeconds)
     const len = Math.sqrt(direction.x * direction.x + direction.y * direction.y);
     if (len === 0) return;
 
     const normalizedDir = { x: direction.x / len, y: direction.y / len };
-
-    // C#: ChangeMoveSpeedFold = 1 + AddMoveSpeedPercent / 100 (min -90%)
-    const speedPercent = Math.max(MIN_CHANGE_MOVE_SPEED_PERCENT, this.addMoveSpeedPercent);
-    const changeMoveSpeedFold = 1 + speedPercent / 100;
-    // C# Sprite.cs line 267: var move = direction * _velocity * elapsedSeconds * speedRatio;
+    const changeMoveSpeedFold = calculateSpeedMultiplier(this.addMoveSpeedPercent);
     const speed = BASE_SPEED * this.walkSpeed * changeMoveSpeedFold;
     const moveDistance = speed * elapsedSeconds;
 
@@ -1764,14 +1775,9 @@ export abstract class Character extends Sprite implements CharacterInstance {
     const moveY = normalizedDir.y * moveDistance;
     this._positionInWorld.x += moveX;
     this._positionInWorld.y += moveY;
-
-    // Update direction for animation
     this.setDirectionFromDelta(normalizedDir.x, normalizedDir.y);
-
-    // C# Sprite.cs: MovedDistance += move.Length();
     this.movedDistance += Math.sqrt(moveX * moveX + moveY * moveY);
 
-    // Update tile position
     const tile = pixelToTile(this._positionInWorld.x, this._positionInWorld.y);
     this._mapX = tile.x;
     this._mapY = tile.y;
@@ -1891,13 +1897,8 @@ export abstract class Character extends Sprite implements CharacterInstance {
         this.onReachedDestination();
       }
     } else {
-      // Move towards waypoint
-      // C#: MoveAlongPath(deltaTime * ChangeMoveSpeedFold, speedFold)
-      //     然后调用 MoveTo(direction, elapsedSeconds * speedFold)
-      //     速度 = velocity * elapsedSeconds = 100 * deltaTime * ChangeMoveSpeedFold * speedFold
-      // Walk时 speedFold = WalkSpeed, Run时 speedFold = RunSpeedFold (不同时乘!)
-      const speedPercent = Math.max(MIN_CHANGE_MOVE_SPEED_PERCENT, this.addMoveSpeedPercent);
-      const changeMoveSpeedFold = 1 + speedPercent / 100;
+      // Move towards waypoint using speed multiplier utility
+      const changeMoveSpeedFold = calculateSpeedMultiplier(this.addMoveSpeedPercent);
       const speed = BASE_SPEED * speedFold * changeMoveSpeedFold;
       const moveDistance = speed * deltaTime;
       const ratio = Math.min(1, moveDistance / dist);
@@ -2355,24 +2356,14 @@ export abstract class Character extends Sprite implements CharacterInstance {
   /**
    * C# Reference: PathFinder.FindDistanceTileInDirection
    * Find a tile at a specified distance in a given direction
+   * Uses utility function from traits/movementUtils.ts
    */
   protected findDistanceTileInDirection(
     fromTile: Vector2,
     direction: Vector2,
-    distance: number
+    dist: number
   ): Vector2 {
-    // Normalize direction
-    const len = Math.sqrt(direction.x * direction.x + direction.y * direction.y);
-    if (len === 0) return fromTile;
-
-    const normX = direction.x / len;
-    const normY = direction.y / len;
-
-    // Calculate target tile
-    return {
-      x: Math.round(fromTile.x + normX * distance),
-      y: Math.round(fromTile.y + normY * distance),
-    };
+    return findDistanceTileInDirectionUtil(fromTile, direction, dist);
   }
 
   /**
@@ -3072,13 +3063,11 @@ export abstract class Character extends Sprite implements CharacterInstance {
   /**
    * 计算击杀经验
    * C# Reference: Utils.GetCharacterDeathExp(theKiller, theDead)
-   * exp = killer.Level * dead.Level + dead.ExpBonus
-   * 最小值为 4
+   * Uses calculateDeathExp from traits/combatUtils.ts
    */
   static getCharacterDeathExp(killer: Character, dead: Character): number {
     if (!killer || !dead) return 1;
-    const exp = killer.level * dead.level + (dead.expBonus ?? 0);
-    return exp < 4 ? 4 : exp;
+    return calculateDeathExp(killer.level, dead.level, dead.expBonus ?? 0);
   }
 
   /**
@@ -3091,97 +3080,41 @@ export abstract class Character extends Sprite implements CharacterInstance {
   /**
    * Take damage from an attacker
    * C# Reference: MagicSprite.CharacterHited + Character.DecreaseLifeAddHurt
-   *
-   * Full implementation with hit rate calculation based on evade stats
+   * Uses utility functions from traits/combatUtils.ts
    */
   takeDamage(damage: number, attacker: Character | null): void {
     if (this.isDeathInvoked || this.isDeath) return;
 
     // 调试无敌模式：玩家不受伤害
-    if (this.isPlayer && this.engine.getManager("debug")?.isGodMode()) {
-      return;
-    }
+    if (this.isPlayer && this.engine.getManager("debug")?.isGodMode()) return;
 
     // C#: if (amount <= 0 || Invincible > 0 || Life <= 0) return;
     if (damage <= 0 || this.invincible > 0 || this.life <= 0) return;
 
     // C# Reference: 检查 SpecialKind=6 免疫盾
-    for (const sprite of this._magicSpritesInEffect) {
-      if (sprite.magic.moveKind === 13 && sprite.magic.specialKind === 6) {
-        return;
-      }
-    }
+    if (hasImmunityShield(this._magicSpritesInEffect)) return;
 
     // C#: Track last attacker for CheckKeepDistanceWhenFriendDeath AI
     this._lastAttacker = attacker;
 
-    // ============= Hit Rate Calculation =============
-    // C# Reference: MagicSprite.CharacterHited - 使用 RealEvade
-
-    const targetEvade = this.realEvade;
-    const attackerEvade = attacker?.realEvade ?? 0;
-    const maxOffset = 100;
-    const baseHitRatio = 0.05;
-    const belowRatio = 0.5;
-    const upRatio = 0.45;
-
-    let hitRatio = baseHitRatio;
-    if (targetEvade >= attackerEvade) {
-      // Target has higher or equal evade
-      // hitRatio += (attackerEvade / targetEvade) * belowRatio
-      // Range: 5% - 55%
-      if (targetEvade > 0) {
-        hitRatio += (attackerEvade / targetEvade) * belowRatio;
-      } else {
-        hitRatio += belowRatio;
-      }
-    } else {
-      // Attacker has higher evade
-      // hitRatio += belowRatio + ((attackerEvade - targetEvade) / maxOffset) * upRatio
-      // Range: 55% - 100%
-      let upOffsetRatio = (attackerEvade - targetEvade) / maxOffset;
-      if (upOffsetRatio > 1) upOffsetRatio = 1;
-      hitRatio += belowRatio + upOffsetRatio * upRatio;
-    }
-
-    // Roll for hit
+    // Hit rate calculation using utility function
+    const hitRatio = calculateHitRate(this.realEvade, attacker?.realEvade ?? 0);
     const roll = Math.random();
     if (roll > hitRatio) {
-      // Miss!
       logger.log(
         `[Character] ${attacker?.name || "Unknown"} missed ${this.name} (roll ${(roll * 100).toFixed(1)}% > ${(hitRatio * 100).toFixed(1)}% hit rate)`
       );
       return;
     }
 
-    // === Damage ===
-    // C# Reference: MagicSprite.CharacterHited
-    // effect = damage - character.RealDefend
-    // if (effect < MinimalDamage) effect = MinimalDamage
+    // Calculate damage with shield reduction
     let actualDamage = Math.max(0, damage - this.realDefend);
-
-    // C# Reference: MagicSpritesInEffect 护盾减伤 (SpecialKind=3)
-    for (const sprite of this._magicSpritesInEffect) {
-      if (sprite.magic.moveKind === 13 && sprite.magic.specialKind === 3) {
-        const shieldEffect = (sprite.magic.effect === 0 ? this.attack : sprite.magic.effect) + (sprite.magic.effectExt || 0);
-        actualDamage -= shieldEffect;
-      }
-    }
-
-    // MinimalDamage = 5
-    const minimalDamage = 5;
-    if (actualDamage < minimalDamage) {
-      actualDamage = minimalDamage;
-    }
-
-    // Cap damage to current life
-    if (actualDamage > this.life) {
-      actualDamage = this.life;
-    }
+    actualDamage -= calculateSimpleShieldReduction(this._magicSpritesInEffect, this.attack);
+    actualDamage = applyMinimumDamage(actualDamage);
+    actualDamage = capDamageToLife(actualDamage, this.life);
 
     // Apply damage
     this.life -= actualDamage;
-
     logger.log(
       `[Character] ${this.name} took ${actualDamage} damage from ${attacker?.name || "Unknown"} (${this.life}/${this.lifeMax} HP, hit rate: ${(hitRatio * 100).toFixed(1)}%)`
     );
@@ -3192,28 +3125,7 @@ export abstract class Character extends Sprite implements CharacterInstance {
     // Check for death
     if (this.life <= 0) {
       this.life = 0;
-
-      // === 给击杀者增加经验 ===
-      // C# Reference: MagicSprite.CharacterHited - 经验处理
-      // 只有玩家或玩家友军击杀敌人时才给经验
-      // 注意: 武功击杀时经验在 MagicManager.handleExpOnHit 中处理，
-      //       这里处理的是普通攻击 (takeDamage) 造成的击杀
-      if (attacker && (attacker.isPlayer || attacker.isFighterFriend)) {
-        const player = this.engine.player;
-        if (player) {
-          const exp = Character.getCharacterDeathExp(player as Character, this);
-          player.addExp(exp, true);
-          logger.log(`[Character] Player gains ${exp} exp from killing ${this.name}`);
-
-          // 如果击杀者是伙伴且可以升级，也给伙伴经验
-          if (attacker.isPartner && attacker.canLevelUp > 0) {
-            const partnerExp = Character.getCharacterDeathExp(attacker, this);
-            attacker.addExp(partnerExp);
-            logger.log(`[Character] Partner ${attacker.name} gains ${partnerExp} exp`);
-          }
-        }
-      }
-
+      this.handleDeathExp(attacker);
       this.onDeath(attacker);
     } else {
       // Play hurt animation
@@ -3222,8 +3134,32 @@ export abstract class Character extends Sprite implements CharacterInstance {
   }
 
   /**
+   * Handle experience gain when this character dies
+   * C# Reference: MagicSprite.CharacterHited - 经验处理
+   */
+  protected handleDeathExp(attacker: Character | null): void {
+    if (!attacker || (!attacker.isPlayer && !attacker.isFighterFriend)) return;
+    
+    const player = this.engine.player;
+    if (!player) return;
+
+    const playerChar = player as unknown as Character;
+    const exp = calculateDeathExp(playerChar.level, this.level, this.expBonus);
+    player.addExp(exp, true);
+    logger.log(`[Character] Player gains ${exp} exp from killing ${this.name}`);
+
+    // 如果击杀者是伙伴且可以升级，也给伙伴经验
+    if (attacker.isPartner && attacker.canLevelUp > 0) {
+      const partnerExp = calculateDeathExp(attacker.level, this.level, this.expBonus);
+      attacker.addExp(partnerExp);
+      logger.log(`[Character] Partner ${attacker.name} gains ${partnerExp} exp`);
+    }
+  }
+
+  /**
    * Take damage with full damage types (damage, damage2, damage3, damageMana)
    * C# Reference: MagicSprite.CharacterHited - full version
+   * Uses utility functions from traits/combatUtils.ts
    */
   takeDamageFromMagic(
     damage: number,
@@ -3233,85 +3169,38 @@ export abstract class Character extends Sprite implements CharacterInstance {
     attacker: Character | null
   ): number {
     if (this.isDeathInvoked || this.isDeath) return 0;
-
-    // 调试无敌模式：玩家不受伤害
-    if (this.isPlayer && this.engine.getManager("debug")?.isGodMode()) {
-      return 0;
-    }
-
+    if (this.isPlayer && this.engine.getManager("debug")?.isGodMode()) return 0;
     if (this.invincible > 0 || this.life <= 0) return 0;
 
     this._lastAttacker = attacker;
 
     // C# Reference: 检查 SpecialKind=6 免疫盾
-    // foreach (var magicSprite in MagicSpritesInEffect)
-    //   if (magic.MoveKind == 13 && magic.SpecialKind == 6) return;
-    for (const sprite of this._magicSpritesInEffect) {
-      if (sprite.magic.moveKind === 13 && sprite.magic.specialKind === 6) {
-        // 有免疫盾，完全不受伤害
-        return 0;
-      }
-    }
+    if (hasImmunityShield(this._magicSpritesInEffect)) return 0;
 
-    // ============= Hit Rate Calculation =============
-    // C# Reference: 使用 RealEvade 而非 _evade
-    const targetEvade = this.realEvade;
-    const attackerEvade = attacker?.realEvade ?? 0;
-    const maxOffset = 100;
-    const baseHitRatio = 0.05;
-    const belowRatio = 0.5;
-    const upRatio = 0.45;
-
-    let hitRatio = baseHitRatio;
-    if (targetEvade >= attackerEvade) {
-      if (targetEvade > 0) {
-        hitRatio += (attackerEvade / targetEvade) * belowRatio;
-      } else {
-        hitRatio += belowRatio;
-      }
-    } else {
-      let upOffsetRatio = (attackerEvade - targetEvade) / maxOffset;
-      if (upOffsetRatio > 1) upOffsetRatio = 1;
-      hitRatio += belowRatio + upOffsetRatio * upRatio;
-    }
-
-    const roll = Math.random();
-    if (roll > hitRatio) {
+    // Hit rate calculation using utility function
+    const hitRatio = calculateHitRate(this.realEvade, attacker?.realEvade ?? 0);
+    if (Math.random() > hitRatio) {
       logger.log(`[Character] ${attacker?.name || "Unknown"} magic missed ${this.name}`);
       return 0;
     }
 
-    // === Multi-type Damage ===
-    // C# Reference: effect3 = damage3 - character.Defend3; etc.
-    // C# 允许负值，只在最后判断最小伤害
+    // Multi-type damage calculation
     let effect = damage - this.realDefend;
     let effect2 = damage2 - this.defend2;
     let effect3 = damage3 - this.defend3;
 
-    // C# Reference: MagicSpritesInEffect 护盾减伤 (SpecialKind=3)
-    // GetEffectAmount(magic, character) 中 character 是被保护角色 (this)
-    for (const sprite of this._magicSpritesInEffect) {
-      if (sprite.magic.moveKind === 13 && sprite.magic.specialKind === 3) {
-        // C# MagicManager.GetEffectAmount - 包含 AddMagicEffect 加成
-        const m = sprite.magic;
-        const damageReduce = getEffectAmount(m, this, "effect");
-        const damageReduce2 = getEffectAmount(m, this, "effect2");
-        const damageReduce3 = getEffectAmount(m, this, "effect3");
-        effect3 -= damageReduce3;
-        effect2 -= damageReduce2;
-        effect -= damageReduce;
-      }
-    }
+    // Shield reduction using utility function
+    effect -= calculateShieldReduction(this._magicSpritesInEffect, this, "effect");
+    effect2 -= calculateShieldReduction(this._magicSpritesInEffect, this, "effect2");
+    effect3 -= calculateShieldReduction(this._magicSpritesInEffect, this, "effect3");
 
     // Combine damage types
-    // C#: if (effect3 > 0) effect += effect3; if (effect2 > 0) effect += effect2;
     let totalEffect = effect;
     if (effect3 > 0) totalEffect += effect3;
     if (effect2 > 0) totalEffect += effect2;
 
-    // MinimalDamage = 5
-    if (totalEffect < 5) totalEffect = 5;
-    if (totalEffect > this.life) totalEffect = this.life;
+    totalEffect = applyMinimumDamage(totalEffect);
+    totalEffect = capDamageToLife(totalEffect, this.life);
 
     this.life -= totalEffect;
 
@@ -3324,7 +3213,6 @@ export abstract class Character extends Sprite implements CharacterInstance {
       `[Character] ${this.name} took ${totalEffect} magic damage (${this.life}/${this.lifeMax} HP)`
     );
 
-    // Trigger reactive effects (e.g., MagicToUseWhenBeAttacked)
     this.onDamaged(attacker, totalEffect);
 
     if (this.life <= 0) {
@@ -3334,7 +3222,6 @@ export abstract class Character extends Sprite implements CharacterInstance {
       this.hurting();
     }
 
-    // 返回实际造成的伤害（用于吸血等效果）
     return totalEffect;
   }
 
@@ -3807,12 +3694,10 @@ export abstract class Character extends Sprite implements CharacterInstance {
         isOver = true;
       } else {
         // C#: MoveTo(to - from, elapsedSeconds * 8) - Jump is 8x faster
-        const JUMP_SPEED_FOLD = 8;
         this.moveToVector({ x: dirX, y: dirY }, deltaTime * JUMP_SPEED_FOLD);
       }
 
       // C#: if (MovedDistance >= distance - Globals.DistanceOffset && !isOver)
-      const DISTANCE_OFFSET = 1;
       if (this.movedDistance >= totalDistance - DISTANCE_OFFSET && !isOver) {
         this.movedDistance = 0;
         this._positionInWorld = { x: to.x, y: to.y };
@@ -3840,32 +3725,10 @@ export abstract class Character extends Sprite implements CharacterInstance {
   /**
    * Find neighbor tile in a direction
    * C# Reference: PathFinder.FindNeighborInDirection
+   * Uses utility function from traits/movementUtils.ts
    */
   protected findNeighborInDirection(tilePos: Vector2, direction: Vector2): Vector2 {
-    // Simplified: normalize direction and add to tile position
-    const len = Math.sqrt(direction.x * direction.x + direction.y * direction.y);
-    if (len === 0) return tilePos;
-
-    // Determine direction index (0-7)
-    const dirIndex = getDirectionFromVector(direction);
-
-    // Direction offsets in tile coordinates
-    const offsets = [
-      { x: 0, y: -1 }, // North
-      { x: 1, y: -1 }, // NorthEast
-      { x: 1, y: 0 }, // East
-      { x: 1, y: 1 }, // SouthEast
-      { x: 0, y: 1 }, // South
-      { x: -1, y: 1 }, // SouthWest
-      { x: -1, y: 0 }, // West
-      { x: -1, y: -1 }, // NorthWest
-    ];
-
-    const offset = offsets[dirIndex] || { x: 0, y: 0 };
-    return {
-      x: tilePos.x + offset.x,
-      y: tilePos.y + offset.y,
-    };
+    return findNeighborInDirectionUtil(tilePos, direction);
   }
 
   /**
@@ -4719,25 +4582,7 @@ export abstract class Character extends Sprite implements CharacterInstance {
    * @returns 数组 [{magicIni, useDistance}]
    */
   static parseMagicList(listStr: string): Array<{ magicIni: string; useDistance: number }> {
-    const result: Array<{ magicIni: string; useDistance: number }> = [];
-    if (!listStr) return result;
-
-    const parts = listStr.split(/[;；]/);
-    for (const part of parts) {
-      const trimmed = part.trim();
-      if (!trimmed) continue;
-
-      const colonMatch = trimmed.match(/^(.+?)[：:](\d+)$/);
-      if (colonMatch) {
-        const magicIni = colonMatch[1].trim();
-        const useDistance = parseInt(colonMatch[2], 10) || 0;
-        result.push({ magicIni, useDistance });
-      } else {
-        // 没有距离，使用 0（后续会用 attackRadius）
-        result.push({ magicIni: trimmed, useDistance: 0 });
-      }
-    }
-    return result;
+    return parseMagicListUtil(listStr);
   }
 
   /**
@@ -4747,22 +4592,7 @@ export abstract class Character extends Sprite implements CharacterInstance {
    * @returns 武功文件名数组
    */
   static parseMagicListNoDistance(listStr: string): string[] {
-    const result: string[] = [];
-    if (!listStr) return result;
-
-    const parts = listStr.split(/[;；]/);
-    for (const part of parts) {
-      const trimmed = part.trim();
-      if (!trimmed) continue;
-
-      const colonMatch = trimmed.match(/^(.+?)[：:](\d+)$/);
-      if (colonMatch) {
-        result.push(colonMatch[1].trim());
-      } else {
-        result.push(trimmed);
-      }
-    }
-    return result;
+    return parseMagicListNoDistanceUtil(listStr);
   }
 
   /**
