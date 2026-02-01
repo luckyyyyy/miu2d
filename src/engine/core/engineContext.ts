@@ -16,7 +16,7 @@ import type { InteractionManager } from "../game/interactionManager";
 import type { MagicHandler } from "../game/magicHandler";
 import type { BuyManager } from "../gui/buyManager";
 import type { GuiManager } from "../gui/guiManager";
-import type { MagicManager } from "../magic/magicManager";
+import type { MagicManager } from "../magic";
 import type { MapBase } from "../map/mapBase";
 import type { MapRenderer } from "../map/renderer";
 import type { ObjManager } from "../obj/objManager";
