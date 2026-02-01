@@ -183,7 +183,7 @@ export function removeMagicFromInfos(
 
 /**
  * Get random magic from list based on distance
- * C# Reference: Character.GetRamdomMagicWithUseDistance
+ * C# Reference: Character.GetRandomMagicWithUseDistance
  *
  * @param list The flyIniInfos list
  * @param distance Attack distance to match

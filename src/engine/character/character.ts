@@ -3143,8 +3143,9 @@ export abstract class Character extends Sprite implements CharacterInstance {
     const player = this.engine.player;
     if (!player) return;
 
-    const playerChar = player as unknown as Character;
-    const exp = calculateDeathExp(playerChar.level, this.level, this.expBonus);
+    // Cast IPlayer to Character for level access (consistent with original codebase pattern)
+    const playerAsChar = player as unknown as Character;
+    const exp = calculateDeathExp(playerAsChar.level, this.level, this.expBonus);
     player.addExp(exp, true);
     logger.log(`[Character] Player gains ${exp} exp from killing ${this.name}`);
 
