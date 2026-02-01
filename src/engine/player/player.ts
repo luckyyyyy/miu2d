@@ -263,6 +263,34 @@ export class Player extends Character {
   }
 
   /**
+   * 应用武功列表中的 FlyIni 效果
+   * 在游戏加载后调用，把武功列表中武功的 FlyIni/FlyIni2 应用到玩家身上
+   * C# Reference: Player.LoadMagicEffect(MagicItemInfo[] infos)
+   */
+  loadMagicEffect(): void {
+    const allMagicInfos = this._magicListManager.getAllMagicInfos();
+
+    for (const info of allMagicInfos) {
+      if (!info.magic) continue;
+
+      // MagicToUseWhenBeAttacked - 被攻击时使用的武功
+      // TODO: 需要实现 magicToUseWhenAttackedList 系统
+
+      // FlyIni - 添加飞行动画替换
+      if (info.magic.flyIni) {
+        this.addFlyIniReplace(info.magic.flyIni);
+      }
+
+      // FlyIni2 - 添加飞行动画2替换
+      if (info.magic.flyIni2) {
+        this.addFlyIni2Replace(info.magic.flyIni2);
+      }
+    }
+
+    logger.log(`[Player] loadMagicEffect: Applied ${allMagicInfos.length} magic effects`);
+  }
+
+  /**
    * 获取 GoodsListManager
    * Player 持有 GoodsListManager，其他模块通过此方法访问
    */
@@ -1411,8 +1439,24 @@ export class Player extends Character {
     this._addThewRestorePercent += newMagic.addThewRestorePercent || 0;
     this._addManaRestorePercent += newMagic.addManaRestorePercent || 0;
 
-    // TODO: FlyIni 替换逻辑
-    // if (oldMagic.FlyIni != newMagic.FlyIni) { RemoveFlyIniReplace/AddFlyIniReplace }
+    // C# Reference: Player.AddMagicExp - FlyIni 替换逻辑
+    // if (oldMagic.FlyIni != newMagic.FlyIni) { RemoveFlyIniReplace(old); AddFlyIniReplace(new); }
+    if (oldMagic.flyIni !== newMagic.flyIni) {
+      if (oldMagic.flyIni) {
+        this.removeFlyIniReplace(oldMagic.flyIni);
+      }
+      if (newMagic.flyIni) {
+        this.addFlyIniReplace(newMagic.flyIni);
+      }
+    }
+    if (oldMagic.flyIni2 !== newMagic.flyIni2) {
+      if (oldMagic.flyIni2) {
+        this.removeFlyIni2Replace(oldMagic.flyIni2);
+      }
+      if (newMagic.flyIni2) {
+        this.addFlyIni2Replace(newMagic.flyIni2);
+      }
+    }
 
     // TODO: MagicToUseWhenBeAttacked 更新逻辑
 
@@ -1900,6 +1944,15 @@ export class Player extends Character {
           equip.magicDirectionWhenBeAttacked
         );
       }
+
+      // C# Reference: Character.Equiping - FlyIniReplace 处理
+      // if (!string.IsNullOrEmpty(equip.FlyIni.GetValue())) { AddFlyIniReplace(...) }
+      if (equip.flyIni) {
+        this.addFlyIniReplace(equip.flyIni);
+      }
+      if (equip.flyIni2) {
+        this.addFlyIni2Replace(equip.flyIni2);
+      }
     }
 
     if (this.life > this.lifeMax) this.life = this.lifeMax;
@@ -1951,6 +2004,15 @@ export class Player extends Character {
     // }
     if (equip.magicToUseWhenBeAttacked) {
       this.removeMagicToUseWhenAttackedList(equip.fileName);
+    }
+
+    // C# Reference: Character.UnEquiping - FlyIniReplace 处理
+    // if (!string.IsNullOrEmpty(equip.FlyIni.GetValue())) { RemoveFlyIniReplace(...) }
+    if (equip.flyIni) {
+      this.removeFlyIniReplace(equip.flyIni);
+    }
+    if (equip.flyIni2) {
+      this.removeFlyIni2Replace(equip.flyIni2);
     }
 
     if (this.life > this.lifeMax) this.life = this.lifeMax;

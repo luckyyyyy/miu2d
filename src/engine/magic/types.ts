@@ -614,3 +614,19 @@ export function createDefaultMagicItemInfo(
     lastIndexWhenHide: 0,
   };
 }
+
+/**
+ * Kind19 武功信息 - 持续留痕武功
+ * 角色移动时在原位置留下武功痕迹，持续一段时间后消失
+ * C# Reference: MagicManager.Kind19MagicInfo
+ */
+export interface Kind19MagicInfo {
+  /** 剩余持续时间（毫秒） */
+  keepMilliseconds: number;
+  /** 武功数据 */
+  magic: MagicData;
+  /** 所属角色 ID */
+  belongCharacterId: string;
+  /** 上一次的瓦片位置 */
+  lastTilePosition: Vector2;
+}

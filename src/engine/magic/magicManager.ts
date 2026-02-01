@@ -16,11 +16,12 @@
 import type { AudioManager } from "../audio";
 import { Character } from "../character/character";
 import type { Npc } from "../character/npc";
-import type { NpcManager } from "../character/npcManager";
+import { NpcManager } from "../character/npcManager";
 import { getEngineContext } from "../core/engineContext";
 import { logger } from "../core/logger";
+import { findDistanceTileInDirection } from "../core/pathFinder";
 import type { Vector2 } from "../core/types";
-import { pixelToTile, tileToPixel } from "../core/utils";
+import { getNeighbors, pixelToTile, tileToPixel } from "../core/utils";
 import type { ScreenEffects } from "../effects";
 import type { GuiManager } from "../gui/guiManager";
 import type { MagicListManager } from "../player/magic/magicListManager";
@@ -905,6 +906,21 @@ export class MagicManager {
             }
           }
         }
+      }
+    }
+
+    // C# Reference: JumpToTarget - 施法者跳跃到目标位置
+    // if (magic.JumpToTarget > 0) { user.BezierMoveTo(...); }
+    if (magic.jumpToTarget > 0) {
+      const casterChar = this.getBelongCharacter(userId);
+      if (casterChar) {
+        const destinationTile = pixelToTile(destination.x, destination.y);
+        casterChar.bezierMoveTo(destinationTile, magic.jumpMoveSpeed, (character) => {
+          // 跳跃结束时释放武功
+          if (magic.jumpEndMagic) {
+            this.triggerJumpEndMagic(magic.jumpEndMagic, character, userId);
+          }
+        });
       }
     }
   }
@@ -3023,6 +3039,12 @@ export class MagicManager {
       character.disableSkillMilliseconds = magic.disableSkillMilliseconds;
     }
 
+    // 弹飞效果 (BounceFly)
+    // C# Reference: MagicSprite.CharacterHited - BounceFly 处理
+    if (magic.bounceFly > 0) {
+      this.handleBounceFly(sprite, character, magic, belongCharacter);
+    }
+
     // 变换阵营 (ChangeToFriendMilliseconds)
     // C#: if (BelongMagic.ChangeToFriendMilliseconds > 0 && BelongMagic.MaxLevel >= character.Level)
     if (magic.changeToFriendMilliseconds > 0 && magic.maxLevel >= character.level) {
@@ -3155,6 +3177,186 @@ export class MagicManager {
     }
 
     return true;
+  }
+
+  /**
+   * 处理弹飞效果
+   * C# Reference: MagicSprite.CharacterHited - BounceFly 部分
+   */
+  private handleBounceFly(
+    sprite: MagicSprite,
+    character: Character,
+    magic: MagicData,
+    belongCharacter: Character | null
+  ): void {
+    // 计算方向：优先使用武功移动方向，否则使用从武功到角色的方向
+    let direction = sprite.direction;
+    if (direction.x === 0 && direction.y === 0) {
+      direction = {
+        x: character.positionInWorld.x - sprite.position.x,
+        y: character.positionInWorld.y - sprite.position.y,
+      };
+    }
+
+    // 如果方向为零则不处理
+    if (direction.x === 0 && direction.y === 0) return;
+
+    // 找到弹飞终点瓦片
+    const endTile = findDistanceTileInDirection(
+      character.tilePosition,
+      direction,
+      magic.bounceFly
+    );
+
+    // 保存 direction 用于回调中的触碰伤害计算
+    const bounceFlyDirection = { ...direction };
+
+    // 使用贝塞尔曲线移动角色
+    character.bezierMoveTo(endTile, magic.bounceFlySpeed, (cha) => {
+      // 弹飞结束时的武功（异步加载）
+      if (magic.bounceFlyEndMagic) {
+        this.triggerBounceFlyEndMagic(
+          magic.bounceFlyEndMagic,
+          cha,
+          belongCharacter,
+          magic.magicDirectionWhenBounceFlyEnd,
+          sprite.belongCharacterId
+        );
+      }
+
+      // 弹飞结束伤害
+      if (magic.bounceFlyEndHurt > 0) {
+        cha.takeDamage(magic.bounceFlyEndHurt, belongCharacter);
+      }
+
+      // 弹飞触碰伤害（碰到其他敌人）
+      if (magic.bounceFlyTouchHurt > 0) {
+        this.handleBounceFlyTouchHurt(
+          cha,
+          belongCharacter,
+          bounceFlyDirection,
+          magic.bounceFly,
+          magic.bounceFlySpeed,
+          magic.bounceFlyTouchHurt
+        );
+      }
+    });
+  }
+
+  /**
+   * 触发弹飞结束武功
+   * C# Reference: MagicSprite.CharacterHited - BounceFlyEndMagic
+   */
+  private async triggerBounceFlyEndMagic(
+    magicFile: string,
+    character: Character,
+    belongCharacter: Character | null,
+    directionMode: number,
+    userId: string
+  ): Promise<void> {
+    try {
+      const magic = await loadMagic(magicFile);
+      if (!magic) {
+        logger.warn(`[MagicManager] Failed to load bounceFlyEndMagic: ${magicFile}`);
+        return;
+      }
+
+      // 计算目标位置
+      let pos = belongCharacter?.positionInWorld ?? character.positionInWorld;
+
+      if (directionMode === 1) {
+        // 使用被弹飞角色的方向
+        const charDir = getDirection8(character.currentDirection);
+        const charDirOffset = getDirectionOffset8(charDir);
+        pos = {
+          x: character.positionInWorld.x + charDirOffset.x,
+          y: character.positionInWorld.y + charDirOffset.y,
+        };
+      } else if (directionMode === 2 && belongCharacter) {
+        // 使用攻击者的方向
+        const belongDir = getDirection8(belongCharacter.currentDirection);
+        const belongDirOffset = getDirectionOffset8(belongDir);
+        pos = {
+          x: character.positionInWorld.x + belongDirOffset.x,
+          y: character.positionInWorld.y + belongDirOffset.y,
+        };
+      }
+
+      this.useMagic({
+        magic: getMagicAtLevel(magic, 1),
+        origin: character.positionInWorld,
+        destination: pos,
+        userId,
+      });
+    } catch (error) {
+      logger.error(`[MagicManager] Error loading bounceFlyEndMagic: ${magicFile}`, error);
+    }
+  }
+
+  /**
+   * 触发跳跃结束武功
+   * C# Reference: MagicManager.UseMagic - JumpEndMagic
+   */
+  private async triggerJumpEndMagic(
+    magicFile: string,
+    character: Character,
+    userId: string
+  ): Promise<void> {
+    try {
+      const magic = await loadMagic(magicFile);
+      if (!magic) {
+        logger.warn(`[MagicManager] Failed to load jumpEndMagic: ${magicFile}`);
+        return;
+      }
+
+      // C#: UseMagic(user, magic.JumpEndMagic, user.PositionInWorld, user.PositionInWorld);
+      this.useMagic({
+        magic: getMagicAtLevel(magic, 1),
+        origin: character.positionInWorld,
+        destination: character.positionInWorld,
+        userId,
+      });
+    } catch (error) {
+      logger.error(`[MagicManager] Error loading jumpEndMagic: ${magicFile}`, error);
+    }
+  }
+
+  /**
+   * 处理弹飞触碰伤害
+   * C# Reference: MagicSprite.CharacterHited - BounceFlyTouchHurt
+   */
+  private handleBounceFlyTouchHurt(
+    character: Character,
+    belongCharacter: Character | null,
+    direction: Vector2,
+    bounceFly: number,
+    bounceFlySpeed: number,
+    bounceFlyTouchHurt: number
+  ): void {
+    const neighbors = getNeighbors(character.tilePosition);
+    neighbors.push(character.tilePosition);
+
+    for (const neighbor of neighbors) {
+      const fighter = this.npcManager.getFighter(neighbor.x, neighbor.y);
+      if (
+        fighter &&
+        fighter !== character &&
+        belongCharacter &&
+        NpcManager.isEnemy(fighter, belongCharacter)
+      ) {
+        // 让碰到的敌人也弹飞
+        const touchEndTile = findDistanceTileInDirection(
+          fighter.tilePosition,
+          direction,
+          bounceFly
+        );
+        fighter.bezierMoveTo(touchEndTile, bounceFlySpeed, undefined);
+
+        // 双方都受到触碰伤害
+        character.takeDamage(bounceFlyTouchHurt, belongCharacter);
+        fighter.takeDamage(bounceFlyTouchHurt, belongCharacter);
+      }
+    }
   }
 
   private createHitEffect(sprite: MagicSprite): void {
