@@ -302,7 +302,12 @@ export class Loader {
       }
 
       // 应用装备特效
+      // C# Reference: Loader.LoadPlayer() -> GoodsListManager.ApplyEquipSpecialEffectFromList
       goodsListManager.applyEquipSpecialEffectFromList();
+
+      // 应用武功效果（FlyIni 替换等）
+      // C# Reference: Loader.LoadPlayer() -> Globals.ThePlayer.LoadMagicEffect()
+      player.loadMagicEffect();
 
       // Step 5: 加载陷阱
       await MapBase.LoadTrap(`${basePath}/Traps.ini`);
@@ -522,7 +527,12 @@ export class Loader {
       player.state = data.player.state ?? 0;
 
       // 应用装备特效
+      // C# Reference: Loader.LoadPlayer() -> GoodsListManager.ApplyEquipSpecialEffectFromList
       goodsListManager.applyEquipSpecialEffectFromList();
+
+      // 应用武功效果（FlyIni 替换等）
+      // C# Reference: Loader.LoadPlayer() -> Globals.ThePlayer.LoadMagicEffect()
+      player.loadMagicEffect();
 
       // Step 10: 加载陷阱 (88-90%)
       // C# Reference: MapBase.LoadTrap() + LoadTrapIndexIgnoreList()

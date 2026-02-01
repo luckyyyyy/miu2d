@@ -961,4 +961,29 @@ export class MagicListManager {
     logger.log(`[MagicListManager] setNonReplaceMagicLevel: ${fileName} -> level ${level}`);
     this.updateView();
   }
+
+  // ============= 武功效果应用 =============
+
+  /**
+   * 获取所有武功信息（包括主列表和隐藏列表）
+   * 用于 setMagicEffect 应用 FlyIni 等效果
+   * C# Reference: MagicListManager.SetMagicEffect
+   */
+  getAllMagicInfos(): MagicItemInfo[] {
+    const result: MagicItemInfo[] = [];
+
+    for (const info of this.magicList) {
+      if (info?.magic) {
+        result.push(info);
+      }
+    }
+
+    for (const info of this.magicListHide) {
+      if (info?.magic) {
+        result.push(info);
+      }
+    }
+
+    return result;
+  }
 }

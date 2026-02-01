@@ -18,12 +18,15 @@ import {
   TILE_WIDTH,
 } from "../core/types";
 import {
+  bezier2D,
   distance,
   getDirection,
   getDirectionFromVector,
   getViewTileDistance as getViewTileDistanceUtil,
+  normalizeVector,
   pixelToTile,
   tileToPixel,
+  vectorLength,
 } from "../core/utils";
 import type { MagicSprite } from "../magic/magicSprite";
 import type { MagicData } from "../magic/types";
@@ -141,6 +144,11 @@ export abstract class Character extends Sprite implements CharacterInstance {
   flyIni2: string = ""; // 保留 setter 逻辑
   flyInis: string = ""; // 保留 setter 逻辑
   protected _flyIniInfos: Array<{ useDistance: number; magicIni: string }> = [];
+  // === FlyIniReplace (C#: _flyIniReplace, _flyIni2Replace) ===
+  // 用于临时替换 flyIni/flyIni2 的魔法列表（如武功附带效果）
+  // C# Reference: List<string> _flyIniReplace, _flyIni2Replace
+  protected _flyIniReplace: string[] = [];
+  protected _flyIni2Replace: string[] = [];
   bodyIni: string = "";
   bodyIniObj: Obj | null = null;
   isBodyIniAdded: number = 0;
@@ -308,6 +316,22 @@ export abstract class Character extends Sprite implements CharacterInstance {
   specialActionFrame: number = 0;
   specialActionAsf: string | undefined = undefined;
   customActionFiles: Map<number, string> = new Map();
+
+  // === BezierMove (C#: Character.cs bezier fields) ===
+  // 贝塞尔曲线移动 - 用于跳跃等弧线移动效果
+  protected _inBezierMove: boolean = false;
+  protected _inBezierMoveToRealPosition: boolean = false;
+  protected _bezierStartWorldPos: Vector2 = { x: 0, y: 0 };
+  protected _bezierEndWorldPos: Vector2 = { x: 0, y: 0 };
+  protected _bezierMoveLineDir: Vector2 = { x: 0, y: 0 };
+  protected _bezierLastRealWorldPosition: Vector2 = { x: 0, y: 0 };
+  protected _bezierTotalLineLength: number = 0;
+  protected _bezierMoveSpeed: number = 0;
+  protected _bezierPoints: Vector2[] = [];
+  protected _totalBezierLength: number = 0;
+  protected _movedBezierLength: number = 0;
+  protected _stepBezierLength: number = 0;
+  protected _bezierMoveOnEnd: ((character: Character) => void) | null = null;
 
   // === Audio ===
   protected _stateSounds: Map<number, string> = new Map();
@@ -1302,7 +1326,7 @@ export abstract class Character extends Sprite implements CharacterInstance {
       CharacterState.Death,
       CharacterState.FightJump,
     ];
-    return !blockedStates.includes(this._state) && !this.isInSpecialAction;
+    return !blockedStates.includes(this._state) && !this.isInSpecialAction && !this._inBezierMove;
   }
 
   /**
@@ -1518,6 +1542,92 @@ export abstract class Character extends Sprite implements CharacterInstance {
       logger.debug(
         `[Character] ${this.name}: Built flyIniInfos: ${this._flyIniInfos.map((f) => `${f.magicIni}@${f.useDistance}`).join(", ")}`
       );
+    }
+  }
+
+  // === FlyIniReplace Methods (C#: AddFlyIniReplace, RemoveFlyIniReplace) ===
+
+  /**
+   * 添加临时替换的 FlyIni
+   * 当添加第一个替换时，先移除原始 flyIni 的效果
+   * C# Reference: Character.AddFlyIniReplace(Magic magic)
+   */
+  addFlyIniReplace(magicFileName: string): void {
+    if (this._flyIniReplace.length === 0) {
+      // 移除原始 flyIni 的效果
+      this.removeMagicFromInfos(this.flyIni, this.attackRadius);
+    }
+    this.addMagicToInfos(magicFileName, this.attackRadius);
+    this._flyIniReplace.push(magicFileName);
+  }
+
+  /**
+   * 移除临时替换的 FlyIni
+   * 当移除最后一个替换时，恢复原始 flyIni 的效果
+   * C# Reference: Character.RemoveFlyIniReplace(Magic magic)
+   */
+  removeFlyIniReplace(magicFileName: string): void {
+    this.removeMagicFromInfos(magicFileName, this.attackRadius);
+    const idx = this._flyIniReplace.indexOf(magicFileName);
+    if (idx !== -1) {
+      this._flyIniReplace.splice(idx, 1);
+    }
+    if (this._flyIniReplace.length === 0) {
+      // 恢复原始 flyIni 的效果
+      this.addMagicToInfos(this.flyIni, this.attackRadius);
+    }
+  }
+
+  /**
+   * 添加临时替换的 FlyIni2
+   * C# Reference: Character.AddFlyIni2Replace(Magic magic)
+   */
+  addFlyIni2Replace(magicFileName: string): void {
+    if (this._flyIni2Replace.length === 0) {
+      this.removeMagicFromInfos(this.flyIni2, this.attackRadius);
+    }
+    this.addMagicToInfos(magicFileName, this.attackRadius);
+    this._flyIni2Replace.push(magicFileName);
+  }
+
+  /**
+   * 移除临时替换的 FlyIni2
+   * C# Reference: Character.RemoveFlyIni2Replace(Magic magic)
+   */
+  removeFlyIni2Replace(magicFileName: string): void {
+    this.removeMagicFromInfos(magicFileName, this.attackRadius);
+    const idx = this._flyIni2Replace.indexOf(magicFileName);
+    if (idx !== -1) {
+      this._flyIni2Replace.splice(idx, 1);
+    }
+    if (this._flyIni2Replace.length === 0) {
+      this.addMagicToInfos(this.flyIni2, this.attackRadius);
+    }
+  }
+
+  /**
+   * 添加武功到 flyIniInfos 列表
+   * C# Reference: Character.AddMagicToInfos(Magic magic, int useDistance, bool notResort = false)
+   */
+  protected addMagicToInfos(magicIni: string, useDistance: number, notResort: boolean = false): void {
+    if (!magicIni) return;
+    this._flyIniInfos.push({ useDistance, magicIni });
+    if (!notResort) {
+      this._flyIniInfos.sort((a, b) => a.useDistance - b.useDistance);
+    }
+  }
+
+  /**
+   * 从 flyIniInfos 列表移除武功
+   * C# Reference: Character.RemoveMagicFromInfos(Magic magic, int useDistance)
+   */
+  protected removeMagicFromInfos(magicIni: string, useDistance: number): void {
+    if (!magicIni) return;
+    for (let i = 0; i < this._flyIniInfos.length; i++) {
+      if (this._flyIniInfos[i].magicIni === magicIni && this._flyIniInfos[i].useDistance === useDistance) {
+        this._flyIniInfos.splice(i, 1);
+        break;
+      }
     }
   }
 
@@ -2468,6 +2578,199 @@ export abstract class Character extends Sprite implements CharacterInstance {
     }
   }
 
+  // === BezierMove Methods (C#: Character.BezierMoveTo, UpdateBezierMove) ===
+
+  /**
+   * 是否在贝塞尔曲线移动中
+   * C# Reference: Character._inBezierMove
+   */
+  get inBezierMove(): boolean {
+    return this._inBezierMove;
+  }
+
+  /**
+   * 开始贝塞尔曲线移动（弧线跳跃）
+   * C# Reference: Character.BezierMoveTo(Vector2 destinationTilePosition, float speed, Action<Character> onEnd)
+   *
+   * @param destinationTilePosition 目标瓦片坐标
+   * @param speed 移动速度（像素/秒）
+   * @param onEnd 移动结束回调
+   */
+  bezierMoveTo(destinationTilePosition: Vector2, speed: number, onEnd?: (character: Character) => void): void {
+    const curTilePosition = { x: this._mapX, y: this._mapY };
+
+    // 如果已经在目标位置，直接调用回调
+    if (curTilePosition.x === destinationTilePosition.x && curTilePosition.y === destinationTilePosition.y) {
+      onEnd?.(this);
+      return;
+    }
+
+    this._inBezierMove = true;
+    this._inBezierMoveToRealPosition = false;
+    this._bezierStartWorldPos = { ...this.positionInWorld };
+    this._bezierMoveSpeed = speed;
+    this._bezierEndWorldPos = tileToPixel(destinationTilePosition.x, destinationTilePosition.y);
+    this._bezierLastRealWorldPosition = { ...this.positionInWorld };
+    this._movedBezierLength = 0;
+    this._stepBezierLength = 0;
+    this._totalBezierLength = 0;
+    this._bezierMoveOnEnd = onEnd ?? null;
+
+    // 计算方向向量
+    const dir = {
+      x: this._bezierEndWorldPos.x - this._bezierStartWorldPos.x,
+      y: this._bezierEndWorldPos.y - this._bezierStartWorldPos.y,
+    };
+    this._bezierTotalLineLength = vectorLength(dir);
+    this._bezierMoveLineDir = normalizeVector(dir);
+    this.setDirectionFromDelta(dir.x, dir.y);
+
+    // 计算垂直方向（用于抛物线的中点偏移）
+    // C#: var perpendicular = dir.X < 0 ? new Vector2(-dir.Y, dir.X) : new Vector2(dir.Y, -dir.X);
+    let perpendicular: Vector2;
+    if (dir.x < 0) {
+      perpendicular = { x: -dir.y, y: dir.x };
+    } else {
+      perpendicular = { x: dir.y, y: -dir.x };
+    }
+    perpendicular = normalizeVector(perpendicular);
+
+    // 计算曲线中点偏移量
+    // C#: var halfPoint = (_bezierStartWorldPos + dir / 2) + perpendicular * Math.Max((Math.Abs(perpendicular.Y) * 100), 20);
+    const halfPoint = {
+      x: this._bezierStartWorldPos.x + dir.x / 2 + perpendicular.x * Math.max(Math.abs(perpendicular.y) * 100, 20),
+      y: this._bezierStartWorldPos.y + dir.y / 2 + perpendicular.y * Math.max(Math.abs(perpendicular.y) * 100, 20),
+    };
+
+    // 生成贝塞尔曲线点
+    // C#: Math.Max((int)dir.Length() / 10, 5)
+    const pointCount = Math.max(Math.floor(vectorLength(dir) / 10), 5);
+    this._bezierPoints = bezier2D(
+      [this._bezierStartWorldPos, halfPoint, this._bezierEndWorldPos],
+      pointCount
+    );
+
+    // 计算曲线总长度
+    for (let i = 1; i < this._bezierPoints.length; i++) {
+      const segmentLength = vectorLength({
+        x: this._bezierPoints[i].x - this._bezierPoints[i - 1].x,
+        y: this._bezierPoints[i].y - this._bezierPoints[i - 1].y,
+      });
+      this._totalBezierLength += segmentLength;
+    }
+  }
+
+  /**
+   * 更新贝塞尔曲线移动
+   * C# Reference: Character.UpdateBezierMove(GameTime gameTime)
+   * 应在 update() 中调用
+   *
+   * @param deltaTime 时间差（秒）
+   */
+  protected updateBezierMove(deltaTime: number): void {
+    if (!this._inBezierMove) {
+      return;
+    }
+
+    const movedLength = deltaTime * this._bezierMoveSpeed;
+
+    if (this._inBezierMoveToRealPosition) {
+      // 返回到真实位置模式（被跳跃阻挡时）
+      const length = vectorLength({
+        x: this._bezierLastRealWorldPosition.x - this.positionInWorld.x,
+        y: this._bezierLastRealWorldPosition.y - this.positionInWorld.y,
+      });
+
+      if (length <= movedLength) {
+        this.positionInWorld = { ...this._bezierLastRealWorldPosition };
+        this._inBezierMove = false;
+        this._bezierMoveOnEnd?.(this);
+        return;
+      } else {
+        const dir = normalizeVector({
+          x: this._bezierLastRealWorldPosition.x - this.positionInWorld.x,
+          y: this._bezierLastRealWorldPosition.y - this.positionInWorld.y,
+        });
+        this.positionInWorld = {
+          x: this.positionInWorld.x + dir.x * movedLength,
+          y: this.positionInWorld.y + dir.y * movedLength,
+        };
+      }
+    } else {
+      // 沿贝塞尔曲线移动
+      this._stepBezierLength += movedLength;
+      this._movedBezierLength += movedLength;
+
+      let curPos = { ...this.positionInWorld };
+      let i = 0;
+
+      for (; i < this._bezierPoints.length; i++) {
+        const length = vectorLength({
+          x: this._bezierPoints[i].x - curPos.x,
+          y: this._bezierPoints[i].y - curPos.y,
+        });
+
+        if (length < this._stepBezierLength) {
+          this._stepBezierLength -= length;
+          curPos = { ...this._bezierPoints[i] };
+        } else if (length === this._stepBezierLength) {
+          curPos = { ...this._bezierPoints[i] };
+          this._stepBezierLength = 0;
+          i++;
+          break;
+        } else {
+          const dir = normalizeVector({
+            x: this._bezierPoints[i].x - curPos.x,
+            y: this._bezierPoints[i].y - curPos.y,
+          });
+          curPos = {
+            x: curPos.x + dir.x * this._stepBezierLength,
+            y: curPos.y + dir.y * this._stepBezierLength,
+          };
+          this._stepBezierLength = 0;
+          break;
+        }
+      }
+
+      this.positionInWorld = curPos;
+
+      // 移除已经过的点
+      for (; i > 0; i--) {
+        this._bezierPoints.shift();
+      }
+
+      // 检查是否到达终点
+      if (this._bezierPoints.length === 0) {
+        this._inBezierMove = false;
+        this._bezierMoveOnEnd?.(this);
+        return;
+      }
+    }
+
+    // 检查跳跃阻挡
+    if (!this._inBezierMoveToRealPosition) {
+      // 将曲线位置转换为直线对应位置
+      const progress = this._movedBezierLength / this._totalBezierLength;
+      const curRealWorldPos = {
+        x: this._bezierStartWorldPos.x + this._bezierMoveLineDir.x * this._bezierTotalLineLength * progress,
+        y: this._bezierStartWorldPos.y + this._bezierMoveLineDir.y * this._bezierTotalLineLength * progress,
+      };
+      const curRealTilePos = pixelToTile(curRealWorldPos.x, curRealWorldPos.y);
+
+      // C#: if (MapBase.Instance.IsObstacleForCharacterJump(curRealTilePos))
+      // 使用 ICollisionChecker.isMapObstacleForJump
+      const collisionChecker = this.engine?.getCollisionChecker?.();
+      if (collisionChecker?.isMapObstacleForJump?.(curRealTilePos)) {
+        // 被阻挡，切换到返回真实位置模式
+        this._inBezierMoveToRealPosition = true;
+        this._stepBezierLength = 0;
+        return;
+      }
+
+      this._bezierLastRealWorldPosition = curRealWorldPos;
+    }
+  }
+
   /**
    * C#: ToNonFightingState()
    * Exit combat mode
@@ -3131,6 +3434,16 @@ export abstract class Character extends Sprite implements CharacterInstance {
     // C#: if (IsDeath) return;
     // 死亡动画播放完毕后 isDeath = true，此后不再更新动画，保持最后一帧
     if (this.isDeath) return;
+
+    // === BezierMove Update ===
+    // C# Reference: Character.Update - UpdateBezierMove(gameTime);
+    // 必须在状态机 switch 之前调用，因为贝塞尔移动会阻止其他动作
+    this.updateBezierMove(effectiveDeltaTime);
+    if (this._inBezierMove) {
+      // 贝塞尔移动中，跳过状态机更新
+      super.update(effectiveDeltaTime);
+      return;
+    }
 
     // C#: switch ((CharacterState)State)
     // 使用 effectiveDeltaTime 以支持冻结减速效果
@@ -4160,9 +4473,15 @@ export abstract class Character extends Sprite implements CharacterInstance {
   flyIniChangeBy(magicSprite: MagicSprite): void {
     this.removeFlyIniChangeBy();
     this._changeFlyIniByMagicSprite = magicSprite;
-    // TODO: 完整实现 AddFlyIniReplace
-    // if (!string.IsNullOrEmpty(magicSprite.BelongMagic.SpecialKind9ReplaceFlyIni))
-    //   AddFlyIniReplace(...)
+    // C# Reference: if (!string.IsNullOrEmpty(magicSprite.BelongMagic.SpecialKind9ReplaceFlyIni))
+    const replaceFlyIni = magicSprite.magic.specialKind9ReplaceFlyIni;
+    if (replaceFlyIni) {
+      this.addFlyIniReplace(replaceFlyIni);
+    }
+    const replaceFlyIni2 = magicSprite.magic.specialKind9ReplaceFlyIni2;
+    if (replaceFlyIni2) {
+      this.addFlyIniReplace(replaceFlyIni2);
+    }
   }
 
   /**
@@ -4171,7 +4490,15 @@ export abstract class Character extends Sprite implements CharacterInstance {
    */
   private removeFlyIniChangeBy(): void {
     if (this._changeFlyIniByMagicSprite !== null) {
-      // TODO: 完整实现 RemoveFlyIniReplace
+      // C# Reference: RemoveFlyIniReplace for both SpecialKind9ReplaceFlyIni and SpecialKind9ReplaceFlyIni2
+      const replaceFlyIni = this._changeFlyIniByMagicSprite.magic.specialKind9ReplaceFlyIni;
+      if (replaceFlyIni) {
+        this.removeFlyIniReplace(replaceFlyIni);
+      }
+      const replaceFlyIni2 = this._changeFlyIniByMagicSprite.magic.specialKind9ReplaceFlyIni2;
+      if (replaceFlyIni2) {
+        this.removeFlyIniReplace(replaceFlyIni2);
+      }
       this._changeFlyIniByMagicSprite = null;
     }
   }
