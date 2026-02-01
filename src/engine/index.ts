@@ -33,7 +33,7 @@ export {
   TILE_WIDTH,
   type Vector2,
 } from "./core/types";
-export * from "./core/utils";
+export * from "./utils";
 // Debug system
 export * from "./debug";
 // Effects system

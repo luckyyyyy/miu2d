@@ -18,7 +18,7 @@ import { getEngineContext } from "../core/engineContext";
 import { logger } from "../core/logger";
 import type { JxqyMapData, MapTileInfo } from "../core/mapTypes";
 import type { Vector2 } from "../core/types";
-import { parseIni, pixelToTile, tileToPixel } from "../core/utils";
+import { parseIni, pixelToTile, tileToPixel } from "../utils";
 import { resourceLoader } from "../resource/resourceLoader";
 
 // ============= 障碍类型常量 (C# BarrierType) =============

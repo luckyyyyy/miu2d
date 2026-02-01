@@ -40,7 +40,7 @@ import type { AudioManager } from "../audio";
 import { getEngineContext } from "../core/engineContext";
 import { logger } from "../core/logger";
 import type { Vector2 } from "../core/types";
-import { parseIni } from "../core/utils";
+import { parseIni } from "../utils";
 import { resourceLoader } from "../resource/resourceLoader";
 import { loadAsf } from "../sprite/asf";
 import { Obj, type ObjKind, type ObjResInfo, ObjState } from "./obj";

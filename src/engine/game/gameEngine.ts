@@ -43,7 +43,7 @@ import { logger } from "../core/logger";
 import type { JxqyMapData } from "../core/mapTypes";
 import type { InputState, Vector2 } from "../core/types";
 import { CharacterState } from "../core/types";
-import { pixelToTile } from "../core/utils";
+import { pixelToTile } from "../utils";
 import { DebugManager } from "../debug";
 import { ScreenEffects } from "../effects";
 import type { GuiManagerState } from "../gui/types";

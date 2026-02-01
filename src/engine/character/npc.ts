@@ -6,7 +6,7 @@ import { logger } from "../core/logger";
 import { PathType } from "../core/pathFinder";
 import type { CharacterConfig, Vector2 } from "../core/types";
 import { ActionType, CharacterKind, CharacterState } from "../core/types";
-import { generateId, getDirectionFromVector, tileToPixel } from "../core/utils";
+import { generateId, getDirectionFromVector, tileToPixel } from "../utils";
 import { getMagicAtLevel, loadMagic } from "../magic/magicLoader";
 import type { MagicManager } from "../magic";
 import { magicRenderer } from "../magic/magicRenderer";

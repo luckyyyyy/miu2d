@@ -9,7 +9,7 @@ import type { AudioManager } from "../../audio";
 import { getEngineContext } from "../../core/engineContext";
 import { logger } from "../../core/logger";
 import type { Vector2 } from "../../core/types";
-import { pixelToTile, tileToPixel } from "../../core/utils";
+import { pixelToTile, tileToPixel } from "../../utils";
 import type { ScreenEffects } from "../../effects";
 import type { GuiManager } from "../../gui/guiManager";
 import type { Player } from "../../player/player";
@@ -21,9 +21,8 @@ import {
 } from "../effects";
 import { getMagicAtLevel, loadMagic } from "../magicLoader";
 import type { MagicSprite, WorkItem } from "../magicSprite";
-import { MAGIC_BASE_SPEED } from "../magicUtils";
 import type { MagicData } from "../types";
-import { MagicMoveKind } from "../types";
+import { MAGIC_BASE_SPEED, MagicMoveKind } from "../types";
 import type {
   ICharacterHelper,
   ICollisionHandler,

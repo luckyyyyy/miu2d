@@ -27,7 +27,7 @@ import {
   pixelToTile,
   tileToPixel,
   vectorLength,
-} from "../core/utils";
+} from "../utils";
 import type { MagicSprite } from "../magic/magicSprite";
 import type { MagicData } from "../magic/types";
 import { Obj } from "../obj/obj";

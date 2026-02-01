@@ -7,7 +7,7 @@ import { getEngineContext } from "../core/engineContext";
 import { logger } from "../core/logger";
 import type { CharacterConfig, Vector2 } from "../core/types";
 import { CharacterKind, CharacterState, type Direction, RelationType } from "../core/types";
-import { distance, getNeighbors, getViewTileDistance, parseIni } from "../core/utils";
+import { distance, getNeighbors, getViewTileDistance, parseIni } from "../utils";
 import { getDropObj, type DropCharacter } from "../drop/goodDrop";
 import type { ObjManager } from "../obj/objManager";
 import { resourceLoader } from "../resource/resourceLoader";

@@ -5,6 +5,14 @@
 
 import type { Vector2 } from "../core/types";
 
+// ========== 全局常量 ==========
+
+/**
+ * 武功基础速度
+ * C#: Globals.MagicBasespeed = 100
+ */
+export const MAGIC_BASE_SPEED = 100;
+
 /**
  * 武功移动类型 - 对应 C# MoveKind
  * 决定武功的运动轨迹

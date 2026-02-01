@@ -12,7 +12,7 @@ import type { NpcManager } from "../character/npcManager";
 import { logger } from "../core/logger";
 import type { Vector2 } from "../core/types";
 import { CharacterState } from "../core/types";
-import { getNeighbors, tileToPixel } from "../core/utils";
+import { getNeighbors, tileToPixel } from "../utils";
 import type { ScreenEffects } from "../effects";
 import type { BuyManager } from "../gui/buyManager";
 import type { GuiManager } from "../gui/guiManager";

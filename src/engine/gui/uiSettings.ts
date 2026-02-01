@@ -5,7 +5,7 @@
  * INI files in resources/ are now UTF-8 encoded.
  */
 import { logger } from "../core/logger";
-import { parseIni } from "../core/utils";
+import { parseIni } from "../utils";
 import { resourceLoader } from "../resource/resourceLoader";
 import { DefaultPaths } from "@/config/resourcePaths";
 
