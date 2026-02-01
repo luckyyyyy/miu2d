@@ -9,6 +9,7 @@ import type { Vector2 } from "../../core/types";
 import type { Player } from "../../player/player";
 import { type CharacterRef, getPosition as getCharPosition } from "../effects";
 import type { MagicSprite } from "../magicSprite";
+import { getPositionInDirection as getPositionInDir } from "../../utils/direction";
 import type { MagicData } from "../types";
 import type { ICharacterHelper, MagicManagerDeps } from "./types";
 
@@ -73,23 +74,10 @@ export class CharacterHelper implements ICharacterHelper {
 
   /**
    * 根据方向计算目标位置
+   * 委托给 magicUtils.getPositionInDirection
    */
   getPositionInDirection(origin: Vector2, direction: number): Vector2 {
-    const dirOffsets = [
-      { x: 0, y: 32 }, // 0: South
-      { x: -23, y: 23 }, // 1: SouthWest
-      { x: -32, y: 0 }, // 2: West
-      { x: -23, y: -23 }, // 3: NorthWest
-      { x: 0, y: -32 }, // 4: North
-      { x: 23, y: -23 }, // 5: NorthEast
-      { x: 32, y: 0 }, // 6: East
-      { x: 23, y: 23 }, // 7: SouthEast
-    ];
-    const offset = dirOffsets[direction] || { x: 0, y: 32 };
-    return {
-      x: origin.x + offset.x,
-      y: origin.y + offset.y,
-    };
+    return getPositionInDir(origin, direction);
   }
 
   /**

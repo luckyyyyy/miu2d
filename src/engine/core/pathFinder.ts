@@ -15,7 +15,7 @@
  */
 
 import type { Vector2 } from "./types";
-import { distance, getDirectionFromVector, getNeighbors, tileToPixel } from "./utils";
+import { distance, getDirectionFromVector, getNeighbors, tileToPixel } from "../utils";
 
 /**
  * C# PathFinder.PathType enum

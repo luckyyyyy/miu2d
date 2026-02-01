@@ -4,7 +4,7 @@
  */
 
 import { logger } from "../core/logger";
-import { parseIni } from "../core/utils";
+import { parseIni } from "../utils";
 import { resourceLoader } from "../resource/resourceLoader";
 import { DefaultPaths } from "@/config/resourcePaths";
 

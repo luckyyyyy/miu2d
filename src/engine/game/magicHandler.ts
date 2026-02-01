@@ -9,7 +9,7 @@ import { getEngineContext } from "../core/engineContext";
 import { logger } from "../core/logger";
 import type { InputState, Vector2 } from "../core/types";
 import { CharacterState } from "../core/types";
-import { getDirectionFromVector, pixelToTile, tileToPixel } from "../core/utils";
+import { getDirectionFromVector, pixelToTile, tileToPixel } from "../utils";
 import type { GuiManager } from "../gui/guiManager";
 import type { MagicItemInfo, MagicManager } from "../magic";
 import type { MagicListManager } from "../player/magic/magicListManager";

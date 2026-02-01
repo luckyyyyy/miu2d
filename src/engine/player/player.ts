@@ -17,7 +17,7 @@ import {
   Direction,
   RUN_SPEED_FOLD,
 } from "../core/types";
-import { distance, getDirection, isBoxCollide, pixelToTile, tileToPixel } from "../core/utils";
+import { distance, getDirection, isBoxCollide, pixelToTile, tileToPixel } from "../utils";
 import type { PlayerSaveData } from "../game/storage";
 import type { GuiManager } from "../gui/guiManager";
 import type { MagicManager } from "../magic";

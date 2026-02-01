@@ -11,7 +11,7 @@
  */
 
 import type { Camera } from "../core/mapTypes";
-import { tileToPixel } from "../core/utils";
+import { tileToPixel } from "../utils";
 import { getFrameCanvas } from "../sprite/asf";
 import { getOuterEdge } from "../utils/edgeDetection";
 import type { Obj } from "./obj";

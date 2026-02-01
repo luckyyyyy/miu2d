@@ -23,18 +23,20 @@ export { MagicRenderer, magicRenderer } from "./magicRenderer";
 // MagicSprite class (inherits from Sprite)
 // C# Reference: MagicSprite.cs - 武功精灵类
 export { MagicSprite, type WorkItem } from "./magicSprite";
-// Magic Utils
+
+// Re-export utils for backward compatibility
+// 向后兼容：从 utils 重新导出
 export {
   getDirection8,
   getDirection32List,
   getDirectionIndex,
   getDirectionOffset8,
-  getSpeedRatio,
   getVOffsets,
-  MAGIC_BASE_SPEED,
   normalizeVector,
-} from "./magicUtils";
+} from "../utils";
+export { getSpeedRatio } from "../utils/math";
+
 // Passives System (被动效果 - 修炼武功)
 export * from "./passives";
-// Types
+// Types (includes MAGIC_BASE_SPEED)
 export * from "./types";

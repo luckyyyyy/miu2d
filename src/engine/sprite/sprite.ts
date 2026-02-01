@@ -7,7 +7,7 @@ import { getEngineContext, type IEngineContext } from "../core/engineContext";
 import { logger } from "../core/logger";
 import type { Vector2 } from "../core/types";
 import { CharacterState } from "../core/types";
-import { pixelToTile, tileToPixel } from "../core/utils";
+import { pixelToTile, tileToPixel } from "../utils";
 import { getOuterEdge } from "../utils/edgeDetection";
 import { type AsfData, type AsfFrame, getFrameCanvas, getFrameIndex, loadAsf } from "./asf";
 import { ResourcePath } from "@/config/resourcePaths";

@@ -17,7 +17,7 @@ import type { NpcManager } from "../character/npcManager";
 import { getEngineContext } from "../core/engineContext";
 import { logger } from "../core/logger";
 import type { InputState, Vector2 } from "../core/types";
-import { getDirectionFromVector, getViewTileDistance, pixelToTile } from "../core/utils";
+import { getDirectionFromVector, getViewTileDistance, pixelToTile } from "../utils";
 import type { Obj } from "../obj/obj";
 import type { Player } from "../player/player";
 import type { ScriptExecutor } from "../script/executor";

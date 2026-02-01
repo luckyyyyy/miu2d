@@ -10,7 +10,7 @@ import type { NpcManager } from "../../character/npcManager";
 import { getEngineContext } from "../../core/engineContext";
 import { logger } from "../../core/logger";
 import type { Vector2 } from "../../core/types";
-import { pixelToTile, tileToPixel } from "../../core/utils";
+import { pixelToTile, tileToPixel } from "../../utils";
 import type { Player } from "../../player/player";
 import type { CharacterRef } from "../effects";
 import { magicRenderer } from "../magicRenderer";
@@ -20,9 +20,8 @@ import {
   getDirection32List,
   getDirectionIndex,
   getDirectionOffset8,
-  getSpeedRatio,
-  normalizeVector,
-} from "../magicUtils";
+} from "../../utils/direction";
+import { getSpeedRatio, normalizeVector } from "../../utils/math";
 import type { Kind19MagicInfo, MagicData } from "../types";
 import { MagicMoveKind } from "../types";
 import type { ICharacterHelper, ISpriteFactoryCallbacks, MagicManagerDeps } from "./types";

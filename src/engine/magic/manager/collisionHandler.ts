@@ -12,13 +12,13 @@ import { getEngineContext } from "../../core/engineContext";
 import { logger } from "../../core/logger";
 import { findDistanceTileInDirection } from "../../core/pathFinder";
 import type { Vector2 } from "../../core/types";
-import { getNeighbors } from "../../core/utils";
+import { getNeighbors } from "../../utils";
 import type { MagicListManager } from "../../player/magic/magicListManager";
 import type { Player } from "../../player/player";
 import { type ApplyContext, type CharacterRef, type EndContext, getEffect } from "../effects";
 import { getMagicAtLevel, loadMagic } from "../magicLoader";
 import type { MagicSprite } from "../magicSprite";
-import { getDirection8, getDirectionOffset8 } from "../magicUtils";
+import { getDirection8, getDirectionOffset8 } from "../../utils/direction";
 import type { MagicData } from "../types";
 import type { ICharacterHelper, MagicManagerDeps, MagicManagerState } from "./types";
 

@@ -12,9 +12,9 @@
 
 import type { Vector2 } from "../core/types";
 import { Sprite } from "../sprite/sprite";
-import { getDirectionIndex, MAGIC_BASE_SPEED, normalizeVector } from "./magicUtils";
-import type { MagicData } from "./types";
-import { MagicMoveKind } from "./types";
+import { getDirectionIndex } from "../utils/direction";
+import { normalizeVector } from "../utils/math";
+import { MAGIC_BASE_SPEED, type MagicData, MagicMoveKind } from "./types";
 
 // 全局精灵ID计数器
 let globalSpriteIdCounter = 0;

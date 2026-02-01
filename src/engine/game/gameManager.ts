@@ -38,7 +38,7 @@ import { GameEvents } from "../core/gameEvents";
 import { logger } from "../core/logger";
 import type { JxqyMapData } from "../core/mapTypes";
 import type { GameVariables, InputState, Vector2 } from "../core/types";
-import { parseIni } from "../core/utils";
+import { parseIni } from "../utils";
 import type { DebugManager } from "../debug";
 import type { ScreenEffects } from "../effects";
 import { BuyManager } from "../gui/buyManager";

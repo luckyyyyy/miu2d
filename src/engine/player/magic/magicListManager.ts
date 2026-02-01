@@ -4,7 +4,7 @@
  */
 
 import { logger } from "@/engine/core/logger";
-import { parseIni } from "@/engine/core/utils";
+import { parseIni } from "@/engine/utils";
 import { getMagicAtLevel, loadMagic } from "@/engine/magic/magicLoader";
 import { magicRenderer } from "@/engine/magic/magicRenderer";
 import type { MagicData, MagicItemInfo } from "@/engine/magic/types";

@@ -10,7 +10,7 @@
 
 import { logger } from "../core/logger";
 import { CharacterState } from "../core/types";
-import { parseIni } from "../core/utils";
+import { parseIni } from "../utils";
 import { resourceLoader } from "../resource/resourceLoader";
 import { type AsfData, loadAsf } from "../sprite/asf";
 import { ResourcePath } from "@/config/resourcePaths";

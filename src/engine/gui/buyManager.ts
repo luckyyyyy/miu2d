@@ -16,7 +16,7 @@
 
 import type { Character } from "../character";
 import { logger } from "../core/logger";
-import { parseIni } from "../core/utils";
+import { parseIni } from "../utils";
 import { Good, getGood } from "../player/goods";
 import { resourceLoader } from "../resource/resourceLoader";
 import { ResourcePath } from "@/config/resourcePaths";

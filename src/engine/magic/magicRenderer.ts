@@ -8,7 +8,7 @@ import { logger } from "../core/logger";
 import type { AsfData } from "../sprite/asf";
 import { getFrameCanvas, loadAsf } from "../sprite/asf";
 import type { MagicSprite } from "./magicSprite";
-import { getDirectionIndex } from "./magicUtils";
+import { getDirectionIndex } from "../utils/direction";
 import { ResourcePath } from "@/config/resourcePaths";
 
 /**
