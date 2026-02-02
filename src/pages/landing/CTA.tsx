@@ -69,7 +69,7 @@ export function CTA() {
               {t("cta.startGame")}
             </motion.a>
             <motion.a
-              href="https://github.com/nicepkg/vibe2d"
+              href="https://github.com/nicepkg/Miu2D"
               target="_blank"
               rel="noreferrer"
               whileHover={{ scale: 1.03 }}

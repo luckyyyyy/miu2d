@@ -9,7 +9,7 @@
 
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import type { GameEngine } from "@/engine/game/gameEngine";
-import type { Npc } from "@/engine/character/npc";
+import type { Npc } from "@/engine/npc";
 import { ObjState, type Obj } from "@/engine/obj/obj";
 import { CharacterKind } from "@/engine/core/types";
 import { getViewTileDistance } from "@/engine/utils";

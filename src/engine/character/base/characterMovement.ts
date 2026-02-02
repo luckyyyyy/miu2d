@@ -23,6 +23,7 @@ import {
   tileToPixel,
 } from "../../utils";
 import { getDirectionIndex } from "../../utils/direction";
+import { getNeighbors } from "../../utils/neighbors";
 import { CharacterBase, type CharacterUpdateResult } from "./characterBase";
 
 /**
@@ -259,8 +260,15 @@ export abstract class CharacterMovement extends CharacterBase {
 
   /**
    * 走到目标瓦片
+   * C# Reference: Character.WalkTo(Vector2 destinationTilePosition, PathType pathType)
+   * C# checks PerformActionOk() at the start to prevent interrupting special actions
    */
   walkTo(destTile: Vector2, pathTypeOverride: PathType = PathType.End): boolean {
+    // C#: if (PerformActionOk() && destinationTilePosition != TilePosition && ...)
+    if (!this.performActionOk()) {
+      return false;
+    }
+
     if (this._mapX === destTile.x && this._mapY === destTile.y) {
       return true;
     }
@@ -282,12 +290,13 @@ export abstract class CharacterMovement extends CharacterBase {
 
     if (path.length === 0) {
       this.path = [];
-      this.state = CharacterState.Stand;
+      this.standingImmediately();
       return false;
     }
 
     this.path = path.slice(1);
     this._destinationMoveTilePosition = { ...destTile };
+    this.cancelAttackTarget();
     if (this._isInFighting && this.isStateImageOk(CharacterState.FightWalk)) {
       this.state = CharacterState.FightWalk;
     } else {
@@ -298,10 +307,22 @@ export abstract class CharacterMovement extends CharacterBase {
 
   /**
    * 跑到目标瓦片
+   * C# Reference: Character.RunTo(Vector2 destinationTilePosition, PathType pathType)
+   * C# checks PerformActionOk() at the start to prevent interrupting special actions
    */
   runTo(destTile: Vector2, pathTypeOverride: PathType = PathType.End): boolean {
+    // C#: if (PerformActionOk() && destinationTilePosition != TilePosition && ...)
+    if (!this.performActionOk()) {
+      return false;
+    }
+
     if (this._mapX === destTile.x && this._mapY === destTile.y) {
       return true;
+    }
+
+    // C#: if (!IsStateImageOk(CharacterState.Run)) { return; }
+    if (!this.isStateImageOk(CharacterState.Run) && !this.isStateImageOk(CharacterState.FightRun)) {
+      return false;
     }
 
     const usePathType = pathTypeOverride === PathType.End ? this.getPathType() : pathTypeOverride;
@@ -321,7 +342,7 @@ export abstract class CharacterMovement extends CharacterBase {
 
     if (path.length === 0) {
       this.path = [];
-      this.state = CharacterState.Stand;
+      this.standingImmediately();
       return false;
     }
 
@@ -337,25 +358,36 @@ export abstract class CharacterMovement extends CharacterBase {
 
   /**
    * 按方向行走
+   * C# Reference: Character.WalkToDirection + CheckStepMove
+   *
+   * C# uses a step-by-step approach where each step finds the neighbor in that direction.
+   * For isometric maps, the neighbor offset depends on whether the current Y is odd or even.
+   * We calculate the final destination by iterating step by step.
+   *
+   * Direction indices (matching C# FindAllNeighbors):
+   * 3  4  5
+   * 2     6
+   * 1  0  7
+   *
+   * 0=South, 1=SouthWest, 2=West, 3=NorthWest, 4=North, 5=NorthEast, 6=East, 7=SouthEast
    */
   walkToDirection(direction: number, steps: number): void {
-    const dirVectors = [
-      { x: 0, y: -2 },
-      { x: 1, y: -1 },
-      { x: 1, y: 0 },
-      { x: 1, y: 1 },
-      { x: 0, y: 2 },
-      { x: -1, y: 1 },
-      { x: -1, y: 0 },
-      { x: -1, y: -1 },
-    ];
+    if (direction < 0 || direction > 7) {
+      logger.warn(`[Character.walkToDirection] Invalid direction: ${direction}`);
+      return;
+    }
 
-    const dir = dirVectors[direction] || { x: 0, y: 0 };
-    const targetX = this._mapX + dir.x * steps;
-    const targetY = this._mapY + dir.y * steps;
+    // Calculate final destination by iterating step by step
+    // Each step uses FindNeighborInDirection which accounts for odd/even row offsets
+    let currentTile: Vector2 = { x: this._mapX, y: this._mapY };
+
+    for (let i = 0; i < steps; i++) {
+      const neighbors = getNeighbors(currentTile);
+      currentTile = neighbors[direction];
+    }
 
     this._currentDirection = direction;
-    this.walkTo({ x: targetX, y: targetY });
+    this.walkTo(currentTile);
   }
 
   // =============================================
@@ -471,7 +503,14 @@ export abstract class CharacterMovement extends CharacterBase {
   // === Partner Movement ===
   // =============================================
 
+  /**
+   * C#: Character.PartnerMoveTo(destinationTilePosition)
+   * If distance greater than 20, reset partner position around player.
+   * If distance greater than 5, run to destination.
+   * If distance greater than 2, and is running, run to destination, else walk to destination.
+   */
   partnerMoveTo(destinationTilePosition: Vector2): void {
+    // C#: if (MapBase.Instance.IsObstacleForCharacter(destinationTilePosition)) return;
     if (this.checkMapObstacleForCharacter(destinationTilePosition)) {
       return;
     }
@@ -479,7 +518,8 @@ export abstract class CharacterMovement extends CharacterBase {
     const dist = this.getViewTileDistance(this.tilePosition, destinationTilePosition);
 
     if (dist > 20) {
-      this.setPosition(destinationTilePosition.x, destinationTilePosition.y);
+      // C#: Globals.ThePlayer.ResetPartnerPosition();
+      this.engine.player.resetPartnerPosition();
     } else if (dist > 5) {
       this.runTo(destinationTilePosition);
     } else if (dist > 2) {
@@ -801,7 +841,25 @@ export abstract class CharacterMovement extends CharacterBase {
   // === State Utilities ===
   // =============================================
 
-  stateInitialize(endInteract: boolean = true, _noEndPlayCurrentDir: boolean = false): void {
+  /**
+   * C# Reference: Character.CancleAttackTarget()
+   * 取消攻击目标，用于在行走时清除之前的攻击目标
+   */
+  cancelAttackTarget(): void {
+    this._destinationAttackTilePosition = null;
+    this._interactiveTarget = null;
+  }
+
+  /**
+   * C# Reference: Character.StateInitialize(bool endInteract, bool noEndPlayCurrentDir)
+   * 重置角色状态前的初始化，清理路径、攻击目标和播放状态
+   */
+  stateInitialize(endInteract: boolean = true, noEndPlayCurrentDir: boolean = false): void {
+    // C#: if(!noEndPlayCurrentDir) { EndPlayCurrentDirOnce(); }
+    if (!noEndPlayCurrentDir) {
+      this.endPlayCurrentDirOnce();
+    }
+
     this._destinationMoveTilePosition = { x: 0, y: 0 };
     this.path = [];
     this._destinationAttackTilePosition = null;

@@ -72,7 +72,7 @@ export function Footer() {
               className="flex items-center gap-2 text-xl font-bold bg-gradient-to-r from-orange-500 to-amber-500 bg-clip-text text-transparent"
             >
               <span className="text-2xl">⚡</span>
-              Vibe2D Engine
+              Miu2D Engine
             </motion.div>
             <p className="mt-4 text-sm text-zinc-600 dark:text-zinc-400">{t("footer.desc")}</p>
 
@@ -165,7 +165,7 @@ export function Footer() {
         {/* 版权 */}
         <div className="mt-12 pt-8 border-t border-zinc-200 dark:border-zinc-800 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-sm text-zinc-500 dark:text-zinc-400">
-            © {currentYear} Vibe2D Engine. {t("footer.license")}
+            © {currentYear} Miu2D Engine. {t("footer.license")}
           </p>
           <p className="text-sm text-zinc-500 dark:text-zinc-400">
             Made with ❤️ and AI ✨

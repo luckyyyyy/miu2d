@@ -122,7 +122,7 @@ export function DemoSection() {
               <div className="w-3 h-3 rounded-full bg-yellow-500" />
               <div className="w-3 h-3 rounded-full bg-green-500" />
               <span className="ml-4 text-xs text-zinc-500">
-                Vibe2D Engine - 月影传说
+                Miu2D Engine - 月影传说
               </span>
             </div>
 

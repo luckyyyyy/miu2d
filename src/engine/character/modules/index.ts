@@ -6,3 +6,5 @@
 export { StatusEffectsManager, type StatusEffectsUpdateResult } from "./statusEffects";
 export { BezierMover, type BezierMoveData, type BezierMoveUpdateResult, type JumpObstacleChecker } from "./bezierMover";
 export { FlyIniManager, type FlyIniInfo } from "./flyIniManager";
+// NpcMagicCache moved to npc/modules
+export { NpcMagicCache, type SpecialMagicType } from "../../npc/modules";

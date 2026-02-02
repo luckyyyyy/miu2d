@@ -1,8 +1,8 @@
-# Copilot Instructions for Vibe2D Engine
+# Copilot Instructions for Miu2D Engine
 
 ## 项目概述
 
-**Vibe2D Engine** - 基于 Web 技术的 2D RPG 游戏引擎，复刻《剑侠情缘外传：月影传说》。
+**Miu2D Engine** - 基于 Web 技术的 2D RPG 游戏引擎，复刻《剑侠情缘外传：月影传说》。
 
 - **原版**：西山居 C++ (2001)
 - **C# 复刻**：[JxqyHD](https://github.com/mapic91/JxqyHD)

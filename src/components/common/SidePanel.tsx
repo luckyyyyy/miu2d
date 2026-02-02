@@ -11,12 +11,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { logger, LOG_LEVELS, type LogLevel } from "@/engine/core/logger";
 import { type SaveSlotInfo, StorageManager } from "@/engine/game/storage";
+import type { UITheme } from "@/components/game/ui";
 
 // ============= LocalStorage 键名 =============
 const STORAGE_KEY_MUSIC_VOLUME = "jxqy_music_volume";
 const STORAGE_KEY_SOUND_VOLUME = "jxqy_sound_volume";
 const STORAGE_KEY_AMBIENT_VOLUME = "jxqy_ambient_volume";
 const STORAGE_KEY_VIDEO_VOLUME = "jxqy_video_volume";
+const STORAGE_KEY_UI_THEME = "jxqy_ui_theme";
 
 // ============= 音频设置工具函数 =============
 
@@ -59,6 +61,17 @@ export function saveAudioSettings(settings: {
   }
 }
 
+// ============= UI 主题工具函数 =============
+
+export function loadUITheme(): UITheme {
+  const theme = localStorage.getItem(STORAGE_KEY_UI_THEME);
+  return (theme === "modern" || theme === "classic") ? theme : "classic";
+}
+
+export function saveUITheme(theme: UITheme): void {
+  localStorage.setItem(STORAGE_KEY_UI_THEME, theme);
+}
+
 // ============= 类型定义 =============
 
 export interface SaveLoadPanelProps {
@@ -85,6 +98,9 @@ export interface SettingsPanelProps {
   // 分辨率设置
   currentResolution?: { width: number; height: number };
   setResolution?: (width: number, height: number) => void;
+  // UI 主题切换
+  currentTheme?: UITheme;
+  setTheme?: (theme: UITheme) => void;
   onClose?: () => void;
 }
 
@@ -425,6 +441,8 @@ export function SettingsPanel({
   requestAutoplayPermission,
   currentResolution,
   setResolution,
+  currentTheme,
+  setTheme,
   onClose,
 }: SettingsPanelProps) {
   // 本地状态
@@ -433,6 +451,7 @@ export function SettingsPanel({
   const [ambientVolume, setAmbientVolumeLocal] = useState(1.0);
   const [autoplayAllowed, setAutoplayAllowed] = useState(false);
   const [logLevel, setLogLevel] = useState<LogLevel>(logger.getMinLevel());
+  const [uiTheme, setUIThemeLocal] = useState<UITheme>(currentTheme ?? loadUITheme());
 
   // 日志级别切换
   const handleLogLevelChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -500,6 +519,13 @@ export function SettingsPanel({
       const allowed = await requestAutoplayPermission();
       setAutoplayAllowed(allowed);
     }
+  };
+
+  // UI 主题切换
+  const handleThemeChange = (theme: UITheme) => {
+    setUIThemeLocal(theme);
+    setTheme?.(theme);
+    saveUITheme(theme);
   };
 
   return (
@@ -581,6 +607,43 @@ export function SettingsPanel({
         {/* 显示设置 */}
         <div>
           <h3 className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-3">显示</h3>
+
+          {/* UI 主题切换 */}
+          <div className="mb-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs text-gray-400">🎨 界面风格</span>
+              <span className="text-xs text-gray-500">
+                {uiTheme === "classic" ? "经典" : "现代"}
+              </span>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => handleThemeChange("classic")}
+                className={`flex-1 px-2 py-2 text-xs rounded border transition-all ${
+                  uiTheme === "classic"
+                    ? "bg-amber-600/30 border-amber-500 text-amber-200"
+                    : "bg-gray-800 border-gray-700 text-gray-400 hover:border-gray-600"
+                }`}
+              >
+                <div className="text-lg mb-1">🏯</div>
+                <div>经典风格</div>
+              </button>
+              <button
+                onClick={() => handleThemeChange("modern")}
+                className={`flex-1 px-2 py-2 text-xs rounded border transition-all ${
+                  uiTheme === "modern"
+                    ? "bg-blue-600/30 border-blue-500 text-blue-200"
+                    : "bg-gray-800 border-gray-700 text-gray-400 hover:border-gray-600"
+                }`}
+              >
+                <div className="text-lg mb-1">✨</div>
+                <div>现代风格</div>
+              </button>
+            </div>
+            <div className="text-xs text-gray-600 mt-1">
+              {uiTheme === "classic" ? "复古像素风，还原经典游戏体验" : "毛玻璃效果，清新简洁的视觉设计"}
+            </div>
+          </div>
 
           {/* 分辨率选择 */}
           <div>

@@ -8,8 +8,8 @@
  */
 
 import type { AudioManager } from "@/engine/audio";
-import type { Npc } from "@/engine/character/npc";
-import type { NpcManager } from "@/engine/character/npcManager";
+import type { Npc } from "@/engine/npc";
+import type { NpcManager } from "@/engine/npc";
 import type { Vector2 } from "@/engine/core/types";
 import type { ScreenEffects } from "@/engine/effects";
 import type { GuiManager } from "@/engine/gui/guiManager";
@@ -43,6 +43,8 @@ export interface CastContext {
   guiManager: GuiManager;
   screenEffects: ScreenEffects;
   audioManager: AudioManager;
+  /** 震屏回调 C# Reference: Carmera.VibaratingScreen */
+  vibrateScreen?: (intensity: number) => void;
 }
 
 /**

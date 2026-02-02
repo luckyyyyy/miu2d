@@ -7,13 +7,18 @@
 
 import { Character } from "../../character/character";
 import { CharacterBase } from "../../character/base";
-import type { Npc } from "../../character/npc";
-import { NpcManager } from "../../character/npcManager";
+import type { Npc } from "../../npc";
+import { NpcManager } from "../../npc";
 import { getEngineContext } from "../../core/engineContext";
 import { logger } from "../../core/logger";
-import { findDistanceTileInDirection } from "../../core/pathFinder";
+import {
+  bouncingAtPoint,
+  bouncingAtWall,
+  findDistanceTileInDirection,
+  findNeighborInDirection,
+} from "../../core/pathFinder";
 import type { Vector2 } from "../../core/types";
-import { getNeighbors } from "../../utils";
+import { getNeighbors, pixelToTile, tileToPixel, getDirectionFromVector } from "../../utils";
 import type { MagicListManager } from "../../player/magic/magicListManager";
 import type { Player } from "../../player/player";
 import { type ApplyContext, type CharacterRef, type EndContext, getEffect } from "../effects";
@@ -22,6 +27,7 @@ import type { MagicSprite } from "../magicSprite";
 import { getDirection8, getDirectionOffset8 } from "../../utils/direction";
 import type { MagicData } from "../types";
 import type { ICharacterHelper, MagicManagerDeps, MagicManagerState } from "./types";
+import { normalizeVector } from "../../utils/math";
 
 /**
  * 碰撞处理回调
@@ -68,6 +74,7 @@ export class CollisionHandler {
 
   /**
    * 检查地图障碍物碰撞
+   * C# Reference: MagicSprite.CheckDestroyForObstacleInMap()
    */
   checkMapObstacle(sprite: MagicSprite): boolean {
     if (sprite.magic.passThroughWall > 0) return false;
@@ -76,15 +83,52 @@ export class CollisionHandler {
     if (!collisionChecker) return false;
 
     const tile = sprite.tilePosition;
+    const isObstacle = collisionChecker.isObstacleForMagic(tile.x, tile.y);
 
-    if (collisionChecker.isObstacleForMagic(tile.x, tile.y)) {
-      logger.log(
-        `[CollisionHandler] Sprite ${sprite.magic.name} hit map obstacle at (${tile.x}, ${tile.y})`
+    if (!isObstacle) return false;
+
+    // C# Reference: Ball > 0 时撞墙弹跳
+    // if (destroy && BelongMagic.Ball > 0) {
+    //   MoveDirection = PathFinder.BouncingAtWall(RealMoveDirection, PositionInWorld, TilePosition);
+    //   TilePosition = PathFinder.FindNeighborInDirection(TilePosition, RealMoveDirection);
+    //   return false;
+    // }
+    if (sprite.magic.ball > 0) {
+      const isMapObstacleChecker = (t: Vector2) => collisionChecker.isObstacleForMagic(t.x, t.y);
+      const newDirection = bouncingAtWall(
+        sprite.direction,
+        sprite.positionInWorld,
+        tile,
+        isMapObstacleChecker
       );
-      this.callbacks.startDestroyAnimation(sprite);
-      return true;
+
+      sprite.setMoveDirection(newDirection);
+
+      // Move to neighbor tile
+      const dirIndex = getDirectionFromVector(newDirection);
+      const newTile = findNeighborInDirection(tile, dirIndex);
+      sprite.tilePosition = newTile;
+
+      // 微调位置避免卡在墙里
+      if (newDirection.x !== 0 || newDirection.y !== 0) {
+        const normalized = normalizeVector(newDirection);
+        sprite.positionInWorld = {
+          x: sprite.positionInWorld.x - normalized.x,
+          y: sprite.positionInWorld.y - normalized.y,
+        };
+      }
+
+      logger.log(
+        `[CollisionHandler] Ball bounce at wall: ${sprite.magic.name} at (${tile.x}, ${tile.y})`
+      );
+      return false; // 不销毁，继续飞行
     }
-    return false;
+
+    logger.log(
+      `[CollisionHandler] Sprite ${sprite.magic.name} hit map obstacle at (${tile.x}, ${tile.y})`
+    );
+    this.callbacks.startDestroyAnimation(sprite);
+    return true;
   }
 
   /**
@@ -289,11 +333,56 @@ export class CollisionHandler {
     // 被攻击时自动使用武功
     this.handleMagicToUseWhenBeAttacked(sprite, character, belongCharacter);
 
+    // ============= Ball 弹跳处理 =============
+    // C# Reference: if (BelongMagic.Ball > 0) { ... MoveDirection = PathFinder.BouncingAtPoint(...) }
+    if (magic.ball > 0) {
+      shouldDestroy = false;
+      const newDirection = bouncingAtPoint(
+        sprite.direction,
+        sprite.positionInWorld,
+        character.pixelPosition
+      );
+      sprite.setMoveDirection(newDirection);
+
+      // Move to neighbor tile
+      const dirIndex = getDirectionFromVector(newDirection);
+      const newTile = findNeighborInDirection(sprite.tilePosition, dirIndex);
+      sprite.tilePosition = newTile;
+
+      // 微调位置避免卡在角色身上
+      if (newDirection.x !== 0 || newDirection.y !== 0) {
+        const normalized = normalizeVector(newDirection);
+        sprite.positionInWorld = {
+          x: sprite.positionInWorld.x - normalized.x,
+          y: sprite.positionInWorld.y - normalized.y,
+        };
+      }
+
+      // 播放命中特效
+      this.callbacks.createHitEffect(sprite);
+
+      logger.log(
+        `[CollisionHandler] Ball bounce at character: ${sprite.magic.name} -> ${character.name}`
+      );
+    }
+
+    // ============= LeapToNextTarget 跳跃传递处理 =============
+    // C# Reference: if (_canLeap) { LeapToNextTarget(character); }
+    if (sprite.canLeap) {
+      this.leapToNextTarget(sprite, character, charId);
+      return true; // 跳跃武功不进入销毁流程
+    }
+
     // 处理穿透或销毁
     // C# Reference: 穿透不销毁，粘附不销毁，寄生时只进入销毁动画但不真正销毁
     if (sprite.magic.passThrough > 0) {
       if (sprite.magic.vanishImage) {
         this.callbacks.createHitEffect(sprite);
+      }
+      // C#: 穿透后移动到邻居格子
+      if (sprite.velocity > 0 && (sprite.direction.x !== 0 || sprite.direction.y !== 0)) {
+        const dirIndex = getDirectionFromVector(sprite.direction);
+        sprite.tilePosition = findNeighborInDirection(sprite.tilePosition, dirIndex);
       }
     } else if (sprite.stickedCharacterId !== null) {
       // Sticky 粘附状态，不销毁
@@ -307,6 +396,91 @@ export class CollisionHandler {
     }
 
     return true;
+  }
+
+  /**
+   * 跳跃到下一个目标
+   * C# Reference: MagicSprite.LeapToNextTarget(Character hitedCharacter)
+   */
+  private leapToNextTarget(sprite: MagicSprite, hitedCharacter: Character, hitedCharId: string): void {
+    const magic = sprite.magic;
+    const belongCharacter = this.charHelper.getBelongCharacter(sprite.belongCharacterId);
+
+    // C#: if (_leftLeapTimes > 0) { _leftLeapTimes--; reduce effects }
+    if (sprite.leftLeapTimes > 0) {
+      sprite.leftLeapTimes--;
+      sprite.reduceEffectByPercentage(magic.effectReducePercentage);
+    } else {
+      sprite.endLeap();
+      return;
+    }
+
+    // 播放命中特效
+    this.callbacks.createHitEffect(sprite);
+
+    // 记录已命中的角色
+    sprite.addLeapedCharacter(hitedCharId);
+
+    // 获取已跳跃过的角色列表（用于排除）
+    const leapedCharacterIds = sprite.getLeapedCharacterIds();
+    const ignoreList: Character[] = [];
+    for (const id of leapedCharacterIds) {
+      const char = this.charHelper.getBelongCharacter(id);
+      if (char) ignoreList.push(char);
+    }
+
+    // 寻找下一个目标
+    // C#: if (BelongMagic.AttackAll > 0) nextTarget = NpcManager.GetClosestFighter(...)
+    //     else nextTarget = NpcManager.GetClosestEnemy(...)
+    let nextTarget: Character | null = null;
+    if (magic.attackAll > 0) {
+      nextTarget = this.npcManager.getClosestFighter(hitedCharacter.pixelPosition, ignoreList);
+    } else if (belongCharacter) {
+      nextTarget = this.npcManager.getClosestEnemy(
+        belongCharacter,
+        hitedCharacter.pixelPosition,
+        true,
+        false,
+        ignoreList
+      );
+    }
+
+    if (nextTarget === null) {
+      sprite.endLeap();
+      return;
+    }
+
+    // 更新武功精灵
+    // C#: Texture = BelongMagic.LeapImage; PlayFrames(BelongMagic.LeapFrame);
+    if (magic.leapImage) {
+      sprite.flyingAsfPath = magic.leapImage;
+    }
+    if (magic.leapFrame > 0) {
+      sprite.playFrames(magic.leapFrame);
+    }
+
+    // 设置新的移动方向
+    // C#: MoveDirection = nextTarget.PositionInWorld - PositionInWorld;
+    const newDirection = {
+      x: nextTarget.pixelPosition.x - sprite.positionInWorld.x,
+      y: nextTarget.pixelPosition.y - sprite.positionInWorld.y,
+    };
+    sprite.setMoveDirection(newDirection);
+
+    // 移动到邻居格子
+    // C#: TilePosition = PathFinder.FindNeighborInDirection(TilePosition, RealMoveDirection);
+    const dirIndex = getDirectionFromVector(sprite.direction);
+    sprite.tilePosition = findNeighborInDirection(sprite.tilePosition, dirIndex);
+
+    // 修正方向（因为位置改变了）
+    sprite.setMoveDirection({
+      x: nextTarget.pixelPosition.x - sprite.positionInWorld.x,
+      y: nextTarget.pixelPosition.y - sprite.positionInWorld.y,
+    });
+
+    logger.log(
+      `[CollisionHandler] Leap to next target: ${sprite.magic.name} -> ${nextTarget.name}, remaining=${sprite.leftLeapTimes}`
+    );
   }
 
   /**

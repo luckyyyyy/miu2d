@@ -4,7 +4,7 @@
  */
 
 import type { Character } from "../../character/character";
-import type { NpcManager } from "../../character/npcManager";
+import type { NpcManager } from "../../npc";
 import type { Vector2 } from "../../core/types";
 import type { Player } from "../../player/player";
 import { type CharacterRef, getPosition as getCharPosition } from "../effects";

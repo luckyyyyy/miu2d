@@ -16,7 +16,7 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-const THEME_STORAGE_KEY = "vibe2d_theme";
+const THEME_STORAGE_KEY = "Miu2D_theme";
 
 function getInitialTheme(): Theme {
   // 只有用户主动切换过才从 localStorage 读取

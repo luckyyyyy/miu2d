@@ -599,3 +599,131 @@ export function hasMapObstacleInTilePositionList(
 
   return false;
 }
+
+// ============= Ball 弹跳计算 =============
+
+/**
+ * 计算在点上弹跳后的方向
+ * C# Reference: PathFinder.BouncingAtPoint
+ *
+ * @param direction 当前移动方向（已归一化或零向量）
+ * @param worldPosition 武功当前像素位置
+ * @param targetWorldPosition 碰撞目标的像素位置
+ * @returns 弹跳后的方向向量
+ */
+export function bouncingAtPoint(
+  direction: Vector2,
+  worldPosition: Vector2,
+  targetWorldPosition: Vector2
+): Vector2 {
+  // C#: if (direction == Vector2.Zero || worldPosition == targetWorldPosition)
+  //       return worldPosition - targetWorldPosition;
+  if (
+    (direction.x === 0 && direction.y === 0) ||
+    (worldPosition.x === targetWorldPosition.x && worldPosition.y === targetWorldPosition.y)
+  ) {
+    return {
+      x: worldPosition.x - targetWorldPosition.x,
+      y: worldPosition.y - targetWorldPosition.y,
+    };
+  }
+
+  // C#: var normal = Vector2.Normalize(worldPosition - targetWorldPosition);
+  //     return Vector2.Reflect(direction, normal);
+  const normalX = worldPosition.x - targetWorldPosition.x;
+  const normalY = worldPosition.y - targetWorldPosition.y;
+  const normalLen = Math.sqrt(normalX * normalX + normalY * normalY);
+
+  if (normalLen === 0) {
+    return { x: -direction.x, y: -direction.y };
+  }
+
+  const nx = normalX / normalLen;
+  const ny = normalY / normalLen;
+
+  // Vector2.Reflect: v - 2 * dot(v, n) * n
+  const dot = direction.x * nx + direction.y * ny;
+  return {
+    x: direction.x - 2 * dot * nx,
+    y: direction.y - 2 * dot * ny,
+  };
+}
+
+/**
+ * 计算在墙上弹跳后的方向
+ * C# Reference: PathFinder.BouncingAtWall
+ *
+ * @param direction 当前移动方向（已归一化或零向量）
+ * @param worldPosition 武功当前像素位置
+ * @param targetTilePosition 碰撞墙壁的格子位置
+ * @param isMapObstacle 检查格子是否为障碍的函数
+ * @returns 弹跳后的方向向量
+ */
+export function bouncingAtWall(
+  direction: Vector2,
+  worldPosition: Vector2,
+  targetTilePosition: Vector2,
+  isMapObstacle: (tile: Vector2) => boolean
+): Vector2 {
+  // C#: if (direction == Vector2.Zero) return direction;
+  if (direction.x === 0 && direction.y === 0) {
+    return { ...direction };
+  }
+
+  // C#: var dir = Utils.GetDirectionIndex(direction, 8);
+  const dirIndex = getDirectionFromVector(direction);
+
+  // C#: var checks = new[]{(dir + 2)%8, (dir + 6)%8, (dir + 1)%8, (dir + 7)%8};
+  const checks = [
+    (dirIndex + 2) % 8,
+    (dirIndex + 6) % 8,
+    (dirIndex + 1) % 8,
+    (dirIndex + 7) % 8,
+  ];
+
+  // C#: var neighbors = FindAllNeighbors(targetTilePosition);
+  const neighbors = getNeighbors(targetTilePosition);
+
+  // C#: Find which neighbor is an obstacle
+  let foundIndex = 8;
+  for (const checkDir of checks) {
+    if (isMapObstacle(neighbors[checkDir])) {
+      foundIndex = checkDir;
+      break;
+    }
+  }
+
+  // C#: if (get == 8) return BouncingAtPoint(direction, worldPosition, MapBase.ToPixelPosition(targetTilePosition));
+  if (foundIndex === 8) {
+    const targetPixel = tileToPixel(targetTilePosition.x, targetTilePosition.y);
+    return bouncingAtPoint(direction, worldPosition, targetPixel);
+  }
+
+  // C#: var normal = MapBase.ToPixelPosition(targetTilePosition) - MapBase.ToPixelPosition(neighbors[get]);
+  //     normal = Vector2.Normalize(new Vector2(-normal.Y, normal.X));
+  //     return Vector2.Reflect(direction, normal);
+  const targetPixel = tileToPixel(targetTilePosition.x, targetTilePosition.y);
+  const neighborPixel = tileToPixel(neighbors[foundIndex].x, neighbors[foundIndex].y);
+
+  const diffX = targetPixel.x - neighborPixel.x;
+  const diffY = targetPixel.y - neighborPixel.y;
+
+  // Rotate 90 degrees: (x, y) -> (-y, x)
+  const normalX = -diffY;
+  const normalY = diffX;
+  const normalLen = Math.sqrt(normalX * normalX + normalY * normalY);
+
+  if (normalLen === 0) {
+    return { x: -direction.x, y: -direction.y };
+  }
+
+  const nx = normalX / normalLen;
+  const ny = normalY / normalLen;
+
+  // Vector2.Reflect: v - 2 * dot(v, n) * n
+  const dot = direction.x * nx + direction.y * ny;
+  return {
+    x: direction.x - 2 * dot * nx,
+    y: direction.y - 2 * dot * ny,
+  };
+}

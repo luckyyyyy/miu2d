@@ -7,7 +7,6 @@
  * - onEnd: 退出超级模式
  */
 
-import { logger } from "@/engine/core/logger";
 import { dealDamage } from "./common";
 import type { ApplyContext, CastContext, EndContext, MagicEffect } from "./types";
 
@@ -31,8 +30,7 @@ export function createSuperModeEffect(_callbacks?: SuperModeCallbacks): MagicEff
     onCast(ctx: CastContext): void {
       // 震屏效果
       if (ctx.magic.vibratingScreen > 0) {
-        // TODO: ctx.screenEffects.shake?.(ctx.magic.vibratingScreen);
-        logger.log(`[SuperMode] Screen shake: ${ctx.magic.vibratingScreen}`);
+        ctx.vibrateScreen?.(ctx.magic.vibratingScreen);
       }
     },
 

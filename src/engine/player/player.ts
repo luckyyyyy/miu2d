@@ -6,7 +6,7 @@
 import { Character } from "../character";
 import { CharacterBase } from "../character/base";
 import { applyConfigToPlayer, parseCharacterIni } from "../character/iniParser";
-import type { NpcManager } from "../character/npcManager";
+import type { NpcManager } from "../npc";
 import { getEngineContext } from "../core/engineContext";
 import { logger } from "../core/logger";
 import { PathType } from "../core/pathFinder";
@@ -25,10 +25,11 @@ import type { MagicManager } from "../magic";
 import { loadMagic, getMagicAtLevel, getCachedMagic } from "../magic/magicLoader";
 import type { MagicSprite } from "../magic/magicSprite";
 import type { MagicData, MagicItemInfo } from "../magic/types";
-import { MagicMoveKind, MagicSpecialKind } from "../magic/types";
+import { MagicAddonEffect, MagicMoveKind, MagicSpecialKind } from "../magic/types";
 import { getTileTextureRegion } from "../map/renderer";
 import { resourceLoader } from "../resource/resourceLoader";
 import type { Good } from "./goods";
+import { GoodEffectType } from "./goods/good";
 import { GoodsListManager } from "./goods/goodsListManager";
 import { getEffectAmount } from "../magic/effects/common";
 import { MagicListManager } from "./magic/magicListManager";
@@ -60,6 +61,37 @@ export interface PlayerAction {
 
 /** Player 类 - 对应 C# Player.cs */
 export class Player extends Character {
+  // === 角色索引（多主角系统）===
+  /**
+   * 玩家角色索引 (C#: Globals.PlayerIndex)
+   * 决定加载哪个 Player{index}.ini / Magic{index}.ini / Goods{index}.ini
+   */
+  private _playerIndex: number = 0;
+
+  /** 获取当前玩家角色索引 */
+  get playerIndex(): number {
+    return this._playerIndex;
+  }
+
+  /**
+   * 切换玩家角色索引
+   * @param index 新的玩家角色索引
+   */
+  setPlayerIndex(index: number): void {
+    this._playerIndex = index;
+    // 通知 UI 刷新（状态面板头像等）
+    this.engine.notifyPlayerStateChanged();
+  }
+
+  /**
+   * 切换玩家角色索引（静默模式，不通知 UI）
+   * 用于 PlayerChange 流程中，在数据加载完成后再统一通知 UI
+   * @param index 新的玩家角色索引
+   */
+  setPlayerIndexSilent(index: number): void {
+    this._playerIndex = index;
+  }
+
   // === Player Fields ===
   private _money: number = 0;
   private _doing: number = 0;
@@ -95,6 +127,8 @@ export class Player extends Character {
   // Equipment effects
   private _isNotUseThewWhenRun: boolean = false;
   private _isManaRestore: boolean = false;
+  // C#: SetFlyIniAdditionalEffect - 武器的附加效果（中毒/冰冻/石化）
+  private _flyIniAdditionalEffect: MagicAddonEffect = MagicAddonEffect.None;
   private _addLifeRestorePercent: number = 0;
   private _addManaRestorePercent: number = 0;
   private _addThewRestorePercent: number = 0;
@@ -282,8 +316,16 @@ export class Player extends Character {
       return true;
     }
 
-    // TODO: Check ObjManager obstacle
-    // TODO: Check MagicManager obstacle
+    // Check ObjManager obstacle
+    const objManager = this.engine.getManager("obj");
+    if (objManager?.isObstacle(tilePosition.x, tilePosition.y)) {
+      return true;
+    }
+
+    // Check MagicManager obstacle
+    if (this.magicManager?.isObstacle(tilePosition)) {
+      return true;
+    }
 
     return false;
   }
@@ -315,7 +357,8 @@ export class Player extends Character {
       if (!info.magic) continue;
 
       // MagicToUseWhenBeAttacked - 被攻击时使用的武功
-      // TODO: 需要实现 magicToUseWhenAttackedList 系统
+      // C# Reference: 武功有 MagicToUseWhenBeAttacked 属性，会添加到 MagicToUseWhenAttackedList
+      // 此功能待实现：需要在 CharacterBase 中添加 magicToUseWhenAttackedList 并在被击时触发
 
       // FlyIni - 添加飞行动画替换
       if (info.magic.flyIni) {
@@ -398,7 +441,7 @@ export class Player extends Character {
     if (this._controledCharacter !== null) {
       // C#: NpcManager.CleartFollowTargetIfEqual(ControledCharacter)
       // 清除其他 NPC 对被控制角色的追踪
-      this.engine.npcManager.clearFollowTargetIfEqual(this._controledCharacter);
+      this.engine.npcManager.cleartFollowTargetIfEqual(this._controledCharacter);
 
       // C#: ControledCharacter.ControledMagicSprite = null
       this._controledCharacter.controledMagicSprite = null;
@@ -511,18 +554,22 @@ export class Player extends Character {
     // Determine run mode
     this._isRun = this.canRun(input.isShiftDown);
 
-    // Handle keyboard movement (highest priority)
-    const moveDir = this.getKeyboardMoveDirection(input.keys);
-    if (moveDir !== null) {
-      this.moveInDirection(moveDir, this._isRun);
-      return null;
-    }
+    // C# Reference: if (ControledCharacter == null) { HandleMoveKeyboardInput(); }
+    // 控制其他角色时不处理键盘移动（由鼠标控制被控角色移动）
+    if (this._controledCharacter === null) {
+      // Handle keyboard movement (highest priority)
+      const moveDir = this.getKeyboardMoveDirection(input.keys);
+      if (moveDir !== null) {
+        this.moveInDirection(moveDir, this._isRun);
+        return null;
+      }
 
-    // Handle joystick direction movement (mobile)
-    // 摇杆使用方向移动，类似小键盘，避免频繁寻路导致卡顿
-    if (input.joystickDirection !== null) {
-      this.moveInDirection(input.joystickDirection, this._isRun);
-      return null;
+      // Handle joystick direction movement (mobile)
+      // 摇杆使用方向移动，类似小键盘，避免频繁寻路导致卡顿
+      if (input.joystickDirection !== null) {
+        this.moveInDirection(input.joystickDirection, this._isRun);
+        return null;
+      }
     }
 
     // Handle mouse movement (PC long press)
@@ -653,7 +700,7 @@ export class Player extends Character {
    * Move in a direction
    * C# Reference: Player.MoveToDirection(int direction)
    * C# 使用 WalkTo/RunTo 而不是直接设置 path，确保经过完整的寻路和障碍物检测
-   * 
+   *
    * 注意：Direction 枚举（0=North）和 C# 的方向索引（0=South）不同，需要转换
    * Direction 枚举:    0=N, 1=NE, 2=E, 3=SE, 4=S, 5=SW, 6=W, 7=NW
    * C# 邻居数组索引:   0=S, 1=SW, 2=W, 3=NW, 4=N, 5=NE, 6=E, 7=SE
@@ -666,7 +713,7 @@ export class Player extends Character {
     // N(0)->4, NE(1)->5, E(2)->6, SE(3)->7, S(4)->0, SW(5)->1, W(6)->2, NW(7)->3
     const directionToCSharpIndex = [4, 5, 6, 7, 0, 1, 2, 3];
     const csharpDirIndex = directionToCSharpIndex[direction];
-    
+
     // C# Reference: PathFinder.FindNeighborInDirection(TilePosition, direction)
     const neighbors = this.findAllNeighbors(this.tilePosition);
     const targetTile = neighbors[csharpDirIndex];
@@ -863,8 +910,11 @@ export class Player extends Character {
     if (this._autoAttackTarget !== null) {
       // C#: 检查目标是否仍然有效
       // if (_autoAttackTarget.IsDeathInvoked || !_autoAttackTarget.IsEnemy || !NpcManager.HasNpc(_autoAttackTarget))
-      if (this._autoAttackTarget.isDeathInvoked || !this._autoAttackTarget.isEnemy) {
-        // TODO: 还应该检查 NpcManager.HasNpc - 暂时跳过
+      if (
+        this._autoAttackTarget.isDeathInvoked ||
+        !this._autoAttackTarget.isEnemy ||
+        !this.npcManager?.getNpc(this._autoAttackTarget.name)
+      ) {
         this._autoAttackTarget = null;
       } else {
         // C#: _autoAttackTimer += (float)gameTime.ElapsedGameTime.TotalMilliseconds;
@@ -881,6 +931,25 @@ export class Player extends Character {
           const targetPos = this._autoAttackTarget.tilePosition;
           this.attacking(targetPos, this._autoAttackIsRun);
         }
+      }
+    }
+  }
+
+  /**
+   * 检查玩家当前位置是否有可自动触发的物体脚本
+   * C# Reference: Player.UpdateTouchObj()
+   *
+   * 当玩家站在有 ScriptFileJustTouch > 0 的物体位置上时，
+   * 自动运行该物体的脚本（通常用于陷阱、机关等）
+   */
+  private updateTouchObj(): void {
+    const objManager = this.engine.getManager("obj");
+    if (!objManager) return;
+
+    const objs = objManager.getObjsAtPosition({ x: this.mapX, y: this.mapY });
+    for (const obj of objs) {
+      if (obj.scriptFileJustTouch > 0 && obj.canInteract(false)) {
+        obj.startInteract(false);
       }
     }
   }
@@ -1033,6 +1102,15 @@ export class Player extends Character {
     // C# Reference: Player.UseMagic - 检查 _replacedMagic 并替换
     magicAtLevel = this.getReplacedMagic(magicAtLevel);
 
+    // C# Reference: Character.Equiping/SetFlyIniAdditionalEffect
+    // 应用武器的附加效果（中毒/冰冻/石化）到武功上
+    if (this._flyIniAdditionalEffect !== MagicAddonEffect.None) {
+      magicAtLevel = {
+        ...magicAtLevel,
+        additionalEffect: this._flyIniAdditionalEffect,
+      };
+    }
+
     this.magicManager.useMagic({
       userId: "player",
       magic: magicAtLevel,
@@ -1074,9 +1152,17 @@ export class Player extends Character {
     if (this.state === CharacterState.Attack2 && this._attackDestination) {
       // 使用预加载的修炼武功攻击魔法
       if (this._xiuLianAttackMagic && this.magicManager) {
+        // C# Reference: SetFlyIniAdditionalEffect - 应用武器的附加效果
+        let magicToUse: MagicData = this._xiuLianAttackMagic;
+        if (this._flyIniAdditionalEffect !== MagicAddonEffect.None) {
+          magicToUse = {
+            ...this._xiuLianAttackMagic,
+            additionalEffect: this._flyIniAdditionalEffect,
+          };
+        }
         this.magicManager.useMagic({
           userId: "player",
-          magic: this._xiuLianAttackMagic,
+          magic: magicToUse,
           origin: { ...this._positionInWorld },
           destination: { ...this._attackDestination },
         });
@@ -1208,7 +1294,8 @@ export class Player extends Character {
     // C#: UpdateAutoAttack(gameTime);
     this.updateAutoAttack(deltaTime);
 
-    // TODO: UpdateTouchObj();
+    // C#: UpdateTouchObj() - 触发 ScriptFileJustTouch > 0 的物体脚本
+    this.updateTouchObj();
 
     // C#: if ((IsStanding() || IsWalking()) && BodyFunctionWell)
     // 只有在站立或行走时才恢复，其他状态重置计时器
@@ -1356,14 +1443,14 @@ export class Player extends Character {
   // === Death Handling ===
 
   /**
-   * Override onDeath to run death script and disable input
+   * Override death to run death script and disable input
    * C# Reference: Player.Death() - calls base.Death() then Globals.IsInputDisabled = true
    */
-  protected override onDeath(killer: Character | null): void {
+  override death(killer: Character | null = null): void {
     if (this.isDeathInvoked) return;
 
     // Call base implementation (sets state, flags, plays animation)
-    super.onDeath(killer);
+    super.death(killer);
 
     // Run death script if set
     if (this.deathScript) {
@@ -1379,6 +1466,18 @@ export class Player extends Character {
     // C#: Globals.IsInputDisabled = true
     // 注意：这里暂时只打印日志，完整实现需要设置全局输入禁用状态
     logger.log(`[Player] Player died - input should be disabled`);
+  }
+
+  /**
+   * Override fullLife to re-enable input
+   * C# Reference: Player.FullLife()
+   */
+  override fullLife(): void {
+    // C#: if (IsDeath) Globals.IsInputDisabled = false
+    if (this.isDeath) {
+      logger.log(`[Player] Revived - input should be re-enabled`);
+    }
+    super.fullLife();
   }
 
   /**
@@ -1431,7 +1530,7 @@ export class Player extends Character {
    * Reset all partners to positions around the player
    */
   resetPartnerPosition(): void {
-    const partners = this.npcManager.getAllPartners();
+    const partners = this.npcManager.getAllPartner();
     if (partners.length === 0) return;
 
     // C#: var neighbors = Engine.PathFinder.FindAllNeighbors(TilePosition);
@@ -1617,7 +1716,9 @@ export class Player extends Character {
       }
     }
 
-    // TODO: MagicToUseWhenBeAttacked 更新逻辑
+    // MagicToUseWhenBeAttacked 更新逻辑
+    // C# Reference: 武功升级时需要更新 MagicToUseWhenAttackedList 中的条目
+    // 此功能待实现
 
     // 显示升级消息
     this.guiManager?.showMessage?.(`武功 ${newMagic.name} 升级了`);
@@ -2054,6 +2155,11 @@ export class Player extends Character {
   // === Equipment ===
 
   equiping(equip: Good | null, currentEquip: Good | null, justEffectType: boolean = false): void {
+    // C# Reference: 保存当前 Life/Thew/Mana 用于装备后恢复
+    const savedLife = this.life;
+    const savedThew = this.thew;
+    const savedMana = this.mana;
+
     this.unEquiping(currentEquip, justEffectType);
 
     if (equip) {
@@ -2074,13 +2180,24 @@ export class Player extends Character {
         }
       }
 
+      // C# Reference: Character.Equiping - 根据 TheEffectType 设置效果
       const effectType = equip.theEffectType;
       switch (effectType) {
-        case 1:
+        case GoodEffectType.ThewNotLoseWhenRun:
           this._isNotUseThewWhenRun = true;
           break;
-        case 2:
+        case GoodEffectType.ManaRestore:
           this._isManaRestore = true;
+          break;
+        // C# Reference: SetFlyIniAdditionalEffect for weapon effects
+        case GoodEffectType.EnemyFrozen:
+          this.setFlyIniAdditionalEffect(MagicAddonEffect.Frozen);
+          break;
+        case GoodEffectType.EnemyPoisoned:
+          this.setFlyIniAdditionalEffect(MagicAddonEffect.Poison);
+          break;
+        case GoodEffectType.EnemyPetrified:
+          this.setFlyIniAdditionalEffect(MagicAddonEffect.Petrified);
           break;
       }
 
@@ -2112,11 +2229,26 @@ export class Player extends Character {
       if (equip.flyIni2) {
         this.addFlyIni2Replace(equip.flyIni2);
       }
+
+      // C# Reference: Player.Equiping - ReplaceMagic 处理
+      // if (!string.IsNullOrEmpty(equip.ReplaceMagic.GetValue())) {
+      //     _replacedMagic[equip.ReplaceMagic] = Utils.GetMagic(equip.UseReplaceMagic, false);
+      // }
+      if (equip.replaceMagic && equip.useReplaceMagic) {
+        this.loadAndAddEquipReplaceMagic(equip.replaceMagic, equip.useReplaceMagic);
+      }
+
+      // C# Reference: Player.Equiping - MagicIniWhenUse 处理
+      // 装备带来的武功，显示隐藏的武功或添加新武功
+      if (!justEffectType && equip.magicIniWhenUse) {
+        this.handleEquipMagicIniWhenUse(equip.magicIniWhenUse, true);
+      }
     }
 
-    if (this.life > this.lifeMax) this.life = this.lifeMax;
-    if (this.thew > this.thewMax) this.thew = this.thewMax;
-    if (this.mana > this.manaMax) this.mana = this.manaMax;
+    // C# Reference: 恢复保存的 Life/Thew/Mana，但不超过新的 Max 值
+    this.life = Math.min(savedLife, this.lifeMax);
+    this.thew = Math.min(savedThew, this.thewMax);
+    this.mana = Math.min(savedMana, this.manaMax);
   }
 
   unEquiping(equip: Good | null, justEffectType: boolean = false): void {
@@ -2139,13 +2271,20 @@ export class Player extends Character {
       }
     }
 
+    // C# Reference: Character.UnEquiping - 根据 TheEffectType 清除效果
     const effectType = equip.theEffectType;
     switch (effectType) {
-      case 1:
+      case GoodEffectType.ThewNotLoseWhenRun:
         this._isNotUseThewWhenRun = false;
         break;
-      case 2:
+      case GoodEffectType.ManaRestore:
         this._isManaRestore = false;
+        break;
+      // C# Reference: SetFlyIniAdditionalEffect(None) for weapon effects
+      case GoodEffectType.EnemyFrozen:
+      case GoodEffectType.EnemyPoisoned:
+      case GoodEffectType.EnemyPetrified:
+        this.setFlyIniAdditionalEffect(MagicAddonEffect.None);
         break;
     }
 
@@ -2174,9 +2313,34 @@ export class Player extends Character {
       this.removeFlyIni2Replace(equip.flyIni2);
     }
 
+    // C# Reference: Player.UnEquiping - ReplaceMagic 处理
+    // if (!string.IsNullOrEmpty(equip.ReplaceMagic.GetValue())) {
+    //     _replacedMagic.Remove(equip.ReplaceMagic);
+    // }
+    if (equip.replaceMagic) {
+      this.removeReplacedMagic(equip.replaceMagic);
+    }
+
+    // C# Reference: Player.UnEquiping - MagicIniWhenUse 处理
+    // 隐藏装备带来的武功
+    if (!justEffectType && equip.magicIniWhenUse) {
+      this.handleEquipMagicIniWhenUse(equip.magicIniWhenUse, false);
+    }
+
     if (this.life > this.lifeMax) this.life = this.lifeMax;
     if (this.thew > this.thewMax) this.thew = this.thewMax;
     if (this.mana > this.manaMax) this.mana = this.manaMax;
+  }
+
+  /**
+   * 设置武功的附加效果
+   * C# Reference: Character.SetFlyIniAdditionalEffect
+   */
+  protected setFlyIniAdditionalEffect(effect: MagicAddonEffect): void {
+    this._flyIniAdditionalEffect = effect;
+    // C#: if (FlyIni != null) FlyIni.AdditionalEffect = effect;
+    // C#: if (FlyIni2 != null) FlyIni2.AdditionalEffect = effect;
+    // 注意：TypeScript 中 FlyIni 的效果在 useMagicWhenAttack 时动态应用
   }
 
   /**
@@ -2203,6 +2367,81 @@ export class Player extends Character {
       logger.log(`[Player] Added MagicToUseWhenBeAttacked from equip ${equipFileName}: ${magic.name}`);
     } catch (err) {
       logger.error(`[Player] Error loading MagicToUseWhenBeAttacked: ${err}`);
+    }
+  }
+
+  /**
+   * 异步加载并添加装备的武功替换
+   * C# Reference: Player.Equiping - _replacedMagic[equip.ReplaceMagic] = Utils.GetMagic(equip.UseReplaceMagic)
+   */
+  private async loadAndAddEquipReplaceMagic(
+    originalMagicFileName: string,
+    replacementMagicFileName: string
+  ): Promise<void> {
+    try {
+      const replacementMagic = await loadMagic(replacementMagicFileName);
+      if (!replacementMagic) {
+        logger.warn(`[Player] Failed to load UseReplaceMagic: ${replacementMagicFileName}`);
+        return;
+      }
+      this.addReplacedMagic(originalMagicFileName, replacementMagic);
+      logger.log(`[Player] Added equip ReplaceMagic: ${originalMagicFileName} -> ${replacementMagic.name}`);
+    } catch (err) {
+      logger.error(`[Player] Error loading UseReplaceMagic: ${err}`);
+    }
+  }
+
+  /**
+   * 处理装备的 MagicIniWhenUse
+   * C# Reference: Player.Equiping/UnEquiping - MagicIniWhenUse 处理
+   * @param magicFileName 武功文件名
+   * @param isEquip true=装备时, false=卸下时
+   */
+  private handleEquipMagicIniWhenUse(magicFileName: string, isEquip: boolean): void {
+    if (isEquip) {
+      // C#: 装备时检查武功是否已隐藏，如果是则取消隐藏，否则添加新武功
+      const isHide = this._magicListManager.isMagicHided(magicFileName);
+      const existingMagic = this._magicListManager.getNonReplaceMagic(magicFileName);
+      const hasHideCount = existingMagic?.hideCount ? existingMagic.hideCount > 0 : false;
+
+      if (isHide || hasHideCount) {
+        // 取消隐藏
+        const info = this._magicListManager.setMagicHide(magicFileName, false);
+        if (isHide && info) {
+          this.showMessage(`武功${info.magic?.name}已可使用`);
+        }
+      } else {
+        // 添加新武功
+        this.addMagic(magicFileName);
+      }
+    } else {
+      // C#: 卸下时隐藏武功
+      const info = this._magicListManager.setMagicHide(magicFileName, true);
+      if (info && info.hideCount === 0) {
+        this.showMessage(`武功${info.magic?.name}已不可使用`);
+        // C#: OnDeleteMagic(info) - 处理修炼武功和当前使用武功
+        this.onDeleteMagicFromEquip(info);
+      }
+    }
+  }
+
+  /**
+   * 当装备移除导致武功不可用时的处理
+   * C# Reference: Player.OnDeleteMagic
+   */
+  private onDeleteMagicFromEquip(info: MagicItemInfo | null): void {
+    if (!info?.magic) return;
+
+    // 如果正在修炼此武功，取消修炼
+    const xiuLianMagic = this._magicListManager.getXiuLianMagic();
+    if (xiuLianMagic?.magic?.name === info.magic.name) {
+      this._magicListManager.setXiuLianMagic(null);
+    }
+
+    // 如果当前使用此武功，取消使用
+    const currentMagic = this._magicListManager.getCurrentMagicInUse();
+    if (currentMagic?.magic?.name === info.magic.name) {
+      this._magicListManager.setCurrentMagicInUse(null);
     }
   }
 
@@ -2422,7 +2661,8 @@ export class Player extends Character {
     offX: number = 0,
     offY: number = 0
   ): void {
-    if (!this._isVisible) return;
+    // C#: if (IsDraw) { ... }
+    if (!this.isDraw) return;
 
     // 确定绘制颜色（状态效果）
     let drawColor = "white";

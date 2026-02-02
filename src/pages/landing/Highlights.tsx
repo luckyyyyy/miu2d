@@ -5,7 +5,7 @@
  */
 
 import React from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { SiWebassembly, SiPython, SiLua, SiJavascript } from "react-icons/si";
 
@@ -338,18 +338,74 @@ function ScriptEngineDemo() {
   );
 }
 
-// 脚本调试演示 - 带 macOS 窗口装饰的斜向截图
+// 点击放大图片组件
+function ClickToZoomImage({ src, alt, aspectRatio = "video" }: { src: string; alt: string; aspectRatio?: string }) {
+  const [isOpen, setIsOpen] = React.useState(false);
+
+  return (
+    <>
+      <div
+        className={`relative ${aspectRatio === "video" ? "aspect-video" : ""} cursor-pointer group`}
+        style={aspectRatio !== "video" ? { aspectRatio } : undefined}
+        onClick={() => setIsOpen(true)}
+      >
+        <img
+          src={src}
+          alt={alt}
+          className="w-full h-full object-cover object-center transition-transform duration-300 group-hover:scale-[1.02]"
+        />
+        {/* 悬停提示 */}
+        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+          <span className="text-white/0 group-hover:text-white/90 transition-colors text-sm font-medium">
+            🔍 点击放大
+          </span>
+        </div>
+      </div>
+
+      {/* Lightbox 弹窗 */}
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/90 cursor-pointer p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setIsOpen(false)}
+          >
+            <motion.img
+              src={src}
+              alt={alt}
+              className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.8, opacity: 0 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            />
+            {/* 关闭按钮 */}
+            <button
+              className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white text-2xl transition-colors"
+              onClick={() => setIsOpen(false)}
+            >
+              ×
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
+  );
+}
+
+// 脚本调试演示 - 带 macOS 窗口装饰的截图
 function ScriptDebugDemo() {
   return (
     <div className="relative w-full max-w-lg aspect-[4/3] flex items-center justify-center">
-      {/* 斜向的 macOS 风格窗口 */}
+      {/* macOS 风格窗口 */}
       <motion.div
         className="relative"
-        initial={{ opacity: 0, y: 30, rotateY: -15, rotateX: 5 }}
-        whileInView={{ opacity: 1, y: 0, rotateY: -8, rotateX: 3 }}
+        initial={{ opacity: 0, y: 30, scale: 0.95 }}
+        whileInView={{ opacity: 1, y: 0, scale: 1 }}
         viewport={{ once: true }}
-        transition={{ duration: 0.8, ease: "easeOut" }}
-        style={{ transformStyle: "preserve-3d", perspective: "1000px" }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
       >
         {/* 窗口阴影 */}
         <div className="absolute -inset-4 bg-gradient-to-br from-rose-500/20 via-purple-500/20 to-indigo-500/20 rounded-3xl blur-2xl" />
@@ -366,26 +422,14 @@ function ScriptDebugDemo() {
             </div>
             {/* 标题 */}
             <div className="flex-1 text-center">
-              <span className="text-xs text-slate-400 font-medium">Vibe2D Engine — Debug Panel</span>
+              <span className="text-xs text-slate-400 font-medium">Miu2D Engine — Debug Panel</span>
             </div>
             {/* 占位 */}
             <div className="w-14" />
           </div>
 
-          {/* 截图内容 */}
-          <div className="relative aspect-video overflow-hidden">
-            <img
-              src="/screenshot/screenshot.png"
-              alt="Script Debug Screenshot"
-              className="w-full h-full object-cover object-center"
-            />
-            {/* 调试面板高亮效果 */}
-            <motion.div
-              className="absolute inset-0 bg-gradient-to-t from-rose-500/10 via-transparent to-transparent"
-              animate={{ opacity: [0.3, 0.6, 0.3] }}
-              transition={{ duration: 3, repeat: Number.POSITIVE_INFINITY }}
-            />
-          </div>
+          {/* 截图内容 - 点击放大 */}
+          <ClickToZoomImage src="/screenshot/screenshot.png" alt="Script Debug Screenshot" />
         </div>
 
         {/* 装饰性光点 */}
@@ -396,6 +440,59 @@ function ScriptDebugDemo() {
         />
         <motion.div
           className="absolute -bottom-3 -left-3 w-3 h-3 rounded-full bg-purple-400"
+          animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0.8, 0.5] }}
+          transition={{ duration: 2.5, repeat: Number.POSITIVE_INFINITY, delay: 0.5 }}
+        />
+      </motion.div>
+    </div>
+  );
+}
+
+// 性能统计与预加载演示 - 展示实时性能监控和资源预加载
+function PerformancePreloadDemo() {
+  return (
+    <div className="relative w-full max-w-lg aspect-[4/3] flex items-center justify-center">
+      {/* macOS 风格窗口 */}
+      <motion.div
+        className="relative"
+        initial={{ opacity: 0, y: 30, scale: 0.95 }}
+        whileInView={{ opacity: 1, y: 0, scale: 1 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
+      >
+        {/* 窗口阴影 */}
+        <div className="absolute -inset-4 bg-gradient-to-br from-amber-500/20 via-orange-500/20 to-red-500/20 rounded-3xl blur-2xl" />
+
+        {/* macOS 窗口 */}
+        <div className="relative bg-slate-800 rounded-xl shadow-2xl border border-slate-700 overflow-hidden w-[340px] sm:w-[420px]">
+          {/* macOS 标题栏 */}
+          <div className="bg-slate-900/90 px-4 py-3 flex items-center gap-3 border-b border-slate-700">
+            {/* 红绿灯按钮 */}
+            <div className="flex gap-2">
+              <div className="w-3 h-3 rounded-full bg-red-500 shadow-inner" />
+              <div className="w-3 h-3 rounded-full bg-yellow-500 shadow-inner" />
+              <div className="w-3 h-3 rounded-full bg-green-500 shadow-inner" />
+            </div>
+            {/* 标题 */}
+            <div className="flex-1 text-center">
+              <span className="text-xs text-slate-400 font-medium">Miu2D Engine — Performance Monitor</span>
+            </div>
+            {/* 占位 */}
+            <div className="w-14" />
+          </div>
+
+          {/* 截图内容 - 点击放大 */}
+          <ClickToZoomImage src="/screenshot/performance-preload.png" alt="Performance & Preload Screenshot" aspectRatio="2924/1412" />
+        </div>
+
+        {/* 装饰性光点 */}
+        <motion.div
+          className="absolute -top-2 -left-2 w-4 h-4 rounded-full bg-amber-400"
+          animate={{ scale: [1, 1.3, 1], opacity: [0.6, 1, 0.6] }}
+          transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY }}
+        />
+        <motion.div
+          className="absolute -bottom-3 -right-3 w-3 h-3 rounded-full bg-orange-400"
           animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0.8, 0.5] }}
           transition={{ duration: 2.5, repeat: Number.POSITIVE_INFINITY, delay: 0.5 }}
         />
@@ -596,6 +693,24 @@ export function Highlights() {
             gradient="from-cyan-500 to-blue-600"
             demo={<ScriptEngineDemo />}
             delay={0.2}
+          />
+        </div>
+
+        {/* 性能统计与预加载 大卡片 */}
+        <div className="mb-20">
+          <LargeHighlight
+            icon={<BoltIcon className="w-8 h-8" />}
+            title={t("highlights.performance.title")}
+            description={t("highlights.performance.desc")}
+            gradient="from-amber-500 to-orange-600"
+            demo={<PerformancePreloadDemo />}
+            stats={[
+              { label: t("highlights.performance.stat1Label"), value: "60" },
+              { label: t("highlights.performance.stat2Label"), value: "<5MB" },
+              { label: t("highlights.performance.stat3Label"), value: "100%" },
+            ]}
+            reversed
+            delay={0.3}
           />
         </div>
 

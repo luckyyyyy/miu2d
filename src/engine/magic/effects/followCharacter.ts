@@ -5,9 +5,13 @@
  * - 1: 加生命 (清心咒)
  * - 2: 加体力
  * - 3,6: 持续 BUFF (金钟罩等)
- * - 4,5: 隐身
+ * - 4: 隐身（攻击时消失）
+ * - 5: 隐身（攻击时显现）
  * - 7: 变身
  * - 8: 解除异常状态
+ * - 9: 替换飞行INI (FlyIniChangeBy)
+ *
+ * C# Reference: MagicManager.AddFollowCharacterMagicSprite
  */
 
 import { logger } from "@/engine/core/logger";
@@ -68,32 +72,61 @@ export function createFollowCharacterEffect(): MagicEffect {
           break;
 
         // 隐身（攻击时消失）
+        // C#: user.InvisibleByMagicTime = effectAmount; user.IsVisibleWhenAttack = false;
         case MagicSpecialKind.InvisibleHide:
           if (caster.type === "player") {
-            // TODO: caster.player.setInvisible(true, true);
-            logger.log(`[FollowCharacter] InvisibleHide not implemented`);
+            caster.player.invisibleByMagicTime = effectAmount;
+            caster.player.isVisibleWhenAttack = false;
+            logger.log(`[FollowCharacter] InvisibleHide: duration=${effectAmount}ms, visibleWhenAttack=false`);
+          } else if (caster.type === "npc") {
+            caster.npc.invisibleByMagicTime = effectAmount;
+            caster.npc.isVisibleWhenAttack = false;
           }
           break;
 
-        // 隐身（攻击时可见）
+        // 隐身（攻击时显现）
+        // C#: user.InvisibleByMagicTime = effectAmount; user.IsVisibleWhenAttack = true;
         case MagicSpecialKind.InvisibleShow:
           if (caster.type === "player") {
-            // TODO: caster.player.setInvisible(true, false);
-            logger.log(`[FollowCharacter] InvisibleShow not implemented`);
+            caster.player.invisibleByMagicTime = effectAmount;
+            caster.player.isVisibleWhenAttack = true;
+            logger.log(`[FollowCharacter] InvisibleShow: duration=${effectAmount}ms, visibleWhenAttack=true`);
+          } else if (caster.type === "npc") {
+            caster.npc.invisibleByMagicTime = effectAmount;
+            caster.npc.isVisibleWhenAttack = true;
           }
           break;
 
         // 变身
+        // C#: user.ChangeCharacterBy(sprite);
         case MagicSpecialKind.ChangeCharacter:
-          // TODO: 实现变身逻辑
-          logger.log(`[FollowCharacter] Transform not implemented`);
+          if (caster.type === "player") {
+            caster.player.changeCharacterBy(sprite);
+            logger.log(`[FollowCharacter] ChangeCharacter: effect=${magic.effect}`);
+          } else if (caster.type === "npc") {
+            caster.npc.changeCharacterBy(sprite);
+          }
           break;
 
         // 解除异常状态
+        // C#: user.RemoveAbnormalState();
         case MagicSpecialKind.RemoveAbnormal:
           if (caster.type === "player") {
-            // TODO: caster.player.clearAbnormalStates();
-            logger.log(`[FollowCharacter] RemoveAbnormal not implemented`);
+            caster.player.removeAbnormalState();
+            logger.log(`[FollowCharacter] RemoveAbnormalState`);
+          } else if (caster.type === "npc") {
+            caster.npc.removeAbnormalState();
+          }
+          break;
+
+        // 改变飞行INI
+        // C#: user.FlyIniChangeBy(sprite);
+        case MagicSpecialKind.ChangeFlyIni:
+          if (caster.type === "player") {
+            caster.player.flyIniChangeBy(sprite);
+            logger.log(`[FollowCharacter] FlyIniChangeBy`);
+          } else if (caster.type === "npc") {
+            caster.npc.flyIniChangeBy(sprite);
           }
           break;
 
@@ -122,14 +155,23 @@ export function createFollowCharacterEffect(): MagicEffect {
       }
 
       // 移除隐身
+      // C#: InvisibleByMagicTime 会在 Character.Update 中自动减少，到 0 时自动恢复可见
+      // 这里不需要额外处理，因为 invisibleByMagicTime 会自然到期
       if (
         magic.specialKind === MagicSpecialKind.InvisibleHide ||
         magic.specialKind === MagicSpecialKind.InvisibleShow
       ) {
-        if (caster.type === "player") {
-          // TODO: caster.player.setInvisible(false, false);
-          logger.log(`[FollowCharacter] Remove invisible not implemented`);
-        }
+        // 隐身效果由 StatusEffectsManager.update 自动处理
+        // invisibleByMagicTime 到 0 时自动恢复可见
+        logger.log(`[FollowCharacter] Invisible effect ended naturally`);
+      }
+
+      // 移除变身效果
+      // C#: _changeCharacterByMagicSpriteTime 会在 Character.Update 中自动减少
+      if (magic.specialKind === MagicSpecialKind.ChangeCharacter) {
+        // 变身效果由 StatusEffectsManager.update 自动处理
+        // changeCharacterByMagicSpriteTime 到 0 时自动恢复
+        logger.log(`[FollowCharacter] ChangeCharacter effect ended naturally`);
       }
     },
   };

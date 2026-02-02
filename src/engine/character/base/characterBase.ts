@@ -36,7 +36,7 @@ import {
 } from "../iniParser";
 import { loadCharacterAsf } from "../resFile";
 import { LevelManager } from "../level/levelManager";
-import type { Npc } from "../npc";
+import type { Npc } from "../../npc";
 
 /** 加载中状态标记（-1），确保后续 state 变更时触发纹理更新 */
 export const LOADING_STATE = -1 as CharacterState;
@@ -114,7 +114,8 @@ export abstract class CharacterBase extends Sprite implements CharacterInstance 
   // =============================================
   protected _state: CharacterState = CharacterState.Stand;
   path: Vector2[] = [];
-  protected _isVisible: boolean = true;
+  /** C# Reference: public bool IsHide { get; set; } - Script controlled hide */
+  protected _isHide: boolean = false;
   isDeath: boolean = false;
   isDeathInvoked: boolean = false;
   isSitted: boolean = false;
@@ -332,6 +333,9 @@ export abstract class CharacterBase extends Sprite implements CharacterInstance 
 
   // === Run To Target ===
   protected _isRunToTarget: boolean = false;
+
+  // === Step Move (C#: _isInStepMove for WalkToDirection) ===
+  protected _isInStepMove: boolean = false;
 
   // =============================================
   // === Getters/Setters ===
@@ -565,21 +569,48 @@ export abstract class CharacterBase extends Sprite implements CharacterInstance 
     return this.getConfig();
   }
 
+  /**
+   * 魔法隐身状态
+   * C# Reference: public bool IsVisible { get { return InvisibleByMagicTime <= 0; } }
+   * 注意：这只检查魔法隐身，不包括脚本控制的 IsHide
+   */
   get isVisible(): boolean {
-    return this._isVisible;
+    // C#: return InvisibleByMagicTime <= 0;
+    return this.invisibleByMagicTime <= 0;
   }
 
-  set isVisible(value: boolean) {
-    this._isVisible = value;
-    this.isShow = value;
-  }
-
+  /**
+   * 脚本控制的隐藏状态
+   * C# Reference: public bool IsHide { get; set; }
+   */
   get isHide(): boolean {
-    return !this._isVisible;
+    return this._isHide;
   }
 
   set isHide(value: boolean) {
-    this.isVisible = !value;
+    this._isHide = value;
+  }
+
+  /**
+   * 是否应该绘制
+   * C# Reference: public bool IsDraw { get { return !(IsDeath || IsHide || IsInTransport || !IsVisible || !IsVisibleByVariable || ...); } }
+   */
+  get isDraw(): boolean {
+    return !(this.isDeath || this._isHide || !this.isVisible || !this.isVisibleByVariable);
+  }
+
+  /**
+   * 根据脚本变量判断是否可见
+   * C# Reference: public bool IsVisibleByVariable = true;
+   * C# Update: IsVisibleByVariable = ScriptExecuter.GetVariablesValue("$" + VisibleVariableName) >= VisibleVariableValue;
+   */
+  get isVisibleByVariable(): boolean {
+    if (!this.visibleVariableName) {
+      return true;
+    }
+    // C#: IsVisibleByVariable = ScriptExecuter.GetVariablesValue("$" + VisibleVariableName) >= VisibleVariableValue;
+    const value = this.engine.getScriptVariable(this.visibleVariableName);
+    return value >= this.visibleVariableValue;
   }
 
   get isInFighting(): boolean {

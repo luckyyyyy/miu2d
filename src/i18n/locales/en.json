@@ -6,7 +6,7 @@
     "github": "GitHub"
   },
   "hero": {
-    "title": "Vibe2D Engine",
+    "title": "Miu2D Engine",
     "slogan": "AI-Powered, Build Your Web RPG in 5 Minutes, Share with the World",
     "mobileBadge": "📱 Native Mobile Support · Play Anywhere",
     "cta": {
@@ -126,6 +126,13 @@
     "trap": {
       "title": "Map Traps & Obstacles",
       "desc": "Create dynamic map interactions with trap triggers, obstacle zones, hidden passages, and scripted events that respond to player actions."
+    },
+    "performance": {
+      "title": "Performance Stats & Smart Preloading",
+      "desc": "Built-in real-time performance monitor showing FPS, memory usage, and render time. Smart preloading system loads resources ahead based on player position for smooth gameplay.",
+      "stat1Label": "FPS",
+      "stat2Label": "Initial Load",
+      "stat3Label": "Visualized"
     }
   },
   "asyncLoading": {

@@ -296,7 +296,7 @@ function WebVersionDemo() {
             <div className="flex-1 mx-2">
               <div className="bg-white dark:bg-slate-800 rounded-md px-3 py-1 text-[10px] text-slate-500 dark:text-slate-400 flex items-center gap-1">
                 <span>🔒</span>
-                <span>vibe2d.vercel.app</span>
+                <span>Miu2D.vercel.app</span>
               </div>
             </div>
           </div>

@@ -9,12 +9,13 @@
  * Web 版使用 JSON 格式存储在 localStorage 中
  */
 
+import { logger } from "../core/logger";
+
 // ============= 存档数据结构 =============
 
 /**
  * 游戏状态数据 (对应 Game.ini [State] section)
  */
-import { logger } from "../core/logger";
 export interface GameStateData {
   /** 地图名称 */
   map: string;
@@ -401,7 +402,8 @@ export interface NpcSaveItem {
   hurtPlayerRadius: number;
 
   // === NPC 特有 ===
-  isVisible: boolean;
+  /** C#: IsHide - script-controlled hiding (IsVisible is computed, not saved) */
+  isHide: boolean;
   isAIDisabled: boolean;
 
   // === 巡逻路径 ===
@@ -462,6 +464,27 @@ export interface ObjSaveData {
 }
 
 /**
+ * 多角色存档数据
+ * 保存非当前角色的数据（在 PlayerChange 切换过的角色）
+ */
+export interface CharacterSaveSlot {
+  /** 玩家数据 */
+  player: PlayerSaveData | null;
+  /** 武功列表 */
+  magics: MagicItemData[] | null;
+  /** 修炼武功索引 */
+  xiuLianIndex: number;
+  /** 替换武功列表 */
+  replaceMagicLists?: unknown;
+  /** 物品列表 */
+  goods: GoodsItemData[] | null;
+  /** 装备列表 */
+  equips: (GoodsItemData | null)[] | null;
+  /** 备忘录 */
+  memo: string[] | null;
+}
+
+/**
  * 完整存档数据
  */
 export interface SaveData {
@@ -503,6 +526,12 @@ export interface SaveData {
   objData: ObjSaveData;
   /** 截图预览 (base64) */
   screenshot?: string;
+  /**
+   * 多角色存档数据 (可选，兼容旧存档)
+   * key: playerIndex (0-4)
+   * 保存在 PlayerChange 切换过程中保存到内存的角色数据
+   */
+  otherCharacters?: Record<number, CharacterSaveSlot>;
 }
 
 /**

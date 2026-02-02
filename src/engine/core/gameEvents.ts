@@ -184,6 +184,7 @@ export const GameEvents = {
   UI_MULTI_SELECTION_CHANGE: "ui:multi_selection:change", // 多选框状态变化
   UI_HUD_UPDATE: "ui:hud:update",
   UI_MESSAGE_CHANGE: "ui:message:change",
+  UI_PLAYER_CHANGE: "ui:player:change", // 玩家状态变化（PlayerChange 切换角色后触发）
   UI_GOODS_CHANGE: "ui:goods:change",
   UI_MAGIC_CHANGE: "ui:magic:change",
   UI_MENU_OPEN: "ui:menu:open",

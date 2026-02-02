@@ -86,7 +86,7 @@ export function getDirection(from: Vector2, to: Vector2): Direction {
 /**
  * Get 8-direction index from a direction vector
  * Direction 0 points South (down), clockwise
- * @deprecated Use getDirectionIndex(direction, 8) instead
+ * C# Reference: Utils.GetDirectionIndex()
  */
 export function getDirectionFromVector(direction: Vector2): Direction {
   return getDirectionIndex(direction, 8) as Direction;

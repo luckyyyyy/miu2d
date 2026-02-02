@@ -6,6 +6,7 @@
  */
 
 import type { AudioManager } from "../../audio";
+import { Character } from "../../character/character";
 import { getEngineContext } from "../../core/engineContext";
 import { logger } from "../../core/logger";
 import type { Vector2 } from "../../core/types";
@@ -20,7 +21,8 @@ import {
   getEffect,
 } from "../effects";
 import { getCachedMagic, getMagicAtLevel, loadMagic } from "../magicLoader";
-import type { MagicSprite, WorkItem } from "../magicSprite";
+import { MagicSprite } from "../magicSprite";
+import type { WorkItem } from "../magicSprite";
 import type { MagicData } from "../types";
 import { MAGIC_BASE_SPEED, MagicMoveKind } from "../types";
 import type {
@@ -312,6 +314,12 @@ export class SpriteUpdater {
         y: sprite.positionInWorld.y + sprite.direction.y * moveDistance,
       };
       sprite.movedDistance += moveDistance;
+    }
+
+    // ============= RangeEffect 周期触发 =============
+    // C# Reference: MagicSprite.Update() - if (BelongMagic.RangeEffect > 0 && (_paths == null || _paths.Count <= 2))
+    if (sprite.magic.rangeEffect > 0) {
+      this.updateRangeEffect(sprite, deltaMs);
     }
 
     // 检查动画播放结束
@@ -765,5 +773,215 @@ export class SpriteUpdater {
       destination: character.positionInWorld,
       userId,
     });
+  }
+
+  /**
+   * 更新范围效果
+   * C# Reference: MagicSprite.Update() - RangeEffect 部分
+   *
+   * 周期性在范围内对友军施加增益或对敌人施加减益
+   */
+  private updateRangeEffect(sprite: MagicSprite, deltaMs: number): void {
+    const magic = sprite.magic;
+
+    // 累计时间
+    sprite.rangeElapsedMilliseconds += deltaMs;
+
+    // 检查是否达到触发间隔
+    if (sprite.rangeElapsedMilliseconds < magic.rangeTimeInterval) {
+      return;
+    }
+
+    // 重置计时器
+    sprite.rangeElapsedMilliseconds -= magic.rangeTimeInterval;
+
+    const belongCharacter = this.charHelper.getBelongCharacter(sprite.belongCharacterId);
+    if (!belongCharacter) return;
+
+    const tilePos = sprite.tilePosition;
+    const radius = magic.rangeRadius;
+
+    // ============= 友军增益效果 =============
+    // C# Reference: RangeAddLife, RangeAddMana, RangeAddThew, RangeSpeedUp
+    if (
+      magic.rangeAddLife > 0 ||
+      magic.rangeAddMana > 0 ||
+      magic.rangeAddThew > 0 ||
+      magic.rangeSpeedUp > 0
+    ) {
+      const friends = this.findFriendsInTileDistance(belongCharacter, tilePos, radius);
+      for (const friend of friends) {
+        if (magic.rangeAddLife > 0) {
+          friend.addLife(magic.rangeAddLife);
+        }
+        if (magic.rangeAddMana > 0) {
+          friend.addMana(magic.rangeAddMana);
+        }
+        if (magic.rangeAddThew > 0) {
+          friend.addThew(magic.rangeAddThew);
+        }
+        // C#: if (BelongMagic.RangeSpeedUp > 0 && target.SppedUpByMagicSprite == null)
+        if (magic.rangeSpeedUp > 0 && friend.speedUpByMagicSprite === null) {
+          friend.speedUpByMagicSprite = sprite;
+        }
+      }
+    }
+
+    // ============= 敌人减益效果 =============
+    // C# Reference: RangeFreeze, RangePoison, RangePetrify, RangeDamage
+    if (
+      magic.rangeFreeze > 0 ||
+      magic.rangePoison > 0 ||
+      magic.rangePetrify > 0 ||
+      magic.rangeDamage > 0
+    ) {
+      let enemies: Character[];
+      if (magic.attackAll > 0) {
+        // C#: targets = NpcManager.FindFightersInTileDistance(TilePosition, BelongMagic.RangeRadius);
+        enemies = this.findFightersInTileDistance(tilePos, radius);
+      } else {
+        // C#: targets = NpcManager.FindEnemiesInTileDistance(BelongCharacter, TilePosition, RangeRadius);
+        enemies = this.findEnemiesInTileDistance(belongCharacter, tilePos, radius);
+      }
+
+      for (const enemy of enemies) {
+        // C#: if (BelongMagic.RangeFreeze > 0)
+        //       target.SetFrozenSeconds(BelongMagic.RangeFreeze/1000.0f, BelongMagic.NoSpecialKindEffect == 0);
+        if (magic.rangeFreeze > 0) {
+          enemy.setFrozenSeconds(magic.rangeFreeze / 1000, magic.noSpecialKindEffect === 0);
+        }
+
+        // C#: if (BelongMagic.RangePoison > 0) { ... }
+        if (magic.rangePoison > 0) {
+          enemy.setPoisonSeconds(magic.rangePoison / 1000, magic.noSpecialKindEffect === 0);
+          if (belongCharacter.isPlayer || belongCharacter.isPartner) {
+            enemy.poisonByCharacterName = belongCharacter.name;
+          }
+        }
+
+        // C#: if (BelongMagic.RangePetrify > 0)
+        //       target.SetPetrifySeconds(BelongMagic.RangePetrify/1000.0f, BelongMagic.NoSpecialKindEffect == 0);
+        if (magic.rangePetrify > 0) {
+          enemy.setPetrifySeconds(magic.rangePetrify / 1000, magic.noSpecialKindEffect === 0);
+        }
+
+        // C#: if (BelongMagic.RangeDamage > 0) { CharacterHited(...); AddDestroySprite(...); }
+        if (magic.rangeDamage > 0) {
+          // 使用简化的伤害计算
+          const damage = Math.max(magic.rangeDamage - enemy.realDefend, MagicSprite.MinimalDamage);
+          enemy.takeDamage(damage, belongCharacter);
+
+          // 播放特效
+          this.callbacks.triggerExplodeMagic(sprite, enemy.pixelPosition);
+        }
+      }
+    }
+  }
+
+  /**
+   * 查找范围内的友军
+   * C# Reference: NpcManager.FindFriendInTileDistance
+   */
+  private findFriendsInTileDistance(
+    finder: Character,
+    centerTile: Vector2,
+    tileDistance: number
+  ): Character[] {
+    const friends: Character[] = [];
+    const ctx = getEngineContext();
+    if (!ctx) return friends;
+
+    // 检查玩家
+    if (!finder.isOpposite(this.player)) {
+      const dist = this.getViewTileDistance(centerTile, this.player.tilePosition);
+      if (dist <= tileDistance) {
+        friends.push(this.player);
+      }
+    }
+
+    // 检查 NPC
+    for (const [, npc] of ctx.npcManager.getAllNpcs()) {
+      const npcChar = npc as Character;
+      if (!finder.isOpposite(npcChar)) {
+        const dist = this.getViewTileDistance(centerTile, npcChar.tilePosition);
+        if (dist <= tileDistance) {
+          friends.push(npcChar);
+        }
+      }
+    }
+
+    return friends;
+  }
+
+  /**
+   * 查找范围内的敌人
+   * C# Reference: NpcManager.FindEnemiesInTileDistance
+   */
+  private findEnemiesInTileDistance(
+    finder: Character,
+    centerTile: Vector2,
+    tileDistance: number
+  ): Character[] {
+    const enemies: Character[] = [];
+    const ctx = getEngineContext();
+    if (!ctx) return enemies;
+
+    // 检查玩家
+    if (finder.isOpposite(this.player)) {
+      const dist = this.getViewTileDistance(centerTile, this.player.tilePosition);
+      if (dist <= tileDistance) {
+        enemies.push(this.player);
+      }
+    }
+
+    // 检查 NPC
+    for (const [, npc] of ctx.npcManager.getAllNpcs()) {
+      const npcChar = npc as Character;
+      if (finder.isOpposite(npcChar)) {
+        const dist = this.getViewTileDistance(centerTile, npcChar.tilePosition);
+        if (dist <= tileDistance) {
+          enemies.push(npcChar);
+        }
+      }
+    }
+
+    return enemies;
+  }
+
+  /**
+   * 查找范围内的所有战斗单位
+   * C# Reference: NpcManager.FindFightersInTileDistance
+   */
+  private findFightersInTileDistance(centerTile: Vector2, tileDistance: number): Character[] {
+    const fighters: Character[] = [];
+    const ctx = getEngineContext();
+    if (!ctx) return fighters;
+
+    // 检查玩家
+    const playerDist = this.getViewTileDistance(centerTile, this.player.tilePosition);
+    if (playerDist <= tileDistance) {
+      fighters.push(this.player);
+    }
+
+    // 检查 NPC
+    for (const [, npc] of ctx.npcManager.getAllNpcs()) {
+      const npcChar = npc as Character;
+      if (npcChar.isFighter) {
+        const dist = this.getViewTileDistance(centerTile, npcChar.tilePosition);
+        if (dist <= tileDistance) {
+          fighters.push(npcChar);
+        }
+      }
+    }
+
+    return fighters;
+  }
+
+  /**
+   * 计算视野格子距离（最大值）
+   * C# Reference: Utils.GetViewTileDistance
+   */
+  private getViewTileDistance(tile1: Vector2, tile2: Vector2): number {
+    return Math.max(Math.abs(tile1.x - tile2.x), Math.abs(tile1.y - tile2.y));
   }
 }

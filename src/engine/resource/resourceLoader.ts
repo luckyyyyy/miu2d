@@ -22,7 +22,7 @@
  * - 其他: 解析后缓存的资源类型
  */
 import { logger } from "../core/logger";
-import { getResourceRoot, ensureResourcePath } from "@/config/resourcePaths";
+import { getResourceRoot, ensureResourcePath, getResourceUrl } from "@/config/resourcePaths";
 export type ResourceType =
   | "text"
   | "binary"
@@ -197,6 +197,13 @@ class ResourceLoaderImpl {
     this.stats.totalRequests++;
     this.stats.byType.text.requests++;
 
+    // 检查失败缓存（避免重复请求不存在的资源）
+    if (this.failedPaths.has(normalizedPath)) {
+      this.stats.cacheHits++;
+      this.stats.byType.text.hits++;
+      return null;
+    }
+
     // 检查缓存
     const cached = this.textCache.get(normalizedPath);
     if (cached) {
@@ -235,9 +242,12 @@ class ResourceLoaderImpl {
     this.stats.byType.text.loads++;
 
     try {
-      const response = await fetch(path);
+      const url = getResourceUrl(path);
+      const response = await fetch(url);
       if (!response.ok) {
         this.stats.failures++;
+        // 缓存失败的路径，避免重复请求
+        this.failedPaths.add(path);
         return null;
       }
 
@@ -252,6 +262,8 @@ class ResourceLoaderImpl {
       ) {
         // Not a real resource, Vite returned HTML fallback
         this.stats.failures++;
+        // 缓存失败的路径，避免重复请求
+        this.failedPaths.add(path);
         return null;
       }
 
@@ -273,6 +285,8 @@ class ResourceLoaderImpl {
     } catch (error) {
       logger.warn(`[ResourceLoader] Failed to load text: ${path}`, error);
       this.stats.failures++;
+      // 缓存失败的路径，避免重复请求
+      this.failedPaths.add(path);
       return null;
     }
   }
@@ -284,6 +298,13 @@ class ResourceLoaderImpl {
     const normalizedPath = this.normalizePath(path);
     this.stats.totalRequests++;
     this.stats.byType.binary.requests++;
+
+    // 检查失败缓存（避免重复请求不存在的资源）
+    if (this.failedPaths.has(normalizedPath)) {
+      this.stats.cacheHits++;
+      this.stats.byType.binary.hits++;
+      return null;
+    }
 
     // 检查缓存
     const cached = this.binaryCache.get(normalizedPath);
@@ -323,12 +344,15 @@ class ResourceLoaderImpl {
     this.stats.byType.binary.loads++;
 
     try {
-      const response = await fetch(path);
+      const url = getResourceUrl(path);
+      const response = await fetch(url);
       if (!response.ok) {
         logger.warn(
           `[ResourceLoader] Failed to load binary: ${path} (HTTP ${response.status} ${response.statusText})`
         );
         this.stats.failures++;
+        // 缓存失败的路径，避免重复请求
+        this.failedPaths.add(path);
         return null;
       }
 
@@ -350,6 +374,8 @@ class ResourceLoaderImpl {
     } catch (error) {
       logger.warn(`[ResourceLoader] Failed to load binary: ${path}`, error);
       this.stats.failures++;
+      // 缓存失败的路径，避免重复请求
+      this.failedPaths.add(path);
       return null;
     }
   }
@@ -407,7 +433,8 @@ class ResourceLoaderImpl {
     this.stats.byType.audio.loads++;
 
     try {
-      const response = await fetch(path);
+      const url = getResourceUrl(path);
+      const response = await fetch(url);
       if (!response.ok) {
         this.stats.failures++;
         // 缓存失败的路径，避免重复请求
@@ -508,9 +535,12 @@ class ResourceLoaderImpl {
     typeStats.loads++;
 
     try {
-      const response = await fetch(path);
+      const url = getResourceUrl(path);
+      const response = await fetch(url);
       if (!response.ok) {
         this.stats.failures++;
+        // 缓存失败的路径，避免重复请求
+        this.failedPaths.add(cacheKey);
         return null;
       }
 
@@ -524,6 +554,8 @@ class ResourceLoaderImpl {
         trimmed.startsWith("<HTML")
       ) {
         this.stats.failures++;
+        // 缓存失败的路径，避免重复请求
+        this.failedPaths.add(cacheKey);
         return null;
       }
 
@@ -551,6 +583,8 @@ class ResourceLoaderImpl {
     } catch (error) {
       logger.warn(`[ResourceLoader] Failed to load/parse INI: ${path}`, error);
       this.stats.failures++;
+      // 缓存失败的路径，避免重复请求
+      this.failedPaths.add(cacheKey);
       return null;
     }
   }
@@ -573,6 +607,13 @@ class ResourceLoaderImpl {
     const typeStats = this.stats.byType[resourceType] || this.stats.byType.other;
     this.stats.totalRequests++;
     typeStats.requests++;
+
+    // 检查失败缓存（避免重复请求不存在的资源）
+    if (this.failedPaths.has(cacheKey)) {
+      this.stats.cacheHits++;
+      typeStats.hits++;
+      return null;
+    }
 
     // 检查解析结果缓存
     const cached = this.iniCache.get(cacheKey);
@@ -621,9 +662,12 @@ class ResourceLoaderImpl {
     typeStats.loads++;
 
     try {
-      const response = await fetch(path);
+      const url = getResourceUrl(path);
+      const response = await fetch(url);
       if (!response.ok) {
         this.stats.failures++;
+        // 缓存失败的路径，避免重复请求
+        this.failedPaths.add(cacheKey);
         return null;
       }
 
@@ -633,6 +677,8 @@ class ResourceLoaderImpl {
       const parsed = parser(buffer);
       if (!parsed) {
         this.stats.failures++;
+        // 解析失败也缓存，避免重复尝试解析无效文件
+        this.failedPaths.add(cacheKey);
         return null;
       }
 
@@ -653,6 +699,8 @@ class ResourceLoaderImpl {
     } catch (error) {
       logger.warn(`[ResourceLoader] Failed to load/parse binary: ${path}`, error);
       this.stats.failures++;
+      // 缓存失败的路径，避免重复请求
+      this.failedPaths.add(cacheKey);
       return null;
     }
   }

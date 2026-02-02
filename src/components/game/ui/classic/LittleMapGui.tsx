@@ -18,7 +18,7 @@
  * - Ratio = 4 (scale factor between world coordinates and minimap)
  * - Uses pre-rendered PNG images from map/littlemap/ directory
  */
-import { ResourcePath } from "@/config";
+import { ResourcePath, getResourceUrl } from "@/config";
 import type React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { logger } from "@/engine/core/logger";
@@ -170,7 +170,7 @@ export const LittleMapGui: React.FC<LittleMapGuiProps> = ({
       setLittleMapImage(null);
       setLittleMapSize({ width: 0, height: 0 });
     };
-    img.src = pngPath;
+    img.src = getResourceUrl(pngPath);
 
     return () => {
       img.onload = null;

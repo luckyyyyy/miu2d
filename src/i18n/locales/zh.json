@@ -6,7 +6,7 @@
     "github": "GitHub"
   },
   "hero": {
-    "title": "Vibe2D Engine",
+    "title": "Miu2D Engine",
     "slogan": "AI 驱动，5 分钟制作你的 Web RPG 游戏，分享全世界",
     "mobileBadge": "📱 原生移动端支持 · 随时随地畅玩",
     "cta": {
@@ -126,6 +126,13 @@
     "trap": {
       "title": "地图陷阱与障碍",
       "desc": "创建动态地图交互，包括陷阱触发、障碍区域、隐藏通道和响应玩家操作的脚本事件。"
+    },
+    "performance": {
+      "title": "性能统计与智能预加载",
+      "desc": "内置实时性能监控面板，显示 FPS、内存占用、渲染耗时等关键指标。智能预加载系统根据玩家位置提前加载所需资源，确保流畅游戏体验。",
+      "stat1Label": "FPS",
+      "stat2Label": "首屏加载",
+      "stat3Label": "可视化"
     }
   },
   "asyncLoading": {

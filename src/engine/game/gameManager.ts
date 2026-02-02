@@ -31,9 +31,10 @@
  */
 
 import type { AudioManager } from "../audio";
-import type { Npc } from "../character/npc";
-import { NpcManager } from "../character/npcManager";
+import type { Npc } from "../npc";
+import { NpcManager } from "../npc";
 import type { EventEmitter } from "../core/eventEmitter";
+import { getEngineContext } from "../core/engineContext";
 import { GameEvents } from "../core/gameEvents";
 import { logger } from "../core/logger";
 import type { JxqyMapData } from "../core/mapTypes";
@@ -178,6 +179,9 @@ export class GameManager {
     // AudioManager, ObjManager, MagicManager 现在由各组件通过 IEngineContext 获取
     this.guiManager = new GuiManager(this.events, this.memoListManager);
 
+    // Initialize camera controller (before MagicManager, as it needs vibrateScreen callback)
+    this.cameraController = new CameraController();
+
     // Initialize interaction manager
     this.interactionManager = new InteractionManager();
 
@@ -217,6 +221,7 @@ export class GameManager {
       screenEffects: this.screenEffects,
       audioManager: this.audioManager,
       magicListManager: this.magicListManager,
+      vibrateScreen: (intensity) => this.cameraController.vibrateScreen(intensity),
     });
 
     // MagicManager 现在由 NPCs 通过 IEngineContext 获取
@@ -244,9 +249,6 @@ export class GameManager {
     });
     // DebugManager 通过 IEngineContext 获取 Player, NpcManager, GuiManager, ObjManager
 
-    // Initialize camera controller
-    this.cameraController = new CameraController();
-
     // Create script context
     const scriptContext = this.createScriptContext();
     this.scriptExecutor = new ScriptExecutor(scriptContext);
@@ -263,7 +265,7 @@ export class GameManager {
       this.scriptExecutor,
       () => this.variables,
       () => ({ mapName: this.currentMapName, mapPath: this.currentMapPath }),
-      () => MapBase.GetIgnoredTrapIndices()
+      () => MapBase.Instance.getIgnoredTrapIndices()
     );
 
     // Initialize loader (after scriptExecutor is created)
@@ -482,6 +484,18 @@ export class GameManager {
       setMapTime: (time) => this.setMapTime(time),
       // Trap save
       saveMapTrap: () => this.saveMapTrap(),
+      // Change player (multi-protagonist system)
+      // C# Reference: Loader.ChangePlayer(index)
+      changePlayer: async (index) => {
+        // 1. 保存当前玩家数据到内存
+        this.loader.saveCurrentPlayerToMemory();
+        // 2. 切换角色索引（不通知 UI，因为数据还未加载）
+        this.player.setPlayerIndexSilent(index);
+        // 3. 从内存加载新角色数据
+        await this.loader.loadPlayerDataFromMemory();
+        // 4. 数据加载完成后通知 UI 更新
+        getEngineContext().notifyPlayerStateChanged();
+      },
       // Debug hooks
       onScriptStart: this.debugManager.onScriptStart,
       onLineExecuted: this.debugManager.onLineExecuted,
@@ -533,7 +547,7 @@ export class GameManager {
    * Check and trigger trap at tile
    */
   private checkTrap(tile: Vector2): void {
-    MapBase.CheckTrap(
+    MapBase.Instance.checkTrap(
       tile,
       this.mapData,
       this.currentMapName,
@@ -559,7 +573,7 @@ export class GameManager {
     this.currentMapName = mapFileName.replace(/\.map$/i, "");
 
     // Clear NPCs and Objs
-    this.npcManager.clearAllNpcs();
+    this.npcManager.clearAllNpc();
     this.objManager.clearAll();
     // NOTE: 不要在换地图时清除脚本缓存！
     // 脚本缓存是全局的，应该在游戏运行期间保持
@@ -587,7 +601,7 @@ export class GameManager {
         // 无需手动设置 setMapObstacleChecker
 
         // Debug trap info
-        MapBase.DebugLogTraps(this.mapData, this.currentMapName);
+        MapBase.Instance.debugLogTraps(this.mapData, this.currentMapName);
       }
     }
     logger.debug(`[GameManager] Map loaded successfully`);
@@ -625,7 +639,12 @@ export class GameManager {
   async loadGameFromSlot(index: number): Promise<boolean> {
     // 清空脚本历史和当前脚本状态
     this.debugManager.clearScriptHistory();
-    return await this.loader.loadGameFromSlot(index);
+    const result = await this.loader.loadGameFromSlot(index);
+    if (result) {
+      // 通知 UI 刷新（通过 IEngineContext 统一接口）
+      getEngineContext().notifyPlayerStateChanged();
+    }
+    return result;
   }
 
   /**
@@ -672,8 +691,8 @@ export class GameManager {
   setCurrentMapName(mapName: string): void {
     this.currentMapName = mapName;
     // 更新 MapBase 的地图信息
-    MapBase.MapFileNameWithoutExtension = mapName;
-    MapBase.MapFileName = `${mapName}.map`;
+    MapBase.Instance.mapFileNameWithoutExtension = mapName;
+    MapBase.Instance.mapFileName = `${mapName}.map`;
   }
 
   /**
@@ -763,11 +782,11 @@ export class GameManager {
 
     // Reset trap flag when trap script finishes
     if (
-      MapBase.IsInRunMapTrap &&
+      MapBase.Instance.isInRunMapTrap &&
       !this.scriptExecutor.isRunning() &&
       !this.scriptExecutor.isWaitingForInput()
     ) {
-      MapBase.IsInRunMapTrap = false;
+      MapBase.Instance.isInRunMapTrap = false;
     }
 
     // Update screen effects
@@ -807,7 +826,7 @@ export class GameManager {
     this.inputHandler.update();
 
     // Check for trap at player's position
-    if (!MapBase.IsInRunMapTrap) {
+    if (!MapBase.Instance.isInRunMapTrap) {
       const playerTile = this.player.tilePosition;
       this.checkTrap(playerTile);
     }
@@ -945,7 +964,7 @@ export class GameManager {
    * IEngineContext 接口实现
    */
   hasTrapScript(tile: Vector2): boolean {
-    return MapBase.HasTrapScriptWithMapData(tile, this.mapData, this.currentMapName);
+    return MapBase.Instance.hasTrapScriptWithMapData(tile, this.mapData, this.currentMapName);
   }
 
   isPausedState(): boolean {
@@ -1078,16 +1097,65 @@ export class GameManager {
   // ============= Map Trap =============
 
   /**
+   * 获取当前存档槽位对应的 localStorage 键名
+   * 使用存档槽位区分不同存档的运行时数据，避免跨存档污染
+   */
+  private getRuntimeTrapsKey(): string {
+    const slot = this.loader.currentSaveSlot;
+    return slot === null ? "jxqy_traps_runtime_new" : `jxqy_traps_runtime_slot${slot}`;
+  }
+
+  /**
    * Save map trap configuration
    * C#: MapBase.SaveTrap(@"save\game\Traps.ini")
+   *
+   * 这个命令允许脚本在游戏过程中立即保存陷阱配置，而不需要完整存档。
+   * 例如：玩家触发陷阱后，脚本修改陷阱配置并调用 SaveMapTrap，
+   * 即使玩家不存档就退出，下次读档时陷阱配置也会保留。
+   *
+   * Web 版实现：保存到 localStorage（按存档槽位区分），在 loadGame 时会读取并合并。
    */
   saveMapTrap(): void {
-    const trapData = MapBase.CollectTrapDataForSave();
+    const trapData = MapBase.Instance.collectTrapDataForSave();
     try {
-      localStorage.setItem("jxqy_traps", JSON.stringify(trapData));
-      logger.log(`[GameManager] SaveMapTrap: saved ${trapData.ignoreList.length} ignored indices`);
+      const key = this.getRuntimeTrapsKey();
+      localStorage.setItem(key, JSON.stringify(trapData));
+      logger.log(`[GameManager] SaveMapTrap: saved ${trapData.ignoreList.length} ignored indices, ${Object.keys(trapData.mapTraps || {}).length} map configs to ${key}`);
     } catch (e) {
       logger.error("[GameManager] SaveMapTrap failed:", e);
+    }
+  }
+
+  /**
+   * 清除运行时保存的陷阱数据
+   * 在加载存档或开始新游戏时调用
+   */
+  clearRuntimeTraps(): void {
+    const key = this.getRuntimeTrapsKey();
+    localStorage.removeItem(key);
+    logger.debug(`[GameManager] Runtime traps cleared for ${key}`);
+  }
+
+  /**
+   * 加载运行时保存的陷阱数据（如果存在）
+   * 在 loadGame 完成后调用，合并脚本通过 SaveMapTrap 保存的数据
+   */
+  loadRuntimeTraps(): boolean {
+    try {
+      const key = this.getRuntimeTrapsKey();
+      const json = localStorage.getItem(key);
+      if (!json) return false;
+
+      const trapData = JSON.parse(json) as { ignoreList: number[]; mapTraps?: Record<string, Record<number, string>> };
+
+      // 使用 MapBase 的方法恢复陷阱数据
+      MapBase.Instance.loadTrapsFromSave(trapData.mapTraps, trapData.ignoreList || []);
+
+      logger.log(`[GameManager] LoadRuntimeTraps: merged runtime trap data from ${key}`);
+      return true;
+    } catch (e) {
+      logger.warn("[GameManager] LoadRuntimeTraps failed:", e);
+      return false;
     }
   }
 

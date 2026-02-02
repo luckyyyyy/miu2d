@@ -769,7 +769,8 @@ export class ObjManager {
   /**
    * Save object state to file
    * C#: ObjManager.Save - saves current objects to save file
-   * Note: Web version uses localStorage/IndexedDB instead of file system
+   * Note: Web version uses JSON-based save system in Loader.collectObjData()
+   * This method is a stub for C# compatibility, actual save is done through Loader
    */
   async saveObj(fileName?: string): Promise<void> {
     const saveFileName = fileName || this.fileName;
@@ -777,8 +778,8 @@ export class ObjManager {
       logger.warn("[ObjManager] SaveObj: No file name provided and no file loaded");
       return;
     }
-    logger.log(`[ObjManager] SaveObj: ${saveFileName} (stub - save system integration needed)`);
-    // TODO: Integrate with save system when implemented
-    // For now, this is a stub that logs the action
+    // Web 版使用 JSON 存档系统，不需要单独保存 obj 文件
+    // 实际保存通过 Loader.collectObjData() 完成
+    logger.log(`[ObjManager] SaveObj: ${saveFileName} (Web版使用 JSON 存档)`);
   }
 }

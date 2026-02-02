@@ -139,7 +139,17 @@ export class StatusEffectsManager {
   // ========== Clear Methods ==========
 
   /**
-   * 解除异常状态
+   * 清除冰冻、中毒、石化状态
+   * C# Reference: Character.ToNormalState
+   */
+  toNormalState(): void {
+    this.clearFrozen();
+    this.clearPoison();
+    this.clearPetrifaction();
+  }
+
+  /**
+   * 解除所有异常状态
    * C# Reference: Character.RemoveAbnormalState
    */
   removeAbnormalState(): void {

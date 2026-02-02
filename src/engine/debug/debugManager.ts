@@ -16,7 +16,7 @@
  */
 
 import { ALL_PLAYER_MAGICS } from "@/constants/gameData";
-import type { NpcManager } from "../character/npcManager";
+import type { NpcManager } from "../npc";
 import { getEngineContext } from "../core/engineContext";
 import { logger } from "../core/logger";
 import type { GameVariables } from "../core/types";

@@ -362,6 +362,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ engine }) => {
   return (
     <div
       className="absolute inset-0 z-[10000] bg-black flex items-center justify-center"
+      style={{ pointerEvents: "auto" }}
       onMouseMove={handleMouseMoveContainer}
     >
       <video

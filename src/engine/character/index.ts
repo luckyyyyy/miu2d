@@ -4,8 +4,8 @@
  * Class-based architecture (based on C# JxqyHD):
  * - Sprite (base class) - sprite/sprite.ts
  * - Character (abstract, extends Sprite) - characterBase.ts
- * - Npc (extends Character) - npc.ts
- * - Player (extends Character) - player.ts
+ * - Npc (extends Character) - ../npc/npc.ts
+ * - Player (extends Character) - ../player/player.ts
  *
  * Character classes handle their own sprite loading and drawing:
  * - character.loadSpritesFromNpcIni() - load sprites from NpcRes INI
@@ -24,15 +24,9 @@ export {
   loadCharacterConfig,
   parseCharacterIni,
 } from "./iniParser";
-export {
-  // Global AI control functions (C#: Npc.DisableAI/EnableAI)
-  disableGlobalAI,
-  enableGlobalAI,
-  isGlobalAIDisabled,
-  Npc,
-} from "./npc";
-// Managers
-export { NpcManager } from "./npcManager";
+// Re-export Npc and NpcManager from npc module for backward compatibility
+export { Npc } from "../npc";
+export { NpcManager } from "../npc";
 // ResFile utilities - INI file loading (based on C# ResFile.cs)
 export {
   // Image loading (ASF/MPC with optional SHD shadow)

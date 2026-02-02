@@ -135,6 +135,7 @@ interface DialogUIProps {
 }
 
 // Color mapping for <color=X> tags
+// "Default" is special - will be handled to restore default color
 const colorMap: Record<string, string> = {
   red: "#ff4444",
   Red: "#ff4444",
@@ -161,6 +162,7 @@ const colorMap: Record<string, string> = {
 };
 
 // Parse text with <color=X> tags into segments
+// Supports <color=Red>red text<color=Default> format
 interface TextSegment {
   text: string;
   color: string;
@@ -180,7 +182,13 @@ function parseColoredText(text: string, defaultColor: string = "#000000"): TextS
         segments.push({ text: segment, color: currentColor });
       }
     }
-    currentColor = colorMap[match[1]] || match[1] || defaultColor;
+    // Handle <color=Default> to restore default color
+    const colorName = match[1];
+    if (colorName === "Default" || colorName === "default" || colorName === "DEFAULT") {
+      currentColor = defaultColor;
+    } else {
+      currentColor = colorMap[colorName] || colorName || defaultColor;
+    }
     lastIndex = match.index + match[0].length;
     match = regex.exec(text);
   }

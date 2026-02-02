@@ -9,7 +9,7 @@
  */
 
 import type { AudioManager } from "../../audio";
-import type { NpcManager } from "../../character/npcManager";
+import type { NpcManager } from "../../npc";
 import { logger } from "../../core/logger";
 import type { Vector2 } from "../../core/types";
 import { pixelToTile } from "../../utils";
@@ -58,6 +58,7 @@ export class MagicManager {
   private screenEffects: ScreenEffects;
   private audioManager: AudioManager;
   private magicListManager: MagicListManager;
+  private vibrateScreenCallback?: (intensity: number) => void;
 
   // 精灵销毁事件监听器
   private onSpriteDestroyedListeners: ((sprite: MagicSprite) => void)[] = [];
@@ -69,6 +70,7 @@ export class MagicManager {
     this.screenEffects = deps.screenEffects;
     this.audioManager = deps.audioManager;
     this.magicListManager = deps.magicListManager;
+    this.vibrateScreenCallback = deps.vibrateScreen;
 
     // 初始化共享状态
     this.state = {
@@ -435,6 +437,15 @@ export class MagicManager {
     const effect3 = getEffectAmount(sprite.magic, belongCharacter, "effect3");
 
     sprite.initializeEffects(effect, effect2, effect3);
+
+    // 初始化跳跃传递参数
+    // C# Reference: MagicSprite.Init() - _canLeap = BelongMagic.LeapTimes > 0
+    sprite.initializeLeap();
+
+    // 初始化范围效果计时器
+    // C# Reference: MagicSprite.Init() - _rangeElapsedMilliseconds = belongMagic.RangeTimeInerval;
+    // 初始值为间隔时间，这样第一次触发会立即发生
+    sprite.rangeElapsedMilliseconds = sprite.magic.rangeTimeInterval;
   }
 
   private createCastContext(
@@ -454,6 +465,7 @@ export class MagicManager {
       guiManager: this.guiManager,
       screenEffects: this.screenEffects,
       audioManager: this.audioManager,
+      vibrateScreen: this.vibrateScreenCallback,
     };
   }
 
@@ -487,8 +499,11 @@ export class MagicManager {
   }
 
   private vibrateScreen(intensity: number): void {
-    logger.log(`[MagicManager] Screen vibrate intensity ${intensity}`);
-    // TODO: this.screenEffects.shake(intensity);
+    if (this.vibrateScreenCallback) {
+      this.vibrateScreenCallback(intensity);
+    } else {
+      logger.log(`[MagicManager] Screen vibrate intensity ${intensity} (no callback)`);
+    }
   }
 
   private playSound(soundPath: string): void {

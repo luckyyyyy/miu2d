@@ -21,13 +21,14 @@ import {
 } from "../core/types";
 import { distance, getDirectionFromVector, pixelToTile, tileToPixel } from "../utils";
 import type { AsfData } from "../sprite/asf";
-import { createEmptySpriteSet, getAsfForState, type SpriteSet } from "../sprite/sprite";
+import { createEmptySpriteSet, getAsfForState, loadSpriteSet, type SpriteSet } from "../sprite/sprite";
 import { applyConfigToCharacter } from "./iniParser";
 import { loadCharacterAsf, loadCharacterImage, loadNpcRes } from "./resFile";
 import type { MagicData } from "../magic/types";
 import type { MagicSprite } from "../magic/magicSprite";
 import { Obj } from "../obj/obj";
 import { CharacterCombat, MAX_NON_FIGHT_SECONDS } from "./base";
+import { getNeighbors } from "../utils/neighbors";
 import { FlyIniManager } from "./modules";
 
 export {
@@ -46,7 +47,8 @@ export abstract class Character extends CharacterCombat {
   // =============================================
 
   override update(deltaTime: number): void {
-    if (!this._isVisible) return;
+    // C#: if(!IsVisibleByVariable) { return; }
+    if (!this.isVisibleByVariable) return;
 
     const deltaMs = deltaTime * 1000;
 
@@ -170,18 +172,18 @@ export abstract class Character extends CharacterCombat {
    */
   private handlePoisonExp(poisonKillerName: string): void {
     const player = this.engine.player;
-    const calcExp = (killer: Character, dead: Character): number => {
+    const calcExp = (killer: { level: number }, dead: { level: number; expBonus?: number }): number => {
       const exp = killer.level * dead.level + (dead.expBonus ?? 0);
       return exp < 4 ? 4 : exp;
     };
     if (player && poisonKillerName === player.name) {
-      const exp = calcExp(player as Character, this);
+      const exp = calcExp(player, this);
       player.addExp(exp, true);
     } else {
       const npcManager = this.engine.npcManager;
       const poisoner = npcManager?.getNpc(poisonKillerName);
       if (poisoner && poisoner.canLevelUp > 0) {
-        const exp = calcExp(poisoner as Character, this);
+        const exp = calcExp(poisoner, this);
         poisoner.addExp(exp);
       }
     }
@@ -278,22 +280,8 @@ export abstract class Character extends CharacterCombat {
     if (len === 0) return tilePos;
 
     const dirIndex = getDirectionFromVector(direction);
-    const offsets = [
-      { x: 0, y: -1 },
-      { x: 1, y: -1 },
-      { x: 1, y: 0 },
-      { x: 1, y: 1 },
-      { x: 0, y: 1 },
-      { x: -1, y: 1 },
-      { x: -1, y: 0 },
-      { x: -1, y: -1 },
-    ];
-
-    const offset = offsets[dirIndex] || { x: 0, y: 0 };
-    return {
-      x: tilePos.x + offset.x,
-      y: tilePos.y + offset.y,
-    };
+    // 使用 getNeighbors 来正确处理等角瓦片的奇偶行偏移
+    return getNeighbors(tilePos)[dirIndex];
   }
 
   protected correctPositionToCurrentTile(): void {
@@ -313,7 +301,7 @@ export abstract class Character extends CharacterCombat {
       }
       this.playStateSound(this._state);
       this.useMagicWhenAttack();
-      this.onAttacking();
+      this.onAttacking(this._attackDestination);
       this.standingImmediately();
     }
   }
@@ -366,7 +354,11 @@ export abstract class Character extends CharacterCombat {
   // === Action Hooks ===
   // =============================================
 
-  protected onAttacking(): void {
+  /**
+   * C# Reference: Character.OnAttacking(Vector2 attackDestinationPixelPosition)
+   * Override this to do something when attacking (use magic FlyIni FlyIni2)
+   */
+  protected onAttacking(attackDestinationPixelPosition: Vector2 | null): void {
     // Override in subclass
   }
 
@@ -483,7 +475,6 @@ export abstract class Character extends CharacterCombat {
   async loadSprites(basePath: string, baseFileName: string): Promise<void> {
     this._basePath = basePath;
     this._baseFileName = baseFileName;
-    const { loadSpriteSet } = await import("../sprite/sprite");
     this._spriteSet = await loadSpriteSet(basePath, baseFileName);
     this._updateTextureForState(this._state);
   }
@@ -715,7 +706,8 @@ export abstract class Character extends CharacterCombat {
     offX: number = 0,
     offY: number = 0
   ): void {
-    if (!this._isVisible) return;
+    // C#: if (IsDraw) { ... }
+    if (!this.isDraw) return;
 
     let drawColor = "white";
     if (this.frozenSeconds > 0 && this.isFrozenVisualEffect) {
@@ -737,7 +729,7 @@ export abstract class Character extends CharacterCombat {
     cameraY: number,
     highlightColor: string = "rgba(255, 255, 0, 0.6)"
   ): void {
-    if (!this._isVisible) return;
+    if (!this.isDraw) return;
     super.drawHighlight(ctx, cameraX, cameraY, highlightColor);
   }
 
@@ -773,6 +765,29 @@ export abstract class Character extends CharacterCombat {
   // === Status Effect Methods ===
   // =============================================
 
+  /**
+   * 结束控制角色（空实现，由 Player 覆写）
+   * C# Reference: Player.EndControlCharacter - 只有 Player 有实际实现
+   */
+  endControlCharacter(): void {
+    // 空实现 - Character 基类不需要此功能
+    // Player 类会覆写此方法
+  }
+
+  /**
+   * 清除冰冻、中毒、石化状态
+   * C# Reference: Character.ToNormalState
+   */
+  toNormalState(): void {
+    this.clearFrozen();
+    this.clearPoison();
+    this.clearPetrifaction();
+  }
+
+  /**
+   * 解除所有异常状态
+   * C# Reference: Character.RemoveAbnormalState
+   */
   removeAbnormalState(): void {
     this.clearFrozen();
     this.clearPoison();

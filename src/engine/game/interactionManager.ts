@@ -14,7 +14,7 @@
  * 4. Obj interaction state (has been interacted with)
  */
 
-import type { Npc } from "../character/npc";
+import type { Npc } from "../npc";
 import type { Obj } from "../obj/obj";
 import type { AsfFrame } from "../sprite/asf";
 

@@ -50,6 +50,8 @@ export const LAYER_INDEX = {
 /**
  * 地图基类 - 单例模式
  * 对应 C# MapBase + JxqyMap
+ *
+ * 所有状态都在实例上，通过 MapBase.Instance 或 engine.map 访问
  */
 export class MapBase {
   /** 单例实例 (对应 C# MapBase.Instance) */
@@ -59,28 +61,28 @@ export class MapBase {
   private _mapData: JxqyMapData | null = null;
   private _isOk: boolean = false;
 
-  // ============= 静态文件信息 (对应 C# 的静态字段) =============
-  private static _mapFileNameWithoutExtension: string = "";
-  private static _mapFileName: string = "";
-  private static _mapTime: number = 0;
+  // ============= 文件信息（实例字段） =============
+  private _mapFileNameWithoutExtension: string = "";
+  private _mapFileName: string = "";
+  private _mapTime: number = 0;
 
-  // ============= 图层控制 (对应 C# _isLayerDraw) =============
+  // ============= 图层控制（实例字段） =============
   /** layer1, layer2, layer3, trap, obstacle */
-  private static _isLayerDraw: boolean[] = [true, true, true, false, false];
+  private _isLayerDraw: boolean[] = [true, true, true, false, false];
 
-  // ============= 视图范围 (对应 C# 的静态字段) =============
-  private static _viewBeginX: number = 0;
-  private static _viewBeginY: number = 0;
-  private static _viewWidth: number = 800;
-  private static _viewHeight: number = 600;
+  // ============= 视图范围（实例字段） =============
+  private _viewBeginX: number = 0;
+  private _viewBeginY: number = 0;
+  private _viewWidth: number = 800;
+  private _viewHeight: number = 600;
 
-  // ============= 陷阱系统 (对应 C# 的静态字段) =============
+  // ============= 陷阱系统（实例字段） =============
   /** 地图陷阱配置 mapName -> (trapIndex -> scriptFile) */
-  private static _traps: Map<string, Map<number, string>> = new Map();
+  private _traps: Map<string, Map<number, string>> = new Map();
   /** 已忽略（已触发）的陷阱索引 */
-  private static _ignoredTrapsIndex: Set<number> = new Set();
+  private _ignoredTrapsIndex: Set<number> = new Set();
   /** 是否正在执行陷阱脚本 */
-  private static _isInRunMapTrap: boolean = false;
+  private _isInRunMapTrap: boolean = false;
 
   // ============= 构造函数（私有，使用单例） =============
   private constructor() {}
@@ -113,83 +115,83 @@ export class MapBase {
     return this._mapData;
   }
 
-  static get MapFileNameWithoutExtension(): string {
-    return MapBase._mapFileNameWithoutExtension;
+  get mapFileNameWithoutExtension(): string {
+    return this._mapFileNameWithoutExtension;
   }
 
-  static set MapFileNameWithoutExtension(value: string) {
-    MapBase._mapFileNameWithoutExtension = value;
+  set mapFileNameWithoutExtension(value: string) {
+    this._mapFileNameWithoutExtension = value;
   }
 
-  static get MapFileName(): string {
-    return MapBase._mapFileName;
+  get mapFileName(): string {
+    return this._mapFileName;
   }
 
-  static set MapFileName(value: string) {
-    MapBase._mapFileName = value;
+  set mapFileName(value: string) {
+    this._mapFileName = value;
   }
 
-  static get MapTime(): number {
-    return MapBase._mapTime;
+  get mapTime(): number {
+    return this._mapTime;
   }
 
-  static set MapTime(value: number) {
-    MapBase._mapTime = value;
+  set mapTime(value: number) {
+    this._mapTime = value;
   }
 
   // 视图属性
-  static get ViewWidth(): number {
-    return MapBase._viewWidth;
+  get viewWidth(): number {
+    return this._viewWidth;
   }
 
-  static set ViewWidth(value: number) {
-    MapBase._viewWidth = value < 0 ? 0 : value;
+  set viewWidth(value: number) {
+    this._viewWidth = value < 0 ? 0 : value;
   }
 
-  static get ViewHeight(): number {
-    return MapBase._viewHeight;
+  get viewHeight(): number {
+    return this._viewHeight;
   }
 
-  static set ViewHeight(value: number) {
-    MapBase._viewHeight = value < 0 ? 0 : value;
+  set viewHeight(value: number) {
+    this._viewHeight = value < 0 ? 0 : value;
   }
 
   get viewBeginX(): number {
-    return MapBase._viewBeginX;
+    return this._viewBeginX;
   }
 
   set viewBeginX(value: number) {
     if (!this._mapData) {
-      MapBase._viewBeginX = 0;
+      this._viewBeginX = 0;
       return;
     }
     if (value <= 0) {
-      MapBase._viewBeginX = 0;
-    } else if (value + MapBase._viewWidth > this._mapData.mapPixelWidth) {
-      MapBase._viewBeginX = this._mapData.mapPixelWidth - MapBase._viewWidth;
+      this._viewBeginX = 0;
+    } else if (value + this._viewWidth > this._mapData.mapPixelWidth) {
+      this._viewBeginX = this._mapData.mapPixelWidth - this._viewWidth;
     } else {
-      MapBase._viewBeginX = value;
+      this._viewBeginX = value;
     }
-    if (MapBase._viewBeginX < 0) MapBase._viewBeginX = 0;
+    if (this._viewBeginX < 0) this._viewBeginX = 0;
   }
 
   get viewBeginY(): number {
-    return MapBase._viewBeginY;
+    return this._viewBeginY;
   }
 
   set viewBeginY(value: number) {
     if (!this._mapData) {
-      MapBase._viewBeginY = 0;
+      this._viewBeginY = 0;
       return;
     }
     if (value <= 0) {
-      MapBase._viewBeginY = 0;
-    } else if (value + MapBase._viewHeight > this._mapData.mapPixelHeight) {
-      MapBase._viewBeginY = this._mapData.mapPixelHeight - MapBase._viewHeight;
+      this._viewBeginY = 0;
+    } else if (value + this._viewHeight > this._mapData.mapPixelHeight) {
+      this._viewBeginY = this._mapData.mapPixelHeight - this._viewHeight;
     } else {
-      MapBase._viewBeginY = value;
+      this._viewBeginY = value;
     }
-    if (MapBase._viewBeginY < 0) MapBase._viewBeginY = 0;
+    if (this._viewBeginY < 0) this._viewBeginY = 0;
   }
 
   get mapPixelWidth(): number {
@@ -264,8 +266,8 @@ export class MapBase {
    */
   getEndTileInView(): Vector2 {
     return MapBase.GetEndTileInViewStatic(
-      this.viewBeginX + MapBase._viewWidth,
-      this.viewBeginY + MapBase._viewHeight,
+      this.viewBeginX + this._viewWidth,
+      this.viewBeginY + this._viewHeight,
       this.mapColumnCounts,
       this.mapRowCounts
     );
@@ -530,10 +532,10 @@ export class MapBase {
    * 从文件加载陷阱配置
    * 对应 C# MapBase.LoadTrap
    */
-  static async LoadTrap(filePath: string): Promise<void> {
+  async loadTrap(filePath: string): Promise<void> {
     // 清空已忽略的陷阱列表
-    MapBase._ignoredTrapsIndex.clear();
-    MapBase._traps.clear();
+    this._ignoredTrapsIndex.clear();
+    this._traps.clear();
 
     try {
       const content = await resourceLoader.loadText(filePath);
@@ -557,11 +559,11 @@ export class MapBase {
         }
 
         if (trapMapping.size > 0) {
-          MapBase._traps.set(mapName, trapMapping);
+          this._traps.set(mapName, trapMapping);
         }
       }
 
-      logger.log(`[MapBase] Loaded trap config for ${MapBase._traps.size} maps`);
+      logger.log(`[MapBase] Loaded trap config for ${this._traps.size} maps`);
     } catch (error) {
       logger.error(`[MapBase] Error loading traps:`, error);
     }
@@ -571,9 +573,9 @@ export class MapBase {
    * 保存陷阱配置到文件（在 Web 环境中主要用于调试）
    * 对应 C# MapBase.SaveTrap
    */
-  static SaveTrap(): string {
+  saveTrap(): string {
     let output = "";
-    for (const [mapName, traps] of MapBase._traps) {
+    for (const [mapName, traps] of this._traps) {
       output += `[${mapName}]\n`;
       for (const [trapIndex, scriptFile] of traps) {
         output += `${trapIndex}=${scriptFile}\n`;
@@ -587,10 +589,10 @@ export class MapBase {
    * 加载已忽略的陷阱索引列表
    * 对应 C# MapBase.LoadTrapIndexIgnoreList
    */
-  static LoadTrapIndexIgnoreList(data: number[]): void {
-    MapBase._ignoredTrapsIndex.clear();
+  loadTrapIndexIgnoreList(data: number[]): void {
+    this._ignoredTrapsIndex.clear();
     for (const index of data) {
-      MapBase._ignoredTrapsIndex.add(index);
+      this._ignoredTrapsIndex.add(index);
     }
     logger.log(`[MapBase] Loaded ${data.length} ignored trap indices`);
   }
@@ -599,16 +601,16 @@ export class MapBase {
    * 获取已忽略的陷阱索引列表（用于存档）
    * 对应 C# MapBase.SaveTrapIndexIgnoreList
    */
-  static GetIgnoredTrapIndices(): number[] {
-    return Array.from(MapBase._ignoredTrapsIndex);
+  getIgnoredTrapIndices(): number[] {
+    return Array.from(this._ignoredTrapsIndex);
   }
 
   /**
    * 清空已忽略的陷阱列表（加载新地图时调用）
    * 对应 C# JxqyMap.LoadMapFromBuffer 中的 _ingnoredTrapsIndex.Clear()
    */
-  static ClearIgnoredTraps(): void {
-    MapBase._ignoredTrapsIndex.clear();
+  clearIgnoredTraps(): void {
+    this._ignoredTrapsIndex.clear();
   }
 
   /**
@@ -616,19 +618,19 @@ export class MapBase {
    * 对应 C# MapBase.SetMapTrap
    */
   setMapTrap(index: number, trapFileName: string, mapName?: string): void {
-    const targetMap = mapName || MapBase._mapFileNameWithoutExtension;
+    const targetMap = mapName || this._mapFileNameWithoutExtension;
     if (!targetMap) return;
 
     // 如果是当前地图，从忽略列表中移除以重新激活
-    if (!mapName || mapName === MapBase._mapFileNameWithoutExtension) {
-      MapBase._ignoredTrapsIndex.delete(index);
+    if (!mapName || mapName === this._mapFileNameWithoutExtension) {
+      this._ignoredTrapsIndex.delete(index);
     }
 
     // 获取或创建陷阱映射
-    if (!MapBase._traps.has(targetMap)) {
-      MapBase._traps.set(targetMap, new Map());
+    if (!this._traps.has(targetMap)) {
+      this._traps.set(targetMap, new Map());
     }
-    const traps = MapBase._traps.get(targetMap)!;
+    const traps = this._traps.get(targetMap)!;
 
     if (!trapFileName) {
       // 移除陷阱
@@ -645,10 +647,10 @@ export class MapBase {
    * @returns 脚本文件名，如果没有返回 null
    */
   getMapTrapFileName(index: number, mapName?: string): string | null {
-    const targetMap = mapName || MapBase._mapFileNameWithoutExtension;
+    const targetMap = mapName || this._mapFileNameWithoutExtension;
     if (!targetMap) return null;
 
-    const traps = MapBase._traps.get(targetMap);
+    const traps = this._traps.get(targetMap);
     if (traps?.has(index)) {
       const scriptFile = traps.get(index)!;
       // 空字符串表示陷阱被移除
@@ -669,7 +671,7 @@ export class MapBase {
     if (!trapFileName) return false;
 
     // 检查是否在忽略列表中
-    if (MapBase._ignoredTrapsIndex.has(index)) {
+    if (this._ignoredTrapsIndex.has(index)) {
       return false;
     }
 
@@ -695,7 +697,7 @@ export class MapBase {
     if (trapIndex === 0) return false;
 
     // 检查是否在忽略列表中
-    if (MapBase._ignoredTrapsIndex.has(trapIndex)) {
+    if (this._ignoredTrapsIndex.has(trapIndex)) {
       return false;
     }
 
@@ -710,10 +712,10 @@ export class MapBase {
     onTrapTriggered?.();
 
     // C#: _isInRunMapTrap = true
-    MapBase._isInRunMapTrap = true;
+    this._isInRunMapTrap = true;
 
     // 添加到忽略列表（不会再次触发）
-    MapBase._ignoredTrapsIndex.add(trapIndex);
+    this._ignoredTrapsIndex.add(trapIndex);
 
     // 运行脚本
     const basePath = getScriptBasePath();
@@ -727,31 +729,31 @@ export class MapBase {
   /**
    * 检查是否正在执行陷阱脚本
    */
-  static get IsInRunMapTrap(): boolean {
-    return MapBase._isInRunMapTrap;
+  get isInRunMapTrap(): boolean {
+    return this._isInRunMapTrap;
   }
 
   /**
    * 设置陷阱执行状态
    */
-  static set IsInRunMapTrap(value: boolean) {
-    MapBase._isInRunMapTrap = value;
+  set isInRunMapTrap(value: boolean) {
+    this._isInRunMapTrap = value;
   }
 
   /**
    * 清空所有陷阱状态（新游戏时调用）
    */
-  static ClearAll(): void {
-    MapBase._ignoredTrapsIndex.clear();
-    MapBase._traps.clear();
-    MapBase._isInRunMapTrap = false;
+  clearAll(): void {
+    this._ignoredTrapsIndex.clear();
+    this._traps.clear();
+    this._isInRunMapTrap = false;
   }
 
   /**
    * 检查瓦片是否有陷阱脚本（带外部 mapData 参数）
    * 用于 GameManager 等没有直接访问 MapBase.Instance 的场景
    */
-  static HasTrapScriptWithMapData(
+  hasTrapScriptWithMapData(
     tile: Vector2,
     mapData: JxqyMapData | null,
     currentMapName: string
@@ -765,12 +767,12 @@ export class MapBase {
       const trapIndex = tileInfo.trapIndex;
 
       // 检查是否在忽略列表中
-      if (MapBase._ignoredTrapsIndex.has(trapIndex)) {
+      if (this._ignoredTrapsIndex.has(trapIndex)) {
         return false;
       }
 
       // 检查是否有配置的脚本
-      const traps = MapBase._traps.get(currentMapName);
+      const traps = this._traps.get(currentMapName);
       if (traps?.has(trapIndex)) {
         const scriptFile = traps.get(trapIndex)!;
         return scriptFile !== "";
@@ -793,7 +795,7 @@ export class MapBase {
    * @param onTrapTriggered 陷阱触发时的回调
    * @returns 是否触发了陷阱
    */
-  static CheckTrap(
+  checkTrap(
     tile: Vector2,
     mapData: JxqyMapData | null,
     currentMapName: string,
@@ -808,7 +810,7 @@ export class MapBase {
     }
 
     // C#: Don't run trap if already in trap script execution
-    if (MapBase._isInRunMapTrap) {
+    if (this._isInRunMapTrap) {
       return false;
     }
 
@@ -824,12 +826,12 @@ export class MapBase {
       const trapIndex = tileInfo.trapIndex;
 
       // 检查是否在忽略列表中
-      if (MapBase._ignoredTrapsIndex.has(trapIndex)) {
+      if (this._ignoredTrapsIndex.has(trapIndex)) {
         return false;
       }
 
       // 获取陷阱脚本文件名
-      const traps = MapBase._traps.get(currentMapName);
+      const traps = this._traps.get(currentMapName);
       if (!traps?.has(trapIndex)) {
         return false;
       }
@@ -843,10 +845,10 @@ export class MapBase {
       );
 
       // 添加到忽略列表
-      MapBase._ignoredTrapsIndex.add(trapIndex);
+      this._ignoredTrapsIndex.add(trapIndex);
 
       // 设置陷阱执行标志
-      MapBase._isInRunMapTrap = true;
+      this._isInRunMapTrap = true;
 
       // C#: Globals.ThePlayer.StandingImmediately()
       onTrapTriggered?.();
@@ -866,7 +868,7 @@ export class MapBase {
   /**
    * 调试输出陷阱信息
    */
-  static DebugLogTraps(mapData: JxqyMapData | null, currentMapName: string): void {
+  debugLogTraps(mapData: JxqyMapData | null, currentMapName: string): void {
     if (!mapData) return;
 
     // 显示地图文件中的陷阱瓦片
@@ -881,7 +883,7 @@ export class MapBase {
     }
 
     // 显示此地图配置的陷阱脚本
-    const mapTraps = MapBase._traps.get(currentMapName);
+    const mapTraps = this._traps.get(currentMapName);
     if (mapTraps && mapTraps.size > 0) {
       logger.debug(`[MapBase] Trap scripts for "${currentMapName}": ${mapTraps.size} configured`);
     } else {
@@ -895,26 +897,26 @@ export class MapBase {
    * 设置图层是否绘制
    * 对应 C# MapBase.SetLayerDraw
    */
-  static SetLayerDraw(layer: number, isDraw: boolean): void {
+  setLayerDraw(layer: number, isDraw: boolean): void {
     if (layer < 0 || layer > MAX_LAYER - 1) return;
-    MapBase._isLayerDraw[layer] = isDraw;
+    this._isLayerDraw[layer] = isDraw;
   }
 
   /**
    * 检查图层是否绘制
    * 对应 C# MapBase.IsLayerDraw
    */
-  static IsLayerDraw(layer: number): boolean {
+  isLayerDraw(layer: number): boolean {
     if (layer < 0 || layer > MAX_LAYER - 1) return false;
-    return MapBase._isLayerDraw[layer];
+    return this._isLayerDraw[layer];
   }
 
   /**
    * 切换图层绘制状态
    * 对应 C# MapBase.SwitchLayerDraw
    */
-  static SwitchLayerDraw(layer: number): void {
-    MapBase.SetLayerDraw(layer, !MapBase.IsLayerDraw(layer));
+  switchLayerDraw(layer: number): void {
+    this.setLayerDraw(layer, !this.isLayerDraw(layer));
   }
 
   // ============= 地图加载/释放 =============
@@ -926,21 +928,18 @@ export class MapBase {
   setMapInfo(mapFileName: string): void {
     const pathParts = mapFileName.split("/");
     const fileName = pathParts[pathParts.length - 1];
-    MapBase._mapFileName = fileName;
-    MapBase._mapFileNameWithoutExtension = fileName.replace(/\.[^.]+$/, "");
-    logger.log(`[MapBase] Map info set: ${MapBase._mapFileNameWithoutExtension}`);
+    this._mapFileName = fileName;
+    this._mapFileNameWithoutExtension = fileName.replace(/\.[^.]+$/, "");
+    logger.log(`[MapBase] Map info set: ${this._mapFileNameWithoutExtension}`);
   }
 
   /**
    * 释放地图资源
    * 对应 C# MapBase.Free
    */
-  static Free(): void {
-    const instance = MapBase._instance;
-    if (instance) {
-      instance._mapData = null;
-      instance._isOk = false;
-    }
+  free(): void {
+    this._mapData = null;
+    this._isOk = false;
   }
 
   /**
@@ -965,27 +964,27 @@ export class MapBase {
   /**
    * 获取所有陷阱配置（用于存档）
    */
-  static GetAllTraps(): Map<string, Map<number, string>> {
-    return MapBase._traps;
+  getAllTraps(): Map<string, Map<number, string>> {
+    return this._traps;
   }
 
   /**
    * 设置所有陷阱配置（从存档恢复）
    */
-  static SetAllTraps(traps: Map<string, Map<number, string>>): void {
-    MapBase._traps = traps;
+  setAllTraps(traps: Map<string, Map<number, string>>): void {
+    this._traps = traps;
   }
 
   /**
    * 从存档数据恢复陷阱状态
    */
-  static LoadTrapsFromSave(
+  loadTrapsFromSave(
     mapTraps: Record<string, Record<number, string>> | undefined,
     ignoreList: number[]
   ): void {
     // 恢复陷阱配置
     if (mapTraps) {
-      MapBase._traps.clear();
+      this._traps.clear();
       for (const mapName in mapTraps) {
         const trapObj = mapTraps[mapName];
         const traps = new Map<number, string>();
@@ -997,16 +996,16 @@ export class MapBase {
           }
         }
         if (traps.size > 0) {
-          MapBase._traps.set(mapName, traps);
+          this._traps.set(mapName, traps);
         }
       }
-      logger.debug(`[MapBase] Restored trap config for ${MapBase._traps.size} maps`);
+      logger.debug(`[MapBase] Restored trap config for ${this._traps.size} maps`);
     }
 
     // 恢复已忽略的陷阱索引
-    MapBase._ignoredTrapsIndex.clear();
+    this._ignoredTrapsIndex.clear();
     for (const index of ignoreList) {
-      MapBase._ignoredTrapsIndex.add(index);
+      this._ignoredTrapsIndex.add(index);
     }
     logger.debug(`[MapBase] Restored ${ignoreList.length} ignored trap indices`);
   }
@@ -1014,12 +1013,12 @@ export class MapBase {
   /**
    * 收集陷阱数据用于存档
    */
-  static CollectTrapDataForSave(): {
+  collectTrapDataForSave(): {
     mapTraps: Record<string, Record<number, string>>;
     ignoreList: number[];
   } {
     const mapTraps: Record<string, Record<number, string>> = {};
-    for (const [mapName, traps] of MapBase._traps) {
+    for (const [mapName, traps] of this._traps) {
       const trapObj: Record<number, string> = {};
       for (const [trapIndex, scriptFile] of traps) {
         trapObj[trapIndex] = scriptFile;
@@ -1027,7 +1026,7 @@ export class MapBase {
       mapTraps[mapName] = trapObj;
     }
 
-    const ignoreList = Array.from(MapBase._ignoredTrapsIndex);
+    const ignoreList = Array.from(this._ignoredTrapsIndex);
 
     return { mapTraps, ignoreList };
   }

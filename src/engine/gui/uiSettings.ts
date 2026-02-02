@@ -220,7 +220,7 @@ export interface MemoGuiConfig {
     height: number;
     imageBtn: string;
   };
-  // TODO: scrollBar 用于滚动条显示，参考 C# MemoGui.cs
+  // NOTE: scrollBar 用于滚动条显示，参考 C# MemoGui.cs
   scrollBar: {
     left: number;
     top: number;
@@ -581,7 +581,7 @@ export function parseMemoGuiConfig(
       height: parseInt2(slider.Height, 190),
       imageBtn: normalizeImagePath(slider.Image_Btn || "asf/ui/option/slidebtn.asf"),
     },
-    // TODO: scrollBar 默认值，参考 C# MemoGui.cs 的滚动条位置
+    // NOTE: scrollBar 默认值，参考 C# MemoGui.cs 的滚动条位置
     scrollBar: {
       left: parseInt2(slider.Left, 295),
       top: parseInt2(slider.Top, 108),

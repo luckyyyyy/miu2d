@@ -2,13 +2,16 @@
  * UI components exports
  *
  * 支持两套 UI 风格切换:
- * - classic: ASF-based 经典复古风格（当前默认）
- * - modern: Web-based 现代风格（待实现）
+ * - classic: ASF-based 经典复古风格
+ * - modern: Web-based 现代毛玻璃风格
  */
 
 // ============= Classic UI (ASF-based) =============
-// 目前默认使用经典风格，直接从 classic 导出
 export * from "./classic";
 
 // ============= Modern UI (Web-based) =============
-// export * from "./modern"; // 待实现
+export * as ModernUI from "./modern";
+export { ModernGameUI } from "./modern";
+
+// ============= UI 主题类型 =============
+export type UITheme = "classic" | "modern";

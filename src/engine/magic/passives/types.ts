@@ -4,7 +4,7 @@
  * 处理装备到修炼栏的武功被动效果
  */
 
-import type { Npc } from "@/engine/character/npc";
+import type { Npc } from "@/engine/npc";
 import type { Vector2 } from "@/engine/core/types";
 import type { Player } from "@/engine/player/player";
 import type { MagicData, MagicItemInfo } from "../types";

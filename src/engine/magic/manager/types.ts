@@ -4,8 +4,8 @@
 
 import type { AudioManager } from "../../audio";
 import type { Character } from "../../character/character";
-import type { Npc } from "../../character/npc";
-import type { NpcManager } from "../../character/npcManager";
+import type { Npc } from "../../npc";
+import type { NpcManager } from "../../npc";
 import type { Vector2 } from "../../core/types";
 import type { ScreenEffects } from "../../effects";
 import type { GuiManager } from "../../gui/guiManager";
@@ -25,6 +25,8 @@ export interface MagicManagerDeps {
   screenEffects: ScreenEffects;
   audioManager: AudioManager;
   magicListManager: MagicListManager;
+  /** 震屏回调 C# Reference: Carmera.VibaratingScreen */
+  vibrateScreen?: (intensity: number) => void;
 }
 
 /**

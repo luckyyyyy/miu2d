@@ -14,7 +14,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import type { GameHandle } from "../components";
-import { DebugPanel, Game, GameCursorContainer, MobileControls, SaveLoadGui, SaveLoadPanel, SettingsPanel, TitleGui, TouchDragIndicator } from "../components";
+import { DebugPanel, Game, GameCursorContainer, MobileControls, SaveLoadGui, SaveLoadPanel, SettingsPanel, TitleGui, TouchDragIndicator, loadUITheme } from "../components";
+import type { UITheme } from "../components/game/ui";
 import { TouchDragProvider } from "../contexts";
 import { logger } from "../engine/core/logger";
 import { GameEngine } from "../engine/game/gameEngine";
@@ -100,6 +101,8 @@ export default function GameScreen() {
   const [isResizing, setIsResizing] = useState(false);
   const [gameResolution, setGameResolution] = useState(getStoredResolution);
   const [, forceUpdate] = useState({});
+  // UI 主题状态
+  const [uiTheme, setUITheme] = useState<UITheme>(loadUITheme);
   // 标题界面读档弹窗状态
   const [showTitleLoadModal, setShowTitleLoadModal] = useState(false);
 
@@ -607,6 +610,8 @@ export default function GameScreen() {
                   requestAutoplayPermission={requestAutoplayPermission}
                   currentResolution={gameResolution}
                   setResolution={handleSetResolution}
+                  currentTheme={uiTheme}
+                  setTheme={setUITheme}
                   onClose={() => setActivePanel("none")}
                 />
               )}
@@ -642,6 +647,7 @@ export default function GameScreen() {
                 height={windowSize.height}
                 loadSlot={loadSlot}
                 onReturnToTitle={handleReturnToTitle}
+                uiTheme={uiTheme}
               />
             </div>
 

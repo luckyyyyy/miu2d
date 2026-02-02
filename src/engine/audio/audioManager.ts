@@ -12,7 +12,7 @@
 import { logger } from "../core/logger";
 import type { Vector2 } from "../core/types";
 import { resourceLoader } from "../resource/resourceLoader";
-import { DefaultPaths } from "@/config/resourcePaths";
+import { DefaultPaths, getResourceUrl } from "@/config/resourcePaths";
 
 export interface AudioManagerConfig {
   musicBasePath?: string;
@@ -225,7 +225,7 @@ export class AudioManager {
         });
     };
 
-    audio.src = musicPath;
+    audio.src = getResourceUrl(musicPath);
     audio.load();
   }
 

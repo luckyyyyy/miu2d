@@ -594,6 +594,140 @@ export class MagicListManager {
     return true;
   }
 
+  // ========== 隐藏/显示武功（装备 MagicIniWhenUse） ==========
+
+  /**
+   * 检查武功是否在隐藏列表中
+   * C# Reference: MagicListManager.IsMagicHided
+   */
+  isMagicHided(fileName: string): boolean {
+    const lowerName = fileName.toLowerCase();
+    const hideList = this.getActiveMagicListHide();
+    for (let i = 1; i <= MAGIC_LIST_CONFIG.maxMagic; i++) {
+      const info = hideList[i];
+      if (info?.magic && info.magic.fileName.toLowerCase() === lowerName) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * 获取非替换状态下的武功信息（包括隐藏列表）
+   * C# Reference: MagicListManager.GetNonReplaceMagic
+   */
+  getNonReplaceMagic(fileName: string): MagicItemInfo | null {
+    const lowerName = fileName.toLowerCase();
+
+    // 先在主列表查找
+    for (let i = 1; i <= MAGIC_LIST_CONFIG.maxMagic; i++) {
+      const info = this.magicList[i];
+      if (info?.magic && info.magic.fileName.toLowerCase() === lowerName) {
+        return info;
+      }
+    }
+
+    // 再在隐藏列表查找
+    for (let i = 1; i <= MAGIC_LIST_CONFIG.maxMagic; i++) {
+      const info = this.magicListHide[i];
+      if (info?.magic && info.magic.fileName.toLowerCase() === lowerName) {
+        return info;
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * 设置武功的隐藏状态
+   * C# Reference: MagicListManager.SetMagicHide
+   * @param fileName 武功文件名
+   * @param hide true=隐藏, false=显示
+   * @returns 操作后的武功信息，如果武功不存在则返回 null
+   */
+  setMagicHide(fileName: string, hide: boolean): MagicItemInfo | null {
+    const lowerName = fileName.toLowerCase();
+
+    if (hide) {
+      // 从主列表移动到隐藏列表
+      for (let i = 1; i <= MAGIC_LIST_CONFIG.maxMagic; i++) {
+        const info = this.magicList[i];
+        if (info?.magic && info.magic.fileName.toLowerCase() === lowerName) {
+          // 增加隐藏计数
+          info.hideCount = (info.hideCount || 0) + 1;
+
+          // 如果是第一次隐藏，移动到隐藏列表
+          if (info.hideCount === 1) {
+            info.lastIndexWhenHide = i;
+            this.magicList[i] = null;
+
+            // 找隐藏列表的空位
+            let hideIndex = -1;
+            for (let j = 1; j <= MAGIC_LIST_CONFIG.maxMagic; j++) {
+              if (!this.magicListHide[j]) {
+                hideIndex = j;
+                break;
+              }
+            }
+            if (hideIndex !== -1) {
+              this.magicListHide[hideIndex] = info;
+            }
+
+            // 如果是当前使用或修炼武功，清除
+            if (this.currentMagicInUse === info) {
+              this.currentMagicInUse = null;
+            }
+            if (this.xiuLianMagic === info) {
+              this.xiuLianMagic = null;
+              this.callbacks.onXiuLianMagicChange?.(null);
+            }
+
+            this.updateView();
+          }
+          return info;
+        }
+      }
+
+      // 检查是否已经在隐藏列表中，只增加计数
+      for (let i = 1; i <= MAGIC_LIST_CONFIG.maxMagic; i++) {
+        const info = this.magicListHide[i];
+        if (info?.magic && info.magic.fileName.toLowerCase() === lowerName) {
+          info.hideCount = (info.hideCount || 0) + 1;
+          return info;
+        }
+      }
+    } else {
+      // 从隐藏列表移动到主列表
+      for (let i = 1; i <= MAGIC_LIST_CONFIG.maxMagic; i++) {
+        const info = this.magicListHide[i];
+        if (info?.magic && info.magic.fileName.toLowerCase() === lowerName) {
+          // 减少隐藏计数
+          info.hideCount = Math.max(0, (info.hideCount || 1) - 1);
+
+          // 如果隐藏计数归零，移回主列表
+          if (info.hideCount === 0) {
+            this.magicListHide[i] = null;
+
+            // 尝试恢复到原位置
+            let targetIndex = info.lastIndexWhenHide || -1;
+            if (targetIndex === -1 || this.magicList[targetIndex]) {
+              // 原位置被占用，找空位
+              targetIndex = this.getFreeIndex();
+            }
+            if (targetIndex !== -1) {
+              this.magicList[targetIndex] = info;
+            }
+
+            this.updateView();
+          }
+          return info;
+        }
+      }
+    }
+
+    return null;
+  }
+
   /**
    * 交换列表项（同步，资源已在 addMagic 时预加载）
    * 对应 C# ExchangeListItem

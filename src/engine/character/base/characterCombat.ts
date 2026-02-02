@@ -13,6 +13,8 @@ import type { MagicSprite } from "../../magic/magicSprite";
 import { getEffectAmount } from "../../magic/effects/common";
 import { CharacterMovement } from "./characterMovement";
 import { type CharacterBase, type MagicToUseInfoItem } from "./characterBase";
+import { type AsfData, getCachedAsf, loadAsf } from "../../sprite/asf";
+import { ResourcePath } from "../../../config/resourcePaths";
 
 /**
  * CharacterCombat - 战斗功能层
@@ -65,7 +67,7 @@ export abstract class CharacterCombat extends CharacterMovement {
   addLife(amount: number): void {
     this.life = Math.max(0, Math.min(this.life + amount, this.lifeMax));
     if (this.life <= 0) {
-      this.onDeath(null);
+      this.death(null);
     }
   }
 
@@ -79,14 +81,92 @@ export abstract class CharacterCombat extends CharacterMovement {
 
   /**
    * 增加经验
+   * C# Reference: Character.AddExp
    */
   addExp(amount: number): void {
     if (this.levelUpExp <= 0 || this.canLevelUp <= 0) return;
 
     this.exp += amount;
     if (this.exp > this.levelUpExp) {
-      // TODO: 实现 NPC 升级逻辑
+      // C# Reference: GuiManager.ShowMessage(Name + "的等级提升了");
+      const gui = this.engine?.getManager("gui") as { showMessage?: (msg: string) => void } | undefined;
+      gui?.showMessage?.(`${this.name}的等级提升了`);
+      this.toLevelByExp(this.exp);
     }
+  }
+
+  /**
+   * 根据经验值计算应该升到的等级
+   * C# Reference: Character.ToLevel
+   */
+  private toLevelByExp(exp: number): void {
+    const levelConfig = this.levelManager.getLevelConfig();
+    if (!levelConfig) return;
+
+    const count = levelConfig.size;
+    let targetLevel = 1;
+    for (let i = 1; i <= count; i++) {
+      const detail = levelConfig.get(i);
+      if (detail && detail.levelUpExp > exp) {
+        break;
+      }
+      targetLevel = i;
+    }
+    this.levelUpTo(targetLevel);
+  }
+
+  /**
+   * 升级到指定等级
+   * C# Reference: Character.LevelUpTo
+   */
+  levelUpTo(level: number): void {
+    const levelConfig = this.levelManager.getLevelConfig();
+    if (!levelConfig) {
+      this.level = level;
+      return;
+    }
+
+    const currentDetail = levelConfig.get(this.level);
+    let detail = levelConfig.get(level);
+
+    let isMaxLevel = false;
+    if (!detail) {
+      if (level > levelConfig.size) {
+        isMaxLevel = true;
+        // 找到最大可用等级
+        for (let i = level; i >= 1; i--) {
+          detail = levelConfig.get(i);
+          if (detail) break;
+        }
+      } else {
+        logger.warn(`[Character] ${this.name} LevelIni 没有设置等级 ${level}`);
+      }
+    }
+
+    if (detail && currentDetail) {
+      // 增量升级属性
+      this.lifeMax += detail.lifeMax - currentDetail.lifeMax;
+      this.thewMax += detail.thewMax - currentDetail.thewMax;
+      this.manaMax += detail.manaMax - currentDetail.manaMax;
+      this.life = this.lifeMax;
+      this.thew = this.thewMax;
+      this.mana = this.manaMax;
+      this.attack += detail.attack - currentDetail.attack;
+      this.attack2 += detail.attack2 - currentDetail.attack2;
+      this.attack3 += detail.attack3 - currentDetail.attack3;
+      this.defend += detail.defend - currentDetail.defend;
+      this.defend2 += detail.defend2 - currentDetail.defend2;
+      this.defend3 += detail.defend3 - currentDetail.defend3;
+      this.evade += detail.evade - currentDetail.evade;
+      this.levelUpExp = detail.levelUpExp;
+    }
+
+    if (isMaxLevel) {
+      this.exp = 0;
+      this.levelUpExp = 0;
+    }
+
+    this.level = level;
   }
 
   isDead(): boolean {
@@ -99,8 +179,12 @@ export abstract class CharacterCombat extends CharacterMovement {
 
   /**
    * 计算击杀经验
+   * C# Reference: GetExp() 或类似逻辑
    */
-  static getCharacterDeathExp(killer: CharacterBase, dead: CharacterBase): number {
+  static getCharacterDeathExp(
+    killer: { level: number },
+    dead: { level: number; expBonus?: number }
+  ): number {
     if (!killer || !dead) return 1;
     const exp = killer.level * dead.level + (dead.expBonus ?? 0);
     return exp < 4 ? 4 : exp;
@@ -191,12 +275,12 @@ export abstract class CharacterCombat extends CharacterMovement {
       if (attacker && (attacker.isPlayer || attacker.isFighterFriend)) {
         const player = this.engine.player;
         if (player) {
-          const exp = CharacterCombat.getCharacterDeathExp(player as CharacterCombat, this);
+          const exp = CharacterCombat.getCharacterDeathExp(player, this);
           player.addExp(exp, true);
         }
       }
 
-      this.onDeath(attacker as CharacterCombat | null);
+      this.death(attacker as CharacterCombat | null);
     } else {
       this.hurting();
     }
@@ -295,7 +379,7 @@ export abstract class CharacterCombat extends CharacterMovement {
 
     if (this.life <= 0) {
       this.life = 0;
-      this.onDeath(attacker as CharacterCombat | null);
+      this.death(attacker as CharacterCombat | null);
     } else {
       this.hurting();
     }
@@ -349,9 +433,48 @@ export abstract class CharacterCombat extends CharacterMovement {
   // === Death Methods ===
   // =============================================
 
-  protected onDeath(killer: CharacterCombat | null): void {
+  // C#: private static Asf FrozenDie/PoisonDie/PetrifiedDie
+  private static FrozenDie: AsfData | null = null;
+  private static PoisonDie: AsfData | null = null;
+  private static PetrifiedDie: AsfData | null = null;
+
+  /**
+   * 角色死亡处理
+   * C# Reference: Character.Death()
+   */
+  death(killer: CharacterCombat | null = null): void {
     if (this.isDeathInvoked) return;
     this.isDeathInvoked = true;
+
+    // C#: if (ReviveMilliseconds > 0) LeftMillisecondsToRevive = ReviveMilliseconds;
+    if (this.reviveMilliseconds > 0) {
+      this.leftMillisecondsToRevive = this.reviveMilliseconds;
+    }
+
+    // C#: InvisibleByMagicTime = 0
+    this.invisibleByMagicTime = 0;
+
+    // C#: SppedUpByMagicSprite = null (取消加速效果)
+    this.speedUpByMagicSprite = null;
+
+    // C#: if (ControledMagicSprite != null) - 处理被控制状态
+    // C# 代码: var player = ControledMagicSprite.BelongCharacter as Player; player.EndControlCharacter();
+    if (this._controledMagicSprite !== null) {
+      // TypeScript 中通过 belongCharacterId 判断是否是玩家控制
+      if (this._controledMagicSprite.belongCharacterId === "player") {
+        this.engine.player.endControlCharacter();
+      }
+      this._controledMagicSprite = null;
+    }
+
+    // C#: if (SummonedByMagicSprite != null) - 召唤物死亡处理
+    if (this.summonedByMagicSprite !== null) {
+      this.isDeath = true;
+      if (!this.summonedByMagicSprite.isInDestroy && !this.summonedByMagicSprite.isDestroyed) {
+        this.summonedByMagicSprite.destroy();
+      }
+      return; // 召唤物不播放死亡动画
+    }
 
     // 同步位置到 tile 中心
     const expectedPixel = tileToPixel(this._mapX, this._mapY);
@@ -364,13 +487,91 @@ export abstract class CharacterCombat extends CharacterMovement {
 
     logger.log(`[Character] ${this.name} died${killer ? ` (killed by ${killer.name})` : ""}`);
 
-    this.endPlayCurrentDirOnce();
-    this.state = CharacterState.Death;
-    this.playCurrentDirOnce();
+    this.stateInitialize();
+
+    if (this.isStateImageOk(CharacterState.Death)) {
+      this.state = CharacterState.Death;
+
+      // C# Reference: Character.Death() - 状态效果死亡动画
+      // 冰冻死亡 -> 冰碎动画
+      if (this.isFrozened && this.isFrozenVisualEffect) {
+        this.applySpecialDeathAnimation("frozen");
+      }
+      // 中毒死亡 -> 毒气动画
+      else if (this.isPoisoned && this.isPoisonVisualEffect) {
+        this.applySpecialDeathAnimation("poison");
+      }
+      // 石化死亡 -> 石碎动画
+      else if (this.isPetrified && this.isPetrifiedVisualEffect) {
+        this.applySpecialDeathAnimation("petrified");
+      }
+
+      // C#: ToNormalState() - 清除冰冻、中毒、石化状态
+      this._statusEffects.toNormalState();
+      this.playCurrentDirOnce();
+    } else {
+      this.isDeath = true;
+    }
   }
 
-  death(): void {
-    this.onDeath(null);
+  /**
+   * 应用特殊死亡动画
+   * C# Reference: Character.Death() - FrozenDie/PoisonDie/PetrifiedDie
+   */
+  private applySpecialDeathAnimation(type: "frozen" | "poison" | "petrified"): void {
+    let asf: AsfData | null = null;
+    let asfPath = "";
+
+    switch (type) {
+      case "frozen":
+        asfPath = ResourcePath.asfInterlude("die-冰.asf");
+        asf = CharacterCombat.FrozenDie || getCachedAsf(asfPath);
+        if (!asf) {
+          // 异步加载并缓存
+          loadAsf(asfPath).then((loaded) => {
+            CharacterCombat.FrozenDie = loaded;
+            if (loaded && this.isInDeathing) {
+              this.texture = loaded;
+              this.currentDirection = 0;
+            }
+          });
+        }
+        break;
+      case "poison":
+        asfPath = ResourcePath.asfInterlude("die-毒.asf");
+        asf = CharacterCombat.PoisonDie || getCachedAsf(asfPath);
+        if (!asf) {
+          loadAsf(asfPath).then((loaded) => {
+            CharacterCombat.PoisonDie = loaded;
+            if (loaded && this.isInDeathing) {
+              this.texture = loaded;
+              this.currentDirection = 0;
+            }
+          });
+        }
+        break;
+      case "petrified":
+        asfPath = ResourcePath.asfInterlude("die-石.asf");
+        asf = CharacterCombat.PetrifiedDie || getCachedAsf(asfPath);
+        if (!asf) {
+          loadAsf(asfPath).then((loaded) => {
+            CharacterCombat.PetrifiedDie = loaded;
+            if (loaded && this.isInDeathing) {
+              this.texture = loaded;
+              this.currentDirection = 0;
+            }
+          });
+        }
+        break;
+    }
+
+    if (asf) {
+      this.texture = asf;
+      this.currentDirection = 0;
+    }
+
+    // C#: _notAddBody = true - 特殊死亡不添加尸体
+    this.notAddBody = true;
   }
 
   // =============================================

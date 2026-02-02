@@ -118,6 +118,7 @@ function convertMagicInfoToSlot(info: MagicItemInfo | null, index: number): UIMa
 export interface UIBridgeDeps {
   events: EventEmitter;
   getPlayer: () => Player | null;
+  getPlayerIndex?: () => number; // C#: Globals.PlayerIndex - 用于切换角色后面板图像更新
   getGoodsListManager: () => GoodsListManager | null;
   getMagicListManager: () => MagicListManager | null;
   getBuyManager: () => BuyManager | null;
@@ -213,6 +214,12 @@ export class UIBridge implements IUIBridge {
         isVisible: event.messageVisible,
       };
       this.notifySubscribers("onMessageChange", message);
+    });
+
+    // 玩家状态变化 (PlayerChange 切换角色后触发)
+    events.on(GameEvents.UI_PLAYER_CHANGE, () => {
+      const player = this.buildPlayerState();
+      this.notifySubscribers("onPlayerChange", player);
     });
 
     // 物品变化
@@ -343,7 +350,12 @@ export class UIBridge implements IUIBridge {
     const player = this.deps.getPlayer();
     if (!player) return null;
 
+    // C#: Globals.PlayerIndex - 获取当前角色索引用于面板图像切换
+    const playerIndex = this.deps.getPlayerIndex?.() ?? 0;
+
     return {
+      playerIndex,
+      playerName: player.name ?? "",
       level: player.level,
       exp: player.exp,
       levelUpExp: player.levelUpExp,
@@ -353,6 +365,7 @@ export class UIBridge implements IUIBridge {
       thewMax: player.thewMax,
       mana: player.mana,
       manaMax: player.manaMax,
+      manaLimit: player.manaLimit ?? false,
       attack: player.attack,
       defend: player.defend,
       evade: player.evade,
@@ -577,10 +590,12 @@ export class UIBridge implements IUIBridge {
         this.deps.togglePanel(action.panel);
         break;
       case "CLOSE_PANEL":
-        // TODO: 实现 closePanel
+        // 注：togglePanel 已可实现面板开关，此 action 备用
+        logger.debug("[UIBridge] CLOSE_PANEL: use TOGGLE_PANEL instead");
         break;
       case "OPEN_PANEL":
-        // TODO: 实现 openPanel
+        // 注：togglePanel 已可实现面板开关，此 action 备用
+        logger.debug("[UIBridge] OPEN_PANEL: use TOGGLE_PANEL instead");
         break;
 
       // 对话
@@ -682,7 +697,8 @@ export class UIBridge implements IUIBridge {
         this.deps.showSystem(action.visible);
         break;
       case "EXIT_GAME":
-        // TODO: 实现退出游戏
+        // Web 应用无法真正退出，仅显示提示
+        logger.log("[UIBridge] EXIT_GAME: Web app cannot exit, consider returning to main menu");
         break;
 
       default:

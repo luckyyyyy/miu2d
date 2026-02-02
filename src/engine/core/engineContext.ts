@@ -30,6 +30,8 @@ export interface ICharacter {
   mapX: number;
   mapY: number;
   name: string;
+  level: number;
+  expBonus: number;
   takeDamage(damage: number, attacker: unknown): void;
 }
 
@@ -53,6 +55,10 @@ export interface INpc extends ICharacter {
 export interface IPlayer extends ICharacter {
   tilePosition: Vector2;
   addExp(amount: number, addMagicExp?: boolean): void;
+  /** 结束对角色的控制 (C#: EndControlCharacter) */
+  endControlCharacter(): void;
+  /** 重置伙伴位置到玩家周围 (C#: ResetPartnerPosition) */
+  resetPartnerPosition(): void;
 }
 
 /**
@@ -108,7 +114,7 @@ export interface INpcManager {
    * 清除所有 NPC 对指定角色的追踪目标
    * C# Reference: NpcManager.CleartFollowTargetIfEqual
    */
-  clearFollowTargetIfEqual(target: ICharacter): void;
+  cleartFollowTargetIfEqual(target: ICharacter): void;
 }
 
 // IMapService 已删除，直接使用 MapBase
@@ -188,6 +194,19 @@ export interface IEngineContext {
    * 检查物品掉落是否启用
    */
   isDropEnabled(): boolean;
+
+  /**
+   * 获取脚本变量值
+   * C# Reference: ScriptExecuter.GetVariablesValue("$" + VariableName)
+   */
+  getScriptVariable(name: string): number;
+
+  // ===== UI 通知 =====
+  /**
+   * 通知玩家状态变更（切换角色、读档等）
+   * 调用后会刷新 F1 状态面板
+   */
+  notifyPlayerStateChanged(): void;
 
   // ===== 低频管理器（按需获取）=====
   /**

@@ -129,8 +129,8 @@ export function addMagicEffect(
   let percent = player.getAddMagicEffectPercent?.() ?? 0;
   let amount = player.getAddMagicEffectAmount?.() ?? 0;
 
-  // TODO: C# 还有按武功名称/类型的加成 (GetAddMagicEffectInfoWithName/Type)
-  // 暂未实现
+  // C# 还有按武功名称/类型的加成 (GetAddMagicEffectInfoWithName/Type)
+  // 低优先级功能，暂未实现
 
   if (percent > 0) {
     effect += Math.floor((effect * percent) / 100);

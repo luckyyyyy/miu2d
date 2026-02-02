@@ -23,7 +23,8 @@
  */
 
 import type { AudioManager } from "../audio";
-import type { NpcManager } from "../character/npcManager";
+import type { NpcManager } from "../npc";
+import { loadCharacterConfig, applyConfigToPlayer } from "../character/iniParser";
 import { logger } from "../core/logger";
 import type { ScreenEffects } from "../effects";
 import type { GuiManager } from "../gui/guiManager";
@@ -38,6 +39,7 @@ import { MapBase } from "../map/mapBase";
 import { DefaultPaths, ResourcePath } from "@/config/resourcePaths";
 import {
   formatSaveTime,
+  type CharacterSaveSlot,
   type GoodsItemData,
   type MagicItemData,
   type NpcSaveItem,
@@ -126,13 +128,100 @@ export interface LoaderDependencies {
 }
 
 /**
+ * 多角色内存存储
+ * 用于 PlayerChange 时在内存中保存/加载角色数据
+ * 不使用 localStorage，避免跨存档污染
+ */
+interface CharacterMemoryData {
+  player: PlayerSaveData | null;
+  magics: {
+    items: MagicItemData[];
+    xiuLianIndex: number;
+    replaceLists?: unknown;
+  } | null;
+  goods: {
+    items: GoodsItemData[];
+    equips: (GoodsItemData | null)[];
+  } | null;
+  memo: {
+    items: string[];
+  } | null;
+}
+
+/**
  * Game Loader - 游戏初始化和存档管理
  */
 export class Loader {
   private deps: LoaderDependencies;
 
+  /**
+   * 当前存档槽位索引
+   * -1 表示新游戏（从未保存过）
+   * 0 表示从初始存档加载（资源文件）
+   * 1-7 表示用户存档槽位
+   */
+  private _currentSaveSlot: number = -1;
+
+  /** 获取当前存档槽位 */
+  get currentSaveSlot(): number {
+    return this._currentSaveSlot;
+  }
+
+  /**
+   * 多角色内存存储
+   * key: playerIndex (0-4)
+   * 当加载存档或开始新游戏时清空
+   */
+  private characterMemory: Map<number, CharacterMemoryData> = new Map();
+
   constructor(deps: LoaderDependencies) {
     this.deps = deps;
+  }
+
+  /**
+   * 清空多角色内存存储
+   * 在加载存档或开始新游戏时调用
+   */
+  private clearCharacterMemory(): void {
+    this.characterMemory.clear();
+    logger.debug(`[Loader] Character memory cleared`);
+  }
+
+  /**
+   * 从存档数据恢复其他角色到内存
+   * 用于 PlayerChange 切换角色时使用
+   */
+  private loadOtherCharactersToMemory(
+    otherCharacters: Record<number, CharacterSaveSlot>
+  ): void {
+    for (const [indexStr, slot] of Object.entries(otherCharacters)) {
+      const index = parseInt(indexStr, 10);
+      if (isNaN(index)) continue;
+
+      const memoryData: CharacterMemoryData = {
+        player: slot.player,
+        magics: slot.magics
+          ? {
+              items: slot.magics,
+              xiuLianIndex: slot.xiuLianIndex,
+              replaceLists: slot.replaceMagicLists,
+            }
+          : null,
+        goods: slot.goods
+          ? {
+              items: slot.goods,
+              equips: slot.equips ?? [],
+            }
+          : null,
+        memo: slot.memo ? { items: slot.memo } : null,
+      };
+
+      this.characterMemory.set(index, memoryData);
+    }
+
+    logger.debug(
+      `[Loader] Restored ${Object.keys(otherCharacters).length} other characters to memory`
+    );
   }
 
   /**
@@ -168,6 +257,12 @@ export class Loader {
     clearVariables();
     resetEventId();
     resetGameTime();
+
+    // 重置存档槽位为 -1（新游戏状态）
+    this._currentSaveSlot = -1;
+
+    // 清空多角色内存存储（新游戏从资源文件加载初始数据）
+    this.clearCharacterMemory();
 
     // 以黑屏开始（用于淡入淡出特效）
     screenEffects.setFadeTransparency(1);
@@ -229,9 +324,9 @@ export class Loader {
         clearScriptCache();
         // C#: 清理变量
         clearVariables();
-        // C#: MagicManager.Clear() - 清理魔法（TODO: 如果有）
+        // C#: MagicManager.Clear() - 由 MagicManager 自己管理清理
         // C#: NpcManager.ClearAllNpc()
-        npcManager.clearAllNpcs();
+        npcManager.clearAllNpc();
         // C#: ObjManager.ClearAllObjAndFileName()
         objManager.clearAll();
         // C#: MapBase.Free() - 释放地图（会在 loadMap 时重新加载）
@@ -300,7 +395,9 @@ export class Loader {
         }
 
         // 玩家角色索引（支持多主角）
+        // C#: Globals.PlayerIndex = int.Parse(state["Chr"]);
         chrIndex = parseInt(stateSection.Chr || "0", 10);
+        player.setPlayerIndex(chrIndex);
 
         // C#: Globals.ScriptShowMapPos - 脚本显示地图坐标
         if (stateSection.ScriptShowMapPos) {
@@ -317,7 +414,7 @@ export class Loader {
         if (optionSection.MapTime) {
           const mapTime = parseInt(optionSection.MapTime, 10);
           this.deps.setMapTime?.(mapTime);
-          MapBase.MapTime = mapTime;
+          MapBase.Instance.mapTime = mapTime;
           logger.debug(`[Loader] MapTime: ${mapTime}`);
         }
 
@@ -481,11 +578,11 @@ export class Loader {
       await this.loadPartner(partnerPath, npcManager, parseIni);
 
       // Step 6: 加载陷阱
-      // C# Reference: Loader.LoadTraps() -> MapBase.LoadTrap(StorageBase.TrapsFilePath)
-      await MapBase.LoadTrap(`${basePath}/Traps.ini`);
+      // C# Reference: Loader.LoadTraps() -> MapBase.loadTrap(StorageBase.TrapsFilePath)
+      await MapBase.Instance.loadTrap(`${basePath}/Traps.ini`);
 
       // Step 7: 加载陷阱忽略列表（可选，如果存在）
-      // C# Reference: Loader.LoadTrapIgnoreList() -> MapBase.LoadTrapIndexIgnoreList()
+      // C# Reference: Loader.LoadTrapIgnoreList() -> MapBase.Instance.loadTrapIndexIgnoreList()
       // 注意：初始存档可能没有这个文件
       try {
         const trapIgnorePath = `${basePath}/TrapIndexIgnore.ini`;
@@ -535,7 +632,7 @@ export class Loader {
       }
 
       // C# Reference: 先移除所有现有的 partner
-      npcManager.removeAllPartners();
+      npcManager.removeAllPartner();
 
       // 加载每个 NPC section
       for (let i = 0; i < count; i++) {
@@ -581,7 +678,7 @@ export class Loader {
     }
 
     if (ignoredIndices.length > 0) {
-      MapBase.LoadTrapIndexIgnoreList(ignoredIndices);
+      MapBase.Instance.loadTrapIndexIgnoreList(ignoredIndices);
       logger.debug(`[Loader] Loaded ${ignoredIndices.length} ignored trap indices`);
     }
   }
@@ -645,6 +742,8 @@ export class Loader {
       // 保存到 localStorage
       const success = StorageManager.saveGame(index, saveData);
       if (success) {
+        // 更新当前存档槽位
+        this._currentSaveSlot = index;
         logger.log(`[Loader] Game saved to slot ${index} successfully`);
       }
       return success;
@@ -652,6 +751,387 @@ export class Loader {
       logger.error(`[Loader] Error saving game:`, error);
       return false;
     }
+  }
+
+  // ============= 多主角切换 =============
+
+  /**
+   * 保存当前玩家数据到内存
+   * C# Reference: Saver.SavePlayer() -> 保存到 Player{index}.ini
+   *
+   * Web 版使用内存存储，不使用 localStorage
+   * 避免跨存档污染
+   */
+  private savePlayerToMemory(): void {
+    const { player } = this.deps;
+    const index = player.playerIndex;
+
+    const playerData = this.collectPlayerData(player);
+
+    // 获取或创建内存存储
+    let memoryData = this.characterMemory.get(index);
+    if (!memoryData) {
+      memoryData = { player: null, magics: null, goods: null, memo: null };
+      this.characterMemory.set(index, memoryData);
+    }
+    memoryData.player = playerData;
+
+    logger.log(`[Loader] SavePlayer: saved to memory (index=${index})`);
+  }
+
+  /**
+   * 保存当前武功/物品/备忘录到内存
+   * C# Reference: Saver.SaveMagicGoodMemoList()
+   */
+  private saveMagicGoodMemoListToMemory(): void {
+    const { player, memoListManager } = this.deps;
+    const goodsListManager = player.getGoodsListManager();
+    const magicListManager = player.getMagicListManager();
+    const index = player.playerIndex;
+
+    // 获取或创建内存存储
+    let memoryData = this.characterMemory.get(index);
+    if (!memoryData) {
+      memoryData = { player: null, magics: null, goods: null, memo: null };
+      this.characterMemory.set(index, memoryData);
+    }
+
+    // 保存武功列表
+    memoryData.magics = {
+      items: this.collectMagicsData(magicListManager),
+      xiuLianIndex: magicListManager.getXiuLianIndex(),
+      replaceLists: magicListManager.serializeReplaceLists(),
+    };
+
+    // 保存物品列表
+    memoryData.goods = {
+      items: this.collectGoodsData(goodsListManager),
+      equips: this.collectEquipsData(goodsListManager),
+    };
+
+    // 保存备忘录
+    memoryData.memo = { items: memoListManager.getItems() };
+
+    logger.log(`[Loader] SaveMagicGoodMemoList: saved to memory (index=${index})`);
+  }
+
+  /**
+   * 加载武功和物品列表
+   * C# Reference: Loader.LoadMagicGoodList()
+   *
+   * 优先从内存加载，如果内存为空则从资源文件加载初始数据
+   * C# Reference: StorageBase.MagicListFilePath = save/game/Magic{index}.ini
+   * C# Reference: StorageBase.GoodsListFilePath = save/game/Goods{index}.ini
+   */
+  private async loadMagicGoodListFromMemory(): Promise<void> {
+    const { player } = this.deps;
+    const goodsListManager = player.getGoodsListManager();
+    const magicListManager = player.getMagicListManager();
+    const index = player.playerIndex;
+
+    // C# Reference: MagicListManager.StopReplace() + ClearReplaceList()
+    magicListManager.stopReplace();
+    magicListManager.clearReplaceList();
+
+    // 获取内存存储
+    const memoryData = this.characterMemory.get(index);
+
+    // 加载武功列表
+    let magicLoaded = false;
+
+    if (memoryData?.magics) {
+      try {
+        const magicData = memoryData.magics;
+        // 使用现有的 loadMagicsFromJSON 方法
+        if (magicData.items) {
+          await this.loadMagicsFromJSON(
+            magicData.items,
+            magicData.xiuLianIndex ?? 0,
+            magicListManager
+          );
+          magicLoaded = true;
+        }
+        // 恢复替换列表
+        if (magicData.replaceLists) {
+          magicListManager.deserializeReplaceLists(magicData.replaceLists);
+        }
+      } catch (e) {
+        logger.warn(`[Loader] Failed to load magic list from memory:`, e);
+      }
+    }
+
+    if (!magicLoaded) {
+      // 从资源文件加载初始武功
+      // C# Reference: MagicListManager.LoadPlayerList(StorageBase.MagicListFilePath)
+      const magicIniPath = ResourcePath.saveGame(`Magic${index}.ini`);
+      try {
+        const magicItems = await this.parseMagicListIni(magicIniPath);
+        if (magicItems.length > 0) {
+          await this.loadMagicsFromJSON(magicItems, 0, magicListManager);
+          logger.log(`[Loader] LoadMagicList: loaded ${magicItems.length} magics from INI (index=${index})`);
+        }
+      } catch (e) {
+        logger.warn(`[Loader] Failed to load magic list from INI:`, e);
+      }
+    }
+
+    // 加载物品列表
+    let goodsLoaded = false;
+
+    if (memoryData?.goods) {
+      try {
+        const goodsData = memoryData.goods;
+        // 使用现有的 loadGoodsFromJSON 方法
+        if (goodsData.items) {
+          await this.loadGoodsFromJSON(
+            goodsData.items,
+            goodsData.equips ?? [],
+            goodsListManager
+          );
+          goodsLoaded = true;
+        }
+      } catch (e) {
+        logger.warn(`[Loader] Failed to load goods list from memory:`, e);
+      }
+    }
+
+    if (!goodsLoaded) {
+      // 从资源文件加载初始物品
+      // C# Reference: GoodsListManager.LoadList(StorageBase.GoodsListFilePath)
+      const goodsIniPath = ResourcePath.saveGame(`Goods${index}.ini`);
+      try {
+        const goodsItems = await this.parseGoodsListIni(goodsIniPath);
+        if (goodsItems.length > 0) {
+          await this.loadGoodsFromJSON(goodsItems, [], goodsListManager);
+          logger.log(`[Loader] LoadGoodsList: loaded ${goodsItems.length} goods from INI (index=${index})`);
+        }
+      } catch (e) {
+        // 物品文件可能不存在，这不是错误
+        logger.debug(`[Loader] No goods INI file for index ${index}`);
+      }
+    }
+
+    logger.log(`[Loader] LoadMagicGoodList: loaded from ${magicLoaded || goodsLoaded ? "memory" : "INI files"} (index=${index})`);
+  }
+
+  /**
+   * 解析武功列表 INI 文件
+   * 格式参考 resources/save/game/Magic1.ini
+   */
+  private async parseMagicListIni(path: string): Promise<MagicItemData[]> {
+    const content = await resourceLoader.loadText(path);
+    if (!content) return [];
+
+    const items: MagicItemData[] = [];
+    let currentIndex = 0;
+    let currentItem: Partial<MagicItemData> | null = null;
+
+    for (const line of content.split("\n")) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith(";")) continue;
+
+      // 检查节名 [1], [2], ...
+      const sectionMatch = trimmed.match(/^\[(\d+)\]$/);
+      if (sectionMatch) {
+        // 保存上一个项
+        if (currentItem && currentItem.fileName) {
+          items.push({
+            fileName: currentItem.fileName,
+            level: currentItem.level ?? 1,
+            exp: currentItem.exp ?? 0,
+            index: currentIndex,
+          });
+        }
+        currentIndex = parseInt(sectionMatch[1], 10);
+        currentItem = {};
+        continue;
+      }
+
+      if (!currentItem) continue;
+
+      // 解析键值对
+      const eqIdx = trimmed.indexOf("=");
+      if (eqIdx === -1) continue;
+
+      const key = trimmed.substring(0, eqIdx).trim().toLowerCase();
+      const value = trimmed.substring(eqIdx + 1).trim();
+
+      switch (key) {
+        case "inifile":
+          currentItem.fileName = value;
+          break;
+        case "level":
+          currentItem.level = parseInt(value, 10) || 1;
+          break;
+        case "exp":
+          currentItem.exp = parseInt(value, 10) || 0;
+          break;
+      }
+    }
+
+    // 保存最后一个项
+    if (currentItem && currentItem.fileName) {
+      items.push({
+        fileName: currentItem.fileName,
+        level: currentItem.level ?? 1,
+        exp: currentItem.exp ?? 0,
+        index: currentIndex,
+      });
+    }
+
+    return items;
+  }
+
+  /**
+   * 解析物品列表 INI 文件
+   * 格式参考 resources/save/game/Goods0.ini
+   */
+  private async parseGoodsListIni(path: string): Promise<GoodsItemData[]> {
+    const content = await resourceLoader.loadText(path);
+    if (!content) return [];
+
+    const items: GoodsItemData[] = [];
+    let currentItem: Partial<GoodsItemData> | null = null;
+
+    for (const line of content.split("\n")) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith(";")) continue;
+
+      // 检查节名 [1], [2], ...
+      const sectionMatch = trimmed.match(/^\[(\d+)\]$/);
+      if (sectionMatch) {
+        // 保存上一个项
+        if (currentItem && currentItem.fileName) {
+          items.push({
+            fileName: currentItem.fileName,
+            count: currentItem.count ?? 1,
+          });
+        }
+        currentItem = {};
+        continue;
+      }
+
+      if (!currentItem) continue;
+
+      // 解析键值对
+      const eqIdx = trimmed.indexOf("=");
+      if (eqIdx === -1) continue;
+
+      const key = trimmed.substring(0, eqIdx).trim().toLowerCase();
+      const value = trimmed.substring(eqIdx + 1).trim();
+
+      switch (key) {
+        case "inifile":
+          currentItem.fileName = value;
+          break;
+        case "number":
+          currentItem.count = parseInt(value, 10) || 1;
+          break;
+      }
+    }
+
+    // 保存最后一个项
+    if (currentItem && currentItem.fileName) {
+      items.push({
+        fileName: currentItem.fileName,
+        count: currentItem.count ?? 1,
+      });
+    }
+
+    return items;
+  }
+
+  /**
+   * 加载玩家数据
+   * C# Reference: Loader.LoadPlayer()
+   *
+   * 优先从内存加载，如果内存为空则从资源文件加载初始数据
+   * C# Reference: StorageBase.PlayerFilePath = save/game/Player{index}.ini
+   */
+  private async loadPlayerFromMemory(): Promise<void> {
+    const { player } = this.deps;
+    const goodsListManager = player.getGoodsListManager();
+    const index = player.playerIndex;
+
+    // 获取内存存储
+    const memoryData = this.characterMemory.get(index);
+
+    let loaded = false;
+
+    if (memoryData?.player) {
+      // 从内存加载
+      try {
+        await this.loadPlayerFromJSON(memoryData.player, player);
+        // 重新加载角色精灵（ASF）
+        // C# Reference: Globals.ThePlayer 在切换时会重新设置精灵
+        if (memoryData.player.npcIni) {
+          await player.loadSpritesFromNpcIni(memoryData.player.npcIni);
+        }
+        loaded = true;
+        logger.log(`[Loader] LoadPlayer: loaded from memory (index=${index})`);
+      } catch (e) {
+        logger.error(`[Loader] Failed to load player from memory:`, e);
+      }
+    }
+
+    if (!loaded) {
+      // 内存为空，从资源文件加载初始数据
+      // C# Reference: var path = StorageBase.PlayerFilePath -> save/game/Player{index}.ini
+      const playerIniPath = ResourcePath.saveGame(`Player${index}.ini`);
+      try {
+        const config = await loadCharacterConfig(playerIniPath);
+        if (config) {
+          // 把 CharacterConfig 应用到 player
+          applyConfigToPlayer(config, player);
+          // 需要重新加载精灵
+          // C# Reference: Globals.ThePlayer = new Player(path) 会从 npcIni 加载精灵
+          await player.loadSpritesFromNpcIni(config.npcIni);
+          loaded = true;
+          logger.log(`[Loader] LoadPlayer: loaded from INI file (index=${index})`);
+        } else {
+          logger.warn(`[Loader] LoadPlayer: INI file not found or invalid (index=${index})`);
+        }
+      } catch (e) {
+        logger.error(`[Loader] Failed to load player from INI:`, e);
+      }
+    }
+
+    if (loaded) {
+      // C# Reference: GoodsListManager.ApplyEquipSpecialEffectFromList(Globals.ThePlayer)
+      goodsListManager.applyEquipSpecialEffectFromList();
+
+      // C# Reference: Globals.ThePlayer.LoadMagicEffect()
+      player.loadMagicEffect();
+    }
+
+    // C# Reference: GuiManager.StateInterface.Index = GuiManager.EquipInterface.Index = Globals.PlayerIndex;
+    // Web 版 UI 响应式更新，playerIndex 变更会自动反映到 UI
+    // 不需要显式通知
+  }
+
+  /**
+   * 保存当前玩家数据到内存
+   * 在切换角色前调用
+   */
+  saveCurrentPlayerToMemory(): void {
+    logger.log(`[Loader] Saving current player (index ${this.deps.player.playerIndex}) to memory...`);
+    // C#: Saver.SavePlayer() - 保存当前玩家数据到内存
+    this.savePlayerToMemory();
+    // C#: Saver.SaveMagicGoodMemoList() - 保存武功/物品/备忘录到内存
+    this.saveMagicGoodMemoListToMemory();
+  }
+
+  /**
+   * 从内存加载玩家数据
+   * 在切换角色后调用
+   */
+  async loadPlayerDataFromMemory(): Promise<void> {
+    const index = this.deps.player.playerIndex;
+    logger.log(`[Loader] Loading player (index ${index}) data from memory...`);
+    // C#: LoadMagicGoodList() - 加载新角色的武功/物品
+    await this.loadMagicGoodListFromMemory();
+    // C#: LoadPlayer() - 加载新角色
+    await this.loadPlayerFromMemory();
   }
 
   /**
@@ -703,9 +1183,16 @@ export class Loader {
       logger.debug(`[Loader] Clearing all managers...`);
       clearScriptCache();
       this.deps.clearVariables();
-      npcManager.clearAllNpcs();
+      npcManager.clearAllNpc();
       objManager.clearAll();
       audioManager.stopMusic();
+
+      // 清空多角色内存存储（避免跨存档污染）
+      this.clearCharacterMemory();
+
+      // 清除运行时保存的陷阱数据（避免跨存档污染）
+      // C# Reference: 读档时会从存档复制 Traps.ini 到 save/game/
+      localStorage.removeItem("jxqy_traps_runtime");
 
       // Step 4: 加载游戏状态
       const state = data.state;
@@ -737,6 +1224,13 @@ export class Loader {
       if (state.bgm) {
         audioManager.playMusic(state.bgm);
       }
+
+      // 玩家角色索引（支持多主角）
+      // C#: Globals.PlayerIndex = int.Parse(state["Chr"]);
+      // 必须在加载武功/物品/玩家数据之前设置，因为它们依赖 playerIndex
+      const chrIndex = state.chr ?? 0;
+      player.setPlayerIndex(chrIndex);
+      logger.debug(`[Loader] Set playerIndex: ${chrIndex}`);
 
       // Step 5: 恢复变量 (70-72%)
       this.reportProgress(70, "恢复变量...");
@@ -810,7 +1304,7 @@ export class Loader {
       player.loadMagicEffect();
 
       // Step 10: 加载陷阱 (88-90%)
-      // C# Reference: MapBase.LoadTrap() + LoadTrapIndexIgnoreList()
+      // C# Reference: MapBase.loadTrap() + loadTrapIndexIgnoreList()
       //
       // C# 流程：
       // 1. CopyGameToSave - 把存档槽的完整 Traps.ini 复制到 save/game/
@@ -829,7 +1323,7 @@ export class Loader {
         // 旧存档格式：从初始存档的 Traps.ini 加载基础配置
         logger.debug(`[Loader] Loading traps from initial Traps.ini (old save format)...`);
         const trapBasePath = ResourcePath.saveBase(0);
-        await MapBase.LoadTrap(`${trapBasePath}/Traps.ini`);
+        await MapBase.Instance.loadTrap(`${trapBasePath}/Traps.ini`);
         // 恢复 ignoreList
         if (data.traps) {
           this.loadTrapsFromJSON(data.traps);
@@ -841,7 +1335,7 @@ export class Loader {
       // C# Reference: NpcManager.Load() - clears and creates from save file
       this.reportProgress(90, "加载 NPC...");
       logger.debug(`[Loader] Loading NPCs...`);
-      npcManager.clearAllNpcs();
+      npcManager.clearAllNpc();
       if (data.npcData?.npcs && data.npcData.npcs.length > 0) {
         await this.loadNpcsFromJSON(data.npcData.npcs, npcManager);
       }
@@ -947,7 +1441,13 @@ export class Loader {
       logger.debug(`[Loader] Centering camera on player...`);
       this.deps.centerCameraOnPlayer?.();
 
-      // Step 14: 执行淡入效果 (98-100%)
+      // Step 16: 恢复其他角色数据到内存
+      // 用于 PlayerChange 切换角色时使用
+      if (data.otherCharacters) {
+        this.loadOtherCharactersToMemory(data.otherCharacters);
+      }
+
+      // Step 17: 执行淡入效果 (98-100%)
       // 加载存档后屏幕应该从黑屏淡入到正常
       logger.debug(`[Loader] Starting fade in effect...`);
       screenEffects.fadeIn();
@@ -976,6 +1476,10 @@ export class Loader {
     }
 
     await this.loadGameFromJSON(data);
+
+    // 记录当前存档槽位
+    this._currentSaveSlot = index;
+
     return true;
   }
 
@@ -1036,7 +1540,7 @@ export class Loader {
         npc: npcManager.getFileName() || "",
         obj: objManager.getFileName() || "",
         bgm: audioManager.getCurrentMusicFile() || "",
-        chr: 0, // TODO: 支持多主角
+        chr: player.playerIndex, // Player 维护的 playerIndex
         time: formatSaveTime(),
         scriptShowMapPos: this.deps.isScriptShowMapPos?.() ?? false,
       },
@@ -1105,9 +1609,39 @@ export class Loader {
       objData: {
         objs: this.collectObjData(objManager),
       },
+
+      // 多角色数据 (PlayerChange 切换过的角色)
+      otherCharacters: this.collectOtherCharactersData(),
     };
 
     return saveData;
+  }
+
+  /**
+   * 收集其他角色的存档数据
+   * 保存内存中通过 PlayerChange 切换过的角色数据
+   */
+  private collectOtherCharactersData(): Record<number, CharacterSaveSlot> | undefined {
+    if (this.characterMemory.size === 0) {
+      return undefined;
+    }
+
+    const result: Record<number, CharacterSaveSlot> = {};
+
+    for (const [index, memoryData] of this.characterMemory) {
+      result[index] = {
+        player: memoryData.player,
+        magics: memoryData.magics?.items ?? null,
+        xiuLianIndex: memoryData.magics?.xiuLianIndex ?? 0,
+        replaceMagicLists: memoryData.magics?.replaceLists,
+        goods: memoryData.goods?.items ?? null,
+        equips: memoryData.goods?.equips ?? null,
+        memo: memoryData.memo?.items ?? null,
+      };
+    }
+
+    logger.debug(`[Loader] Collected ${Object.keys(result).length} other characters for save`);
+    return result;
   }
 
   // ============= 数据收集方法 =============
@@ -1332,7 +1866,7 @@ export class Loader {
     ignoreList: number[];
     mapTraps: Record<string, Record<number, string>>;
   } {
-    return MapBase.CollectTrapDataForSave();
+    return MapBase.Instance.collectTrapDataForSave();
   }
 
   /**
@@ -1355,7 +1889,10 @@ export class Loader {
       }
 
       // 跳过被召唤的 NPC（由魔法召唤的）
-      // TODO: 如果有 summonedByMagicSprite 属性，跳过
+      // C# Reference: if (npc.SummonedByMagicSprite != null) continue;
+      if (npc.summonedByMagicSprite !== null) {
+        continue;
+      }
 
       const item: NpcSaveItem = {
         // === 基本信息 ===
@@ -1482,7 +2019,8 @@ export class Loader {
         hurtPlayerRadius: npc.hurtPlayerRadius,
 
         // === NPC 特有 ===
-        isVisible: npc.isVisible,
+        // C#: IsHide is script-controlled hiding, IsVisible is computed from magic time
+        isHide: npc.isHide,
         isAIDisabled: npc.isAIDisabled,
 
         // === 巡逻路径 ===
@@ -1567,9 +2105,39 @@ export class Loader {
 
     // 加载等级配置文件（如果存档中有保存）
     // C# Reference: case "LevelIni": -> Utils.GetLevelLists(@"ini\level\" + keyData.Value)
+    // 注意：存档可能保存完整路径或仅文件名，需要兼容两种情况
     if (data.levelIniFile) {
-      logger.debug(`[Loader] Loading player level config: ${data.levelIniFile}`);
-      await player.levelManager.setLevelFile(data.levelIniFile);
+      const levelFile = data.levelIniFile;
+
+      // 判断是否已经是完整路径（以 / 或 /resources 开头）
+      const isFullPath = levelFile.startsWith("/");
+
+      // 构建候选路径列表
+      const paths: string[] = isFullPath
+        ? [levelFile, levelFile.toLowerCase()] // 已是完整路径，直接使用
+        : [
+            ResourcePath.level(levelFile),
+            ResourcePath.level(levelFile.toLowerCase()),
+          ];
+
+      let loaded = false;
+      for (const path of paths) {
+        try {
+          const content = await resourceLoader.loadText(path);
+          if (content) {
+            await player.levelManager.setLevelFile(path);
+            logger.debug(`[Loader] Loaded player level config: ${path}`);
+            loaded = true;
+            break;
+          }
+        } catch {
+          // 尝试下一个路径
+        }
+      }
+
+      if (!loaded) {
+        logger.warn(`[Loader] Could not load level config file: ${levelFile}`);
+      }
     }
   }
 
@@ -1654,7 +2222,7 @@ export class Loader {
    */
   private loadTrapsFromJSON(trapsData: TrapData): void {
     // 传递完整的 TrapData（包含 ignoreList 和 mapTraps）
-    MapBase.LoadTrapsFromSave(trapsData.mapTraps, trapsData.ignoreList);
+    MapBase.Instance.loadTrapsFromSave(trapsData.mapTraps, trapsData.ignoreList);
   }
 
   /**

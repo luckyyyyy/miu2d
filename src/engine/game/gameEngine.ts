@@ -620,7 +620,7 @@ export class GameEngine implements IEngineContext {
 
         // C#: 加载新地图时清空已触发的陷阱列表
         // 参考 JxqyMap.LoadMapFromBuffer() 中的 _ingnoredTrapsIndex.Clear()
-        MapBase.ClearIgnoredTraps();
+        MapBase.Instance.clearIgnoredTraps();
 
         // 更新地图渲染器
         this.mapRenderer.mapData = mapData;
@@ -1457,6 +1457,26 @@ export class GameEngine implements IEngineContext {
   }
 
   /**
+   * 获取脚本变量值
+   * C# Reference: ScriptExecuter.GetVariablesValue("$" + VariableName)
+   */
+  getScriptVariable(name: string): number {
+    return this.gameManager.getVariable(name);
+  }
+
+  /**
+   * 通知玩家状态变更
+   * 用于切换角色、读档后刷新 UI（状态面板、物品、武功等）
+   *
+   * C# Reference: GuiManager.StateInterface.Index = GuiManager.EquipInterface.Index = index
+   */
+  notifyPlayerStateChanged(): void {
+    this.events.emit(GameEvents.UI_PLAYER_CHANGE, {});
+    this.events.emit(GameEvents.UI_GOODS_CHANGE, {});
+    this.events.emit(GameEvents.UI_MAGIC_CHANGE, {});
+  }
+
+  /**
    * 获取指定类型的管理器
    */
   getManager<T extends import("../core/engineContext").ManagerType>(
@@ -1532,6 +1552,7 @@ export class GameEngine implements IEngineContext {
     const deps: UIBridgeDeps = {
       events: this.events,
       getPlayer: () => this._gameManager?.getPlayer() ?? null,
+      getPlayerIndex: () => this._gameManager?.getPlayer()?.playerIndex ?? 0, // 从 Player 实例获取
       getGoodsListManager: () => this._gameManager?.getGoodsListManager() ?? null,
       getMagicListManager: () => this._gameManager?.getMagicListManager() ?? null,
       getBuyManager: () => this._gameManager?.getBuyManager() ?? null,

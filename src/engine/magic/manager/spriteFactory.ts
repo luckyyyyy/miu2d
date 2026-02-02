@@ -6,7 +6,7 @@
  */
 
 import type { Character } from "../../character/character";
-import type { NpcManager } from "../../character/npcManager";
+import type { NpcManager } from "../../npc";
 import { getEngineContext } from "../../core/engineContext";
 import { logger } from "../../core/logger";
 import type { Vector2 } from "../../core/types";
@@ -25,6 +25,7 @@ import { getSpeedRatio, normalizeVector } from "../../utils/math";
 import type { Kind19MagicInfo, MagicData } from "../types";
 import { MagicMoveKind } from "../types";
 import type { ICharacterHelper, ISpriteFactoryCallbacks, MagicManagerDeps } from "./types";
+import { getNeighbors } from "../../utils/neighbors";
 
 /**
  * 武功精灵创建工厂
@@ -1209,20 +1210,11 @@ export class SpriteFactory {
 
   /**
    * 查找指定方向的相邻瓦片
+   * C# Reference: PathFinder.FindNeighborInDirection
+   * 使用 getNeighbors 来正确处理等角瓦片的奇偶行偏移
    */
   private findNeighborInDirection(tile: Vector2, direction: number): Vector2 {
-    const dirOffsets = [
-      { x: 0, y: 1 },
-      { x: -1, y: 1 },
-      { x: -1, y: 0 },
-      { x: -1, y: -1 },
-      { x: 0, y: -1 },
-      { x: 1, y: -1 },
-      { x: 1, y: 0 },
-      { x: 1, y: 1 },
-    ];
-    const offset = dirOffsets[direction % 8];
-    return { x: tile.x + offset.x, y: tile.y + offset.y };
+    return getNeighbors(tile)[direction % 8];
   }
 
   // ========== 特殊 MoveKind 方法 ==========

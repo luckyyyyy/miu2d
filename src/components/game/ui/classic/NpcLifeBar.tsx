@@ -14,7 +14,7 @@
  * 3. 实时更新，与游戏帧同步
  */
 import type React from "react";
-import type { Npc } from "@/engine/character/npc";
+import type { Npc } from "@/engine/npc";
 import { useNpcInfoShowConfig } from "./useUISettings";
 
 // Colors matching C# InfoDrawer.cs

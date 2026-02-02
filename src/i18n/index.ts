@@ -30,7 +30,7 @@ i18n
     detection: {
       order: ["localStorage", "navigator"],
       caches: ["localStorage"],
-      lookupLocalStorage: "vibe2d_locale",
+      lookupLocalStorage: "Miu2D_locale",
     },
 
     interpolation: {

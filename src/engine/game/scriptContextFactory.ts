@@ -7,8 +7,8 @@
 
 import type { AudioManager } from "../audio";
 import type { Character } from "../character/character";
-import type { Npc } from "../character/npc";
-import type { NpcManager } from "../character/npcManager";
+import type { Npc } from "../npc";
+import type { NpcManager } from "../npc";
 import { logger } from "../core/logger";
 import type { Vector2 } from "../core/types";
 import { CharacterState } from "../core/types";
@@ -26,6 +26,7 @@ import type { ScriptContext } from "../script/executor";
 import type { TimerManager } from "../timer";
 import type { WeatherManager } from "../weather";
 import { ResourcePath } from "../../config/resourcePaths";
+import { StorageManager } from "./storage";
 
 /**
  * Dependencies needed to create a script context
@@ -77,6 +78,9 @@ export interface ScriptContextDependencies {
 
   // Trap save
   saveMapTrap: () => void;
+
+  // Player change (多主角切换)
+  changePlayer: (index: number) => Promise<void>;
 
   // Debug hooks (optional)
   onScriptStart?: (filePath: string, totalLines: number, allCodes: string[]) => void;
@@ -583,10 +587,10 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
       logger.log(`[Watch] ${char1Name} <-> ${char2Name}, type=${watchType}`);
     },
     enableNpcAI: () => {
-      npcManager.enableGlobalAI();
+      npcManager.enableAI();
     },
     disableNpcAI: () => {
-      npcManager.disableGlobalAI();
+      npcManager.disableAI();
     },
 
     // Player
@@ -1034,10 +1038,11 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
       deps.setMapTime(time);
     },
 
-    // Player change
+    // Player change - 多主角切换
+    // C#: Loader.ChangePlayer(index)
     playerChange: async (index) => {
-      // C#: Loader.ChangePlayer(index)
-      logger.log(`[ScriptContext] PlayerChange: ${index} (TODO: implement player switching)`);
+      await deps.changePlayer(index);
+      logger.log(`[ScriptContext] PlayerChange: switched to index ${index}`);
     },
 
     // ============= Extended Player Commands =============
@@ -1541,7 +1546,8 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
       logger.log("[ScriptContext] SaveMapTrap");
     },
     clearAllSave: () => {
-      logger.log("[ScriptContext] ClearAllSave (TODO)");
+      StorageManager.deleteAllSaves();
+      logger.log("[ScriptContext] ClearAllSave: all user saves deleted");
     },
     enableSave: () => {
       enableSave();
@@ -1574,7 +1580,7 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
     },
     getPartnerIdx: () => {
       // 获取第一个队友的索引
-      const partners = npcManager.getAllPartners();
+      const partners = npcManager.getAllPartner();
       if (partners.length > 0) {
         const partnerName = partners[0].name;
         const idx = partnerList.getIndex(partnerName);

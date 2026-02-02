@@ -104,7 +104,7 @@ export function Header() {
             whileHover={{ scale: 1.02 }}
           >
             <span className="text-2xl">⚡</span>
-            Vibe2D
+            Miu2D
           </motion.a>
 
           {/* Navigation */}

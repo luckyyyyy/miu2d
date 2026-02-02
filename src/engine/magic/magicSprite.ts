@@ -111,6 +111,18 @@ export class MagicSprite extends Sprite {
   /** C#: _superModeDestroySprites - SuperMode 特效精灵列表 */
   superModeDestroySprites: MagicSprite[] = [];
 
+  // ============= Leap (跳跃传递) 相关属性 =============
+  /** C#: _leftLeapTimes - 剩余跳跃次数 */
+  private _leftLeapTimes: number = 0;
+  /** C#: _canLeap - 是否能跳跃 */
+  private _canLeap: boolean = false;
+  /** C#: _leapedCharacters - 已跳跃命中的角色ID列表 */
+  private _leapedCharacterIds: string[] = [];
+
+  // ============= RangeEffect (周期触发) 相关属性 =============
+  /** C#: _rangeElapsedMilliseconds - 范围效果计时器 */
+  rangeElapsedMilliseconds: number = 0;
+
   /** ASF 路径 */
   flyingAsfPath: string | undefined;
   vanishAsfPath: string | undefined;
@@ -598,5 +610,80 @@ export class MagicSprite extends Sprite {
       this._magic.moveKind !== 21 &&
       this._magic.moveKind !== 23
     );
+  }
+
+  // ============= 跳跃传递 (Leap) =============
+
+  /** C#: _canLeap - 是否能跳跃 */
+  get canLeap(): boolean {
+    return this._canLeap;
+  }
+
+  set canLeap(value: boolean) {
+    this._canLeap = value;
+  }
+
+  /** C#: _leftLeapTimes - 剩余跳跃次数 */
+  get leftLeapTimes(): number {
+    return this._leftLeapTimes;
+  }
+
+  set leftLeapTimes(value: number) {
+    this._leftLeapTimes = value;
+  }
+
+  /**
+   * 初始化跳跃参数
+   * C# Reference: MagicSprite.Init() 中 _canLeap = BelongMagic.LeapTimes > 0
+   */
+  initializeLeap(): void {
+    if (this._magic.leapTimes > 0) {
+      this._canLeap = true;
+      this._leftLeapTimes = this._magic.leapTimes;
+      this._leapedCharacterIds = [];
+    }
+  }
+
+  /**
+   * 检查是否已跳跃命中过该角色
+   */
+  hasLeapedCharacter(charId: string): boolean {
+    return this._leapedCharacterIds.includes(charId);
+  }
+
+  /**
+   * 添加已跳跃命中的角色
+   */
+  addLeapedCharacter(charId: string): void {
+    if (!this._leapedCharacterIds.includes(charId)) {
+      this._leapedCharacterIds.push(charId);
+    }
+  }
+
+  /**
+   * 获取已跳跃命中的角色ID列表（用于寻找下一个目标时排除）
+   */
+  getLeapedCharacterIds(): string[] {
+    return [...this._leapedCharacterIds];
+  }
+
+  /**
+   * 减少效果值（每次跳跃后）
+   * C# Reference: LeapToNextTarget() 中的效果递减
+   */
+  reduceEffectByPercentage(percentage: number): void {
+    this.currentEffect -= Math.floor((this.currentEffect * percentage) / 100);
+    this.currentEffect2 -= Math.floor((this.currentEffect2 * percentage) / 100);
+    this.currentEffect3 -= Math.floor((this.currentEffect3 * percentage) / 100);
+    this.currentEffectMana -= Math.floor((this.currentEffectMana * percentage) / 100);
+  }
+
+  /**
+   * 结束跳跃
+   * C# Reference: EndLeap()
+   */
+  endLeap(): void {
+    this._leftLeapTimes = 0;
+    this._isDestroyed = true;
   }
 }

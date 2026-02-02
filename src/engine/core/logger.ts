@@ -10,6 +10,35 @@ export type LogLevel = "debug" | "info" | "warn" | "error";
 // 日志级别选项（用于 UI 下拉框）
 export const LOG_LEVELS: LogLevel[] = ["debug", "info", "warn", "error"];
 
+// localStorage key for persisting log level
+const LS_LOG_LEVEL = "Miu2D_log_level";
+
+/**
+ * 从 localStorage 读取日志级别
+ */
+function loadLogLevel(): LogLevel {
+  try {
+    const saved = localStorage.getItem(LS_LOG_LEVEL);
+    if (saved && LOG_LEVELS.includes(saved as LogLevel)) {
+      return saved as LogLevel;
+    }
+  } catch {
+    // localStorage 不可用
+  }
+  return "debug";
+}
+
+/**
+ * 保存日志级别到 localStorage
+ */
+function saveLogLevel(level: LogLevel): void {
+  try {
+    localStorage.setItem(LS_LOG_LEVEL, level);
+  } catch {
+    // localStorage 不可用
+  }
+}
+
 // 日志级别对应的颜色
 const LEVEL_STYLES: Record<LogLevel, string> = {
   debug: "color: #888; font-weight: normal",
@@ -102,7 +131,7 @@ function formatLog(
  */
 class Logger {
   private enabled = true;
-  private minLevel: LogLevel = "debug";
+  private minLevel: LogLevel = loadLogLevel();
   private groupDepth = 0;
 
   private readonly levelPriority: Record<LogLevel, number> = {
@@ -120,10 +149,11 @@ class Logger {
   }
 
   /**
-   * 设置最小日志级别
+   * 设置最小日志级别（自动持久化到 localStorage）
    */
   setMinLevel(level: LogLevel): void {
     this.minLevel = level;
+    saveLogLevel(level);
   }
 
   /**

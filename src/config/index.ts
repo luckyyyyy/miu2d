@@ -20,4 +20,7 @@ export {
   // 工具函数
   isResourcePath,
   ensureResourcePath,
+  // URL 构建
+  getResourceUrl,
+  getResourceDomain,
 } from "./resourcePaths";

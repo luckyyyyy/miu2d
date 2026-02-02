@@ -37,13 +37,15 @@ export interface GameProps {
   loadSlot?: number;
   /** 返回标题界面回调 */
   onReturnToTitle?: () => void;
+  /** UI 主题 */
+  uiTheme?: "classic" | "modern";
 }
 
 /**
  * Game Component
  */
 export const Game = forwardRef<GameHandle, GameProps>(
-  ({ width = 800, height = 600, loadSlot, onReturnToTitle }, ref) => {
+  ({ width = 800, height = 600, loadSlot, onReturnToTitle, uiTheme = "classic" }, ref) => {
     const canvasRef = useRef<GameCanvasHandle>(null);
     const containerRef = useRef<HTMLDivElement>(null);
 
@@ -160,7 +162,7 @@ export const Game = forwardRef<GameHandle, GameProps>(
         />
 
         {/* Game UI Components */}
-        {!isLoading && <GameUI engine={engine} width={width} height={height} />}
+        {!isLoading && <GameUI engine={engine} width={width} height={height} uiTheme={uiTheme} />}
       </div>
     );
   }

@@ -334,7 +334,7 @@ export const TitleGui: React.FC<TitleGuiProps> = ({
             color: "rgba(255,255,255,0.3)",
           }}
         >
-          Web Remake · Power by Vibe2D Engine
+          Web Remake · Power by Miu2D Engine
         </div>
       </div>
     </div>

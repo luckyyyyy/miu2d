@@ -39,6 +39,12 @@ export class CameraController {
   private moveToDestination: Vector2 = { x: 0, y: 0 };
   private moveToSpeed: number = 0;
 
+  // Vibrating screen (震屏效果)
+  // C# Reference: Carmera.cs - _vibratingDegree, _xVibratingSum, _yVibratingSum
+  private vibratingDegree: number = 0;
+  private xVibratingSum: number = 0;
+  private yVibratingSum: number = 0;
+
   /**
    * Check if camera is being moved by script
    */
@@ -203,5 +209,64 @@ export class CameraController {
       leftMoveFrames: this.leftMoveFrames,
       speed: this.moveSpeed,
     };
+  }
+
+  /**
+   * Start vibrating screen effect
+   * C# Reference: Carmera.VibaratingScreen(int degree)
+   *
+   * @param degree Intensity of vibration (decrements each frame)
+   */
+  vibrateScreen(degree: number): void {
+    this.vibratingDegree = degree;
+    this.xVibratingSum = 0;
+    this.yVibratingSum = 0;
+  }
+
+  /**
+   * Check if screen is vibrating
+   */
+  isVibrating(): boolean {
+    return this.vibratingDegree > 0;
+  }
+
+  /**
+   * Update vibrating screen effect
+   * C# Reference: Carmera.UpdateVibratingScreen()
+   *
+   * Returns offset to apply to camera position
+   */
+  updateVibrating(): Vector2 {
+    if (this.vibratingDegree <= 0) {
+      return { x: 0, y: 0 };
+    }
+
+    // Random direction for shake
+    const xSign = Math.random() < 0.5 ? -1 : 1;
+    const ySign = Math.random() < 0.5 ? -1 : 1;
+    let xAdd = xSign * Math.floor(Math.random() * (this.vibratingDegree + 1));
+    let yAdd = ySign * Math.floor(Math.random() * (this.vibratingDegree + 1));
+
+    // Limit cumulative displacement
+    if (Math.abs(this.xVibratingSum) > this.vibratingDegree) {
+      xAdd = -(this.xVibratingSum / Math.abs(this.xVibratingSum)) * Math.abs(xAdd);
+    }
+    if (Math.abs(this.yVibratingSum) > this.vibratingDegree) {
+      yAdd = -(this.yVibratingSum / Math.abs(this.yVibratingSum)) * Math.abs(yAdd);
+    }
+
+    this.xVibratingSum += xAdd;
+    this.yVibratingSum += yAdd;
+    this.vibratingDegree--;
+
+    if (this.vibratingDegree === 0) {
+      // Vibration finished, return correction offset
+      const correction = { x: -this.xVibratingSum, y: -this.yVibratingSum };
+      this.xVibratingSum = 0;
+      this.yVibratingSum = 0;
+      return correction;
+    }
+
+    return { x: xAdd, y: yAdd };
   }
 }

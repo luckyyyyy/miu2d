@@ -3,7 +3,47 @@
  *
  * 统一管理所有资源路径，方便后期修改资源根目录。
  * 所有资源加载都应该通过这个配置来获取完整路径。
+ *
+ * 支持通过环境变量 VITE_DEMO_RESOURCES_DOMAIN 配置外部资源域名（如 R2 CDN）
+ * - 配置后: https://cdn.example.com/resources/...
+ * - 未配置: /resources/... (当前域名)
  */
+
+// =============================================================================
+// 资源域名配置
+// =============================================================================
+
+/**
+ * 获取资源域名（从环境变量读取）
+ * 环境变量: VITE_DEMO_RESOURCES_DOMAIN
+ * 例如: https://yych.example.com
+ *
+ * @returns 资源域名（不带尾部斜杠），如果未配置返回空字符串
+ */
+export function getResourceDomain(): string {
+  const domain = import.meta.env.VITE_DEMO_RESOURCES_DOMAIN as string | undefined;
+  if (domain) {
+    // 移除尾部斜杠
+    return domain.replace(/\/+$/, "");
+  }
+  return "";
+}
+
+/**
+ * 获取完整的资源 URL
+ * @param path 资源路径（如 /resources/xxx 或 resources/xxx）
+ * @returns 完整的资源 URL
+ */
+export function getResourceUrl(path: string): string {
+  const domain = getResourceDomain();
+  // 确保 path 以 / 开头
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+
+  if (domain) {
+    return `${domain}${normalizedPath}`;
+  }
+  return normalizedPath;
+}
 
 // =============================================================================
 // 游戏定义

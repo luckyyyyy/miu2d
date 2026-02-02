@@ -19,7 +19,9 @@ export type {
 export type { SaveLoadPanelProps, SettingsPanelProps } from "./SidePanel";
 export {
   loadAudioSettings,
+  loadUITheme,
   SaveLoadPanel,
   SettingsPanel,
   saveAudioSettings,
+  saveUITheme,
 } from "./SidePanel";

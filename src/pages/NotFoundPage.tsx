@@ -61,7 +61,7 @@ function NotFoundContent() {
           >
             <span className="text-2xl">⚡</span>
             <span className="bg-gradient-to-r from-orange-500 to-amber-500 bg-clip-text text-transparent font-bold text-lg">
-              Vibe2D Engine
+              Miu2D Engine
             </span>
           </Link>
         </motion.div>
