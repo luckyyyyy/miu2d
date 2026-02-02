@@ -19,6 +19,7 @@ import {
   EquipGui,
   GoodsGui,
   ItemTooltip,
+  LittleHeadGui,
   LittleMapGui,
   MagicGui,
   MagicTooltip,
@@ -76,6 +77,7 @@ export const ClassicGameUI: React.FC<ClassicGameUIProps> = ({ logic, width, heig
     goodsData,
     magicData,
     buyData,
+    partnersData,
     hoveredNpc,
     npcUpdateKey,
     dragData,
@@ -220,6 +222,19 @@ export const ClassicGameUI: React.FC<ClassicGameUIProps> = ({ logic, width, heig
         onMemoClick={() => togglePanel("memo")}
         onSystemClick={() => togglePanel("system")}
       />
+
+      {/* Partner Heads (队友头像) - C#: LittleHeadGui */}
+      {partnersData.length > 0 && (
+        <LittleHeadGui
+          partners={partnersData}
+          onPartnerClick={(index, partner) => {
+            if (partner.canEquip) {
+              // TODO: 打开 NPC 装备界面
+              logger.debug(`[ClassicGameUI] Partner clicked: ${partner.name}`);
+            }
+          }}
+        />
+      )}
 
       {/* Timer GUI */}
       {timerState.isRunning && !timerState.isHidden && (

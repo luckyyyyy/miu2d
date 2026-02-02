@@ -63,6 +63,14 @@ export interface MinimapState {
   characters: CharacterMarker[];
 }
 
+// PartnerData 用于渲染队友头像 (C#: LittleHeadGui)
+export interface PartnerData {
+  name: string;
+  level: number;
+  canLevelUp: boolean;
+  canEquip: boolean;
+}
+
 // GoodsData 用于渲染物品相关 UI
 export interface GoodsData {
   items: ({ good: Good; count: number } | null)[];
@@ -326,6 +334,53 @@ export function useGameUILogic({ engine }: UseGameUILogicOptions) {
     };
 
     animationFrameId = requestAnimationFrame(updateTimerState);
+
+    return () => {
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
+    };
+  }, [engine]);
+
+  // ============= Partner State (队友头像) =============
+
+  const [partnersData, setPartnersData] = useState<PartnerData[]>([]);
+
+  useEffect(() => {
+    if (!engine) return;
+
+    let animationFrameId: number;
+
+    const updatePartnersData = () => {
+      const npcManager = engine.npcManager;
+      if (!npcManager) {
+        animationFrameId = requestAnimationFrame(updatePartnersData);
+        return;
+      }
+
+      const partners = npcManager.getAllPartner();
+      const newData: PartnerData[] = partners.map((npc) => ({
+        name: npc.name,
+        level: npc.level,
+        canLevelUp: npc.canLevelUp > 0,
+        canEquip: npc.canEquip > 0,
+      }));
+
+      // 只在数据变化时更新
+      setPartnersData((prev) => {
+        if (prev.length !== newData.length) return newData;
+        for (let i = 0; i < prev.length; i++) {
+          if (prev[i].name !== newData[i].name || prev[i].level !== newData[i].level) {
+            return newData;
+          }
+        }
+        return prev;
+      });
+
+      animationFrameId = requestAnimationFrame(updatePartnersData);
+    };
+
+    animationFrameId = requestAnimationFrame(updatePartnersData);
 
     return () => {
       if (animationFrameId) {
@@ -731,6 +786,7 @@ export function useGameUILogic({ engine }: UseGameUILogicOptions) {
     goodsData,
     magicData,
     buyData,
+    partnersData,
 
     // Update trigger (用于强制刷新 player 状态)
     updateTrigger,

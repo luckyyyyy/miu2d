@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Game, type GameHandle } from "@/components/game/Game";
-import { GameCursorContainer } from "@/components/game/ui";
+import { GameCursor } from "@/components/game/ui";
 
 // 计算游戏尺寸的纯函数
 function calculateGameSize() {
@@ -31,6 +31,7 @@ export function DemoSection() {
   const [gameSize, setGameSize] = useState(calculateGameSize);
   const gameRef = useRef<GameHandle>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const gameContainerRef = useRef<HTMLDivElement>(null);
 
   const isMobile = gameSize.isMobile;
 
@@ -127,7 +128,8 @@ export function DemoSection() {
             </div>
 
             {/* 游戏区域 - 手机自适应，PC固定800x600 */}
-            <GameCursorContainer
+            <div
+              ref={gameContainerRef}
               className="relative bg-black flex items-center justify-center overflow-hidden"
               style={{
                 width: gameSize.width,
@@ -135,6 +137,8 @@ export function DemoSection() {
                 maxWidth: "100%",
               }}
             >
+              {/* 游戏光标 - 在游戏容器内 */}
+              {!isMobile && <GameCursor enabled={true} containerRef={gameContainerRef} />}
               {showGame ? (
                 <>
                   <Game ref={gameRef} width={gameSize.width} height={gameSize.height} />
@@ -160,7 +164,7 @@ export function DemoSection() {
                   <p>滚动以加载游戏</p>
                 </div>
               )}
-            </GameCursorContainer>
+            </div>
           </div>
         </motion.div>
 

@@ -572,8 +572,8 @@ export class GameManager {
     const mapFileName = mapPath.split("/").pop() || mapPath;
     this.currentMapName = mapFileName.replace(/\.map$/i, "");
 
-    // Clear NPCs and Objs
-    this.npcManager.clearAllNpc();
+    // Clear NPCs and Objs (keep partners - C#: ClearAllNpcAndKeepPartner)
+    this.npcManager.clearAllNpcAndKeepPartner();
     this.objManager.clearAll();
     // NOTE: 不要在换地图时清除脚本缓存！
     // 脚本缓存是全局的，应该在游戏运行期间保持

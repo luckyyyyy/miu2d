@@ -1117,7 +1117,8 @@ export class GameEngine implements IEngineContext {
     // === 玩家遮挡半透明效果 ===
     // C# Reference: Player.Draw - 当玩家被遮挡物覆盖时绘制半透明效果
     // 在所有地图层和角色绘制完成后，如果玩家被遮挡，再单独绘制一层半透明玩家
-    if (player.isSpritesLoaded() && player.isOccluded) {
+    // 注意：需要检查 isDraw，否则 ShowNpc("杨影枫", 0) 隐藏玩家时半透明层仍会显示
+    if (player.isSpritesLoaded() && player.isOccluded && player.isDraw) {
       ctx.save();
       ctx.globalAlpha = 0.5;
       player.drawWithColor(ctx, renderer.camera.x, renderer.camera.y, "white", 0, 0);

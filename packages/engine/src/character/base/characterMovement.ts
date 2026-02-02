@@ -877,12 +877,22 @@ export abstract class CharacterMovement extends CharacterBase {
     this.path = [];
     this.isSitted = false;
     if (this._isInFighting && this.isStateImageOk(CharacterState.FightStand)) {
+      // C# Reference: StandingImmediately() - 如果已经是 FightStand，不改变状态以保持动画循环
+      if (this._state === CharacterState.FightStand) {
+        return;
+      }
       this.state = CharacterState.FightStand;
     } else {
+      // C# Reference: StandingImmediately() - 如果已经是站立状态，不改变状态以保持动画循环
+      // C# 通过 SetState() 返回 isSameState 来判断，只有状态真正改变时才重置动画
+      // 这里如果已经是 Stand 或 Stand1，直接返回不改变状态
+      if (this._state === CharacterState.Stand || this._state === CharacterState.Stand1) {
+        // 已经在站立状态，不改变（允许动画自然循环）
+        return;
+      }
       if (
         this.isStateImageOk(CharacterState.Stand1) &&
-        Math.random() < 0.25 &&
-        this._state !== CharacterState.Stand1
+        Math.random() < 0.25
       ) {
         this.state = CharacterState.Stand1;
       } else {

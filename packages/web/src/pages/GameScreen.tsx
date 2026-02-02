@@ -14,7 +14,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import type { GameHandle } from "../components";
-import { DebugPanel, Game, GameCursorContainer, MobileControls, SaveLoadGui, SaveLoadPanel, SettingsPanel, TitleGui, TouchDragIndicator, loadUITheme } from "../components";
+import { DebugPanel, Game, GameCursor, MobileControls, SaveLoadGui, SaveLoadPanel, SettingsPanel, TitleGui, TouchDragIndicator, loadUITheme } from "../components";
 import type { UITheme } from "../components/game/ui";
 import { TouchDragProvider } from "../contexts";
 import { logger } from "@miu2d/engine/core/logger";
@@ -94,6 +94,7 @@ const MOBILE_SCALE = 0.75;
 
 export default function GameScreen() {
   const gameRef = useRef<GameHandle>(null);
+  const gameAreaRef = useRef<HTMLDivElement>(null);
   const [gamePhase, setGamePhase] = useState<GamePhase>("title");
   const [loadSlotOverride, setLoadSlotOverride] = useState<number | undefined>(undefined);
   const [activePanel, setActivePanel] = useState<ActivePanel>("none"); // 标题界面时默认不显示面板
@@ -431,7 +432,7 @@ export default function GameScreen() {
 
         {/* 标题界面 */}
         {gamePhase === "title" && (
-          <GameCursorContainer className="w-full h-full" enabled={!isMobile}>
+          <div className="w-full h-full">
             <TitleGui
               screenWidth={window.innerWidth}
               screenHeight={window.innerHeight}
@@ -457,7 +458,7 @@ export default function GameScreen() {
               </div>
             </div>
           )}
-        </GameCursorContainer>
+          </div>
       )}
 
       {/* 游戏界面 */}
@@ -628,10 +629,13 @@ export default function GameScreen() {
           )}
 
           {/* Game Area */}
-          <GameCursorContainer
+          <div
+            ref={gameAreaRef}
             className={`flex-1 flex items-center justify-center relative bg-black ${isMobile ? 'overflow-hidden' : ''}`}
-            enabled={!isMobile}
           >
+            {/* 游戏光标 - 在游戏区域内 */}
+            {!isMobile && <GameCursor enabled={true} containerRef={gameAreaRef} />}
+            
             {/* 移动端：应用缩放 */}
             <div
               style={isMobile ? {
@@ -666,7 +670,7 @@ export default function GameScreen() {
 
             {/* 触摸拖拽指示器（移动端） */}
             {isMobile && <TouchDragIndicator />}
-          </GameCursorContainer>
+          </div>
         </>
       )}
       </div>

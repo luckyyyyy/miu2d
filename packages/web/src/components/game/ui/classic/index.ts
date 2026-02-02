@@ -71,6 +71,10 @@ export { TitleSettingsModal } from "./TitleSettingsModal";
 export type { CharacterMarker } from "./LittleMapGui";
 export { LittleMapGui } from "./LittleMapGui";
 
+// Little Head GUI (Partner portraits)
+export type { PartnerInfo } from "./LittleHeadGui";
+export { LittleHeadGui } from "./LittleHeadGui";
+
 // NPC Equipment GUI
 export type { EquipSlots as NpcEquipSlots, DragData as NpcDragData } from "./NpcEquipGui";
 export { NpcEquipGui } from "./NpcEquipGui";
@@ -86,6 +90,14 @@ export { VideoPlayer } from "./VideoPlayer";
 
 // Game Cursor
 export { GameCursor, GameCursorContainer } from "./GameCursor";
+export {
+  initGameCursor,
+  enableGameCursor,
+  disableGameCursor,
+  destroyGameCursor,
+  isGameCursorEnabled,
+  isGameCursorInitialized,
+} from "./gameCursorManager";
 
 // Item Tooltip
 export type { TooltipState } from "./ItemTooltip";
