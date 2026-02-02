@@ -1,6 +1,6 @@
 #!/bin/bash
 # 构建 engine-wasm 包
-# 需要安装: rustup, wasm-pack
+# 需要安装: rust, wasm-pack
 
 set -e
 
@@ -10,9 +10,8 @@ WASM_DIR="$SCRIPT_DIR/../packages/engine-wasm"
 echo "🦀 Building Miu2D Engine WASM..."
 
 # 检查依赖
-if ! command -v rustup &> /dev/null; then
-    echo "❌ rustup not found. Please install Rust first:"
-    echo "   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh"
+if ! command -v cargo &> /dev/null; then
+    echo "❌ cargo not found. Please install Rust first."
     exit 1
 fi
 
@@ -22,9 +21,11 @@ if ! command -v wasm-pack &> /dev/null; then
 fi
 
 # 确保 wasm32 目标已安装
-if ! rustup target list --installed | grep -q wasm32-unknown-unknown; then
-    echo "🎯 Adding wasm32-unknown-unknown target..."
-    rustup target add wasm32-unknown-unknown
+if command -v rustup &> /dev/null; then
+    if ! rustup target list --installed | grep -q wasm32-unknown-unknown; then
+        echo "🎯 Adding wasm32-unknown-unknown target..."
+        rustup target add wasm32-unknown-unknown
+    fi
 fi
 
 cd "$WASM_DIR"
