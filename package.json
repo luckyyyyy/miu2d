@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "pnpm --filter @miu2d/web dev",
     "build": "pnpm -r build",
+    "build:web": "pnpm --filter @miu2d/engine build && pnpm --filter @miu2d/web build",
     "build:wasm": "bash scripts/build-wasm.sh",
     "lint": "biome lint .",
     "format": "biome format --write .",

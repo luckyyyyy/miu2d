@@ -9,7 +9,8 @@
     "pkg"
   ],
   "scripts": {
-    "build": "wasm-pack build --target web --out-dir pkg",
+    "build": "[ -f pkg/miu2d_engine_wasm.js ] && echo 'WASM pkg exists, skipping build' || wasm-pack build --target web --out-dir pkg",
+    "build:force": "wasm-pack build --target web --out-dir pkg",
     "build:release": "wasm-pack build --target web --out-dir pkg --release",
     "build:nodejs": "wasm-pack build --target nodejs --out-dir pkg-node",
     "test": "wasm-pack test --headless --chrome",
