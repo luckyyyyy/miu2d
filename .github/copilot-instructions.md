@@ -10,10 +10,39 @@
 
 ### 技术栈
 - TypeScript 5.9 (strict mode)
-- React 19, Vite 7
+- React 19, Vite 7 (rolldown-vite)
 - HTML5 Canvas 2D
+- Tailwind CSS 4
+- Web Audio API (OGG Vorbis)
 - Biome (lint + format)
 - **pnpm monorepo**
+
+### pnpm Monorepo 结构
+
+本项目使用 pnpm workspace 管理多包：
+
+```yaml
+# pnpm-workspace.yaml
+packages:
+  - "packages/*"
+```
+
+**包间依赖：**
+```json
+// packages/web/package.json
+{
+  "dependencies": {
+    "@miu2d/engine": "workspace:*"  // 引用本地 engine 包
+  }
+}
+```
+
+**常用操作：**
+```bash
+pnpm install              # 安装所有包依赖
+pnpm -r build             # 递归构建所有包
+pnpm --filter @miu2d/web dev   # 只运行 web 包
+```
 
 ### 项目结构
 
@@ -21,6 +50,37 @@
 |------|------|------|
 | **游戏引擎** | `packages/engine/` | 纯 TypeScript，**不依赖 React**，包名 `@miu2d/engine` |
 | **React 应用** | `packages/web/` | UI 界面和用户交互，包名 `@miu2d/web` |
+| **C# 参考** | `JxqyHD/Engine/` | 原 C# 实现，功能参考来源 |
+| **游戏资源** | `resources/` | 地图、精灵、脚本等资源文件 |
+
+### 引擎模块结构
+
+```
+packages/engine/src/
+├── audio/          # 音频管理（Web Audio API）
+├── character/      # 角色系统（base/ 继承链, modules/, level/）
+├── config/         # 配置管理（资源路径等）
+├── constants/      # 常量定义
+├── core/           # 核心类型和工具（types.ts, logger.ts, engineContext.ts）
+├── debug/          # 调试系统
+├── drop/           # 物品掉落
+├── effects/        # 屏幕特效
+├── game/           # 游戏引擎主类
+├── gui/            # GUI 管理器
+├── listManager/    # 列表管理器（伙伴、物品等）
+├── magic/          # 武功系统（effects/, manager/, passives/）
+├── map/            # 地图系统
+├── npc/            # NPC 系统
+├── obj/            # 物体系统
+├── player/         # 玩家系统（goods/, magic/）
+├── resource/       # 资源加载器
+├── script/         # 脚本系统（commands/, parser.ts, executor.ts）
+├── sprite/         # 精灵基类（sprite.ts, asf.ts）
+├── timer/          # 计时器系统
+├── ui/             # UI 桥接层
+├── utils/          # 工具函数
+└── weather/        # 天气系统
+```
 
 **导入引擎模块：**
 ```typescript
@@ -31,6 +91,22 @@ import { GameEngine, Direction } from "@miu2d/engine";
 import { logger } from "@miu2d/engine/core/logger";
 import { resourceLoader } from "@miu2d/engine/resource/resourceLoader";
 import type { MagicData } from "@miu2d/engine/magic";
+```
+
+---
+
+## 类继承体系
+
+### Sprite 继承链
+
+```
+Sprite (packages/engine/src/sprite/sprite.ts)
+└── CharacterBase (character/base/characterBase.ts)
+    └── CharacterMovement (character/base/characterMovement.ts)
+        └── CharacterCombat (character/base/characterCombat.ts)
+            └── Character (character/character.ts) [abstract]
+                ├── Player (player/player.ts)
+                └── Npc (npc/npc.ts)
 ```
 
 ---
@@ -47,14 +123,17 @@ interface IEngineContext {
   readonly map: MapBase;              // 地图（障碍检测、陷阱、坐标转换）
   readonly audio: AudioManager;       // 音频管理器
 
-  // ===== 便捷方法 =====
-  runScript(path: string): Promise<void>;  // 运行脚本
-  queueScript(path: string): void;         // 脚本入队
-  getScriptBasePath(): string;             // 脚本基础路径
-  getMapName(): string;                    // 当前地图名
+  // ===== 便捷方法（高频操作）=====
+  runScript(path: string, belongObject?: { type: string; id: string }): Promise<void>;
+  queueScript(path: string): void;
+  getCurrentMapName(): string;
+  getScriptBasePath(): string;
+  isDropEnabled(): boolean;
+  getScriptVariable(name: string): number;
+  notifyPlayerStateChanged(): void;   // 通知 UI 刷新
 
   // ===== 低频管理器 =====
-  getManager<T>(type: ManagerType): T;
+  getManager<T extends ManagerType>(type: T): ManagerMap[T];
 }
 
 // ManagerType: "magic" | "obj" | "gui" | "debug" | "weather" | "buy" | "interaction" | "magicHandler" | "mapRenderer" | "script"
@@ -70,7 +149,7 @@ class Obj extends Sprite {
     const isBlocked = this.engine.map.isObstacleForCharacter(x, y);
     this.engine.audio.playSound("click.wav");
 
-    // 低频管理器通过 getManager
+    // 低频管理器通过 getManager（类型安全）
     const gui = this.engine.getManager("gui");
     gui.showDialog("Hello");
   }
@@ -116,7 +195,7 @@ try { ... } catch (e) { logger.error(e); throw e; }
 ## 资源加载
 
 ```typescript
-import { resourceLoader } from "../resource/resourceLoader";
+import { resourceLoader } from "@miu2d/engine/resource/resourceLoader";
 
 // UTF-8 文本
 const text = await resourceLoader.loadText("/resources/script/xxx.txt");
@@ -124,9 +203,12 @@ const text = await resourceLoader.loadText("/resources/script/xxx.txt");
 // 二进制
 const buffer = await resourceLoader.loadBinary("/resources/map/xxx.map");
 
-// GBK 编码文件
+// GBK 编码文件（如 .obj 存档）
 const buffer = await resourceLoader.loadBinary(path);
 const content = new TextDecoder("gbk").decode(buffer);
+
+// 音频文件
+const audioBuffer = await resourceLoader.loadAudio("/resources/sound/xxx.ogg");
 ```
 
 | 格式 | 用途 | 编码 |
@@ -134,15 +216,17 @@ const content = new TextDecoder("gbk").decode(buffer);
 | `.map` | 地图数据 | 二进制 |
 | `.asf` | 精灵动画 | 二进制 |
 | `.mpc` | 资源包 | 二进制 |
+| `.shd` | 阴影数据 | 二进制 |
 | `.obj` | 物体存档 | GBK |
 | `.ini`, `.npc`, `.txt` | 配置/脚本 | UTF-8 |
+| `.ogg`, `.mp3`, `.wav` | 音频文件 | Web Audio API |
 
 ---
 
 ## 日志系统
 
 ```typescript
-import { logger } from "../core/logger";
+import { logger } from "@miu2d/engine/core/logger";
 
 logger.debug("[Module] 调试信息");
 logger.info("[Module] 一般信息");
@@ -160,5 +244,26 @@ logger.error("[Module] 错误");
 - 函数/变量: `camelCase`
 - 常量: `UPPER_SNAKE_CASE`
 - 文件: TS `camelCase.ts`, React `PascalCase.tsx`
+
+---
+
+## 常用命令
+
+```bash
+# 开发
+pnpm dev          # 启动开发服务器
+
+# 类型检查
+pnpm tsc          # 全项目类型检查（必须通过）
+
+# 代码质量
+pnpm lint         # Biome 代码检查
+pnpm format       # Biome 格式化
+pnpm check        # lint + format
+
+# 构建
+pnpm build        # 构建所有包
+pnpm preview      # 预览构建结果
+```
 
 ---

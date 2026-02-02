@@ -2,13 +2,14 @@
  * GameCursorManager - 独立于 React 的游戏鼠标管理器
  *
  * 实现方式：
- * - 在指定容器内创建一个 overlay div
- * - 使用 CSS cursor 属性设置自定义鼠标图像
- * - 使用 blob URL 存储光标图像
- * - 动态修改 cursor 属性切换帧（不预生成 CSS 类）
+ * - 纯 DOM 操作，通过添加/移除 CSS class 控制光标
+ * - 使用 data URL（不是 blob URL），不产生网络请求
+ * - 预生成所有帧的 CSS 类（.game-cursor-frame-0, .game-cursor-frame-1, ...）
+ * - 动画时只切换类名，不修改 CSS 内容
  * - 完全脱离 React 机制
  */
 import { buildPath } from "@miu2d/engine/config";
+import { logger } from "@miu2d/engine/core/logger";
 import { type AsfData, getFrameCanvas, loadAsf } from "@miu2d/engine/sprite/asf";
 
 // UI 配置
@@ -17,41 +18,29 @@ const MOUSE_CONFIG = {
 };
 
 // 常量
-const CURSOR_OVERLAY_ID = "game-cursor-overlay";
+const CURSOR_STYLE_ID = "game-cursor-style";
+const CURSOR_CONTAINER_CLASS = "game-cursor-container";
 
 // 状态
 let isInitialized = false;
 let isEnabled = false;
-let overlayElement: HTMLDivElement | null = null;
 let containerElement: HTMLElement | null = null;
+let styleElement: HTMLStyleElement | null = null;
 let animationTimer: number | null = null;
 let currentFrameIndex = 0;
+let totalFrames = 0;
 
 // 缓存
 let cachedAsfData: AsfData | null = null;
-let cachedFrameBlobUrls: string[] = [];
+let cachedFrameDataUrls: string[] = [];
 let loadPromise: Promise<void> | null = null;
 
 /**
- * 将 canvas 转换为 blob URL
- */
-function canvasToBlobUrl(canvas: HTMLCanvasElement): Promise<string> {
-  return new Promise((resolve, reject) => {
-    canvas.toBlob((blob) => {
-      if (blob) {
-        resolve(URL.createObjectURL(blob));
-      } else {
-        reject(new Error("Failed to create blob from canvas"));
-      }
-    }, "image/png");
-  });
-}
-
-/**
- * 加载鼠标 ASF 资源并转换为 blob URL
+ * 加载鼠标 ASF 资源并转换为 data URL
+ * 使用 canvas.toDataURL() 直接生成，不产生网络请求
  */
 async function loadCursorAsf(): Promise<void> {
-  if (cachedAsfData && cachedFrameBlobUrls.length > 0) return;
+  if (cachedAsfData && cachedFrameDataUrls.length > 0) return;
 
   if (loadPromise) {
     await loadPromise;
@@ -60,16 +49,26 @@ async function loadCursorAsf(): Promise<void> {
 
   loadPromise = (async () => {
     const fullPath = buildPath(MOUSE_CONFIG.image);
-    const data = await loadAsf(fullPath);
-    if (data && data.frames.length > 0) {
-      cachedAsfData = data;
-      // 转换每帧为 blob URL
-      cachedFrameBlobUrls = await Promise.all(
-        data.frames.map((frame) => {
+    logger.debug(`[GameCursor] Loading cursor ASF from: ${fullPath}`);
+
+    try {
+      const data = await loadAsf(fullPath);
+      if (data && data.frames.length > 0) {
+        cachedAsfData = data;
+        logger.debug(`[GameCursor] Loaded ${data.frames.length} frames`);
+
+        // 直接转换每帧为 data URL（同步操作，不产生网络请求）
+        cachedFrameDataUrls = data.frames.map((frame) => {
           const canvas = getFrameCanvas(frame);
-          return canvasToBlobUrl(canvas);
-        })
-      );
+          return canvas.toDataURL("image/png");
+        });
+
+        logger.debug(`[GameCursor] Created ${cachedFrameDataUrls.length} data URLs`);
+      } else {
+        logger.warn("[GameCursor] No frames found in cursor ASF");
+      }
+    } catch (error) {
+      logger.error("[GameCursor] Failed to load cursor ASF:", error);
     }
   })();
 
@@ -77,48 +76,51 @@ async function loadCursorAsf(): Promise<void> {
 }
 
 /**
- * 在容器内创建 overlay div
+ * 初始化所有帧的 CSS 样式（只执行一次）
+ * 为每个帧创建单独的 CSS 类，之后只需切换类名
  */
-function createOverlay(container: HTMLElement): void {
-  // 移除旧的 overlay
-  const existing = document.getElementById(CURSOR_OVERLAY_ID);
-  if (existing) {
-    existing.parentNode?.removeChild(existing);
-  }
+function initializeCursorStyles(): void {
+  if (!styleElement || cachedFrameDataUrls.length === 0) return;
 
-  overlayElement = document.createElement("div");
-  overlayElement.id = CURSOR_OVERLAY_ID;
-  overlayElement.style.cssText = `
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 99999;
-    pointer-events: none;
+  totalFrames = cachedFrameDataUrls.length;
+
+  // 生成所有帧的 CSS 类
+  let cssContent = `
+    /* 基础样式 - 禁用选择 */
+    .${CURSOR_CONTAINER_CLASS},
+    .${CURSOR_CONTAINER_CLASS} * {
+      user-select: none !important;
+      -webkit-user-select: none !important;
+    }
   `;
-  
-  // 确保容器有 position
-  const containerStyle = window.getComputedStyle(container);
-  if (containerStyle.position === "static") {
-    container.style.position = "relative";
-  }
-  
-  container.appendChild(overlayElement);
-  containerElement = container;
+
+  // 为每个帧创建单独的类
+  cachedFrameDataUrls.forEach((dataUrl, index) => {
+    const cursorValue = `url(${dataUrl}) 0 0, auto`;
+    cssContent += `
+    .game-cursor-frame-${index},
+    .game-cursor-frame-${index} * {
+      cursor: ${cursorValue} !important;
+    }
+    `;
+  });
+
+  styleElement.textContent = cssContent;
+  logger.debug(`[GameCursor] Initialized ${totalFrames} cursor frame styles`);
 }
 
 /**
- * 切换到指定帧 - 直接修改 cursor 属性
+ * 切换到指定帧（通过切换类名，不重写 CSS）
  */
 function switchToFrame(frameIndex: number): void {
-  if (!overlayElement || cachedFrameBlobUrls.length === 0) return;
-  const blobUrl = cachedFrameBlobUrls[frameIndex];
-  overlayElement.style.cursor = `url(${blobUrl}) 0 0, auto`;
-  // 同时设置容器的 cursor
-  if (containerElement) {
-    containerElement.style.cursor = `url(${blobUrl}) 0 0, auto`;
+  if (!containerElement || totalFrames === 0) return;
+
+  // 移除所有帧类名
+  for (let i = 0; i < totalFrames; i++) {
+    containerElement.classList.remove(`game-cursor-frame-${i}`);
   }
+  // 添加当前帧类名
+  containerElement.classList.add(`game-cursor-frame-${frameIndex}`);
 }
 
 /**
@@ -126,10 +128,10 @@ function switchToFrame(frameIndex: number): void {
  */
 function startAnimation(): void {
   if (animationTimer !== null) return;
-  if (cachedFrameBlobUrls.length === 0) return;
+  if (cachedFrameDataUrls.length === 0) return;
 
   // 单帧不需要动画
-  if (cachedFrameBlobUrls.length === 1) {
+  if (cachedFrameDataUrls.length === 1) {
     switchToFrame(0);
     return;
   }
@@ -137,7 +139,7 @@ function startAnimation(): void {
   const interval = cachedAsfData?.interval ?? 100;
 
   const animate = () => {
-    currentFrameIndex = (currentFrameIndex + 1) % cachedFrameBlobUrls.length;
+    currentFrameIndex = (currentFrameIndex + 1) % cachedFrameDataUrls.length;
     switchToFrame(currentFrameIndex);
     animationTimer = window.setTimeout(animate, interval);
   };
@@ -173,11 +175,16 @@ export async function initGameCursor(): Promise<void> {
 
 /**
  * 启用游戏光标
- * @param container 游戏容器元素，overlay 将创建在此容器内
+ * @param container 游戏容器元素
  */
 export function enableGameCursor(container: HTMLElement): void {
   if (!isInitialized) {
-    console.warn("[GameCursor] 请先调用 initGameCursor()");
+    logger.warn("[GameCursor] 请先调用 initGameCursor()");
+    return;
+  }
+
+  if (cachedFrameDataUrls.length === 0) {
+    logger.warn("[GameCursor] 没有加载到光标帧数据");
     return;
   }
 
@@ -189,10 +196,26 @@ export function enableGameCursor(container: HTMLElement): void {
       return;
     }
   }
-  
-  isEnabled = true;
 
-  createOverlay(container);
+  isEnabled = true;
+  logger.debug(`[GameCursor] Enabling cursor on container: ${container.tagName}#${container.id || "(no-id)"}`);
+
+  // 创建/更新动态样式表
+  if (!styleElement) {
+    styleElement = document.createElement("style");
+    styleElement.id = CURSOR_STYLE_ID;
+    document.head.appendChild(styleElement);
+    logger.debug("[GameCursor] Created style element");
+  }
+
+  containerElement = container;
+
+  // 初始化所有帧的 CSS 样式
+  initializeCursorStyles();
+
+  // 添加容器基础类
+  container.classList.add(CURSOR_CONTAINER_CLASS);
+
   startAnimation();
 }
 
@@ -205,17 +228,15 @@ export function disableGameCursor(): void {
 
   stopAnimation();
 
-  // 恢复容器的 cursor
+  // 移除容器的所有 cursor 相关 CSS class
   if (containerElement) {
-    containerElement.style.cursor = "";
+    containerElement.classList.remove(CURSOR_CONTAINER_CLASS);
+    for (let i = 0; i < totalFrames; i++) {
+      containerElement.classList.remove(`game-cursor-frame-${i}`);
+    }
+    logger.debug(`[GameCursor] Removed cursor classes from container`);
   }
 
-  // 移除 overlay
-  if (overlayElement?.parentNode) {
-    overlayElement.parentNode.removeChild(overlayElement);
-  }
-
-  overlayElement = null;
   containerElement = null;
 }
 
@@ -225,11 +246,17 @@ export function disableGameCursor(): void {
 export function destroyGameCursor(): void {
   disableGameCursor();
 
-  // 释放 blob URLs
-  cachedFrameBlobUrls.forEach((url) => URL.revokeObjectURL(url));
-  cachedFrameBlobUrls = [];
+  // 移除动态样式表
+  if (styleElement?.parentNode) {
+    styleElement.parentNode.removeChild(styleElement);
+    styleElement = null;
+  }
+
+  // data URL 不需要释放（不像 blob URL）
+  cachedFrameDataUrls = [];
   cachedAsfData = null;
   loadPromise = null;
+  totalFrames = 0;
 
   isInitialized = false;
 }

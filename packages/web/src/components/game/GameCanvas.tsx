@@ -68,7 +68,7 @@ export const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(
         style={{
           display: "block",
           background: "#1a1a2e",
-          cursor: "pointer",
+          cursor: "inherit",
         }}
         onMouseMove={handleMouseMove}
         onMouseDown={handleMouseDown}
