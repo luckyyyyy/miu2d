@@ -1,0 +1,5 @@
+/target
+/pkg-node
+*.swp
+*.swo
+.DS_Store

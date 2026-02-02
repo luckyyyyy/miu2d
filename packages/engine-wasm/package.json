@@ -1,0 +1,32 @@
+{
+  "name": "@miu2d/engine-wasm",
+  "version": "0.1.0",
+  "description": "High-performance WASM modules for Miu2D game engine",
+  "type": "module",
+  "main": "pkg/miu2d_engine_wasm.js",
+  "types": "pkg/miu2d_engine_wasm.d.ts",
+  "files": [
+    "pkg"
+  ],
+  "scripts": {
+    "build": "wasm-pack build --target web --out-dir pkg",
+    "build:release": "wasm-pack build --target web --out-dir pkg --release",
+    "build:nodejs": "wasm-pack build --target nodejs --out-dir pkg-node",
+    "test": "wasm-pack test --headless --chrome",
+    "clean": "rm -rf pkg pkg-node target"
+  },
+  "keywords": [
+    "wasm",
+    "webassembly",
+    "game-engine",
+    "pathfinding",
+    "collision-detection"
+  ],
+  "license": "MIT",
+  "exports": {
+    ".": {
+      "types": "./pkg/miu2d_engine_wasm.d.ts",
+      "import": "./pkg/miu2d_engine_wasm.js"
+    }
+  }
+}

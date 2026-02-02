@@ -1,10 +1,16 @@
 /**
  * ASF 加载器 - 游戏的精灵动画格式
  * 格式: Header(16) + Metadata(64) + Palette(colors*4) + FrameOffsets(frames*8) + RLE压缩帧数据
+ *
+ * 使用 WASM 解码器，性能比 TypeScript 快 2x+
  */
 
-import { logger } from "../core/logger";
 import { resourceLoader } from "../resource/resourceLoader";
+import {
+  initWasmAsfDecoder,
+  isWasmAsfDecoderAvailable,
+  decodeAsfWasm,
+} from "../wasm/wasmAsfDecoder";
 
 export interface AsfFrame {
   width: number;
@@ -27,6 +33,20 @@ export interface AsfData {
   isLoaded: boolean;
 }
 
+let wasmInitAttempted = false;
+
+/**
+ * 预初始化 WASM（可选，异步加载）
+ * 游戏启动时调用可避免首次 ASF 加载延迟
+ */
+export async function initAsfWasm(): Promise<boolean> {
+  if (wasmInitAttempted) {
+    return isWasmAsfDecoderAvailable();
+  }
+  wasmInitAttempted = true;
+  return initWasmAsfDecoder();
+}
+
 export function clearAsfCache(): void {
   resourceLoader.clearCache("asf");
 }
@@ -39,103 +59,14 @@ export function getCachedAsf(url: string): AsfData | null {
   return resourceLoader.getFromCache<AsfData>(url, "asf");
 }
 
-function getInt32LE(buf: DataView, offset: number): number {
-  return buf.getInt32(offset, true);
-}
-
 export async function loadAsf(url: string): Promise<AsfData | null> {
-  return resourceLoader.loadParsedBinary<AsfData>(url, parseAsf, "asf");
-}
-
-function parseAsf(buffer: ArrayBuffer): AsfData | null {
-  const bytes = new Uint8Array(buffer);
-  const view = new DataView(buffer);
-
-  // 检查文件签名
-  if (String.fromCharCode(...bytes.slice(0, 7)) !== "ASF 1.0") {
-    logger.warn("Invalid ASF signature");
-    return null;
+  // 确保 WASM 初始化已尝试
+  if (!wasmInitAttempted) {
+    wasmInitAttempted = true;
+    await initWasmAsfDecoder();
   }
 
-  let offset = 16;
-
-  // 读取元数据
-  const width = getInt32LE(view, offset); offset += 4;
-  const height = getInt32LE(view, offset); offset += 4;
-  const frameCount = getInt32LE(view, offset); offset += 4;
-  const directions = getInt32LE(view, offset); offset += 4;
-  const colorCount = getInt32LE(view, offset); offset += 4;
-  const interval = getInt32LE(view, offset); offset += 4;
-  const left = getInt32LE(view, offset); offset += 4;
-  const bottom = getInt32LE(view, offset); offset += 4;
-  offset += 16;
-
-  // 读取调色板 (BGRA -> RGBA)
-  const palette: Uint8ClampedArray[] = [];
-  for (let i = 0; i < colorCount; i++) {
-    const b = bytes[offset++], g = bytes[offset++], r = bytes[offset++];
-    offset++;
-    palette.push(new Uint8ClampedArray([r, g, b, 255]));
-  }
-
-  // 读取帧偏移和长度
-  const frameOffsets: number[] = [], frameLengths: number[] = [];
-  for (let i = 0; i < frameCount; i++) {
-    frameOffsets.push(getInt32LE(view, offset)); offset += 4;
-    frameLengths.push(getInt32LE(view, offset)); offset += 4;
-  }
-
-  // 解码帧
-  const frames = frameOffsets.map((off, i) =>
-    decodeFrame(bytes, off, frameLengths[i], width, height, palette)
-  );
-
-  const framesPerDirection = directions > 0
-    ? Math.max(1, Math.floor(frameCount / directions))
-    : Math.max(1, frameCount);
-
-  return {
-    width, height, frameCount, directions, colorCount, interval,
-    left, bottom, framesPerDirection, frames, isLoaded: true
-  };
-}
-
-/** RLE 解压缩单帧 */
-function decodeFrame(
-  bytes: Uint8Array,
-  offset: number,
-  length: number,
-  width: number,
-  height: number,
-  palette: Uint8ClampedArray[]
-): AsfFrame {
-  const imageData = new ImageData(width, height);
-  const data = imageData.data;
-  const dataEnd = offset + length;
-  const maxPixels = width * height * 4;
-  let pixelIdx = 0;
-
-  try {
-    while (offset < dataEnd && pixelIdx < maxPixels) {
-      const pixelCount = bytes[offset++];
-      const pixelAlpha = bytes[offset++];
-
-      for (let k = 0; k < pixelCount && pixelIdx < maxPixels; k++) {
-        if (pixelAlpha === 0) {
-          data[pixelIdx++] = 0; data[pixelIdx++] = 0;
-          data[pixelIdx++] = 0; data[pixelIdx++] = 0;
-        } else {
-          const color = palette[bytes[offset++]] || new Uint8ClampedArray([255, 0, 255, 255]);
-          data[pixelIdx++] = color[0]; data[pixelIdx++] = color[1];
-          data[pixelIdx++] = color[2]; data[pixelIdx++] = pixelAlpha;
-        }
-      }
-    }
-  } catch {
-    logger.warn("ASF frame decode error");
-  }
-
-  return { width, height, imageData, canvas: null };
+  return resourceLoader.loadParsedBinary<AsfData>(url, decodeAsfWasm, "asf");
 }
 
 /** 获取帧的 canvas（延迟创建） */
@@ -145,7 +76,6 @@ export function getFrameCanvas(frame: AsfFrame): HTMLCanvasElement {
   const canvas = document.createElement("canvas");
   canvas.width = Math.max(1, frame.width);
   canvas.height = Math.max(1, frame.height);
-  // 不使用 willReadFrequently，帧 canvas 主要用于 drawImage 渲染，启用硬件加速
   const ctx = canvas.getContext("2d");
   if (ctx) ctx.putImageData(frame.imageData, 0, 0);
   frame.canvas = canvas;
