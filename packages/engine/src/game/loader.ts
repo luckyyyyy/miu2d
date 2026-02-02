@@ -311,10 +311,14 @@ export class Loader {
 
     const { getScriptExecutor, guiManager } = this.deps;
 
+    // 进度报告：地图加载前 0-5%
+    this.reportProgress(0, "准备加载...");
+
     try {
       // Step 1: 清理 managers
       // C# Reference: Loader.LoadGame(bool isInitializeGame)
       if (isInitializeGame) {
+        this.reportProgress(2, "清理数据...");
         logger.debug(`[Loader] Clearing all managers...`);
         // C#: ScriptManager.Clear() - 停止所有脚本
         const scriptExecutor = getScriptExecutor();
@@ -347,7 +351,8 @@ export class Loader {
       // index 1-7 = resources/save/rpgN/Game.ini (用户存档)
       const basePath = ResourcePath.saveBase(index);
 
-      // Step 2: 加载 Game.ini
+      // Step 2: 加载 Game.ini (5%)
+      this.reportProgress(5, "读取配置...");
       const gameIniPath = `${basePath}/Game.ini`;
       const content = await resourceLoader.loadText(gameIniPath);
       if (!content) {
@@ -367,9 +372,10 @@ export class Loader {
 
       // ========== [State] Section ==========
       if (stateSection) {
-        // 加载地图
+        // 加载地图 (注意：地图 MPC 进度由 mapLoadProgressCallback 报告)
         const mapName = stateSection.Map;
         if (mapName) {
+          this.reportProgress(10, "加载地图...");
           logger.debug(`[Loader] Loading map: ${mapName}`);
           await loadMap(mapName);
         }
@@ -377,6 +383,7 @@ export class Loader {
         // 加载 NPC (注意：会保留 partners)
         const npcFile = stateSection.Npc;
         if (npcFile) {
+          this.reportProgress(92, "加载 NPC...");
           logger.debug(`[Loader] Loading NPC file: ${npcFile}`);
           await npcManager.loadNpcFile(npcFile);
         }
@@ -384,6 +391,7 @@ export class Loader {
         // 加载物体
         const objFile = stateSection.Obj;
         if (objFile) {
+          this.reportProgress(94, "加载物体...");
           logger.debug(`[Loader] Loading Obj file: ${objFile}`);
           await objManager.load(objFile);
         }
@@ -531,8 +539,9 @@ export class Loader {
         }
       }
 
-      // Step 3: 加载 Magic、Goods、Memo
+      // Step 3: 加载 Magic、Goods、Memo (72-78%)
       // C# Reference: Loader.LoadMagicGoodList - 先停止替换并清理替换列表
+      this.reportProgress(72, "加载武功...");
       magicListManager.stopReplace();
       magicListManager.clearReplaceList();
 
@@ -540,26 +549,31 @@ export class Loader {
       logger.debug(`[Loader] Loading magic from: ${magicPath}`);
       await magicListManager.loadPlayerList(magicPath);
 
+      this.reportProgress(74, "加载物品...");
       const goodsPath = `${basePath}/Goods${chrIndex}.ini`;
       logger.debug(`[Loader] Loading goods from: ${goodsPath}`);
       await goodsListManager.loadList(goodsPath);
 
+      this.reportProgress(76, "加载备忘...");
       const memoPath = `${basePath}/memo.ini`;
       logger.debug(`[Loader] Loading memo from: ${memoPath}`);
       await this.loadMemoList(memoPath, memoListManager, parseIni);
 
-      // Step 4: 加载玩家
+      // Step 4: 加载玩家 (78-88%)
+      this.reportProgress(78, "加载玩家...");
       const playerPath = `${basePath}/Player${chrIndex}.ini`;
       logger.debug(`[Loader] Loading player from: ${playerPath}`);
       await player.loadFromFile(playerPath);
 
-      // 加载玩家精灵
+      // 加载玩家精灵 (80-88%)
+      this.reportProgress(80, "加载玩家精灵...");
       if (this.deps.loadPlayerSprites) {
         const playerNpcIni = player.npcIni;
         logger.debug(`[Loader] Loading player sprites: ${playerNpcIni}`);
         await this.deps.loadPlayerSprites(playerNpcIni);
       }
 
+      this.reportProgress(88, "应用装备特效...");
       // 应用装备特效
       // C# Reference: Loader.LoadPlayer() -> GoodsListManager.ApplyEquipSpecialEffectFromList
       goodsListManager.applyEquipSpecialEffectFromList();
@@ -572,18 +586,21 @@ export class Loader {
       // C# Reference: Globals.ThePlayer.XiuLianMagic = MagicListManager.GetItemInfo(MagicListManager.XiuLianIndex)
       // 这在 magicListManager.loadPlayerList 中已经处理
 
-      // Step 5: 加载同伴 (partner)
+      // Step 5: 加载同伴 (partner) (90-92%)
       // C# Reference: Loader.LoadPartner() -> NpcManager.LoadPartner(StorageBase.PartnerFilePath)
+      this.reportProgress(90, "加载伙伴...");
       const partnerPath = `${basePath}/partner${chrIndex}.ini`;
       await this.loadPartner(partnerPath, npcManager, parseIni);
 
-      // Step 6: 加载陷阱
+      // Step 6: 加载陷阱 (92-94%)
       // C# Reference: Loader.LoadTraps() -> MapBase.loadTrap(StorageBase.TrapsFilePath)
+      this.reportProgress(92, "加载陷阱...");
       await MapBase.Instance.loadTrap(`${basePath}/Traps.ini`);
 
-      // Step 7: 加载陷阱忽略列表（可选，如果存在）
+      // Step 7: 加载陷阱忽略列表（可选，如果存在）(94-96%)
       // C# Reference: Loader.LoadTrapIgnoreList() -> MapBase.Instance.loadTrapIndexIgnoreList()
       // 注意：初始存档可能没有这个文件
+      this.reportProgress(94, "加载陷阱配置...");
       try {
         const trapIgnorePath = `${basePath}/TrapIndexIgnore.ini`;
         const trapIgnoreContent = await resourceLoader.loadText(trapIgnorePath);
@@ -594,9 +611,11 @@ export class Loader {
         // 忽略加载失败（文件可能不存在）
       }
 
-      // 摄像机居中到玩家
+      // 摄像机居中到玩家 (96-98%)
+      this.reportProgress(96, "初始化摄像机...");
       this.deps.centerCameraOnPlayer?.();
 
+      this.reportProgress(98, "完成加载...");
       logger.debug(`[Loader] Game save loaded successfully`);
 
       // Debug: 打印障碍物体

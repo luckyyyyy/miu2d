@@ -411,11 +411,17 @@ export class GameEngine implements IEngineContext {
     this.emitLoadProgress(40, "开始新游戏...");
 
     // 设置地图加载进度回调
-    // NewGame 调用 LoadGame(0)，地图加载进度映射到 40-90% 范围
+    // NewGame 调用 LoadGame(0)，地图加载进度映射到 40-70% 范围
+    // 后续还有 NPC、魔法、物品、玩家精灵等加载 (70-98%)
     this.mapLoadProgressCallback = (mpcProgress, text) => {
-      const mappedProgress = Math.round(40 + mpcProgress * 50);
+      const mappedProgress = Math.round(40 + mpcProgress * 30);
       this.emitLoadProgress(mappedProgress, text);
     };
+
+    // 设置 Loader 进度回调，将后续加载进度转发到 UI
+    this.gameManager.setLoadProgressCallback((progress, text) => {
+      this.emitLoadProgress(progress, text);
+    });
 
     try {
       // 运行新游戏脚本
@@ -436,6 +442,7 @@ export class GameEngine implements IEngineContext {
       throw error;
     } finally {
       this.mapLoadProgressCallback = null;
+      this.gameManager.setLoadProgressCallback(undefined);
     }
   }
 
@@ -456,11 +463,17 @@ export class GameEngine implements IEngineContext {
     this.emitLoadProgress(10, `读取存档 ${index}...`);
 
     // 设置地图加载进度回调
-    // LoadGame(n) 的地图加载进度映射到 10-90% 范围
+    // LoadGame(n) 的地图加载进度映射到 10-70% 范围
+    // 后续还有 NPC、魔法、物品、玩家精灵等加载 (70-98%)
     this.mapLoadProgressCallback = (mpcProgress, text) => {
-      const mappedProgress = Math.round(10 + mpcProgress * 80);
+      const mappedProgress = Math.round(10 + mpcProgress * 60);
       this.emitLoadProgress(mappedProgress, text);
     };
+
+    // 设置 Loader 进度回调，将后续加载进度转发到 UI
+    this.gameManager.setLoadProgressCallback((progress, text) => {
+      this.emitLoadProgress(progress, text);
+    });
 
     try {
       // 存档加载会恢复武功数据，不需要额外初始化 initializePlayerMagics
@@ -475,6 +488,7 @@ export class GameEngine implements IEngineContext {
       throw error;
     } finally {
       this.mapLoadProgressCallback = null;
+      this.gameManager.setLoadProgressCallback(undefined);
     }
   }
 
