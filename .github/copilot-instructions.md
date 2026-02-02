@@ -13,13 +13,25 @@
 - React 19, Vite 7
 - HTML5 Canvas 2D
 - Biome (lint + format)
+- **pnpm monorepo**
 
 ### 项目结构
 
 | 部分 | 目录 | 说明 |
 |------|------|------|
-| **游戏引擎** | `src/engine/` | 纯 TypeScript，**不依赖 React** |
-| **React 应用** | `src/components/` | UI 界面和用户交互 |
+| **游戏引擎** | `packages/engine/` | 纯 TypeScript，**不依赖 React**，包名 `@miu2d/engine` |
+| **React 应用** | `packages/web/` | UI 界面和用户交互，包名 `@miu2d/web` |
+
+**导入引擎模块：**
+```typescript
+// 从主入口导入
+import { GameEngine, Direction } from "@miu2d/engine";
+
+// 从子模块导入
+import { logger } from "@miu2d/engine/core/logger";
+import { resourceLoader } from "@miu2d/engine/resource/resourceLoader";
+import type { MagicData } from "@miu2d/engine/magic";
+```
 
 ---
 

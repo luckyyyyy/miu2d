@@ -80,15 +80,27 @@
 - **样式**: Tailwind CSS 4
 - **音频**: Web Audio API (OGG Vorbis)
 - **代码质量**: Biome (lint + format)
+- **包管理**: pnpm monorepo
 
 ### 项目组成
 
-本项目包含两个主要部分：
+本项目采用 **pnpm monorepo** 架构，包含两个独立的包：
 
-| 部分 | 目录 | 说明 |
+| 包名 | 目录 | 说明 |
 |------|------|------|
-| **游戏引擎** | `src/engine/` | 纯 TypeScript 实现的 2D RPG 引擎，**不依赖 React**，可独立使用 |
-| **网站应用** | `src/components/`, `src/pages/` | React 应用，提供 UI 界面、页面路由和用户交互 |
+| **@miu2d/engine** | `packages/engine/` | 纯 TypeScript 2D RPG 引擎，**不依赖 React**，可独立使用 |
+| **@miu2d/web** | `packages/web/` | React 应用，提供 UI 界面、页面路由和用户交互 |
+
+**导入引擎模块：**
+```typescript
+// 从主入口导入
+import { GameEngine, Direction } from "@miu2d/engine";
+
+// 从子模块导入
+import { logger } from "@miu2d/engine/core/logger";
+import { resourceLoader } from "@miu2d/engine/resource/resourceLoader";
+import type { MagicData } from "@miu2d/engine/magic";
+```
 
 ### 核心架构
 
@@ -181,23 +193,92 @@ await engine.loadGame(saveIndex);
 
 ```
 game-jxqy/
-├── src/
-│   ├── engine/                  # 游戏引擎（核心，~47k 行）
-│   │   ├── index.ts             # 主导出文件
+├── packages/
+│   ├── engine/                  # @miu2d/engine - 游戏引擎（~47k 行）
+│   │   ├── src/
+│   │   │   ├── index.ts         # 主导出文件
+│   │   │   │
+│   │   │   ├── core/            # 核心模块
+│   │   │   │   ├── types.ts     # 核心类型定义
+│   │   │   │   ├── mapTypes.ts  # 地图相关类型
+│   │   │   │   ├── pathFinder.ts # A* 寻路算法
+│   │   │   │   ├── eventEmitter.ts # 事件系统
+│   │   │   │   ├── gameEvents.ts # 游戏事件定义
+│   │   │   │   └── logger.ts    # 日志系统
+│   │   │   │
+│   │   │   ├── game/            # 游戏管理
+│   │   │   │   ├── gameEngine.ts # 引擎单例（入口）
+│   │   │   │   ├── gameManager.ts # 游戏逻辑控制器
+│   │   │   │   ├── inputHandler.ts # 输入处理
+│   │   │   │   ├── loader.ts    # 存档加载器
+│   │   │   │   └── storage.ts   # 存档存储
+│   │   │   │
+│   │   │   ├── resource/        # 资源管理
+│   │   │   ├── map/             # 地图系统
+│   │   │   ├── sprite/          # 精灵系统
+│   │   │   ├── character/       # 角色系统
+│   │   │   ├── player/          # 玩家系统
+│   │   │   ├── npc/             # NPC 系统
+│   │   │   ├── obj/             # 物体系统
+│   │   │   ├── script/          # 剧本系统（180+ 命令）
+│   │   │   ├── magic/           # 武功系统（12 种特效）
+│   │   │   ├── gui/             # 界面状态管理
+│   │   │   ├── audio/           # 音效系统
+│   │   │   ├── effects/         # 屏幕特效
+│   │   │   ├── weather/         # 天气系统
+│   │   │   ├── timer/           # 计时器系统
+│   │   │   ├── config/          # 配置管理
+│   │   │   ├── constants/       # 常量定义
+│   │   │   └── utils/           # 工具模块
 │   │   │
-│   │   ├── core/                # 核心模块
-│   │   │   ├── types.ts         # 核心类型定义
-│   │   │   ├── mapTypes.ts      # 地图相关类型
-│   │   │   ├── pathFinder.ts    # A* 寻路算法
-│   │   │   ├── utils.ts         # 工具函数
-│   │   │   ├── binaryUtils.ts   # 二进制解析工具
-│   │   │   ├── eventEmitter.ts  # 事件系统
-│   │   │   ├── gameEvents.ts    # 游戏事件定义
-│   │   │   └── logger.ts        # 日志系统
-│   │   │
-│   │   ├── game/                # 游戏管理
-│   │   │   ├── gameEngine.ts    # 引擎单例（入口）
-│   │   │   ├── gameManager.ts   # 游戏逻辑控制器
+│   │   ├── package.json
+│   │   └── tsconfig.json
+│   │
+│   └── web/                     # @miu2d/web - React 应用（~12k 行）
+│       ├── src/
+│       │   ├── components/      # React 组件
+│       │   │   ├── game/        # 游戏核心组件
+│       │   │   │   ├── Game.tsx
+│       │   │   │   ├── GameCanvas.tsx
+│       │   │   │   └── GameUI.tsx
+│       │   │   │
+│       │   │   └── game/ui/     # UI 组件（29 个）
+│       │   │       ├── classic/ # 经典 ASF 风格
+│       │   │       └── modern/  # 现代风格
+│       │   │
+│       │   ├── pages/           # 页面组件
+│       │   ├── hooks/           # React Hooks
+│       │   ├── styles/          # 样式文件
+│       │   ├── App.tsx
+│       │   └── main.tsx
+│       │
+│       ├── public/              # 静态资源
+│       ├── resources -> ../../resources  # 游戏资源（符号链接）
+│       ├── index.html
+│       ├── package.json
+│       ├── tsconfig.json
+│       └── vite.config.ts
+│
+├── resources/                   # 游戏资源
+│   ├── map/                     # 地图文件 (.map)
+│   ├── asf/                     # 精灵动画 (.asf)
+│   ├── mpc/                     # 资源包 (.mpc)
+│   ├── ini/                     # 配置文件 (.ini)
+│   ├── script/                  # 游戏剧本 (.txt)
+│   ├── save/                    # 存档目录
+│   └── Content/                 # 媒体资源
+│       ├── music/               # 背景音乐 (.ogg)
+│       ├── sound/               # 音效文件 (.ogg)
+│       └── video/               # 视频文件
+│
+├── scripts/                     # 工具脚本
+├── docs/                        # 文档
+├── JxqyHD/                      # C# 参考代码
+│
+├── pnpm-workspace.yaml          # pnpm 工作区配置
+├── package.json                 # 根 package.json
+└── biome.json                   # 代码风格配置
+```
 │   │   │   ├── inputHandler.ts  # 输入处理
 │   │   │   ├── interactionManager.ts  # 交互管理
 │   │   │   ├── magicHandler.ts  # 武功处理
@@ -415,7 +496,7 @@ game-jxqy/
 ### 环境要求
 
 - **Node.js** 18+
-- **pnpm**（推荐）或 npm/yarn
+- **pnpm** 9+（必须）
 - 支持 Canvas API 和 Web Audio API 的现代浏览器
 
 ### 安装运行
@@ -425,7 +506,7 @@ game-jxqy/
 git clone https://github.com/patchoulib/game-jxqy.git
 cd game-jxqy
 
-# 安装依赖
+# 安装依赖（pnpm monorepo）
 pnpm install
 
 # 启动开发服务器
@@ -439,6 +520,16 @@ pnpm dev
 ```bash
 pnpm build
 pnpm preview
+```
+
+### 常用命令
+
+```bash
+pnpm dev        # 启动开发服务器
+pnpm build      # 构建生产版本
+pnpm tsc        # TypeScript 类型检查
+pnpm lint       # 代码检查
+pnpm format     # 代码格式化
 ```
 
 ---
