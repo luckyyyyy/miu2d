@@ -6,7 +6,11 @@
  */
 
 import { logger } from "../../core/logger";
-import { PathType, findPath as pathFinderFindPath } from "../../core/pathFinder";
+import {
+  PathType,
+  findPath as pathFinderFindPath,
+  findNearestWalkableTileInDirection,
+} from "../../core/pathFinder";
 import type { Vector2 } from "../../core/types";
 import {
   BASE_SPEED,
@@ -309,6 +313,10 @@ export abstract class CharacterMovement extends CharacterBase {
    * 跑到目标瓦片
    * C# Reference: Character.RunTo(Vector2 destinationTilePosition, PathType pathType)
    * C# checks PerformActionOk() at the start to prevent interrupting special actions
+   *
+   * Enhancement: When the target tile is an obstacle, automatically find the nearest
+   * walkable tile in that direction. This allows continuous running towards obstacles
+   * (e.g., when holding Shift+click on a wall).
    */
   runTo(destTile: Vector2, pathTypeOverride: PathType = PathType.End): boolean {
     // C#: if (PerformActionOk() && destinationTilePosition != TilePosition && ...)
@@ -330,15 +338,45 @@ export abstract class CharacterMovement extends CharacterBase {
     const isMapObstacle = (tile: Vector2): boolean => this.checkMapObstacleForCharacter(tile);
     const isHardObstacle = (tile: Vector2): boolean => this.checkHardObstacle(tile);
 
-    const path = pathFinderFindPath(
-      { x: this._mapX, y: this._mapY },
-      destTile,
+    const startTile = { x: this._mapX, y: this._mapY };
+
+    // First, try to find path to the original destination
+    let actualDestTile = destTile;
+    let path = pathFinderFindPath(
+      startTile,
+      actualDestTile,
       usePathType,
       hasObstacleCheck,
       isMapObstacle,
       isHardObstacle,
       8
     );
+
+    // If no path found, try to find nearest walkable tile in that direction
+    // This handles two cases:
+    // 1. Destination is an obstacle (e.g., clicking on a wall)
+    // 2. Path is blocked by obstacles (e.g., river between player and destination)
+    // In both cases, we try to run towards that direction as far as possible
+    if (path.length === 0) {
+      const nearestWalkable = findNearestWalkableTileInDirection(
+        startTile,
+        destTile,
+        isMapObstacle
+      );
+
+      if (nearestWalkable) {
+        actualDestTile = nearestWalkable;
+        path = pathFinderFindPath(
+          startTile,
+          actualDestTile,
+          usePathType,
+          hasObstacleCheck,
+          isMapObstacle,
+          isHardObstacle,
+          8
+        );
+      }
+    }
 
     if (path.length === 0) {
       this.path = [];
@@ -347,7 +385,7 @@ export abstract class CharacterMovement extends CharacterBase {
     }
 
     this.path = path.slice(1);
-    this._destinationMoveTilePosition = { ...destTile };
+    this._destinationMoveTilePosition = { ...actualDestTile };
     if (this._isInFighting && this.isStateImageOk(CharacterState.FightRun)) {
       this.state = CharacterState.FightRun;
     } else {

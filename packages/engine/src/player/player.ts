@@ -704,6 +704,9 @@ export class Player extends Character {
    * 注意：Direction 枚举（0=North）和 C# 的方向索引（0=South）不同，需要转换
    * Direction 枚举:    0=N, 1=NE, 2=E, 3=SE, 4=S, 5=SW, 6=W, 7=NW
    * C# 邻居数组索引:   0=S, 1=SW, 2=W, 3=NW, 4=N, 5=NE, 6=E, 7=SE
+   *
+   * Enhancement: When primary direction is blocked, try adjacent directions
+   * to allow smoother movement around obstacles (especially for mobile joystick)
    */
   private moveInDirection(direction: Direction, isRun: boolean = false): void {
     // 将 Direction 枚举转换为 C# 的邻居数组索引
@@ -712,21 +715,48 @@ export class Player extends Character {
     // 映射: Direction -> C# index
     // N(0)->4, NE(1)->5, E(2)->6, SE(3)->7, S(4)->0, SW(5)->1, W(6)->2, NW(7)->3
     const directionToCSharpIndex = [4, 5, 6, 7, 0, 1, 2, 3];
-    const csharpDirIndex = directionToCSharpIndex[direction];
+    const primaryCSharpDir = directionToCSharpIndex[direction];
 
-    // C# Reference: PathFinder.FindNeighborInDirection(TilePosition, direction)
+    // Direction order: primary, then adjacent directions
+    // This allows smoother movement around obstacles
+    const directionOrder = [
+      primaryCSharpDir,
+      (primaryCSharpDir + 1) % 8,
+      (primaryCSharpDir + 7) % 8, // +7 = -1 mod 8
+    ];
+
     const neighbors = this.findAllNeighbors(this.tilePosition);
-    const targetTile = neighbors[csharpDirIndex];
+    const mapService = this.engine?.map;
 
-    // C# Reference: Player.MoveToDirection
-    // C# 调用 WalkTo/RunTo 而不是直接设置 path
-    // 这样可以经过完整的寻路和障碍物检测，避免穿越障碍物
-    this._currentDirection = direction;
-    if (isRun && this.canRunCheck()) {
-      this.runTo(targetTile);
-    } else {
-      this.walkTo(targetTile);
+    // Try each direction in order of preference
+    for (const csharpDirIndex of directionOrder) {
+      const targetTile = neighbors[csharpDirIndex];
+
+      // Check if target tile is walkable (quick pre-check to avoid unnecessary pathfinding)
+      const isObstacle = mapService?.isObstacleForCharacter(targetTile.x, targetTile.y) ?? false;
+      if (isObstacle) {
+        continue;
+      }
+
+      // C# Reference: Player.MoveToDirection
+      // Convert back to Direction enum for _currentDirection
+      const csharpToDirection = [4, 5, 6, 7, 0, 1, 2, 3]; // inverse mapping
+      this._currentDirection = csharpToDirection[csharpDirIndex] as Direction;
+
+      let success: boolean;
+      if (isRun && this.canRunCheck()) {
+        success = this.runTo(targetTile);
+      } else {
+        success = this.walkTo(targetTile);
+      }
+
+      if (success) {
+        return;
+      }
     }
+
+    // All directions blocked, use primary direction anyway (will stand)
+    this._currentDirection = direction;
   }
 
   // === Movement ===

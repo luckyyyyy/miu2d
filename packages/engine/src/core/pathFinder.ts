@@ -727,3 +727,94 @@ export function bouncingAtWall(
     y: direction.y - 2 * dot * ny,
   };
 }
+
+/**
+ * Find the farthest walkable tile in the direction from start to target.
+ * Used when pathfinding fails - we try to move towards that direction as far as possible.
+ *
+ * Algorithm:
+ * 1. Calculate direction from start to target
+ * 2. Try to walk in that direction, if blocked try adjacent directions
+ * 3. Return the farthest reachable point towards the target direction
+ *
+ * @param startTile Starting tile position
+ * @param targetTile Target tile position (used to calculate direction)
+ * @param isMapObstacle Function to check if a tile is a map obstacle
+ * @param maxSteps Maximum steps to search (default 30)
+ * @returns The farthest walkable tile in that direction, or null if can't move at all
+ */
+export function findNearestWalkableTileInDirection(
+  startTile: Vector2,
+  targetTile: Vector2,
+  isMapObstacle: (tile: Vector2) => boolean,
+  maxSteps: number = 30
+): Vector2 | null {
+  if (startTile.x === targetTile.x && startTile.y === targetTile.y) {
+    return null;
+  }
+
+  // Calculate direction from start to target using pixel positions
+  const startPixel = tileToPixel(startTile.x, startTile.y);
+  const targetPixel = tileToPixel(targetTile.x, targetTile.y);
+  const primaryDir = getDirectionFromVector({
+    x: targetPixel.x - startPixel.x,
+    y: targetPixel.y - startPixel.y,
+  });
+
+  // Direction order: primary, then adjacent directions in order of preference
+  // Direction layout:
+  // 3  4  5
+  // 2     6
+  // 1  0  7
+  const directionOrder = [
+    primaryDir,
+    (primaryDir + 1) % 8,
+    (primaryDir + 7) % 8, // +7 = -1 mod 8
+    (primaryDir + 2) % 8,
+    (primaryDir + 6) % 8, // +6 = -2 mod 8
+  ];
+
+  // Walk towards the target, finding the farthest walkable tile
+  let current = startTile;
+  let lastWalkable: Vector2 | null = null;
+  const targetDist = distance(startPixel, targetPixel);
+
+  for (let step = 0; step < maxSteps; step++) {
+    const neighbors = getNeighbors(current);
+
+    // Try each direction in order of preference
+    let foundNext = false;
+    for (const dir of directionOrder) {
+      const next = neighbors[dir];
+
+      // If this tile is walkable
+      if (!isMapObstacle(next)) {
+        // Check that we're moving closer to target or not too far from direction
+        const nextPixel = tileToPixel(next.x, next.y);
+        const distToTarget = distance(nextPixel, targetPixel);
+        const currentDistToTarget = distance(tileToPixel(current.x, current.y), targetPixel);
+
+        // Only accept if we're getting closer to target
+        if (distToTarget < currentDistToTarget) {
+          lastWalkable = next;
+          current = next;
+          foundNext = true;
+
+          // Check if we've reached or passed the target distance
+          const distFromStart = distance(nextPixel, startPixel);
+          if (distFromStart >= targetDist) {
+            return lastWalkable;
+          }
+          break;
+        }
+      }
+    }
+
+    // If no valid direction found, stop
+    if (!foundNext) {
+      break;
+    }
+  }
+
+  return lastWalkable;
+}

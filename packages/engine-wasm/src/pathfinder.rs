@@ -285,22 +285,43 @@ impl PathFinder {
         }
     }
 
-    /// 获取 8 个相邻格子
+    /// 获取 8 个相邻格子（等距地图，需要考虑奇偶行）
     /// 方向布局:
     /// 3  4  5
     /// 2     6
     /// 1  0  7
+    ///
+    /// C# Reference: PathFinder.FindAllNeighbors
+    /// 等距地图中，奇偶行的邻居偏移不同
     fn get_neighbors(&self, pos: Vec2) -> [Vec2; 8] {
-        [
-            Vec2::new(pos.x, pos.y + 1),     // 0: South
-            Vec2::new(pos.x - 1, pos.y + 1), // 1: SouthWest
-            Vec2::new(pos.x - 1, pos.y),     // 2: West
-            Vec2::new(pos.x - 1, pos.y - 1), // 3: NorthWest
-            Vec2::new(pos.x, pos.y - 1),     // 4: North
-            Vec2::new(pos.x + 1, pos.y - 1), // 5: NorthEast
-            Vec2::new(pos.x + 1, pos.y),     // 6: East
-            Vec2::new(pos.x + 1, pos.y + 1), // 7: SouthEast
-        ]
+        let x = pos.x;
+        let y = pos.y;
+
+        if y % 2 == 0 {
+            // 偶数行
+            [
+                Vec2::new(x, y + 2),     // 0: South
+                Vec2::new(x - 1, y + 1), // 1: SouthWest
+                Vec2::new(x - 1, y),     // 2: West
+                Vec2::new(x - 1, y - 1), // 3: NorthWest
+                Vec2::new(x, y - 2),     // 4: North
+                Vec2::new(x, y - 1),     // 5: NorthEast
+                Vec2::new(x + 1, y),     // 6: East
+                Vec2::new(x, y + 1),     // 7: SouthEast
+            ]
+        } else {
+            // 奇数行
+            [
+                Vec2::new(x, y + 2),     // 0: South
+                Vec2::new(x, y + 1),     // 1: SouthWest
+                Vec2::new(x - 1, y),     // 2: West
+                Vec2::new(x, y - 1),     // 3: NorthWest
+                Vec2::new(x, y - 2),     // 4: North
+                Vec2::new(x + 1, y - 1), // 5: NorthEast
+                Vec2::new(x + 1, y),     // 6: East
+                Vec2::new(x + 1, y + 1), // 7: SouthEast
+            ]
+        }
     }
 
     /// 检查是否可以向指定方向移动
