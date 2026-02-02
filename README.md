@@ -22,11 +22,11 @@ The original game was developed in C++, later remade by fans using C# + XNA fram
 
 ### 🖥️ Desktop
 
-![Game Screenshot](public/screenshot/screenshot.png)
+![Game Screenshot](packages/web/public/screenshot/screenshot.png)
 
 ### 📱 Mobile
 
-![Mobile Screenshot](public/screenshot/mobile.png)
+![Mobile Screenshot](packages/web/public/screenshot/mobile.png)
 
 ### 🎮 Game Features
 

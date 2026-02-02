@@ -20,11 +20,11 @@
 
 ### 🖥️ 桌面版
 
-![游戏截图](public/screenshot/screenshot.png)
+![游戏截图](packages/web/public/screenshot/screenshot.png)
 
 ### 📱 移动端
 
-![移动端截图](public/screenshot/mobile.png)
+![移动端截图](packages/web/public/screenshot/mobile.png)
 
 ### 🎮 游戏特色
 
