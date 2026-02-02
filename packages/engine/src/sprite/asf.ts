@@ -8,7 +8,6 @@
 import { resourceLoader } from "../resource/resourceLoader";
 import {
   initWasmAsfDecoder,
-  isWasmAsfDecoderAvailable,
   decodeAsfWasm,
 } from "../wasm/wasmAsfDecoder";
 
@@ -33,18 +32,18 @@ export interface AsfData {
   isLoaded: boolean;
 }
 
-let wasmInitAttempted = false;
+// 保存初始化 Promise，确保所有调用都等待同一个 Promise
+let wasmInitPromise: Promise<boolean> | null = null;
 
 /**
  * 预初始化 WASM（可选，异步加载）
  * 游戏启动时调用可避免首次 ASF 加载延迟
  */
 export async function initAsfWasm(): Promise<boolean> {
-  if (wasmInitAttempted) {
-    return isWasmAsfDecoderAvailable();
+  if (!wasmInitPromise) {
+    wasmInitPromise = initWasmAsfDecoder();
   }
-  wasmInitAttempted = true;
-  return initWasmAsfDecoder();
+  return wasmInitPromise;
 }
 
 export function clearAsfCache(): void {
@@ -60,11 +59,8 @@ export function getCachedAsf(url: string): AsfData | null {
 }
 
 export async function loadAsf(url: string): Promise<AsfData | null> {
-  // 确保 WASM 初始化已尝试
-  if (!wasmInitAttempted) {
-    wasmInitAttempted = true;
-    await initWasmAsfDecoder();
-  }
+  // 确保 WASM 初始化完成（所有并发调用都等待同一个 Promise）
+  await initAsfWasm();
 
   return resourceLoader.loadParsedBinary<AsfData>(url, decodeAsfWasm, "asf");
 }

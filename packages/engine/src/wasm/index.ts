@@ -50,6 +50,3 @@ export async function initAllWasmModules(
   return { pathfinder, asfDecoder, collision };
 }
 
-// 导出测试工具
-export { runPathfinderTests, runPerformanceBenchmark, runAllTests } from "./pathfinderTest";
-

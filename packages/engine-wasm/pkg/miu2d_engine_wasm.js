@@ -142,6 +142,162 @@ export class AsfHeader {
 if (Symbol.dispose) AsfHeader.prototype[Symbol.dispose] = AsfHeader.prototype.free;
 
 /**
+ * MPC 文件头信息
+ */
+export class MpcHeader {
+    static __wrap(ptr) {
+        ptr = ptr >>> 0;
+        const obj = Object.create(MpcHeader.prototype);
+        obj.__wbg_ptr = ptr;
+        MpcHeaderFinalization.register(obj, obj.__wbg_ptr, obj);
+        return obj;
+    }
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+        MpcHeaderFinalization.unregister(this);
+        return ptr;
+    }
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_mpcheader_free(ptr, 0);
+    }
+    /**
+     * @returns {number}
+     */
+    get bottom() {
+        const ret = wasm.__wbg_get_asfheader_bottom(this.__wbg_ptr);
+        return ret;
+    }
+    /**
+     * @returns {number}
+     */
+    get color_count() {
+        const ret = wasm.__wbg_get_asfheader_interval(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * @returns {number}
+     */
+    get direction() {
+        const ret = wasm.__wbg_get_asfheader_color_count(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * @returns {number}
+     */
+    get frame_count() {
+        const ret = wasm.__wbg_get_asfheader_directions(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * @returns {number}
+     */
+    get frames_data_length_sum() {
+        const ret = wasm.__wbg_get_asfheader_width(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * @returns {number}
+     */
+    get global_height() {
+        const ret = wasm.__wbg_get_asfheader_frame_count(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * @returns {number}
+     */
+    get global_width() {
+        const ret = wasm.__wbg_get_asfheader_height(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * @returns {number}
+     */
+    get interval() {
+        const ret = wasm.__wbg_get_asfheader_left(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * @returns {number}
+     */
+    get left() {
+        const ret = wasm.__wbg_get_asfheader_frames_per_direction(this.__wbg_ptr);
+        return ret;
+    }
+    /**
+     * 所有帧解码后的总字节数
+     * @returns {number}
+     */
+    get total_pixel_bytes() {
+        const ret = wasm.__wbg_get_mpcheader_total_pixel_bytes(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+     * @param {number} arg0
+     */
+    set bottom(arg0) {
+        wasm.__wbg_set_asfheader_bottom(this.__wbg_ptr, arg0);
+    }
+    /**
+     * @param {number} arg0
+     */
+    set color_count(arg0) {
+        wasm.__wbg_set_asfheader_interval(this.__wbg_ptr, arg0);
+    }
+    /**
+     * @param {number} arg0
+     */
+    set direction(arg0) {
+        wasm.__wbg_set_asfheader_color_count(this.__wbg_ptr, arg0);
+    }
+    /**
+     * @param {number} arg0
+     */
+    set frame_count(arg0) {
+        wasm.__wbg_set_asfheader_directions(this.__wbg_ptr, arg0);
+    }
+    /**
+     * @param {number} arg0
+     */
+    set frames_data_length_sum(arg0) {
+        wasm.__wbg_set_asfheader_width(this.__wbg_ptr, arg0);
+    }
+    /**
+     * @param {number} arg0
+     */
+    set global_height(arg0) {
+        wasm.__wbg_set_asfheader_frame_count(this.__wbg_ptr, arg0);
+    }
+    /**
+     * @param {number} arg0
+     */
+    set global_width(arg0) {
+        wasm.__wbg_set_asfheader_height(this.__wbg_ptr, arg0);
+    }
+    /**
+     * @param {number} arg0
+     */
+    set interval(arg0) {
+        wasm.__wbg_set_asfheader_left(this.__wbg_ptr, arg0);
+    }
+    /**
+     * @param {number} arg0
+     */
+    set left(arg0) {
+        wasm.__wbg_set_asfheader_frames_per_direction(this.__wbg_ptr, arg0);
+    }
+    /**
+     * 所有帧解码后的总字节数
+     * @param {number} arg0
+     */
+    set total_pixel_bytes(arg0) {
+        wasm.__wbg_set_mpcheader_total_pixel_bytes(this.__wbg_ptr, arg0);
+    }
+}
+if (Symbol.dispose) MpcHeader.prototype[Symbol.dispose] = MpcHeader.prototype.free;
+
+/**
  * 寻路器状态（可复用以减少内存分配）
  */
 export class PathFinder {
@@ -436,6 +592,29 @@ export function decode_asf_frames(data, output) {
 }
 
 /**
+ * 解码 MPC 帧到预分配的 buffer
+ *
+ * 参数:
+ * - data: MPC 文件原始数据
+ * - pixel_output: 预分配的像素数据 buffer (header.total_pixel_bytes 字节)
+ * - frame_sizes_output: 预分配的帧尺寸 buffer (frame_count * 2 个 u32)
+ * - frame_offsets_output: 预分配的帧偏移 buffer (frame_count 个 u32)
+ *
+ * 返回: 成功返回帧数，失败返回 0
+ * @param {Uint8Array} data
+ * @param {Uint8Array} pixel_output
+ * @param {Uint8Array} frame_sizes_output
+ * @param {Uint8Array} frame_offsets_output
+ * @returns {number}
+ */
+export function decode_mpc_frames(data, pixel_output, frame_sizes_output, frame_offsets_output) {
+    const ptr0 = passArray8ToWasm0(data, wasm.__wbindgen_malloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.decode_mpc_frames(ptr0, len0, pixel_output, frame_sizes_output, frame_offsets_output);
+    return ret >>> 0;
+}
+
+/**
  * 初始化 WASM 模块
  * 设置 panic hook 以便在控制台显示 Rust panic 信息
  */
@@ -453,6 +632,18 @@ export function parse_asf_header(data) {
     const len0 = WASM_VECTOR_LEN;
     const ret = wasm.parse_asf_header(ptr0, len0);
     return ret === 0 ? undefined : AsfHeader.__wrap(ret);
+}
+
+/**
+ * 解析 MPC 头信息（包括计算总像素大小）
+ * @param {Uint8Array} data
+ * @returns {MpcHeader | undefined}
+ */
+export function parse_mpc_header(data) {
+    const ptr0 = passArray8ToWasm0(data, wasm.__wbindgen_malloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.parse_mpc_header(ptr0, len0);
+    return ret === 0 ? undefined : MpcHeader.__wrap(ret);
 }
 
 /**
@@ -555,6 +746,9 @@ function __wbg_get_imports() {
 const AsfHeaderFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
     : new FinalizationRegistry(ptr => wasm.__wbg_asfheader_free(ptr >>> 0, 1));
+const MpcHeaderFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_mpcheader_free(ptr >>> 0, 1));
 const PathFinderFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
     : new FinalizationRegistry(ptr => wasm.__wbg_pathfinder_free(ptr >>> 0, 1));

@@ -20,6 +20,28 @@ export class AsfHeader {
 }
 
 /**
+ * MPC 文件头信息
+ */
+export class MpcHeader {
+    private constructor();
+    free(): void;
+    [Symbol.dispose](): void;
+    bottom: number;
+    color_count: number;
+    direction: number;
+    frame_count: number;
+    frames_data_length_sum: number;
+    global_height: number;
+    global_width: number;
+    interval: number;
+    left: number;
+    /**
+     * 所有帧解码后的总字节数
+     */
+    total_pixel_bytes: number;
+}
+
+/**
  * 寻路器状态（可复用以减少内存分配）
  */
 export class PathFinder {
@@ -142,6 +164,19 @@ export function check_circle_collision(x1: number, y1: number, r1: number, x2: n
 export function decode_asf_frames(data: Uint8Array, output: Uint8Array): number;
 
 /**
+ * 解码 MPC 帧到预分配的 buffer
+ *
+ * 参数:
+ * - data: MPC 文件原始数据
+ * - pixel_output: 预分配的像素数据 buffer (header.total_pixel_bytes 字节)
+ * - frame_sizes_output: 预分配的帧尺寸 buffer (frame_count * 2 个 u32)
+ * - frame_offsets_output: 预分配的帧偏移 buffer (frame_count 个 u32)
+ *
+ * 返回: 成功返回帧数，失败返回 0
+ */
+export function decode_mpc_frames(data: Uint8Array, pixel_output: Uint8Array, frame_sizes_output: Uint8Array, frame_offsets_output: Uint8Array): number;
+
+/**
  * 初始化 WASM 模块
  * 设置 panic hook 以便在控制台显示 Rust panic 信息
  */
@@ -151,6 +186,11 @@ export function init(): void;
  * 解析 ASF 头信息（不解码帧数据）
  */
 export function parse_asf_header(data: Uint8Array): AsfHeader | undefined;
+
+/**
+ * 解析 MPC 头信息（包括计算总像素大小）
+ */
+export function parse_mpc_header(data: Uint8Array): MpcHeader | undefined;
 
 /**
  * 点是否在圆内
@@ -209,6 +249,11 @@ export interface InitOutput {
     readonly check_circle_collision: (a: number, b: number, c: number, d: number, e: number, f: number) => number;
     readonly point_in_rect: (a: number, b: number, c: number, d: number, e: number, f: number) => number;
     readonly point_in_circle: (a: number, b: number, c: number, d: number, e: number) => number;
+    readonly __wbg_mpcheader_free: (a: number, b: number) => void;
+    readonly __wbg_get_mpcheader_total_pixel_bytes: (a: number) => number;
+    readonly __wbg_set_mpcheader_total_pixel_bytes: (a: number, b: number) => void;
+    readonly parse_mpc_header: (a: number, b: number) => number;
+    readonly decode_mpc_frames: (a: number, b: number, c: any, d: any, e: any) => number;
     readonly __wbg_pathfinder_free: (a: number, b: number) => void;
     readonly pathfinder_new: (a: number, b: number) => number;
     readonly pathfinder_set_obstacle_bitmap: (a: number, b: number, c: number, d: number, e: number) => void;
@@ -217,6 +262,24 @@ export interface InitOutput {
     readonly pathfinder_find_path: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => [number, number];
     readonly version: () => [number, number];
     readonly init: () => void;
+    readonly __wbg_set_mpcheader_frames_data_length_sum: (a: number, b: number) => void;
+    readonly __wbg_set_mpcheader_global_width: (a: number, b: number) => void;
+    readonly __wbg_set_mpcheader_global_height: (a: number, b: number) => void;
+    readonly __wbg_set_mpcheader_frame_count: (a: number, b: number) => void;
+    readonly __wbg_set_mpcheader_direction: (a: number, b: number) => void;
+    readonly __wbg_set_mpcheader_color_count: (a: number, b: number) => void;
+    readonly __wbg_set_mpcheader_interval: (a: number, b: number) => void;
+    readonly __wbg_set_mpcheader_bottom: (a: number, b: number) => void;
+    readonly __wbg_set_mpcheader_left: (a: number, b: number) => void;
+    readonly __wbg_get_mpcheader_frames_data_length_sum: (a: number) => number;
+    readonly __wbg_get_mpcheader_global_width: (a: number) => number;
+    readonly __wbg_get_mpcheader_global_height: (a: number) => number;
+    readonly __wbg_get_mpcheader_frame_count: (a: number) => number;
+    readonly __wbg_get_mpcheader_direction: (a: number) => number;
+    readonly __wbg_get_mpcheader_color_count: (a: number) => number;
+    readonly __wbg_get_mpcheader_interval: (a: number) => number;
+    readonly __wbg_get_mpcheader_bottom: (a: number) => number;
+    readonly __wbg_get_mpcheader_left: (a: number) => number;
     readonly __wbindgen_free: (a: number, b: number, c: number) => void;
     readonly __wbindgen_malloc: (a: number, b: number) => number;
     readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;

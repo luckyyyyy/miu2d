@@ -1,7 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "pnpm build",
+  "installCommand": "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y && source $HOME/.cargo/env && cargo install wasm-pack && pnpm install",
+  "buildCommand": "source $HOME/.cargo/env && pnpm build",
   "outputDirectory": "packages/web/dist",
-  "installCommand": "pnpm install",
   "framework": "vite"
 }

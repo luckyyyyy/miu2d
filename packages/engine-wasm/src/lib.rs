@@ -3,12 +3,14 @@
 //! 为 Miu2D 游戏引擎提供计算密集型功能的 Rust 实现：
 //! - A* 寻路算法
 //! - ASF 精灵帧解码 (RLE 解压)
+//! - MPC 精灵帧解码 (RLE 解压)
 //! - 空间碰撞检测
 
 use wasm_bindgen::prelude::*;
 
 pub mod asf_decoder;
 pub mod collision;
+pub mod mpc_decoder;
 pub mod pathfinder;
 
 /// 初始化 WASM 模块
