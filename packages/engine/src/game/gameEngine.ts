@@ -168,6 +168,9 @@ export class GameEngine implements IEngineContext {
   private loadProgress: number = 0;
   private loadingText: string = "";
 
+  // 地图加载进度回调（用于存档加载时将 MPC 进度映射到正确范围）
+  private mapLoadProgressCallback: ((progress: number, text: string) => void) | null = null;
+
   // 摄像机跟随 - 记录上次玩家位置，只有玩家移动时才更新摄像机
   // 对应 C# Carmera._lastPlayerPosition
   private lastPlayerPositionForCamera: Vector2 | null = null;
@@ -497,6 +500,14 @@ export class GameEngine implements IEngineContext {
       this.emitLoadProgress(progress, text);
     });
 
+    // 设置地图加载进度回调
+    // Loader 会在 15-70% 范围内加载地图，MPC 进度 (0-1) 需要映射到这个范围
+    this.mapLoadProgressCallback = (mpcProgress, text) => {
+      // mpcProgress: 0-1，映射到 15-70% 范围
+      const mappedProgress = Math.round(15 + mpcProgress * 55);
+      this.emitLoadProgress(mappedProgress, text);
+    };
+
     try {
       // JSON 存档加载会恢复武功数据，不需要额外初始化 initializePlayerMagics
       const success = await this.gameManager.loadGameFromSlot(index);
@@ -518,6 +529,7 @@ export class GameEngine implements IEngineContext {
     } finally {
       // 清除进度回调
       this.gameManager.setLoadProgressCallback(undefined);
+      this.mapLoadProgressCallback = null;
     }
   }
 
@@ -595,14 +607,18 @@ export class GameEngine implements IEngineContext {
     }
 
     // 记录调用前的状态
-    // - 如果是 running：游戏内切换地图，需要自己管理加载状态
-    // - 如果是 loading：初始加载流程，外部已管理状态，不改变
+    // - 如果是 running：游戏内切换地图，需要自己管理加载状态和进度
+    // - 如果是 loading：初始加载/存档加载流程，使用外部传入的进度回调
     const wasRunning = this.state === "running";
+    // 使用外部进度回调（存档加载时）或内部进度（游戏内切换地图时）
+    const progressCallback = this.mapLoadProgressCallback;
 
     if (wasRunning) {
       this.state = "loading";
+      this.emitLoadProgress(0, "加载地图...");
+    } else if (progressCallback) {
+      progressCallback(0, "加载地图...");
     }
-    this.emitLoadProgress(0, "加载地图...");
 
     // 构建完整地图路径
     let fullMapPath = mapPath;
@@ -626,10 +642,17 @@ export class GameEngine implements IEngineContext {
         this.mapRenderer.mapData = mapData;
 
         // 加载地图MPC资源
-        // 进度映射：MPC 加载进度 (0-1) 映射到 0-100% 的加载进度范围
+        // 进度：MPC 加载进度 (0-1)
+        // - 游戏内切换地图：映射到 0-100%
+        // - 存档加载：通过 progressCallback 映射到正确范围
         await loadMapMpcs(this.mapRenderer, mapData, mapName, (progress) => {
-          const mappedProgress = Math.round(progress * 100);
-          this.emitLoadProgress(mappedProgress, "加载地图资源...");
+          if (wasRunning) {
+            const mappedProgress = Math.round(progress * 100);
+            this.emitLoadProgress(mappedProgress, "加载地图资源...");
+          } else if (progressCallback) {
+            // progress 是 0-1，传给外部回调处理映射
+            progressCallback(progress, "加载地图资源...");
+          }
         });
 
         // 更新游戏管理器的地图名称
