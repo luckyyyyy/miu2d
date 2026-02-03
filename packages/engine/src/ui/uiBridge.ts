@@ -19,7 +19,6 @@ import {
   type UIMultiSelectionChangeEvent,
   type UIPanelChangeEvent,
   type UISelectionChangeEvent,
-  type UIVideoEndEvent,
   type UIVideoPlayEvent,
 } from "../core/gameEvents";
 import { logger } from "../core/logger";
@@ -39,19 +38,15 @@ import type {
   UIGoodData,
   UIGoodsSlot,
   UIGoodsState,
-  UIMagicData,
   UIMagicSlot,
   UIMagicState,
   UIMemoEntry,
   UIMemoState,
   UIMessageState,
-  UIMinimapState,
   UIMultiSelectionState,
-  UINpcLifeBarState,
   UIPanelName,
   UIPanelVisibility,
   UIPlayerState,
-  UISaveLoadState,
   UISelectionOption,
   UISelectionState,
   UIShopItem,
@@ -259,7 +254,7 @@ export class UIBridge implements IUIBridge {
     });
 
     // 视频结束
-    events.on(GameEvents.UI_VIDEO_END, (_event: UIVideoEndEvent) => {
+    events.on(GameEvents.UI_VIDEO_END, () => {
       const video: UIVideoState = {
         isPlaying: false,
         videoFile: null,

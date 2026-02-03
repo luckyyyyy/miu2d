@@ -136,7 +136,8 @@ export class NpcManager {
 
       // C#: Check if killed by a live character with MagicSprite
       // We check lastAttacker instead since we don't have MagicSprite system yet
-      const lastAttacker = (theDead as any)._lastAttacker as Character | null;
+      const lastAttacker = (theDead as unknown as { _lastAttacker?: Character | null })
+        ._lastAttacker;
       if (!lastAttacker || lastAttacker.isDeathInvoked) {
         continue;
       }
@@ -347,7 +348,7 @@ export class NpcManager {
     if (config.npcIni) {
       npc
         .loadSpritesFromNpcIni(config.npcIni)
-        .catch((err: any) =>
+        .catch((err: unknown) =>
           logger.warn(`[NpcManager] Failed to load sprites for NPC ${config?.name}:`, err)
         );
     }
@@ -355,7 +356,7 @@ export class NpcManager {
     // Preload NPC magics (async, non-blocking)
     npc
       .loadAllMagics()
-      .catch((err: any) =>
+      .catch((err: unknown) =>
         logger.warn(`[NpcManager] Failed to preload magics for NPC ${config?.name}:`, err)
       );
 
@@ -385,7 +386,7 @@ export class NpcManager {
     if (config.npcIni) {
       npc
         .loadSpritesFromNpcIni(config.npcIni)
-        .catch((err: any) =>
+        .catch((err: unknown) =>
           logger.warn(`[NpcManager] Failed to load sprites for NPC ${config.name}:`, err)
         );
     }
@@ -393,7 +394,7 @@ export class NpcManager {
     // Preload NPC magics (async, non-blocking)
     npc
       .loadAllMagics()
-      .catch((err: any) =>
+      .catch((err: unknown) =>
         logger.warn(`[NpcManager] Failed to preload magics for NPC ${config.name}:`, err)
       );
 
@@ -1054,7 +1055,10 @@ export class NpcManager {
 
     // Check if this is the first time setting custom ASF for this state
     const isFirstTimeSet =
-      !npc.customActionFiles.has(stateType) || !(npc as any)._customAsfCache?.has(stateType);
+      !npc.customActionFiles.has(stateType) ||
+      !(npc as unknown as { _customAsfCache?: Map<unknown, unknown> })._customAsfCache?.has(
+        stateType
+      );
 
     // Use Npc class method directly
     npc.setNpcActionFile(stateType, asfFile);
@@ -1067,10 +1071,12 @@ export class NpcManager {
         // 1. This is the first time setting custom ASF for this state
         // 2. Current state matches the one we just loaded
         if (isFirstTimeSet && npc.state === stateType) {
-          (npc as any)._updateTextureForState(stateType);
+          (
+            npc as unknown as { _updateTextureForState: (state: number) => void }
+          )._updateTextureForState(stateType);
         }
       })
-      .catch((err: any) => logger.error(`Failed to preload custom action file:`, err));
+      .catch((err: unknown) => logger.error(`Failed to preload custom action file:`, err));
 
     return true;
   }
@@ -1278,7 +1284,7 @@ export class NpcManager {
    * 1. .npc 文件加载（INI 格式，解析后变成 Record<string, string>）
    * 2. JSON 存档加载（完整类型的对象）
    */
-  private parseNpcData(data: Record<string, any>): {
+  private parseNpcData(data: Record<string, unknown>): {
     config: CharacterConfig;
     extraState: {
       // 基本状态
@@ -1351,14 +1357,14 @@ export class NpcManager {
     dir: number;
   } {
     // 辅助函数：解析数字，兼容 string 和 number
-    const parseNum = (val: any, def: number): number => {
+    const parseNum = (val: unknown, def: number): number => {
       if (val === undefined || val === null || val === "") return def;
-      return typeof val === "number" ? val : parseInt(val, 10);
+      return typeof val === "number" ? val : parseInt(String(val), 10);
     };
-    const parseStr = (val: any, def: string = ""): string => {
+    const parseStr = (val: unknown, def: string = ""): string => {
       return val !== undefined && val !== null ? String(val) : def;
     };
-    const parseBool = (val: any, def: boolean = false): boolean => {
+    const parseBool = (val: unknown, def: boolean = false): boolean => {
       if (val === undefined || val === null) return def;
       if (typeof val === "boolean") return val;
       return val === "1" || val === "true" || val === 1;
@@ -1437,10 +1443,12 @@ export class NpcManager {
 
     // 额外属性（只有 JSON 存档才有）
     const timerScriptFile = parseStr(data.timerScriptFile ?? data.TimerScriptFile);
-    const timerScriptInterval = data.timerScriptInterval ?? data.TimerScriptInterval;
+    const timerScriptInterval = parseNum(data.timerScriptInterval ?? data.TimerScriptInterval, 0);
     const dropIni = parseStr(data.dropIni ?? data.DropIni);
     const buyIniFile = parseStr(data.buyIniFile ?? data.BuyIniFile);
-    const actionPathTilePositions = data.actionPathTilePositions;
+    const actionPathTilePositions = (data.actionPathTilePositions ?? undefined) as
+      | Vector2[]
+      | undefined;
 
     // === AI 相关字段 ===
     const aiType = parseNum(data.AIType ?? data.aiType, 0);
@@ -1493,8 +1501,8 @@ export class NpcManager {
     const config: CharacterConfig = {
       name,
       npcIni,
-      kind: kind as any,
-      relation: relation as any,
+      kind: kind as CharacterKind,
+      relation: relation as RelationType,
       group,
       noAutoAttackPlayer,
       scriptFile: scriptFile || undefined,
@@ -1691,7 +1699,7 @@ export class NpcManager {
    *
    * C# 逻辑：有什么字段就读什么字段，不区分来源
    */
-  async createNpcFromData(data: Record<string, any>): Promise<Npc | null> {
+  async createNpcFromData(data: Record<string, unknown>): Promise<Npc | null> {
     const { config, extraState, mapX, mapY, dir } = this.parseNpcData(data);
 
     // Skip dead NPCs that have been fully removed
@@ -1701,7 +1709,7 @@ export class NpcManager {
     }
 
     // Create NPC with config
-    const npc = this.addNpcWithConfig(config, mapX, mapY, dir as any);
+    const npc = this.addNpcWithConfig(config, mapX, mapY, dir as Direction);
 
     // === 基本状态 ===
     npc.actionType = extraState.action;

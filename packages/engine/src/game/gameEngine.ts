@@ -44,7 +44,7 @@ import { logger } from "../core/logger";
 import type { JxqyMapData } from "../core/mapTypes";
 import type { InputState, Vector2 } from "../core/types";
 import { CharacterState, type Direction } from "../core/types";
-import { DebugManager } from "../debug";
+import { DebugManager, type PlayerStatsInfo } from "../debug";
 import { ScreenEffects } from "../effects";
 import type { GuiManagerState } from "../gui/types";
 import { MemoListManager, partnerList, TalkTextListManager } from "../listManager";
@@ -2028,7 +2028,7 @@ export class GameEngine implements IEngineContext {
   /**
    * 获取玩家状态
    */
-  getPlayerStats(): any {
+  getPlayerStats(): PlayerStatsInfo | null {
     const player = this._gameManager?.getPlayer();
     if (!player) return null;
     return {
@@ -2042,6 +2042,8 @@ export class GameEngine implements IEngineContext {
       exp: player.exp,
       levelUpExp: player.levelUpExp,
       money: player.money,
+      state: player.state,
+      isInFighting: player.isInFighting,
     };
   }
 

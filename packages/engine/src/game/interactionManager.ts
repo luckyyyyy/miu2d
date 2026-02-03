@@ -51,7 +51,7 @@ export interface InteractionTarget {
 export interface ObjInteractionState {
   hasInteracted: boolean;
   interactTime: number;
-  scriptResult?: any;
+  scriptResult?: unknown;
 }
 
 /**
@@ -183,7 +183,7 @@ export class InteractionManager {
   /**
    * Mark an object as interacted
    */
-  markObjInteracted(objId: string, result?: any): void {
+  markObjInteracted(objId: string, result?: unknown): void {
     this._objInteractionState.set(objId, {
       hasInteracted: true,
       interactTime: Date.now(),

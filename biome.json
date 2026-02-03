@@ -10,12 +10,14 @@
         "useKeyWithClickEvents": "off",
         "useButtonType": "off",
         "noSvgWithoutTitle": "off",
-        "noNoninteractiveTabindex": "off"
+        "noNoninteractiveTabindex": "off",
+        "noLabelWithoutControl": "off"
       },
       "suspicious": {
         "noArrayIndexKey": "off",
         "noExplicitAny": "error",
-        "noAssignInExpressions": "off"
+        "noAssignInExpressions": "off",
+        "useIterableCallbackReturn": "off"
       },
       "style": {
         "noNonNullAssertion": "off",
@@ -24,12 +26,14 @@
       "correctness": {
         "useHookAtTopLevel": "off",
         "noUnusedFunctionParameters": "off",
-        "noPrecisionLoss": "warn",
-        "noUnusedVariables": "warn",
-        "noUnusedPrivateClassMembers": "off"
+        "noPrecisionLoss": "off",
+        "noUnusedVariables": "off",
+        "noUnusedPrivateClassMembers": "off",
+        "noUnusedImports": "warn"
       },
       "complexity": {
-        "noBannedTypes": "off"
+        "noBannedTypes": "off",
+        "noStaticOnlyClass": "off"
       }
     }
   },

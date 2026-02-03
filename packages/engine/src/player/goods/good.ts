@@ -972,7 +972,7 @@ function parseGoodIni(content: string, filePath: string): GoodRawData | null {
         data.flyIni2 = value;
         break;
       case "magiciniwhenuuse":
-      case "magiciniwhenuuse": // 支持拼写错误
+      case "magiciniwhennuse": // 支持拼写错误
         data.magicIniWhenUse = value;
         break;
       case "cost":

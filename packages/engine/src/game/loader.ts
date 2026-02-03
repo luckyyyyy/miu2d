@@ -2268,7 +2268,7 @@ export class Loader {
 
       try {
         // 使用 NpcManager 的统一方法从存档数据创建 NPC
-        await npcManager.createNpcFromData(npcData);
+        await npcManager.createNpcFromData(npcData as unknown as Record<string, unknown>);
         loadedCount++;
       } catch (error) {
         logger.error(`[Loader] Failed to create NPC ${npcData.name}:`, error);

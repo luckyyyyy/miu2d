@@ -1021,7 +1021,13 @@ export class MagicListManager {
    * 注意：序列化时使用原始列表，而不是替换列表
    */
   serialize(): object {
-    const data: any[] = [];
+    const data: {
+      index: number;
+      fileName: string;
+      level: number;
+      exp: number;
+      hideCount: number;
+    }[] = [];
     for (let i = 1; i <= MAGIC_LIST_CONFIG.maxMagic; i++) {
       const info = this.magicList[i]; // 使用原始列表进行存档
       if (info?.magic) {
@@ -1040,7 +1046,15 @@ export class MagicListManager {
   /**
    * 反序列化（从存档加载）
    */
-  async deserialize(data: any): Promise<void> {
+  async deserialize(data: {
+    magics?: {
+      index: number;
+      fileName: string;
+      level?: number;
+      exp?: number;
+      hideCount?: number;
+    }[];
+  }): Promise<void> {
     this.renewList();
 
     if (!data?.magics) return;
@@ -1301,14 +1315,30 @@ export class MagicListManager {
    * C# Reference: MagicListManager.LoadList for replacement lists
    * @param data 序列化的替换列表数据
    */
-  async deserializeReplaceLists(data: any): Promise<void> {
+  async deserializeReplaceLists(
+    data: {
+      isInReplaceMagicList?: boolean;
+      currentReplaceMagicListFilePath?: string;
+      replaceLists?: Record<
+        string,
+        {
+          index: number;
+          fileName: string;
+          level?: number;
+          exp?: number;
+          hideCount?: number;
+          lastIndexWhenHide?: number;
+        }[]
+      >;
+    } | null
+  ): Promise<void> {
     if (!data) return;
 
     this._isInReplaceMagicList = data.isInReplaceMagicList || false;
     this._currentReplaceMagicListFilePath = data.currentReplaceMagicListFilePath || "";
 
     if (data.replaceLists) {
-      for (const [filePath, items] of Object.entries(data.replaceLists as Record<string, any[]>)) {
+      for (const [filePath, items] of Object.entries(data.replaceLists)) {
         const size = MAGIC_LIST_CONFIG.maxMagic + 1;
         const newList: (MagicItemInfo | null)[] = new Array(size).fill(null);
         const newHideList: (MagicItemInfo | null)[] = new Array(size).fill(null);

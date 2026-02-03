@@ -11,6 +11,7 @@ import type { CharacterConfig, Vector2 } from "../core/types";
 import { ActionType, CharacterKind, CharacterState } from "../core/types";
 import type { MagicManager } from "../magic";
 import type { MagicData } from "../magic/types";
+import type { AsfData } from "../sprite/asf";
 import { generateId, getDirectionFromVector, tileToPixel } from "../utils";
 import { NpcMagicCache } from "./modules";
 import type { NpcManager } from "./npcManager";
@@ -995,7 +996,8 @@ export class Npc extends Character {
         if (dead) {
           // Get the attacker from the dead character
           // Note: We need to track lastAttacker in Character class
-          const lastAttacker = (dead as any)._lastAttacker as Character | null;
+          const lastAttacker = (dead as unknown as { _lastAttacker?: Character | null })
+            ._lastAttacker;
           if (lastAttacker && !lastAttacker.isDeathInvoked) {
             target = lastAttacker;
             this._keepDistanceCharacterWhenFriendDeath = target;
@@ -1135,7 +1137,7 @@ export class Npc extends Character {
    * Start special action animation
    * Based on C# Character.SetSpecialAction
    */
-  startSpecialAction(asf: any): void {
+  startSpecialAction(asf: AsfData | null): void {
     this.isInSpecialAction = true;
     this.specialActionLastDirection = this._currentDirection;
     this.specialActionFrame = 0;

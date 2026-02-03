@@ -439,7 +439,9 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
         // Check if this is the first time setting custom ASF for this state
         const isFirstTimeSet =
           !player.customActionFiles.has(stateType) ||
-          !(player as any)._customAsfCache?.has(stateType);
+          !(player as unknown as { _customAsfCache?: Map<unknown, unknown> })._customAsfCache?.has(
+            stateType
+          );
 
         // Use Player's setNpcActionFile method
         player.setNpcActionFile(stateType, asfFile);
@@ -453,10 +455,14 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
             // 2. Current state matches the one we just loaded
             // 3. Not in special action (avoid interrupting special action animation)
             if (isFirstTimeSet && player.state === stateType && !player.isInSpecialAction) {
-              (player as any)._updateTextureForState(stateType);
+              (
+                player as unknown as { _updateTextureForState: (state: CharacterState) => void }
+              )._updateTextureForState(stateType);
             }
           })
-          .catch((err: any) => logger.error(`Failed to preload player custom action file:`, err));
+          .catch((err: unknown) =>
+            logger.error(`Failed to preload player custom action file:`, err)
+          );
         return;
       }
       npcManager.setNpcActionFile(name, stateType, asfFile);
@@ -473,7 +479,7 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
               logger.warn(`[ScriptContext] Failed to start player special action, clearing state`);
             }
           })
-          .catch((err: any) => {
+          .catch((err: unknown) => {
             logger.error(`Failed to start player special action:`, err);
             player.isInSpecialAction = false;
           });
@@ -490,7 +496,7 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
                 logger.warn(`[ScriptContext] Failed to start NPC special action, clearing state`);
               }
             })
-            .catch((err: any) => {
+            .catch((err: unknown) => {
               logger.error(`Failed to start NPC special action:`, err);
               npc.isInSpecialAction = false;
             });
@@ -1312,8 +1318,11 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
           break;
         case CharacterState.Sit:
           // C#: target.Sitdown() - 只有 Player 有此方法
-          if ("sitdown" in character && typeof (character as any).sitdown === "function") {
-            (character as any).sitdown();
+          if (
+            "sitdown" in character &&
+            typeof (character as unknown as Record<string, unknown>).sitdown === "function"
+          ) {
+            (character as unknown as { sitdown: () => void }).sitdown();
           } else {
             character.state = CharacterState.Sit;
           }
@@ -1399,16 +1408,16 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
     addNpcProperty: (name, property, value) => {
       // C#: AddNpcProperty - 使用反射设置属性
       const npcs = npcManager.getAllNpcsByName(name);
-      const characters = [...npcs];
+      const characters: Character[] = [...npcs];
       if (player && player.name === name) {
-        characters.push(player as any);
+        characters.push(player);
       }
       // 将属性名转换为小写开头 (C# 属性名是 PascalCase)
       const propName = property.charAt(0).toLowerCase() + property.slice(1);
       for (const character of characters) {
-        const charAny = character as any;
-        if (propName in charAny && typeof charAny[propName] === "number") {
-          charAny[propName] += value;
+        const charRecord = character as unknown as Record<string, unknown>;
+        if (propName in charRecord && typeof charRecord[propName] === "number") {
+          (charRecord[propName] as number) += value;
         }
       }
       logger.log(`[ScriptContext] AddNpcProperty: ${name}.${property} += ${value}`);

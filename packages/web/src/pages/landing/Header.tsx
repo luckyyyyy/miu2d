@@ -98,14 +98,15 @@ export function Header() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <motion.a
-            href="#"
+          <motion.button
+            type="button"
+            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
             className="flex items-center gap-2 text-xl font-bold bg-gradient-to-r from-orange-500 to-amber-500 bg-clip-text text-transparent"
             whileHover={{ scale: 1.02 }}
           >
             <span className="text-2xl">⚡</span>
             Miu2D
-          </motion.a>
+          </motion.button>
 
           {/* Navigation */}
           <nav className="hidden md:flex items-center gap-8">

@@ -87,20 +87,20 @@ export function Footer() {
               >
                 <GitHubIcon className="w-5 h-5 text-zinc-600 dark:text-zinc-400" />
               </motion.a>
-              <motion.a
-                href="#"
+              <motion.button
+                type="button"
                 whileHover={{ scale: 1.1 }}
                 className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
               >
                 <TwitterIcon className="w-5 h-5 text-zinc-600 dark:text-zinc-400" />
-              </motion.a>
-              <motion.a
-                href="#"
+              </motion.button>
+              <motion.button
+                type="button"
                 whileHover={{ scale: 1.1 }}
                 className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
               >
                 <DiscordIcon className="w-5 h-5 text-zinc-600 dark:text-zinc-400" />
-              </motion.a>
+              </motion.button>
             </div>
           </div>
 

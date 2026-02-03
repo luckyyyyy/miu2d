@@ -78,7 +78,7 @@ export class AttrInt {
       const parts = str.split(",");
       for (const part of parts) {
         const val = parseInt(part.trim(), 10);
-        if (!isNaN(val)) {
+        if (!Number.isNaN(val)) {
           this.randomValues.push(val);
         }
       }
@@ -235,7 +235,7 @@ export class AttrString {
             itemValue = trimmedItem.substring(0, startIdx);
             const weightStr = trimmedItem.substring(startIdx + 1, trimmedItem.length - 1);
             weight = parseFloat(weightStr);
-            if (isNaN(weight)) {
+            if (Number.isNaN(weight)) {
               weight = NaN; // 解析失败使用默认权重
             }
           }
@@ -247,12 +247,12 @@ export class AttrString {
       // 计算累积概率
       let total = 0;
       for (const r of this.randomValues) {
-        total += isNaN(r.weight) ? 1 : r.weight;
+        total += Number.isNaN(r.weight) ? 1 : r.weight;
       }
 
       let cumulative = 0;
       for (const r of this.randomValues) {
-        cumulative += (isNaN(r.weight) ? 1 : r.weight) / total;
+        cumulative += (Number.isNaN(r.weight) ? 1 : r.weight) / total;
         this.probabilities.push(cumulative);
       }
     } else {
@@ -305,7 +305,7 @@ export class AttrString {
       if (this.randomValues.length > 0) {
         return this.randomValues
           .map((r) => {
-            if (isNaN(r.weight)) {
+            if (Number.isNaN(r.weight)) {
               return r.value;
             }
             return `${r.value}[${r.weight}]`;

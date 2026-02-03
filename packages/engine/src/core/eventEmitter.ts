@@ -4,19 +4,19 @@
  */
 
 import { logger } from "./logger";
-export type EventCallback<T = any> = (data: T) => void;
+export type EventCallback<T = unknown> = (data: T) => void;
 
 export class EventEmitter {
-  private listeners: Map<string, Set<EventCallback>> = new Map();
+  private listeners: Map<string, Set<EventCallback<unknown>>> = new Map();
 
   /**
    * 订阅事件
    */
-  on<T = any>(event: string, callback: EventCallback<T>): () => void {
+  on<T = unknown>(event: string, callback: EventCallback<T>): () => void {
     if (!this.listeners.has(event)) {
       this.listeners.set(event, new Set());
     }
-    this.listeners.get(event)?.add(callback);
+    this.listeners.get(event)?.add(callback as EventCallback<unknown>);
 
     // 返回取消订阅函数
     return () => this.off(event, callback);
@@ -25,7 +25,7 @@ export class EventEmitter {
   /**
    * 一次性订阅
    */
-  once<T = any>(event: string, callback: EventCallback<T>): () => void {
+  once<T = unknown>(event: string, callback: EventCallback<T>): () => void {
     const wrapper: EventCallback<T> = (data) => {
       this.off(event, wrapper);
       callback(data);
@@ -36,10 +36,10 @@ export class EventEmitter {
   /**
    * 取消订阅
    */
-  off<T = any>(event: string, callback: EventCallback<T>): void {
+  off<T = unknown>(event: string, callback: EventCallback<T>): void {
     const callbacks = this.listeners.get(event);
     if (callbacks) {
-      callbacks.delete(callback);
+      callbacks.delete(callback as EventCallback<unknown>);
       if (callbacks.size === 0) {
         this.listeners.delete(event);
       }
@@ -49,7 +49,7 @@ export class EventEmitter {
   /**
    * 发射事件
    */
-  emit<T = any>(event: string, data?: T): void {
+  emit<T = unknown>(event: string, data?: T): void {
     const callbacks = this.listeners.get(event);
     if (callbacks) {
       callbacks.forEach((callback) => {

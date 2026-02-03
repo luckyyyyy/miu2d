@@ -11,8 +11,11 @@ import { logger } from "../core/logger";
 import type { Vector2 } from "../core/types";
 
 // WASM 模块类型定义
-interface WasmPathFinder {
-  new (mapWidth: number, mapHeight: number): WasmPathFinder;
+interface WasmPathFinderConstructor {
+  new (mapWidth: number, mapHeight: number): WasmPathFinderInstance;
+}
+
+interface WasmPathFinderInstance {
   set_obstacle_bitmap(bitmap: Uint8Array, hardBitmap: Uint8Array): void;
   set_obstacle(x: number, y: number, isObstacle: boolean, isHard: boolean): void;
   find_path(
@@ -26,7 +29,7 @@ interface WasmPathFinder {
 }
 
 interface WasmModule {
-  PathFinder: new (mapWidth: number, mapHeight: number) => WasmPathFinder;
+  PathFinder: WasmPathFinderConstructor;
   PathType: {
     PathOneStep: number;
     SimpleMaxNpcTry: number;
@@ -37,7 +40,7 @@ interface WasmModule {
 }
 
 let wasmModule: WasmModule | null = null;
-let wasmPathfinder: WasmPathFinder | null = null;
+let wasmPathfinder: WasmPathFinderInstance | null = null;
 let isInitialized = false;
 let initPromise: Promise<boolean> | null = null;
 

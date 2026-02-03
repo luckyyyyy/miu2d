@@ -27,7 +27,7 @@ import type { MagicSprite } from "../magic/magicSprite";
 import type { MagicData, MagicItemInfo } from "../magic/types";
 import { MagicAddonEffect, MagicMoveKind, MagicSpecialKind } from "../magic/types";
 import { getTileTextureRegion } from "../map/renderer";
-import type { NpcManager } from "../npc";
+import type { Npc, NpcManager } from "../npc";
 import { resourceLoader } from "../resource/resourceLoader";
 import { type AsfData, getCachedAsf } from "../sprite/asf";
 import { distance, getDirection, isBoxCollide, pixelToTile, tileToPixel } from "../utils";
@@ -54,7 +54,7 @@ const RESTORE_INTERVAL_MS = 1000;
 /** 玩家动作类型 */
 export interface PlayerAction {
   type: "interact" | "attack" | "use_skill" | "use_item";
-  targetNpc?: any;
+  targetNpc?: Npc;
   skillSlot?: number;
   itemSlot?: number;
 }
