@@ -17,6 +17,7 @@ import {
   CharacterState,
   MIN_CHANGE_MOVE_SPEED_PERCENT,
   RUN_SPEED_FOLD,
+  TILE_HEIGHT,
   TILE_WIDTH,
 } from "../../core/types";
 import {
@@ -29,6 +30,50 @@ import {
 import { getDirectionIndex } from "../../utils/direction";
 import { getNeighbors } from "../../utils/neighbors";
 import { CharacterBase, type CharacterUpdateResult } from "./characterBase";
+
+/**
+ * 获取从起点到终点之间经过的所有瓦片（使用线段遍历算法）
+ * 用于高速移动时的隧道效应检测，防止穿透障碍物
+ *
+ * 使用 DDA (Digital Differential Analyzer) 算法沿像素路径采样，
+ * 收集经过的所有瓦片坐标
+ */
+function getTilesAlongLine(
+  fromPixel: Vector2,
+  toPixel: Vector2
+): Vector2[] {
+  const tiles: Vector2[] = [];
+  const seen = new Set<string>();
+
+  const dx = toPixel.x - fromPixel.x;
+  const dy = toPixel.y - fromPixel.y;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+
+  if (dist < 1) {
+    const tile = pixelToTile(fromPixel.x, fromPixel.y);
+    return [tile];
+  }
+
+  // 采样步长：使用较小的步长确保不会跳过格子
+  // 格子对角线约 72 像素，使用 16 像素步长确保覆盖
+  const stepSize = Math.min(TILE_WIDTH / 4, TILE_HEIGHT);
+  const steps = Math.ceil(dist / stepSize);
+
+  for (let i = 0; i <= steps; i++) {
+    const t = i / steps;
+    const px = fromPixel.x + dx * t;
+    const py = fromPixel.y + dy * t;
+    const tile = pixelToTile(px, py);
+    const key = `${tile.x},${tile.y}`;
+
+    if (!seen.has(key)) {
+      seen.add(key);
+      tiles.push(tile);
+    }
+  }
+
+  return tiles;
+}
 
 /**
  * CharacterMovement - 移动功能层
@@ -234,10 +279,55 @@ export abstract class CharacterMovement extends CharacterBase {
       const changeMoveSpeedFold = 1 + speedPercent / 100;
       const speed = BASE_SPEED * speedFold * changeMoveSpeedFold;
       const moveDistance = speed * deltaTime;
-      const ratio = Math.min(1, moveDistance / dist);
 
-      this._positionInWorld.x += dx * ratio;
-      this._positionInWorld.y += dy * ratio;
+      // 计算预期的新位置
+      const ratio = Math.min(1, moveDistance / dist);
+      const newPosX = this._positionInWorld.x + dx * ratio;
+      const newPosY = this._positionInWorld.y + dy * ratio;
+
+      // 隧道效应检测：高速移动时检查路径上的所有格子
+      // 防止角色穿透障碍物
+      const tilesAlongPath = getTilesAlongLine(
+        this._positionInWorld,
+        { x: newPosX, y: newPosY }
+      );
+
+      // 查找第一个障碍物格子（跳过当前格子）
+      let blockedTile: Vector2 | null = null;
+      let lastValidTile: Vector2 = tileFrom;
+      let lastValidPixel: Vector2 = { ...this._positionInWorld };
+
+      for (const tile of tilesAlongPath) {
+        // 跳过当前所在格子
+        if (tile.x === tileFrom.x && tile.y === tileFrom.y) {
+          continue;
+        }
+
+        // 检查地图障碍物（角色障碍由 hasObstacle 检查，但已在上面处理了 tileTo）
+        if (this.checkMapObstacleForCharacter(tile)) {
+          blockedTile = tile;
+          break;
+        }
+
+        // 更新最后有效位置
+        lastValidTile = tile;
+        lastValidPixel = tileToPixel(tile.x, tile.y);
+      }
+
+      if (blockedTile) {
+        // 遇到障碍物，停在障碍物前的最后有效位置
+        this._positionInWorld = { ...lastValidPixel };
+        this._mapX = lastValidTile.x;
+        this._mapY = lastValidTile.y;
+        this.path = [];
+        this.standingImmediately();
+        result.moved = true;
+        return result;
+      }
+
+      // 无障碍物，正常移动
+      this._positionInWorld.x = newPosX;
+      this._positionInWorld.y = newPosY;
       this._currentDirection = getDirection(this._positionInWorld, targetPixel);
 
       if (this._state !== CharacterState.Walk && this._state !== CharacterState.Run &&

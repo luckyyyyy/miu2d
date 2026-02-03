@@ -727,6 +727,14 @@ export class GameManager {
   }
 
   /**
+   * Handle mouse button release
+   * C# Reference: 更新 _lastMouseState
+   */
+  handleMouseUp(isRightButton: boolean): void {
+    this.inputHandler.handleMouseUp(isRightButton);
+  }
+
+  /**
    * Handle continuous mouse input for movement
    * Delegates to InputHandler
    */

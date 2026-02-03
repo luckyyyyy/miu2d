@@ -1331,6 +1331,7 @@ export class GameEngine implements IEngineContext {
 
   /**
    * 处理鼠标松开
+   * C# Reference: 更新 _lastMouseState
    */
   handleMouseUp(isRightButton: boolean = false): void {
     if (isRightButton) {
@@ -1340,6 +1341,9 @@ export class GameEngine implements IEngineContext {
       // Clear clicked tile when mouse released
       this.inputState.clickedTile = null;
     }
+
+    // 通知 InputHandler 更新按钮状态（用于交互防重复）
+    this.gameManager?.handleMouseUp(isRightButton);
   }
 
   /**

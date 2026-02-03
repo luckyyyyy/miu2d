@@ -56,6 +56,11 @@ export class InputHandler {
   // C# Reference: Character._interactiveTarget
   private pendingInteraction: PendingInteraction | null = null;
 
+  // C# Reference: Player.cs _lastMouseState
+  // 跟踪上一帧的鼠标按键状态，用于检测"新按下"事件
+  private lastLeftButtonDown: boolean = false;
+  private lastRightButtonDown: boolean = false;
+
   // 通过 IEngineContext 获取的管理器
   private get player(): Player {
     return getEngineContext().player as Player;
@@ -415,6 +420,9 @@ export class InputHandler {
    * Handle mouse click
    * Enhanced with interaction manager support and ControledCharacter (驭魂术) support
    * C# Reference: Player.HandleMouseInput - Ctrl+Click = attack, Alt+Click = jump
+   *
+   * C# 中交互只在 _lastMouseState.LeftButton == Released 时触发
+   * 这里通过 lastLeftButtonDown/lastRightButtonDown 模拟相同逻辑
    */
   handleClick(
     worldX: number,
@@ -424,6 +432,21 @@ export class InputHandler {
     altKey: boolean = false
   ): void {
     const { guiManager, interactionManager, player, scriptExecutor, magicHandler } = this;
+
+    // C# Reference: _lastMouseState.LeftButton == ButtonState.Released
+    // 只在"新按下"时触发交互，防止重复触发
+    if (button === "left") {
+      if (this.lastLeftButtonDown) {
+        // 上一帧已经按下，不是新按下，忽略
+        return;
+      }
+      this.lastLeftButtonDown = true;
+    } else {
+      if (this.lastRightButtonDown) {
+        return;
+      }
+      this.lastRightButtonDown = true;
+    }
 
     // C#: CanInput = !Globals.IsInputDisabled && !ScriptManager.IsInRunningScript && MouseInBound()
     // If script is running, only allow dialog clicks (handled by GUI blocking)
@@ -451,6 +474,8 @@ export class InputHandler {
 
     // C# Reference: Player.HandleMouseInput - Alt+Left Click = jump
     if (button === "left" && altKey) {
+      // 跳跃会打断待处理的交互
+      this.cancelPendingInteraction();
       const clickedTile = pixelToTile(worldX, worldY);
       // 跳跃操作也转发到被控角色
       if (isControlling) {
@@ -464,6 +489,8 @@ export class InputHandler {
     // C# Reference: Player.HandleMouseInput - Ctrl+Left Click = attack at position
     // Note: This is an IMMEDIATE attack in place, NOT walk-then-attack
     if (button === "left" && ctrlKey) {
+      // 攻击会打断待处理的交互
+      this.cancelPendingInteraction();
       // Perform attack immediately at clicked world position (no walking)
       activeCharacter.performeAttack({ x: worldX, y: worldY });
       return;
@@ -484,6 +511,8 @@ export class InputHandler {
 
         // Check if NPC is enemy or non-fighter (can be attacked)
         if (hoverTarget.npc.isEnemy || hoverTarget.npc.isNoneFighter) {
+          // 攻击 NPC 会取消之前的待处理交互
+          this.cancelPendingInteraction();
           // Attack the NPC - walk to and attack
           this.attackNpcWithCharacter(activeCharacter, hoverTarget.npc, isRun);
           return;
@@ -498,6 +527,9 @@ export class InputHandler {
       }
 
       // 没有悬停目标时，移动到点击位置
+      // 主动移动会打断任何待处理的交互
+      // C# Reference: 用户主动点击地面走路时，会覆盖 _interactiveTarget
+      this.cancelPendingInteraction();
       const clickedTile = pixelToTile(worldX, worldY);
       if (isRun && !isControlling) {
         activeCharacter.runTo(clickedTile);
@@ -938,6 +970,18 @@ export class InputHandler {
    */
   cancelPendingInteraction(): void {
     this.pendingInteraction = null;
+  }
+
+  /**
+   * Handle mouse button release
+   * C# Reference: 更新 _lastMouseState，允许下次点击触发交互
+   */
+  handleMouseUp(isRightButton: boolean): void {
+    if (isRightButton) {
+      this.lastRightButtonDown = false;
+    } else {
+      this.lastLeftButtonDown = false;
+    }
   }
 
   /**
