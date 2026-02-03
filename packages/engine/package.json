@@ -23,6 +23,7 @@
     "./magic": "./src/magic/index.ts",
     "./magic/*": "./src/magic/*.ts",
     "./map": "./src/map/index.ts",
+    "./map/*": "./src/map/*.ts",
     "./npc": "./src/npc/index.ts",
     "./obj/*": "./src/obj/*.ts",
     "./player/*": "./src/player/*.ts",

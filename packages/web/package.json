@@ -13,6 +13,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@miu2d/editor": "workspace:*",
     "@miu2d/engine": "workspace:*",
     "framer-motion": "^12.29.0",
     "i18next": "^25.8.0",

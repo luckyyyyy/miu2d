@@ -168,10 +168,10 @@ function drawTileLayer(
   const drawX = Math.floor(pixelPos.x - frameCanvas.width / 2 - renderer.camera.x);
   const drawY = Math.floor(pixelPos.y - (frameCanvas.height - 16) - renderer.camera.y);
 
-  // 额外 0.5 像素避免浮点精度问题导致的缝隙
+  // 额外 1 像素避免浮点精度问题导致的缝隙（缩放时更明显）
   ctx.drawImage(
     frameCanvas, 0, 0, frameCanvas.width, frameCanvas.height,
-    drawX, drawY, frameCanvas.width + 0.5, frameCanvas.height + 0.5
+    drawX, drawY, frameCanvas.width + 1, frameCanvas.height + 1
   );
 }
 
