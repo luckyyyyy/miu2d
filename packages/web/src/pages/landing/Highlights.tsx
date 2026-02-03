@@ -104,6 +104,44 @@ function TrapIcon({ className }: { className?: string }) {
   );
 }
 
+// 地图编辑器图标
+function MapEditorIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+      strokeWidth={1.5}
+      stroke="currentColor"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M9 6.75V15m6-6v8.25m.503 3.498l4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 00-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0z"
+      />
+    </svg>
+  );
+}
+
+// 精灵编辑器图标
+function SpriteEditorIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+      strokeWidth={1.5}
+      stroke="currentColor"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M3.375 19.5h17.25m-17.25 0a1.125 1.125 0 01-1.125-1.125M3.375 19.5h1.5C5.496 19.5 6 18.996 6 18.375m-3.75 0V5.625m0 12.75v-1.5c0-.621.504-1.125 1.125-1.125m18.375 2.625V5.625m0 12.75c0 .621-.504 1.125-1.125 1.125m1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125m0 3.75h-1.5A1.125 1.125 0 0118 18.375M20.625 4.5H3.375m17.25 0c.621 0 1.125.504 1.125 1.125M20.625 4.5h-1.5C18.504 4.5 18 5.004 18 5.625m3.75 0v1.5c0 .621-.504 1.125-1.125 1.125M3.375 4.5c-.621 0-1.125.504-1.125 1.125M3.375 4.5h1.5C5.496 4.5 6 5.004 6 5.625m-3.75 0v1.5c0 .621.504 1.125 1.125 1.125m0 0h1.5m-1.5 0c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125m1.5-3.75C5.496 8.25 6 7.746 6 7.125v-1.5M4.875 8.25C5.496 8.25 6 8.754 6 9.375v1.5m0-5.25v5.25m0-5.25C6 5.004 6.504 4.5 7.125 4.5h9.75c.621 0 1.125.504 1.125 1.125m1.125 2.625h1.5m-1.5 0A1.125 1.125 0 0118 7.125v-1.5m1.125 2.625c-.621 0-1.125.504-1.125 1.125v1.5m2.625-2.625c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125M18 5.625v5.25M7.125 12h9.75m-9.75 0A1.125 1.125 0 016 10.875M7.125 12C6.504 12 6 12.504 6 13.125m0-2.25C6 11.496 5.496 12 4.875 12M18 10.875c0 .621-.504 1.125-1.125 1.125M18 10.875c0 .621.504 1.125 1.125 1.125m-2.25 0c.621 0 1.125.504 1.125 1.125m-12 5.25v-5.25m0 5.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125m-12 0v-1.5c0-.621-.504-1.125-1.125-1.125M18 18.375v-5.25m0 5.25v-1.5c0-.621.504-1.125 1.125-1.125M18 13.125v1.5c0 .621.504 1.125 1.125 1.125M18 13.125c0-.621.504-1.125 1.125-1.125M6 13.125v1.5c0 .621-.504 1.125-1.125 1.125M6 13.125C6 12.504 5.496 12 4.875 12m-1.5 0h1.5m14.25 0h1.5"
+      />
+    </svg>
+  );
+}
+
 // ============ 动画演示组件 ============
 
 // AI 生成动画 - 展示 AI 正在创作的效果
@@ -501,6 +539,112 @@ function PerformancePreloadDemo() {
   );
 }
 
+// 地图编辑器演示 - 展示可视化地图编辑功能
+function MapEditorDemo() {
+  return (
+    <div className="relative w-full max-w-lg aspect-[4/3] flex items-center justify-center">
+      {/* macOS 风格窗口 */}
+      <motion.div
+        className="relative"
+        initial={{ opacity: 0, y: 30, scale: 0.95 }}
+        whileInView={{ opacity: 1, y: 0, scale: 1 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
+      >
+        {/* 窗口阴影 */}
+        <div className="absolute -inset-4 bg-gradient-to-br from-emerald-500/20 via-teal-500/20 to-cyan-500/20 rounded-3xl blur-2xl" />
+
+        {/* macOS 窗口 */}
+        <div className="relative bg-slate-800 rounded-xl shadow-2xl border border-slate-700 overflow-hidden w-[340px] sm:w-[420px]">
+          {/* macOS 标题栏 */}
+          <div className="bg-slate-900/90 px-4 py-3 flex items-center gap-3 border-b border-slate-700">
+            {/* 红绿灯按钮 */}
+            <div className="flex gap-2">
+              <div className="w-3 h-3 rounded-full bg-red-500 shadow-inner" />
+              <div className="w-3 h-3 rounded-full bg-yellow-500 shadow-inner" />
+              <div className="w-3 h-3 rounded-full bg-green-500 shadow-inner" />
+            </div>
+            {/* 标题 */}
+            <div className="flex-1 text-center">
+              <span className="text-xs text-slate-400 font-medium">Miu2D Engine — Map Editor</span>
+            </div>
+            {/* 占位 */}
+            <div className="w-14" />
+          </div>
+
+          {/* 截图内容 - 点击放大 */}
+          <ClickToZoomImage src="/screenshot/map-editor.png" alt="Map Editor Screenshot" aspectRatio="2654/1545" />
+        </div>
+
+        {/* 装饰性光点 */}
+        <motion.div
+          className="absolute -top-2 -right-2 w-4 h-4 rounded-full bg-emerald-400"
+          animate={{ scale: [1, 1.3, 1], opacity: [0.6, 1, 0.6] }}
+          transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY }}
+        />
+        <motion.div
+          className="absolute -bottom-3 -left-3 w-3 h-3 rounded-full bg-teal-400"
+          animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0.8, 0.5] }}
+          transition={{ duration: 2.5, repeat: Number.POSITIVE_INFINITY, delay: 0.5 }}
+        />
+      </motion.div>
+    </div>
+  );
+}
+
+// ASF 精灵编辑器演示 - 展示精灵动画编辑功能
+function AsfEditorDemo() {
+  return (
+    <div className="relative w-full max-w-lg aspect-[4/3] flex items-center justify-center">
+      {/* macOS 风格窗口 */}
+      <motion.div
+        className="relative"
+        initial={{ opacity: 0, y: 30, scale: 0.95 }}
+        whileInView={{ opacity: 1, y: 0, scale: 1 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
+      >
+        {/* 窗口阴影 */}
+        <div className="absolute -inset-4 bg-gradient-to-br from-pink-500/20 via-rose-500/20 to-red-500/20 rounded-3xl blur-2xl" />
+
+        {/* macOS 窗口 */}
+        <div className="relative bg-slate-800 rounded-xl shadow-2xl border border-slate-700 overflow-hidden w-[340px] sm:w-[420px]">
+          {/* macOS 标题栏 */}
+          <div className="bg-slate-900/90 px-4 py-3 flex items-center gap-3 border-b border-slate-700">
+            {/* 红绿灯按钮 */}
+            <div className="flex gap-2">
+              <div className="w-3 h-3 rounded-full bg-red-500 shadow-inner" />
+              <div className="w-3 h-3 rounded-full bg-yellow-500 shadow-inner" />
+              <div className="w-3 h-3 rounded-full bg-green-500 shadow-inner" />
+            </div>
+            {/* 标题 */}
+            <div className="flex-1 text-center">
+              <span className="text-xs text-slate-400 font-medium">Miu2D Engine — ASF Editor</span>
+            </div>
+            {/* 占位 */}
+            <div className="w-14" />
+          </div>
+
+          {/* 截图内容 - 点击放大 */}
+          <ClickToZoomImage src="/screenshot/asf-editor.png" alt="ASF Editor Screenshot" aspectRatio="2654/1545" />
+        </div>
+
+        {/* 装饰性光点 */}
+        <motion.div
+          className="absolute -top-2 -left-2 w-4 h-4 rounded-full bg-pink-400"
+          animate={{ scale: [1, 1.3, 1], opacity: [0.6, 1, 0.6] }}
+          transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY }}
+        />
+        <motion.div
+          className="absolute -bottom-3 -right-3 w-3 h-3 rounded-full bg-rose-400"
+          animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0.8, 0.5] }}
+          transition={{ duration: 2.5, repeat: Number.POSITIVE_INFINITY, delay: 0.5 }}
+        />
+      </motion.div>
+    </div>
+  );
+}
+
 // 亮点卡片组件 - 用于小卡片
 interface HighlightCardProps {
   icon: React.ReactNode;
@@ -711,6 +855,31 @@ export function Highlights() {
             ]}
             reversed
             delay={0.3}
+          />
+        </div>
+
+        {/* 地图编辑器 大卡片 */}
+        <div className="mb-20">
+          <LargeHighlight
+            icon={<MapEditorIcon className="w-8 h-8" />}
+            title={t("highlights.mapEditor.title")}
+            description={t("highlights.mapEditor.desc")}
+            gradient="from-emerald-500 to-teal-600"
+            demo={<MapEditorDemo />}
+            delay={0.4}
+          />
+        </div>
+
+        {/* ASF 精灵编辑器 大卡片 */}
+        <div className="mb-20">
+          <LargeHighlight
+            icon={<SpriteEditorIcon className="w-8 h-8" />}
+            title={t("highlights.asfEditor.title")}
+            description={t("highlights.asfEditor.desc")}
+            gradient="from-pink-500 to-rose-600"
+            demo={<AsfEditorDemo />}
+            reversed
+            delay={0.5}
           />
         </div>
 

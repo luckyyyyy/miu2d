@@ -133,6 +133,14 @@
       "stat1Label": "FPS",
       "stat2Label": "Initial Load",
       "stat3Label": "Visualized"
+    },
+    "mapEditor": {
+      "title": "Visual Map Editor",
+      "desc": "Built-in visual map editor for creating and editing game maps. Browse map files, view tilemap layers, collision zones, and portals. Real-time preview with smooth navigation."
+    },
+    "asfEditor": {
+      "title": "ASF Sprite Editor",
+      "desc": "Professional sprite animation viewer and debugger. Browse ASF files, preview animations frame by frame, adjust playback speed, and visualize sprite sheets for character and effect development."
     }
   },
   "asyncLoading": {

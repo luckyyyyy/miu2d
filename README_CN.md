@@ -26,6 +26,16 @@
 
 ![移动端截图](packages/web/public/screenshot/mobile.png)
 
+### 🛠️ 内置编辑器
+
+**地图编辑器** - 可视化瓦片地图编辑、图层管理、碰撞区域设置
+
+![地图编辑器](packages/web/public/screenshot/map-editor.png)
+
+**ASF 编辑器** - 精灵动画帧查看器和调试工具
+
+![ASF 编辑器](packages/web/public/screenshot/asf-editor.png)
+
 ### 🎮 游戏特色
 
 《剑侠情缘外传：月影传说》是西山居在剑侠情缘系列基础上推出的外传作品，讲述了杨影枫的成长故事：
