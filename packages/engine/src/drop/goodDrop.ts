@@ -14,7 +14,6 @@
 import { logger } from "../core/logger";
 import type { Vector2 } from "../core/types";
 import { Obj } from "../obj/obj";
-import { ResourcePath } from "../config/resourcePaths";
 
 /** 物品类型枚举 - 对应 C# GoodDrop.GoodType */
 export enum GoodType {
@@ -157,7 +156,7 @@ function parseDropIni(dropIni: string): { ini: string; shouldDrop: boolean } {
 
   const chanceStr = dropIni.substring(startIdx + 1, dropIni.length - 1);
   const chance = parseInt(chanceStr, 10);
-  if (isNaN(chance)) {
+  if (Number.isNaN(chance)) {
     logger.warn(`[GoodDrop] DropIni格式错误，无法解析概率: ${dropIni}`);
     return { ini: dropIni.substring(0, startIdx), shouldDrop: true };
   }
@@ -211,7 +210,9 @@ export async function getDropObj(
     const type = Math.floor(Math.random() * 2) === 0 ? GoodType.Weapon : GoodType.Armor;
     const obj = await createDropObj(type, character);
     if (obj) {
-      logger.log(`[GoodDrop] Boss ${character.name} 掉落: ${type === GoodType.Weapon ? "武器" : "防具"}`);
+      logger.log(
+        `[GoodDrop] Boss ${character.name} 掉落: ${type === GoodType.Weapon ? "武器" : "防具"}`
+      );
     }
     return obj;
   }

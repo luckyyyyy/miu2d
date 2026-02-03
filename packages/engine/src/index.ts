@@ -4,6 +4,8 @@
 export * from "./audio";
 // Character system
 export * from "./character";
+// Level system
+export * from "./character/level";
 // Core types (re-export with explicit exclusions to avoid conflicts)
 export {
   type Animation,
@@ -33,7 +35,6 @@ export {
   TILE_WIDTH,
   type Vector2,
 } from "./core/types";
-export * from "./utils";
 // Debug system
 export * from "./debug";
 // Effects system
@@ -45,9 +46,6 @@ export * from "./gui";
 // List managers
 export * from "./listManager";
 export * from "./map";
-
-// Level system
-export * from "./character/level";
 // Resource management
 export * from "./resource";
 // Script system
@@ -56,5 +54,6 @@ export * from "./script";
 export * from "./sprite";
 // UI Bridge (for multi-UI support)
 export * from "./ui";
+export * from "./utils";
 // Weather system
 export * from "./weather";

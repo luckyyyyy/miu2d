@@ -198,7 +198,9 @@ export function enableGameCursor(container: HTMLElement): void {
   }
 
   isEnabled = true;
-  logger.debug(`[GameCursor] Enabling cursor on container: ${container.tagName}#${container.id || "(no-id)"}`);
+  logger.debug(
+    `[GameCursor] Enabling cursor on container: ${container.tagName}#${container.id || "(no-id)"}`
+  );
 
   // 创建/更新动态样式表
   if (!styleElement) {

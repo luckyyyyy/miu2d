@@ -2,21 +2,15 @@
  * Modern XiuLianPanel - 武侠风格修炼面板
  * 使用毛玻璃效果 + 武侠配色，参考MagicPanel/StatePanel设计
  */
+
+import type { MagicItemInfo } from "@miu2d/engine/magic";
 import type React from "react";
 import { useCallback, useMemo, useState } from "react";
-import type { MagicItemInfo } from "@miu2d/engine/magic";
 import type { TouchDragData } from "@/contexts";
 import { AsfAnimatedSprite } from "../classic/AsfAnimatedSprite";
 import type { MagicDragData } from "../classic/MagicGui";
 import type { XiuLianMagic } from "../classic/XiuLianGui";
-import {
-  borderRadius,
-  glassEffect,
-  modernColors,
-  spacing,
-  transitions,
-  typography,
-} from "./theme";
+import { borderRadius, glassEffect, modernColors, spacing, transitions, typography } from "./theme";
 
 // BottomGui 的拖拽数据类型
 interface BottomMagicDragData {
@@ -125,7 +119,11 @@ const SectionTitle: React.FC<{ title: string }> = ({ title }) => (
 );
 
 // 属性项组件
-const StatItem: React.FC<{ label: string; value: string; color?: string }> = ({ label, value, color }) => (
+const StatItem: React.FC<{ label: string; value: string; color?: string }> = ({
+  label,
+  value,
+  color,
+}) => (
   <div
     style={{
       display: "flex",
@@ -189,7 +187,8 @@ const MagicDisplay: React.FC<MagicDisplayProps> = ({
   const expProgress = levelUpExp > 0 ? (currentLevelExp / levelUpExp) * 100 : 0;
 
   // 八角形裁剪路径
-  const octagonClip = "polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%)";
+  const octagonClip =
+    "polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%)";
 
   return (
     <div
@@ -516,7 +515,8 @@ export const XiuLianPanel: React.FC<XiuLianPanelProps> = ({
                 position: "absolute",
                 inset: -2,
                 background: `linear-gradient(135deg, ${wuxiaAccent.gold}, ${wuxiaAccent.goldDark})`,
-                clipPath: "polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%)",
+                clipPath:
+                  "polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%)",
               }}
             />
             <div
@@ -524,13 +524,16 @@ export const XiuLianPanel: React.FC<XiuLianPanelProps> = ({
                 position: "absolute",
                 inset: 0,
                 background: `linear-gradient(135deg, ${wuxiaAccent.crimson}44, ${wuxiaAccent.purple}44)`,
-                clipPath: "polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%)",
+                clipPath:
+                  "polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
               }}
             >
-              <span style={{ fontSize: 22, filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.5))" }}>🧘</span>
+              <span style={{ fontSize: 22, filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.5))" }}>
+                🧘
+              </span>
             </div>
           </div>
 

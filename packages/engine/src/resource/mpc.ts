@@ -10,12 +10,9 @@
 
 import { logger } from "../core/logger";
 import type { Mpc } from "../core/mapTypes";
+import { decodeMpcWasm, initWasmMpcDecoder } from "../wasm/wasmMpcDecoder";
 import { resourceLoader } from "./resourceLoader";
-import { type Shd, loadShd } from "./shd";
-import {
-  initWasmMpcDecoder,
-  decodeMpcWasm,
-} from "../wasm/wasmMpcDecoder";
+import { loadShd, type Shd } from "./shd";
 
 // 保存初始化 Promise，确保所有调用都等待同一个 Promise
 let wasmInitPromise: Promise<boolean> | null = null;
@@ -51,10 +48,7 @@ export async function loadMpc(url: string): Promise<Mpc | null> {
  * @param mpcUrl - URL to the MPC file
  * @param shdUrl - Optional URL to the SHD shadow file
  */
-export async function loadMpcWithShadow(
-  mpcUrl: string,
-  shdUrl?: string
-): Promise<Mpc | null> {
+export async function loadMpcWithShadow(mpcUrl: string, shdUrl?: string): Promise<Mpc | null> {
   // 确保 WASM 初始化完成
   await initMpcWasm();
 

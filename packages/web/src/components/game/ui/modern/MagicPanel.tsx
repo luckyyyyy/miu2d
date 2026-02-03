@@ -2,21 +2,15 @@
  * Modern MagicPanel - 武侠风格武功面板
  * 使用毛玻璃效果 + 武侠配色，参考StatePanel设计
  */
+
+import type { MagicItemInfo } from "@miu2d/engine/magic";
 import type React from "react";
 import { useCallback, useMemo, useState } from "react";
-import type { MagicItemInfo } from "@miu2d/engine/magic";
 import type { TouchDragData } from "@/contexts";
+import type { BottomMagicDragData } from "../../hooks";
 import { AsfAnimatedSprite } from "../classic/AsfAnimatedSprite";
 import type { MagicDragData, MagicItem } from "../classic/MagicGui";
-import type { BottomMagicDragData } from "../../hooks";
-import {
-  borderRadius,
-  glassEffect,
-  modernColors,
-  spacing,
-  transitions,
-  typography,
-} from "./theme";
+import { borderRadius, glassEffect, modernColors, spacing, transitions, typography } from "./theme";
 
 interface MagicPanelProps {
   isVisible: boolean;
@@ -346,7 +340,11 @@ export const MagicPanel: React.FC<MagicPanelProps> = ({
 
   // 生成槽位数据：固定36个槽位
   const allSlots = useMemo(() => {
-    const result: Array<{ magic: MagicItem | null; magicInfo: MagicItemInfo | null; storeIndex: number }> = [];
+    const result: Array<{
+      magic: MagicItem | null;
+      magicInfo: MagicItemInfo | null;
+      storeIndex: number;
+    }> = [];
     for (let i = 0; i < 36; i++) {
       const magic = magics?.[i] ?? null;
       const magicInfo = magicInfos?.[i] ?? null;
@@ -455,7 +453,8 @@ export const MagicPanel: React.FC<MagicPanelProps> = ({
                 position: "absolute",
                 inset: -2,
                 background: `linear-gradient(135deg, ${wuxiaAccent.gold}, ${wuxiaAccent.goldDark})`,
-                clipPath: "polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%)",
+                clipPath:
+                  "polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%)",
               }}
             />
             <div
@@ -463,13 +462,16 @@ export const MagicPanel: React.FC<MagicPanelProps> = ({
                 position: "absolute",
                 inset: 0,
                 background: `linear-gradient(135deg, ${wuxiaAccent.purple}44, ${wuxiaAccent.azure}44)`,
-                clipPath: "polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%)",
+                clipPath:
+                  "polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
               }}
             >
-              <span style={{ fontSize: 22, filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.5))" }}>⚔️</span>
+              <span style={{ fontSize: 22, filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.5))" }}>
+                ⚔️
+              </span>
             </div>
           </div>
 
@@ -491,7 +493,11 @@ export const MagicPanel: React.FC<MagicPanelProps> = ({
                 color: modernColors.text.secondary,
               }}
             >
-              已习得 <span style={{ color: wuxiaAccent.gold, fontWeight: typography.fontWeight.semibold }}>{magicCount}</span> 种武学
+              已习得{" "}
+              <span style={{ color: wuxiaAccent.gold, fontWeight: typography.fontWeight.semibold }}>
+                {magicCount}
+              </span>{" "}
+              种武学
             </div>
           </div>
         </div>
@@ -602,7 +608,8 @@ export const MagicPanel: React.FC<MagicPanelProps> = ({
               background: scrollOffset < maxScrollRow ? modernColors.bg.hover : "transparent",
               border: `1px solid ${modernColors.border.glass}`,
               borderRadius: borderRadius.sm,
-              color: scrollOffset < maxScrollRow ? modernColors.text.secondary : modernColors.text.muted,
+              color:
+                scrollOffset < maxScrollRow ? modernColors.text.secondary : modernColors.text.muted,
               fontSize: typography.fontSize.md,
               cursor: scrollOffset < maxScrollRow ? "pointer" : "default",
               display: "flex",

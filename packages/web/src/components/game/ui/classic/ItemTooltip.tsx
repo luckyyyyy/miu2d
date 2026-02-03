@@ -10,9 +10,10 @@
  * - Effect: Left=67, Top=215
  * - Intro: Left=67, Top=235 (approx)
  */
+
+import type { Good } from "@miu2d/engine/player/goods";
 import type React from "react";
 import { useEffect, useMemo, useState } from "react";
-import type { Good } from "@miu2d/engine/player/goods";
 import { useAsfImage } from "./hooks";
 
 interface ItemTooltipProps {

@@ -6,15 +6,12 @@
  */
 
 import type { Character } from "../../character/character";
-import type { NpcManager } from "../../npc";
 import { getEngineContext } from "../../core/engineContext";
 import { logger } from "../../core/logger";
 import type { Vector2 } from "../../core/types";
-import { pixelToTile, tileToPixel } from "../../utils";
+import type { NpcManager } from "../../npc";
 import type { Player } from "../../player/player";
-import type { CharacterRef } from "../effects";
-import { magicRenderer } from "../magicRenderer";
-import { MagicSprite } from "../magicSprite";
+import { pixelToTile, tileToPixel } from "../../utils";
 import {
   getDirection8,
   getDirection32List,
@@ -22,10 +19,13 @@ import {
   getDirectionOffset8,
 } from "../../utils/direction";
 import { getSpeedRatio, normalizeVector } from "../../utils/math";
+import { getNeighbors } from "../../utils/neighbors";
+import type { CharacterRef } from "../effects";
+import { magicRenderer } from "../magicRenderer";
+import { MagicSprite } from "../magicSprite";
 import type { Kind19MagicInfo, MagicData } from "../types";
 import { MagicMoveKind } from "../types";
 import type { ICharacterHelper, ISpriteFactoryCallbacks, MagicManagerDeps } from "./types";
-import { getNeighbors } from "../../utils/neighbors";
 
 /**
  * 武功精灵创建工厂

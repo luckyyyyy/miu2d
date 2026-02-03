@@ -7,16 +7,15 @@
 
 import { logger } from "../../core/logger";
 import {
+  findPathInDirection,
   PathType,
   findPath as pathFinderFindPath,
-  findNearestWalkableTileInDirection,
 } from "../../core/pathFinder";
 import type { Vector2 } from "../../core/types";
 import {
   BASE_SPEED,
   CharacterState,
   MIN_CHANGE_MOVE_SPEED_PERCENT,
-  RUN_SPEED_FOLD,
   TILE_HEIGHT,
   TILE_WIDTH,
 } from "../../core/types";
@@ -38,10 +37,7 @@ import { CharacterBase, type CharacterUpdateResult } from "./characterBase";
  * 使用 DDA (Digital Differential Analyzer) 算法沿像素路径采样，
  * 收集经过的所有瓦片坐标
  */
-function getTilesAlongLine(
-  fromPixel: Vector2,
-  toPixel: Vector2
-): Vector2[] {
+function _getTilesAlongLine(fromPixel: Vector2, toPixel: Vector2): Vector2[] {
   const tiles: Vector2[] = [];
   const seen = new Set<string>();
 
@@ -88,6 +84,13 @@ export abstract class CharacterMovement extends CharacterBase {
    * 设置位置（立即移动到指定瓦片）
    */
   setPosition(tileX: number, tileY: number): void {
+    // 调试：追踪 setPosition 调用
+    if (this.isPlayer && this.path.length > 0) {
+      // logger.debug(
+      //   `[CharacterMovement.setPosition] 清空路径! pathLen=${this.path.length}, targetTile=(${tileX}, ${tileY})`
+      // );
+      // console.trace("[setPosition] 调用栈");
+    }
     this.standingImmediately();
     this._mapX = tileX;
     this._mapY = tileY;
@@ -188,14 +191,38 @@ export abstract class CharacterMovement extends CharacterBase {
       reachedDestination: false,
     };
 
+    // 调试：追踪 moveAlongPath 入口（仅在移动状态时打印，避免刷屏）
+    if (
+      this.isPlayer &&
+      (this._state === CharacterState.Walk ||
+        this._state === CharacterState.Run ||
+        this._state === CharacterState.FightWalk ||
+        this._state === CharacterState.FightRun)
+    ) {
+      // logger.debug(
+      //   `[CharacterMovement.moveAlongPath] 入口: pathLen=${this.path.length}, state=${this._state}, destTile=(${this._destinationMoveTilePosition?.x}, ${this._destinationMoveTilePosition?.y}), deltaTime=${deltaTime.toFixed(4)}`
+      // );
+    }
+
     if (this.path.length === 0) {
-      if (this._state === CharacterState.Walk || this._state === CharacterState.Run ||
-          this._state === CharacterState.FightWalk || this._state === CharacterState.FightRun) {
+      // 只在状态是移动状态时打印一次（避免刷屏）
+      if (
+        this._state === CharacterState.Walk ||
+        this._state === CharacterState.Run ||
+        this._state === CharacterState.FightWalk ||
+        this._state === CharacterState.FightRun
+      ) {
+        // logger.debug(
+        //   `[CharacterMovement.moveAlongPath] 路径为空，停止移动，当前状态=${this._state}`
+        // );
         if (this._isInFighting && this.isStateImageOk(CharacterState.FightStand)) {
           this.state = CharacterState.FightStand;
         } else {
           this.state = CharacterState.Stand;
         }
+      }
+      if (this.isPlayer) {
+        // logger.debug(`[CharacterMovement.moveAlongPath] 返回(路径为空分支)`);
       }
       return result;
     }
@@ -206,20 +233,34 @@ export abstract class CharacterMovement extends CharacterBase {
 
     // 检测障碍物
     if (tileFrom.x !== tileTo.x || tileFrom.y !== tileTo.y) {
-      if (this.hasObstacle(tileTo)) {
+      const hasObs = this.hasObstacle(tileTo);
+      if (hasObs) {
+        // 详细诊断：什么构成了障碍物
+        const mapService = this.engine.map;
+        const _mapObs = mapService?.isObstacleForCharacter(tileTo.x, tileTo.y) ?? false;
+        const _barrierInfo = mapService?.debugGetTileBarrierInfo(tileTo.x, tileTo.y) ?? "no map";
+        // logger.debug(
+        //   `[CharacterMovement.moveAlongPath] 下一步有障碍物! tileTo=(${tileTo.x}, ${tileTo.y}), tileFrom=(${tileFrom.x}, ${tileFrom.y}), hasObstacle=true, mapObs=${mapObs}, barrierInfo=${barrierInfo}`
+        // );
         this.movedDistance = 0;
 
-        if (this._destinationMoveTilePosition &&
-            tileTo.x === this._destinationMoveTilePosition.x &&
-            tileTo.y === this._destinationMoveTilePosition.y) {
+        if (
+          this._destinationMoveTilePosition &&
+          tileTo.x === this._destinationMoveTilePosition.x &&
+          tileTo.y === this._destinationMoveTilePosition.y
+        ) {
           this.path = [];
           this.standingImmediately();
+          // if (this.isPlayer) {
+          //   logger.debug(`[CharacterMovement.moveAlongPath] 返回(障碍物是目标点分支)`);
+          // }
           return result;
         }
 
         const currentTilePixel = tileToPixel(tileFrom.x, tileFrom.y);
-        const atTileCenter = Math.abs(this._positionInWorld.x - currentTilePixel.x) < 2 &&
-                             Math.abs(this._positionInWorld.y - currentTilePixel.y) < 2;
+        const atTileCenter =
+          Math.abs(this._positionInWorld.x - currentTilePixel.x) < 2 &&
+          Math.abs(this._positionInWorld.y - currentTilePixel.y) < 2;
 
         if (atTileCenter && this._destinationMoveTilePosition) {
           const hasObstacleCheck = (tile: Vector2): boolean => this.hasObstacle(tile);
@@ -247,6 +288,9 @@ export abstract class CharacterMovement extends CharacterBase {
           this.path = [];
           this.standingImmediately();
         }
+        // if (this.isPlayer) {
+        //   logger.debug(`[CharacterMovement.moveAlongPath] 返回(障碍物重新寻路分支): pathLen=${this.path.length}`);
+        // }
         return result;
       }
     }
@@ -256,8 +300,20 @@ export abstract class CharacterMovement extends CharacterBase {
     const dy = targetPixel.y - this._positionInWorld.y;
     const dist = Math.sqrt(dx * dx + dy * dy);
 
+    // 调试：打印距离信息
+    if (this.isPlayer) {
+      // logger.debug(
+      //   `[CharacterMovement.moveAlongPath] 距离计算: pos=(${this._positionInWorld.x.toFixed(1)}, ${this._positionInWorld.y.toFixed(1)}), target=(${targetPixel.x}, ${targetPixel.y}), dist=${dist.toFixed(1)}, pathLen=${this.path.length}`
+      // );
+    }
+
     if (dist < 2) {
       // 到达路点
+      if (this.isPlayer) {
+        // logger.debug(
+        //   `[CharacterMovement.moveAlongPath] 到达路点! tileTo=(${tileTo.x}, ${tileTo.y}), pathLen before shift=${this.path.length}`
+        // );
+      }
       this._positionInWorld = { ...targetPixel };
       this._mapX = tileTo.x;
       this._mapY = tileTo.y;
@@ -265,6 +321,13 @@ export abstract class CharacterMovement extends CharacterBase {
       result.moved = true;
 
       if (this.path.length === 0) {
+        // 到达目的地，清理状态
+        if (this.isPlayer) {
+          // logger.debug(
+          //   `[CharacterMovement.moveAlongPath] 到达最终目的地! destTile=(${this._destinationMoveTilePosition?.x}, ${this._destinationMoveTilePosition?.y})`
+          // );
+        }
+        this._destinationMoveTilePosition = { x: 0, y: 0 };
         if (this._isInFighting && this.isStateImageOk(CharacterState.FightStand)) {
           this.state = CharacterState.FightStand;
         } else {
@@ -285,53 +348,22 @@ export abstract class CharacterMovement extends CharacterBase {
       const newPosX = this._positionInWorld.x + dx * ratio;
       const newPosY = this._positionInWorld.y + dy * ratio;
 
-      // 隧道效应检测：高速移动时检查路径上的所有格子
-      // 防止角色穿透障碍物
-      const tilesAlongPath = getTilesAlongLine(
-        this._positionInWorld,
-        { x: newPosX, y: newPosY }
-      );
+      // 注意：此处不需要隧道检测
+      // 因为 moveAlongPath 沿着寻路路径移动，路径上每个瓦片都已被 A* 算法验证为可通行
+      // 隧道检测（像素直线检测）只适用于"无路径的直线移动"（如跳跃、击退）
+      // 在等角坐标系中，像素直线可能斜穿不在寻路路径上的瓦片，导致误判
 
-      // 查找第一个障碍物格子（跳过当前格子）
-      let blockedTile: Vector2 | null = null;
-      let lastValidTile: Vector2 = tileFrom;
-      let lastValidPixel: Vector2 = { ...this._positionInWorld };
-
-      for (const tile of tilesAlongPath) {
-        // 跳过当前所在格子
-        if (tile.x === tileFrom.x && tile.y === tileFrom.y) {
-          continue;
-        }
-
-        // 检查地图障碍物（角色障碍由 hasObstacle 检查，但已在上面处理了 tileTo）
-        if (this.checkMapObstacleForCharacter(tile)) {
-          blockedTile = tile;
-          break;
-        }
-
-        // 更新最后有效位置
-        lastValidTile = tile;
-        lastValidPixel = tileToPixel(tile.x, tile.y);
-      }
-
-      if (blockedTile) {
-        // 遇到障碍物，停在障碍物前的最后有效位置
-        this._positionInWorld = { ...lastValidPixel };
-        this._mapX = lastValidTile.x;
-        this._mapY = lastValidTile.y;
-        this.path = [];
-        this.standingImmediately();
-        result.moved = true;
-        return result;
-      }
-
-      // 无障碍物，正常移动
+      // 正常移动
       this._positionInWorld.x = newPosX;
       this._positionInWorld.y = newPosY;
       this._currentDirection = getDirection(this._positionInWorld, targetPixel);
 
-      if (this._state !== CharacterState.Walk && this._state !== CharacterState.Run &&
-          this._state !== CharacterState.FightWalk && this._state !== CharacterState.FightRun) {
+      if (
+        this._state !== CharacterState.Walk &&
+        this._state !== CharacterState.Run &&
+        this._state !== CharacterState.FightWalk &&
+        this._state !== CharacterState.FightRun
+      ) {
         if (this._isInFighting && this.isStateImageOk(CharacterState.FightWalk)) {
           this.state = CharacterState.FightWalk;
         } else {
@@ -343,6 +375,19 @@ export abstract class CharacterMovement extends CharacterBase {
       const newTile = pixelToTile(this._positionInWorld.x, this._positionInWorld.y);
       this._mapX = newTile.x;
       this._mapY = newTile.y;
+    }
+
+    // 调试：追踪 moveAlongPath 出口
+    if (
+      this.isPlayer &&
+      (this._state === CharacterState.Walk ||
+        this._state === CharacterState.Run ||
+        this._state === CharacterState.FightWalk ||
+        this._state === CharacterState.FightRun)
+    ) {
+      // logger.debug(
+      //   `[CharacterMovement.moveAlongPath] 出口: pathLen=${this.path.length}, destTile=(${this._destinationMoveTilePosition?.x}, ${this._destinationMoveTilePosition?.y}), moved=${result.moved}, reachedDest=${result.reachedDestination}`
+      // );
     }
 
     return result;
@@ -360,10 +405,14 @@ export abstract class CharacterMovement extends CharacterBase {
   walkTo(destTile: Vector2, pathTypeOverride: PathType = PathType.End): boolean {
     // C#: if (PerformActionOk() && destinationTilePosition != TilePosition && ...)
     if (!this.performActionOk()) {
+      // logger.debug(
+      //   `[CharacterMovement.walkTo] BLOCKED: performActionOk=false, state=${this._state}, isInSpecialAction=${this.isInSpecialAction}, inBezierMove=${this.inBezierMove}`
+      // );
       return false;
     }
 
     if (this._mapX === destTile.x && this._mapY === destTile.y) {
+      // logger.debug(`[CharacterMovement.walkTo] 已在目标位置 (${destTile.x}, ${destTile.y})`);
       return true;
     }
 
@@ -372,9 +421,27 @@ export abstract class CharacterMovement extends CharacterBase {
     const isMapObstacle = (tile: Vector2): boolean => this.checkMapObstacleForCharacter(tile);
     const isHardObstacle = (tile: Vector2): boolean => this.checkHardObstacle(tile);
 
-    const path = pathFinderFindPath(
-      { x: this._mapX, y: this._mapY },
-      destTile,
+    // 诊断日志：检查起点和终点的障碍物状态
+    const startTile = { x: this._mapX, y: this._mapY };
+    // const startIsMapObstacle = isMapObstacle(startTile);
+    // const destIsMapObstacle = isMapObstacle(destTile);
+    // const startHasObstacle = hasObstacleCheck(startTile);
+    // const destHasObstacle = hasObstacleCheck(destTile);
+
+    // 打印详细的瓦片障碍信息
+    const mapService = this.engine.map;
+    const _destBarrierInfo =
+      mapService?.debugGetTileBarrierInfo(destTile.x, destTile.y) ?? "no map";
+
+    // logger.debug(
+    //   `[CharacterMovement.walkTo] 开始寻路: from=(${this._mapX}, ${this._mapY}) to=(${destTile.x}, ${destTile.y}), pathType=${usePathType}, startIsMapObstacle=${startIsMapObstacle}, destIsMapObstacle=${destIsMapObstacle}, startHasObstacle=${startHasObstacle}, destHasObstacle=${destHasObstacle}, destBarrierInfo=${destBarrierInfo}`
+    // );
+
+    let actualDestTile = destTile;
+
+    let path = pathFinderFindPath(
+      startTile,
+      actualDestTile,
       usePathType,
       hasObstacleCheck,
       isMapObstacle,
@@ -382,19 +449,64 @@ export abstract class CharacterMovement extends CharacterBase {
       8
     );
 
+    // 如果寻路失败（目标可能是障碍物），尝试沿方向行走
+    // 这样点击障碍物时角色会朝那个方向尽可能走远，而不是完全不动
     if (path.length === 0) {
+      // logger.debug(
+      //   `[CharacterMovement.walkTo] 直接寻路失败，尝试沿方向行走`
+      // );
+
+      // 使用方向行走：从起点沿着目标方向尽可能走远
+      // 这会返回完整的路径，不需要再次 A* 寻路
+      const directionResult = findPathInDirection(
+        startTile,
+        destTile,
+        isMapObstacle,
+        isHardObstacle
+      );
+
+      if (directionResult.path.length > 1) {
+        // 方向行走成功，直接使用这条路径
+        path = directionResult.path;
+        actualDestTile = directionResult.destination!;
+        // logger.debug(
+        //   `[CharacterMovement.walkTo] 方向行走成功: dest=(${actualDestTile.x}, ${actualDestTile.y}), pathLen=${path.length}`
+        // );
+      } else {
+        // logger.debug(`[CharacterMovement.walkTo] 无法沿方向移动`);
+      }
+    }
+
+    if (path.length === 0) {
+      // logger.debug(
+      //   `[CharacterMovement.walkTo] 寻路失败: from=(${this._mapX}, ${this._mapY}) to=(${destTile.x}, ${destTile.y}), 返回空路径`
+      // );
       this.path = [];
       this.standingImmediately();
       return false;
     }
 
+    // logger.debug(
+    //   `[CharacterMovement.walkTo] 寻路成功: pathLength=${path.length}, actualDest=(${actualDestTile.x}, ${actualDestTile.y}), 路径前3步=${JSON.stringify(path.slice(0, 3))}`
+    // );
+
     this.path = path.slice(1);
-    this._destinationMoveTilePosition = { ...destTile };
+    // 调试：验证路径被正确设置
+    // logger.debug(
+    //   `[CharacterMovement.walkTo] 设置路径: pathLen=${this.path.length}, 下一步=${JSON.stringify(this.path[0])}, destTile=(${actualDestTile.x}, ${actualDestTile.y}), name=${this.name}`
+    // );
+    this._destinationMoveTilePosition = { ...actualDestTile };
+    // 验证 _destinationMoveTilePosition 被正确设置
+    // logger.debug(
+    //   `[CharacterMovement.walkTo] 设置dest后: _destTile=(${this._destinationMoveTilePosition.x}, ${this._destinationMoveTilePosition.y})`
+    // );
     this.cancelAttackTarget();
     if (this._isInFighting && this.isStateImageOk(CharacterState.FightWalk)) {
       this.state = CharacterState.FightWalk;
+      // logger.debug(`[CharacterMovement.walkTo] 设置状态: FightWalk`);
     } else {
       this.state = CharacterState.Walk;
+      // logger.debug(`[CharacterMovement.walkTo] 设置状态: Walk`);
     }
     return true;
   }
@@ -411,15 +523,22 @@ export abstract class CharacterMovement extends CharacterBase {
   runTo(destTile: Vector2, pathTypeOverride: PathType = PathType.End): boolean {
     // C#: if (PerformActionOk() && destinationTilePosition != TilePosition && ...)
     if (!this.performActionOk()) {
+      // logger.debug(
+      //   `[CharacterMovement.runTo] BLOCKED: performActionOk=false, state=${this._state}, isInSpecialAction=${this.isInSpecialAction}, inBezierMove=${this.inBezierMove}`
+      // );
       return false;
     }
 
     if (this._mapX === destTile.x && this._mapY === destTile.y) {
+      // logger.debug(`[CharacterMovement.runTo] 已在目标位置 (${destTile.x}, ${destTile.y})`);
       return true;
     }
 
     // C#: if (!IsStateImageOk(CharacterState.Run)) { return; }
     if (!this.isStateImageOk(CharacterState.Run) && !this.isStateImageOk(CharacterState.FightRun)) {
+      // logger.debug(
+      //   `[CharacterMovement.runTo] BLOCKED: Run/FightRun state image not available`
+      // );
       return false;
     }
 
@@ -429,6 +548,10 @@ export abstract class CharacterMovement extends CharacterBase {
     const isHardObstacle = (tile: Vector2): boolean => this.checkHardObstacle(tile);
 
     const startTile = { x: this._mapX, y: this._mapY };
+
+    // logger.debug(
+    //   `[CharacterMovement.runTo] 开始寻路: from=(${startTile.x}, ${startTile.y}) to=(${destTile.x}, ${destTile.y}), pathType=${usePathType}`
+    // );
 
     // First, try to find path to the original destination
     let actualDestTile = destTile;
@@ -448,31 +571,43 @@ export abstract class CharacterMovement extends CharacterBase {
     // 2. Path is blocked by obstacles (e.g., river between player and destination)
     // In both cases, we try to run towards that direction as far as possible
     if (path.length === 0) {
-      const nearestWalkable = findNearestWalkableTileInDirection(
+      // logger.debug(
+      //   `[CharacterMovement.runTo] 直接寻路失败，尝试沿方向行走`
+      // );
+
+      // 使用方向行走：从起点沿着目标方向尽可能走远
+      // 这会返回完整的路径，不需要再次 A* 寻路
+      const directionResult = findPathInDirection(
         startTile,
         destTile,
-        isMapObstacle
+        isMapObstacle,
+        isHardObstacle
       );
 
-      if (nearestWalkable) {
-        actualDestTile = nearestWalkable;
-        path = pathFinderFindPath(
-          startTile,
-          actualDestTile,
-          usePathType,
-          hasObstacleCheck,
-          isMapObstacle,
-          isHardObstacle,
-          8
-        );
+      if (directionResult.path.length > 1) {
+        // 方向行走成功，直接使用这条路径
+        path = directionResult.path;
+        actualDestTile = directionResult.destination!;
+        // logger.debug(
+        //   `[CharacterMovement.runTo] 方向行走成功: dest=(${actualDestTile.x}, ${actualDestTile.y}), pathLen=${path.length}`
+        // );
+      } else {
+        // logger.debug(`[CharacterMovement.runTo] 无法沿方向移动`);
       }
     }
 
     if (path.length === 0) {
+      // logger.debug(
+      //   `[CharacterMovement.runTo] 寻路失败: from=(${startTile.x}, ${startTile.y}) to=(${destTile.x}, ${destTile.y})`
+      // );
       this.path = [];
       this.standingImmediately();
       return false;
     }
+
+    // logger.debug(
+    //   `[CharacterMovement.runTo] 寻路成功: pathLength=${path.length}, 路径前3步=${JSON.stringify(path.slice(0, 3))}`
+    // );
 
     this.path = path.slice(1);
     this._destinationMoveTilePosition = { ...actualDestTile };
@@ -566,35 +701,35 @@ export abstract class CharacterMovement extends CharacterBase {
    * 跳到目标瓦片
    */
   jumpTo(destTile: Vector2): boolean {
-    logger.log(
-      `[Character.jumpTo] Starting jump from tile (${this._mapX}, ${this._mapY}) to (${destTile.x}, ${destTile.y})`
-    );
+    // logger.log(
+    //   `[Character.jumpTo] Starting jump from tile (${this._mapX}, ${this._mapY}) to (${destTile.x}, ${destTile.y})`
+    // );
 
     if (!this.performActionOk()) {
-      logger.log(`[Character.jumpTo] Cannot perform action`);
+      // logger.log(`[Character.jumpTo] Cannot perform action`);
       return false;
     }
     if (destTile.x === this._mapX && destTile.y === this._mapY) {
-      logger.log(`[Character.jumpTo] Already at destination`);
+      // logger.log(`[Character.jumpTo] Already at destination`);
       return false;
     }
     if (this.checkMapObstacleForCharacter(destTile)) {
-      logger.log(`[Character.jumpTo] Map obstacle at destination`);
+      // logger.log(`[Character.jumpTo] Map obstacle at destination`);
       return false;
     }
     if (this.hasObstacle(destTile)) {
-      logger.log(`[Character.jumpTo] Character obstacle at destination`);
+      // logger.log(`[Character.jumpTo] Character obstacle at destination`);
       return false;
     }
     if (
       !this.isStateImageOk(CharacterState.Jump) &&
       !this.isStateImageOk(CharacterState.FightJump)
     ) {
-      logger.log(`[Character.jumpTo] No jump animation available`);
+      // logger.log(`[Character.jumpTo] No jump animation available`);
       return false;
     }
     if (!this.canJump()) {
-      logger.log(`[Character.jumpTo] Cannot jump (canJump returned false)`);
+      // logger.log(`[Character.jumpTo] Cannot jump (canJump returned false)`);
       return false;
     }
 
@@ -617,9 +752,9 @@ export abstract class CharacterMovement extends CharacterBase {
     this.setDirectionFromDelta(dx, dy);
     this.playCurrentDirOnce();
 
-    logger.log(
-      `[Character.jumpTo] Jump initiated, state=${this._state}, direction=${this._currentDirection}`
-    );
+    // logger.log(
+    //   `[Character.jumpTo] Jump initiated, state=${this._state}, direction=${this._currentDirection}`
+    // );
     return true;
   }
 
@@ -789,10 +924,17 @@ export abstract class CharacterMovement extends CharacterBase {
   // === Bezier Move ===
   // =============================================
 
-  bezierMoveTo(destinationTilePosition: Vector2, speed: number, onEnd?: (character: CharacterBase) => void): void {
+  bezierMoveTo(
+    destinationTilePosition: Vector2,
+    speed: number,
+    onEnd?: (character: CharacterBase) => void
+  ): void {
     const curTilePosition = { x: this._mapX, y: this._mapY };
 
-    if (curTilePosition.x === destinationTilePosition.x && curTilePosition.y === destinationTilePosition.y) {
+    if (
+      curTilePosition.x === destinationTilePosition.x &&
+      curTilePosition.y === destinationTilePosition.y
+    ) {
       onEnd?.(this);
       return;
     }
@@ -891,7 +1033,10 @@ export abstract class CharacterMovement extends CharacterBase {
         y: currentTile.y + dirOffset.y * distance,
       };
 
-      if (!this.hasObstacle(checkTile) && !mapService.isObstacleForCharacter(checkTile.x, checkTile.y)) {
+      if (
+        !this.hasObstacle(checkTile) &&
+        !mapService.isObstacleForCharacter(checkTile.x, checkTile.y)
+      ) {
         return checkTile;
       }
     }
@@ -983,6 +1128,15 @@ export abstract class CharacterMovement extends CharacterBase {
    * 重置角色状态前的初始化，清理路径、攻击目标和播放状态
    */
   stateInitialize(endInteract: boolean = true, noEndPlayCurrentDir: boolean = false): void {
+    // 调试：追踪谁在调用 stateInitialize
+    if (this.path.length > 0) {
+      logger.debug(
+        `[CharacterMovement.stateInitialize] 清空路径! pathLen=${this.path.length}, destTile=(${this._destinationMoveTilePosition?.x}, ${this._destinationMoveTilePosition?.y}), state=${this._state}, endInteract=${endInteract}, noEndPlayCurrentDir=${noEndPlayCurrentDir}`
+      );
+      // 打印调用栈
+      console.trace("[stateInitialize] 调用栈");
+    }
+
     // C#: if(!noEndPlayCurrentDir) { EndPlayCurrentDirOnce(); }
     if (!noEndPlayCurrentDir) {
       this.endPlayCurrentDirOnce();
@@ -1002,8 +1156,9 @@ export abstract class CharacterMovement extends CharacterBase {
     if (this.isDeathInvoked || this.isDeath) {
       return;
     }
-    this.path = [];
-    this.isSitted = false;
+    // C# Reference: StandingImmediately() calls StateInitialize(false, true)
+    // 必须清理 destinationMoveTilePosition，否则后续移动判断会出错
+    this.stateInitialize(false, true);
     if (this._isInFighting && this.isStateImageOk(CharacterState.FightStand)) {
       // C# Reference: StandingImmediately() - 如果已经是 FightStand，不改变状态以保持动画循环
       if (this._state === CharacterState.FightStand) {
@@ -1018,10 +1173,7 @@ export abstract class CharacterMovement extends CharacterBase {
         // 已经在站立状态，不改变（允许动画自然循环）
         return;
       }
-      if (
-        this.isStateImageOk(CharacterState.Stand1) &&
-        Math.random() < 0.25
-      ) {
+      if (this.isStateImageOk(CharacterState.Stand1) && Math.random() < 0.25) {
         this.state = CharacterState.Stand1;
       } else {
         this.state = CharacterState.Stand;

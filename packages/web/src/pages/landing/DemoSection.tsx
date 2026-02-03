@@ -3,7 +3,7 @@
  */
 
 import { motion } from "framer-motion";
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Game, type GameHandle } from "@/components/game/Game";
 import { GameCursor } from "@/components/game/ui";
@@ -75,11 +75,7 @@ export function DemoSection() {
   }, [showGame]);
 
   return (
-    <section
-      id="demo"
-      ref={containerRef}
-      className="relative py-12 sm:py-16 overflow-hidden"
-    >
+    <section id="demo" ref={containerRef} className="relative py-12 sm:py-16 overflow-hidden">
       {/* 背景 */}
       <div className="absolute inset-0 bg-gradient-to-b from-zinc-100 via-zinc-50 to-white dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950" />
 
@@ -95,12 +91,8 @@ export function DemoSection() {
           <h2 className="text-4xl sm:text-5xl font-bold text-zinc-900 dark:text-white">
             {t("demo.title")}
           </h2>
-          <p className="mt-4 text-lg text-zinc-600 dark:text-zinc-400">
-            {t("demo.subtitle")}
-          </p>
-          <p className="mt-2 text-sm text-zinc-400 dark:text-zinc-500">
-            {t("demo.copyright")}
-          </p>
+          <p className="mt-4 text-lg text-zinc-600 dark:text-zinc-400">{t("demo.subtitle")}</p>
+          <p className="mt-2 text-sm text-zinc-400 dark:text-zinc-500">{t("demo.copyright")}</p>
         </motion.div>
 
         {/* 游戏容器 */}
@@ -122,9 +114,7 @@ export function DemoSection() {
               <div className="w-3 h-3 rounded-full bg-red-500" />
               <div className="w-3 h-3 rounded-full bg-yellow-500" />
               <div className="w-3 h-3 rounded-full bg-green-500" />
-              <span className="ml-4 text-xs text-zinc-500">
-                Miu2D Engine - 月影传说
-              </span>
+              <span className="ml-4 text-xs text-zinc-500">Miu2D Engine - 月影传说</span>
             </div>
 
             {/* 游戏区域 - 手机自适应，PC固定800x600 */}

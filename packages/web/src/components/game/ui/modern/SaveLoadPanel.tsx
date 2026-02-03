@@ -2,10 +2,11 @@
  * Modern SaveLoadPanel - 存档/读档面板
  * Props 与经典 SaveLoadGui 完全一致
  */
+
+import { logger } from "@miu2d/engine/core/logger";
+import { type SaveSlotInfo, StorageManager } from "@miu2d/engine/game/storage";
 import type React from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { logger } from "@miu2d/engine/core/logger";
-import { StorageManager, type SaveSlotInfo } from "@miu2d/engine/game/storage";
 import { GlassButton, PanelHeader } from "./components";
 import { borderRadius, glassEffect, modernColors, spacing, typography } from "./theme";
 
@@ -107,7 +108,9 @@ const SaveSlotRow: React.FC<SaveSlotRowProps> = ({ slot, isSelected, onClick }) 
           <span
             style={{
               fontSize: typography.fontSize.sm,
-              fontWeight: isSelected ? typography.fontWeight.semibold : typography.fontWeight.normal,
+              fontWeight: isSelected
+                ? typography.fontWeight.semibold
+                : typography.fontWeight.normal,
               color: isSelected ? modernColors.primary : modernColors.text.primary,
             }}
           >
@@ -323,18 +326,10 @@ export const SaveLoadPanel: React.FC<SaveLoadPanelProps> = ({
           borderBottomRightRadius: borderRadius.lg,
         }}
       >
-        <GlassButton
-          onClick={handleSave}
-          primary
-          disabled={!canSave || isOperating}
-        >
+        <GlassButton onClick={handleSave} primary disabled={!canSave || isOperating}>
           存档
         </GlassButton>
-        <GlassButton
-          onClick={handleLoad}
-          primary
-          disabled={!selectedSlot?.exists || isOperating}
-        >
+        <GlassButton onClick={handleLoad} primary disabled={!selectedSlot?.exists || isOperating}>
           读档
         </GlassButton>
         <GlassButton onClick={onClose} disabled={isOperating}>

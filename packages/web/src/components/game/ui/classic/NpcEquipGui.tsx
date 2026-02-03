@@ -5,10 +5,11 @@
  * C# Reference: NpcEquipGui.cs shows 7 equipment slots for NPC (head, neck, body, back, hand, wrist, foot)
  * Similar to EquipGui but for viewing/managing NPC equipment
  */
-import type React from "react";
-import { useCallback, useMemo } from "react";
+
 import type { Character } from "@miu2d/engine/character/character";
 import type { Good } from "@miu2d/engine/player/goods";
+import type React from "react";
+import { useCallback, useMemo } from "react";
 import { useDevice } from "@/contexts";
 import { useTouchDragSource } from "@/hooks/useTouchDragSource";
 import { useAsfImage } from "./hooks";
@@ -215,7 +216,8 @@ export const NpcEquipGui: React.FC<NpcEquipGuiProps> = ({
   const config = useNpcEquipGuiConfig();
 
   // 如果 NPC 有自定义背景图，使用自定义图；否则使用配置的默认图
-  const backgroundImage = character?.backgroundTextureEquip || config?.panel.image || "asf/ui/common/panel7.asf";
+  const backgroundImage =
+    character?.backgroundTextureEquip || config?.panel.image || "asf/ui/common/panel7.asf";
   const panelImage = useAsfImage(backgroundImage);
 
   // Calculate panel position - C#: Globals.WindowWidth / 2f - Width + leftAdjust

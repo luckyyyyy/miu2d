@@ -12,30 +12,31 @@
  */
 
 import { logger } from "../core/logger";
-import { PathType, canMoveInDirection } from "../core/pathFinder";
+import { canMoveInDirection, PathType } from "../core/pathFinder";
 import type { CharacterConfig, Vector2 } from "../core/types";
-import {
-  CharacterState,
-  RUN_SPEED_FOLD,
-  TILE_WIDTH,
-} from "../core/types";
-import { distance, getDirectionFromVector, pixelToTile, tileToPixel } from "../utils";
-import type { AsfData } from "../sprite/asf";
-import { createEmptySpriteSet, getAsfForState, loadSpriteSet, type SpriteSet } from "../sprite/sprite";
-import { applyConfigToCharacter } from "./iniParser";
-import { loadCharacterAsf, loadCharacterImage, loadNpcRes } from "./resFile";
-import type { MagicData } from "../magic/types";
+import { CharacterState, RUN_SPEED_FOLD, TILE_WIDTH } from "../core/types";
 import type { MagicSprite } from "../magic/magicSprite";
+import type { MagicData } from "../magic/types";
 import { Obj } from "../obj/obj";
-import { CharacterCombat, MAX_NON_FIGHT_SECONDS } from "./base";
+import type { AsfData } from "../sprite/asf";
+import {
+  createEmptySpriteSet,
+  getAsfForState,
+  loadSpriteSet,
+  type SpriteSet,
+} from "../sprite/sprite";
+import { distance, getDirectionFromVector, pixelToTile, tileToPixel } from "../utils";
 import { getNeighbors } from "../utils/neighbors";
+import { CharacterCombat, MAX_NON_FIGHT_SECONDS } from "./base";
+import { applyConfigToCharacter } from "./iniParser";
 import { FlyIniManager } from "./modules";
+import { loadCharacterAsf, loadCharacterImage, loadNpcRes } from "./resFile";
 
 export {
+  type CharacterUpdateResult,
   LOADING_STATE,
   MAX_NON_FIGHT_SECONDS,
   type MagicToUseInfoItem,
-  type CharacterUpdateResult,
 } from "./base";
 
 /**
@@ -172,7 +173,10 @@ export abstract class Character extends CharacterCombat {
    */
   private handlePoisonExp(poisonKillerName: string): void {
     const player = this.engine.player;
-    const calcExp = (killer: { level: number }, dead: { level: number; expBonus?: number }): number => {
+    const calcExp = (
+      killer: { level: number },
+      dead: { level: number; expBonus?: number }
+    ): number => {
       const exp = killer.level * dead.level + (dead.expBonus ?? 0);
       return exp < 4 ? 4 : exp;
     };
@@ -358,7 +362,7 @@ export abstract class Character extends CharacterCombat {
    * C# Reference: Character.OnAttacking(Vector2 attackDestinationPixelPosition)
    * Override this to do something when attacking (use magic FlyIni FlyIni2)
    */
-  protected onAttacking(attackDestinationPixelPosition: Vector2 | null): void {
+  protected onAttacking(_attackDestinationPixelPosition: Vector2 | null): void {
     // Override in subclass
   }
 
@@ -391,7 +395,11 @@ export abstract class Character extends CharacterCombat {
   // === Perform Attack ===
   // =============================================
 
-  performeAttack(destinationPixelPosition: Vector2, magicIni?: string, magicData?: MagicData): void {
+  performeAttack(
+    destinationPixelPosition: Vector2,
+    magicIni?: string,
+    magicData?: MagicData
+  ): void {
     const tilePos = pixelToTile(destinationPixelPosition.x, destinationPixelPosition.y);
     this._destinationAttackTilePosition = tilePos;
 
@@ -399,7 +407,8 @@ export abstract class Character extends CharacterCombat {
     if (!this.canPerformeAttack()) return;
 
     if (magicData && magicData.lifeFullToUse > 0 && !this.isFullLife) {
-      const isControledByPlayer = this._controledMagicSprite !== null &&
+      const isControledByPlayer =
+        this._controledMagicSprite !== null &&
         this._controledMagicSprite.belongCharacterId === "player";
       if (this.isPlayer || isControledByPlayer) {
         this.showMessage("满血才能使用");
@@ -836,9 +845,15 @@ export abstract class Character extends CharacterCombat {
       if (drug.mana !== 0) this.mana = Math.min(this.manaMax, Math.max(0, this.mana + drug.mana));
 
       switch (drug.theEffectType) {
-        case 4: this.clearFrozen(); break;
-        case 6: this.clearPoison(); break;
-        case 8: this.clearPetrifaction(); break;
+        case 4:
+          this.clearFrozen();
+          break;
+        case 6:
+          this.clearPoison();
+          break;
+        case 8:
+          this.clearPetrifaction();
+          break;
       }
 
       return true;
@@ -915,6 +930,13 @@ export abstract class Character extends CharacterCombat {
   }
 
   protected standImmediately(): void {
+    // 调试：追踪 standImmediately 调用
+    if (this.isPlayer && this.path.length > 0) {
+      logger.debug(
+        `[Character.standImmediately] 清空路径! pathLen=${this.path.length}, destTile=(${this._destinationMoveTilePosition?.x}, ${this._destinationMoveTilePosition?.y})`
+      );
+      console.trace("[standImmediately] 调用栈");
+    }
     if (this._isInFighting && this.isStateImageOk(CharacterState.FightStand)) {
       this.state = CharacterState.FightStand;
     } else {

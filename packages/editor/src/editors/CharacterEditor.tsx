@@ -3,22 +3,22 @@
  * 左侧文件树 + 右侧属性编辑面板
  */
 
-import { useState, useCallback, useMemo } from "react";
-import { VirtualTree, type TreeNode } from "../components/tree";
+import { useCallback, useMemo, useState } from "react";
+import { type TreeNode, VirtualTree } from "../components/tree";
 import { useFileSystem } from "../hooks/useFileSystem";
 import {
-  type EditorCharacterConfig,
-  type CharacterFieldGroup,
   type CharacterFieldDef,
-  defaultEditorCharacterConfig,
-  characterFieldGroups,
+  type CharacterFieldGroup,
   CharacterKind,
+  characterFieldGroups,
+  defaultEditorCharacterConfig,
+  type EditorCharacterConfig,
   RelationType,
 } from "../types/character";
 import {
-  parseCharacterIni,
-  characterConfigToJson,
   characterConfigToIni,
+  characterConfigToJson,
+  parseCharacterIni,
 } from "../utils/characterParser";
 
 /** 属性分组面板 */
@@ -42,9 +42,7 @@ function FieldGroupPanel({
         className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-medium text-[#cccccc] hover:bg-[#2a2d2e]"
         onClick={onToggle}
       >
-        <span className={`transition-transform ${isExpanded ? "rotate-90" : ""}`}>
-          ▶
-        </span>
+        <span className={`transition-transform ${isExpanded ? "rotate-90" : ""}`}>▶</span>
         <span>{group.icon}</span>
         <span>{group.name}</span>
       </button>
@@ -202,9 +200,7 @@ function CharacterPreview({ config }: { config: EditorCharacterConfig | null }) 
       <div className="mb-4 rounded-lg bg-[#252526] p-4">
         <h2 className="text-xl font-bold text-amber-400">{config.name || "未命名"}</h2>
         <div className="mt-2 flex flex-wrap gap-2 text-sm">
-          <span className="rounded bg-[#3c3c3c] px-2 py-1">
-            {kindLabel}
-          </span>
+          <span className="rounded bg-[#3c3c3c] px-2 py-1">{kindLabel}</span>
           <span
             className={`rounded px-2 py-1 ${
               config.relation === RelationType.Enemy
@@ -216,9 +212,7 @@ function CharacterPreview({ config }: { config: EditorCharacterConfig | null }) 
           >
             {relationLabel}
           </span>
-          <span className="rounded bg-[#3c3c3c] px-2 py-1">
-            Lv.{config.level}
-          </span>
+          <span className="rounded bg-[#3c3c3c] px-2 py-1">Lv.{config.level}</span>
         </div>
       </div>
 
@@ -476,9 +470,7 @@ export function CharacterEditor() {
   // 输出内容
   const outputContent = useMemo(() => {
     if (!config) return "";
-    return outputFormat === "json"
-      ? characterConfigToJson(config)
-      : characterConfigToIni(config);
+    return outputFormat === "json" ? characterConfigToJson(config) : characterConfigToIni(config);
   }, [config, outputFormat]);
 
   return (
@@ -564,9 +556,7 @@ export function CharacterEditor() {
             <span className="text-sm text-[#cccccc]">
               {selectedNode?.name || (config ? "新建角色" : "角色编辑器")}
             </span>
-            {hasChanges && (
-              <span className="text-xs text-amber-400">● 已修改</span>
-            )}
+            {hasChanges && <span className="text-xs text-amber-400">● 已修改</span>}
           </div>
           <div className="flex items-center gap-2">
             {/* 输出格式选择 */}
@@ -653,9 +643,7 @@ export function CharacterEditor() {
               />
             ))
           ) : (
-            <div className="p-4 text-center text-[#808080] text-sm">
-              选择或创建一个角色配置
-            </div>
+            <div className="p-4 text-center text-[#808080] text-sm">选择或创建一个角色配置</div>
           )}
         </div>
       </div>

@@ -3,18 +3,18 @@
  * 参考 AsfViewer 实现，复用 engine 中的 map 渲染逻辑
  */
 
-import { useState, useEffect, useRef, useCallback } from "react";
 import type { JxqyMapData } from "@miu2d/engine/core/mapTypes";
 import {
   createMapRenderer,
-  loadMapMpcs,
-  renderLayer,
   getViewTileRange,
-  updateCamera,
-  setCameraSize,
+  loadMapMpcs,
   MapBase,
   type MapRenderer,
+  renderLayer,
+  setCameraSize,
+  updateCamera,
 } from "@miu2d/engine/map";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 interface MapViewerProps {
   /** 地图数据 */
@@ -35,12 +35,12 @@ interface MapViewerProps {
 
 // 障碍类型颜色
 const BARRIER_COLORS: Record<number, string> = {
-  0x00: "transparent", // None
-  0x80: "rgba(255, 0, 0, 0.5)", // Obstacle
-  0xa0: "rgba(255, 128, 0, 0.5)", // CanOverObstacle
-  0x40: "rgba(0, 0, 255, 0.5)", // Trans
-  0x60: "rgba(0, 128, 255, 0.5)", // CanOverTrans
-  0x20: "rgba(0, 255, 0, 0.5)", // CanOver
+  0: "transparent", // None
+  128: "rgba(255, 0, 0, 0.5)", // Obstacle
+  160: "rgba(255, 128, 0, 0.5)", // CanOverObstacle
+  64: "rgba(0, 0, 255, 0.5)", // Trans
+  96: "rgba(0, 128, 255, 0.5)", // CanOverTrans
+  32: "rgba(0, 255, 0, 0.5)", // CanOver
 };
 
 // 陷阱颜色
@@ -66,7 +66,7 @@ export function MapViewer({
   const [zoom, setZoom] = useState(0.25); // 默认 25% 缩放
   const [loadProgress, setLoadProgress] = useState(0);
   const [isMapLoading, setIsMapLoading] = useState(false);
-  const [mapLoadError, setMapLoadError] = useState<string | null>(null);
+  const [_mapLoadError, setMapLoadError] = useState<string | null>(null);
 
   // 图层显示控制
   const [showLayer1, setShowLayer1] = useState(true);
@@ -127,11 +127,8 @@ export function MapViewer({
         if (!renderer) return;
 
         // 使用 engine 的 loadMapMpcs
-        const success = await loadMapMpcs(
-          renderer,
-          mapData,
-          mapName,
-          (progress: number) => setLoadProgress(progress)
+        const success = await loadMapMpcs(renderer, mapData, mapName, (progress: number) =>
+          setLoadProgress(progress)
         );
 
         if (!success) {
@@ -340,8 +337,12 @@ export function MapViewer({
     }
 
     // 绘制 hover 瓦片高亮
-    if (tilePos.x >= 0 && tilePos.y >= 0 &&
-        tilePos.x < mapData.mapColumnCounts && tilePos.y < mapData.mapRowCounts) {
+    if (
+      tilePos.x >= 0 &&
+      tilePos.y >= 0 &&
+      tilePos.x < mapData.mapColumnCounts &&
+      tilePos.y < mapData.mapRowCounts
+    ) {
       const pixelPos = MapBase.ToPixelPosition(tilePos.x, tilePos.y);
       const screenX = pixelPos.x - renderer.camera.x;
       const screenY = pixelPos.y - renderer.camera.y;
@@ -361,7 +362,19 @@ export function MapViewer({
     }
 
     ctx.restore();
-  }, [mapData, isMapLoading, loadProgress, zoom, showGrid, showLayer1, showLayer2, showLayer3, showObstacles, showTraps, tilePos]);
+  }, [
+    mapData,
+    isMapLoading,
+    loadProgress,
+    zoom,
+    showGrid,
+    showLayer1,
+    showLayer2,
+    showLayer3,
+    showObstacles,
+    showTraps,
+    tilePos,
+  ]);
 
   // 动画循环
   useEffect(() => {
@@ -427,35 +440,38 @@ export function MapViewer({
   }, []);
 
   // 滚轮事件：直接滚轮缩放
-  const handleWheel = useCallback((e: React.WheelEvent) => {
-    e.preventDefault();
-    const renderer = rendererRef.current;
-    const canvas = canvasRef.current;
-    if (!renderer || !canvas) return;
+  const handleWheel = useCallback(
+    (e: React.WheelEvent) => {
+      e.preventDefault();
+      const renderer = rendererRef.current;
+      const canvas = canvasRef.current;
+      if (!renderer || !canvas) return;
 
-    // 获取鼠标在 canvas 中的位置
-    const rect = canvas.getBoundingClientRect();
-    const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
+      // 获取鼠标在 canvas 中的位置
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
 
-    // 计算鼠标对应的世界坐标（缩放前）
-    const worldX = mouseX / zoom + renderer.camera.x;
-    const worldY = mouseY / zoom + renderer.camera.y;
+      // 计算鼠标对应的世界坐标（缩放前）
+      const worldX = mouseX / zoom + renderer.camera.x;
+      const worldY = mouseY / zoom + renderer.camera.y;
 
-    // 计算新的缩放值
-    const zoomDelta = e.deltaY > 0 ? 0.9 : 1.1; // 使用乘法更平滑
-    const newZoom = Math.max(0.05, Math.min(4, zoom * zoomDelta));
+      // 计算新的缩放值
+      const zoomDelta = e.deltaY > 0 ? 0.9 : 1.1; // 使用乘法更平滑
+      const newZoom = Math.max(0.05, Math.min(4, zoom * zoomDelta));
 
-    // 调整相机位置，使鼠标指向的世界坐标保持不变
-    const newCameraX = worldX - mouseX / newZoom;
-    const newCameraY = worldY - mouseY / newZoom;
+      // 调整相机位置，使鼠标指向的世界坐标保持不变
+      const newCameraX = worldX - mouseX / newZoom;
+      const newCameraY = worldY - mouseY / newZoom;
 
-    // 更新相机位置（带边界检查，取整避免亚像素渲染问题）
-    renderer.camera.x = Math.floor(Math.max(0, newCameraX));
-    renderer.camera.y = Math.floor(Math.max(0, newCameraY));
+      // 更新相机位置（带边界检查，取整避免亚像素渲染问题）
+      renderer.camera.x = Math.floor(Math.max(0, newCameraX));
+      renderer.camera.y = Math.floor(Math.max(0, newCameraY));
 
-    setZoom(newZoom);
-  }, [zoom]);
+      setZoom(newZoom);
+    },
+    [zoom]
+  );
 
   // 获取当前瓦片信息
   const getCurrentTileInfo = useCallback(() => {
@@ -590,9 +606,7 @@ export function MapViewer({
           >
             -
           </button>
-          <span className="text-xs text-[#cccccc] w-12 text-center">
-            {Math.round(zoom * 100)}%
-          </span>
+          <span className="text-xs text-[#cccccc] w-12 text-center">{Math.round(zoom * 100)}%</span>
           <button
             className="rounded px-2 py-1 text-xs bg-[#3c3c3c] text-[#cccccc] hover:bg-[#4c4c4c]"
             onClick={() => setZoom((z) => Math.min(4, z + 0.1))}
@@ -643,25 +657,33 @@ export function MapViewer({
               style={{
                 left: mouseClientPos.x + 16,
                 top: mouseClientPos.y + 16,
-                transform: mouseClientPos.x > (containerRef.current?.clientWidth ?? 0) - 200 ? 'translateX(-100%)' : undefined,
+                transform:
+                  mouseClientPos.x > (containerRef.current?.clientWidth ?? 0) - 200
+                    ? "translateX(-100%)"
+                    : undefined,
               }}
             >
               <div className="text-[#cccccc] font-medium mb-1">
                 瓦片 ({tilePos.x}, {tilePos.y})
               </div>
               <div className="space-y-0.5 text-[#808080]">
-                <div>L1: MPC:{tileInfo.layer1.mpcIndex} F:{tileInfo.layer1.frame}</div>
-                <div>L2: MPC:{tileInfo.layer2.mpcIndex} F:{tileInfo.layer2.frame}</div>
-                <div>L3: MPC:{tileInfo.layer3.mpcIndex} F:{tileInfo.layer3.frame}</div>
+                <div>
+                  L1: MPC:{tileInfo.layer1.mpcIndex} F:{tileInfo.layer1.frame}
+                </div>
+                <div>
+                  L2: MPC:{tileInfo.layer2.mpcIndex} F:{tileInfo.layer2.frame}
+                </div>
+                <div>
+                  L3: MPC:{tileInfo.layer3.mpcIndex} F:{tileInfo.layer3.frame}
+                </div>
                 {tileInfo.tileInfo.barrierType !== 0 && (
                   <div className="text-red-400">
-                    障碍: 0x{tileInfo.tileInfo.barrierType.toString(16).toUpperCase().padStart(2, "0")}
+                    障碍: 0x
+                    {tileInfo.tileInfo.barrierType.toString(16).toUpperCase().padStart(2, "0")}
                   </div>
                 )}
                 {tileInfo.tileInfo.trapIndex !== 0 && (
-                  <div className="text-yellow-400">
-                    陷阱: {tileInfo.tileInfo.trapIndex}
-                  </div>
+                  <div className="text-yellow-400">陷阱: {tileInfo.tileInfo.trapIndex}</div>
                 )}
               </div>
             </div>
@@ -688,7 +710,10 @@ export function MapViewer({
               </div>
               <div className="flex justify-between">
                 <span>MPC 路径:</span>
-                <span className="text-[#cccccc] text-right truncate max-w-[120px]" title={mapData.mpcDirPath}>
+                <span
+                  className="text-[#cccccc] text-right truncate max-w-[120px]"
+                  title={mapData.mpcDirPath}
+                >
                   {mapData.mpcDirPath || "默认"}
                 </span>
               </div>

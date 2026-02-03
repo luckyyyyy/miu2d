@@ -2,9 +2,10 @@
  * Modern SelectionUI - 选项选择框
  * 位置与经典UI一致
  */
-import type React from "react";
-import { useMemo, useState, useCallback } from "react";
+
 import type { SelectionGuiState } from "@miu2d/engine/gui/types";
+import type React from "react";
+import { useMemo, useState } from "react";
 import { borderRadius, glassEffect, modernColors, spacing, typography } from "./theme";
 
 interface SelectionUIProps {
@@ -84,14 +85,9 @@ export const SelectionUI: React.FC<SelectionUIProps> = ({
                 alignItems: "center",
                 padding: `0 ${spacing.md}px`,
                 marginBottom: idx < options.length - 1 ? spacing.sm : 0,
-                background:
-                  isHovered
-                    ? "rgba(255, 255, 255, 0.15)"
-                    : "rgba(0, 0, 0, 0.2)",
+                background: isHovered ? "rgba(255, 255, 255, 0.15)" : "rgba(0, 0, 0, 0.2)",
                 border: `1px solid ${
-                  isHovered
-                    ? modernColors.border.glassLight
-                    : modernColors.border.glass
+                  isHovered ? modernColors.border.glassLight : modernColors.border.glass
                 }`,
                 borderRadius: borderRadius.md,
                 cursor: isEnabled ? "pointer" : "not-allowed",
@@ -104,55 +100,46 @@ export const SelectionUI: React.FC<SelectionUIProps> = ({
                 style={{
                   width: 24,
                   height: 24,
-                  background:
-                    isHovered
-                      ? modernColors.primary
-                      : "rgba(255, 255, 255, 0.1)",
+                  background: isHovered ? modernColors.primary : "rgba(255, 255, 255, 0.1)",
                   borderRadius: "50%",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   fontSize: typography.fontSize.sm,
                   fontWeight: typography.fontWeight.semibold,
-                  color:
-                    isHovered
-                      ? "#000"
-                      : modernColors.text.secondary,
+                  color: isHovered ? "#000" : modernColors.text.secondary,
                   marginRight: spacing.md,
                   transition: "all 0.15s ease",
                 }}
               >
                 {idx + 1}
-            </span>
+              </span>
 
-            {/* 选项文本 */}
-            <span
-              style={{
-                flex: 1,
-                fontSize: typography.fontSize.md,
-                color:
-                  isHovered
-                    ? modernColors.text.primary
-                    : modernColors.text.secondary,
-                transition: "color 0.15s ease",
-              }}
-            >
-              {option.text}
-            </span>
-
-            {/* 箭头指示 */}
-            {isHovered && (
+              {/* 选项文本 */}
               <span
                 style={{
-                  fontSize: typography.fontSize.sm,
-                  color: modernColors.primary,
+                  flex: 1,
+                  fontSize: typography.fontSize.md,
+                  color: isHovered ? modernColors.text.primary : modernColors.text.secondary,
+                  transition: "color 0.15s ease",
                 }}
               >
-                →
+                {option.text}
               </span>
-            )}
-          </div>
-        );
+
+              {/* 箭头指示 */}
+              {isHovered && (
+                <span
+                  style={{
+                    fontSize: typography.fontSize.sm,
+                    color: modernColors.primary,
+                  }}
+                >
+                  →
+                </span>
+              )}
+            </div>
+          );
         })}
       </div>
     </div>

@@ -9,8 +9,8 @@
  * - 网格节点闪烁
  */
 
-import React from "react";
 import { motion } from "framer-motion";
+import React from "react";
 
 // 网格尺寸常量
 const GRID_SIZE = 60;
@@ -62,14 +62,13 @@ export function GridLine({
           top: position,
           left: 0,
           width: 120,
-          background: "linear-gradient(90deg, transparent, rgba(251,146,60,0.8), rgba(251,191,36,0.6), transparent)",
+          background:
+            "linear-gradient(90deg, transparent, rgba(251,146,60,0.8), rgba(251,191,36,0.6), transparent)",
           boxShadow: "0 0 20px rgba(251,146,60,0.5), 0 0 40px rgba(251,146,60,0.3)",
         }}
         initial={{ x: initialPosition }}
         animate={{
-          x: hasCompletedFirst
-            ? ["-120px", `${screenSize + 120}px`]
-            : `${screenSize + 120}px`,
+          x: hasCompletedFirst ? ["-120px", `${screenSize + 120}px`] : `${screenSize + 120}px`,
         }}
         transition={{
           duration: hasCompletedFirst ? duration : firstDuration,
@@ -89,14 +88,13 @@ export function GridLine({
         left: position,
         top: 0,
         height: 120,
-        background: "linear-gradient(180deg, transparent, rgba(251,146,60,0.8), rgba(251,191,36,0.6), transparent)",
+        background:
+          "linear-gradient(180deg, transparent, rgba(251,146,60,0.8), rgba(251,191,36,0.6), transparent)",
         boxShadow: "0 0 20px rgba(251,146,60,0.5), 0 0 40px rgba(251,146,60,0.3)",
       }}
       initial={{ y: initialPosition }}
       animate={{
-        y: hasCompletedFirst
-          ? ["-120px", `${screenSize + 120}px`]
-          : `${screenSize + 120}px`,
+        y: hasCompletedFirst ? ["-120px", `${screenSize + 120}px`] : `${screenSize + 120}px`,
       }}
       transition={{
         duration: hasCompletedFirst ? duration : firstDuration,
@@ -110,15 +108,7 @@ export function GridLine({
 }
 
 // 网格交叉点闪烁
-export function GridNode({
-  row,
-  col,
-  delay = 0,
-}: {
-  row: number;
-  col: number;
-  delay?: number;
-}) {
+export function GridNode({ row, col, delay = 0 }: { row: number; col: number; delay?: number }) {
   return (
     <motion.div
       className="absolute w-2 h-2 rounded-full pointer-events-none"
@@ -143,13 +133,7 @@ export function GridNode({
 }
 
 // 渐变动画背景球
-export function FloatingOrb({
-  className,
-  delay = 0,
-}: {
-  className?: string;
-  delay?: number;
-}) {
+export function FloatingOrb({ className, delay = 0 }: { className?: string; delay?: number }) {
   return (
     <motion.div
       className={`absolute rounded-full blur-3xl opacity-30 ${className}`}
@@ -189,7 +173,11 @@ interface GridBackgroundProps {
   showNodes?: boolean;
 }
 
-export function GridBackground({ children, className = "", showNodes = true }: GridBackgroundProps) {
+export function GridBackground({
+  children,
+  className = "",
+  showNodes = true,
+}: GridBackgroundProps) {
   return (
     <div className={`relative overflow-hidden ${className}`}>
       {/* 背景渐变 */}

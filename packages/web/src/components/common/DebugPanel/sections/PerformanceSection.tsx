@@ -2,8 +2,8 @@
  * 性能统计区块
  */
 
-import type React from "react";
 import type { PerformanceStatsData } from "@miu2d/engine/game/performanceStats";
+import type React from "react";
 import { DataRow } from "../DataRow";
 import { Section } from "../Section";
 
@@ -56,11 +56,7 @@ export const PerformanceSection: React.FC<PerformanceSectionProps> = ({ performa
         <div className="space-y-px">
           <div className="text-[10px] text-zinc-500 uppercase">帧率</div>
           <DataRow label="当前 FPS" value={fps} valueColor={getFpsColor(fps)} />
-          <DataRow
-            label="FPS 范围"
-            value={`${fpsMin} ~ ${fpsMax}`}
-            valueColor="text-zinc-300"
-          />
+          <DataRow label="FPS 范围" value={`${fpsMin} ~ ${fpsMax}`} valueColor="text-zinc-300" />
           <DataRow label="平均 FPS" value={fpsAvg} valueColor={getFpsColor(fpsAvg)} />
         </div>
 

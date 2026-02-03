@@ -5,30 +5,28 @@
  */
 
 export {
-  initWasmPathfinder,
-  isWasmPathfinderAvailable,
-  findPathWasm,
-  updateObstacleBitmap,
-  setObstacle,
-  disposeWasmPathfinder,
-  WasmPathType,
-} from "./wasmPathFinder";
-
-export {
+  decodeAsfWasm,
   initWasmAsfDecoder,
   isWasmAsfDecoderAvailable,
-  decodeAsfWasm,
 } from "./wasmAsfDecoder";
-
 export {
-  initWasmCollision,
-  isWasmCollisionAvailable,
-  WasmSpatialHashWrapper,
   checkAabbCollision,
   checkCircleCollision,
-  pointInRect,
+  initWasmCollision,
+  isWasmCollisionAvailable,
   pointInCircle,
+  pointInRect,
+  WasmSpatialHashWrapper,
 } from "./wasmCollision";
+export {
+  disposeWasmPathfinder,
+  findPathWasm,
+  initWasmPathfinder,
+  isWasmPathfinderAvailable,
+  setObstacle,
+  updateObstacleBitmap,
+  WasmPathType,
+} from "./wasmPathFinder";
 
 /**
  * 初始化所有 WASM 模块
@@ -49,4 +47,3 @@ export async function initAllWasmModules(
 
   return { pathfinder, asfDecoder, collision };
 }
-

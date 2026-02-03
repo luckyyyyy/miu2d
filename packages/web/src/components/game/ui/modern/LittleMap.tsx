@@ -2,16 +2,17 @@
  * Modern LittleMap - 小地图
  * Props 与经典 LittleMapGui 完全一致
  */
-import type React from "react";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+
 import type { JxqyMapData } from "@miu2d/engine/core/mapTypes";
 import type { Vector2 } from "@miu2d/engine/core/types";
+import type React from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { borderRadius, glassEffect, modernColors, spacing, typography } from "./theme";
 
 // 与经典 UI 一致的常量
 const VIEW_WIDTH = 320;
 const VIEW_HEIGHT = 240;
-const RATIO = 4;
+const _RATIO = 4;
 
 // Character position info（与经典 UI 一致）
 export interface CharacterMarker {
@@ -67,7 +68,7 @@ export const LittleMap: React.FC<LittleMapProps> = ({
       x: mapWidth / mapSize.width,
       y: mapHeight / mapSize.height,
     };
-  }, [mapSize, mapWidth, mapHeight]);
+  }, [mapSize]);
 
   // 绘制小地图
   useEffect(() => {
@@ -154,7 +155,7 @@ export const LittleMap: React.FC<LittleMapProps> = ({
     ctx.strokeStyle = "rgba(255, 255, 255, 0.3)";
     ctx.lineWidth = 1;
     ctx.strokeRect(viewX - viewW / 2, viewY - viewH / 2, viewW, viewH);
-  }, [isVisible, playerPosition, characters, cameraPosition, scale, mapSize, screenWidth, screenHeight, mapWidth, mapHeight]);
+  }, [isVisible, characters, cameraPosition, scale, mapSize, screenWidth, screenHeight]);
 
   // 处理点击
   const handleClick = useCallback(

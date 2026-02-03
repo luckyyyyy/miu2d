@@ -3,8 +3,8 @@
  * 位置与经典UI一致
  */
 import type React from "react";
-import { useCallback, useMemo, useState } from "react";
-import { borderRadius, glassEffect, modernColors, spacing, transitions, typography } from "./theme";
+import { useMemo, useState } from "react";
+import { borderRadius, glassEffect, modernColors, spacing, transitions } from "./theme";
 
 interface TopBarProps {
   screenWidth: number;
@@ -41,8 +41,8 @@ const TopButton: React.FC<{ config: TopButtonConfig }> = ({ config }) => {
         background: isPressed
           ? "rgba(255, 255, 255, 0.2)"
           : isHovered
-          ? "rgba(255, 255, 255, 0.1)"
-          : "transparent",
+            ? "rgba(255, 255, 255, 0.1)"
+            : "transparent",
         border: "none",
         borderRadius: borderRadius.sm,
         cursor: "pointer",
@@ -85,7 +85,15 @@ export const TopBar: React.FC<TopBarProps> = ({
       { id: "memo", label: "任务", icon: "📜", shortcut: "F7", onClick: onMemoClick },
       { id: "system", label: "系统", icon: "⚙️", shortcut: "ESC", onClick: onSystemClick },
     ],
-    [onStateClick, onEquipClick, onXiuLianClick, onGoodsClick, onMagicClick, onMemoClick, onSystemClick]
+    [
+      onStateClick,
+      onEquipClick,
+      onXiuLianClick,
+      onGoodsClick,
+      onMagicClick,
+      onMemoClick,
+      onSystemClick,
+    ]
   );
 
   const panelWidth = 300;

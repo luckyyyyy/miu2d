@@ -4,16 +4,9 @@
  */
 import type React from "react";
 import { useMemo } from "react";
-import type { PlayerStats } from "../classic/StateGui";
 import { useAsfImage } from "../classic/hooks";
-import {
-  borderRadius,
-  glassEffect,
-  modernColors,
-  spacing,
-  typography,
-  transitions,
-} from "./theme";
+import type { PlayerStats } from "../classic/StateGui";
+import { borderRadius, glassEffect, modernColors, spacing, transitions, typography } from "./theme";
 
 interface StatePanelProps {
   isVisible: boolean;
@@ -37,12 +30,27 @@ const wuxiaAccent = {
 // 属性图标 (使用SVG)
 const StatIcon: React.FC<{ type: string; size?: number }> = ({ type, size = 16 }) => {
   const iconPaths: Record<string, { path: string; color: string }> = {
-    life: { path: "M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z", color: modernColors.stats.life },
+    life: {
+      path: "M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z",
+      color: modernColors.stats.life,
+    },
     thew: { path: "M13 2L3 14h9l-1 8 10-12h-9l1-8z", color: modernColors.stats.thew },
-    mana: { path: "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z", color: modernColors.stats.mana },
-    attack: { path: "M6.92 5H5L14 14l4.88-4.88-2.12-2.12L14 9.76 10.24 6l2.76-2.76L10.88 1.12 6.92 5zM16.5 15L15 16.5l4 4L20.5 19l-4-4z", color: modernColors.stats.attack },
-    defend: { path: "M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z", color: modernColors.stats.defend },
-    evade: { path: "M13.49 5.48c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm-3.6 13.9l1-4.4 2.1 2v6h2v-7.5l-2.1-2 .6-3c1.3 1.5 3.3 2.5 5.5 2.5v-2c-1.9 0-3.5-1-4.3-2.4l-1-1.6c-.4-.6-1-1-1.7-1-.3 0-.5.1-.8.1l-5.2 2.2v4.7h2v-3.4l1.8-.7-1.6 8.1-4.9-1-.4 2 7 1.4z", color: modernColors.stats.evade },
+    mana: {
+      path: "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z",
+      color: modernColors.stats.mana,
+    },
+    attack: {
+      path: "M6.92 5H5L14 14l4.88-4.88-2.12-2.12L14 9.76 10.24 6l2.76-2.76L10.88 1.12 6.92 5zM16.5 15L15 16.5l4 4L20.5 19l-4-4z",
+      color: modernColors.stats.attack,
+    },
+    defend: {
+      path: "M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z",
+      color: modernColors.stats.defend,
+    },
+    evade: {
+      path: "M13.49 5.48c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm-3.6 13.9l1-4.4 2.1 2v6h2v-7.5l-2.1-2 .6-3c1.3 1.5 3.3 2.5 5.5 2.5v-2c-1.9 0-3.5-1-4.3-2.4l-1-1.6c-.4-.6-1-1-1.7-1-.3 0-.5.1-.8.1l-5.2 2.2v4.7h2v-3.4l1.8-.7-1.6 8.1-4.9-1-.4 2 7 1.4z",
+      color: modernColors.stats.evade,
+    },
   };
   const icon = iconPaths[type];
   if (!icon) return null;
@@ -67,48 +75,58 @@ const StatBar: React.FC<{
 
   return (
     <div style={{ marginBottom: spacing.sm }}>
-      <div style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        marginBottom: spacing.xs,
-      }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginBottom: spacing.xs,
+        }}
+      >
         <div style={{ display: "flex", alignItems: "center", gap: spacing.sm }}>
           <StatIcon type={type} size={16} />
-          <span style={{
-            fontSize: typography.fontSize.sm,
-            color: modernColors.text.secondary,
-            fontWeight: typography.fontWeight.medium,
-          }}>
+          <span
+            style={{
+              fontSize: typography.fontSize.sm,
+              color: modernColors.text.secondary,
+              fontWeight: typography.fontWeight.medium,
+            }}
+          >
             {label}
           </span>
         </div>
         {showValues && (
-          <span style={{
-            fontSize: typography.fontSize.sm,
-            color: modernColors.text.primary,
-            fontFamily: "monospace",
-          }}>
+          <span
+            style={{
+              fontSize: typography.fontSize.sm,
+              color: modernColors.text.primary,
+              fontFamily: "monospace",
+            }}
+          >
             {current}/{max}
           </span>
         )}
       </div>
-      <div style={{
-        width: "100%",
-        height: 8,
-        background: modernColors.bg.glassDark,
-        borderRadius: borderRadius.sm,
-        overflow: "hidden",
-        boxShadow: "inset 0 1px 2px rgba(0,0,0,0.3)",
-      }}>
-        <div style={{
-          width: `${percent}%`,
-          height: "100%",
-          background: color,
+      <div
+        style={{
+          width: "100%",
+          height: 8,
+          background: modernColors.bg.glassDark,
           borderRadius: borderRadius.sm,
-          boxShadow: `0 0 8px ${color}`,
-          transition: transitions.normal,
-        }} />
+          overflow: "hidden",
+          boxShadow: "inset 0 1px 2px rgba(0,0,0,0.3)",
+        }}
+      >
+        <div
+          style={{
+            width: `${percent}%`,
+            height: "100%",
+            background: color,
+            borderRadius: borderRadius.sm,
+            boxShadow: `0 0 8px ${color}`,
+            transition: transitions.normal,
+          }}
+        />
       </div>
     </div>
   );
@@ -121,36 +139,44 @@ const CombatStat: React.FC<{
   value: string | number;
   bonus?: string;
 }> = ({ label, type, value, bonus }) => (
-  <div style={{
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: `${spacing.sm}px 0`,
-    borderBottom: `1px solid ${modernColors.border.glass}`,
-  }}>
+  <div
+    style={{
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      padding: `${spacing.sm}px 0`,
+      borderBottom: `1px solid ${modernColors.border.glass}`,
+    }}
+  >
     <div style={{ display: "flex", alignItems: "center", gap: spacing.sm }}>
       <StatIcon type={type} size={18} />
-      <span style={{
-        fontSize: typography.fontSize.sm,
-        color: modernColors.text.secondary,
-      }}>
+      <span
+        style={{
+          fontSize: typography.fontSize.sm,
+          color: modernColors.text.secondary,
+        }}
+      >
         {label}
       </span>
     </div>
     <div style={{ display: "flex", alignItems: "baseline", gap: spacing.xs }}>
-      <span style={{
-        fontSize: typography.fontSize.md,
-        fontWeight: typography.fontWeight.semibold,
-        color: modernColors.text.primary,
-        fontFamily: "monospace",
-      }}>
+      <span
+        style={{
+          fontSize: typography.fontSize.md,
+          fontWeight: typography.fontWeight.semibold,
+          color: modernColors.text.primary,
+          fontFamily: "monospace",
+        }}
+      >
         {value}
       </span>
       {bonus && (
-        <span style={{
-          fontSize: typography.fontSize.xs,
-          color: modernColors.stats.thew,
-        }}>
+        <span
+          style={{
+            fontSize: typography.fontSize.xs,
+            color: modernColors.stats.thew,
+          }}
+        >
           {bonus}
         </span>
       )}
@@ -252,50 +278,62 @@ export const StatePanel: React.FC<StatePanelProps> = ({
   return (
     <div style={panelStyle} onClick={(e) => e.stopPropagation()}>
       {/* 装饰性顶部边框 */}
-      <div style={{
-        position: "absolute",
-        top: 0,
-        left: 0,
-        right: 0,
-        height: 2,
-        background: `linear-gradient(90deg, transparent, ${wuxiaAccent.gold}88, transparent)`,
-        borderRadius: `${borderRadius.xl}px ${borderRadius.xl}px 0 0`,
-      }} />
+      <div
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          height: 2,
+          background: `linear-gradient(90deg, transparent, ${wuxiaAccent.gold}88, transparent)`,
+          borderRadius: `${borderRadius.xl}px ${borderRadius.xl}px 0 0`,
+        }}
+      />
 
       <CloseBtn onClick={onClose} />
 
       {/* 角色信息区 */}
-      <div style={{
-        padding: spacing.lg,
-        background: modernColors.bg.hover,
-        borderBottom: `1px solid ${modernColors.border.glass}`,
-      }}>
+      <div
+        style={{
+          padding: spacing.lg,
+          background: modernColors.bg.hover,
+          borderBottom: `1px solid ${modernColors.border.glass}`,
+        }}
+      >
         <div style={{ display: "flex", alignItems: "center", gap: spacing.md }}>
           {/* 头像框 - 八角形设计 */}
-          <div style={{
-            width: 70,
-            height: 70,
-            position: "relative",
-            flexShrink: 0,
-          }}>
+          <div
+            style={{
+              width: 70,
+              height: 70,
+              position: "relative",
+              flexShrink: 0,
+            }}
+          >
             {/* 外框装饰 */}
-            <div style={{
-              position: "absolute",
-              inset: -3,
-              background: `linear-gradient(135deg, ${wuxiaAccent.gold}, ${wuxiaAccent.goldDark})`,
-              clipPath: "polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%)",
-            }} />
+            <div
+              style={{
+                position: "absolute",
+                inset: -3,
+                background: `linear-gradient(135deg, ${wuxiaAccent.gold}, ${wuxiaAccent.goldDark})`,
+                clipPath:
+                  "polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%)",
+              }}
+            />
             {/* 头像容器 */}
-            <div style={{
-              position: "absolute",
-              inset: 0,
-              background: modernColors.bg.glassDark,
-              clipPath: "polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              overflow: "hidden",
-            }}>
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                background: modernColors.bg.glassDark,
+                clipPath:
+                  "polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                overflow: "hidden",
+              }}
+            >
               {portraitImage.dataUrl ? (
                 <img
                   src={portraitImage.dataUrl}
@@ -315,36 +353,44 @@ export const StatePanel: React.FC<StatePanelProps> = ({
 
           {/* 名称和等级 */}
           <div style={{ flex: 1 }}>
-            <div style={{
-              fontSize: typography.fontSize.lg,
-              fontWeight: typography.fontWeight.bold,
-              color: modernColors.text.primary,
-              textShadow: "0 2px 4px rgba(0,0,0,0.5)",
-              marginBottom: spacing.xs,
-            }}>
+            <div
+              style={{
+                fontSize: typography.fontSize.lg,
+                fontWeight: typography.fontWeight.bold,
+                color: modernColors.text.primary,
+                textShadow: "0 2px 4px rgba(0,0,0,0.5)",
+                marginBottom: spacing.xs,
+              }}
+            >
               {playerName}
             </div>
-            <div style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: spacing.xs,
-              padding: `${spacing.xs}px ${spacing.sm}px`,
-              background: `linear-gradient(90deg, ${wuxiaAccent.gold}20, transparent)`,
-              borderLeft: `2px solid ${wuxiaAccent.gold}`,
-            }}>
-              <span style={{
-                fontSize: typography.fontSize.sm,
-                color: modernColors.text.secondary,
-              }}>
+            <div
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: spacing.xs,
+                padding: `${spacing.xs}px ${spacing.sm}px`,
+                background: `linear-gradient(90deg, ${wuxiaAccent.gold}20, transparent)`,
+                borderLeft: `2px solid ${wuxiaAccent.gold}`,
+              }}
+            >
+              <span
+                style={{
+                  fontSize: typography.fontSize.sm,
+                  color: modernColors.text.secondary,
+                }}
+              >
                 等级
               </span>
-              <span style={{
-                fontSize: typography.fontSize.xxl,
-                fontWeight: typography.fontWeight.bold,
-                color: modernColors.accent,
-                fontFamily: "Georgia, serif",
-                textShadow: `0 0 10px ${wuxiaAccent.gold}66`,
-              }}>
+              <span
+                style={{
+                  fontSize: typography.fontSize.xxl,
+                  fontWeight: typography.fontWeight.bold,
+                  color: modernColors.accent,
+                  fontFamily: "Georgia, serif",
+                  textShadow: `0 0 10px ${wuxiaAccent.gold}66`,
+                }}
+              >
                 {stats.level}
               </span>
             </div>
@@ -353,64 +399,78 @@ export const StatePanel: React.FC<StatePanelProps> = ({
 
         {/* 经验条 */}
         <div style={{ marginTop: spacing.md }}>
-          <div style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: spacing.xs,
-          }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: spacing.xs,
+            }}
+          >
             <span style={{ fontSize: typography.fontSize.xs, color: modernColors.text.secondary }}>
               修为进度
             </span>
-            <span style={{
-              fontSize: typography.fontSize.xs,
-              color: modernColors.stats.exp,
-              fontFamily: "monospace",
-            }}>
+            <span
+              style={{
+                fontSize: typography.fontSize.xs,
+                color: modernColors.stats.exp,
+                fontFamily: "monospace",
+              }}
+            >
               {stats.exp} / {stats.levelUpExp}
             </span>
           </div>
-          <div style={{
-            width: "100%",
-            height: 8,
-            background: modernColors.bg.glassDark,
-            borderRadius: borderRadius.sm,
-            overflow: "hidden",
-            border: `1px solid ${modernColors.border.glass}`,
-          }}>
-            <div style={{
-              width: `${expPercent}%`,
-              height: "100%",
-              background: `linear-gradient(90deg, ${wuxiaAccent.goldDark}, ${wuxiaAccent.gold})`,
+          <div
+            style={{
+              width: "100%",
+              height: 8,
+              background: modernColors.bg.glassDark,
               borderRadius: borderRadius.sm,
-              boxShadow: `0 0 12px ${wuxiaAccent.gold}66`,
-              transition: transitions.normal,
-            }} />
+              overflow: "hidden",
+              border: `1px solid ${modernColors.border.glass}`,
+            }}
+          >
+            <div
+              style={{
+                width: `${expPercent}%`,
+                height: "100%",
+                background: `linear-gradient(90deg, ${wuxiaAccent.goldDark}, ${wuxiaAccent.gold})`,
+                borderRadius: borderRadius.sm,
+                boxShadow: `0 0 12px ${wuxiaAccent.gold}66`,
+                transition: transitions.normal,
+              }}
+            />
           </div>
         </div>
       </div>
 
       {/* 三维属性 */}
       <div style={{ padding: `${spacing.md}px ${spacing.lg}px` }}>
-        <div style={{
-          fontSize: typography.fontSize.sm,
-          color: modernColors.text.secondary,
-          marginBottom: spacing.sm,
-          display: "flex",
-          alignItems: "center",
-          gap: spacing.sm,
-        }}>
-          <span style={{
-            width: 16,
-            height: 1,
-            background: `linear-gradient(90deg, ${wuxiaAccent.gold}, transparent)`,
-          }} />
+        <div
+          style={{
+            fontSize: typography.fontSize.sm,
+            color: modernColors.text.secondary,
+            marginBottom: spacing.sm,
+            display: "flex",
+            alignItems: "center",
+            gap: spacing.sm,
+          }}
+        >
+          <span
+            style={{
+              width: 16,
+              height: 1,
+              background: `linear-gradient(90deg, ${wuxiaAccent.gold}, transparent)`,
+            }}
+          />
           三维属性
-          <span style={{
-            flex: 1,
-            height: 1,
-            background: `linear-gradient(90deg, transparent, ${modernColors.border.glass})`,
-          }} />
+          <span
+            style={{
+              flex: 1,
+              height: 1,
+              background: `linear-gradient(90deg, transparent, ${modernColors.border.glass})`,
+            }}
+          />
         </div>
 
         <StatBar
@@ -438,52 +498,58 @@ export const StatePanel: React.FC<StatePanelProps> = ({
 
       {/* 战斗属性 */}
       <div style={{ padding: `0 ${spacing.lg}px ${spacing.lg}px` }}>
-        <div style={{
-          fontSize: typography.fontSize.sm,
-          color: modernColors.text.secondary,
-          marginBottom: spacing.sm,
-          display: "flex",
-          alignItems: "center",
-          gap: spacing.sm,
-        }}>
-          <span style={{
-            width: 16,
-            height: 1,
-            background: `linear-gradient(90deg, ${wuxiaAccent.gold}, transparent)`,
-          }} />
+        <div
+          style={{
+            fontSize: typography.fontSize.sm,
+            color: modernColors.text.secondary,
+            marginBottom: spacing.sm,
+            display: "flex",
+            alignItems: "center",
+            gap: spacing.sm,
+          }}
+        >
+          <span
+            style={{
+              width: 16,
+              height: 1,
+              background: `linear-gradient(90deg, ${wuxiaAccent.gold}, transparent)`,
+            }}
+          />
           战斗属性
-          <span style={{
-            flex: 1,
-            height: 1,
-            background: `linear-gradient(90deg, transparent, ${modernColors.border.glass})`,
-          }} />
+          <span
+            style={{
+              flex: 1,
+              height: 1,
+              background: `linear-gradient(90deg, transparent, ${modernColors.border.glass})`,
+            }}
+          />
         </div>
 
-        <div style={{
-          background: modernColors.bg.glassDark,
-          borderRadius: borderRadius.md,
-          padding: `${spacing.xs}px ${spacing.md}px`,
-          border: `1px solid ${modernColors.border.glass}`,
-        }}>
+        <div
+          style={{
+            background: modernColors.bg.glassDark,
+            borderRadius: borderRadius.md,
+            padding: `${spacing.xs}px ${spacing.md}px`,
+            border: `1px solid ${modernColors.border.glass}`,
+          }}
+        >
           <CombatStat label="攻击" type="attack" value={attackText} bonus={attackBonusText} />
           <CombatStat label="防御" type="defend" value={defendText} bonus={defendBonusText} />
-          <CombatStat
-            label="身法"
-            type="evade"
-            value={stats.evade}
-          />
+          <CombatStat label="身法" type="evade" value={stats.evade} />
         </div>
       </div>
 
       {/* 底部装饰 */}
-      <div style={{
-        position: "absolute",
-        bottom: 0,
-        left: 0,
-        right: 0,
-        height: 2,
-        background: `linear-gradient(90deg, transparent, ${wuxiaAccent.goldDark}, transparent)`,
-      }} />
+      <div
+        style={{
+          position: "absolute",
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: 2,
+          background: `linear-gradient(90deg, transparent, ${wuxiaAccent.goldDark}, transparent)`,
+        }}
+      />
     </div>
   );
 };

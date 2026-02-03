@@ -6,7 +6,7 @@
  */
 
 import { useEffect, useRef } from "react";
-import { useTouchDrag, type TouchDragData } from "@/contexts";
+import { type TouchDragData, useTouchDrag } from "@/contexts";
 
 export interface UseTouchDropTargetOptions {
   /** 唯一标识符 */

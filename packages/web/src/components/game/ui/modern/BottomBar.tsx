@@ -5,12 +5,12 @@
 import type React from "react";
 import { useCallback, useMemo, useState } from "react";
 import type { TouchDragData } from "@/contexts";
-import { useAsfImage } from "../classic/hooks";
 import { AsfAnimatedSprite } from "../classic/AsfAnimatedSprite";
-import type { GoodItemData } from "../classic/GoodsGui";
 import type { BottomSlotDragData } from "../classic/BottomGui";
-import { borderRadius, glassEffect, modernColors, spacing, transitions } from "./theme";
+import type { GoodItemData } from "../classic/GoodsGui";
+import { useAsfImage } from "../classic/hooks";
 import { getItemBorderColor, getItemGlowColor } from "./Tooltips";
+import { borderRadius, glassEffect, modernColors, spacing, transitions } from "./theme";
 
 // 快捷键
 const SLOT_KEYS = ["Z", "X", "C", "A", "S", "D", "F", "G"];
@@ -102,7 +102,7 @@ const BottomSlot: React.FC<SlotItemProps> = ({
       : modernColors.border.glass;
 
   // 计算边框渐变第二色
-  const borderColorSecondary = qualityBorderColor
+  const _borderColorSecondary = qualityBorderColor
     ? isHovered
       ? qualityBorderColor
       : `${qualityBorderColor}cc`
@@ -139,7 +139,13 @@ const BottomSlot: React.FC<SlotItemProps> = ({
       onClick={onClick}
       onContextMenu={handleContextMenu}
       onMouseEnter={(e) => {
-        console.log("[BottomSlot] onMouseEnter", { index, isItemSlot, hasContent, goodsData, magicData });
+        console.log("[BottomSlot] onMouseEnter", {
+          index,
+          isItemSlot,
+          hasContent,
+          goodsData,
+          magicData,
+        });
         setIsHovered(true);
         onMouseEnter(e);
       }}
@@ -196,81 +202,81 @@ const BottomSlot: React.FC<SlotItemProps> = ({
           pointerEvents: "none",
         }}
       >
-      {/* 物品图标 */}
-      {isItemSlot && itemIcon.dataUrl && (
-        <img
-          src={itemIcon.dataUrl}
-          alt={goodsData?.good?.name || ""}
-          style={{
-            maxWidth: 32,
-            maxHeight: 32,
-            imageRendering: "pixelated",
-            pointerEvents: "none",
-          }}
-          draggable={false}
-        />
-      )}
+        {/* 物品图标 */}
+        {isItemSlot && itemIcon.dataUrl && (
+          <img
+            src={itemIcon.dataUrl}
+            alt={goodsData?.good?.name || ""}
+            style={{
+              maxWidth: 32,
+              maxHeight: 32,
+              imageRendering: "pixelated",
+              pointerEvents: "none",
+            }}
+            draggable={false}
+          />
+        )}
 
-      {/* 武功动画图标 */}
-      {!isItemSlot && magicIconPath && (
-        <AsfAnimatedSprite
-          path={magicIconPath}
-          autoPlay={true}
-          loop={true}
-          style={{
-            maxWidth: 32,
-            maxHeight: 32,
-            pointerEvents: "none",
-          }}
-        />
-      )}
+        {/* 武功动画图标 */}
+        {!isItemSlot && magicIconPath && (
+          <AsfAnimatedSprite
+            path={magicIconPath}
+            autoPlay={true}
+            loop={true}
+            style={{
+              maxWidth: 32,
+              maxHeight: 32,
+              pointerEvents: "none",
+            }}
+          />
+        )}
 
-      {/* 数量 */}
-      {goodsData && goodsData.count > 1 && (
+        {/* 数量 */}
+        {goodsData && goodsData.count > 1 && (
+          <span
+            style={{
+              position: "absolute",
+              top: 2,
+              left: 4,
+              fontSize: 9,
+              color: modernColors.text.primary,
+              textShadow: "0 1px 2px rgba(0,0,0,0.8)",
+            }}
+          >
+            {goodsData.count}
+          </span>
+        )}
+
+        {/* 武功等级 */}
+        {magicData && magicData.level > 0 && (
+          <span
+            style={{
+              position: "absolute",
+              top: 2,
+              right: 4,
+              fontSize: 9,
+              color: modernColors.accent,
+              textShadow: "0 1px 2px rgba(0,0,0,0.8)",
+            }}
+          >
+            {magicData.level}
+          </span>
+        )}
+
+        {/* 快捷键 - 右下角 */}
         <span
           style={{
             position: "absolute",
-            top: 2,
-            left: 4,
-            fontSize: 9,
-            color: modernColors.text.primary,
-            textShadow: "0 1px 2px rgba(0,0,0,0.8)",
+            bottom: 2,
+            right: 3,
+            fontSize: 8,
+            color: modernColors.text.muted,
+            textShadow: "0 1px 2px rgba(0,0,0,0.9)",
+            opacity: 0.7,
           }}
         >
-          {goodsData.count}
+          {hotkey}
         </span>
-      )}
-
-      {/* 武功等级 */}
-      {magicData && magicData.level > 0 && (
-        <span
-          style={{
-            position: "absolute",
-            top: 2,
-            right: 4,
-            fontSize: 9,
-            color: modernColors.accent,
-            textShadow: "0 1px 2px rgba(0,0,0,0.8)",
-          }}
-        >
-          {magicData.level}
-        </span>
-      )}
-
-      {/* 快捷键 - 右下角 */}
-      <span
-        style={{
-          position: "absolute",
-          bottom: 2,
-          right: 3,
-          fontSize: 8,
-          color: modernColors.text.muted,
-          textShadow: "0 1px 2px rgba(0,0,0,0.9)",
-          opacity: 0.7,
-        }}
-      >
-        {hotkey}
-      </span>
       </div>
     </div>
   );
@@ -342,26 +348,83 @@ export const BottomBar: React.FC<BottomBarProps> = ({
         {/* 生命 */}
         <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
           <span style={{ fontSize: 10, color: modernColors.stats.life, width: 24 }}>生命</span>
-          <div style={{ flex: 1, height: 12, background: "rgba(0,0,0,0.4)", borderRadius: 6, overflow: "hidden" }}>
-            <div style={{ width: `${lifePercent}%`, height: "100%", background: modernColors.stats.life, transition: "width 0.3s" }} />
+          <div
+            style={{
+              flex: 1,
+              height: 12,
+              background: "rgba(0,0,0,0.4)",
+              borderRadius: 6,
+              overflow: "hidden",
+            }}
+          >
+            <div
+              style={{
+                width: `${lifePercent}%`,
+                height: "100%",
+                background: modernColors.stats.life,
+                transition: "width 0.3s",
+              }}
+            />
           </div>
-          <span style={{ fontSize: 9, color: modernColors.text.muted, width: 50, textAlign: "right" }}>{life}/{lifeMax}</span>
+          <span
+            style={{ fontSize: 9, color: modernColors.text.muted, width: 50, textAlign: "right" }}
+          >
+            {life}/{lifeMax}
+          </span>
         </div>
         {/* 内力 */}
         <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
           <span style={{ fontSize: 10, color: modernColors.stats.mana, width: 24 }}>内力</span>
-          <div style={{ flex: 1, height: 12, background: "rgba(0,0,0,0.4)", borderRadius: 6, overflow: "hidden" }}>
-            <div style={{ width: `${manaPercent}%`, height: "100%", background: modernColors.stats.mana, transition: "width 0.3s" }} />
+          <div
+            style={{
+              flex: 1,
+              height: 12,
+              background: "rgba(0,0,0,0.4)",
+              borderRadius: 6,
+              overflow: "hidden",
+            }}
+          >
+            <div
+              style={{
+                width: `${manaPercent}%`,
+                height: "100%",
+                background: modernColors.stats.mana,
+                transition: "width 0.3s",
+              }}
+            />
           </div>
-          <span style={{ fontSize: 9, color: modernColors.text.muted, width: 50, textAlign: "right" }}>{mana}/{manaMax}</span>
+          <span
+            style={{ fontSize: 9, color: modernColors.text.muted, width: 50, textAlign: "right" }}
+          >
+            {mana}/{manaMax}
+          </span>
         </div>
         {/* 体力 */}
         <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
           <span style={{ fontSize: 10, color: modernColors.stats.thew, width: 24 }}>体力</span>
-          <div style={{ flex: 1, height: 12, background: "rgba(0,0,0,0.4)", borderRadius: 6, overflow: "hidden" }}>
-            <div style={{ width: `${thewPercent}%`, height: "100%", background: modernColors.stats.thew, transition: "width 0.3s" }} />
+          <div
+            style={{
+              flex: 1,
+              height: 12,
+              background: "rgba(0,0,0,0.4)",
+              borderRadius: 6,
+              overflow: "hidden",
+            }}
+          >
+            <div
+              style={{
+                width: `${thewPercent}%`,
+                height: "100%",
+                background: modernColors.stats.thew,
+                transition: "width 0.3s",
+              }}
+            />
           </div>
-          <span style={{ fontSize: 9, color: modernColors.text.muted, width: 50, textAlign: "right" }}>{thew}/{thewMax}</span>
+          <span
+            style={{ fontSize: 9, color: modernColors.text.muted, width: 50, textAlign: "right" }}
+          >
+            {thew}/{thewMax}
+          </span>
         </div>
       </div>
 
@@ -429,7 +492,10 @@ export const BottomBar: React.FC<BottomBarProps> = ({
               onRightClick={() => onMagicRightClick?.(i)}
               onMouseEnter={(e) => {
                 // 武功槽触发武功tooltip - 1:1 参考经典 UI
-                console.log("[BottomBar] magic onMouseEnter callback", { magicData, onMagicHover: !!onMagicHover });
+                console.log("[BottomBar] magic onMouseEnter callback", {
+                  magicData,
+                  onMagicHover: !!onMagicHover,
+                });
                 if (magicData?.magic) {
                   console.log("[BottomBar] calling onMagicHover");
                   onMagicHover?.(magicData, e.clientX, e.clientY);

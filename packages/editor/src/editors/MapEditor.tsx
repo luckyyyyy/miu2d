@@ -1,10 +1,10 @@
-import { useState, useCallback, useEffect } from "react";
-import { useParams } from "react-router-dom";
-import { VirtualTree, type TreeNode } from "../components/tree";
-import { useFileSystem } from "../hooks/useFileSystem";
-import { MapViewer } from "../components/MapViewer";
-import { parseMap } from "@miu2d/engine/map";
 import type { JxqyMapData } from "@miu2d/engine/core/mapTypes";
+import { parseMap } from "@miu2d/engine/map";
+import { useCallback, useState } from "react";
+import { useParams } from "react-router-dom";
+import { MapViewer } from "../components/MapViewer";
+import { type TreeNode, VirtualTree } from "../components/tree";
+import { useFileSystem } from "../hooks/useFileSystem";
 
 /**
  * 地图编辑器

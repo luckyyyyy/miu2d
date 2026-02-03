@@ -3,12 +3,12 @@
  * 1:1 复刻 VSCode 的文件目录树样式和行为
  */
 
-import { useState, useCallback, useMemo, useEffect, useRef } from "react";
-import type { TreeNode, FlatTreeNode, ExpandedState, FileIconConfig } from "./types";
-import { defaultIconConfig } from "./types";
-import { flattenTree, sortNodes } from "./treeUtils";
-import { useVirtualScroll } from "./useVirtualScroll";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { TreeRow } from "./TreeRow";
+import { flattenTree, sortNodes } from "./treeUtils";
+import type { ExpandedState, FileIconConfig, FlatTreeNode, TreeNode } from "./types";
+import { defaultIconConfig } from "./types";
+import { useVirtualScroll } from "./useVirtualScroll";
 
 interface VirtualTreeProps {
   /** 树的根节点列表 */
@@ -52,14 +52,10 @@ export function VirtualTree({
   onLoadChildren,
 }: VirtualTreeProps) {
   // 展开状态
-  const [expandedState, setExpandedState] = useState<ExpandedState>(
-    () => new Set(defaultExpanded)
-  );
+  const [expandedState, setExpandedState] = useState<ExpandedState>(() => new Set(defaultExpanded));
 
   // 选中状态
-  const [internalSelectedId, setInternalSelectedId] = useState<string | null>(
-    selectedId ?? null
-  );
+  const [internalSelectedId, setInternalSelectedId] = useState<string | null>(selectedId ?? null);
 
   // 容器尺寸
   const [containerHeight, setContainerHeight] = useState(400);

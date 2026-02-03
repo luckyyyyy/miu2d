@@ -8,8 +8,8 @@
  */
 
 import { useCallback, useRef } from "react";
-import type { TouchDragData } from "@/contexts/TouchDragContext";
 import { useTouchDrag } from "@/contexts";
+import type { TouchDragData } from "@/contexts/TouchDragContext";
 
 export interface UseTouchDragSourceOptions {
   /** 是否有内容可拖拽 */

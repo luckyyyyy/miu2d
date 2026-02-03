@@ -7,11 +7,10 @@
 
 export {
   CharacterBase,
+  type CharacterUpdateResult,
   LOADING_STATE,
   MAX_NON_FIGHT_SECONDS,
   type MagicToUseInfoItem,
-  type CharacterUpdateResult,
 } from "./characterBase";
-
-export { CharacterMovement } from "./characterMovement";
 export { CharacterCombat } from "./characterCombat";
+export { CharacterMovement } from "./characterMovement";

@@ -88,9 +88,7 @@ function SkillButton({
   );
 
   const handleTouchEnd = useCallback((e: React.TouchEvent) => {
-    const touch = Array.from(e.changedTouches).find(
-      (t) => t.identifier === touchIdRef.current
-    );
+    const touch = Array.from(e.changedTouches).find((t) => t.identifier === touchIdRef.current);
     if (touch) {
       touchIdRef.current = null;
     }
@@ -168,9 +166,7 @@ function QuickButton({
   );
 
   const handleTouchEnd = useCallback((e: React.TouchEvent) => {
-    const touch = Array.from(e.changedTouches).find(
-      (t) => t.identifier === touchIdRef.current
-    );
+    const touch = Array.from(e.changedTouches).find((t) => t.identifier === touchIdRef.current);
     if (touch) {
       touchIdRef.current = null;
     }

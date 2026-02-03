@@ -3,7 +3,7 @@
  * 高性能渲染大量列表项
  */
 
-import { useState, useCallback, useMemo, useRef, useEffect } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 
 interface VirtualScrollOptions {
   /** 总项目数 */

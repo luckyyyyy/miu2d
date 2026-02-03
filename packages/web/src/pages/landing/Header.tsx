@@ -5,7 +5,7 @@
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@/contexts";
-import { supportedLanguages, type Locale } from "@/i18n";
+import { type Locale, supportedLanguages } from "@/i18n";
 
 // 图标组件
 function SunIcon({ className }: { className?: string }) {

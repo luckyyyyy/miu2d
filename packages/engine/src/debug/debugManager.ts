@@ -16,12 +16,12 @@
  */
 
 import { ALL_PLAYER_MAGICS } from "../constants/gameData";
-import type { NpcManager } from "../npc";
 import { getEngineContext } from "../core/engineContext";
 import { logger } from "../core/logger";
 import type { GameVariables } from "../core/types";
 import type { GuiManager } from "../gui/guiManager";
 import type { MagicItemInfo } from "../magic";
+import type { NpcManager } from "../npc";
 import type { ObjManager } from "../obj";
 import type { GoodsListManager } from "../player/goods";
 import type { MagicListManager } from "../player/magic/magicListManager";

@@ -36,10 +36,7 @@ export const CharacterSection: React.FC<CharacterSectionProps> = ({
           value={`${playerStats.thew}/${playerStats.thewMax}`}
           valueColor="text-green-400"
         />
-        <DataRow
-          label="经验"
-          value={`${playerStats.exp}/${playerStats.levelUpExp || "MAX"}`}
-        />
+        <DataRow label="经验" value={`${playerStats.exp}/${playerStats.levelUpExp || "MAX"}`} />
         <DataRow
           label="金钱"
           value={playerStats.money.toLocaleString()}

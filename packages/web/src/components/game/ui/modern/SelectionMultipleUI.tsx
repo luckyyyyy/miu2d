@@ -3,7 +3,7 @@
  * 位置与经典UI一致
  */
 import type React from "react";
-import { useMemo, useState, useCallback } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { GlassButton } from "./components";
 import { borderRadius, glassEffect, modernColors, spacing, typography } from "./theme";
 
@@ -34,8 +34,7 @@ export const SelectionMultipleUI: React.FC<SelectionMultipleUIProps> = ({
   const maxVisibleOptions = 8;
   const visibleOptions = Math.min(options.length, maxVisibleOptions);
   const padding = spacing.lg;
-  const panelHeight =
-    visibleOptions * optionHeight + padding * 2 + 100; // +100 for header and footer
+  const panelHeight = visibleOptions * optionHeight + padding * 2 + 100; // +100 for header and footer
 
   // 位置: 屏幕中央
   const panelStyle: React.CSSProperties = useMemo(
@@ -131,14 +130,14 @@ export const SelectionMultipleUI: React.FC<SelectionMultipleUIProps> = ({
                 background: isSelected
                   ? "rgba(100, 200, 255, 0.2)"
                   : isHovered
-                  ? "rgba(255, 255, 255, 0.1)"
-                  : "rgba(0, 0, 0, 0.2)",
+                    ? "rgba(255, 255, 255, 0.1)"
+                    : "rgba(0, 0, 0, 0.2)",
                 border: `1px solid ${
                   isSelected
                     ? modernColors.primary
                     : isHovered
-                    ? modernColors.border.glassLight
-                    : modernColors.border.glass
+                      ? modernColors.border.glassLight
+                      : modernColors.border.glass
                 }`,
                 borderRadius: borderRadius.md,
                 cursor: "pointer",
@@ -163,9 +162,7 @@ export const SelectionMultipleUI: React.FC<SelectionMultipleUIProps> = ({
                 }}
               >
                 {isSelected && (
-                  <span style={{ color: "#000", fontSize: 14, fontWeight: "bold" }}>
-                    ✓
-                  </span>
+                  <span style={{ color: "#000", fontSize: 14, fontWeight: "bold" }}>✓</span>
                 )}
               </div>
 
@@ -174,9 +171,7 @@ export const SelectionMultipleUI: React.FC<SelectionMultipleUIProps> = ({
                 style={{
                   flex: 1,
                   fontSize: typography.fontSize.sm,
-                  color: isSelected
-                    ? modernColors.text.primary
-                    : modernColors.text.secondary,
+                  color: isSelected ? modernColors.text.primary : modernColors.text.secondary,
                   transition: "color 0.15s ease",
                 }}
               >

@@ -1,8 +1,8 @@
-import { useState, useCallback, useRef } from "react";
-import { VirtualTree, type TreeNode } from "../components/tree";
-import { useFileSystem } from "../hooks/useFileSystem";
+import { type MagicData, parseMagicIni } from "@miu2d/engine/magic";
+import { useCallback, useRef, useState } from "react";
 import { MagicViewer } from "../components/MagicViewer";
-import { parseMagicIni, type MagicData } from "@miu2d/engine/magic";
+import { type TreeNode, VirtualTree } from "../components/tree";
+import { useFileSystem } from "../hooks/useFileSystem";
 
 /**
  * 武功编辑器主页面

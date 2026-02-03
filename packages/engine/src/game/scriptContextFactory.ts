@@ -7,25 +7,24 @@
 
 import type { AudioManager } from "../audio";
 import type { Character } from "../character/character";
-import type { Npc } from "../npc";
-import type { NpcManager } from "../npc";
+import { ResourcePath } from "../config/resourcePaths";
 import { logger } from "../core/logger";
 import type { Vector2 } from "../core/types";
 import { CharacterState } from "../core/types";
-import { getNeighbors, tileToPixel } from "../utils";
 import type { ScreenEffects } from "../effects";
 import type { BuyManager } from "../gui/buyManager";
 import type { GuiManager } from "../gui/guiManager";
-import { partnerList } from "../listManager/partnerList";
 import type { MemoListManager, TalkTextListManager } from "../listManager";
+import { partnerList } from "../listManager/partnerList";
+import type { Npc, NpcManager } from "../npc";
 import type { ObjManager } from "../obj";
 import type { Good } from "../player/goods";
 import type { Player } from "../player/player";
 import { resourceLoader } from "../resource/resourceLoader";
 import type { ScriptContext } from "../script/executor";
 import type { TimerManager } from "../timer";
+import { getNeighbors, tileToPixel } from "../utils";
 import type { WeatherManager } from "../weather";
-import { ResourcePath } from "../config/resourcePaths";
 import { StorageManager } from "./storage";
 
 /**
@@ -1089,14 +1088,22 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
     getPlayerState: (stateName) => {
       if (!player) return 0;
       switch (stateName) {
-        case "Level": return player.level;
-        case "Attack": return player.attack;
-        case "Defend": return player.defend;
-        case "Evade": return player.evade;
-        case "Life": return player.life;
-        case "Thew": return player.thew;
-        case "Mana": return player.mana;
-        default: return 0;
+        case "Level":
+          return player.level;
+        case "Attack":
+          return player.attack;
+        case "Defend":
+          return player.defend;
+        case "Evade":
+          return player.evade;
+        case "Life":
+          return player.life;
+        case "Thew":
+          return player.thew;
+        case "Mana":
+          return player.mana;
+        default:
+          return 0;
       }
     },
     getPlayerMagicLevel: (magicFile) => {
@@ -1151,7 +1158,9 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
       // 直接触发 onMagicCast 释放魔法（跳过动画）
       (player as unknown as { onMagicCast(): void }).onMagicCast();
 
-      logger.log(`[ScriptContext] UseMagic: ${magicFile} (${magicInfo.magic.name}) at (${mapX}, ${mapY})`);
+      logger.log(
+        `[ScriptContext] UseMagic: ${magicFile} (${magicInfo.magic.name}) at (${mapX}, ${mapY})`
+      );
     },
     isEquipWeapon: () => {
       const weapon = goodsListManager.get(205); // 武器槽位
@@ -1223,7 +1232,9 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
         if (direction !== undefined) {
           player.magicDirectionWhenBeAttacked = direction;
         }
-        logger.log(`[ScriptContext] SetPlayerMagicToUseWhenBeAttacked: ${magicFile}, dir=${direction}`);
+        logger.log(
+          `[ScriptContext] SetPlayerMagicToUseWhenBeAttacked: ${magicFile}, dir=${direction}`
+        );
       }
     },
     setWalkIsRun: (value) => {
@@ -1301,7 +1312,7 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
           break;
         case CharacterState.Sit:
           // C#: target.Sitdown() - 只有 Player 有此方法
-          if ('sitdown' in character && typeof (character as any).sitdown === 'function') {
+          if ("sitdown" in character && typeof (character as any).sitdown === "function") {
             (character as any).sitdown();
           } else {
             character.state = CharacterState.Sit;
@@ -1381,7 +1392,9 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
           character.magicDirectionWhenBeAttacked = direction;
         }
       }
-      logger.log(`[ScriptContext] SetNpcMagicToUseWhenBeAttacked: ${name}, ${magicFile}, dir=${direction}`);
+      logger.log(
+        `[ScriptContext] SetNpcMagicToUseWhenBeAttacked: ${name}, ${magicFile}, dir=${direction}`
+      );
     },
     addNpcProperty: (name, property, value) => {
       // C#: AddNpcProperty - 使用反射设置属性
@@ -1394,7 +1407,7 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
       const propName = property.charAt(0).toLowerCase() + property.slice(1);
       for (const character of characters) {
         const charAny = character as any;
-        if (propName in charAny && typeof charAny[propName] === 'number') {
+        if (propName in charAny && typeof charAny[propName] === "number") {
           charAny[propName] += value;
         }
       }
@@ -1519,7 +1532,9 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
       // 这里我们将瓦片转为像素，视口偏移由 GameEngine 处理
       const pixelPos = tileToPixel(x, y);
       cameraMoveToPosition(pixelPos.x, pixelPos.y, speed);
-      logger.log(`[ScriptContext] MoveScreenEx: tile(${x}, ${y}) -> pixel(${pixelPos.x}, ${pixelPos.y}), speed=${speed}`);
+      logger.log(
+        `[ScriptContext] MoveScreenEx: tile(${x}, ${y}) -> pixel(${pixelPos.x}, ${pixelPos.y}), speed=${speed}`
+      );
     },
     isMoveScreenExEnd: () => {
       return isCameraMoveToPositionEnd();
@@ -1529,7 +1544,9 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
       // Globals.TheCarmera.CarmeraBeginPositionInWorld = MapBase.ToPixelPosition(x, y)
       const pixelPos = tileToPixel(x, y);
       setCameraPosition(pixelPos.x, pixelPos.y);
-      logger.log(`[ScriptContext] SetMapPos: tile(${x}, ${y}) -> pixel(${pixelPos.x}, ${pixelPos.y})`);
+      logger.log(
+        `[ScriptContext] SetMapPos: tile(${x}, ${y}) -> pixel(${pixelPos.x}, ${pixelPos.y})`
+      );
     },
     openWaterEffect: () => {
       screenEffects.openWaterEffect();
@@ -1675,8 +1692,11 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
       }));
       guiManager.showMultiSelection(columns, rows, message, selectionOptions);
       // 保存变量前缀用于后续获取结果
-      (guiManager as unknown as { multiSelectionVarPrefix?: string }).multiSelectionVarPrefix = varPrefix;
-      logger.log(`[ScriptContext] ChooseMultiple: ${columns}x${rows}, prefix=${varPrefix}, msg="${message}", ${options.length} options`);
+      (guiManager as unknown as { multiSelectionVarPrefix?: string }).multiSelectionVarPrefix =
+        varPrefix;
+      logger.log(
+        `[ScriptContext] ChooseMultiple: ${columns}x${rows}, prefix=${varPrefix}, msg="${message}", ${options.length} options`
+      );
     },
     isChooseExEnd: () => {
       return !guiManager.getState().selection.isVisible;

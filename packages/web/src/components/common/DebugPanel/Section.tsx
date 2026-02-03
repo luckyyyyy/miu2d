@@ -12,12 +12,7 @@ interface SectionProps {
   badge?: string | number;
 }
 
-export const Section: React.FC<SectionProps> = ({
-  title,
-  children,
-  defaultOpen = true,
-  badge,
-}) => {
+export const Section: React.FC<SectionProps> = ({ title, children, defaultOpen = true, badge }) => {
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
   return (

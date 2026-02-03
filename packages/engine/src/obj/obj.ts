@@ -3,13 +3,14 @@
  * Interactive objects on the map (herbs, tombstones, chests, etc.)
  * Extends Sprite with object-specific functionality
  */
+
+import { ResourcePath } from "../config/resourcePaths";
 import { logger } from "../core/logger";
 import type { Vector2 } from "../core/types";
-import { parseIni } from "../utils";
 import { resourceLoader } from "../resource/resourceLoader";
 import { type AsfData, getFrameCanvas, getFrameIndex, loadAsf } from "../sprite/asf";
 import { Sprite } from "../sprite/sprite";
-import { ResourcePath } from "../config/resourcePaths";
+import { parseIni } from "../utils";
 
 /**
  * Object Kind enum matching C# Obj.ObjKind

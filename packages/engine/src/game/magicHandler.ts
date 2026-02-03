@@ -5,17 +5,17 @@
  * C# Reference: Character.UseMagic, MagicManager.UseMagic
  */
 
+import { ResourcePath } from "../config/resourcePaths";
 import { getEngineContext } from "../core/engineContext";
 import { logger } from "../core/logger";
 import type { InputState, Vector2 } from "../core/types";
 import { CharacterState } from "../core/types";
-import { getDirectionFromVector, pixelToTile, tileToPixel } from "../utils";
 import type { GuiManager } from "../gui/guiManager";
 import type { MagicItemInfo, MagicManager } from "../magic";
 import type { MagicListManager } from "../player/magic/magicListManager";
 import type { Player } from "../player/player";
+import { getDirectionFromVector, pixelToTile, tileToPixel } from "../utils";
 import type { InteractionManager } from "./interactionManager";
-import { ResourcePath } from "../config/resourcePaths";
 
 /**
  * Dependencies for MagicHandler
@@ -145,10 +145,7 @@ export class MagicHandler {
     // if (CurrentMagicInUse.TheMagic.BodyRadius > 0 &&
     //     (Globals.OutEdgeNpc == null || !Globals.OutEdgeNpc.IsEnemy))
     // { GuiManager.ShowMessage("无有效目标"); }
-    if (
-      magicInfo.magic.bodyRadius > 0 &&
-      (hoverTarget.npc === null || !hoverTarget.npc.isEnemy)
-    ) {
+    if (magicInfo.magic.bodyRadius > 0 && (hoverTarget.npc === null || !hoverTarget.npc.isEnemy)) {
       guiManager.showMessage("无有效目标");
       return;
     }
@@ -194,9 +191,7 @@ export class MagicHandler {
         const mouseTilePos = pixelToTile(mouseWorldPos.x, mouseWorldPos.y);
         destination = tileToPixel(mouseTilePos.x, mouseTilePos.y);
 
-        logger.log(
-          `[Magic] Targeting mouse position: tile (${mouseTilePos.x}, ${mouseTilePos.y})`
-        );
+        logger.log(`[Magic] Targeting mouse position: tile (${mouseTilePos.x}, ${mouseTilePos.y})`);
       } else {
         // Fallback: use direction-based targeting if no mouse position
         const directionOffsets: Record<number, { x: number; y: number }> = {

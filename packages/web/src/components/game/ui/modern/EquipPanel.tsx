@@ -2,22 +2,16 @@
  * Modern EquipPanel - 武侠风格装备面板
  * 使用毛玻璃效果 + 武侠配色，参考MagicPanel/StatePanel设计
  */
+
+import type { Good } from "@miu2d/engine/player/goods";
 import type React from "react";
 import { useCallback, useMemo, useState } from "react";
-import type { Good } from "@miu2d/engine/player/goods";
 import type { TouchDragData } from "@/contexts";
-import { useAsfImage } from "../classic/hooks";
-import type { EquipSlotType, EquipSlots, DragData, EquipItemData } from "../classic/EquipGui";
+import type { DragData, EquipItemData, EquipSlots, EquipSlotType } from "../classic/EquipGui";
 import { slotTypeToEquipPosition } from "../classic/EquipGui";
-import {
-  borderRadius,
-  glassEffect,
-  modernColors,
-  spacing,
-  transitions,
-  typography,
-} from "./theme";
-import { getItemBorderColor, getItemGlowColor, ItemQuality, getItemQuality, qualityColors } from "./Tooltips";
+import { useAsfImage } from "../classic/hooks";
+import { getItemBorderColor, getItemGlowColor, getItemQuality, ItemQuality } from "./Tooltips";
+import { borderRadius, glassEffect, modernColors, spacing, transitions, typography } from "./theme";
 
 // 武侠风格配色
 const wuxiaAccent = {
@@ -130,12 +124,13 @@ const EquipSlotItem: React.FC<EquipSlotItemProps> = ({
   const hasItem = !!item;
 
   // 八角形裁剪路径
-  const octagonClip = "polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%)";
+  const octagonClip =
+    "polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%)";
 
   // 获取物品品级颜色
   const qualityBorderColor = getItemBorderColor(item?.good);
   const qualityGlowColor = getItemGlowColor(item?.good);
-  const itemQuality = item?.good ? getItemQuality(item.good.cost) : ItemQuality.Normal;
+  const _itemQuality = item?.good ? getItemQuality(item.good.cost) : ItemQuality.Normal;
 
   return (
     <div
@@ -196,17 +191,17 @@ const EquipSlotItem: React.FC<EquipSlotItemProps> = ({
               ? qualityBorderColor
                 ? isHovered
                   ? `linear-gradient(135deg, ${qualityBorderColor}, ${qualityBorderColor})`
-                  : `linear-gradient(135deg, ${qualityBorderColor}, ${qualityBorderColor}bb)`  // 非 hover 也清晰显示
+                  : `linear-gradient(135deg, ${qualityBorderColor}, ${qualityBorderColor}bb)` // 非 hover 也清晰显示
                 : isHovered
                   ? `linear-gradient(135deg, ${wuxiaAccent.goldBright}, ${wuxiaAccent.gold})`
-                  : `linear-gradient(135deg, ${wuxiaAccent.gold}, ${wuxiaAccent.goldDark})`  // 非 hover 也清晰显示
+                  : `linear-gradient(135deg, ${wuxiaAccent.gold}, ${wuxiaAccent.goldDark})` // 非 hover 也清晰显示
               : `linear-gradient(135deg, ${modernColors.border.glass}, ${modernColors.border.glass})`,
             clipPath: octagonClip,
             transition: transitions.fast,
             boxShadow: qualityGlowColor
               ? isHovered
                 ? `0 0 14px ${qualityGlowColor}`
-                : `0 0 8px ${qualityGlowColor}`  // 非 hover 也有发光
+                : `0 0 8px ${qualityGlowColor}` // 非 hover 也有发光
               : "none",
           }}
         />
@@ -301,10 +296,13 @@ export const EquipPanel: React.FC<EquipPanelProps> = ({
   );
 
   // 拖放处理
-  const handleDragOver = useCallback((_slot: EquipSlotType) => (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-  }, []);
+  const handleDragOver = useCallback(
+    (_slot: EquipSlotType) => (e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+    },
+    []
+  );
 
   const handleDrop = useCallback(
     (slot: EquipSlotType) => (e: React.DragEvent) => {
@@ -394,7 +392,8 @@ export const EquipPanel: React.FC<EquipPanelProps> = ({
                 position: "absolute",
                 inset: -2,
                 background: `linear-gradient(135deg, ${wuxiaAccent.gold}, ${wuxiaAccent.goldDark})`,
-                clipPath: "polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%)",
+                clipPath:
+                  "polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%)",
               }}
             />
             <div
@@ -402,13 +401,16 @@ export const EquipPanel: React.FC<EquipPanelProps> = ({
                 position: "absolute",
                 inset: 0,
                 background: `linear-gradient(135deg, ${wuxiaAccent.jade}44, ${wuxiaAccent.azure}44)`,
-                clipPath: "polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%)",
+                clipPath:
+                  "polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
               }}
             >
-              <span style={{ fontSize: 22, filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.5))" }}>🛡️</span>
+              <span style={{ fontSize: 22, filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.5))" }}>
+                🛡️
+              </span>
             </div>
           </div>
 
@@ -430,7 +432,11 @@ export const EquipPanel: React.FC<EquipPanelProps> = ({
                 color: modernColors.text.secondary,
               }}
             >
-              已装备 <span style={{ color: wuxiaAccent.gold, fontWeight: typography.fontWeight.semibold }}>{equippedCount}</span> / 7 件
+              已装备{" "}
+              <span style={{ color: wuxiaAccent.gold, fontWeight: typography.fontWeight.semibold }}>
+                {equippedCount}
+              </span>{" "}
+              / 7 件
             </div>
           </div>
         </div>

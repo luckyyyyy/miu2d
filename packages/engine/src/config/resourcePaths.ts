@@ -266,7 +266,7 @@ export function extractRelativePath(fullPath: string): string {
   let normalized = fullPath.replace(/\\/g, "/");
 
   // 如果以资源根目录开头，移除它
-  if (normalized.startsWith(root + "/")) {
+  if (normalized.startsWith(`${root}/`)) {
     return normalized.slice(root.length + 1);
   }
   if (normalized.startsWith(root)) {
@@ -499,7 +499,7 @@ export const DefaultPaths = {
  */
 export function isResourcePath(path: string): boolean {
   const root = currentConfig.root;
-  return path.startsWith(root + "/") || path.startsWith(root);
+  return path.startsWith(`${root}/`) || path.startsWith(root);
 }
 
 /**

@@ -80,9 +80,7 @@ export const PanelHeader: React.FC<PanelHeaderProps> = ({ title, onClose, extra 
       </h3>
       <div style={{ display: "flex", alignItems: "center", gap: spacing.sm }}>
         {extra}
-        {onClose && (
-          <CloseButton onClick={onClose} />
-        )}
+        {onClose && <CloseButton onClick={onClose} />}
       </div>
     </div>
   );
@@ -179,8 +177,8 @@ export const GlassButton: React.FC<GlassButtonProps> = ({
           effectiveVariant === "primary"
             ? modernColors.primary
             : effectiveVariant === "danger"
-            ? modernColors.danger
-            : modernColors.border.glass
+              ? modernColors.danger
+              : modernColors.border.glass
         }`,
         borderRadius: borderRadius.md,
         cursor: disabled ? "not-allowed" : "pointer",
@@ -337,8 +335,8 @@ export const ItemSlot: React.FC<ItemSlotProps> = ({
           selected
             ? modernColors.primary
             : isHovered
-            ? modernColors.border.glassLight
-            : modernColors.border.glass
+              ? modernColors.border.glassLight
+              : modernColors.border.glass
         }`,
         borderRadius: borderRadius.md,
         display: "flex",
@@ -532,12 +530,7 @@ export interface ScrollAreaProps {
   onWheel?: (e: React.WheelEvent) => void;
 }
 
-export const ScrollArea: React.FC<ScrollAreaProps> = ({
-  children,
-  maxHeight,
-  style,
-  onWheel,
-}) => (
+export const ScrollArea: React.FC<ScrollAreaProps> = ({ children, maxHeight, style, onWheel }) => (
   <div
     className="modern-scrollbar"
     style={{

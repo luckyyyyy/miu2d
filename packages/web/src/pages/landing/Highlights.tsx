@@ -4,10 +4,10 @@
  * 用动画展示引擎的核心亮点功能
  */
 
+import { AnimatePresence, motion } from "framer-motion";
 import React from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
-import { SiWebassembly, SiPython, SiLua, SiJavascript } from "react-icons/si";
+import { SiJavascript, SiLua, SiPython, SiWebassembly } from "react-icons/si";
 
 // AI 图标
 function AIIcon({ className }: { className?: string }) {
@@ -227,7 +227,9 @@ function AIGenerationDemo() {
         transition={{ duration: 0.8, delay: 2, repeat: Number.POSITIVE_INFINITY, repeatDelay: 3 }}
         className="absolute right-4 bottom-4 bg-gradient-to-br from-violet-500/20 to-purple-500/20 backdrop-blur-sm rounded-lg p-3 border border-violet-400/30"
       >
-        <div className="text-xs text-violet-200 font-medium mb-1">✨ {t("highlights.ai.demo.complete")}</div>
+        <div className="text-xs text-violet-200 font-medium mb-1">
+          ✨ {t("highlights.ai.demo.complete")}
+        </div>
         <div className="text-[10px] text-violet-300/70 space-y-0.5">
           <div>• 3 {t("highlights.ai.demo.scenes")}</div>
           <div>• 12 {t("highlights.ai.demo.dialogues")}</div>
@@ -262,10 +264,20 @@ function AIGenerationDemo() {
 // 多语言脚本动画 - 展示不同语言切换
 function ScriptEngineDemo() {
   const languages = [
-    { name: "WASM", color: "from-purple-500 to-violet-500", Icon: SiWebassembly, iconColor: "#654FF0" },
+    {
+      name: "WASM",
+      color: "from-purple-500 to-violet-500",
+      Icon: SiWebassembly,
+      iconColor: "#654FF0",
+    },
     { name: "Python", color: "from-blue-500 to-yellow-500", Icon: SiPython, iconColor: "#3776AB" },
     { name: "Lua", color: "from-blue-600 to-blue-800", Icon: SiLua, iconColor: "#2C2D72" },
-    { name: "JavaScript", color: "from-yellow-400 to-yellow-500", Icon: SiJavascript, iconColor: "#F7DF1E" },
+    {
+      name: "JavaScript",
+      color: "from-yellow-400 to-yellow-500",
+      Icon: SiJavascript,
+      iconColor: "#F7DF1E",
+    },
   ];
 
   return (
@@ -377,7 +389,15 @@ function ScriptEngineDemo() {
 }
 
 // 点击放大图片组件
-function ClickToZoomImage({ src, alt, aspectRatio = "video" }: { src: string; alt: string; aspectRatio?: string }) {
+function ClickToZoomImage({
+  src,
+  alt,
+  aspectRatio = "video",
+}: {
+  src: string;
+  alt: string;
+  aspectRatio?: string;
+}) {
   const [isOpen, setIsOpen] = React.useState(false);
 
   return (
@@ -513,14 +533,20 @@ function PerformancePreloadDemo() {
             </div>
             {/* 标题 */}
             <div className="flex-1 text-center">
-              <span className="text-xs text-slate-400 font-medium">Miu2D Engine — Performance Monitor</span>
+              <span className="text-xs text-slate-400 font-medium">
+                Miu2D Engine — Performance Monitor
+              </span>
             </div>
             {/* 占位 */}
             <div className="w-14" />
           </div>
 
           {/* 截图内容 - 点击放大 */}
-          <ClickToZoomImage src="/screenshot/performance-preload.png" alt="Performance & Preload Screenshot" aspectRatio="2924/1412" />
+          <ClickToZoomImage
+            src="/screenshot/performance-preload.png"
+            alt="Performance & Preload Screenshot"
+            aspectRatio="2924/1412"
+          />
         </div>
 
         {/* 装饰性光点 */}
@@ -573,7 +599,11 @@ function MapEditorDemo() {
           </div>
 
           {/* 截图内容 - 点击放大 */}
-          <ClickToZoomImage src="/screenshot/map-editor.png" alt="Map Editor Screenshot" aspectRatio="2654/1545" />
+          <ClickToZoomImage
+            src="/screenshot/map-editor.png"
+            alt="Map Editor Screenshot"
+            aspectRatio="2654/1545"
+          />
         </div>
 
         {/* 装饰性光点 */}
@@ -626,7 +656,11 @@ function AsfEditorDemo() {
           </div>
 
           {/* 截图内容 - 点击放大 */}
-          <ClickToZoomImage src="/screenshot/asf-editor.png" alt="ASF Editor Screenshot" aspectRatio="2654/1545" />
+          <ClickToZoomImage
+            src="/screenshot/asf-editor.png"
+            alt="ASF Editor Screenshot"
+            aspectRatio="2654/1545"
+          />
         </div>
 
         {/* 装饰性光点 */}
@@ -654,13 +688,7 @@ interface HighlightCardProps {
   delay?: number;
 }
 
-function HighlightCard({
-  icon,
-  title,
-  description,
-  gradient,
-  delay = 0,
-}: HighlightCardProps) {
+function HighlightCard({ icon, title, description, gradient, delay = 0 }: HighlightCardProps) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 30 }}
@@ -683,14 +711,10 @@ function HighlightCard({
         </div>
 
         {/* 标题 */}
-        <h3 className="text-xl font-bold text-zinc-900 dark:text-white mb-3">
-          {title}
-        </h3>
+        <h3 className="text-xl font-bold text-zinc-900 dark:text-white mb-3">{title}</h3>
 
         {/* 描述 */}
-        <p className="text-zinc-600 dark:text-zinc-400 leading-relaxed">
-          {description}
-        </p>
+        <p className="text-zinc-600 dark:text-zinc-400 leading-relaxed">{description}</p>
       </div>
     </motion.div>
   );
@@ -755,9 +779,7 @@ function LargeHighlight({
                 >
                   {stat.value}
                 </div>
-                <div className="text-sm text-zinc-500 dark:text-zinc-500">
-                  {stat.label}
-                </div>
+                <div className="text-sm text-zinc-500 dark:text-zinc-500">{stat.label}</div>
               </div>
             ))}
           </div>

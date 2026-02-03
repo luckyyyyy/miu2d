@@ -7,9 +7,10 @@
  * - Color based on relation: Enemy=Red, Friend=Green, None=Blue
  * - Name color based on NPC type: Boss enemies (ExpBonus > 0) get yellow color
  */
+
+import type { Npc } from "@miu2d/engine/npc";
 import type React from "react";
 import { useMemo } from "react";
-import type { Npc } from "@miu2d/engine/npc";
 import { borderRadius, modernColors, typography } from "./theme";
 
 // Colors matching C# InfoDrawer.cs (adapted for modern style)

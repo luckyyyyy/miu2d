@@ -658,12 +658,12 @@ export function magicNeedsDirectionPointer(magic: MagicData | null | undefined):
 
   // 不需要方向指向器的 MoveKind 列表
   const selfTargetMoveKinds = [
-    MagicMoveKind.CircleMove,      // 4 - 圆形扩散
-    MagicMoveKind.HeartMove,       // 5 - 心形移动
+    MagicMoveKind.CircleMove, // 4 - 圆形扩散
+    MagicMoveKind.HeartMove, // 5 - 心形移动
     MagicMoveKind.FollowCharacter, // 13 - 跟随自身（清心咒等）
-    MagicMoveKind.SuperMode,       // 15 - 超级模式
-    MagicMoveKind.Kind19,          // 19 - 持续留痕
-    MagicMoveKind.TimeStop,        // 23 - 时间停止
+    MagicMoveKind.SuperMode, // 15 - 超级模式
+    MagicMoveKind.Kind19, // 19 - 持续留痕
+    MagicMoveKind.TimeStop, // 23 - 时间停止
   ];
 
   return !selfTargetMoveKinds.includes(magic.moveKind);

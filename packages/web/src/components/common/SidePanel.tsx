@@ -8,9 +8,9 @@
  * 设计：类似 VS Code 侧边栏风格
  */
 
-import { useCallback, useEffect, useState } from "react";
-import { logger, LOG_LEVELS, type LogLevel } from "@miu2d/engine/core/logger";
+import { LOG_LEVELS, type LogLevel, logger } from "@miu2d/engine/core/logger";
 import { type SaveSlotInfo, StorageManager } from "@miu2d/engine/game/storage";
+import { useCallback, useEffect, useState } from "react";
 import type { UITheme } from "@/components/game/ui";
 
 // ============= LocalStorage 键名 =============
@@ -65,7 +65,7 @@ export function saveAudioSettings(settings: {
 
 export function loadUITheme(): UITheme {
   const theme = localStorage.getItem(STORAGE_KEY_UI_THEME);
-  return (theme === "modern" || theme === "classic") ? theme : "classic";
+  return theme === "modern" || theme === "classic" ? theme : "classic";
 }
 
 export function saveUITheme(theme: UITheme): void {
@@ -641,7 +641,9 @@ export function SettingsPanel({
               </button>
             </div>
             <div className="text-xs text-gray-600 mt-1">
-              {uiTheme === "classic" ? "复古像素风，还原经典游戏体验" : "毛玻璃效果，清新简洁的视觉设计"}
+              {uiTheme === "classic"
+                ? "复古像素风，还原经典游戏体验"
+                : "毛玻璃效果，清新简洁的视觉设计"}
             </div>
           </div>
 
@@ -678,7 +680,9 @@ export function SettingsPanel({
 
         {/* 开发者设置 */}
         <div>
-          <h3 className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-3">开发者</h3>
+          <h3 className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-3">
+            开发者
+          </h3>
 
           {/* 日志级别选择 */}
           <div>
@@ -694,7 +698,14 @@ export function SettingsPanel({
             >
               {LOG_LEVELS.map((level) => (
                 <option key={level} value={level}>
-                  {level.toUpperCase()} - {level === "debug" ? "显示所有日志" : level === "info" ? "隐藏调试日志" : level === "warn" ? "仅警告和错误" : "仅错误"}
+                  {level.toUpperCase()} -{" "}
+                  {level === "debug"
+                    ? "显示所有日志"
+                    : level === "info"
+                      ? "隐藏调试日志"
+                      : level === "warn"
+                        ? "仅警告和错误"
+                        : "仅错误"}
                 </option>
               ))}
             </select>

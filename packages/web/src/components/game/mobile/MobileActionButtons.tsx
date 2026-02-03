@@ -11,10 +11,10 @@
  * - 不需要方向的技能（如清心咒）：按下即释放，无瞄准指示器
  */
 
-import { useCallback, useEffect, useRef, useState, memo } from "react";
 import type { MagicItemInfo } from "@miu2d/engine/magic/types";
 import { magicNeedsDirectionPointer } from "@miu2d/engine/magic/types";
 import type { GoodsItemInfo } from "@miu2d/engine/player/goods/goodsListManager";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { AsfAnimatedSprite } from "../ui/classic/AsfAnimatedSprite";
 import { useAsfImage } from "../ui/classic/hooks";
 
@@ -92,7 +92,13 @@ const MagicButton = memo(function MagicButton({
   const lastDirectionRef = useRef<{ x: number; y: number }>({ x: 0, y: -1 });
   const [isPressed, setIsPressed] = useState(false);
   // 使用 ref 存储回调，避免 effect 重复注册
-  const callbacksRef = useRef({ onPressMove, onPressEnd, onInstantRelease, slotIndex, needsTargeting });
+  const callbacksRef = useRef({
+    onPressMove,
+    onPressEnd,
+    onInstantRelease,
+    slotIndex,
+    needsTargeting,
+  });
   callbacksRef.current = { onPressMove, onPressEnd, onInstantRelease, slotIndex, needsTargeting };
 
   const iconPath = magicInfo?.magic?.icon || null;
@@ -158,9 +164,7 @@ const MagicButton = memo(function MagicButton({
     const handleGlobalTouchMove = (e: TouchEvent) => {
       if (touchIdRef.current === null || !touchStartRef.current) return;
 
-      const touch = Array.from(e.touches).find(
-        (t) => t.identifier === touchIdRef.current
-      );
+      const touch = Array.from(e.touches).find((t) => t.identifier === touchIdRef.current);
       if (!touch) return;
 
       // 计算滑动方向（相对于按下位置）
@@ -179,9 +183,7 @@ const MagicButton = memo(function MagicButton({
     const handleGlobalTouchEnd = (e: TouchEvent) => {
       if (touchIdRef.current === null) return;
 
-      const touch = Array.from(e.changedTouches).find(
-        (t) => t.identifier === touchIdRef.current
-      );
+      const touch = Array.from(e.changedTouches).find((t) => t.identifier === touchIdRef.current);
       if (touch) {
         const direction = lastDirectionRef.current;
         touchIdRef.current = null;
@@ -222,14 +224,10 @@ const MagicButton = memo(function MagicButton({
         className="absolute inset-0 rounded-full"
         style={{
           border: hasSkill
-              ? "1.5px solid rgba(255,255,255,0.5)"
-              : "1.5px solid rgba(255,255,255,0.2)",
-          background: isPressed
-              ? "rgba(255,255,255,0.15)"
-              : "rgba(0,0,0,0.3)",
-          boxShadow: isPressed
-              ? "inset 0 2px 4px rgba(0,0,0,0.3)"
-              : "0 2px 4px rgba(0,0,0,0.3)",
+            ? "1.5px solid rgba(255,255,255,0.5)"
+            : "1.5px solid rgba(255,255,255,0.2)",
+          background: isPressed ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.3)",
+          boxShadow: isPressed ? "inset 0 2px 4px rgba(0,0,0,0.3)" : "0 2px 4px rgba(0,0,0,0.3)",
           opacity: disabled ? 0.4 : 1,
           transition: "all 0.15s ease-out",
         }}
@@ -332,9 +330,7 @@ const ItemButton = memo(function ItemButton({
     const handleGlobalTouchEnd = (e: TouchEvent) => {
       if (touchIdRef.current === null) return;
 
-      const touch = Array.from(e.changedTouches).find(
-        (t) => t.identifier === touchIdRef.current
-      );
+      const touch = Array.from(e.changedTouches).find((t) => t.identifier === touchIdRef.current);
       if (touch) {
         touchIdRef.current = null;
         setIsPressed(false);
@@ -373,9 +369,7 @@ const ItemButton = memo(function ItemButton({
             ? "1.5px solid rgba(200,180,100,0.7)"
             : "1.5px solid rgba(200,180,100,0.3)",
           background: isPressed ? "rgba(200,180,100,0.2)" : "rgba(0,0,0,0.3)",
-          boxShadow: isPressed
-            ? "inset 0 2px 4px rgba(0,0,0,0.3)"
-            : "0 2px 4px rgba(0,0,0,0.3)",
+          boxShadow: isPressed ? "inset 0 2px 4px rgba(0,0,0,0.3)" : "0 2px 4px rgba(0,0,0,0.3)",
           opacity: disabled ? 0.4 : 1,
         }}
       />
@@ -453,7 +447,7 @@ const ItemButton = memo(function ItemButton({
  * 菜单按钮组件
  * 使用全局 touch 事件监听，支持多点触控
  */
-const MenuButton = memo(function MenuButton({
+const _MenuButton = memo(function MenuButton({
   size = 32,
   disabled = false,
   onPress,
@@ -492,9 +486,7 @@ const MenuButton = memo(function MenuButton({
     const handleGlobalTouchEnd = (e: TouchEvent) => {
       if (touchIdRef.current === null) return;
 
-      const touch = Array.from(e.changedTouches).find(
-        (t) => t.identifier === touchIdRef.current
-      );
+      const touch = Array.from(e.changedTouches).find((t) => t.identifier === touchIdRef.current);
       if (touch) {
         touchIdRef.current = null;
         setIsPressed(false);
@@ -580,9 +572,7 @@ const RunButton = memo(function RunButton({
     const handleGlobalTouchEnd = (e: TouchEvent) => {
       if (touchIdRef.current === null) return;
 
-      const touch = Array.from(e.changedTouches).find(
-        (t) => t.identifier === touchIdRef.current
-      );
+      const touch = Array.from(e.changedTouches).find((t) => t.identifier === touchIdRef.current);
       if (touch) {
         touchIdRef.current = null;
         setIsPressed(false);
@@ -616,12 +606,8 @@ const RunButton = memo(function RunButton({
       <div
         className="absolute inset-0 rounded-full"
         style={{
-          border: isPressed
-            ? "2px solid rgba(255,200,100,0.8)"
-            : "2px solid rgba(255,255,255,0.4)",
-          background: isPressed
-            ? "rgba(255,200,100,0.3)"
-            : "rgba(0,0,0,0.4)",
+          border: isPressed ? "2px solid rgba(255,200,100,0.8)" : "2px solid rgba(255,255,255,0.4)",
+          background: isPressed ? "rgba(255,200,100,0.3)" : "rgba(0,0,0,0.4)",
           boxShadow: isPressed
             ? "0 0 12px rgba(255,200,100,0.5), inset 0 0 8px rgba(255,200,100,0.2)"
             : "0 2px 4px rgba(0,0,0,0.3)",
@@ -716,11 +702,7 @@ export function MobileActionButtons({
       <div className="relative" style={{ width: 180, height: 190 }}>
         {/* 圆环中心 - 跑步按钮 */}
         <div className="absolute" style={{ left: 66, top: 76 }}>
-          <RunButton
-            size={48}
-            disabled={disabled}
-            onRunStateChange={onRunStateChange}
-          />
+          <RunButton size={48} disabled={disabled} onRunStateChange={onRunStateChange} />
         </div>
 
         {/* 技能1 (A) - 右下 */}

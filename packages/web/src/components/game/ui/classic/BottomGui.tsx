@@ -8,11 +8,12 @@
  * Slots 0-2: Items (from GoodsListManager, indices BottomIndexBegin+0 to +2)
  * Slots 3-7: Magic (from MagicListManager, indices BottomIndexBegin+0 to +4)
  */
-import type React from "react";
-import { useCallback, useMemo, useState } from "react";
+
 import type { HotbarItem } from "@miu2d/engine/gui/types";
 import type { MagicItemInfo } from "@miu2d/engine/magic";
-import { useDevice, useTouchDrag, type TouchDragData } from "@/contexts";
+import type React from "react";
+import { useCallback, useMemo, useState } from "react";
+import { type TouchDragData, useDevice } from "@/contexts";
 import { useTouchDragSource, useTouchDropTarget } from "@/hooks";
 import { AsfAnimatedSprite } from "./AsfAnimatedSprite";
 import type { GoodItemData } from "./GoodsGui";

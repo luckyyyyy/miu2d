@@ -9,16 +9,16 @@
  */
 
 import { ThemeProvider } from "@/contexts";
+import { CrossPlatformSection } from "./CrossPlatformSection";
+import { CTA } from "./CTA";
+import { DemoSection } from "./DemoSection";
+import { Features } from "./Features";
+import { Footer } from "./Footer";
 import { Header } from "./Header";
 import { Hero } from "./Hero";
-import { DemoSection } from "./DemoSection";
-import { MobileShowcase } from "./MobileShowcase";
-import { Features } from "./Features";
 import { Highlights } from "./Highlights";
-import { CrossPlatformSection } from "./CrossPlatformSection";
+import { MobileShowcase } from "./MobileShowcase";
 import { TechStack } from "./TechStack";
-import { CTA } from "./CTA";
-import { Footer } from "./Footer";
 
 export default function LandingPage() {
   return (

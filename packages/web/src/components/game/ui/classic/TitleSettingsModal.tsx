@@ -5,13 +5,13 @@
  * 用于 TitleScreen (/) 的设置弹窗
  */
 
-import { useEffect, useState } from "react";
 import {
   AVAILABLE_GAMES,
   type GameId,
   getSelectedGameId,
   switchGame,
 } from "@miu2d/engine/config/resourcePaths";
+import { useEffect, useState } from "react";
 import { loadAudioSettings, saveAudioSettings } from "@/components/common";
 
 // ============= 类型定义 =============
@@ -169,9 +169,7 @@ export function TitleSettingsModal({
   // 渲染游戏设置
   const renderGameSettings = () => (
     <div className="space-y-4">
-      <h3 className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-3">
-        选择游戏
-      </h3>
+      <h3 className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-3">选择游戏</h3>
       <div className="space-y-2">
         {AVAILABLE_GAMES.map((game) => (
           <button

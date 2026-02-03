@@ -2,20 +2,18 @@
  * Modern TimerDisplay - 计时器显示
  * Props 与经典 TimerGui 完全一致
  */
+
+import type { TimerState } from "@miu2d/engine/timer";
 import type React from "react";
 import { useMemo } from "react";
-import type { TimerState } from "@miu2d/engine/timer";
-import { borderRadius, glassEffect, modernColors, typography, spacing } from "./theme";
+import { borderRadius, glassEffect, modernColors, spacing, typography } from "./theme";
 
 interface TimerDisplayProps {
   timerState: TimerState;
   screenWidth?: number;
 }
 
-export const TimerDisplay: React.FC<TimerDisplayProps> = ({
-  timerState,
-  screenWidth = 800,
-}) => {
+export const TimerDisplay: React.FC<TimerDisplayProps> = ({ timerState, screenWidth = 800 }) => {
   // 格式化时间（与经典 UI 一致）
   const formattedTime = useMemo(() => {
     const totalSeconds = Math.max(0, Math.floor(timerState.seconds));

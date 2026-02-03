@@ -16,13 +16,13 @@
  * - 所有文本文件已转换为 UTF-8
  */
 
+import { getResourceRoot, getResourceUrl } from "../config/resourcePaths";
 /**
  * 资源类型
  * - text/binary/audio: 原始资源类型
  * - 其他: 解析后缓存的资源类型
  */
 import { logger } from "../core/logger";
-import { getResourceRoot, ensureResourcePath, getResourceUrl } from "../config/resourcePaths";
 export type ResourceType =
   | "text"
   | "binary"
@@ -178,7 +178,7 @@ class ResourceLoaderImpl {
     const resourceRoot = getResourceRoot();
 
     // 确保 resources 路径（避免重复添加）
-    if (!normalized.startsWith(resourceRoot + "/") && !normalized.startsWith(resourceRoot)) {
+    if (!normalized.startsWith(`${resourceRoot}/`) && !normalized.startsWith(resourceRoot)) {
       if (normalized.startsWith("/")) {
         normalized = `${resourceRoot}${normalized}`;
       } else {

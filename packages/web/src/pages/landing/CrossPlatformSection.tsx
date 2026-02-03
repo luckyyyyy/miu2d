@@ -7,11 +7,29 @@
  * - 按需加载的技术优势（2GB 资源只需 5MB 即可开始）
  */
 
+import { motion } from "framer-motion";
 import React from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
-import { FaWindows, FaApple, FaLinux, FaMobileAlt, FaSteam, FaAndroid, FaCompactDisc, FaGlobe, FaBolt, FaCube, FaSyncAlt, FaHdd, FaRocket, FaCheck, FaTimes, FaChrome, FaSafari, FaFirefox, FaEdge } from "react-icons/fa";
-import { HiSparkles, HiLightningBolt } from "react-icons/hi";
+import {
+  FaAndroid,
+  FaApple,
+  FaBolt,
+  FaCheck,
+  FaChrome,
+  FaCompactDisc,
+  FaCube,
+  FaEdge,
+  FaFirefox,
+  FaGlobe,
+  FaHdd,
+  FaLinux,
+  FaMobileAlt,
+  FaSafari,
+  FaSyncAlt,
+  FaTimes,
+  FaWindows,
+} from "react-icons/fa";
+import { HiLightningBolt, HiSparkles } from "react-icons/hi";
 
 // 对比行组件 - 现代霓虹风格
 function ComparisonRow({
@@ -64,7 +82,9 @@ function ComparisonRow({
             >
               {icon}
             </motion.div>
-            <span className="font-semibold text-slate-700 dark:text-slate-200 text-sm">{label}</span>
+            <span className="font-semibold text-slate-700 dark:text-slate-200 text-sm">
+              {label}
+            </span>
           </div>
 
           {/* 对比数据 */}
@@ -77,8 +97,12 @@ function ComparisonRow({
 
             {/* 徽章 */}
             <motion.div className="relative shrink-0" whileHover={{ scale: 1.1 }}>
-              <div className={`absolute inset-0 rounded-full bg-gradient-to-r ${highlightGradient} blur-lg opacity-60`} />
-              <div className={`relative px-2.5 py-1 rounded-full bg-gradient-to-r ${highlightGradient} text-white text-[10px] font-black shadow-xl`}>
+              <div
+                className={`absolute inset-0 rounded-full bg-gradient-to-r ${highlightGradient} blur-lg opacity-60`}
+              />
+              <div
+                className={`relative px-2.5 py-1 rounded-full bg-gradient-to-r ${highlightGradient} text-white text-[10px] font-black shadow-xl`}
+              >
                 {highlight}
               </div>
             </motion.div>
@@ -101,7 +125,9 @@ function ComparisonRow({
             >
               {icon}
             </motion.div>
-            <span className="font-semibold text-slate-700 dark:text-slate-200 text-sm">{label}</span>
+            <span className="font-semibold text-slate-700 dark:text-slate-200 text-sm">
+              {label}
+            </span>
           </div>
 
           {/* 传统 - 右对齐 */}
@@ -119,8 +145,12 @@ function ComparisonRow({
 
           {/* 分隔徽章 */}
           <motion.div className="relative flex justify-center" whileHover={{ scale: 1.1 }}>
-            <div className={`absolute inset-0 rounded-full bg-gradient-to-r ${highlightGradient} blur-lg opacity-60`} />
-            <div className={`relative px-4 py-1.5 rounded-full bg-gradient-to-r ${highlightGradient} text-white text-xs font-black shadow-xl whitespace-nowrap text-center`}>
+            <div
+              className={`absolute inset-0 rounded-full bg-gradient-to-r ${highlightGradient} blur-lg opacity-60`}
+            />
+            <div
+              className={`relative px-4 py-1.5 rounded-full bg-gradient-to-r ${highlightGradient} text-white text-xs font-black shadow-xl whitespace-nowrap text-center`}
+            >
               {highlight}
             </div>
           </motion.div>
@@ -169,7 +199,7 @@ function LegacyClientDemo() {
 
   React.useEffect(() => {
     const interval = setInterval(() => {
-      setErrorIndex(prev => (prev + 1) % errors.length);
+      setErrorIndex((prev) => (prev + 1) % errors.length);
     }, 2500);
     return () => clearInterval(interval);
   }, []);
@@ -218,8 +248,12 @@ function LegacyClientDemo() {
                       </span>
                     </div>
                     <div className="flex gap-0.5">
-                      <div className="w-3 h-3 bg-[#c4c4c4] rounded-sm border border-white/50 flex items-center justify-center text-[8px]">_</div>
-                      <div className="w-3 h-3 bg-red-500 rounded-sm border border-white/50 flex items-center justify-center text-[8px] text-white">✕</div>
+                      <div className="w-3 h-3 bg-[#c4c4c4] rounded-sm border border-white/50 flex items-center justify-center text-[8px]">
+                        _
+                      </div>
+                      <div className="w-3 h-3 bg-red-500 rounded-sm border border-white/50 flex items-center justify-center text-[8px] text-white">
+                        ✕
+                      </div>
                     </div>
                   </div>
                   {/* 错误内容 */}
@@ -320,7 +354,9 @@ function WebVersionDemo() {
                 animate={{ opacity: [1, 0.5, 1] }}
                 transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY }}
               />
-              <span className="text-[10px] text-white font-medium">{t("asyncLoading.demo.playing")}</span>
+              <span className="text-[10px] text-white font-medium">
+                {t("asyncLoading.demo.playing")}
+              </span>
             </motion.div>
           </div>
         </div>
@@ -343,16 +379,16 @@ function WebVersionDemo() {
 }
 
 // 按需加载数据流演示
-function OnDemandLoadingDemo() {
+function _OnDemandLoadingDemo() {
   const { t } = useTranslation();
   const [loadedChunks, setLoadedChunks] = React.useState<Set<number>>(new Set([0, 1]));
   const [playerPos, setPlayerPos] = React.useState(0);
 
   React.useEffect(() => {
     const interval = setInterval(() => {
-      setPlayerPos(prev => {
+      setPlayerPos((prev) => {
         const next = (prev + 1) % 16;
-        setLoadedChunks(loaded => {
+        setLoadedChunks((loaded) => {
           const newLoaded = new Set(loaded);
           newLoaded.add(next);
           // 加载相邻区块
@@ -370,7 +406,24 @@ function OnDemandLoadingDemo() {
     return () => clearInterval(interval);
   }, []);
 
-  const icons = ["🏠", "🌲", "⛰️", "🏯", "🌊", "🌳", "🗿", "🏰", "🌾", "🌸", "🎋", "⛩️", "🏔️", "🌴", "🎪", "🗼"];
+  const icons = [
+    "🏠",
+    "🌲",
+    "⛰️",
+    "🏯",
+    "🌊",
+    "🌳",
+    "🗿",
+    "🏰",
+    "🌾",
+    "🌸",
+    "🎋",
+    "⛩️",
+    "🏔️",
+    "🌴",
+    "🎪",
+    "🗼",
+  ];
 
   return (
     <div className="max-w-sm mx-auto">
@@ -418,7 +471,9 @@ function OnDemandLoadingDemo() {
       <div className="mt-4 flex justify-center gap-6">
         <div className="text-center">
           <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">2GB</div>
-          <div className="text-xs text-slate-500 dark:text-slate-400">{t("asyncLoading.stats.total")}</div>
+          <div className="text-xs text-slate-500 dark:text-slate-400">
+            {t("asyncLoading.stats.total")}
+          </div>
         </div>
         <div className="text-center">
           <motion.div
@@ -429,13 +484,17 @@ function OnDemandLoadingDemo() {
           >
             {Math.round((loadedChunks.size / 16) * 200)}MB
           </motion.div>
-          <div className="text-xs text-slate-500 dark:text-slate-400">{t("asyncLoading.stats.loaded")}</div>
+          <div className="text-xs text-slate-500 dark:text-slate-400">
+            {t("asyncLoading.stats.loaded")}
+          </div>
         </div>
         <div className="text-center">
           <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
             {100 - Math.round((loadedChunks.size / 16) * 100)}%
           </div>
-          <div className="text-xs text-slate-500 dark:text-slate-400">{t("asyncLoading.stats.saved")}</div>
+          <div className="text-xs text-slate-500 dark:text-slate-400">
+            {t("asyncLoading.stats.saved")}
+          </div>
         </div>
       </div>
     </div>
@@ -536,12 +595,18 @@ export function CrossPlatformSection() {
             <motion.div
               className="absolute inset-y-0 w-1/3 rounded-full"
               style={{
-                background: "linear-gradient(90deg, transparent, rgba(16, 185, 129, 0.4), transparent)",
+                background:
+                  "linear-gradient(90deg, transparent, rgba(16, 185, 129, 0.4), transparent)",
               }}
               animate={{
                 left: ["-33%", "100%"],
               }}
-              transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY, repeatDelay: 3, ease: "easeInOut" }}
+              transition={{
+                duration: 2,
+                repeat: Number.POSITIVE_INFINITY,
+                repeatDelay: 3,
+                ease: "easeInOut",
+              }}
             />
             <HiSparkles className="relative text-lg text-emerald-600 dark:text-emerald-400" />
             <span className="relative text-sm font-semibold text-emerald-700 dark:text-emerald-300">
@@ -599,21 +664,38 @@ export function CrossPlatformSection() {
             transition={{ delay: 0.7 }}
           >
             {[
-              { value: "<3s", labelKey: "startSpeedDesc", glowClass: "bg-emerald-500/20", textClass: "from-emerald-400 to-emerald-300" },
-              { value: "5MB", labelKey: "initialLoadDesc", glowClass: "bg-cyan-500/20", textClass: "from-cyan-400 to-cyan-300" },
-              { value: "100%", labelKey: "crossPlatform", glowClass: "bg-blue-500/20", textClass: "from-blue-400 to-blue-300" },
+              {
+                value: "<3s",
+                labelKey: "startSpeedDesc",
+                glowClass: "bg-emerald-500/20",
+                textClass: "from-emerald-400 to-emerald-300",
+              },
+              {
+                value: "5MB",
+                labelKey: "initialLoadDesc",
+                glowClass: "bg-cyan-500/20",
+                textClass: "from-cyan-400 to-cyan-300",
+              },
+              {
+                value: "100%",
+                labelKey: "crossPlatform",
+                glowClass: "bg-blue-500/20",
+                textClass: "from-blue-400 to-blue-300",
+              },
             ].map((stat, i) => (
-              <motion.div
-                key={i}
-                className="relative group"
-                whileHover={{ scale: 1.05 }}
-              >
-                <div className={`absolute inset-0 rounded-2xl ${stat.glowClass} blur-xl opacity-0 group-hover:opacity-100 transition-opacity`} />
+              <motion.div key={i} className="relative group" whileHover={{ scale: 1.05 }}>
+                <div
+                  className={`absolute inset-0 rounded-2xl ${stat.glowClass} blur-xl opacity-0 group-hover:opacity-100 transition-opacity`}
+                />
                 <div className="relative px-6 py-4 rounded-2xl bg-white/80 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 backdrop-blur-sm shadow-sm dark:shadow-none">
-                  <div className={`text-3xl font-black bg-gradient-to-r ${stat.textClass} bg-clip-text text-transparent`}>
+                  <div
+                    className={`text-3xl font-black bg-gradient-to-r ${stat.textClass} bg-clip-text text-transparent`}
+                  >
                     {stat.value}
                   </div>
-                  <div className="text-sm text-slate-600 dark:text-slate-400 mt-1">{t(`asyncLoading.table.${stat.labelKey}`)}</div>
+                  <div className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                    {t(`asyncLoading.table.${stat.labelKey}`)}
+                  </div>
                 </div>
               </motion.div>
             ))}
@@ -664,7 +746,9 @@ export function CrossPlatformSection() {
                         {t("asyncLoading.platforms.legacy")}
                       </h4>
                       <div className="flex items-center gap-2 mt-1">
-                        <span className="px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400 text-xs font-medium">{t("asyncLoading.status.outdated")}</span>
+                        <span className="px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400 text-xs font-medium">
+                          {t("asyncLoading.status.outdated")}
+                        </span>
                         <span className="text-sm text-slate-500">C++ · DirectX · 2001</span>
                       </div>
                     </div>
@@ -693,9 +777,21 @@ export function CrossPlatformSection() {
                         viewport={{ once: true }}
                         transition={{ delay: 0.1 * i }}
                       >
-                        <span className={item.status === "no" ? "text-red-500 dark:text-red-400" : "text-yellow-600 dark:text-yellow-400"}>{item.icon}</span>
-                        <span className="text-xs text-slate-600 dark:text-slate-400">{t(`asyncLoading.legacy.${item.labelKey}`)}</span>
-                        {item.status === "no" && <FaTimes className="ml-auto text-red-400 text-xs" />}
+                        <span
+                          className={
+                            item.status === "no"
+                              ? "text-red-500 dark:text-red-400"
+                              : "text-yellow-600 dark:text-yellow-400"
+                          }
+                        >
+                          {item.icon}
+                        </span>
+                        <span className="text-xs text-slate-600 dark:text-slate-400">
+                          {t(`asyncLoading.legacy.${item.labelKey}`)}
+                        </span>
+                        {item.status === "no" && (
+                          <FaTimes className="ml-auto text-red-400 text-xs" />
+                        )}
                       </motion.div>
                     ))}
                   </div>
@@ -733,7 +829,11 @@ export function CrossPlatformSection() {
                     <motion.div
                       className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-emerald-500/30"
                       animate={{
-                        boxShadow: ["0 10px 40px rgba(16, 185, 129, 0.3)", "0 10px 60px rgba(16, 185, 129, 0.5)", "0 10px 40px rgba(16, 185, 129, 0.3)"]
+                        boxShadow: [
+                          "0 10px 40px rgba(16, 185, 129, 0.3)",
+                          "0 10px 60px rgba(16, 185, 129, 0.5)",
+                          "0 10px 40px rgba(16, 185, 129, 0.3)",
+                        ],
                       }}
                       transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY }}
                     >
@@ -744,7 +844,9 @@ export function CrossPlatformSection() {
                         {t("asyncLoading.platforms.web")}
                       </h4>
                       <div className="flex items-center gap-2 mt-1">
-                        <span className="px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-xs font-medium">{t("asyncLoading.status.recommended")}</span>
+                        <span className="px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-xs font-medium">
+                          {t("asyncLoading.status.recommended")}
+                        </span>
                         <span className="text-sm text-slate-500">TypeScript · Canvas · 2024</span>
                       </div>
                     </div>
@@ -777,7 +879,9 @@ export function CrossPlatformSection() {
                         whileHover={{ scale: 1.02, borderColor: "rgba(16, 185, 129, 0.5)" }}
                       >
                         <span className="text-emerald-600 dark:text-emerald-400">{item.icon}</span>
-                        <span className="text-xs text-slate-700 dark:text-slate-300">{item.label}</span>
+                        <span className="text-xs text-slate-700 dark:text-slate-300">
+                          {item.label}
+                        </span>
                         <FaCheck className="ml-auto text-emerald-400 text-xs" />
                       </motion.div>
                     ))}
@@ -890,7 +994,9 @@ export function CrossPlatformSection() {
             viewport={{ once: true }}
             transition={{ delay: 0.5 }}
           >
-            <p className="text-sm text-slate-600 dark:text-slate-500 mb-6">{t("asyncLoading.browserSupport")}</p>
+            <p className="text-sm text-slate-600 dark:text-slate-500 mb-6">
+              {t("asyncLoading.browserSupport")}
+            </p>
             <div className="flex justify-center gap-4">
               {[
                 { icon: <FaChrome />, name: "Chrome" },

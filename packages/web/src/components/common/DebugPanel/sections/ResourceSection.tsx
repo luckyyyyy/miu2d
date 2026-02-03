@@ -2,8 +2,8 @@
  * 资源加载统计区块
  */
 
-import type React from "react";
 import type { ResourceStats } from "@miu2d/engine/resource/resourceLoader";
+import type React from "react";
 import { DataRow } from "../DataRow";
 import { Section } from "../Section";
 
@@ -38,26 +38,14 @@ export const ResourceSection: React.FC<ResourceSectionProps> = ({ resourceStats 
                 : "text-zinc-300"
             }
           />
-          <DataRow
-            label="缓存命中"
-            value={resourceStats.cacheHits}
-            valueColor="text-green-400"
-          />
-          <DataRow
-            label="去重命中"
-            value={resourceStats.dedupeHits}
-            valueColor="text-cyan-400"
-          />
+          <DataRow label="缓存命中" value={resourceStats.cacheHits} valueColor="text-green-400" />
+          <DataRow label="去重命中" value={resourceStats.dedupeHits} valueColor="text-cyan-400" />
           <DataRow
             label="网络请求"
             value={resourceStats.networkRequests}
             valueColor="text-yellow-400"
           />
-          <DataRow
-            label="缓存条目"
-            value={resourceStats.cacheEntries}
-            valueColor="text-blue-400"
-          />
+          <DataRow label="缓存条目" value={resourceStats.cacheEntries} valueColor="text-blue-400" />
           <DataRow
             label="缓存大小"
             value={formatSize(resourceStats.cacheSizeBytes)}

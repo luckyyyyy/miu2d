@@ -4,10 +4,9 @@
  * 在"强大的引擎能力"上方重点介绍原生移动端支持
  */
 
-import React from "react";
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
-import { FaMobileAlt, FaGamepad, FaHandPointer, FaExpand } from "react-icons/fa";
+import { FaExpand, FaGamepad, FaHandPointer, FaMobileAlt } from "react-icons/fa";
 import { HiSparkles } from "react-icons/hi";
 
 export function MobileShowcase() {
@@ -106,7 +105,10 @@ export function MobileShowcase() {
               {/* 横屏手机外框 */}
               <div className="relative rounded-[2rem] bg-gradient-to-b from-slate-800 to-slate-900 p-2 shadow-2xl shadow-slate-900/50">
                 {/* 屏幕 - 使用实际图片比例 2532:1170 ≈ 2.16:1 */}
-                <div className="relative rounded-[1.5rem] overflow-hidden bg-black" style={{ aspectRatio: '2532 / 1170' }}>
+                <div
+                  className="relative rounded-[1.5rem] overflow-hidden bg-black"
+                  style={{ aspectRatio: "2532 / 1170" }}
+                >
                   {/* 真实游戏截图 */}
                   <img
                     src="/screenshot/mobile.png"
@@ -190,9 +192,7 @@ export function MobileShowcase() {
               transition={{ delay: 0.4 }}
             >
               <FaMobileAlt className="text-emerald-600 dark:text-emerald-400 text-lg shrink-0" />
-              <p className="text-sm text-emerald-700 dark:text-emerald-300">
-                {t("mobile.hint")}
-              </p>
+              <p className="text-sm text-emerald-700 dark:text-emerald-300">{t("mobile.hint")}</p>
             </motion.div>
           </motion.div>
         </div>

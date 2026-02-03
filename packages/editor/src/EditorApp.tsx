@@ -1,8 +1,8 @@
 import { Route, Routes } from "react-router-dom";
 import { EditorLayout } from "./components/EditorLayout";
-import { EditorHome } from "./editors/EditorHome";
 import { AsfEditor } from "./editors/AsfEditor";
 import { CharacterEditor } from "./editors/CharacterEditor";
+import { EditorHome } from "./editors/EditorHome";
 import { MagicEditor } from "./editors/MagicEditor";
 import { MapEditor } from "./editors/MapEditor";
 import { ScriptEditor } from "./editors/ScriptEditor";

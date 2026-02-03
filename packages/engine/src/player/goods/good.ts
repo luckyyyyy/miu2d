@@ -4,10 +4,11 @@
  *
  * 支持随机属性（AttrInt/AttrString）
  */
-import { logger } from "../../core/logger";
-import { AttrInt, AttrString, parseAttrInt, parseAttrString } from "../../core/attrTypes";
-import { resourceLoader } from "../../resource/resourceLoader";
+
 import { ResourcePath } from "../../config/resourcePaths";
+import { type AttrInt, type AttrString, parseAttrInt, parseAttrString } from "../../core/attrTypes";
+import { logger } from "../../core/logger";
+import { resourceLoader } from "../../resource/resourceLoader";
 
 // ============= Enums =============
 export enum GoodKind {
@@ -531,7 +532,9 @@ export class Good {
   private get costRaw(): number {
     switch (this.kind) {
       case GoodKind.Drug:
-        return (this.thew * 4 + this.life * 2 + this.mana * 2) * (1 + (this.effectType === 0 ? 0 : 1));
+        return (
+          (this.thew * 4 + this.life * 2 + this.mana * 2) * (1 + (this.effectType === 0 ? 0 : 1))
+        );
       case GoodKind.Equipment:
         if (this.noNeedToEquip > 0) return 0;
         return (
@@ -565,7 +568,9 @@ export class Good {
    */
   get sellPrice(): number {
     const baseSellPrice =
-      this._sellPrice.getMaxValue() > 0 ? this._sellPrice.getMaxValue() : Math.floor(this.costRaw / 2);
+      this._sellPrice.getMaxValue() > 0
+        ? this._sellPrice.getMaxValue()
+        : Math.floor(this.costRaw / 2);
     return baseSellPrice;
   }
 
@@ -654,7 +659,11 @@ export class Good {
     if (this._thew.getMaxValue() !== 0) effects.push(`体 ${this._thew.getUIString()}`);
     if (this._mana.getMaxValue() !== 0) effects.push(`气 ${this._mana.getUIString()}`);
 
-    if (this._attack.getMaxValue() !== 0 || this._attack2.getMaxValue() !== 0 || this._attack3.getMaxValue() !== 0) {
+    if (
+      this._attack.getMaxValue() !== 0 ||
+      this._attack2.getMaxValue() !== 0 ||
+      this._attack3.getMaxValue() !== 0
+    ) {
       let attackStr = "攻 ";
       if (this._attack.getMaxValue() !== 0) attackStr += this._attack.getUIString();
       if (this._attack2.getMaxValue() !== 0 || this._attack3.getMaxValue() !== 0) {
@@ -663,7 +672,11 @@ export class Good {
       effects.push(attackStr);
     }
 
-    if (this._defend.getMaxValue() !== 0 || this._defend2.getMaxValue() !== 0 || this._defend3.getMaxValue() !== 0) {
+    if (
+      this._defend.getMaxValue() !== 0 ||
+      this._defend2.getMaxValue() !== 0 ||
+      this._defend3.getMaxValue() !== 0
+    ) {
       let defendStr = "防 ";
       if (this._defend.getMaxValue() !== 0) defendStr += this._defend.getUIString();
       if (this._defend2.getMaxValue() !== 0 || this._defend3.getMaxValue() !== 0) {

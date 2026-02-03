@@ -9,8 +9,8 @@
  * 不包含游戏逻辑，仅作为渲染目标
  */
 
-import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
 import type { GameEngine } from "@miu2d/engine/game/gameEngine";
+import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
 import { useGameInput } from "@/hooks";
 
 export interface GameCanvasProps {

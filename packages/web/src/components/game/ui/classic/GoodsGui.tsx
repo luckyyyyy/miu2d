@@ -5,10 +5,11 @@
  * C# Reference: GoodsGui.cs shows a 3x3 item grid with scroll bar and money display
  * Resources loaded from UI_Settings.ini
  */
+
+import type { Good } from "@miu2d/engine/player/goods";
 import type React from "react";
 import { useCallback, useMemo, useState } from "react";
-import type { Good } from "@miu2d/engine/player/goods";
-import { useDevice, useTouchDrag, type TouchDragData } from "@/contexts";
+import { type TouchDragData, useDevice } from "@/contexts";
 import { useTouchDragSource, useTouchDropTarget } from "@/hooks";
 import type { DragData } from "./EquipGui";
 import { useAsfImage } from "./hooks";
@@ -99,7 +100,16 @@ const ItemSlot: React.FC<ItemSlotProps> = ({
   const dropRef = useTouchDropTarget({
     id: `goods-slot-${index}`,
     onDrop: (data) => {
-      console.log('[GoodsGui] ItemSlot onDrop:', data.type, 'bagIndex:', data.bagIndex, 'equipSlot:', data.equipSlot, 'target actualIndex:', actualIndex);
+      console.log(
+        "[GoodsGui] ItemSlot onDrop:",
+        data.type,
+        "bagIndex:",
+        data.bagIndex,
+        "equipSlot:",
+        data.equipSlot,
+        "target actualIndex:",
+        actualIndex
+      );
       onTouchDrop?.(data);
     },
     canDrop: (data) => data.type === "goods" || data.type === "equip",

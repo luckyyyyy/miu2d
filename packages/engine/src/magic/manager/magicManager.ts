@@ -9,14 +9,14 @@
  */
 
 import type { AudioManager } from "../../audio";
-import type { NpcManager } from "../../npc";
 import { logger } from "../../core/logger";
 import type { Vector2 } from "../../core/types";
-import { pixelToTile } from "../../utils";
 import type { ScreenEffects } from "../../effects";
 import type { GuiManager } from "../../gui/guiManager";
+import type { NpcManager } from "../../npc";
 import type { MagicListManager } from "../../player/magic/magicListManager";
 import type { Player } from "../../player/player";
+import { pixelToTile } from "../../utils";
 import {
   type ApplyContext,
   type CastContext,

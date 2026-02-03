@@ -9,10 +9,10 @@
  * - Sound3DMaxDistance: 8 units (Web Audio coordinate scale)
  */
 
+import { DefaultPaths, getResourceUrl } from "../config/resourcePaths";
 import { logger } from "../core/logger";
 import type { Vector2 } from "../core/types";
 import { resourceLoader } from "../resource/resourceLoader";
-import { DefaultPaths, getResourceUrl } from "../config/resourcePaths";
 
 export interface AudioManagerConfig {
   musicBasePath?: string;
@@ -652,9 +652,9 @@ export class AudioManager {
       this.loopingSourceNode = source;
       this.loopingGainNode = gainNode;
 
-      logger.log(
-        `[AudioManager] Playing looping sound: ${baseName} (duration: ${audioBuffer.duration.toFixed(2)}s, loop: ${trimStart.toFixed(2)}s - ${(trimStart + effectiveDuration).toFixed(2)}s)`
-      );
+      // logger.debug(
+      //   `[AudioManager] Playing looping sound: ${baseName} (duration: ${audioBuffer.duration.toFixed(2)}s, loop: ${trimStart.toFixed(2)}s - ${(trimStart + effectiveDuration).toFixed(2)}s)`
+      // );
     } catch (_error) {
       // Try next format
       this.tryLoadLoopingSound(baseName, formats, formatIndex + 1);

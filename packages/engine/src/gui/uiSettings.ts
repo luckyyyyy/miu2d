@@ -4,10 +4,11 @@
  *
  * INI files in resources/ are now UTF-8 encoded.
  */
-import { logger } from "../core/logger";
-import { parseIni } from "../utils";
-import { resourceLoader } from "../resource/resourceLoader";
+
 import { DefaultPaths } from "../config/resourcePaths";
+import { logger } from "../core/logger";
+import { resourceLoader } from "../resource/resourceLoader";
+import { parseIni } from "../utils";
 
 // Cache for loaded settings
 let cachedSettings: Record<string, Record<string, string>> | null = null;

@@ -4,9 +4,9 @@
  */
 
 import { Character } from "../character";
-import { CharacterBase } from "../character/base";
+import type { CharacterBase } from "../character/base";
 import { applyConfigToPlayer, parseCharacterIni } from "../character/iniParser";
-import type { NpcManager } from "../npc";
+import { ResourcePath } from "../config/resourcePaths";
 import { getEngineContext } from "../core/engineContext";
 import { logger } from "../core/logger";
 import { PathType } from "../core/pathFinder";
@@ -18,23 +18,23 @@ import {
   Direction,
   RUN_SPEED_FOLD,
 } from "../core/types";
-import { distance, getDirection, isBoxCollide, pixelToTile, tileToPixel } from "../utils";
 import type { PlayerSaveData } from "../game/storage";
 import type { GuiManager } from "../gui/guiManager";
 import type { MagicManager } from "../magic";
-import { loadMagic, getMagicAtLevel, getCachedMagic } from "../magic/magicLoader";
+import { getEffectAmount } from "../magic/effects/common";
+import { getCachedMagic, getMagicAtLevel, loadMagic } from "../magic/magicLoader";
 import type { MagicSprite } from "../magic/magicSprite";
 import type { MagicData, MagicItemInfo } from "../magic/types";
 import { MagicAddonEffect, MagicMoveKind, MagicSpecialKind } from "../magic/types";
 import { getTileTextureRegion } from "../map/renderer";
+import type { NpcManager } from "../npc";
 import { resourceLoader } from "../resource/resourceLoader";
+import { type AsfData, getCachedAsf } from "../sprite/asf";
+import { distance, getDirection, isBoxCollide, pixelToTile, tileToPixel } from "../utils";
 import type { Good } from "./goods";
 import { GoodEffectType } from "./goods/good";
 import { GoodsListManager } from "./goods/goodsListManager";
-import { getEffectAmount } from "../magic/effects/common";
 import { MagicListManager } from "./magic/magicListManager";
-import { ResourcePath } from "../config/resourcePaths";
-import { getCachedAsf, type AsfData } from "../sprite/asf";
 
 // C#: Thew cost constants from Player.cs
 const THEW_USE_AMOUNT_WHEN_RUN = 1;
@@ -548,6 +548,7 @@ export class Player extends Character {
 
     // C# Reference: PerformActionOk() - 在 Magic/Attack/Jump/Hurt/Death 等状态下不能移动
     if (!this.canPerformAction()) {
+      logger.debug(`[Player.handleInput] BLOCKED: canPerformAction=false, state=${this._state}`);
       return null;
     }
 
@@ -576,18 +577,51 @@ export class Player extends Character {
     if (input.isMouseDown && input.clickedTile) {
       const targetTile = input.clickedTile;
 
+      // 优化：如果已经在向相同目标移动，不要重复寻路
+      // 这避免了每帧重复寻路导致的性能问题和路径重置问题
+      const destMatch =
+        this._destinationMoveTilePosition &&
+        this._destinationMoveTilePosition.x === targetTile.x &&
+        this._destinationMoveTilePosition.y === targetTile.y;
+      const hasPath = this.path.length > 0;
+
+      if (destMatch && hasPath) {
+        // 已经在向该目标移动，跳过
+        return null;
+      }
+
+      // 调试日志：为什么优化没生效 - 添加更多信息
+      // logger.debug(
+      //   `[Player.handleInput] 鼠标长按移动: targetTile=(${targetTile.x}, ${targetTile.y}), ` +
+      //     `destTile=(${this._destinationMoveTilePosition?.x}, ${this._destinationMoveTilePosition?.y}), ` +
+      //     `destMatch=${destMatch}, pathLen=${this.path.length}, isRun=${this._isRun}, ` +
+      //     `state=${this._state}, name=${this.name}`
+      // );
+
       // Cancel auto attack when moving to a new location
       // C# Reference: Player.HandleMouseInput - _autoAttackTarget = null when walking
       this.cancelAutoAttack();
 
+      let success = false;
       if (this._isRun) {
         if (this.canRunCheck()) {
-          this.runTo(targetTile);
+          success = this.runTo(targetTile);
         } else {
-          this.walkTo(targetTile);
+          success = this.walkTo(targetTile);
         }
       } else {
-        this.walkTo(targetTile);
+        success = this.walkTo(targetTile);
+      }
+
+      if (!success) {
+        // logger.debug(
+        //   `[Player.handleInput] 鼠标长按移动失败: targetTile=(${targetTile.x}, ${targetTile.y})`
+        // );
+      } else {
+        // 验证 walkTo 成功后路径状态
+        // logger.debug(
+        //   `[Player.handleInput] walkTo成功后: pathLen=${this.path.length}, destTile=(${this._destinationMoveTilePosition?.x}, ${this._destinationMoveTilePosition?.y}), state=${this._state}`
+        // );
       }
       return null;
     }
@@ -1051,8 +1085,6 @@ export class Player extends Character {
     // This was missing - causing player attacks to never fire magic sprites
     // C#: _magicToUseWhenAttack = GetRamdomMagicWithUseDistance(AttackRadius);
     this._magicToUseWhenAttack = this.getRandomMagicWithUseDistance(this.getAttackRadius());
-
-
   }
 
   /**
@@ -1091,7 +1123,9 @@ export class Player extends Character {
    */
   addReplacedMagic(originalMagicFileName: string, replacementMagic: MagicData): void {
     this._replacedMagic.set(originalMagicFileName, replacementMagic);
-    logger.log(`[Player] Added magic replacement: ${originalMagicFileName} -> ${replacementMagic.name}`);
+    logger.log(
+      `[Player] Added magic replacement: ${originalMagicFileName} -> ${replacementMagic.name}`
+    );
   }
 
   /**
@@ -1551,7 +1585,12 @@ export class Player extends Character {
    * Set pending magic to release after casting animation
    * C# Reference: Character stores MagicUse, _magicDestination, _magicTarget for release in Update()
    */
-  setPendingMagic(magic: MagicData, origin: Vector2, destination: Vector2, targetId?: string): void {
+  setPendingMagic(
+    magic: MagicData,
+    origin: Vector2,
+    destination: Vector2,
+    targetId?: string
+  ): void {
     this._pendingMagic = { magic, origin, destination, targetId };
   }
 
@@ -1999,7 +2038,8 @@ export class Player extends Character {
     this.lifeLowPercent = data.lifeLowPercent;
     this.keepRadiusWhenLifeLow = data.keepRadiusWhenLifeLow;
     this.keepRadiusWhenFriendDeath = data.keepRadiusWhenFriendDeath;
-    if (data.magicToUseWhenBeAttacked) this.magicToUseWhenBeAttacked = data.magicToUseWhenBeAttacked;
+    if (data.magicToUseWhenBeAttacked)
+      this.magicToUseWhenBeAttacked = data.magicToUseWhenBeAttacked;
     this.magicDirectionWhenBeAttacked = data.magicDirectionWhenBeAttacked;
     if (data.magicToUseWhenDeath) this.magicToUseWhenDeath = data.magicToUseWhenDeath;
     this.magicDirectionWhenDeath = data.magicDirectionWhenDeath;
@@ -2394,7 +2434,9 @@ export class Player extends Character {
         magic,
         dir: direction,
       });
-      logger.log(`[Player] Added MagicToUseWhenBeAttacked from equip ${equipFileName}: ${magic.name}`);
+      logger.log(
+        `[Player] Added MagicToUseWhenBeAttacked from equip ${equipFileName}: ${magic.name}`
+      );
     } catch (err) {
       logger.error(`[Player] Error loading MagicToUseWhenBeAttacked: ${err}`);
     }
@@ -2415,7 +2457,9 @@ export class Player extends Character {
         return;
       }
       this.addReplacedMagic(originalMagicFileName, replacementMagic);
-      logger.log(`[Player] Added equip ReplaceMagic: ${originalMagicFileName} -> ${replacementMagic.name}`);
+      logger.log(
+        `[Player] Added equip ReplaceMagic: ${originalMagicFileName} -> ${replacementMagic.name}`
+      );
     } catch (err) {
       logger.error(`[Player] Error loading UseReplaceMagic: ${err}`);
     }

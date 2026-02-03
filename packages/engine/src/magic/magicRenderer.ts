@@ -4,12 +4,12 @@
  * 负责将武功精灵渲染到 Canvas
  */
 
+import { ResourcePath } from "../config/resourcePaths";
 import { logger } from "../core/logger";
 import type { AsfData } from "../sprite/asf";
 import { getFrameCanvas, loadAsf } from "../sprite/asf";
-import type { MagicSprite } from "./magicSprite";
 import { getDirectionIndex } from "../utils/direction";
-import { ResourcePath } from "../config/resourcePaths";
+import type { MagicSprite } from "./magicSprite";
 
 /**
  * 武功精灵缓存

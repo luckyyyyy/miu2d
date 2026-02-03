@@ -6,10 +6,7 @@
  */
 
 import { resourceLoader } from "../resource/resourceLoader";
-import {
-  initWasmAsfDecoder,
-  decodeAsfWasm,
-} from "../wasm/wasmAsfDecoder";
+import { decodeAsfWasm, initWasmAsfDecoder } from "../wasm/wasmAsfDecoder";
 
 export interface AsfFrame {
   width: number;

@@ -3,8 +3,8 @@
  * 渲染单个文件/文件夹节点
  */
 
-import type { FlatTreeNode, FileIconConfig } from "./types";
 import { getFileIcon } from "./treeUtils";
+import type { FileIconConfig, FlatTreeNode } from "./types";
 
 interface TreeRowProps {
   node: FlatTreeNode;
@@ -89,14 +89,10 @@ export function TreeRow({
       </span>
 
       {/* 图标 */}
-      <span className="w-4 h-4 flex items-center justify-center text-[14px] mr-1.5">
-        {icon}
-      </span>
+      <span className="w-4 h-4 flex items-center justify-center text-[14px] mr-1.5">{icon}</span>
 
       {/* 文件名 */}
-      <span className="text-[#cccccc] overflow-hidden text-ellipsis">
-        {node.name}
-      </span>
+      <span className="text-[#cccccc] overflow-hidden text-ellipsis">{node.name}</span>
     </div>
   );
 }

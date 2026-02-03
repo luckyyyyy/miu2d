@@ -23,12 +23,22 @@ interface WasmSpatialHash {
 interface WasmModule {
   SpatialHash: new (cellSize: number) => WasmSpatialHash;
   check_aabb_collision(
-    x1: number, y1: number, w1: number, h1: number,
-    x2: number, y2: number, w2: number, h2: number
+    x1: number,
+    y1: number,
+    w1: number,
+    h1: number,
+    x2: number,
+    y2: number,
+    w2: number,
+    h2: number
   ): boolean;
   check_circle_collision(
-    x1: number, y1: number, r1: number,
-    x2: number, y2: number, r2: number
+    x1: number,
+    y1: number,
+    r1: number,
+    x2: number,
+    y2: number,
+    r2: number
   ): boolean;
   point_in_rect(px: number, py: number, rx: number, ry: number, rw: number, rh: number): boolean;
   point_in_circle(px: number, py: number, cx: number, cy: number, radius: number): boolean;
@@ -210,8 +220,14 @@ export class WasmSpatialHashWrapper {
  * AABB 碰撞检测
  */
 export function checkAabbCollision(
-  x1: number, y1: number, w1: number, h1: number,
-  x2: number, y2: number, w2: number, h2: number
+  x1: number,
+  y1: number,
+  w1: number,
+  h1: number,
+  x2: number,
+  y2: number,
+  w2: number,
+  h2: number
 ): boolean {
   if (wasmModule) {
     return wasmModule.check_aabb_collision(x1, y1, w1, h1, x2, y2, w2, h2);
@@ -224,8 +240,12 @@ export function checkAabbCollision(
  * 圆形碰撞检测
  */
 export function checkCircleCollision(
-  x1: number, y1: number, r1: number,
-  x2: number, y2: number, r2: number
+  x1: number,
+  y1: number,
+  r1: number,
+  x2: number,
+  y2: number,
+  r2: number
 ): boolean {
   if (wasmModule) {
     return wasmModule.check_circle_collision(x1, y1, r1, x2, y2, r2);
@@ -242,8 +262,12 @@ export function checkCircleCollision(
  * 点是否在矩形内
  */
 export function pointInRect(
-  px: number, py: number,
-  rx: number, ry: number, rw: number, rh: number
+  px: number,
+  py: number,
+  rx: number,
+  ry: number,
+  rw: number,
+  rh: number
 ): boolean {
   if (wasmModule) {
     return wasmModule.point_in_rect(px, py, rx, ry, rw, rh);
@@ -255,8 +279,11 @@ export function pointInRect(
  * 点是否在圆内
  */
 export function pointInCircle(
-  px: number, py: number,
-  cx: number, cy: number, radius: number
+  px: number,
+  py: number,
+  cx: number,
+  cy: number,
+  radius: number
 ): boolean {
   if (wasmModule) {
     return wasmModule.point_in_circle(px, py, cx, cy, radius);

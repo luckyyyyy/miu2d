@@ -12,7 +12,12 @@
  * - 避免从引擎读取可变状态对象
  */
 
-import type { DialogGuiState, MultiSelectionGuiState, PanelState, SelectionGuiState } from "../gui/types";
+import type {
+  DialogGuiState,
+  MultiSelectionGuiState,
+  PanelState,
+  SelectionGuiState,
+} from "../gui/types";
 
 // ============= UI 事件 =============
 
@@ -118,7 +123,7 @@ export interface UIBuyChangeEvent {
 /**
  * 返回标题界面事件
  */
-export interface ReturnToTitleEvent {}
+export type ReturnToTitleEvent = {};
 
 /**
  * 视频播放事件
@@ -130,7 +135,7 @@ export interface UIVideoPlayEvent {
 /**
  * 视频播放结束事件
  */
-export interface UIVideoEndEvent {}
+export type UIVideoEndEvent = {};
 
 // ============= 游戏事件 =============
 

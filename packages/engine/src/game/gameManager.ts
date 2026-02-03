@@ -31,15 +31,13 @@
  */
 
 import type { AudioManager } from "../audio";
-import type { Npc } from "../npc";
-import { NpcManager } from "../npc";
-import type { EventEmitter } from "../core/eventEmitter";
+import { ResourcePath } from "../config/resourcePaths";
 import { getEngineContext } from "../core/engineContext";
+import type { EventEmitter } from "../core/eventEmitter";
 import { GameEvents } from "../core/gameEvents";
 import { logger } from "../core/logger";
 import type { JxqyMapData } from "../core/mapTypes";
 import type { GameVariables, InputState, Vector2 } from "../core/types";
-import { parseIni } from "../utils";
 import type { DebugManager } from "../debug";
 import type { ScreenEffects } from "../effects";
 import { BuyManager } from "../gui/buyManager";
@@ -48,13 +46,16 @@ import type { MemoListManager, TalkTextListManager } from "../listManager";
 import type { MagicItemInfo } from "../magic";
 import { MagicManager } from "../magic";
 import { MapBase } from "../map/mapBase";
-import type { GoodsItemInfo } from "../player/goods/goodsListManager";
+import type { Npc } from "../npc";
+import { NpcManager } from "../npc";
 import type { Obj, ObjManager } from "../obj";
 import type { Good, GoodsListManager } from "../player/goods";
+import type { GoodsItemInfo } from "../player/goods/goodsListManager";
 import type { MagicListManager } from "../player/magic/magicListManager";
 import { Player } from "../player/player";
 import { type ScriptContext, ScriptExecutor } from "../script/executor";
 import type { TimerManager } from "../timer";
+import { parseIni } from "../utils";
 import type { WeatherManager } from "../weather";
 import { CameraController } from "./cameraController";
 import { InputHandler } from "./inputHandler";
@@ -64,7 +65,6 @@ import { MagicHandler } from "./magicHandler";
 // Import refactored modules
 import { createScriptContext } from "./scriptContextFactory";
 import { SpecialActionHandler } from "./specialActionHandler";
-import { ResourcePath } from "../config/resourcePaths";
 
 export interface GameManagerConfig {
   onMapChange?: (mapPath: string) => Promise<JxqyMapData | null>;
@@ -237,7 +237,10 @@ export class GameManager {
       onShowMessage: (msg) => this.guiManager.showMessage(msg),
       onUpdateView: () => {
         this.buyVersion++;
-        this.events.emit(GameEvents.UI_BUY_CHANGE, { isOpen: this.buyManager.isOpen(), version: this.buyVersion });
+        this.events.emit(GameEvents.UI_BUY_CHANGE, {
+          isOpen: this.buyManager.isOpen(),
+          version: this.buyVersion,
+        });
       },
     });
 
@@ -297,7 +300,9 @@ export class GameManager {
       getVariables: () => this.variables,
       setVariables: (vars) => {
         this.variables = { ...vars };
-        logger.debug(`[GameManager] Variables restored: ${Object.keys(this.variables).length} keys`);
+        logger.debug(
+          `[GameManager] Variables restored: ${Object.keys(this.variables).length} keys`
+        );
       },
       getCurrentMapName: () => this.currentMapName,
       getCanvas: () => this.config.getCanvas?.() ?? null,
@@ -331,7 +336,9 @@ export class GameManager {
         } else {
           this.weatherManager.stopRain();
         }
-        logger.debug(`[GameManager] Weather restored: snow=${state.snowShow}, rain=${!!state.rainFile}`);
+        logger.debug(
+          `[GameManager] Weather restored: snow=${state.snowShow}, rain=${!!state.rainFile}`
+        );
       },
       // timer
       getTimerState: () => {
@@ -358,7 +365,9 @@ export class GameManager {
         } else {
           this.timerManager.closeTimeLimit();
         }
-        logger.debug(`[GameManager] Timer restored: on=${state.isOn}, seconds=${state.totalSecond}`);
+        logger.debug(
+          `[GameManager] Timer restored: on=${state.isOn}, seconds=${state.totalSecond}`
+        );
       },
 
       // === 新增: 脚本显示地图坐标、水波效果、并行脚本 ===
@@ -764,6 +773,14 @@ export class GameManager {
   update(deltaTime: number, input: InputState): void {
     if (this.isPaused) return;
 
+    // 调试：追踪帧开始时的玩家状态
+    if (this.player && input.isMouseDown) {
+      // const p = this.player;
+      // logger.debug(
+      //   `[GameManager.update] 帧开始: pathLen=${p.path.length}, destTile=(${p.destinationMoveTilePosition?.x}, ${p.destinationMoveTilePosition?.y}), state=${p.state}, isMouseDown=${input.isMouseDown}`
+      // );
+    }
+
     // Store input for mouse position access in other methods (e.g., magic targeting)
     // C# Reference: Player.cs tracks mouseState for UseMagic destination
     this.inputHandler.setLastInput(input);
@@ -860,6 +877,14 @@ export class GameManager {
       this.player.thew,
       this.player.thewMax
     );
+
+    // 调试：追踪帧结束时的玩家状态
+    if (this.player && input.isMouseDown) {
+      // const p = this.player;
+      // logger.debug(
+      //   `[GameManager.update] 帧结束: pathLen=${p.path.length}, destTile=(${p.destinationMoveTilePosition?.x}, ${p.destinationMoveTilePosition?.y}), state=${p.state}`
+      // );
+    }
   }
 
   // ============= Getters =============
@@ -1128,7 +1153,9 @@ export class GameManager {
     try {
       const key = this.getRuntimeTrapsKey();
       localStorage.setItem(key, JSON.stringify(trapData));
-      logger.log(`[GameManager] SaveMapTrap: saved ${trapData.ignoreList.length} ignored indices, ${Object.keys(trapData.mapTraps || {}).length} map configs to ${key}`);
+      logger.log(
+        `[GameManager] SaveMapTrap: saved ${trapData.ignoreList.length} ignored indices, ${Object.keys(trapData.mapTraps || {}).length} map configs to ${key}`
+      );
     } catch (e) {
       logger.error("[GameManager] SaveMapTrap failed:", e);
     }
@@ -1154,7 +1181,10 @@ export class GameManager {
       const json = localStorage.getItem(key);
       if (!json) return false;
 
-      const trapData = JSON.parse(json) as { ignoreList: number[]; mapTraps?: Record<string, Record<number, string>> };
+      const trapData = JSON.parse(json) as {
+        ignoreList: number[];
+        mapTraps?: Record<string, Record<number, string>>;
+      };
 
       // 使用 MapBase 的方法恢复陷阱数据
       MapBase.Instance.loadTrapsFromSave(trapData.mapTraps, trapData.ignoreList || []);

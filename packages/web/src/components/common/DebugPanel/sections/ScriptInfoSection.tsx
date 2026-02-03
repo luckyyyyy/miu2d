@@ -2,9 +2,9 @@
  * 脚本区块 - 合并当前脚本和脚本历史
  */
 
+import { logger } from "@miu2d/engine/core/logger";
 import type React from "react";
 import { useRef, useState } from "react";
-import { logger } from "@miu2d/engine/core/logger";
 import { DataRow } from "../DataRow";
 import { ScriptCodeView } from "../ScriptCodeView";
 import { Section } from "../Section";

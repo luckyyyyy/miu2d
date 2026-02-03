@@ -5,12 +5,14 @@
  * 渲染逻辑从 GameUI 提取，与 useGameUILogic 配合使用
  */
 
-import type React from "react";
-import { useCallback } from "react";
 import { logger } from "@miu2d/engine/core/logger";
 import { GoodKind } from "@miu2d/engine/player/goods";
+import type { UIEquipSlotName } from "@miu2d/engine/ui/contract";
+import type React from "react";
+import { useCallback } from "react";
 import type { TouchDragData } from "@/contexts";
-import type { GameUILogic, MagicDragData } from "./hooks";
+import type { GameUILogic } from "./hooks";
+import type { EquipSlotType } from "./ui/classic";
 import {
   BottomGui,
   BottomStateGui,
@@ -31,14 +33,12 @@ import {
   SelectionUI,
   StateGui,
   SystemGui,
+  slotTypeToEquipPosition,
   TimerGui,
   TopGui,
   VideoPlayer,
   XiuLianGui,
-  slotTypeToEquipPosition,
 } from "./ui/classic";
-import type { DragData, EquipSlotType } from "./ui/classic";
-import type { UIEquipSlotName } from "@miu2d/engine/ui/contract";
 
 interface ClassicGameUIProps {
   logic: GameUILogic;
@@ -136,10 +136,20 @@ export const ClassicGameUI: React.FC<ClassicGameUIProps> = ({ logic, width, heig
         if (targetIndex >= 3) {
           const targetBottomSlot = targetIndex - 3;
           if (touchData.storeIndex !== undefined) {
-            dispatch({ type: "ASSIGN_MAGIC_TO_BOTTOM", magicIndex: touchData.storeIndex, bottomSlot: targetBottomSlot });
+            dispatch({
+              type: "ASSIGN_MAGIC_TO_BOTTOM",
+              magicIndex: touchData.storeIndex,
+              bottomSlot: targetBottomSlot,
+            });
           } else if (touchData.bottomSlot !== undefined) {
-            const fromListIndex = engine?.getGameManager()?.getMagicListManager()?.bottomIndexToListIndex(touchData.bottomSlot - 3);
-            const toListIndex = engine?.getGameManager()?.getMagicListManager()?.bottomIndexToListIndex(targetBottomSlot);
+            const fromListIndex = engine
+              ?.getGameManager()
+              ?.getMagicListManager()
+              ?.bottomIndexToListIndex(touchData.bottomSlot - 3);
+            const toListIndex = engine
+              ?.getGameManager()
+              ?.getMagicListManager()
+              ?.bottomIndexToListIndex(targetBottomSlot);
             if (fromListIndex !== undefined && toListIndex !== undefined) {
               dispatch({ type: "SWAP_MAGIC", fromIndex: fromListIndex, toIndex: toListIndex });
             }
@@ -153,9 +163,17 @@ export const ClassicGameUI: React.FC<ClassicGameUIProps> = ({ logic, width, heig
   const handleEquipTouchDrop = useCallback(
     (slot: EquipSlotType, touchData: TouchDragData) => {
       if (touchData.type === "goods" && touchData.bagIndex !== undefined) {
-        dispatch({ type: "EQUIP_ITEM", fromIndex: touchData.bagIndex, toSlot: equipSlotToUISlot(slot) });
+        dispatch({
+          type: "EQUIP_ITEM",
+          fromIndex: touchData.bagIndex,
+          toSlot: equipSlotToUISlot(slot),
+        });
       } else if (touchData.type === "equip" && touchData.equipSlot) {
-        dispatch({ type: "SWAP_EQUIP_SLOTS", fromSlot: equipSlotToUISlot(touchData.equipSlot as EquipSlotType), toSlot: equipSlotToUISlot(slot) });
+        dispatch({
+          type: "SWAP_EQUIP_SLOTS",
+          fromSlot: equipSlotToUISlot(touchData.equipSlot as EquipSlotType),
+          toSlot: equipSlotToUISlot(slot),
+        });
       }
     },
     [dispatch]
@@ -179,9 +197,16 @@ export const ClassicGameUI: React.FC<ClassicGameUIProps> = ({ logic, width, heig
   const handleMagicTouchDrop = useCallback(
     (targetStoreIndex: number, touchData: TouchDragData) => {
       if (touchData.type === "magic" && touchData.storeIndex !== undefined) {
-        dispatch({ type: "SWAP_MAGIC", fromIndex: touchData.storeIndex, toIndex: targetStoreIndex });
+        dispatch({
+          type: "SWAP_MAGIC",
+          fromIndex: touchData.storeIndex,
+          toIndex: targetStoreIndex,
+        });
       } else if (touchData.type === "magic" && touchData.bottomSlot !== undefined) {
-        const fromListIndex = engine?.getGameManager()?.getMagicListManager()?.bottomIndexToListIndex(touchData.bottomSlot - 3);
+        const fromListIndex = engine
+          ?.getGameManager()
+          ?.getMagicListManager()
+          ?.bottomIndexToListIndex(touchData.bottomSlot - 3);
         if (fromListIndex !== undefined) {
           dispatch({ type: "SWAP_MAGIC", fromIndex: fromListIndex, toIndex: targetStoreIndex });
         }
@@ -194,10 +219,17 @@ export const ClassicGameUI: React.FC<ClassicGameUIProps> = ({ logic, width, heig
     (touchData: TouchDragData) => {
       const xiuLianIndex = 49;
       if (touchData.type === "magic") {
-        if (touchData.storeIndex !== undefined && touchData.storeIndex > 0 && touchData.storeIndex !== xiuLianIndex) {
+        if (
+          touchData.storeIndex !== undefined &&
+          touchData.storeIndex > 0 &&
+          touchData.storeIndex !== xiuLianIndex
+        ) {
           dispatch({ type: "SWAP_MAGIC", fromIndex: touchData.storeIndex, toIndex: xiuLianIndex });
         } else if (touchData.bottomSlot !== undefined) {
-          const fromListIndex = engine?.getGameManager()?.getMagicListManager()?.bottomIndexToListIndex(touchData.bottomSlot - 3);
+          const fromListIndex = engine
+            ?.getGameManager()
+            ?.getMagicListManager()
+            ?.bottomIndexToListIndex(touchData.bottomSlot - 3);
           if (fromListIndex !== undefined) {
             dispatch({ type: "SWAP_MAGIC", fromIndex: fromListIndex, toIndex: xiuLianIndex });
           }
@@ -227,7 +259,7 @@ export const ClassicGameUI: React.FC<ClassicGameUIProps> = ({ logic, width, heig
       {partnersData.length > 0 && (
         <LittleHeadGui
           partners={partnersData}
-          onPartnerClick={(index, partner) => {
+          onPartnerClick={(_index, partner) => {
             if (partner.canEquip) {
               // TODO: 打开 NPC 装备界面
               logger.debug(`[ClassicGameUI] Partner clicked: ${partner.name}`);
@@ -450,7 +482,9 @@ export const ClassicGameUI: React.FC<ClassicGameUIProps> = ({ logic, width, heig
           magicInfos={magicData.storeMagics}
           screenWidth={width}
           onMagicClick={(storeIndex) => logger.log("Magic clicked:", storeIndex)}
-          onMagicRightClick={(storeIndex) => dispatch({ type: "SET_CURRENT_MAGIC", magicIndex: storeIndex })}
+          onMagicRightClick={(storeIndex) =>
+            dispatch({ type: "SET_CURRENT_MAGIC", magicIndex: storeIndex })
+          }
           onClose={() => togglePanel("magic")}
           onDragStart={handleMagicDragStart}
           onDragEnd={handleMagicDragEnd}

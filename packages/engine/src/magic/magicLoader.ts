@@ -28,9 +28,10 @@
  * clearMagicCache()              - 清除缓存
  */
 
+import { ResourcePath } from "../config/resourcePaths";
 import { logger } from "../core/logger";
 import { resourceLoader } from "../resource/resourceLoader";
-import { ResourcePath } from "../config/resourcePaths";
+import { magicRenderer } from "./magicRenderer";
 import {
   createDefaultMagicData,
   type MagicData,
@@ -39,7 +40,6 @@ import {
   RestorePropertyType,
   SideEffectDamageType,
 } from "./types";
-import { magicRenderer } from "./magicRenderer";
 
 // ============= 内部类型 =============
 

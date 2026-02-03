@@ -4,14 +4,10 @@
  */
 
 import {
+  defaultEditorCharacterConfig,
   type EditorCharacterConfig,
   type NpcResConfig,
   type NpcResStateInfo,
-  defaultEditorCharacterConfig,
-  CharacterKind,
-  RelationType,
-  AIType,
-  DeathUseMagicDirection,
 } from "../types/character";
 
 /**
@@ -19,9 +15,7 @@ import {
  * @param content INI 文件内容
  * @returns 解析后的键值对映射，按 section 分组
  */
-export function parseIniContent(
-  content: string
-): Record<string, Record<string, string>> {
+export function parseIniContent(content: string): Record<string, Record<string, string>> {
   const result: Record<string, Record<string, string>> = {};
   let currentSection = "INIT"; // 默认 section
 
@@ -198,7 +192,7 @@ const numberFields: Set<keyof EditorCharacterConfig> = new Set([
  */
 export function parseCharacterIni(content: string): EditorCharacterConfig {
   const sections = parseIniContent(content);
-  const initSection = sections["INIT"] || sections["Init"] || sections["init"] || {};
+  const initSection = sections.INIT || sections.Init || sections.init || {};
 
   const config: EditorCharacterConfig = { ...defaultEditorCharacterConfig };
 
@@ -257,8 +251,8 @@ export function parseNpcResIni(content: string): NpcResConfig {
     const section = sections[stateName];
     if (section) {
       const stateInfo: NpcResStateInfo = {
-        image: section["Image"] || section["image"] || "",
-        sound: section["Sound"] || section["sound"] || "",
+        image: section.Image || section.image || "",
+        sound: section.Sound || section.sound || "",
       };
       config[stateName] = stateInfo;
     }

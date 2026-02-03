@@ -11,15 +11,26 @@
  * - 支持移动端：虚拟摇杆 + 技能按钮（类似王者荣耀）
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "react-router-dom";
-import type { GameHandle } from "../components";
-import { DebugPanel, Game, GameCursor, MobileControls, SaveLoadGui, SaveLoadPanel, SettingsPanel, TitleGui, TouchDragIndicator, loadUITheme } from "../components";
-import type { UITheme } from "../components/game/ui";
-import { TouchDragProvider } from "../contexts";
 import { logger } from "@miu2d/engine/core/logger";
 import { GameEngine } from "@miu2d/engine/game/gameEngine";
 import { resourceLoader } from "@miu2d/engine/resource/resourceLoader";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import type { GameHandle } from "../components";
+import {
+  DebugPanel,
+  Game,
+  GameCursor,
+  loadUITheme,
+  MobileControls,
+  SaveLoadGui,
+  SaveLoadPanel,
+  SettingsPanel,
+  TitleGui,
+  TouchDragIndicator,
+} from "../components";
+import type { UITheme } from "../components/game/ui";
+import { TouchDragProvider } from "../contexts";
 import { useMobile } from "../hooks";
 
 // 侧边栏宽度常量
@@ -448,36 +459,36 @@ export default function GameScreen() {
                 <div onClick={(e) => e.stopPropagation()}>
                   <SaveLoadGui
                     isVisible={true}
-                  screenWidth={window.innerWidth}
-                  screenHeight={window.innerHeight}
-                  canSave={false}
-                  onSave={async () => false}
-                  onLoad={handleTitleLoadSlot}
-                  onClose={() => setShowTitleLoadModal(false)}
-                />
+                    screenWidth={window.innerWidth}
+                    screenHeight={window.innerHeight}
+                    canSave={false}
+                    onSave={async () => false}
+                    onLoad={handleTitleLoadSlot}
+                    onClose={() => setShowTitleLoadModal(false)}
+                  />
+                </div>
               </div>
-            </div>
-          )}
+            )}
           </div>
-      )}
+        )}
 
-      {/* 游戏界面 */}
-      {gamePhase === "playing" && (
-        <>
-          {/* 左侧图标菜单栏 - 移动端隐藏 */}
-          {!isMobile && (
-          <div className="w-12 bg-[#1a1a2e] flex flex-col items-center py-2 gap-1 border-r border-gray-700/50 z-10">
-            {sidebarButtons.map((btn) => (
-              <button
-                key={btn.id}
-                onClick={() => {
-                  if ("action" in btn && btn.action) {
-                    btn.action();
-                  } else {
-                    togglePanel(btn.id as ActivePanel);
-                  }
-                }}
-                className={`
+        {/* 游戏界面 */}
+        {gamePhase === "playing" && (
+          <>
+            {/* 左侧图标菜单栏 - 移动端隐藏 */}
+            {!isMobile && (
+              <div className="w-12 bg-[#1a1a2e] flex flex-col items-center py-2 gap-1 border-r border-gray-700/50 z-10">
+                {sidebarButtons.map((btn) => (
+                  <button
+                    key={btn.id}
+                    onClick={() => {
+                      if ("action" in btn && btn.action) {
+                        btn.action();
+                      } else {
+                        togglePanel(btn.id as ActivePanel);
+                      }
+                    }}
+                    className={`
                   w-10 h-10 flex items-center justify-center rounded-lg text-xl
                   transition-all duration-200 relative group
                   ${
@@ -486,193 +497,197 @@ export default function GameScreen() {
                       : "bg-transparent text-gray-400 hover:bg-gray-700/50 hover:text-white"
                   }
                 `}
-                title={btn.tooltip}
-              >
-                {btn.icon}
-                {/* Tooltip */}
-                <span
-                  className="
+                    title={btn.tooltip}
+                  >
+                    {btn.icon}
+                    {/* Tooltip */}
+                    <span
+                      className="
                   absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-xs
                   rounded whitespace-nowrap opacity-0 pointer-events-none
                   group-hover:opacity-100 transition-opacity z-50
                 "
-                >
-                  {btn.tooltip}
-                </span>
-              </button>
-            ))}
+                    >
+                      {btn.tooltip}
+                    </span>
+                  </button>
+                ))}
 
-            {/* 底部填充区域 */}
-            <div className="flex-1" />
+                {/* 底部填充区域 */}
+                <div className="flex-1" />
 
-            {/* GitHub 按钮固定在底部 */}
-            <a
-              href="https://github.com/luckyyyyy/JXQY-WEB"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="
+                {/* GitHub 按钮固定在底部 */}
+                <a
+                  href="https://github.com/luckyyyyy/JXQY-WEB"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="
                 w-10 h-10 flex items-center justify-center rounded-lg
                 transition-all duration-200 relative group
                 bg-transparent text-gray-400 hover:bg-gray-700/50 hover:text-white
               "
-              title="GitHub"
-            >
-              <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
-                <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
-              </svg>
-              {/* Tooltip */}
-              <span
-                className="
+                  title="GitHub"
+                >
+                  <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
+                  </svg>
+                  {/* Tooltip */}
+                  <span
+                    className="
                 absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-xs
                 rounded whitespace-nowrap opacity-0 pointer-events-none
                 group-hover:opacity-100 transition-opacity z-50
               "
-              >
-                GitHub
-              </span>
-            </a>
-          </div>
-          )}
-
-          {/* 展开的面板区域 - 移动端隐藏 */}
-          {!isMobile && activePanel !== "none" && (
-            <div
-              className="border-r border-gray-700/50 flex-shrink-0 relative"
-              style={
-                {
-                  width: panelWidth,
-                  height: "100%",
-                  "--panel-width": `${panelWidth}px`,
-                } as React.CSSProperties
-              }
-            >
-              {/* 调试面板 */}
-              {activePanel === "debug" && (
-                <div className="h-full bg-[#0d0d1a] overflow-y-auto">
-                  <DebugPanel
-                    onClose={() => setActivePanel("none")}
-                    isGodMode={debugManager?.isGodMode() ?? false}
-                    playerStats={debugManager?.getPlayerStats() ?? undefined}
-                    playerPosition={debugManager?.getPlayerPosition() ?? undefined}
-                    loadedResources={debugManager?.getLoadedResources() ?? undefined}
-                    resourceStats={resourceLoader.getStats()}
-                    performanceStats={getEngine()?.getPerformanceStats()}
-                    gameVariables={debugManager?.getGameVariables()}
-                    xiuLianMagic={debugManager?.getXiuLianMagic() ?? undefined}
-                    triggeredTrapIds={debugManager?.getTriggeredTrapIds()}
-                    currentScriptInfo={debugManager?.getCurrentScriptInfo() ?? undefined}
-                    scriptHistory={debugManager?.getScriptHistory()}
-                    onFullAll={() => debugManager?.fullAll()}
-                    onSetLevel={(level) => debugManager?.setLevel(level)}
-                    onAddMoney={(amount) => debugManager?.addMoney(amount)}
-                    onToggleGodMode={() => debugManager?.toggleGodMode()}
-                    onReduceLife={() => debugManager?.reduceLife()}
-                    onKillAllEnemies={() => debugManager?.killAllEnemies()}
-                    onExecuteScript={async (script) => {
-                      // 在回调时重新获取 debugManager，避免闭包捕获到 undefined
-                      const dm = getDebugManager();
-                      if (!dm) return "DebugManager not initialized";
-                      return await dm.executeScript(script);
-                    }}
-                    onAddItem={async (itemFile) => {
-                      await getDebugManager()?.addItem(itemFile);
-                    }}
-                    onAddMagic={async (magicFile) => {
-                      await getDebugManager()?.addMagic(magicFile);
-                    }}
-                    onAddAllMagics={async () => {
-                      await getDebugManager()?.addAllMagics();
-                    }}
-                    onXiuLianLevelUp={() => getDebugManager()?.xiuLianLevelUp()}
-                    onXiuLianLevelDown={() => getDebugManager()?.xiuLianLevelDown()}
-                  />
-                </div>
-              )}
-
-              {/* 存档/读档面板 */}
-              {activePanel === "saveload" && (
-                <SaveLoadPanel
-                  onSave={handleSave}
-                  onLoad={handleLoad}
-                  onClose={() => setActivePanel("none")}
-                />
-              )}
-
-              {/* 设置面板 */}
-              {activePanel === "settings" && (
-                <SettingsPanel
-                  getMusicVolume={getMusicVolume}
-                  setMusicVolume={setMusicVolume}
-                  getSoundVolume={getSoundVolume}
-                  setSoundVolume={setSoundVolume}
-                  getAmbientVolume={getAmbientVolume}
-                  setAmbientVolume={setAmbientVolume}
-                  isAutoplayAllowed={isAutoplayAllowed}
-                  requestAutoplayPermission={requestAutoplayPermission}
-                  currentResolution={gameResolution}
-                  setResolution={handleSetResolution}
-                  currentTheme={uiTheme}
-                  setTheme={setUITheme}
-                  onClose={() => setActivePanel("none")}
-                />
-              )}
-
-              {/* 拖拽调整宽度手柄 */}
-              <div
-                className="absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-blue-500/50 active:bg-blue-500/70 z-20"
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  setIsResizing(true);
-                }}
-              />
-            </div>
-          )}
-
-          {/* Game Area */}
-          <div
-            ref={gameAreaRef}
-            className={`flex-1 flex items-center justify-center relative bg-black ${isMobile ? 'overflow-hidden' : ''}`}
-          >
-            {/* 游戏光标 - 在游戏区域内 */}
-            {!isMobile && <GameCursor enabled={true} containerRef={gameAreaRef} />}
-            
-            {/* 移动端：应用缩放 */}
-            <div
-              style={isMobile ? {
-                transform: `scale(${windowSize.scale})`,
-                transformOrigin: 'center center',
-                width: windowSize.width,
-                height: windowSize.height,
-              } : undefined}
-            >
-              <Game
-                ref={gameRef}
-                width={windowSize.width}
-                height={windowSize.height}
-                loadSlot={loadSlot}
-                onReturnToTitle={handleReturnToTitle}
-                uiTheme={uiTheme}
-              />
-            </div>
-
-            {/* 移动端控制层 */}
-            {isMobile && gamePhase === "playing" && (
-              <MobileControls
-                engine={getEngine() ?? null}
-                canvasSize={{ width: windowSize.width, height: windowSize.height }}
-                scale={windowSize.scale}
-                onOpenMenu={() => {
-                  // 移动端打开菜单可以返回标题
-                  handleReturnToTitle();
-                }}
-              />
+                  >
+                    GitHub
+                  </span>
+                </a>
+              </div>
             )}
 
-            {/* 触摸拖拽指示器（移动端） */}
-            {isMobile && <TouchDragIndicator />}
-          </div>
-        </>
-      )}
+            {/* 展开的面板区域 - 移动端隐藏 */}
+            {!isMobile && activePanel !== "none" && (
+              <div
+                className="border-r border-gray-700/50 flex-shrink-0 relative"
+                style={
+                  {
+                    width: panelWidth,
+                    height: "100%",
+                    "--panel-width": `${panelWidth}px`,
+                  } as React.CSSProperties
+                }
+              >
+                {/* 调试面板 */}
+                {activePanel === "debug" && (
+                  <div className="h-full bg-[#0d0d1a] overflow-y-auto">
+                    <DebugPanel
+                      onClose={() => setActivePanel("none")}
+                      isGodMode={debugManager?.isGodMode() ?? false}
+                      playerStats={debugManager?.getPlayerStats() ?? undefined}
+                      playerPosition={debugManager?.getPlayerPosition() ?? undefined}
+                      loadedResources={debugManager?.getLoadedResources() ?? undefined}
+                      resourceStats={resourceLoader.getStats()}
+                      performanceStats={getEngine()?.getPerformanceStats()}
+                      gameVariables={debugManager?.getGameVariables()}
+                      xiuLianMagic={debugManager?.getXiuLianMagic() ?? undefined}
+                      triggeredTrapIds={debugManager?.getTriggeredTrapIds()}
+                      currentScriptInfo={debugManager?.getCurrentScriptInfo() ?? undefined}
+                      scriptHistory={debugManager?.getScriptHistory()}
+                      onFullAll={() => debugManager?.fullAll()}
+                      onSetLevel={(level) => debugManager?.setLevel(level)}
+                      onAddMoney={(amount) => debugManager?.addMoney(amount)}
+                      onToggleGodMode={() => debugManager?.toggleGodMode()}
+                      onReduceLife={() => debugManager?.reduceLife()}
+                      onKillAllEnemies={() => debugManager?.killAllEnemies()}
+                      onExecuteScript={async (script) => {
+                        // 在回调时重新获取 debugManager，避免闭包捕获到 undefined
+                        const dm = getDebugManager();
+                        if (!dm) return "DebugManager not initialized";
+                        return await dm.executeScript(script);
+                      }}
+                      onAddItem={async (itemFile) => {
+                        await getDebugManager()?.addItem(itemFile);
+                      }}
+                      onAddMagic={async (magicFile) => {
+                        await getDebugManager()?.addMagic(magicFile);
+                      }}
+                      onAddAllMagics={async () => {
+                        await getDebugManager()?.addAllMagics();
+                      }}
+                      onXiuLianLevelUp={() => getDebugManager()?.xiuLianLevelUp()}
+                      onXiuLianLevelDown={() => getDebugManager()?.xiuLianLevelDown()}
+                    />
+                  </div>
+                )}
+
+                {/* 存档/读档面板 */}
+                {activePanel === "saveload" && (
+                  <SaveLoadPanel
+                    onSave={handleSave}
+                    onLoad={handleLoad}
+                    onClose={() => setActivePanel("none")}
+                  />
+                )}
+
+                {/* 设置面板 */}
+                {activePanel === "settings" && (
+                  <SettingsPanel
+                    getMusicVolume={getMusicVolume}
+                    setMusicVolume={setMusicVolume}
+                    getSoundVolume={getSoundVolume}
+                    setSoundVolume={setSoundVolume}
+                    getAmbientVolume={getAmbientVolume}
+                    setAmbientVolume={setAmbientVolume}
+                    isAutoplayAllowed={isAutoplayAllowed}
+                    requestAutoplayPermission={requestAutoplayPermission}
+                    currentResolution={gameResolution}
+                    setResolution={handleSetResolution}
+                    currentTheme={uiTheme}
+                    setTheme={setUITheme}
+                    onClose={() => setActivePanel("none")}
+                  />
+                )}
+
+                {/* 拖拽调整宽度手柄 */}
+                <div
+                  className="absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-blue-500/50 active:bg-blue-500/70 z-20"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    setIsResizing(true);
+                  }}
+                />
+              </div>
+            )}
+
+            {/* Game Area */}
+            <div
+              ref={gameAreaRef}
+              className={`flex-1 flex items-center justify-center relative bg-black ${isMobile ? "overflow-hidden" : ""}`}
+            >
+              {/* 游戏光标 - 在游戏区域内 */}
+              {!isMobile && <GameCursor enabled={true} containerRef={gameAreaRef} />}
+
+              {/* 移动端：应用缩放 */}
+              <div
+                style={
+                  isMobile
+                    ? {
+                        transform: `scale(${windowSize.scale})`,
+                        transformOrigin: "center center",
+                        width: windowSize.width,
+                        height: windowSize.height,
+                      }
+                    : undefined
+                }
+              >
+                <Game
+                  ref={gameRef}
+                  width={windowSize.width}
+                  height={windowSize.height}
+                  loadSlot={loadSlot}
+                  onReturnToTitle={handleReturnToTitle}
+                  uiTheme={uiTheme}
+                />
+              </div>
+
+              {/* 移动端控制层 */}
+              {isMobile && gamePhase === "playing" && (
+                <MobileControls
+                  engine={getEngine() ?? null}
+                  canvasSize={{ width: windowSize.width, height: windowSize.height }}
+                  scale={windowSize.scale}
+                  onOpenMenu={() => {
+                    // 移动端打开菜单可以返回标题
+                    handleReturnToTitle();
+                  }}
+                />
+              )}
+
+              {/* 触摸拖拽指示器（移动端） */}
+              {isMobile && <TouchDragIndicator />}
+            </div>
+          </>
+        )}
       </div>
     </TouchDragProvider>
   );

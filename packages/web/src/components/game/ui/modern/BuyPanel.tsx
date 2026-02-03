@@ -2,11 +2,12 @@
  * Modern BuyPanel - 商店购买面板
  * Props 与经典 BuyGui 完全一致
  */
+
+import type { Good } from "@miu2d/engine/player/goods";
 import type React from "react";
 import { useCallback, useMemo, useState } from "react";
-import type { Good } from "@miu2d/engine/player/goods";
 import { useAsfImage } from "../classic/hooks";
-import { GlassButton, PanelHeader } from "./components";
+import { PanelHeader } from "./components";
 import { borderRadius, glassEffect, modernColors, spacing, typography } from "./theme";
 
 // 商店物品数据（与经典 UI 一致）
@@ -344,7 +345,8 @@ export const BuyPanel: React.FC<BuyPanelProps> = ({
             ▲
           </button>
           <span style={{ fontSize: typography.fontSize.xs, color: modernColors.text.muted }}>
-            {scrollOffset + 1} - {Math.min(scrollOffset + itemsPerPage, items.length)} / {items.length}
+            {scrollOffset + 1} - {Math.min(scrollOffset + itemsPerPage, items.length)} /{" "}
+            {items.length}
           </span>
           <button
             type="button"
@@ -353,7 +355,8 @@ export const BuyPanel: React.FC<BuyPanelProps> = ({
             style={{
               background: "none",
               border: "none",
-              color: scrollOffset >= maxScroll ? modernColors.text.muted : modernColors.text.primary,
+              color:
+                scrollOffset >= maxScroll ? modernColors.text.muted : modernColors.text.primary,
               cursor: scrollOffset >= maxScroll ? "not-allowed" : "pointer",
               fontSize: typography.fontSize.md,
             }}

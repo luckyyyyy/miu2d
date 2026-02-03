@@ -4,7 +4,7 @@
  */
 import type React from "react";
 import { useMemo, useState } from "react";
-import { GlassPanel, PanelHeader, GlassButton, Divider } from "./components";
+import { Divider, PanelHeader } from "./components";
 import { borderRadius, glassEffect, modernColors, spacing, typography } from "./theme";
 
 interface SystemPanelProps {
@@ -45,8 +45,8 @@ const MenuButton: React.FC<MenuButtonProps> = ({ icon, label, onClick, color }) 
         background: isPressed
           ? "rgba(255, 255, 255, 0.2)"
           : isHovered
-          ? "rgba(255, 255, 255, 0.1)"
-          : "rgba(0, 0, 0, 0.2)",
+            ? "rgba(255, 255, 255, 0.1)"
+            : "rgba(0, 0, 0, 0.2)",
         border: `1px solid ${isHovered ? modernColors.border.glassLight : modernColors.border.glass}`,
         borderRadius: borderRadius.md,
         cursor: "pointer",
@@ -122,12 +122,7 @@ export const SystemPanel: React.FC<SystemPanelProps> = ({
 
         <Divider />
 
-        <MenuButton
-          icon="🚪"
-          label="退出游戏"
-          onClick={onExit}
-          color={modernColors.stats.hp}
-        />
+        <MenuButton icon="🚪" label="退出游戏" onClick={onExit} color={modernColors.stats.hp} />
       </div>
     </div>
   );

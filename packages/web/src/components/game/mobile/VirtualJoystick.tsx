@@ -5,8 +5,8 @@
  * 支持8个方向的移动
  */
 
-import { useCallback, useEffect, useRef, useState } from "react";
 import { Direction } from "@miu2d/engine/core/types";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 export interface VirtualJoystickProps {
   /** 摇杆大小 */
@@ -153,9 +153,7 @@ export function VirtualJoystick({
       if (touchIdRef.current === null) return;
 
       // 找到属于这个摇杆的触摸点
-      const touch = Array.from(e.touches).find(
-        (t) => t.identifier === touchIdRef.current
-      );
+      const touch = Array.from(e.touches).find((t) => t.identifier === touchIdRef.current);
       if (touch) {
         // 阻止默认行为，但只针对这个触摸点关联的事件
         e.preventDefault();
@@ -167,9 +165,7 @@ export function VirtualJoystick({
       if (touchIdRef.current === null) return;
 
       // 找到结束的触摸点
-      const touch = Array.from(e.changedTouches).find(
-        (t) => t.identifier === touchIdRef.current
-      );
+      const touch = Array.from(e.changedTouches).find((t) => t.identifier === touchIdRef.current);
       if (touch) {
         touchIdRef.current = null;
         setIsActive(false);

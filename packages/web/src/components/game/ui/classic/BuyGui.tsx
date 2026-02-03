@@ -16,9 +16,10 @@
  * IniFile=Goods-xxx.ini
  * Number=1
  */
+
+import type { Good } from "@miu2d/engine/player/goods";
 import type React from "react";
 import { useCallback, useMemo, useState } from "react";
-import type { Good } from "@miu2d/engine/player/goods";
 import { AsfAnimatedSprite } from "./AsfAnimatedSprite";
 import { useAsfImage } from "./hooks";
 import { ScrollBar } from "./ScrollBar";
@@ -274,11 +275,7 @@ export const BuyGui: React.FC<BuyGuiProps> = ({
         }}
         onClick={onClose}
       >
-        <AsfAnimatedSprite
-          path={config.closeBtn.image}
-          autoPlay={false}
-          loop={false}
-        />
+        <AsfAnimatedSprite path={config.closeBtn.image} autoPlay={false} loop={false} />
       </div>
     </div>
   );

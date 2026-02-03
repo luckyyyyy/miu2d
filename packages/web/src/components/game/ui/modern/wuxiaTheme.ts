@@ -60,7 +60,7 @@ export const wuxiaBottomBorder: React.CSSProperties = {
 };
 
 // 分类标题样式
-export const wuxiaSectionTitle = (title: string): React.CSSProperties => ({
+export const wuxiaSectionTitle = (_title: string): React.CSSProperties => ({
   fontSize: 12,
   color: wuxiaColors.textDim,
   marginBottom: 10,

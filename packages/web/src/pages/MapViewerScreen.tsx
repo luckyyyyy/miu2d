@@ -1,8 +1,8 @@
+import { MAPS } from "@miu2d/engine/constants/maps";
 import { motion } from "framer-motion";
 import { useCallback, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { MapViewer } from "../components";
-import { MAPS } from "@miu2d/engine/constants/maps";
 
 // Icons as simple SVG components
 const ArrowLeftIcon = () => (

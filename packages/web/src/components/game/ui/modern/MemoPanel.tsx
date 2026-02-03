@@ -3,8 +3,8 @@
  * 位置与经典UI一致
  */
 import type React from "react";
-import { useMemo, useState, useCallback } from "react";
-import { GlassPanel, PanelHeader, ScrollArea, Divider } from "./components";
+import { useCallback, useMemo, useState } from "react";
+import { PanelHeader } from "./components";
 import { borderRadius, glassEffect, modernColors, spacing, typography } from "./theme";
 
 interface MemoPanelProps {
@@ -14,12 +14,7 @@ interface MemoPanelProps {
   onClose: () => void;
 }
 
-export const MemoPanel: React.FC<MemoPanelProps> = ({
-  isVisible,
-  memos,
-  screenWidth,
-  onClose,
-}) => {
+export const MemoPanel: React.FC<MemoPanelProps> = ({ isVisible, memos, screenWidth, onClose }) => {
   const [scrollOffset, setScrollOffset] = useState(0);
   const panelWidth = 300;
   const panelHeight = 350;
@@ -111,7 +106,8 @@ export const MemoPanel: React.FC<MemoPanelProps> = ({
             borderTop: `1px solid ${modernColors.border.glass}`,
           }}
         >
-          {scrollOffset + 1} - {Math.min(scrollOffset + linesPerPage, memos.length)} / {memos.length}
+          {scrollOffset + 1} - {Math.min(scrollOffset + linesPerPage, memos.length)} /{" "}
+          {memos.length}
         </div>
       )}
     </div>

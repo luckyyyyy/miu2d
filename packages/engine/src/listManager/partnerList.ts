@@ -59,7 +59,7 @@ class PartnerListManager {
       const value = line.substring(eqIdx + 1).trim();
 
       const index = parseInt(key, 10);
-      if (!isNaN(index)) {
+      if (!Number.isNaN(index)) {
         this.list.set(index, value);
       }
     }

@@ -8,11 +8,10 @@
  */
 
 import type { AudioManager } from "../../audio";
-import type { Npc } from "../../npc";
-import type { NpcManager } from "../../npc";
 import type { Vector2 } from "../../core/types";
 import type { ScreenEffects } from "../../effects";
 import type { GuiManager } from "../../gui/guiManager";
+import type { Npc, NpcManager } from "../../npc";
 import type { Player } from "../../player/player";
 import type { MagicSprite } from "../magicSprite";
 import type { MagicData } from "../types";

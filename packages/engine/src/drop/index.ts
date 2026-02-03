@@ -3,5 +3,5 @@
  * 导出掉落相关的功能
  */
 
-export { getDropObj, GoodType } from "./goodDrop";
 export type { DropCharacter } from "./goodDrop";
+export { GoodType, getDropObj } from "./goodDrop";

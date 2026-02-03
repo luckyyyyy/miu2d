@@ -2,8 +2,8 @@
  * 修炼武功区块
  */
 
-import type React from "react";
 import type { MagicItemInfo } from "@miu2d/engine/magic";
+import type React from "react";
 import { btnClass } from "../constants";
 import { Section } from "../Section";
 

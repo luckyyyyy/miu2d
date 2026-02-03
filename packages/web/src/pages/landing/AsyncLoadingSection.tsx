@@ -7,13 +7,31 @@
  * - 按需加载的技术优势（2GB 资源只需 5MB 即可开始）
  */
 
-import React from "react";
 import { motion } from "framer-motion";
+import React from "react";
 import { useTranslation } from "react-i18next";
-import { FaWindows, FaApple, FaLinux, FaMobileAlt, FaSteam, FaAndroid, FaCompactDisc, FaGlobe, FaBolt, FaCube, FaSyncAlt, FaHdd } from "react-icons/fa";
+import {
+  FaAndroid,
+  FaApple,
+  FaBolt,
+  FaCompactDisc,
+  FaCube,
+  FaGlobe,
+  FaHdd,
+  FaLinux,
+  FaMobileAlt,
+  FaSteam,
+  FaSyncAlt,
+  FaWindows,
+} from "react-icons/fa";
 
 // 平台图标组件
-function PlatformIcon({ icon, label, supported, delay = 0 }: {
+function _PlatformIcon({
+  icon,
+  label,
+  supported,
+  delay = 0,
+}: {
   icon: React.ReactNode;
   label: string;
   supported: boolean;
@@ -31,10 +49,16 @@ function PlatformIcon({ icon, label, supported, delay = 0 }: {
       transition={{ delay, duration: 0.5 }}
       viewport={{ once: true }}
     >
-      <span className={`text-2xl ${supported ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}`}>{icon}</span>
-      <span className={`text-xs font-medium ${
-        supported ? "text-emerald-700 dark:text-emerald-300" : "text-red-700 dark:text-red-300"
-      }`}>
+      <span
+        className={`text-2xl ${supported ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}`}
+      >
+        {icon}
+      </span>
+      <span
+        className={`text-xs font-medium ${
+          supported ? "text-emerald-700 dark:text-emerald-300" : "text-red-700 dark:text-red-300"
+        }`}
+      >
         {label}
       </span>
       <span className="text-lg">{supported ? "✓" : "✗"}</span>
@@ -57,7 +81,7 @@ function LegacyClientDemo() {
 
   React.useEffect(() => {
     const interval = setInterval(() => {
-      setErrorIndex(prev => (prev + 1) % errors.length);
+      setErrorIndex((prev) => (prev + 1) % errors.length);
     }, 2500);
     return () => clearInterval(interval);
   }, []);
@@ -106,8 +130,12 @@ function LegacyClientDemo() {
                       </span>
                     </div>
                     <div className="flex gap-0.5">
-                      <div className="w-3 h-3 bg-[#c4c4c4] rounded-sm border border-white/50 flex items-center justify-center text-[8px]">_</div>
-                      <div className="w-3 h-3 bg-red-500 rounded-sm border border-white/50 flex items-center justify-center text-[8px] text-white">✕</div>
+                      <div className="w-3 h-3 bg-[#c4c4c4] rounded-sm border border-white/50 flex items-center justify-center text-[8px]">
+                        _
+                      </div>
+                      <div className="w-3 h-3 bg-red-500 rounded-sm border border-white/50 flex items-center justify-center text-[8px] text-white">
+                        ✕
+                      </div>
                     </div>
                   </div>
                   {/* 错误内容 */}
@@ -208,7 +236,9 @@ function WebVersionDemo() {
                 animate={{ opacity: [1, 0.5, 1] }}
                 transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY }}
               />
-              <span className="text-[10px] text-white font-medium">{t("asyncLoading.demo.playing")}</span>
+              <span className="text-[10px] text-white font-medium">
+                {t("asyncLoading.demo.playing")}
+              </span>
             </motion.div>
           </div>
         </div>
@@ -231,16 +261,16 @@ function WebVersionDemo() {
 }
 
 // 按需加载数据流演示
-function OnDemandLoadingDemo() {
+function _OnDemandLoadingDemo() {
   const { t } = useTranslation();
   const [loadedChunks, setLoadedChunks] = React.useState<Set<number>>(new Set([0, 1]));
   const [playerPos, setPlayerPos] = React.useState(0);
 
   React.useEffect(() => {
     const interval = setInterval(() => {
-      setPlayerPos(prev => {
+      setPlayerPos((prev) => {
         const next = (prev + 1) % 16;
-        setLoadedChunks(loaded => {
+        setLoadedChunks((loaded) => {
           const newLoaded = new Set(loaded);
           newLoaded.add(next);
           // 加载相邻区块
@@ -258,7 +288,24 @@ function OnDemandLoadingDemo() {
     return () => clearInterval(interval);
   }, []);
 
-  const icons = ["🏠", "🌲", "⛰️", "🏯", "🌊", "🌳", "🗿", "🏰", "🌾", "🌸", "🎋", "⛩️", "🏔️", "🌴", "🎪", "🗼"];
+  const icons = [
+    "🏠",
+    "🌲",
+    "⛰️",
+    "🏯",
+    "🌊",
+    "🌳",
+    "🗿",
+    "🏰",
+    "🌾",
+    "🌸",
+    "🎋",
+    "⛩️",
+    "🏔️",
+    "🌴",
+    "🎪",
+    "🗼",
+  ];
 
   return (
     <div className="max-w-sm mx-auto">
@@ -306,7 +353,9 @@ function OnDemandLoadingDemo() {
       <div className="mt-4 flex justify-center gap-6">
         <div className="text-center">
           <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">2GB</div>
-          <div className="text-xs text-slate-500 dark:text-slate-400">{t("asyncLoading.stats.total")}</div>
+          <div className="text-xs text-slate-500 dark:text-slate-400">
+            {t("asyncLoading.stats.total")}
+          </div>
         </div>
         <div className="text-center">
           <motion.div
@@ -317,13 +366,17 @@ function OnDemandLoadingDemo() {
           >
             {Math.round((loadedChunks.size / 16) * 200)}MB
           </motion.div>
-          <div className="text-xs text-slate-500 dark:text-slate-400">{t("asyncLoading.stats.loaded")}</div>
+          <div className="text-xs text-slate-500 dark:text-slate-400">
+            {t("asyncLoading.stats.loaded")}
+          </div>
         </div>
         <div className="text-center">
           <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
             {100 - Math.round((loadedChunks.size / 16) * 100)}%
           </div>
-          <div className="text-xs text-slate-500 dark:text-slate-400">{t("asyncLoading.stats.saved")}</div>
+          <div className="text-xs text-slate-500 dark:text-slate-400">
+            {t("asyncLoading.stats.saved")}
+          </div>
         </div>
       </div>
     </div>
@@ -403,7 +456,9 @@ export function CrossPlatformSection() {
                       <h4 className="font-bold text-slate-800 dark:text-slate-200">
                         {t("asyncLoading.platforms.legacy")}
                       </h4>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">C++ · DirectX · 2001</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        C++ · DirectX · 2001
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -434,7 +489,9 @@ export function CrossPlatformSection() {
                       <h4 className="font-bold text-slate-800 dark:text-slate-200">
                         {t("asyncLoading.platforms.web")}
                       </h4>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">TypeScript · Canvas · 2024</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        TypeScript · Canvas · 2024
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -517,10 +574,14 @@ export function CrossPlatformSection() {
                   <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                     {/* 指标名称 */}
                     <div className="flex items-center gap-3 sm:w-40 shrink-0">
-                      <div className={`w-9 h-9 rounded-xl bg-${item.color}-500/10 flex items-center justify-center`}>
+                      <div
+                        className={`w-9 h-9 rounded-xl bg-${item.color}-500/10 flex items-center justify-center`}
+                      >
                         {item.icon}
                       </div>
-                      <span className="font-medium text-slate-700 dark:text-slate-300 text-sm">{item.label}</span>
+                      <span className="font-medium text-slate-700 dark:text-slate-300 text-sm">
+                        {item.label}
+                      </span>
                     </div>
 
                     {/* 对比条 */}
@@ -528,14 +589,18 @@ export function CrossPlatformSection() {
                       {/* 传统 */}
                       <div className="flex-1 flex items-center justify-end gap-2 text-right">
                         <div>
-                          <div className="text-sm text-slate-500 dark:text-slate-400">{item.legacyNote}</div>
+                          <div className="text-sm text-slate-500 dark:text-slate-400">
+                            {item.legacyNote}
+                          </div>
                           <div className="text-lg font-bold text-red-500">{item.legacy}</div>
                         </div>
                         <div className="w-2 h-2 rounded-full bg-red-400" />
                       </div>
 
                       {/* 分隔 */}
-                      <div className={`px-3 py-1 rounded-full bg-gradient-to-r from-${item.color}-500 to-${item.color}-400 text-white text-xs font-bold shadow-lg`}>
+                      <div
+                        className={`px-3 py-1 rounded-full bg-gradient-to-r from-${item.color}-500 to-${item.color}-400 text-white text-xs font-bold shadow-lg`}
+                      >
                         {item.highlight}
                       </div>
 
@@ -543,7 +608,9 @@ export function CrossPlatformSection() {
                       <div className="flex-1 flex items-center gap-2">
                         <div className="w-2 h-2 rounded-full bg-emerald-400" />
                         <div>
-                          <div className="text-sm text-slate-500 dark:text-slate-400">{item.webNote}</div>
+                          <div className="text-sm text-slate-500 dark:text-slate-400">
+                            {item.webNote}
+                          </div>
                           <div className="text-lg font-bold text-emerald-500">{item.web}</div>
                         </div>
                       </div>
@@ -563,7 +630,9 @@ export function CrossPlatformSection() {
             transition={{ delay: 0.4 }}
           >
             <div className="flex items-center gap-4">
-              <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">传统客户端</span>
+              <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                传统客户端
+              </span>
               <div className="flex gap-1.5">
                 {[
                   { icon: <FaWindows className="text-slate-400" />, ok: true },
@@ -571,7 +640,10 @@ export function CrossPlatformSection() {
                   { icon: <FaLinux className="text-red-400" />, ok: false },
                   { icon: <FaMobileAlt className="text-red-400" />, ok: false },
                 ].map((p, i) => (
-                  <div key={i} className={`w-7 h-7 rounded-lg flex items-center justify-center text-sm ${p.ok ? "bg-slate-100 dark:bg-slate-800" : "bg-red-50 dark:bg-red-950/30"}`}>
+                  <div
+                    key={i}
+                    className={`w-7 h-7 rounded-lg flex items-center justify-center text-sm ${p.ok ? "bg-slate-100 dark:bg-slate-800" : "bg-red-50 dark:bg-red-950/30"}`}
+                  >
                     {p.icon}
                   </div>
                 ))}
@@ -588,7 +660,10 @@ export function CrossPlatformSection() {
                   { icon: <FaAndroid className="text-emerald-500" /> },
                   { icon: <FaSteam className="text-emerald-500" /> },
                 ].map((p, i) => (
-                  <div key={i} className="w-7 h-7 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 flex items-center justify-center text-sm">
+                  <div
+                    key={i}
+                    className="w-7 h-7 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 flex items-center justify-center text-sm"
+                  >
                     {p.icon}
                   </div>
                 ))}

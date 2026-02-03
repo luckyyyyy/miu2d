@@ -5,16 +5,15 @@
  * 继承链: Sprite → CharacterBase → CharacterMovement → CharacterCombat → Character
  */
 
+import { ResourcePath } from "../../config/resourcePaths";
 import { logger } from "../../core/logger";
 import type { Vector2 } from "../../core/types";
 import { CharacterState } from "../../core/types";
-import { tileToPixel } from "../../utils";
-import type { MagicSprite } from "../../magic/magicSprite";
 import { getEffectAmount } from "../../magic/effects/common";
-import { CharacterMovement } from "./characterMovement";
-import { type CharacterBase, type MagicToUseInfoItem } from "./characterBase";
 import { type AsfData, getCachedAsf, loadAsf } from "../../sprite/asf";
-import { ResourcePath } from "../../config/resourcePaths";
+import { tileToPixel } from "../../utils";
+import type { CharacterBase, MagicToUseInfoItem } from "./characterBase";
+import { CharacterMovement } from "./characterMovement";
 
 /**
  * CharacterCombat - 战斗功能层
@@ -89,7 +88,9 @@ export abstract class CharacterCombat extends CharacterMovement {
     this.exp += amount;
     if (this.exp > this.levelUpExp) {
       // C# Reference: GuiManager.ShowMessage(Name + "的等级提升了");
-      const gui = this.engine?.getManager("gui") as { showMessage?: (msg: string) => void } | undefined;
+      const gui = this.engine?.getManager("gui") as
+        | { showMessage?: (msg: string) => void }
+        | undefined;
       gui?.showMessage?.(`${this.name}的等级提升了`);
       this.toLevelByExp(this.exp);
     }
@@ -235,9 +236,7 @@ export abstract class CharacterCombat extends CharacterMovement {
 
     const roll = Math.random();
     if (roll > hitRatio) {
-      logger.log(
-        `[Character] ${attacker?.name || "Unknown"} missed ${this.name}`
-      );
+      logger.log(`[Character] ${attacker?.name || "Unknown"} missed ${this.name}`);
       return;
     }
 
@@ -247,7 +246,9 @@ export abstract class CharacterCombat extends CharacterMovement {
     // 护盾减伤
     for (const sprite of this._magicSpritesInEffect) {
       if (sprite.magic.moveKind === 13 && sprite.magic.specialKind === 3) {
-        const shieldEffect = (sprite.magic.effect === 0 ? this.attack : sprite.magic.effect) + (sprite.magic.effectExt || 0);
+        const shieldEffect =
+          (sprite.magic.effect === 0 ? this.attack : sprite.magic.effect) +
+          (sprite.magic.effectExt || 0);
         actualDamage -= shieldEffect;
       }
     }
@@ -479,7 +480,8 @@ export abstract class CharacterCombat extends CharacterMovement {
     // 同步位置到 tile 中心
     const expectedPixel = tileToPixel(this._mapX, this._mapY);
     const actualPixel = this._positionInWorld;
-    const diff = Math.abs(expectedPixel.x - actualPixel.x) + Math.abs(expectedPixel.y - actualPixel.y);
+    const diff =
+      Math.abs(expectedPixel.x - actualPixel.x) + Math.abs(expectedPixel.y - actualPixel.y);
     if (diff > 1) {
       logger.debug(`[Character] ${this.name} death position sync`);
       this._positionInWorld = { ...expectedPixel };
@@ -664,7 +666,7 @@ export abstract class CharacterCombat extends CharacterMovement {
 
   protected cleanupDeadSummonedNpcs(): void {
     for (const [magicFileName, list] of this._summonedNpcs) {
-      const aliveNpcs = list.filter(npc => !npc.isDeath);
+      const aliveNpcs = list.filter((npc) => !npc.isDeath);
       if (aliveNpcs.length !== list.length) {
         this._summonedNpcs.set(magicFileName, aliveNpcs);
       }
@@ -677,7 +679,7 @@ export abstract class CharacterCombat extends CharacterMovement {
 
   removeMagicToUseWhenAttackedList(from: string): void {
     this.magicToUseWhenAttackedList = this.magicToUseWhenAttackedList.filter(
-      item => item.from !== from
+      (item) => item.from !== from
     );
   }
 
@@ -709,7 +711,7 @@ export abstract class CharacterCombat extends CharacterMovement {
     if (!this.flyInis) {
       this.flyInis = entry;
     } else {
-      this.flyInis = (this.flyInis.endsWith(";") ? this.flyInis : this.flyInis + ";") + entry;
+      this.flyInis = (this.flyInis.endsWith(";") ? this.flyInis : `${this.flyInis};`) + entry;
     }
     this.buildFlyIniInfos();
   }
@@ -767,9 +769,7 @@ export abstract class CharacterCombat extends CharacterMovement {
     if (!npcManager) return;
 
     const characters = (
-      this.isEnemy
-        ? npcManager.getNeighborEnemy(this)
-        : npcManager.getNeighborNeutralFighter(this)
+      this.isEnemy ? npcManager.getNeighborEnemy(this) : npcManager.getNeighborNeutralFighter(this)
     ) as CharacterCombat[];
 
     characters.push(this);

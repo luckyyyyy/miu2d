@@ -6,12 +6,14 @@
  * Resources: asf/ui/title/*.asf, asf/ui/title/title.jpg
  */
 
-import type React from "react";
-import { useCallback, useMemo, useState } from "react";
 import { buildPath } from "@miu2d/engine/config";
 import { logger } from "@miu2d/engine/core/logger";
+import type React from "react";
+import { useCallback, useMemo, useState } from "react";
+
 // 统一楷体字体
 const KAITI_FONT = '"STKaiti", "楷体", "KaiTi", "SimKai", serif';
+
 import { useAsfImage } from "./hooks";
 
 // UI配置 - 对应 UI_Settings.ini 中的 [Title] 部分
@@ -330,7 +332,7 @@ export const TitleGui: React.FC<TitleGuiProps> = ({
             left: 0,
             right: 0,
             textAlign: "center",
-            fontFamily: 'Verdana, Arial, sans-serif',
+            fontFamily: "Verdana, Arial, sans-serif",
             fontSize: 10,
             color: "rgba(255,255,255,0.3)",
           }}

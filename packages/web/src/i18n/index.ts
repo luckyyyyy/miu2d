@@ -3,12 +3,11 @@
  */
 
 import i18n from "i18next";
-import { initReactI18next } from "react-i18next";
 import LanguageDetector from "i18next-browser-languagedetector";
-
-import zh from "./locales/zh.json";
+import { initReactI18next } from "react-i18next";
 import en from "./locales/en.json";
 import ja from "./locales/ja.json";
+import zh from "./locales/zh.json";
 
 export const supportedLanguages = ["zh", "en", "ja"] as const;
 export type Locale = (typeof supportedLanguages)[number];

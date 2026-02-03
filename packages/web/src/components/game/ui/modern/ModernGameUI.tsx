@@ -2,46 +2,44 @@
  * Modern UI - 主组件
  * 整合所有现代UI子组件
  */
-import type React from "react";
-import { useCallback, useMemo, useState } from "react";
+
+import type { Good } from "@miu2d/engine/player/goods";
 import type {
-  UIPlayerState,
-  UIGoodsState,
-  UIMagicState,
   UIDialogState,
-  UISelectionState,
-  UIMultiSelectionState,
-  UIShopState,
+  UIGoodData,
+  UIGoodsState,
+  UIMagicData,
+  UIMagicState,
   UIMemoState,
   UIMessageState,
+  UIMultiSelectionState,
+  UIPlayerState,
+  UISelectionState,
+  UIShopState,
   UITimerState,
-  UIGoodData,
-  UIMagicData,
 } from "@miu2d/engine/ui/contract";
-import { useTouchDrag } from "@/contexts";
-import type { DragData, GoodItemData, EquipSlotType } from "../classic";
-import type { Good } from "@miu2d/engine/player/goods";
+import type React from "react";
+import { useCallback, useMemo, useState } from "react";
+import type { DragData, EquipSlotType, GoodItemData } from "../classic";
 import type { PlayerStats } from "../classic/StateGui";
-
-// 导入现代UI组件
-import { TopBar } from "./TopBar";
 import { BottomBar } from "./BottomBar";
-import { StatePanel } from "./StatePanel";
+import { BuyPanel } from "./BuyPanel";
+import { DialogBox } from "./DialogBox";
 import { EquipPanel } from "./EquipPanel";
 import { GoodsPanel } from "./GoodsPanel";
 import { MagicPanel } from "./MagicPanel";
-import { XiuLianPanel } from "./XiuLianPanel";
 import { MemoPanel } from "./MemoPanel";
-import { SystemPanel } from "./SystemPanel";
-import { DialogBox } from "./DialogBox";
-import { SelectionUI } from "./SelectionUI";
-import { SelectionMultipleUI } from "./SelectionMultipleUI";
 import { MessageBox } from "./MessageBox";
-import { BuyPanel } from "./BuyPanel";
 import { SaveLoadPanel } from "./SaveLoadPanel";
-import { LittleMap } from "./LittleMap";
+import { SelectionMultipleUI } from "./SelectionMultipleUI";
+import { SelectionUI } from "./SelectionUI";
+import { StatePanel } from "./StatePanel";
+import { SystemPanel } from "./SystemPanel";
 import { TimerDisplay } from "./TimerDisplay";
 import { ItemTooltip, MagicTooltip } from "./Tooltips";
+// 导入现代UI组件
+import { TopBar } from "./TopBar";
+import { XiuLianPanel } from "./XiuLianPanel";
 
 // UI面板类型
 type PanelType = "state" | "equip" | "goods" | "magic" | "xiulian" | "memo" | "system" | null;
@@ -98,21 +96,24 @@ export const ModernGameUI: React.FC<ModernGameUIProps> = ({
   } | null>(null);
 
   // 转换玩家状态为 PlayerStats
-  const playerStats: PlayerStats = useMemo(() => ({
-    level: playerState?.level ?? 1,
-    exp: playerState?.exp ?? 0,
-    levelUpExp: playerState?.levelUpExp ?? 100,
-    life: playerState?.life ?? 100,
-    lifeMax: playerState?.lifeMax ?? 100,
-    mana: playerState?.mana ?? 50,
-    manaMax: playerState?.manaMax ?? 50,
-    manaLimit: playerState?.manaLimit ?? false,
-    thew: playerState?.thew ?? 100,
-    thewMax: playerState?.thewMax ?? 100,
-    attack: playerState?.attack ?? 10,
-    defend: playerState?.defend ?? 5,
-    evade: playerState?.evade ?? 5,
-  }), [playerState]);
+  const playerStats: PlayerStats = useMemo(
+    () => ({
+      level: playerState?.level ?? 1,
+      exp: playerState?.exp ?? 0,
+      levelUpExp: playerState?.levelUpExp ?? 100,
+      life: playerState?.life ?? 100,
+      lifeMax: playerState?.lifeMax ?? 100,
+      mana: playerState?.mana ?? 50,
+      manaMax: playerState?.manaMax ?? 50,
+      manaLimit: playerState?.manaLimit ?? false,
+      thew: playerState?.thew ?? 100,
+      thewMax: playerState?.thewMax ?? 100,
+      attack: playerState?.attack ?? 10,
+      defend: playerState?.defend ?? 5,
+      evade: playerState?.evade ?? 5,
+    }),
+    [playerState]
+  );
 
   // 物品数据转换
   const goodsItems = useMemo((): (GoodItemData | null)[] => {
@@ -164,7 +165,7 @@ export const ModernGameUI: React.FC<ModernGameUIProps> = ({
   );
 
   // 武功操作
-  const handleMagicClick = useCallback(
+  const _handleMagicClick = useCallback(
     (magic: UIMagicData) => {
       onDispatch?.("magic.use", { name: magic.name });
     },
@@ -190,22 +191,19 @@ export const ModernGameUI: React.FC<ModernGameUIProps> = ({
   );
 
   // Tooltip处理 - 使用鼠标位置
-  const handleItemHover = useCallback(
-    (good: GoodItemData["good"] | null, x: number, y: number) => {
-      if (good) {
-        setTooltipItem({
-          type: "item",
-          data: good as unknown as UIGoodData,
-          position: { x: x + 16, y },
-        });
-      } else {
-        setTooltipItem(null);
-      }
-    },
-    []
-  );
+  const handleItemHover = useCallback((good: GoodItemData["good"] | null, x: number, y: number) => {
+    if (good) {
+      setTooltipItem({
+        type: "item",
+        data: good as unknown as UIGoodData,
+        position: { x: x + 16, y },
+      });
+    } else {
+      setTooltipItem(null);
+    }
+  }, []);
 
-  const handleMagicMouseEnter = useCallback((magic: UIMagicData, rect: DOMRect) => {
+  const _handleMagicMouseEnter = useCallback((magic: UIMagicData, rect: DOMRect) => {
     setTooltipItem({
       type: "magic",
       data: magic,
@@ -264,15 +262,17 @@ export const ModernGameUI: React.FC<ModernGameUIProps> = ({
   const bottomMagicItems = useMemo(() => {
     if (!magicState?.bottomMagics) return [];
     return magicState.bottomMagics.map((slot) =>
-      slot?.magic ? {
-        magic: {
-          name: slot.magic.name,
-          icon: slot.magic.iconPath,
-          image: slot.magic.iconPath,
-          iconPath: slot.magic.iconPath,
-        },
-        level: slot.magic.level ?? 0,
-      } : null
+      slot?.magic
+        ? {
+            magic: {
+              name: slot.magic.name,
+              icon: slot.magic.iconPath,
+              image: slot.magic.iconPath,
+              iconPath: slot.magic.iconPath,
+            },
+            level: slot.magic.level ?? 0,
+          }
+        : null
     );
   }, [magicState]);
 
@@ -311,7 +311,9 @@ export const ModernGameUI: React.FC<ModernGameUIProps> = ({
         thewMax={playerStats.thewMax}
         onItemClick={(index: number) => onDispatch?.("bottomGoods.use", { index })}
         onItemRightClick={(index: number) => onDispatch?.("bottomGoods.remove", { index })}
-        onMagicRightClick={(magicIndex: number) => onDispatch?.("bottomMagic.remove", { index: magicIndex })}
+        onMagicRightClick={(magicIndex: number) =>
+          onDispatch?.("bottomMagic.remove", { index: magicIndex })
+        }
         onDrop={() => setDragData(null)}
         onGoodsHover={(goodData, x, y) => {
           console.log("[ModernGameUI] onGoodsHover", { goodData, x, y });
@@ -325,11 +327,16 @@ export const ModernGameUI: React.FC<ModernGameUIProps> = ({
         }}
         onGoodsLeave={handleTooltipHide}
         onMagicHover={(magicInfo, x, y) => {
-          console.log("[ModernGameUI] onMagicHover", { magicInfo, x, y, bottomMagics: magicState?.bottomMagics });
+          console.log("[ModernGameUI] onMagicHover", {
+            magicInfo,
+            x,
+            y,
+            bottomMagics: magicState?.bottomMagics,
+          });
           // 从 magicInfo.magic.name 找到对应的原始 UIMagicData
           if (magicInfo?.magic?.name) {
             const originalMagic = magicState?.bottomMagics?.find(
-              slot => slot?.magic?.name === magicInfo.magic?.name
+              (slot) => slot?.magic?.name === magicInfo.magic?.name
             )?.magic;
             console.log("[ModernGameUI] found originalMagic", originalMagic);
             if (originalMagic) {
@@ -358,13 +365,27 @@ export const ModernGameUI: React.FC<ModernGameUIProps> = ({
       <EquipPanel
         isVisible={activePanel === "equip"}
         equips={{
-          head: goodsState?.equips?.head ? { good: goodsState.equips.head.good as unknown as Good, count: 1 } : null,
-          neck: goodsState?.equips?.neck ? { good: goodsState.equips.neck.good as unknown as Good, count: 1 } : null,
-          body: goodsState?.equips?.body ? { good: goodsState.equips.body.good as unknown as Good, count: 1 } : null,
-          back: goodsState?.equips?.back ? { good: goodsState.equips.back.good as unknown as Good, count: 1 } : null,
-          hand: goodsState?.equips?.hand ? { good: goodsState.equips.hand.good as unknown as Good, count: 1 } : null,
-          wrist: goodsState?.equips?.wrist ? { good: goodsState.equips.wrist.good as unknown as Good, count: 1 } : null,
-          foot: goodsState?.equips?.foot ? { good: goodsState.equips.foot.good as unknown as Good, count: 1 } : null,
+          head: goodsState?.equips?.head
+            ? { good: goodsState.equips.head.good as unknown as Good, count: 1 }
+            : null,
+          neck: goodsState?.equips?.neck
+            ? { good: goodsState.equips.neck.good as unknown as Good, count: 1 }
+            : null,
+          body: goodsState?.equips?.body
+            ? { good: goodsState.equips.body.good as unknown as Good, count: 1 }
+            : null,
+          back: goodsState?.equips?.back
+            ? { good: goodsState.equips.back.good as unknown as Good, count: 1 }
+            : null,
+          hand: goodsState?.equips?.hand
+            ? { good: goodsState.equips.hand.good as unknown as Good, count: 1 }
+            : null,
+          wrist: goodsState?.equips?.wrist
+            ? { good: goodsState.equips.wrist.good as unknown as Good, count: 1 }
+            : null,
+          foot: goodsState?.equips?.foot
+            ? { good: goodsState.equips.foot.good as unknown as Good, count: 1 }
+            : null,
         }}
         screenWidth={screenWidth}
         onSlotClick={handleEquipClick}
@@ -392,16 +413,20 @@ export const ModernGameUI: React.FC<ModernGameUIProps> = ({
       {/* 武功面板 */}
       <MagicPanel
         isVisible={activePanel === "magic"}
-        magicInfos={magicState?.storeMagics?.map((slot) =>
-          slot?.magic ? {
-            magic: slot.magic as unknown as import("@miu2d/engine/magic").MagicData,
-            level: slot.magic.level ?? 0,
-            exp: slot.magic.currentLevelExp ?? 0,
-            remainColdMilliseconds: 0,
-            hideCount: 0,
-            lastIndexWhenHide: 0,
-          } : null
-        ) ?? []}
+        magicInfos={
+          magicState?.storeMagics?.map((slot) =>
+            slot?.magic
+              ? {
+                  magic: slot.magic as unknown as import("@miu2d/engine/magic").MagicData,
+                  level: slot.magic.level ?? 0,
+                  exp: slot.magic.currentLevelExp ?? 0,
+                  remainColdMilliseconds: 0,
+                  hideCount: 0,
+                  lastIndexWhenHide: 0,
+                }
+              : null
+          ) ?? []
+        }
         screenWidth={screenWidth}
         onMagicClick={(storeIndex: number) => onDispatch?.("magic.use", { storeIndex })}
         onMagicRightClick={(storeIndex: number) => onDispatch?.("magic.setXiuLian", { storeIndex })}
@@ -411,14 +436,19 @@ export const ModernGameUI: React.FC<ModernGameUIProps> = ({
       {/* 修炼面板 */}
       <XiuLianPanel
         isVisible={activePanel === "xiulian"}
-        magicInfo={magicState?.xiuLianMagic?.magic ? {
-          magic: magicState.xiuLianMagic.magic as unknown as import("@miu2d/engine/magic").MagicData,
-          level: magicState.xiuLianMagic.magic.level ?? 0,
-          exp: magicState.xiuLianMagic.magic.currentLevelExp ?? 0,
-          remainColdMilliseconds: 0,
-          hideCount: 0,
-          lastIndexWhenHide: 0,
-        } : null}
+        magicInfo={
+          magicState?.xiuLianMagic?.magic
+            ? {
+                magic: magicState.xiuLianMagic
+                  .magic as unknown as import("@miu2d/engine/magic").MagicData,
+                level: magicState.xiuLianMagic.magic.level ?? 0,
+                exp: magicState.xiuLianMagic.magic.currentLevelExp ?? 0,
+                remainColdMilliseconds: 0,
+                hideCount: 0,
+                lastIndexWhenHide: 0,
+              }
+            : null
+        }
         screenWidth={screenWidth}
         onClose={closePanel}
       />
@@ -469,7 +499,12 @@ export const ModernGameUI: React.FC<ModernGameUIProps> = ({
         state={{
           isVisible: selectionState?.isVisible ?? false,
           message: selectionState?.message ?? "",
-          options: selectionState?.options?.map((o) => ({ text: o.text, label: o.label ?? "", enabled: o.enabled ?? true })) ?? [],
+          options:
+            selectionState?.options?.map((o) => ({
+              text: o.text,
+              label: o.label ?? "",
+              enabled: o.enabled ?? true,
+            })) ?? [],
           selectedIndex: selectionState?.selectedIndex ?? -1,
           hoveredIndex: selectionState?.hoveredIndex ?? -1,
         }}

@@ -6,10 +6,11 @@
  *
  * 对于静态图片（只显示单帧），建议继续使用 useAsfImage + img，因为有缓存不会重复渲染
  */
-import type React from "react";
-import { memo, useEffect, useRef, useState } from "react";
+
 import { buildPath } from "@miu2d/engine/config";
 import { type AsfData, getFrameCanvas, loadAsf } from "@miu2d/engine/sprite/asf";
+import type React from "react";
+import { memo, useEffect, useRef, useState } from "react";
 
 // 全局帧缓存 - 按路径存储预渲染的 canvas
 const frameCanvasCache = new Map<string, { asf: AsfData; frames: HTMLCanvasElement[] }>();

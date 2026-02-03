@@ -8,10 +8,11 @@
  * 修炼武功存储在 MagicListManager 的 xiuLianIndex (索引 49)
  * 支持从武功面板(MagicGui)和快捷栏(BottomGui)拖放武功到此处进行修炼
  */
+
+import type { MagicItemInfo } from "@miu2d/engine/magic";
 import type React from "react";
 import { useCallback, useMemo } from "react";
-import type { MagicItemInfo } from "@miu2d/engine/magic";
-import { useDevice, type TouchDragData } from "@/contexts";
+import { type TouchDragData, useDevice } from "@/contexts";
 import { useTouchDragSource, useTouchDropTarget } from "@/hooks";
 import { useAsfAnimation, useAsfImage } from "./hooks";
 import type { MagicDragData } from "./MagicGui";

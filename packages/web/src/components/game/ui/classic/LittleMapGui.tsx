@@ -18,14 +18,16 @@
  * - Ratio = 4 (scale factor between world coordinates and minimap)
  * - Uses pre-rendered PNG images from map/littlemap/ directory
  */
-import { ResourcePath, getResourceUrl } from "@miu2d/engine/config";
-import type React from "react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { getResourceUrl, ResourcePath } from "@miu2d/engine/config";
 import { logger } from "@miu2d/engine/core/logger";
 import type { JxqyMapData } from "@miu2d/engine/core/mapTypes";
 import type { Vector2 } from "@miu2d/engine/core/types";
+import type React from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+
 // 统一楷体字体
 const KAITI_FONT = '"STKaiti", "楷体", "KaiTi", "SimKai", serif';
+
 import { type AsfAnimationData, useAsfAnimation, useAsfImage } from "./hooks";
 import { useLittleMapGuiConfig } from "./useUISettings";
 
@@ -148,7 +150,10 @@ export const LittleMapGui: React.FC<LittleMapGuiProps> = ({
 
   // 加载预渲染的小地图 PNG 图片
   const [littleMapImage, setLittleMapImage] = useState<HTMLImageElement | null>(null);
-  const [littleMapSize, setLittleMapSize] = useState<{ width: number; height: number }>({ width: 0, height: 0 });
+  const [littleMapSize, setLittleMapSize] = useState<{ width: number; height: number }>({
+    width: 0,
+    height: 0,
+  });
 
   useEffect(() => {
     if (!mapName || !isVisible) return;
@@ -231,7 +236,14 @@ export const LittleMapGui: React.FC<LittleMapGuiProps> = ({
     setViewBeginX(Math.max(0, Math.min(maxX, initialX)));
     setViewBeginY(Math.max(0, Math.min(maxY, initialY)));
     setViewInitialized(true);
-  }, [isVisible, viewInitialized, cameraPosition.x, cameraPosition.y, mapSize.width, mapSize.height]);
+  }, [
+    isVisible,
+    viewInitialized,
+    cameraPosition.x,
+    cameraPosition.y,
+    mapSize.width,
+    mapSize.height,
+  ]);
 
   // 按钮点击用的导航函数（单次移动）
   const BUTTON_MOVE_STEP = 16;
@@ -326,8 +338,14 @@ export const LittleMapGui: React.FC<LittleMapGuiProps> = ({
       // 从图片中裁剪视口区域并绘制
       ctx.drawImage(
         littleMapImage,
-        viewBeginX, viewBeginY, VIEW_WIDTH, VIEW_HEIGHT, // 源区域
-        0, 0, VIEW_WIDTH, VIEW_HEIGHT // 目标区域
+        viewBeginX,
+        viewBeginY,
+        VIEW_WIDTH,
+        VIEW_HEIGHT, // 源区域
+        0,
+        0,
+        VIEW_WIDTH,
+        VIEW_HEIGHT // 目标区域
       );
     } else {
       // 显示加载中占位符
@@ -364,13 +382,17 @@ export const LittleMapGui: React.FC<LittleMapGuiProps> = ({
           // 使用 ASF 帧绘制
           const frame = markerData.asf.frames[markerData.frameIndex % markerData.asf.frames.length];
           if (frame?.imageData) {
-            const tempCanvas = document.createElement('canvas');
+            const tempCanvas = document.createElement("canvas");
             tempCanvas.width = frame.imageData.width;
             tempCanvas.height = frame.imageData.height;
-            const tempCtx = tempCanvas.getContext('2d');
+            const tempCtx = tempCanvas.getContext("2d");
             if (tempCtx) {
               tempCtx.putImageData(frame.imageData, 0, 0);
-              ctx.drawImage(tempCanvas, canvasX - frame.imageData.width / 2, canvasY - frame.imageData.height / 2);
+              ctx.drawImage(
+                tempCanvas,
+                canvasX - frame.imageData.width / 2,
+                canvasY - frame.imageData.height / 2
+              );
             }
           }
         } else {
@@ -520,10 +542,7 @@ export const LittleMapGui: React.FC<LittleMapGuiProps> = ({
   };
 
   return (
-    <div
-      style={panelStyle}
-      onClick={(e) => e.stopPropagation()}
-    >
+    <div style={panelStyle} onClick={(e) => e.stopPropagation()}>
       {/* 背景面板 */}
       {panelImage.dataUrl && (
         <img
@@ -622,7 +641,7 @@ export const LittleMapGui: React.FC<LittleMapGuiProps> = ({
           height: config.bottomTipText.height,
           textAlign: getTextAlign(config.bottomTipText.align),
           color: config.bottomTipText.color,
-          fontFamily: 'Verdana, Arial, sans-serif',
+          fontFamily: "Verdana, Arial, sans-serif",
           fontSize: 10,
           lineHeight: `${config.bottomTipText.height}px`,
           pointerEvents: "none",
@@ -642,7 +661,7 @@ export const LittleMapGui: React.FC<LittleMapGuiProps> = ({
             height: config.messageTipText.height,
             textAlign: getTextAlign(config.messageTipText.align),
             color: config.messageTipText.color,
-            fontFamily: 'Verdana, Arial, sans-serif',
+            fontFamily: "Verdana, Arial, sans-serif",
             fontSize: 10,
             lineHeight: `${config.messageTipText.height}px`,
             pointerEvents: "none",

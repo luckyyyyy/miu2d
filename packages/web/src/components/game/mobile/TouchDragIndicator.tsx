@@ -4,7 +4,7 @@
  * 当用户从武功面板长按技能开始拖拽时，显示一个跟随手指的浮动图标
  */
 
-import { useEffect, useState, memo } from "react";
+import { memo, useEffect, useState } from "react";
 import { useTouchDrag } from "@/contexts";
 import { AsfAnimatedSprite } from "../ui/classic/AsfAnimatedSprite";
 import { useAsfImage } from "../ui/classic/hooks";
@@ -51,9 +51,10 @@ export const TouchDragIndicator = memo(function TouchDragIndicator() {
   if (!isDragging || !dragData) return null;
 
   // 确定显示的图标和名称
-  const iconPath = dragData.type === "magic"
-    ? (dragData.magicInfo?.magic?.icon ?? dragData.magicInfo?.magic?.image)
-    : dragData.iconPath;
+  const iconPath =
+    dragData.type === "magic"
+      ? (dragData.magicInfo?.magic?.icon ?? dragData.magicInfo?.magic?.image)
+      : dragData.iconPath;
   const name = dragData.displayName || (dragData.type === "magic" ? "技能" : "物品");
 
   return (

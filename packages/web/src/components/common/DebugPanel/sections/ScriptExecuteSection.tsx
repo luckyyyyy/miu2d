@@ -2,10 +2,17 @@
  * 执行脚本区块
  */
 
+import { logger } from "@miu2d/engine/core/logger";
 import type React from "react";
 import { useRef, useState } from "react";
-import { logger } from "@miu2d/engine/core/logger";
-import { btnClass, btnPrimary, inputClass, LS_SCRIPT_CONTENT, LS_SCRIPT_HISTORY, MAX_HISTORY } from "../constants";
+import {
+  btnClass,
+  btnPrimary,
+  inputClass,
+  LS_SCRIPT_CONTENT,
+  LS_SCRIPT_HISTORY,
+  MAX_HISTORY,
+} from "../constants";
 import { Section } from "../Section";
 
 interface ScriptExecuteSectionProps {

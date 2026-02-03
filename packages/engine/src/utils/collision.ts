@@ -18,10 +18,5 @@ export interface Rect {
  * C# Reference: Collider.IsBoxCollide / Rectangle.Intersects
  */
 export function isBoxCollide(a: Rect, b: Rect): boolean {
-  return (
-    a.x < b.x + b.width &&
-    a.x + a.width > b.x &&
-    a.y < b.y + b.height &&
-    a.y + a.height > b.y
-  );
+  return a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
 }

@@ -7,11 +7,9 @@
  * - NpcMagicCache - modules/npcMagicCache.ts
  */
 
-// NPC class
-export { Npc } from "./npc";
-
-// NPC manager
-export { NpcManager, DeathInfo, type ViewRect } from "./npcManager";
-
 // NPC modules
 export { NpcMagicCache, type SpecialMagicType } from "./modules";
+// NPC class
+export { Npc } from "./npc";
+// NPC manager
+export { DeathInfo, NpcManager, type ViewRect } from "./npcManager";

@@ -3,9 +3,9 @@
  * 显示 ASF 动画帧和播放控制
  */
 
-import { useState, useEffect, useRef, useCallback } from "react";
 import type { AsfData } from "@miu2d/engine/sprite/asf";
 import { getFrameCanvas } from "@miu2d/engine/sprite/asf";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 interface AsfViewerProps {
   /** ASF 数据 */
@@ -35,7 +35,7 @@ export function AsfViewer({ asf, fileName, isLoading, error }: AsfViewerProps) {
   // 计算当前方向的帧范围
   const framesPerDirection = asf?.framesPerDirection ?? 0;
   const startFrame = currentDirection * framesPerDirection;
-  const endFrame = startFrame + framesPerDirection;
+  const _endFrame = startFrame + framesPerDirection;
 
   // 动画循环
   useEffect(() => {
@@ -174,9 +174,7 @@ export function AsfViewer({ asf, fileName, isLoading, error }: AsfViewerProps) {
           <button
             className="rounded px-2 py-1 text-sm hover:bg-[#3c3c3c] text-[#cccccc]"
             onClick={() =>
-              setCurrentFrame((prev) =>
-                prev >= framesPerDirection - 1 ? 0 : prev + 1
-              )
+              setCurrentFrame((prev) => (prev >= framesPerDirection - 1 ? 0 : prev + 1))
             }
             title="下一帧"
           >
@@ -352,7 +350,11 @@ export function AsfViewer({ asf, fileName, isLoading, error }: AsfViewerProps) {
 /**
  * 帧缩略图组件
  */
-function FrameThumbnail({ frame }: { frame: { width: number; height: number; imageData: ImageData } }) {
+function FrameThumbnail({
+  frame,
+}: {
+  frame: { width: number; height: number; imageData: ImageData };
+}) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {

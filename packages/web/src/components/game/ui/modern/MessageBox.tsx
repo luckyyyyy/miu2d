@@ -3,8 +3,8 @@
  * 位置与经典UI一致
  */
 import type React from "react";
-import { useMemo, useState, useEffect } from "react";
-import { borderRadius, glassEffect, modernColors, spacing, typography, transitions } from "./theme";
+import { useEffect, useMemo, useState } from "react";
+import { borderRadius, glassEffect, modernColors, spacing, transitions, typography } from "./theme";
 
 interface MessageBoxProps {
   isVisible: boolean;
@@ -34,7 +34,7 @@ export const MessageBox: React.FC<MessageBoxProps> = ({
     } else {
       setOpacity(0);
     }
-  }, [isVisible, message]);
+  }, [isVisible]);
 
   const panelStyle: React.CSSProperties = useMemo(
     () => ({
@@ -84,11 +84,7 @@ interface MessageQueueProps {
   onRemove?: (id: string) => void;
 }
 
-export const MessageQueue: React.FC<MessageQueueProps> = ({
-  messages,
-  screenWidth,
-  onRemove,
-}) => {
+export const MessageQueue: React.FC<MessageQueueProps> = ({ messages, screenWidth, onRemove }) => {
   return (
     <div
       style={{
@@ -121,11 +117,7 @@ interface MessageItemProps {
   onAnimationEnd?: () => void;
 }
 
-const MessageItem: React.FC<MessageItemProps> = ({
-  message,
-  index,
-  onAnimationEnd,
-}) => {
+const MessageItem: React.FC<MessageItemProps> = ({ message, index, onAnimationEnd }) => {
   const [isExiting, setIsExiting] = useState(false);
 
   useEffect(() => {

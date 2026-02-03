@@ -3,24 +3,24 @@
  */
 
 export {
-  // 配置接口和函数
-  type ResourcePathsConfig,
-  setResourcePaths,
-  getResourcePaths,
-  getResourceRoot,
-  resetResourcePaths,
-  // 目录结构
-  ResourceDirs,
   // 路径构建器
   buildPath,
-  extractRelativePath,
-  ResourcePath,
   // 预定义路径
   DefaultPaths,
-  // 工具函数
-  isResourcePath,
   ensureResourcePath,
+  extractRelativePath,
+  getResourceDomain,
+  getResourcePaths,
+  getResourceRoot,
   // URL 构建
   getResourceUrl,
-  getResourceDomain,
+  // 工具函数
+  isResourcePath,
+  // 目录结构
+  ResourceDirs,
+  ResourcePath,
+  // 配置接口和函数
+  type ResourcePathsConfig,
+  resetResourcePaths,
+  setResourcePaths,
 } from "./resourcePaths";

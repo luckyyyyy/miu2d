@@ -10,9 +10,9 @@
  */
 
 import type { AudioManager } from "../audio";
+import { ResourcePath } from "../config/resourcePaths";
 import { logger } from "../core/logger";
 import { RainDrop } from "./raindrop";
-import { ResourcePath } from "../config/resourcePaths";
 
 // 下雨时的地图/精灵颜色（灰色）
 export const RAIN_COLOR = { r: 128, g: 128, b: 128 };

@@ -109,7 +109,9 @@ class ParallelScriptRunner {
           resolveString: (expr: string) => this.resolveString(expr),
           resolveNumber: (expr: string) => this.resolveNumber(expr),
           gotoLabel: (label: string) => this.gotoLabel(label),
-          endScript: () => { this.isFinished = true; },
+          endScript: () => {
+            this.isFinished = true;
+          },
         };
 
         // CommandHandler 返回 true 继续执行，false 暂停
@@ -319,11 +321,10 @@ export class ScriptExecutor {
    * @param scriptPath Path to the script file
    * @param belongObject Optional target that triggered this script
    */
-  queueScript(
-    scriptPath: string,
-    belongObject?: { type: "npc" | "obj"; id: string }
-  ): void {
-    logger.log(`[ScriptExecutor] Queueing script: ${scriptPath} (queue size: ${this.scriptQueue.length})`);
+  queueScript(scriptPath: string, belongObject?: { type: "npc" | "obj"; id: string }): void {
+    logger.log(
+      `[ScriptExecutor] Queueing script: ${scriptPath} (queue size: ${this.scriptQueue.length})`
+    );
     this.scriptQueue.push({ scriptPath, belongObject });
   }
 
@@ -741,7 +742,9 @@ export class ScriptExecutor {
         for (let i = 0; i < selectedIndices.length; i++) {
           this.context.setVariable(`${varPrefix}${i}`, selectedIndices[i]);
         }
-        logger.log(`[ScriptExecutor] ChooseMultiple results: ${varPrefix}0...${varPrefix}${selectedIndices.length - 1} = ${selectedIndices.join(', ')}`);
+        logger.log(
+          `[ScriptExecutor] ChooseMultiple results: ${varPrefix}0...${varPrefix}${selectedIndices.length - 1} = ${selectedIndices.join(", ")}`
+        );
       }
       this.state.chooseMultipleVarPrefix = undefined;
       this.state.waitingForChooseMultiple = false;
@@ -829,7 +832,9 @@ export class ScriptExecutor {
       this.parallelListDelayed.push(item);
     }
 
-    logger.log(`[ScriptExecutor] RunParallelScript: ${scriptFilePath}, delay=${delayMilliseconds}ms`);
+    logger.log(
+      `[ScriptExecutor] RunParallelScript: ${scriptFilePath}, delay=${delayMilliseconds}ms`
+    );
   }
 
   /**
@@ -950,7 +955,9 @@ export class ScriptExecutor {
    * Load parallel scripts from save data
    * C# Reference: ScriptManager.LoadParallelScript()
    */
-  loadParallelScriptsFromSave(scripts: Array<{ filePath: string; waitMilliseconds: number }>): void {
+  loadParallelScriptsFromSave(
+    scripts: Array<{ filePath: string; waitMilliseconds: number }>
+  ): void {
     this.parallelListDelayed = [];
     this.parallelListImmediately = [];
 

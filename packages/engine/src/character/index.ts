@@ -13,6 +13,8 @@
  * - character.setSpecialAction() - play special action animation
  */
 
+// Re-export Npc and NpcManager from npc module for backward compatibility
+export { Npc, NpcManager } from "../npc";
 // Class-based exports
 export { Character, type MagicToUseInfoItem } from "./character";
 // INI Parser - data-driven config parsing (new, replaces verbose switch-case)
@@ -24,9 +26,6 @@ export {
   loadCharacterConfig,
   parseCharacterIni,
 } from "./iniParser";
-// Re-export Npc and NpcManager from npc module for backward compatibility
-export { Npc } from "../npc";
-export { NpcManager } from "../npc";
 // ResFile utilities - INI file loading (based on C# ResFile.cs)
 export {
   // Image loading (ASF/MPC with optional SHD shadow)

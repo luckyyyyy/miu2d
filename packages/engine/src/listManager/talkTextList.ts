@@ -3,9 +3,9 @@
  * Manages dialog text data loaded from TalkIndex.txt
  */
 
+import { DefaultPaths } from "../config/resourcePaths";
 import { logger } from "../core/logger";
 import { resourceLoader } from "../resource/resourceLoader";
-import { DefaultPaths } from "../config/resourcePaths";
 
 export interface TalkTextDetail {
   index: number;

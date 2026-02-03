@@ -2,21 +2,15 @@
  * Modern GoodsPanel - 武侠风格物品背包面板
  * 参考 StatePanel 的设计风格
  */
+
+import type { Good } from "@miu2d/engine/player/goods";
 import type React from "react";
 import { useCallback, useMemo, useState } from "react";
-import type { Good } from "@miu2d/engine/player/goods";
 import type { TouchDragData } from "@/contexts";
+import type { DragData, GoodItemData } from "../classic";
 import { useAsfImage } from "../classic/hooks";
-import type { GoodItemData, DragData } from "../classic";
-import {
-  borderRadius,
-  glassEffect,
-  modernColors,
-  spacing,
-  transitions,
-  typography,
-} from "./theme";
-import { getItemBorderColor, getItemGlowColor, getItemQuality, ItemQuality, qualityColors } from "./Tooltips";
+import { getItemBorderColor, getItemGlowColor, getItemQuality, ItemQuality } from "./Tooltips";
+import { borderRadius, glassEffect, modernColors, spacing, transitions, typography } from "./theme";
 
 // 武侠风格配色
 const wuxiaAccent = {
@@ -116,11 +110,11 @@ const GoodsSlot: React.FC<ItemSlotProps> = ({
   // 获取物品品级颜色
   const qualityBorderColor = getItemBorderColor(item?.good);
   const qualityGlowColor = getItemGlowColor(item?.good);
-  const itemQuality = item?.good ? getItemQuality(item.good.cost) : ItemQuality.Normal;
+  const _itemQuality = item?.good ? getItemQuality(item.good.cost) : ItemQuality.Normal;
 
   // 计算边框颜色：有品级时始终显示品级颜色，hover 时更亮
   const borderColor = qualityBorderColor
-    ? qualityBorderColor  // 品级颜色始终显示
+    ? qualityBorderColor // 品级颜色始终显示
     : isHovered
       ? modernColors.border.glassLight
       : modernColors.border.glass;
@@ -128,8 +122,8 @@ const GoodsSlot: React.FC<ItemSlotProps> = ({
   // 计算边框渐变的第二颜色（稍暗）
   const borderColorSecondary = qualityBorderColor
     ? isHovered
-      ? qualityBorderColor  // hover 时更亮
-      : `${qualityBorderColor}cc`  // 非 hover 时稍暗但仍清晰
+      ? qualityBorderColor // hover 时更亮
+      : `${qualityBorderColor}cc` // 非 hover 时稍暗但仍清晰
     : isHovered
       ? `${modernColors.border.glassLight}88`
       : `${modernColors.border.glass}88`;
@@ -138,7 +132,7 @@ const GoodsSlot: React.FC<ItemSlotProps> = ({
   const boxShadow = qualityGlowColor
     ? isHovered
       ? `0 0 12px ${qualityGlowColor}, inset 0 0 8px ${qualityGlowColor}`
-      : `0 0 6px ${qualityGlowColor}`  // 非 hover 时也有轻微发光
+      : `0 0 6px ${qualityGlowColor}` // 非 hover 时也有轻微发光
     : item && isHovered
       ? `inset 0 0 15px ${wuxiaAccent.gold}22`
       : "none";
@@ -308,7 +302,7 @@ export const GoodsPanel: React.FC<GoodsPanelProps> = ({
   const visibleItems = useMemo(() => {
     const startIndex = scrollOffset * columns;
     return items.slice(startIndex, startIndex + itemsPerPage);
-  }, [items, scrollOffset]);
+  }, [items, scrollOffset, itemsPerPage]);
 
   // 最大滚动行数
   const maxScrollRows = Math.max(0, Math.ceil(items.length / columns) - rows);
@@ -323,10 +317,13 @@ export const GoodsPanel: React.FC<GoodsPanelProps> = ({
   );
 
   // 拖放处理
-  const handleDragOver = useCallback((_index: number) => (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-  }, []);
+  const handleDragOver = useCallback(
+    (_index: number) => (e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+    },
+    []
+  );
 
   const handleDrop = useCallback(
     (index: number) => (e: React.DragEvent) => {

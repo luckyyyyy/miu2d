@@ -2,9 +2,10 @@
  * Modern DialogBox - NPC对话框
  * 位置与经典UI一致，使用引擎的 textProgress 控制打字机效果
  */
-import type React from "react";
-import { useMemo, useCallback, useState } from "react";
+
 import type { DialogGuiState } from "@miu2d/engine/gui/types";
+import type React from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useAsfImage } from "../classic/hooks";
 import { borderRadius, glassEffect, modernColors, spacing, typography } from "./theme";
 
@@ -56,7 +57,14 @@ const colorMap: Record<string, string> = {
 };
 
 // Colors that should restore to default (used in scripts to reset color)
-const RESTORE_DEFAULT_COLORS = new Set(["black", "Black", "BLACK", "Default", "default", "DEFAULT"]);
+const RESTORE_DEFAULT_COLORS = new Set([
+  "black",
+  "Black",
+  "BLACK",
+  "Default",
+  "default",
+  "DEFAULT",
+]);
 
 // 文本段落类型
 interface TextSegment {
@@ -176,7 +184,17 @@ export const DialogBox: React.FC<DialogBoxProps> = ({
   onClose,
   onSelectionMade,
 }) => {
-  const { isVisible, text, textProgress, isComplete, portraitIndex, nameText, isInSelecting, selectA, selectB } = state;
+  const {
+    isVisible,
+    text,
+    textProgress,
+    isComplete,
+    portraitIndex,
+    nameText,
+    isInSelecting,
+    selectA,
+    selectB,
+  } = state;
   const portraitPath = getPortraitPath(portraitIndex);
   const portraitImage = useAsfImage(portraitPath, 0);
 
@@ -216,11 +234,14 @@ export const DialogBox: React.FC<DialogBoxProps> = ({
   }, [isInSelecting, onClose]);
 
   // 处理选择点击
-  const handleSelectionClick = useCallback((selection: number) => {
-    if (isInSelecting && onSelectionMade) {
-      onSelectionMade(selection);
-    }
-  }, [isInSelecting, onSelectionMade]);
+  const handleSelectionClick = useCallback(
+    (selection: number) => {
+      if (isInSelecting && onSelectionMade) {
+        onSelectionMade(selection);
+      }
+    },
+    [isInSelecting, onSelectionMade]
+  );
 
   if (!isVisible) return null;
 
@@ -357,14 +378,19 @@ export const DialogBox: React.FC<DialogBoxProps> = ({
                   type="button"
                   style={{
                     padding: `${spacing.sm}px ${spacing.lg}px`,
-                    background: hoveredSelection === 0
-                      ? "rgba(255, 255, 255, 0.1)"
-                      : "rgba(0, 0, 0, 0.3)",
+                    background:
+                      hoveredSelection === 0 ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.3)",
                     border: `1px solid ${hoveredSelection === 0 ? modernColors.border.glassLight : modernColors.border.glass}`,
                     borderRadius: borderRadius.md,
-                    color: hoveredSelection === 0 ? modernColors.text.primary : modernColors.text.secondary,
+                    color:
+                      hoveredSelection === 0
+                        ? modernColors.text.primary
+                        : modernColors.text.secondary,
                     fontSize: typography.fontSize.md,
-                    fontWeight: hoveredSelection === 0 ? typography.fontWeight.semibold : typography.fontWeight.normal,
+                    fontWeight:
+                      hoveredSelection === 0
+                        ? typography.fontWeight.semibold
+                        : typography.fontWeight.normal,
                     cursor: "pointer",
                     transition: "all 0.2s ease",
                     textAlign: "left",
@@ -385,14 +411,19 @@ export const DialogBox: React.FC<DialogBoxProps> = ({
                   type="button"
                   style={{
                     padding: `${spacing.sm}px ${spacing.lg}px`,
-                    background: hoveredSelection === 1
-                      ? "rgba(255, 255, 255, 0.1)"
-                      : "rgba(0, 0, 0, 0.3)",
+                    background:
+                      hoveredSelection === 1 ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.3)",
                     border: `1px solid ${hoveredSelection === 1 ? modernColors.border.glassLight : modernColors.border.glass}`,
                     borderRadius: borderRadius.md,
-                    color: hoveredSelection === 1 ? modernColors.text.primary : modernColors.text.secondary,
+                    color:
+                      hoveredSelection === 1
+                        ? modernColors.text.primary
+                        : modernColors.text.secondary,
                     fontSize: typography.fontSize.md,
-                    fontWeight: hoveredSelection === 1 ? typography.fontWeight.semibold : typography.fontWeight.normal,
+                    fontWeight:
+                      hoveredSelection === 1
+                        ? typography.fontWeight.semibold
+                        : typography.fontWeight.normal,
                     cursor: "pointer",
                     transition: "all 0.2s ease",
                     textAlign: "left",

@@ -5,9 +5,10 @@
  * C# Reference: SystemGui.cs shows system menu with 4 buttons
  * Resources loaded from UI_Settings.ini
  */
+
+import type { ButtonConfig } from "@miu2d/engine/gui/uiSettings";
 import type React from "react";
 import { useMemo, useState } from "react";
-import type { ButtonConfig } from "@miu2d/engine/gui/uiSettings";
 import { useAsfImage } from "./hooks";
 import { useSystemGuiConfig } from "./useUISettings";
 

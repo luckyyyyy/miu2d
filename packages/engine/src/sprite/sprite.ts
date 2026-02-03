@@ -3,6 +3,7 @@
  * Base class for all visual game objects with animation
  */
 
+import { ResourcePath } from "../config/resourcePaths";
 import { getEngineContext, type IEngineContext } from "../core/engineContext";
 import { logger } from "../core/logger";
 import type { Vector2 } from "../core/types";
@@ -10,7 +11,6 @@ import { CharacterState } from "../core/types";
 import { getDirectionIndex, pixelToTile, tileToPixel } from "../utils";
 import { getOuterEdge } from "../utils/edgeDetection";
 import { type AsfData, type AsfFrame, getFrameCanvas, getFrameIndex, loadAsf } from "./asf";
-import { ResourcePath } from "../config/resourcePaths";
 
 /** 角色状态对应的 ASF 动画集 */
 export interface SpriteSet {
@@ -459,10 +459,7 @@ export class Sprite {
   setDirection(direction: Vector2 | number): void {
     if (typeof direction === "number") {
       this.currentDirection = direction;
-    } else if (
-      (direction.x !== 0 || direction.y !== 0) &&
-      this._texture?.directions
-    ) {
+    } else if ((direction.x !== 0 || direction.y !== 0) && this._texture?.directions) {
       this.currentDirection = getDirectionIndex(direction, this._texture.directions);
     }
   }
@@ -571,10 +568,7 @@ export class Sprite {
   }
 
   async loadCustomAsf(asfFileName: string): Promise<AsfData | null> {
-    const paths = [
-      ResourcePath.asfCharacter(asfFileName),
-      ResourcePath.asfInterlude(asfFileName),
-    ];
+    const paths = [ResourcePath.asfCharacter(asfFileName), ResourcePath.asfInterlude(asfFileName)];
     for (const path of paths) {
       const asf = await loadAsf(path);
       if (asf) {

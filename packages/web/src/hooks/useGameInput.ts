@@ -7,8 +7,8 @@
  * 3. 管理输入相关的React状态
  */
 
-import { useCallback } from "react";
 import type { GameEngine } from "@miu2d/engine/game/gameEngine";
+import { useCallback } from "react";
 
 export interface UseGameInputOptions {
   engine: GameEngine | null;

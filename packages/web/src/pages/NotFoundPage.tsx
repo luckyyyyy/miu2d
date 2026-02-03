@@ -4,10 +4,10 @@
  */
 
 import { motion } from "framer-motion";
-import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { ThemeProvider } from "@/contexts";
+import { Link } from "react-router-dom";
 import { GridBackground } from "@/components";
+import { ThemeProvider } from "@/contexts";
 
 function NotFoundContent() {
   const { t } = useTranslation();

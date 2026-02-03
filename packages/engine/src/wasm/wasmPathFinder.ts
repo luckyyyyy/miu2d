@@ -7,8 +7,8 @@
  * 2. 使用 findPathWasm() 替代 findPath()
  */
 
-import type { Vector2 } from "../core/types";
 import { logger } from "../core/logger";
+import type { Vector2 } from "../core/types";
 
 // WASM 模块类型定义
 interface WasmPathFinder {
@@ -44,10 +44,7 @@ let initPromise: Promise<boolean> | null = null;
 /**
  * 初始化 WASM 寻路模块
  */
-export async function initWasmPathfinder(
-  mapWidth: number,
-  mapHeight: number
-): Promise<boolean> {
+export async function initWasmPathfinder(mapWidth: number, mapHeight: number): Promise<boolean> {
   if (isInitialized && wasmPathfinder) {
     return true;
   }
@@ -69,7 +66,10 @@ export async function initWasmPathfinder(
       logger.info(`[WasmPathFinder] Initialized with map size ${mapWidth}x${mapHeight}`);
       return true;
     } catch (error) {
-      logger.warn("[WasmPathFinder] Failed to initialize, falling back to JS implementation", error);
+      logger.warn(
+        "[WasmPathFinder] Failed to initialize, falling back to JS implementation",
+        error
+      );
       return false;
     }
   })();
@@ -87,10 +87,7 @@ export function isWasmPathfinderAvailable(): boolean {
 /**
  * 更新障碍物位图
  */
-export function updateObstacleBitmap(
-  bitmap: Uint8Array,
-  hardBitmap: Uint8Array
-): void {
+export function updateObstacleBitmap(bitmap: Uint8Array, hardBitmap: Uint8Array): void {
   if (!wasmPathfinder) return;
   wasmPathfinder.set_obstacle_bitmap(bitmap, hardBitmap);
 }
@@ -98,12 +95,7 @@ export function updateObstacleBitmap(
 /**
  * 设置单个障碍物
  */
-export function setObstacle(
-  x: number,
-  y: number,
-  isObstacle: boolean,
-  isHard: boolean
-): void {
+export function setObstacle(x: number, y: number, isObstacle: boolean, isHard: boolean): void {
   if (!wasmPathfinder) return;
   wasmPathfinder.set_obstacle(x, y, isObstacle, isHard);
 }

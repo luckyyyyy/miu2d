@@ -6,23 +6,23 @@
  */
 
 import type { AudioManager } from "../../audio";
-import { Character } from "../../character/character";
+import type { Character } from "../../character/character";
 import { getEngineContext } from "../../core/engineContext";
 import { logger } from "../../core/logger";
 import type { Vector2 } from "../../core/types";
-import { pixelToTile, tileToPixel } from "../../utils";
 import type { ScreenEffects } from "../../effects";
 import type { GuiManager } from "../../gui/guiManager";
 import type { Player } from "../../player/player";
+import { pixelToTile, tileToPixel } from "../../utils";
 import {
   type ApplyContext,
   type EndContext,
   getPosition as getCharPosition,
   getEffect,
 } from "../effects";
-import { getCachedMagic, getMagicAtLevel, loadMagic } from "../magicLoader";
-import { MagicSprite } from "../magicSprite";
+import { getCachedMagic, getMagicAtLevel } from "../magicLoader";
 import type { WorkItem } from "../magicSprite";
+import { MagicSprite } from "../magicSprite";
 import type { MagicData } from "../types";
 import { MAGIC_BASE_SPEED, MagicMoveKind } from "../types";
 import type {

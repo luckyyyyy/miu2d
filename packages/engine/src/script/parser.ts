@@ -2,10 +2,11 @@
  * Script Parser - based on JxqyHD Engine/Script/ScriptParser.cs
  * Parses script files into executable code structures
  */
+
+import { extractRelativePath, ResourcePath } from "../config/resourcePaths";
 import { logger } from "../core/logger";
 import type { ScriptCode, ScriptData } from "../core/types";
 import { resourceLoader } from "../resource/resourceLoader";
-import { extractRelativePath, ResourcePath } from "../config/resourcePaths";
 
 /**
  * Label regex - matches @LabelName: format (like C# RegGoto)

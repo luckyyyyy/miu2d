@@ -3,15 +3,15 @@
  * 管理玩家的武功列表和武功经验配置
  */
 
+import { DefaultPaths, ResourcePath } from "../../config/resourcePaths";
 import { logger } from "../../core/logger";
-import { parseIni } from "../../utils";
 import { getMagicAtLevel, loadMagic } from "../../magic/magicLoader";
 import { magicRenderer } from "../../magic/magicRenderer";
 import type { MagicData, MagicItemInfo } from "../../magic/types";
 import { createDefaultMagicItemInfo } from "../../magic/types";
 import { resourceLoader } from "../../resource/resourceLoader";
-import { DefaultPaths, ResourcePath } from "../../config/resourcePaths";
 import { loadAsf } from "../../sprite/asf";
+import { parseIni } from "../../utils";
 
 /**
  * 武功经验配置
@@ -293,10 +293,7 @@ export class MagicListManager {
     if (!magic.actionFile || !magic.attackFile) return;
 
     const asfFileName = `${magic.actionFile}${this._npcIniIndex}.asf`;
-    const paths = [
-      ResourcePath.asfCharacter(asfFileName),
-      ResourcePath.asfInterlude(asfFileName),
-    ];
+    const paths = [ResourcePath.asfCharacter(asfFileName), ResourcePath.asfInterlude(asfFileName)];
 
     for (const path of paths) {
       const asf = await loadAsf(path);
@@ -564,9 +561,7 @@ export class MagicListManager {
     // 使用统一入口添加
     await this._setMagicItemAt(index, itemInfo);
 
-    logger.debug(
-      `[MagicListManager] Added magic "${magic.name}" Lv.${level} at index ${index}`
-    );
+    logger.debug(`[MagicListManager] Added magic "${magic.name}" Lv.${level} at index ${index}`);
     this.updateView();
 
     return [true, index, levelMagic];
@@ -1151,7 +1146,9 @@ export class MagicListManager {
    */
   private getActiveMagicListHide(): (MagicItemInfo | null)[] {
     if (this._isInReplaceMagicList && this._currentReplaceMagicListFilePath) {
-      return this._replaceMagicListHide.get(this._currentReplaceMagicListFilePath) || this.magicListHide;
+      return (
+        this._replaceMagicListHide.get(this._currentReplaceMagicListFilePath) || this.magicListHide
+      );
     }
     return this.magicListHide;
   }
@@ -1216,7 +1213,9 @@ export class MagicListManager {
       this._replaceMagicList.set(filePath, newList);
       this._replaceMagicListHide.set(filePath, newHideList);
 
-      logger.log(`[MagicListManager] ReplaceListTo: created new list for ${filePath} with ${magicFileNames.length} magics`);
+      logger.log(
+        `[MagicListManager] ReplaceListTo: created new list for ${filePath} with ${magicFileNames.length} magics`
+      );
     }
 
     this.updateView();
@@ -1324,7 +1323,9 @@ export class MagicListManager {
             info.lastIndexWhenHide = item.lastIndexWhenHide || 0;
 
             const isHidden = item.index >= MAGIC_LIST_CONFIG.hideStartIndex;
-            const targetIndex = isHidden ? item.index - MAGIC_LIST_CONFIG.hideStartIndex : item.index;
+            const targetIndex = isHidden
+              ? item.index - MAGIC_LIST_CONFIG.hideStartIndex
+              : item.index;
 
             if (targetIndex >= 0 && targetIndex <= MAGIC_LIST_CONFIG.maxMagic) {
               if (isHidden) {
@@ -1345,6 +1346,8 @@ export class MagicListManager {
       this.updateView();
     }
 
-    logger.debug(`[MagicListManager] DeserializeReplaceLists: loaded ${this._replaceMagicList.size} replacement lists`);
+    logger.debug(
+      `[MagicListManager] DeserializeReplaceLists: loaded ${this._replaceMagicList.size} replacement lists`
+    );
   }
 }

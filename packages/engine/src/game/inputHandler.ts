@@ -13,15 +13,14 @@
  */
 
 import type { Character } from "../character/character";
-import type { Npc } from "../npc";
-import type { NpcManager } from "../npc";
 import { getEngineContext } from "../core/engineContext";
 import { logger } from "../core/logger";
 import type { InputState, Vector2 } from "../core/types";
-import { getDirectionFromVector, getViewTileDistance, pixelToTile } from "../utils";
+import type { Npc, NpcManager } from "../npc";
 import type { Obj } from "../obj/obj";
 import type { Player } from "../player/player";
 import type { ScriptExecutor } from "../script/executor";
+import { getDirectionFromVector, getViewTileDistance, pixelToTile } from "../utils";
 
 /**
  * Pending interaction target
@@ -835,7 +834,11 @@ export class InputHandler {
     const dy = playerTile.y - targetTile.y;
 
     // 计算目标位置（从目标指向玩家方向，距离 interactDistance）
-    let destTile = this.findDistanceTileInDirection(targetTile, { x: dx, y: dy }, interactDistance);
+    const destTile = this.findDistanceTileInDirection(
+      targetTile,
+      { x: dx, y: dy },
+      interactDistance
+    );
 
     // 如果目标位置可达，直接返回
     if (isTileWalkable(destTile) && !this.hasObstacle(destTile)) {

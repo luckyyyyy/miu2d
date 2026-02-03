@@ -2,9 +2,9 @@
  * 游戏调试区块 - 合并快捷操作和物品/武功
  */
 
+import { ALL_GOODS, ALL_PLAYER_MAGICS, GOODS_CATEGORIES } from "@miu2d/engine/constants/gameData";
 import type React from "react";
 import { useMemo, useState } from "react";
-import { ALL_GOODS, ALL_PLAYER_MAGICS, GOODS_CATEGORIES } from "@miu2d/engine/constants/gameData";
 import { btnClass, btnPrimary, inputClass, selectClass } from "../constants";
 import { Section } from "../Section";
 

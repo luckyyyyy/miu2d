@@ -105,10 +105,7 @@ const PartnerHeadItem: React.FC<PartnerHeadItemProps> = ({ partner, onClick }) =
  * 显示在屏幕左上角
  * C#: const int x = 5; var y = 5;
  */
-export const LittleHeadGui: React.FC<LittleHeadGuiProps> = ({
-  partners,
-  onPartnerClick,
-}) => {
+export const LittleHeadGui: React.FC<LittleHeadGuiProps> = ({ partners, onPartnerClick }) => {
   if (partners.length === 0) {
     return null;
   }

@@ -7,12 +7,12 @@
  * UI 设计参考原神：半透明长条，左侧显示物件的 ASF 精灵图标
  */
 
-import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { CharacterKind } from "@miu2d/engine/core/types";
 import type { GameEngine } from "@miu2d/engine/game/gameEngine";
 import type { Npc } from "@miu2d/engine/npc";
-import { ObjState, type Obj } from "@miu2d/engine/obj/obj";
-import { CharacterKind } from "@miu2d/engine/core/types";
+import { type Obj, ObjState } from "@miu2d/engine/obj/obj";
 import { getViewTileDistance } from "@miu2d/engine/utils";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { AsfAnimatedSprite } from "../ui/classic/AsfAnimatedSprite";
 
 /** 可交互目标类型 */
@@ -89,7 +89,11 @@ export const MobileInteractionBar = memo(function MobileInteractionBar({
 
     // 检查是否有阻塞性 UI 打开（对话框、选择框等）
     const guiManager = gameManager.getGuiManager();
-    if (guiManager.isDialogVisible() || guiManager.isSelectionVisible() || !guiManager.isMultiSelectionEnd()) {
+    if (
+      guiManager.isDialogVisible() ||
+      guiManager.isSelectionVisible() ||
+      !guiManager.isMultiSelectionEnd()
+    ) {
       setNearbyTargets([]);
       return;
     }
@@ -260,9 +264,7 @@ const InteractionButton = memo(function InteractionButton({
     const handleGlobalTouchEnd = (e: TouchEvent) => {
       if (touchIdRef.current === null) return;
 
-      const touch = Array.from(e.changedTouches).find(
-        (t) => t.identifier === touchIdRef.current
-      );
+      const touch = Array.from(e.changedTouches).find((t) => t.identifier === touchIdRef.current);
       if (touch) {
         touchIdRef.current = null;
         setIsPressed(false);
@@ -330,9 +332,7 @@ const InteractionButton = memo(function InteractionButton({
             }}
           />
         ) : (
-          <span className="text-white/60 text-xl">
-            {target.type === "npc" ? "👤" : "📦"}
-          </span>
+          <span className="text-white/60 text-xl">{target.type === "npc" ? "👤" : "📦"}</span>
         )}
       </div>
 

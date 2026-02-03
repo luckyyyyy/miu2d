@@ -10,9 +10,10 @@
  * - 选中项有黄色半透明背景
  * - 选够数量后自动关闭
  */
+
+import type { MultiSelectionGuiState } from "@miu2d/engine/gui/types";
 import type React from "react";
 import { useCallback, useMemo, useState } from "react";
-import type { MultiSelectionGuiState } from "@miu2d/engine/gui/types";
 import { useAsfImage } from "./hooks";
 
 interface SelectionMultipleUIProps {
@@ -61,7 +62,7 @@ export const SelectionMultipleUI: React.FC<SelectionMultipleUIProps> = ({
         onToggleSelection(index);
       }
     },
-    [state.options, onToggleSelection],
+    [state.options, onToggleSelection]
   );
 
   // 过滤出可见的选项，保留原始索引

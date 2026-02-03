@@ -8,35 +8,21 @@
 import type { AudioManager } from "../../audio";
 import { logger } from "../../core/logger";
 import type { CharacterConfig, CharacterStats, Vector2 } from "../../core/types";
-import {
-  CharacterKind,
-  CharacterState,
-  type Direction,
-  RelationType,
-  TILE_WIDTH,
-} from "../../core/types";
-import { pixelToTile } from "../../utils";
-import { BezierMover, FlyIniManager, StatusEffectsManager } from "../modules";
+import { CharacterKind, CharacterState, type Direction, RelationType } from "../../core/types";
 import type { MagicSprite } from "../../magic/magicSprite";
 import type { MagicData } from "../../magic/types";
-import { Obj } from "../../obj/obj";
-import type { AsfData } from "../../sprite/asf";
+import type { Npc } from "../../npc";
+import type { Obj } from "../../obj/obj";
+import { getAsfForState, Sprite } from "../../sprite/sprite";
+import { pixelToTile } from "../../utils";
 import {
-  createEmptySpriteSet,
-  getAsfForState,
-  loadSpriteSet,
-  Sprite,
-  type SpriteSet,
-} from "../../sprite/sprite";
-import {
-  applyConfigToCharacter,
   type CharacterInstance,
   extractConfigFromCharacter,
   extractStatsFromCharacter,
 } from "../iniParser";
-import { loadCharacterAsf } from "../resFile";
 import { LevelManager } from "../level/levelManager";
-import type { Npc } from "../../npc";
+import { BezierMover, FlyIniManager, StatusEffectsManager } from "../modules";
+import { loadCharacterAsf } from "../resFile";
 
 /** 加载中状态标记（-1），确保后续 state 变更时触发纹理更新 */
 export const LOADING_STATE = -1 as CharacterState;
@@ -148,17 +134,33 @@ export abstract class CharacterBase extends Sprite implements CharacterInstance 
   protected _flyIniManager = new FlyIniManager();
 
   // 委托属性
-  get flyIni(): string { return this._flyIniManager.flyIni; }
-  set flyIni(v: string) { this._flyIniManager.flyIni = v; }
-  get flyIni2(): string { return this._flyIniManager.flyIni2; }
-  set flyIni2(v: string) { this._flyIniManager.flyIni2 = v; }
-  get flyInis(): string { return this._flyIniManager.flyInis; }
-  set flyInis(v: string) { this._flyIniManager.flyInis = v; }
+  get flyIni(): string {
+    return this._flyIniManager.flyIni;
+  }
+  set flyIni(v: string) {
+    this._flyIniManager.flyIni = v;
+  }
+  get flyIni2(): string {
+    return this._flyIniManager.flyIni2;
+  }
+  set flyIni2(v: string) {
+    this._flyIniManager.flyIni2 = v;
+  }
+  get flyInis(): string {
+    return this._flyIniManager.flyInis;
+  }
+  set flyInis(v: string) {
+    this._flyIniManager.flyInis = v;
+  }
   protected get _flyIniInfos(): Array<{ useDistance: number; magicIni: string }> {
     return this._flyIniManager.flyIniInfos as Array<{ useDistance: number; magicIni: string }>;
   }
-  protected get _flyIniReplace(): string[] { return []; }
-  protected get _flyIni2Replace(): string[] { return []; }
+  protected get _flyIniReplace(): string[] {
+    return [];
+  }
+  protected get _flyIni2Replace(): string[] {
+    return [];
+  }
 
   bodyIni: string = "";
   bodyIniObj: Obj | null = null;
@@ -219,7 +221,7 @@ export abstract class CharacterBase extends Sprite implements CharacterInstance 
     return this.levelManager.getLevelFile();
   }
   set levelIniFile(value: string) {
-    this.levelManager.setLevelFile(value).catch(err => {
+    this.levelManager.setLevelFile(value).catch((err) => {
       logger.error(`[CharacterBase] Failed to set levelIniFile: ${err}`);
     });
   }
@@ -230,46 +232,122 @@ export abstract class CharacterBase extends Sprite implements CharacterInstance 
   protected _statusEffects = new StatusEffectsManager();
 
   // 委托属性 - 公开
-  get poisonByCharacterName(): string { return this._statusEffects.poisonByCharacterName; }
-  set poisonByCharacterName(v: string) { this._statusEffects.poisonByCharacterName = v; }
-  get poisonSeconds(): number { return this._statusEffects.poisonSeconds; }
-  set poisonSeconds(v: number) { this._statusEffects.poisonSeconds = v; }
-  get petrifiedSeconds(): number { return this._statusEffects.petrifiedSeconds; }
-  set petrifiedSeconds(v: number) { this._statusEffects.petrifiedSeconds = v; }
-  get frozenSeconds(): number { return this._statusEffects.frozenSeconds; }
-  set frozenSeconds(v: number) { this._statusEffects.frozenSeconds = v; }
-  get isPoisonVisualEffect(): boolean { return this._statusEffects.isPoisonVisualEffect; }
-  set isPoisonVisualEffect(v: boolean) { this._statusEffects.isPoisonVisualEffect = v; }
-  get isPetrifiedVisualEffect(): boolean { return this._statusEffects.isPetrifiedVisualEffect; }
-  set isPetrifiedVisualEffect(v: boolean) { this._statusEffects.isPetrifiedVisualEffect = v; }
-  get isFrozenVisualEffect(): boolean { return this._statusEffects.isFrozenVisualEffect; }
-  set isFrozenVisualEffect(v: boolean) { this._statusEffects.isFrozenVisualEffect = v; }
-  get invisibleByMagicTime(): number { return this._statusEffects.invisibleByMagicTime; }
-  set invisibleByMagicTime(v: number) { this._statusEffects.invisibleByMagicTime = v; }
-  get isVisibleWhenAttack(): boolean { return this._statusEffects.isVisibleWhenAttack; }
-  set isVisibleWhenAttack(v: boolean) { this._statusEffects.isVisibleWhenAttack = v; }
-  get disableMoveMilliseconds(): number { return this._statusEffects.disableMoveMilliseconds; }
-  set disableMoveMilliseconds(v: number) { this._statusEffects.disableMoveMilliseconds = v; }
-  get disableSkillMilliseconds(): number { return this._statusEffects.disableSkillMilliseconds; }
-  set disableSkillMilliseconds(v: number) { this._statusEffects.disableSkillMilliseconds = v; }
-  get speedUpByMagicSprite(): MagicSprite | null { return this._statusEffects.speedUpByMagicSprite; }
-  set speedUpByMagicSprite(v: MagicSprite | null) { this._statusEffects.speedUpByMagicSprite = v; }
+  get poisonByCharacterName(): string {
+    return this._statusEffects.poisonByCharacterName;
+  }
+  set poisonByCharacterName(v: string) {
+    this._statusEffects.poisonByCharacterName = v;
+  }
+  get poisonSeconds(): number {
+    return this._statusEffects.poisonSeconds;
+  }
+  set poisonSeconds(v: number) {
+    this._statusEffects.poisonSeconds = v;
+  }
+  get petrifiedSeconds(): number {
+    return this._statusEffects.petrifiedSeconds;
+  }
+  set petrifiedSeconds(v: number) {
+    this._statusEffects.petrifiedSeconds = v;
+  }
+  get frozenSeconds(): number {
+    return this._statusEffects.frozenSeconds;
+  }
+  set frozenSeconds(v: number) {
+    this._statusEffects.frozenSeconds = v;
+  }
+  get isPoisonVisualEffect(): boolean {
+    return this._statusEffects.isPoisonVisualEffect;
+  }
+  set isPoisonVisualEffect(v: boolean) {
+    this._statusEffects.isPoisonVisualEffect = v;
+  }
+  get isPetrifiedVisualEffect(): boolean {
+    return this._statusEffects.isPetrifiedVisualEffect;
+  }
+  set isPetrifiedVisualEffect(v: boolean) {
+    this._statusEffects.isPetrifiedVisualEffect = v;
+  }
+  get isFrozenVisualEffect(): boolean {
+    return this._statusEffects.isFrozenVisualEffect;
+  }
+  set isFrozenVisualEffect(v: boolean) {
+    this._statusEffects.isFrozenVisualEffect = v;
+  }
+  get invisibleByMagicTime(): number {
+    return this._statusEffects.invisibleByMagicTime;
+  }
+  set invisibleByMagicTime(v: number) {
+    this._statusEffects.invisibleByMagicTime = v;
+  }
+  get isVisibleWhenAttack(): boolean {
+    return this._statusEffects.isVisibleWhenAttack;
+  }
+  set isVisibleWhenAttack(v: boolean) {
+    this._statusEffects.isVisibleWhenAttack = v;
+  }
+  get disableMoveMilliseconds(): number {
+    return this._statusEffects.disableMoveMilliseconds;
+  }
+  set disableMoveMilliseconds(v: number) {
+    this._statusEffects.disableMoveMilliseconds = v;
+  }
+  get disableSkillMilliseconds(): number {
+    return this._statusEffects.disableSkillMilliseconds;
+  }
+  set disableSkillMilliseconds(v: number) {
+    this._statusEffects.disableSkillMilliseconds = v;
+  }
+  get speedUpByMagicSprite(): MagicSprite | null {
+    return this._statusEffects.speedUpByMagicSprite;
+  }
+  set speedUpByMagicSprite(v: MagicSprite | null) {
+    this._statusEffects.speedUpByMagicSprite = v;
+  }
 
   // 委托属性 - protected
-  protected get _changeCharacterByMagicSprite(): MagicSprite | null { return this._statusEffects.changeCharacterByMagicSprite; }
-  protected set _changeCharacterByMagicSprite(v: MagicSprite | null) { this._statusEffects.changeCharacterByMagicSprite = v; }
-  protected get _changeCharacterByMagicSpriteTime(): number { return this._statusEffects.changeCharacterByMagicSpriteTime; }
-  protected set _changeCharacterByMagicSpriteTime(v: number) { this._statusEffects.changeCharacterByMagicSpriteTime = v; }
-  protected get _weakByMagicSprite(): MagicSprite | null { return this._statusEffects.weakByMagicSprite; }
-  protected set _weakByMagicSprite(v: MagicSprite | null) { this._statusEffects.weakByMagicSprite = v; }
-  protected get _weakByMagicSpriteTime(): number { return this._statusEffects.weakByMagicSpriteTime; }
-  protected set _weakByMagicSpriteTime(v: number) { this._statusEffects.weakByMagicSpriteTime = v; }
-  protected get _changeToOppositeMilliseconds(): number { return this._statusEffects.changeToOppositeMilliseconds; }
-  protected set _changeToOppositeMilliseconds(v: number) { this._statusEffects.changeToOppositeMilliseconds = v; }
-  protected get _changeFlyIniByMagicSprite(): MagicSprite | null { return this._statusEffects.changeFlyIniByMagicSprite; }
-  protected set _changeFlyIniByMagicSprite(v: MagicSprite | null) { this._statusEffects.changeFlyIniByMagicSprite = v; }
-  protected get _controledMagicSprite(): MagicSprite | null { return this._statusEffects.controledMagicSprite; }
-  protected set _controledMagicSprite(v: MagicSprite | null) { this._statusEffects.controledMagicSprite = v; }
+  protected get _changeCharacterByMagicSprite(): MagicSprite | null {
+    return this._statusEffects.changeCharacterByMagicSprite;
+  }
+  protected set _changeCharacterByMagicSprite(v: MagicSprite | null) {
+    this._statusEffects.changeCharacterByMagicSprite = v;
+  }
+  protected get _changeCharacterByMagicSpriteTime(): number {
+    return this._statusEffects.changeCharacterByMagicSpriteTime;
+  }
+  protected set _changeCharacterByMagicSpriteTime(v: number) {
+    this._statusEffects.changeCharacterByMagicSpriteTime = v;
+  }
+  protected get _weakByMagicSprite(): MagicSprite | null {
+    return this._statusEffects.weakByMagicSprite;
+  }
+  protected set _weakByMagicSprite(v: MagicSprite | null) {
+    this._statusEffects.weakByMagicSprite = v;
+  }
+  protected get _weakByMagicSpriteTime(): number {
+    return this._statusEffects.weakByMagicSpriteTime;
+  }
+  protected set _weakByMagicSpriteTime(v: number) {
+    this._statusEffects.weakByMagicSpriteTime = v;
+  }
+  protected get _changeToOppositeMilliseconds(): number {
+    return this._statusEffects.changeToOppositeMilliseconds;
+  }
+  protected set _changeToOppositeMilliseconds(v: number) {
+    this._statusEffects.changeToOppositeMilliseconds = v;
+  }
+  protected get _changeFlyIniByMagicSprite(): MagicSprite | null {
+    return this._statusEffects.changeFlyIniByMagicSprite;
+  }
+  protected set _changeFlyIniByMagicSprite(v: MagicSprite | null) {
+    this._statusEffects.changeFlyIniByMagicSprite = v;
+  }
+  protected get _controledMagicSprite(): MagicSprite | null {
+    return this._statusEffects.controledMagicSprite;
+  }
+  protected set _controledMagicSprite(v: MagicSprite | null) {
+    this._statusEffects.controledMagicSprite = v;
+  }
 
   // === LifeMilliseconds ===
   protected _lifeMilliseconds: number = 0;

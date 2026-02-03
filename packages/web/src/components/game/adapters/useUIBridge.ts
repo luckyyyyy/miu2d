@@ -10,7 +10,6 @@
  * - 所有动作通过 dispatch 派发
  */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
 import type { GameEngine } from "@miu2d/engine/game/gameEngine";
 import type {
   UIAction,
@@ -29,6 +28,7 @@ import type {
   UITimerState,
   UIVideoState,
 } from "@miu2d/engine/ui/contract";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 // ============= 返回类型 =============
 
@@ -195,7 +195,8 @@ export function useUIBridge(engine: GameEngine | null): UseUIBridgeResult {
   const [panels, setPanels] = useState<UIPanelVisibility>(defaultPanels);
   const [dialog, setDialog] = useState<UIDialogState>(defaultDialog);
   const [selection, setSelection] = useState<UISelectionState>(defaultSelection);
-  const [multiSelection, setMultiSelection] = useState<UIMultiSelectionState>(defaultMultiSelection);
+  const [multiSelection, setMultiSelection] =
+    useState<UIMultiSelectionState>(defaultMultiSelection);
   const [message, setMessage] = useState<UIMessageState>(defaultMessage);
   const [goods, setGoods] = useState<UIGoodsState>(defaultGoods);
   const [magic, setMagic] = useState<UIMagicState>(defaultMagic);
@@ -341,7 +342,9 @@ export function useUISelection(result: UseUIBridgeResult | null): UISelectionSta
 /**
  * 从 UIBridgeResult 订阅多选状态
  */
-export function useUIMultiSelection(result: UseUIBridgeResult | null): UIMultiSelectionState | null {
+export function useUIMultiSelection(
+  result: UseUIBridgeResult | null
+): UIMultiSelectionState | null {
   return result?.multiSelection ?? null;
 }
 
@@ -376,7 +379,9 @@ export function useUIShop(result: UseUIBridgeResult | null): UIShopState | null 
 /**
  * 从 UIBridgeResult 订阅备忘录状态
  */
-export function useUIMemos(result: UseUIBridgeResult | null): readonly import("@miu2d/engine/ui/contract").UIMemoEntry[] | null {
+export function useUIMemos(
+  result: UseUIBridgeResult | null
+): readonly import("@miu2d/engine/ui/contract").UIMemoEntry[] | null {
   return result?.memo?.memos ?? null;
 }
 

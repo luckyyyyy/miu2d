@@ -6,7 +6,7 @@
  * 参考：https://developer.mozilla.org/en-US/docs/Web/API/File_System_API
  */
 
-import { useState, useCallback, useEffect } from "react";
+import { useCallback, useState } from "react";
 import type { TreeNode } from "../components/tree/types";
 
 interface UseFileSystemOptions {
@@ -149,12 +149,7 @@ export function useFileSystem({
       handleMap.set(`/${handle.name}`, handle);
 
       // 读取根目录
-      const rootNodes = await readDirectory(
-        handle,
-        `/${handle.name}`,
-        0,
-        fileFilter
-      );
+      const rootNodes = await readDirectory(handle, `/${handle.name}`, 0, fileFilter);
 
       // 存储句柄映射
       for await (const entry of handle.values()) {
@@ -183,12 +178,7 @@ export function useFileSystem({
       setIsLoading(true);
       setError(null);
 
-      const rootNodes = await readDirectory(
-        rootHandle,
-        `/${rootHandle.name}`,
-        0,
-        fileFilter
-      );
+      const rootNodes = await readDirectory(rootHandle, `/${rootHandle.name}`, 0, fileFilter);
 
       setNodes(rootNodes);
     } catch (err) {
@@ -338,12 +328,7 @@ export function useFileSystem({
         handleMap.set(`/${handle.name}`, handle);
 
         // 读取根目录
-        const rootNodes = await readDirectory(
-          handle,
-          `/${handle.name}`,
-          0,
-          fileFilter
-        );
+        const rootNodes = await readDirectory(handle, `/${handle.name}`, 0, fileFilter);
 
         // 存储句柄映射
         for await (const entry of handle.values()) {

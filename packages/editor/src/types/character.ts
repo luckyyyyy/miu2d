@@ -5,20 +5,16 @@
 
 // 从 engine 复用核心类型
 export {
-  CharacterKind,
-  RelationType,
-  CharacterState,
   type CharacterConfig as EngineCharacterConfig,
+  CharacterKind,
+  CharacterState,
   type CharacterStats,
   DEFAULT_CHARACTER_CONFIG,
   DEFAULT_PLAYER_STATS,
+  RelationType,
 } from "@miu2d/engine/core/types";
 
-import {
-  CharacterKind,
-  RelationType,
-  DEFAULT_PLAYER_STATS,
-} from "@miu2d/engine/core/types";
+import { CharacterKind, DEFAULT_PLAYER_STATS, RelationType } from "@miu2d/engine/core/types";
 
 /** AI 类型 (engine 中没有单独定义) */
 export enum AIType {
@@ -268,13 +264,7 @@ export interface CharacterFieldGroup {
 }
 
 /** 字段类型 */
-export type FieldType =
-  | "string"
-  | "number"
-  | "boolean"
-  | "enum"
-  | "file"
-  | "script";
+export type FieldType = "string" | "number" | "boolean" | "enum" | "file" | "script";
 
 /** 字段定义 */
 export interface CharacterFieldDef {
@@ -372,7 +362,12 @@ export const characterFieldGroups: CharacterFieldGroup[] = [
         fileExtensions: [".ini"],
         fileDirectory: "ini/magic",
       },
-      { key: "flyInis", label: "多攻击魔法", type: "string", description: "格式: magic1.ini:距离;magic2.ini:距离;" },
+      {
+        key: "flyInis",
+        label: "多攻击魔法",
+        type: "string",
+        description: "格式: magic1.ini:距离;magic2.ini:距离;",
+      },
       {
         key: "dropIni",
         label: "掉落配置",
@@ -436,14 +431,32 @@ export const characterFieldGroups: CharacterFieldGroup[] = [
           { value: AIType.RandMoveRandAttackNoFightBack, label: "不反击 (2)" },
         ],
       },
-      { key: "magicToUseWhenLifeLow", label: "低血魔法", type: "file", fileExtensions: [".ini"], fileDirectory: "ini/magic" },
+      {
+        key: "magicToUseWhenLifeLow",
+        label: "低血魔法",
+        type: "file",
+        fileExtensions: [".ini"],
+        fileDirectory: "ini/magic",
+      },
       { key: "keepRadiusWhenLifeLow", label: "低血保持距离", type: "number", min: 0 },
       { key: "lifeLowPercent", label: "低血阈值%", type: "number", min: 0, max: 100 },
       { key: "stopFindingTarget", label: "停止寻敌", type: "number" },
       { key: "keepRadiusWhenFriendDeath", label: "友方死亡保持距离", type: "number", min: 0 },
-      { key: "magicToUseWhenBeAttacked", label: "被攻击魔法", type: "file", fileExtensions: [".ini"], fileDirectory: "ini/magic" },
+      {
+        key: "magicToUseWhenBeAttacked",
+        label: "被攻击魔法",
+        type: "file",
+        fileExtensions: [".ini"],
+        fileDirectory: "ini/magic",
+      },
       { key: "magicDirectionWhenBeAttacked", label: "被攻击魔法方向", type: "number" },
-      { key: "magicToUseWhenDeath", label: "死亡魔法", type: "file", fileExtensions: [".ini"], fileDirectory: "ini/magic" },
+      {
+        key: "magicToUseWhenDeath",
+        label: "死亡魔法",
+        type: "file",
+        fileExtensions: [".ini"],
+        fileDirectory: "ini/magic",
+      },
       {
         key: "magicDirectionWhenDeath",
         label: "死亡魔法方向",
@@ -472,7 +485,13 @@ export const characterFieldGroups: CharacterFieldGroup[] = [
     name: "商店",
     icon: "🏪",
     fields: [
-      { key: "buyIniFile", label: "商店配置", type: "file", fileExtensions: [".ini"], fileDirectory: "ini/buy" },
+      {
+        key: "buyIniFile",
+        label: "商店配置",
+        type: "file",
+        fileExtensions: [".ini"],
+        fileDirectory: "ini/buy",
+      },
     ],
   },
   {

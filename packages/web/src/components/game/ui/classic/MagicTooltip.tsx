@@ -9,9 +9,10 @@
  * - Level: Left=160, Top=191, Color=91,31,27,204 (dark red)
  * - Magic Intro: Left=67, Top=210, Color=52,21,14,204 (brown) - uses ToolTip_Type1_Item_Magic_Intro
  */
+
+import type { MagicItemInfo } from "@miu2d/engine/magic";
 import type React from "react";
 import { useEffect, useState } from "react";
-import type { MagicItemInfo } from "@miu2d/engine/magic";
 import { useAsfAnimation, useAsfImage } from "./hooks";
 
 interface MagicTooltipProps {

@@ -2,7 +2,15 @@
  * Modern UI Styles - 通用样式生成器
  */
 import type React from "react";
-import { borderRadius, glassEffect, modernColors, shadows, spacing, transitions, typography } from "./theme";
+import {
+  borderRadius,
+  glassEffect,
+  modernColors,
+  shadows,
+  spacing,
+  transitions,
+  typography,
+} from "./theme";
 
 // ============= 面板样式 =============
 

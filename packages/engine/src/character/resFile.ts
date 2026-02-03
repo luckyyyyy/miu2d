@@ -8,13 +8,13 @@
  * C# Reference: Engine/ResFile.cs
  */
 
+import { ResourcePath } from "../config/resourcePaths";
 import { logger } from "../core/logger";
 import { CharacterState } from "../core/types";
-import { parseIni } from "../utils";
+import { loadMpcWithShadow } from "../resource/mpc";
 import { resourceLoader } from "../resource/resourceLoader";
 import { type AsfData, loadAsf } from "../sprite/asf";
-import { ResourcePath } from "../config/resourcePaths";
-import { loadMpcWithShadow } from "../resource/mpc";
+import { parseIni } from "../utils";
 
 // Re-export from iniParser for backward compatibility
 export {

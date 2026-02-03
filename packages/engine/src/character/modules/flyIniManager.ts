@@ -174,7 +174,9 @@ export class FlyIniManager {
       }
     }
 
-    return this._flyIniInfos.length > 0 ? this._flyIniInfos[this._flyIniInfos.length - 1].magicIni : null;
+    return this._flyIniInfos.length > 0
+      ? this._flyIniInfos[this._flyIniInfos.length - 1].magicIni
+      : null;
   }
 
   // === 临时替换方法 ===
@@ -254,7 +256,9 @@ export class FlyIniManager {
     }
 
     if (characterName) {
-      logger.debug(`[FlyIniManager] ${characterName}: ReplaceMagicList - replaced with "${listStr}"`);
+      logger.debug(
+        `[FlyIniManager] ${characterName}: ReplaceMagicList - replaced with "${listStr}"`
+      );
     }
   }
 
@@ -297,7 +301,10 @@ export class FlyIniManager {
   private removeMagicFromInfos(magicIni: string, useDistance: number): void {
     if (!magicIni) return;
     for (let i = 0; i < this._flyIniInfos.length; i++) {
-      if (this._flyIniInfos[i].magicIni === magicIni && this._flyIniInfos[i].useDistance === useDistance) {
+      if (
+        this._flyIniInfos[i].magicIni === magicIni &&
+        this._flyIniInfos[i].useDistance === useDistance
+      ) {
         this._flyIniInfos.splice(i, 1);
         break;
       }

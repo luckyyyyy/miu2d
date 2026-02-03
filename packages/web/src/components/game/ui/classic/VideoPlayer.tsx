@@ -6,11 +6,11 @@
  * Features: progress bar, volume control, pause/play, seek
  */
 
-import { useEffect, useState, useRef, useCallback } from "react";
-import { GameEvents, type UIVideoPlayEvent } from "@miu2d/engine/core/gameEvents";
-import type { GameEngine } from "@miu2d/engine/game";
 import { ResourcePath } from "@miu2d/engine/config/resourcePaths";
+import { GameEvents, type UIVideoPlayEvent } from "@miu2d/engine/core/gameEvents";
 import { logger } from "@miu2d/engine/core/logger";
+import type { GameEngine } from "@miu2d/engine/game";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { loadAudioSettings, saveAudioSettings } from "@/components/common";
 
 interface VideoPlayerProps {
@@ -256,10 +256,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ engine }) => {
           break;
         case "ArrowRight":
           if (videoRef.current) {
-            videoRef.current.currentTime = Math.min(
-              duration,
-              videoRef.current.currentTime + 5
-            );
+            videoRef.current.currentTime = Math.min(duration, videoRef.current.currentTime + 5);
           }
           break;
         case "ArrowUp":

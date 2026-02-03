@@ -3,19 +3,19 @@
  * 管理所有 NPC 的创建、更新、查询
  */
 
+import type { Character } from "../character";
+import type { CharacterBase } from "../character/base";
+import { loadNpcConfig } from "../character/resFile";
+import { ResourcePath } from "../config/resourcePaths";
 import { getEngineContext } from "../core/engineContext";
 import { logger } from "../core/logger";
 import type { CharacterConfig, Vector2 } from "../core/types";
-import { CharacterKind, CharacterState, type Direction, RelationType } from "../core/types";
-import { distance, getNeighbors, getViewTileDistance, parseIni } from "../utils";
-import { getDropObj, type DropCharacter } from "../drop/goodDrop";
+import { CharacterKind, type CharacterState, type Direction, RelationType } from "../core/types";
+import { type DropCharacter, getDropObj } from "../drop/goodDrop";
 import type { ObjManager } from "../obj/objManager";
 import { resourceLoader } from "../resource/resourceLoader";
-import type { Character } from "../character";
-import { CharacterBase } from "../character/base";
+import { distance, getNeighbors, getViewTileDistance, parseIni } from "../utils";
 import { Npc } from "./npc";
-import { loadNpcConfig } from "../character/resFile";
-import { ResourcePath } from "../config/resourcePaths";
 
 // Type alias for position (use Vector2 for consistency)
 type Position = Vector2;
@@ -1031,7 +1031,9 @@ export class NpcManager {
       return;
     }
 
-    logger.log(`[NpcManager] SavePartner: ${fileName} (Partner data will be saved with next saveGame)`);
+    logger.log(
+      `[NpcManager] SavePartner: ${fileName} (Partner data will be saved with next saveGame)`
+    );
 
     // Web 版本注意事项：
     // - Partner 数据在 Loader.collectSaveData() -> collectNpcData(npcManager, true) 中收集
@@ -1565,17 +1567,31 @@ export class NpcManager {
     const attack3 = parseNum(data.Attack3 ?? data.attack3, 0);
     const defend3 = parseNum(data.Defend3 ?? data.defend3, 0);
     const canLevelUp = parseNum(data.CanLevelUp ?? data.canLevelUp, 0);
-    const currentFixedPosIndex = parseNum(data.CurrentFixedPosIndex ?? data.currentFixedPosIndex, 0);
+    const currentFixedPosIndex = parseNum(
+      data.CurrentFixedPosIndex ?? data.currentFixedPosIndex,
+      0
+    );
     const destinationMapPosX = parseNum(data.DestinationMapPosX ?? data.destinationMapPosX, 0);
     const destinationMapPosY = parseNum(data.DestinationMapPosY ?? data.destinationMapPosY, 0);
     const isBodyIniAdded = parseNum(data.IsBodyIniAdded ?? data.isBodyIniAdded, 0);
     const poisonSeconds = parseNum(data.PoisonSeconds ?? data.poisonSeconds, 0);
-    const poisonByCharacterName = parseStr(data.PoisonByCharacterName ?? data.poisonByCharacterName);
+    const poisonByCharacterName = parseStr(
+      data.PoisonByCharacterName ?? data.poisonByCharacterName
+    );
     const petrifiedSeconds = parseNum(data.PetrifiedSeconds ?? data.petrifiedSeconds, 0);
     const frozenSeconds = parseNum(data.FrozenSeconds ?? data.frozenSeconds, 0);
-    const isPoisonVisualEffect = parseBool(data.IsPoisonVisualEffect ?? data.isPoisonVisualEffect, false);
-    const isPetrifiedVisualEffect = parseBool(data.IsPetrifiedVisualEffect ?? data.isPetrifiedVisualEffect, false);
-    const isFrozenVisualEffect = parseBool(data.IsFrozenVisualEffect ?? data.isFrozenVisualEffect, false);
+    const isPoisonVisualEffect = parseBool(
+      data.IsPoisonVisualEffect ?? data.isPoisonVisualEffect,
+      false
+    );
+    const isPetrifiedVisualEffect = parseBool(
+      data.IsPetrifiedVisualEffect ?? data.isPetrifiedVisualEffect,
+      false
+    );
+    const isFrozenVisualEffect = parseBool(
+      data.IsFrozenVisualEffect ?? data.isFrozenVisualEffect,
+      false
+    );
     const buyIniString = parseStr(data.BuyIniString ?? data.buyIniString);
     const canEquip = parseNum(data.CanEquip ?? data.canEquip, 0);
     const headEquip = parseStr(data.HeadEquip ?? data.headEquip);
@@ -1585,7 +1601,9 @@ export class NpcManager {
     const handEquip = parseStr(data.HandEquip ?? data.handEquip);
     const wristEquip = parseStr(data.WristEquip ?? data.wristEquip);
     const footEquip = parseStr(data.FootEquip ?? data.footEquip);
-    const backgroundTextureEquip = parseStr(data.BackgroundTextureEquip ?? data.backgroundTextureEquip);
+    const backgroundTextureEquip = parseStr(
+      data.BackgroundTextureEquip ?? data.backgroundTextureEquip
+    );
     const keepAttackX = parseNum(data.KeepAttackX ?? data.keepAttackX, 0);
     const keepAttackY = parseNum(data.KeepAttackY ?? data.keepAttackY, 0);
     const levelIniFile = parseStr(data.LevelIni ?? data.LevelIniFile ?? data.levelIniFile);
@@ -1736,11 +1754,13 @@ export class NpcManager {
 
     // === 状态效果 ===
     if (extraState.poisonSeconds) npc.poisonSeconds = extraState.poisonSeconds;
-    if (extraState.poisonByCharacterName) npc.poisonByCharacterName = extraState.poisonByCharacterName;
+    if (extraState.poisonByCharacterName)
+      npc.poisonByCharacterName = extraState.poisonByCharacterName;
     if (extraState.petrifiedSeconds) npc.petrifiedSeconds = extraState.petrifiedSeconds;
     if (extraState.frozenSeconds) npc.frozenSeconds = extraState.frozenSeconds;
     if (extraState.isPoisonVisualEffect) npc.isPoisonVisualEffect = extraState.isPoisonVisualEffect;
-    if (extraState.isPetrifiedVisualEffect) npc.isPetrifiedVisualEffect = extraState.isPetrifiedVisualEffect;
+    if (extraState.isPetrifiedVisualEffect)
+      npc.isPetrifiedVisualEffect = extraState.isPetrifiedVisualEffect;
     if (extraState.isFrozenVisualEffect) npc.isFrozenVisualEffect = extraState.isFrozenVisualEffect;
 
     // === 装备 ===
@@ -1752,7 +1772,8 @@ export class NpcManager {
     if (extraState.handEquip) npc.handEquip = extraState.handEquip;
     if (extraState.wristEquip) npc.wristEquip = extraState.wristEquip;
     if (extraState.footEquip) npc.footEquip = extraState.footEquip;
-    if (extraState.backgroundTextureEquip) npc.backgroundTextureEquip = extraState.backgroundTextureEquip;
+    if (extraState.backgroundTextureEquip)
+      npc.backgroundTextureEquip = extraState.backgroundTextureEquip;
 
     // === 保持攻击位置 ===
     if (extraState.keepAttackX) npc.keepAttackX = extraState.keepAttackX;

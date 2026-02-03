@@ -5,10 +5,11 @@
  * C# Reference: EquipGui.cs shows 7 equipment slots (head, neck, body, back, hand, wrist, foot)
  * Resources loaded from UI_Settings.ini
  */
+
+import type { Good } from "@miu2d/engine/player/goods";
 import type React from "react";
 import { useCallback, useMemo } from "react";
-import type { Good } from "@miu2d/engine/player/goods";
-import { useDevice, type TouchDragData } from "@/contexts";
+import { type TouchDragData, useDevice } from "@/contexts";
 import { useTouchDragSource, useTouchDropTarget } from "@/hooks";
 import { useAsfImage } from "./hooks";
 import { useEquipGuiConfig } from "./useUISettings";
@@ -157,7 +158,16 @@ const EquipSlot: React.FC<EquipSlotProps> = ({
   const dropRef = useTouchDropTarget({
     id: `equip-slot-${slot}`,
     onDrop: (data) => {
-      console.log('[EquipGui] EquipSlot onDrop:', data.type, 'bagIndex:', data.bagIndex, 'equipSlot:', data.equipSlot, 'target slot:', slot);
+      console.log(
+        "[EquipGui] EquipSlot onDrop:",
+        data.type,
+        "bagIndex:",
+        data.bagIndex,
+        "equipSlot:",
+        data.equipSlot,
+        "target slot:",
+        slot
+      );
       onTouchDrop?.(data);
     },
     canDrop: (data) => data.type === "goods" || data.type === "equip",

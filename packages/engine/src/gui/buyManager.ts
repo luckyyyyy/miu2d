@@ -15,11 +15,11 @@
  */
 
 import type { Character } from "../character";
-import { logger } from "../core/logger";
-import { parseIni } from "../utils";
-import { Good, getGood } from "../player/goods";
-import { resourceLoader } from "../resource/resourceLoader";
 import { ResourcePath } from "../config/resourcePaths";
+import { logger } from "../core/logger";
+import { type Good, getGood } from "../player/goods";
+import { resourceLoader } from "../resource/resourceLoader";
+import { parseIni } from "../utils";
 
 export interface ShopItemInfo {
   good: Good;

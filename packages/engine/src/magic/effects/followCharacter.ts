@@ -77,7 +77,9 @@ export function createFollowCharacterEffect(): MagicEffect {
           if (caster.type === "player") {
             caster.player.invisibleByMagicTime = effectAmount;
             caster.player.isVisibleWhenAttack = false;
-            logger.log(`[FollowCharacter] InvisibleHide: duration=${effectAmount}ms, visibleWhenAttack=false`);
+            logger.log(
+              `[FollowCharacter] InvisibleHide: duration=${effectAmount}ms, visibleWhenAttack=false`
+            );
           } else if (caster.type === "npc") {
             caster.npc.invisibleByMagicTime = effectAmount;
             caster.npc.isVisibleWhenAttack = false;
@@ -90,7 +92,9 @@ export function createFollowCharacterEffect(): MagicEffect {
           if (caster.type === "player") {
             caster.player.invisibleByMagicTime = effectAmount;
             caster.player.isVisibleWhenAttack = true;
-            logger.log(`[FollowCharacter] InvisibleShow: duration=${effectAmount}ms, visibleWhenAttack=true`);
+            logger.log(
+              `[FollowCharacter] InvisibleShow: duration=${effectAmount}ms, visibleWhenAttack=true`
+            );
           } else if (caster.type === "npc") {
             caster.npc.invisibleByMagicTime = effectAmount;
             caster.npc.isVisibleWhenAttack = true;

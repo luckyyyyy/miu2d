@@ -13,14 +13,23 @@
         "noNoninteractiveTabindex": "off"
       },
       "suspicious": {
-        "noArrayIndexKey": "off"
+        "noArrayIndexKey": "off",
+        "noExplicitAny": "error",
+        "noAssignInExpressions": "off"
       },
       "style": {
         "noNonNullAssertion": "off",
         "noParameterAssign": "off"
       },
       "correctness": {
-        "useHookAtTopLevel": "off"
+        "useHookAtTopLevel": "off",
+        "noUnusedFunctionParameters": "off",
+        "noPrecisionLoss": "warn",
+        "noUnusedVariables": "warn",
+        "noUnusedPrivateClassMembers": "off"
+      },
+      "complexity": {
+        "noBannedTypes": "off"
       }
     }
   },
@@ -40,7 +49,8 @@
   },
   "css": {
     "parser": {
-      "cssModules": true
+      "cssModules": true,
+      "tailwindDirectives": true
     },
     "formatter": {
       "enabled": false
@@ -50,6 +60,12 @@
     }
   },
   "files": {
-    "includes": ["src/**", "*.ts", "*.tsx", "*.js", "*.json"]
+    "includes": [
+      "packages/*/src/**",
+      "packages/*/*.ts",
+      "packages/*/*.tsx",
+      "packages/*/*.js",
+      "packages/*/*.json"
+    ]
   }
 }

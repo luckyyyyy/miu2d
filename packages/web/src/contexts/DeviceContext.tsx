@@ -4,7 +4,7 @@
  * 提供设备类型信息给所有子组件，用于区分 PC 和移动端事件处理
  */
 
-import { createContext, useContext, type ReactNode } from "react";
+import { createContext, type ReactNode, useContext } from "react";
 import { useMobile } from "@/hooks/useMobile";
 
 interface DeviceContextValue {
@@ -25,9 +25,7 @@ const DeviceContext = createContext<DeviceContextValue | null>(null);
 export function DeviceProvider({ children }: { children: ReactNode }) {
   const mobileState = useMobile();
 
-  return (
-    <DeviceContext.Provider value={mobileState}>{children}</DeviceContext.Provider>
-  );
+  return <DeviceContext.Provider value={mobileState}>{children}</DeviceContext.Provider>;
 }
 
 /**

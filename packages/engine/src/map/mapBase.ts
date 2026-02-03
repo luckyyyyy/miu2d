@@ -18,8 +18,8 @@ import { getEngineContext } from "../core/engineContext";
 import { logger } from "../core/logger";
 import type { JxqyMapData, MapTileInfo } from "../core/mapTypes";
 import type { Vector2 } from "../core/types";
-import { parseIni, pixelToTile, tileToPixel } from "../utils";
 import { resourceLoader } from "../resource/resourceLoader";
+import { parseIni, pixelToTile, tileToPixel } from "../utils";
 
 // ============= 障碍类型常量 (C# BarrierType) =============
 /** 无障碍 */
@@ -27,11 +27,11 @@ const NONE = 0x00;
 /** 完全障碍 */
 const OBSTACLE = 0x80;
 /** 可跳过的障碍 */
-const CAN_OVER_OBSTACLE = 0xa0;
+const _CAN_OVER_OBSTACLE = 0xa0;
 /** 透明障碍（武功可穿，人不能过） */
 const TRANS = 0x40;
 /** 可跳过的透明障碍 */
-const CAN_OVER_TRANS = 0x60;
+const _CAN_OVER_TRANS = 0x60;
 /** 可跳过 */
 const CAN_OVER = 0x20;
 
@@ -383,9 +383,31 @@ export class MapBase {
     const tileInfo = this.getTileInfo(col, row);
     if (tileInfo) {
       // C#: if ((type & (Obstacle + Trans)) == 0) return false;
-      return (tileInfo.barrierType & (OBSTACLE + TRANS)) !== 0;
+      const isObstacle = (tileInfo.barrierType & (OBSTACLE + TRANS)) !== 0;
+      return isObstacle;
     }
     return true;
+  }
+
+  /**
+   * 调试方法：获取瓦片的障碍信息
+   */
+  debugGetTileBarrierInfo(col: number, row: number): string {
+    if (!this.isTileInMapViewRange(col, row)) {
+      return `tile(${col},${row}) 越界`;
+    }
+    const tileInfo = this.getTileInfo(col, row);
+    if (!tileInfo) {
+      return `tile(${col},${row}) 无tileInfo`;
+    }
+    const bt = tileInfo.barrierType;
+    const flags: string[] = [];
+    if (bt === NONE) flags.push("NONE");
+    if ((bt & OBSTACLE) !== 0) flags.push("OBSTACLE");
+    if ((bt & TRANS) !== 0) flags.push("TRANS");
+    if ((bt & CAN_OVER) !== 0) flags.push("CAN_OVER");
+    const isCharObstacle = (bt & (OBSTACLE + TRANS)) !== 0;
+    return `tile(${col},${row}) barrierType=0x${bt.toString(16)} [${flags.join("|") || "0"}] isCharObstacle=${isCharObstacle}`;
   }
 
   /**
@@ -799,7 +821,7 @@ export class MapBase {
     tile: Vector2,
     mapData: JxqyMapData | null,
     currentMapName: string,
-    isScriptRunning: () => boolean,
+    _isScriptRunning: () => boolean,
     isWaitingForInput: () => boolean,
     getScriptBasePath: () => string,
     runScript: (scriptPath: string) => void,
@@ -947,7 +969,7 @@ export class MapBase {
    * 对应 C# MapBase.GetRandPositon
    */
   getRandPosition(tilePosition: Vector2, max: number): Vector2 {
-    let randPosition: Vector2 = { x: 0, y: 0 };
+    const randPosition: Vector2 = { x: 0, y: 0 };
     let maxTry = 10;
 
     do {

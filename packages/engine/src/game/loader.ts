@@ -23,23 +23,23 @@
  */
 
 import type { AudioManager } from "../audio";
-import type { NpcManager } from "../npc";
-import { loadCharacterConfig, applyConfigToPlayer } from "../character/iniParser";
+import { applyConfigToPlayer, loadCharacterConfig } from "../character/iniParser";
+import { DefaultPaths, ResourcePath } from "../config/resourcePaths";
 import { logger } from "../core/logger";
 import type { ScreenEffects } from "../effects";
 import type { GuiManager } from "../gui/guiManager";
 import type { MemoListManager } from "../listManager";
+import { MapBase } from "../map/mapBase";
+import type { NpcManager } from "../npc";
 import type { ObjManager } from "../obj";
 import type { GoodsListManager } from "../player/goods";
 import type { MagicListManager } from "../player/magic/magicListManager";
 import type { Player } from "../player/player";
 import { resourceLoader } from "../resource/resourceLoader";
 import type { ScriptExecutor } from "../script/executor";
-import { MapBase } from "../map/mapBase";
-import { DefaultPaths, ResourcePath } from "../config/resourcePaths";
 import {
-  formatSaveTime,
   type CharacterSaveSlot,
+  formatSaveTime,
   type GoodsItemData,
   type MagicItemData,
   type NpcSaveItem,
@@ -191,12 +191,10 @@ export class Loader {
    * 从存档数据恢复其他角色到内存
    * 用于 PlayerChange 切换角色时使用
    */
-  private loadOtherCharactersToMemory(
-    otherCharacters: Record<number, CharacterSaveSlot>
-  ): void {
+  private loadOtherCharactersToMemory(otherCharacters: Record<number, CharacterSaveSlot>): void {
     for (const [indexStr, slot] of Object.entries(otherCharacters)) {
       const index = parseInt(indexStr, 10);
-      if (isNaN(index)) continue;
+      if (Number.isNaN(index)) continue;
 
       const memoryData: CharacterMemoryData = {
         player: slot.player,
@@ -512,7 +510,7 @@ export class Loader {
         const variables: Record<string, number> = {};
         for (const [key, value] of Object.entries(varSection)) {
           // C# 保存时去掉了 $ 前缀，加载时要加回来
-          const varName = "$" + key;
+          const varName = `$${key}`;
           variables[varName] = parseInt(value, 10) || 0;
         }
         this.deps.setVariables(variables);
@@ -691,7 +689,7 @@ export class Loader {
     const ignoredIndices: number[] = [];
     for (const [, value] of Object.entries(initSection)) {
       const trapIndex = parseInt(value, 10);
-      if (!isNaN(trapIndex)) {
+      if (!Number.isNaN(trapIndex)) {
         ignoredIndices.push(trapIndex);
       }
     }
@@ -887,7 +885,9 @@ export class Loader {
         const magicItems = await this.parseMagicListIni(magicIniPath);
         if (magicItems.length > 0) {
           await this.loadMagicsFromJSON(magicItems, 0, magicListManager);
-          logger.log(`[Loader] LoadMagicList: loaded ${magicItems.length} magics from INI (index=${index})`);
+          logger.log(
+            `[Loader] LoadMagicList: loaded ${magicItems.length} magics from INI (index=${index})`
+          );
         }
       } catch (e) {
         logger.warn(`[Loader] Failed to load magic list from INI:`, e);
@@ -902,11 +902,7 @@ export class Loader {
         const goodsData = memoryData.goods;
         // 使用现有的 loadGoodsFromJSON 方法
         if (goodsData.items) {
-          await this.loadGoodsFromJSON(
-            goodsData.items,
-            goodsData.equips ?? [],
-            goodsListManager
-          );
+          await this.loadGoodsFromJSON(goodsData.items, goodsData.equips ?? [], goodsListManager);
           goodsLoaded = true;
         }
       } catch (e) {
@@ -922,15 +918,19 @@ export class Loader {
         const goodsItems = await this.parseGoodsListIni(goodsIniPath);
         if (goodsItems.length > 0) {
           await this.loadGoodsFromJSON(goodsItems, [], goodsListManager);
-          logger.log(`[Loader] LoadGoodsList: loaded ${goodsItems.length} goods from INI (index=${index})`);
+          logger.log(
+            `[Loader] LoadGoodsList: loaded ${goodsItems.length} goods from INI (index=${index})`
+          );
         }
-      } catch (e) {
+      } catch (_e) {
         // 物品文件可能不存在，这不是错误
         logger.debug(`[Loader] No goods INI file for index ${index}`);
       }
     }
 
-    logger.log(`[Loader] LoadMagicGoodList: loaded from ${magicLoaded || goodsLoaded ? "memory" : "INI files"} (index=${index})`);
+    logger.log(
+      `[Loader] LoadMagicGoodList: loaded from ${magicLoaded || goodsLoaded ? "memory" : "INI files"} (index=${index})`
+    );
   }
 
   /**
@@ -953,7 +953,7 @@ export class Loader {
       const sectionMatch = trimmed.match(/^\[(\d+)\]$/);
       if (sectionMatch) {
         // 保存上一个项
-        if (currentItem && currentItem.fileName) {
+        if (currentItem?.fileName) {
           items.push({
             fileName: currentItem.fileName,
             level: currentItem.level ?? 1,
@@ -989,7 +989,7 @@ export class Loader {
     }
 
     // 保存最后一个项
-    if (currentItem && currentItem.fileName) {
+    if (currentItem?.fileName) {
       items.push({
         fileName: currentItem.fileName,
         level: currentItem.level ?? 1,
@@ -1020,7 +1020,7 @@ export class Loader {
       const sectionMatch = trimmed.match(/^\[(\d+)\]$/);
       if (sectionMatch) {
         // 保存上一个项
-        if (currentItem && currentItem.fileName) {
+        if (currentItem?.fileName) {
           items.push({
             fileName: currentItem.fileName,
             count: currentItem.count ?? 1,
@@ -1050,7 +1050,7 @@ export class Loader {
     }
 
     // 保存最后一个项
-    if (currentItem && currentItem.fileName) {
+    if (currentItem?.fileName) {
       items.push({
         fileName: currentItem.fileName,
         count: currentItem.count ?? 1,
@@ -1133,7 +1133,9 @@ export class Loader {
    * 在切换角色前调用
    */
   saveCurrentPlayerToMemory(): void {
-    logger.log(`[Loader] Saving current player (index ${this.deps.player.playerIndex}) to memory...`);
+    logger.log(
+      `[Loader] Saving current player (index ${this.deps.player.playerIndex}) to memory...`
+    );
     // C#: Saver.SavePlayer() - 保存当前玩家数据到内存
     this.savePlayerToMemory();
     // C#: Saver.SaveMagicGoodMemoList() - 保存武功/物品/备忘录到内存
@@ -1254,9 +1256,7 @@ export class Loader {
       // Step 5: 恢复变量 (70-72%)
       this.reportProgress(70, "恢复变量...");
       if (data.variables && setVariables) {
-        logger.debug(
-          `[Loader] Restoring variables: ${Object.keys(data.variables).length} keys`
-        );
+        logger.debug(`[Loader] Restoring variables: ${Object.keys(data.variables).length} keys`);
         setVariables(data.variables);
       }
 
@@ -1421,7 +1421,7 @@ export class Loader {
 
       // Step 14: 加载计时器状态
       // 参考 C# Loader.cs LoadGame() 中的 timer 恢复
-      if (data.timer && data.timer.isOn && this.deps.setTimerState) {
+      if (data.timer?.isOn && this.deps.setTimerState) {
         logger.debug(`[Loader] Restoring timer state...`);
         this.deps.setTimerState({
           isOn: data.timer.isOn,
@@ -1449,7 +1449,11 @@ export class Loader {
 
       // Step 14.3: 加载并行脚本
       // C# Reference: ScriptManager.LoadParallelScript
-      if (data.parallelScripts && data.parallelScripts.length > 0 && this.deps.loadParallelScripts) {
+      if (
+        data.parallelScripts &&
+        data.parallelScripts.length > 0 &&
+        this.deps.loadParallelScripts
+      ) {
         logger.debug(`[Loader] Restoring ${data.parallelScripts.length} parallel scripts...`);
         this.deps.loadParallelScripts(data.parallelScripts);
       }
@@ -2134,10 +2138,7 @@ export class Loader {
       // 构建候选路径列表
       const paths: string[] = isFullPath
         ? [levelFile, levelFile.toLowerCase()] // 已是完整路径，直接使用
-        : [
-            ResourcePath.level(levelFile),
-            ResourcePath.level(levelFile.toLowerCase()),
-          ];
+        : [ResourcePath.level(levelFile), ResourcePath.level(levelFile.toLowerCase())];
 
       let loaded = false;
       for (const path of paths) {

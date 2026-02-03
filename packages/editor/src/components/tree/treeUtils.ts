@@ -2,7 +2,7 @@
  * 文件树工具函数
  */
 
-import type { TreeNode, FlatTreeNode, ExpandedState, FileIconConfig, defaultIconConfig } from "./types";
+import type { ExpandedState, FileIconConfig, FlatTreeNode, TreeNode } from "./types";
 
 /**
  * 将树结构扁平化为虚拟滚动列表
@@ -61,11 +61,7 @@ export function getFileExtension(filename: string): string {
 /**
  * 获取文件图标
  */
-export function getFileIcon(
-  node: TreeNode,
-  isExpanded: boolean,
-  config: FileIconConfig
-): string {
+export function getFileIcon(node: TreeNode, isExpanded: boolean, config: FileIconConfig): string {
   if (node.isDirectory) {
     return isExpanded ? config.folderOpen : config.folder;
   }

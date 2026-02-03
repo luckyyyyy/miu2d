@@ -4,12 +4,12 @@
  */
 
 import type { Character } from "../../character/character";
-import type { NpcManager } from "../../npc";
 import type { Vector2 } from "../../core/types";
+import type { NpcManager } from "../../npc";
 import type { Player } from "../../player/player";
+import { getPositionInDirection as getPositionInDir } from "../../utils/direction";
 import { type CharacterRef, getPosition as getCharPosition } from "../effects";
 import type { MagicSprite } from "../magicSprite";
-import { getPositionInDirection as getPositionInDir } from "../../utils/direction";
 import type { MagicData } from "../types";
 import type { ICharacterHelper, MagicManagerDeps } from "./types";
 

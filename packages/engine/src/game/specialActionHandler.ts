@@ -7,10 +7,10 @@
  * this handler only manages script-triggered special actions (e.g., kneel/stand)
  */
 
-import type { NpcManager } from "../npc";
 import { getEngineContext } from "../core/engineContext";
 import { logger } from "../core/logger";
 import { CharacterState } from "../core/types";
+import type { NpcManager } from "../npc";
 import type { Player } from "../player/player";
 
 /**

@@ -5,12 +5,12 @@
  */
 
 export {
+  type UseUIBridgeResult,
   useUIBridge,
-  useUIPlayer,
-  useUIPanels,
   useUIDialog,
+  useUIDispatch,
   useUIGoods,
   useUIMagic,
-  useUIDispatch,
-  type UseUIBridgeResult,
+  useUIPanels,
+  useUIPlayer,
 } from "./useUIBridge";

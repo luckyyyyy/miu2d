@@ -9,13 +9,16 @@
 
 // 缓存边缘纹理，避免重复计算
 // 使用 WeakMap 以 canvas 对象为键，避免内存泄漏
-const edgeCacheByCanvas = new WeakMap<HTMLCanvasElement | OffscreenCanvas, Map<string, OffscreenCanvas>>();
+const edgeCacheByCanvas = new WeakMap<
+  HTMLCanvasElement | OffscreenCanvas,
+  Map<string, OffscreenCanvas>
+>();
 
 // 为没有 _cacheId 的 canvas 生成唯一 ID
 let nextCacheId = 1;
 const canvasIdMap = new WeakMap<HTMLCanvasElement | OffscreenCanvas, number>();
 
-function getCanvasId(canvas: HTMLCanvasElement | OffscreenCanvas): number {
+function _getCanvasId(canvas: HTMLCanvasElement | OffscreenCanvas): number {
   let id = canvasIdMap.get(canvas);
   if (id === undefined) {
     id = nextCacheId++;

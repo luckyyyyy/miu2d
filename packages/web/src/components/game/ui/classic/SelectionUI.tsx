@@ -6,9 +6,10 @@
  * with dark overlay, NO panel background (just black semi-transparent)
  * Message in gold color, options in green (yellow on hover)
  */
+
+import type { SelectionGuiState } from "@miu2d/engine/gui/types";
 import type React from "react";
 import { useCallback, useMemo, useState } from "react";
-import type { SelectionGuiState } from "@miu2d/engine/gui/types";
 
 interface SelectionUIProps {
   state: SelectionGuiState;

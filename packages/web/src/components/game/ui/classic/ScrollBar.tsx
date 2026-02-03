@@ -5,10 +5,11 @@
  * C# Reference: ScrollBar.cs handles mouse drag and click to change value
  * Resources: asf/ui/option/slidebtn.asf (default slider button)
  */
-import type React from "react";
-import { useCallback, useEffect, useRef, useState } from "react";
+
 import { buildPath } from "@miu2d/engine/config";
 import { loadAsf } from "@miu2d/engine/sprite/asf";
+import type React from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AsfAnimatedSprite } from "./AsfAnimatedSprite";
 
 // 缓存 ASF 尺寸信息

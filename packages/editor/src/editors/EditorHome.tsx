@@ -57,12 +57,8 @@ export function EditorHome() {
   return (
     <div className="p-8">
       <header className="mb-8">
-        <h1 className="text-3xl font-bold text-amber-400">
-          🎮 Miu2D Engine 游戏编辑器
-        </h1>
-        <p className="mt-2 text-gray-400">
-          基于 Web 技术的 2D RPG 游戏编辑器套件
-        </p>
+        <h1 className="text-3xl font-bold text-amber-400">🎮 Miu2D Engine 游戏编辑器</h1>
+        <p className="mt-2 text-gray-400">基于 Web 技术的 2D RPG 游戏编辑器套件</p>
       </header>
 
       <section>

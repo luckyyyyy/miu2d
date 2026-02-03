@@ -18,11 +18,7 @@
  */
 import type React from "react";
 import { useEffect } from "react";
-import {
-  initGameCursor,
-  enableGameCursor,
-  disableGameCursor,
-} from "./gameCursorManager";
+import { disableGameCursor, enableGameCursor, initGameCursor } from "./gameCursorManager";
 
 interface GameCursorProps {
   /** 是否启用自定义鼠标指针 */

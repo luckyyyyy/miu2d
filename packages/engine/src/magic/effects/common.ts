@@ -7,8 +7,6 @@
 import type { Character } from "../../character/character";
 import type { ApplyContext, CastContext, CharacterRef } from "./types";
 import {
-  getAttack,
-  getDefend,
   getLife,
   getLifeMax,
   getMana,
@@ -78,7 +76,14 @@ export function deductCost(ctx: CastContext): void {
  * @param effectType 效果类型: 'effect' | 'effect2' | 'effect3'
  */
 export function getEffectAmount(
-  magic: { effect: number; effect2: number; effect3: number; effectExt: number; name?: string; type?: string },
+  magic: {
+    effect: number;
+    effect2: number;
+    effect3: number;
+    effectExt: number;
+    name?: string;
+    type?: string;
+  },
   belongCharacter: IEffectCharacter,
   effectType: "effect" | "effect2" | "effect3" = "effect"
 ): number {
@@ -87,19 +92,13 @@ export function getEffectAmount(
   let baseEffect: number;
   if (effectType === "effect") {
     // C#: (magic.Effect == 0 || !belongCharacter.IsPlayer) ? RealAttack : magic.Effect
-    baseEffect = (magic.effect === 0 || !isPlayer)
-      ? belongCharacter.realAttack
-      : magic.effect;
+    baseEffect = magic.effect === 0 || !isPlayer ? belongCharacter.realAttack : magic.effect;
     // effectExt 只加在 effect 上
     baseEffect += magic.effectExt || 0;
   } else if (effectType === "effect2") {
-    baseEffect = (magic.effect2 === 0 || !isPlayer)
-      ? belongCharacter.attack2
-      : magic.effect2;
+    baseEffect = magic.effect2 === 0 || !isPlayer ? belongCharacter.attack2 : magic.effect2;
   } else {
-    baseEffect = (magic.effect3 === 0 || !isPlayer)
-      ? belongCharacter.attack3
-      : magic.effect3;
+    baseEffect = magic.effect3 === 0 || !isPlayer ? belongCharacter.attack3 : magic.effect3;
   }
 
   // C# AddMagicEffect - 应用装备等加成
@@ -111,7 +110,7 @@ export function getEffectAmount(
  * 应用武功效果加成（百分比 + 固定值）
  */
 export function addMagicEffect(
-  magic: { name?: string; type?: string },
+  _magic: { name?: string; type?: string },
   belongCharacter: IEffectCharacter,
   effect: number
 ): number {
@@ -126,8 +125,8 @@ export function addMagicEffect(
     getAddMagicEffectAmount?: () => number;
   };
 
-  let percent = player.getAddMagicEffectPercent?.() ?? 0;
-  let amount = player.getAddMagicEffectAmount?.() ?? 0;
+  const percent = player.getAddMagicEffectPercent?.() ?? 0;
+  const amount = player.getAddMagicEffectAmount?.() ?? 0;
 
   // C# 还有按武功名称/类型的加成 (GetAddMagicEffectInfoWithName/Type)
   // 低优先级功能，暂未实现
@@ -180,7 +179,13 @@ export function dealDamage(ctx: ApplyContext): number {
 
   // 使用 Character.takeDamageFromMagic 来处理完整的伤害计算
   // 包括命中率、防御减免、最小伤害等
-  const actualDamage = targetChar.takeDamageFromMagic(damage, damage2, damage3, damageMana, casterChar);
+  const actualDamage = targetChar.takeDamageFromMagic(
+    damage,
+    damage2,
+    damage3,
+    damageMana,
+    casterChar
+  );
 
   // 返回实际造成的伤害值
   return actualDamage;

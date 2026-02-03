@@ -60,7 +60,9 @@ export class GuiManager {
 
   private emitPanelChange(panel: keyof GuiManagerState["panels"] | null, isOpen: boolean): void {
     this.events.emit(GameEvents.UI_PANEL_CHANGE, {
-      panel, isOpen, panels: { ...this.state.panels },
+      panel,
+      isOpen,
+      panels: { ...this.state.panels },
     } as UIPanelChangeEvent);
   }
 
@@ -77,9 +79,17 @@ export class GuiManager {
   showDialog(text: string, portraitIndex: number = 0, name: string = ""): void {
     logger.log(`[GuiManager] showDialog: "${text.substring(0, 50)}..." portrait=${portraitIndex}`);
     this.state.dialog = {
-      isVisible: true, text, portraitIndex, portraitSide: "left", nameText: name,
-      textProgress: 0, isComplete: false,
-      isInSelecting: false, selectA: "", selectB: "", selection: 0,
+      isVisible: true,
+      text,
+      portraitIndex,
+      portraitSide: "left",
+      nameText: name,
+      textProgress: 0,
+      isComplete: false,
+      isInSelecting: false,
+      selectA: "",
+      selectB: "",
+      selection: 0,
     };
     this.emitDialogChange();
   }
@@ -103,9 +113,17 @@ export class GuiManager {
   /** 在对话框面板上显示选择 (Choose/Select 命令) */
   showDialogSelection(message: string, selectA: string, selectB: string): void {
     this.state.dialog = {
-      isVisible: true, text: message, portraitIndex: 0, portraitSide: "left", nameText: "",
-      textProgress: message.length, isComplete: true,
-      isInSelecting: true, selectA, selectB, selection: -1,
+      isVisible: true,
+      text: message,
+      portraitIndex: 0,
+      portraitSide: "left",
+      nameText: "",
+      textProgress: message.length,
+      isComplete: true,
+      isInSelecting: true,
+      selectA,
+      selectB,
+      selection: -1,
     };
     this.emitDialogChange();
   }
@@ -154,7 +172,11 @@ export class GuiManager {
 
   showSelection(options: SelectionOptionData[], message: string = ""): void {
     this.state.selection = {
-      isVisible: true, message, options, selectedIndex: 0, hoveredIndex: -1,
+      isVisible: true,
+      message,
+      options,
+      selectedIndex: 0,
+      hoveredIndex: -1,
     };
     this.emitSelectionChange();
   }
@@ -228,9 +250,16 @@ export class GuiManager {
       return;
     }
     this.state.multiSelection = {
-      isVisible: true, message, options, columns, selectionCount, selectedIndices: [],
+      isVisible: true,
+      message,
+      options,
+      columns,
+      selectionCount,
+      selectedIndices: [],
     };
-    logger.log(`[GuiManager] showMultiSelection: ${columns} cols, need ${selectionCount}, ${options.length} opts`);
+    logger.log(
+      `[GuiManager] showMultiSelection: ${columns} cols, need ${selectionCount}, ${options.length} opts`
+    );
     this.emitMultiSelectionChange();
   }
 
@@ -272,7 +301,12 @@ export class GuiManager {
   // ============= HUD =============
 
   updateHud(
-    life: number, lifeMax: number, mana: number, manaMax: number, thew: number, thewMax: number
+    life: number,
+    lifeMax: number,
+    mana: number,
+    manaMax: number,
+    thew: number,
+    thewMax: number
   ): void {
     Object.assign(this.state.hud, { life, lifeMax, mana, manaMax, thew, thewMax });
   }
@@ -322,12 +356,24 @@ export class GuiManager {
   // 右侧面板互斥组
   private readonly rightPanels: (keyof GuiManagerState["panels"])[] = ["goods", "magic", "memo"];
 
-  toggleStateGui(): void { this.togglePanel("state", this.leftPanels); }
-  toggleEquipGui(): void { this.togglePanel("equip", this.leftPanels); }
-  toggleXiuLianGui(): void { this.togglePanel("xiulian", this.leftPanels); }
-  toggleGoodsGui(): void { this.togglePanel("goods", this.rightPanels); }
-  toggleMagicGui(): void { this.togglePanel("magic", this.rightPanels); }
-  toggleMemoGui(): void { this.togglePanel("memo", this.rightPanels); }
+  toggleStateGui(): void {
+    this.togglePanel("state", this.leftPanels);
+  }
+  toggleEquipGui(): void {
+    this.togglePanel("equip", this.leftPanels);
+  }
+  toggleXiuLianGui(): void {
+    this.togglePanel("xiulian", this.leftPanels);
+  }
+  toggleGoodsGui(): void {
+    this.togglePanel("goods", this.rightPanels);
+  }
+  toggleMagicGui(): void {
+    this.togglePanel("magic", this.rightPanels);
+  }
+  toggleMemoGui(): void {
+    this.togglePanel("memo", this.rightPanels);
+  }
 
   showSystem(show: boolean = true): void {
     this.state.panels.system = show;
@@ -355,7 +401,15 @@ export class GuiManager {
   closeAllPanels(): void {
     const wasBuyOpen = this.state.panels.buy;
     const panelKeys: (keyof GuiManagerState["panels"])[] = [
-      "state", "equip", "xiulian", "goods", "magic", "memo", "system", "saveLoad", "buy"
+      "state",
+      "equip",
+      "xiulian",
+      "goods",
+      "magic",
+      "memo",
+      "system",
+      "saveLoad",
+      "buy",
     ];
     for (const key of panelKeys) this.state.panels[key] = false;
 
@@ -374,7 +428,13 @@ export class GuiManager {
 
   openBuyGui(): void {
     const panelKeys: (keyof GuiManagerState["panels"])[] = [
-      "state", "equip", "xiulian", "magic", "memo", "system", "saveLoad"
+      "state",
+      "equip",
+      "xiulian",
+      "magic",
+      "memo",
+      "system",
+      "saveLoad",
     ];
     for (const key of panelKeys) this.state.panels[key] = false;
     this.state.panels.buy = true;
@@ -683,7 +743,11 @@ export class GuiManager {
     this.emitMemoChange("updated");
   }
 
-  private emitMemoChange(action: "added" | "deleted" | "updated", text?: string, textId?: number): void {
+  private emitMemoChange(
+    action: "added" | "deleted" | "updated",
+    text?: string,
+    textId?: number
+  ): void {
     this.events.emit(GameEvents.UI_MEMO_CHANGE, { action, text, textId } as UIMemoChangeEvent);
   }
 

@@ -7,6 +7,7 @@
  */
 import type React from "react";
 import { useEffect, useMemo, useState } from "react";
+
 // 统一楷体字体样式
 const KAITI_FONT = '"STKaiti", "楷体", "KaiTi", "SimKai", serif';
 const DIALOG_TEXT_STYLE = {
@@ -17,6 +18,7 @@ const DIALOG_TEXT_STYLE = {
   letterSpacing: 0.5,
   color: "rgba(0, 0, 0, 0.9)",
 };
+
 import type { DialogGuiState } from "@miu2d/engine/gui/types";
 import { useAsfImage } from "./hooks";
 import { useDialogGuiConfig } from "./useUISettings";

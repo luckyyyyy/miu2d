@@ -36,20 +36,19 @@
 // 子系统
 import { AudioManager } from "../audio";
 import type { Character } from "../character/character";
+import { ResourcePath } from "../config/resourcePaths";
 import { type IEngineContext, setEngineContext } from "../core/engineContext";
 import { EventEmitter } from "../core/eventEmitter";
 import { GameEvents, type GameLoadProgressEvent } from "../core/gameEvents";
 import { logger } from "../core/logger";
 import type { JxqyMapData } from "../core/mapTypes";
 import type { InputState, Vector2 } from "../core/types";
-import { CharacterState, Direction } from "../core/types";
-import { pixelToTile } from "../utils";
+import { CharacterState, type Direction } from "../core/types";
 import { DebugManager } from "../debug";
 import { ScreenEffects } from "../effects";
 import type { GuiManagerState } from "../gui/types";
-import { MemoListManager, TalkTextListManager, partnerList } from "../listManager";
+import { MemoListManager, partnerList, TalkTextListManager } from "../listManager";
 import type { MagicItemInfo } from "../magic";
-import type { GoodsItemInfo } from "../player/goods/goodsListManager";
 import { magicRenderer } from "../magic/magicRenderer";
 import { loadMap, MapBase } from "../map";
 import {
@@ -60,15 +59,16 @@ import {
 } from "../map/renderer";
 import { ObjManager } from "../obj";
 import { ObjRenderer } from "../obj/objRenderer";
-import { GoodKind, getEquipSlotIndex, type GoodsListManager } from "../player/goods";
+import { GoodKind, type GoodsListManager, getEquipSlotIndex } from "../player/goods";
+import type { GoodsItemInfo } from "../player/goods/goodsListManager";
 import type { Player } from "../player/player";
 import { TimerManager } from "../timer";
-import { WeatherManager } from "../weather";
 import type { IUIBridge, UIPanelName } from "../ui/contract";
 import { UIBridge, type UIBridgeDeps } from "../ui/uiBridge";
+import { pixelToTile } from "../utils";
+import { WeatherManager } from "../weather";
 import { GameManager } from "./gameManager";
 import { PerformanceStats, type PerformanceStatsData } from "./performanceStats";
-import { ResourcePath } from "../config/resourcePaths";
 
 export interface GameEngineConfig {
   width: number;
@@ -990,12 +990,16 @@ export class GameEngine implements IEngineContext {
           centerY = currentPlayerPos.y;
         } else {
           // C#: 根据玩家移动方向，只有当玩家超过中心点时才更新相机
-          if ((offsetX > 0 && currentPlayerPos.x > centerX) ||
-              (offsetX < 0 && currentPlayerPos.x < centerX)) {
+          if (
+            (offsetX > 0 && currentPlayerPos.x > centerX) ||
+            (offsetX < 0 && currentPlayerPos.x < centerX)
+          ) {
             centerX = currentPlayerPos.x;
           }
-          if ((offsetY > 0 && currentPlayerPos.y > centerY) ||
-              (offsetY < 0 && currentPlayerPos.y < centerY)) {
+          if (
+            (offsetY > 0 && currentPlayerPos.y > centerY) ||
+            (offsetY < 0 && currentPlayerPos.y < centerY)
+          ) {
             centerY = currentPlayerPos.y;
           }
         }
@@ -1602,8 +1606,13 @@ export class GameEngine implements IEngineContext {
     // Equipment slot indices: 201-207 (Head, Neck, Body, Back, Hand, Wrist, Foot)
     const slotNameToIndex = (slot: string): number => {
       const mapping: Record<string, number> = {
-        head: 201, neck: 202, body: 203, back: 204,
-        hand: 205, wrist: 206, foot: 207,
+        head: 201,
+        neck: 202,
+        body: 203,
+        back: 204,
+        hand: 205,
+        wrist: 206,
+        foot: 207,
       };
       return mapping[slot] ?? 201;
     };
@@ -1619,7 +1628,8 @@ export class GameEngine implements IEngineContext {
       getTimerManager: () => this.timerManager,
 
       // Panel toggles
-      togglePanel: (panel: UIPanelName) => this.togglePanel(panel as keyof GuiManagerState["panels"]),
+      togglePanel: (panel: UIPanelName) =>
+        this.togglePanel(panel as keyof GuiManagerState["panels"]),
 
       // Actions
       useItem: (index: number) => {
@@ -1793,58 +1803,66 @@ export class GameEngine implements IEngineContext {
       // Getters for snapshot
       getPanels: () => {
         const state = this._gameManager?.getGuiManager()?.getState();
-        return state?.panels ?? {
-          state: false,
-          equip: false,
-          xiulian: false,
-          goods: false,
-          magic: false,
-          memo: false,
-          system: false,
-          saveLoad: false,
-          buy: false,
-          npcEquip: false,
-          title: false,
-          timer: false,
-          littleMap: false,
-        };
+        return (
+          state?.panels ?? {
+            state: false,
+            equip: false,
+            xiulian: false,
+            goods: false,
+            magic: false,
+            memo: false,
+            system: false,
+            saveLoad: false,
+            buy: false,
+            npcEquip: false,
+            title: false,
+            timer: false,
+            littleMap: false,
+          }
+        );
       },
       getDialogState: () => {
         const state = this._gameManager?.getGuiManager()?.getState();
-        return state?.dialog ?? {
-          isVisible: false,
-          text: "",
-          portraitIndex: 0,
-          portraitSide: "left" as const,
-          nameText: "",
-          textProgress: 0,
-          isComplete: true,
-          isInSelecting: false,
-          selectA: "",
-          selectB: "",
-          selection: -1,
-        };
+        return (
+          state?.dialog ?? {
+            isVisible: false,
+            text: "",
+            portraitIndex: 0,
+            portraitSide: "left" as const,
+            nameText: "",
+            textProgress: 0,
+            isComplete: true,
+            isInSelecting: false,
+            selectA: "",
+            selectB: "",
+            selection: -1,
+          }
+        );
       },
       getSelectionState: () => {
         const state = this._gameManager?.getGuiManager()?.getState();
-        return state?.selection ?? {
-          isVisible: false,
-          message: "",
-          options: [],
-          selectedIndex: 0,
-          hoveredIndex: -1,
-        };
+        return (
+          state?.selection ?? {
+            isVisible: false,
+            message: "",
+            options: [],
+            selectedIndex: 0,
+            hoveredIndex: -1,
+          }
+        );
       },
       getMultiSelectionState: () => {
         const state = this._gameManager?.getGuiManager()?.getState();
-        return state?.multiSelection ?? {
-          isVisible: false,
-          message: "",
-          options: [],
-          columns: 1,
-          selectionCount: 1,
-          selectedIndices: [],
-        };
+        return (
+          state?.multiSelection ?? {
+            isVisible: false,
+            message: "",
+            options: [],
+            columns: 1,
+            selectionCount: 1,
+            selectedIndices: [],
+          }
+        );
       },
       canSaveGame: () => this._gameManager?.isSaveEnabled() ?? false,
     };
@@ -2047,7 +2065,11 @@ export class GameEngine implements IEngineContext {
   /**
    * 获取相机对象（包含坐标转换方法）
    */
-  getCamera(): { x: number; y: number; worldToScreen: (worldX: number, worldY: number) => { x: number; y: number } } | null {
+  getCamera(): {
+    x: number;
+    y: number;
+    worldToScreen: (worldX: number, worldY: number) => { x: number; y: number };
+  } | null {
     if (!this._mapRenderer) return null;
     const camera = this._mapRenderer.camera;
     return {

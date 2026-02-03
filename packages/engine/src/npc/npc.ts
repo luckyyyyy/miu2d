@@ -2,17 +2,18 @@
  * Npc 类 - 对应 C# Npc.cs
  * 继承 Character，实现 AI、巡逻、战斗等 NPC 特有功能
  */
+
+import { Character } from "../character";
+import { loadNpcConfig } from "../character/resFile";
 import { logger } from "../core/logger";
 import { PathType } from "../core/pathFinder";
 import type { CharacterConfig, Vector2 } from "../core/types";
 import { ActionType, CharacterKind, CharacterState } from "../core/types";
-import { generateId, getDirectionFromVector, tileToPixel } from "../utils";
 import type { MagicManager } from "../magic";
 import type { MagicData } from "../magic/types";
-import { Character } from "../character";
+import { generateId, getDirectionFromVector, tileToPixel } from "../utils";
 import { NpcMagicCache } from "./modules";
 import type { NpcManager } from "./npcManager";
-import { loadNpcConfig } from "../character/resFile";
 
 /** Npc 类 - 对应 C# Npc.cs */
 export class Npc extends Character {

@@ -227,8 +227,18 @@ export interface ScriptContext {
   stopSound: () => void; // C#: StopSound
 
   // Dialog extended commands
-  chooseEx: (message: string, options: Array<{text: string; condition?: string}>, resultVar: string) => void; // C#: ChooseEx
-  chooseMultiple: (columns: number, rows: number, varPrefix: string, message: string, options: Array<{text: string; condition?: string}>) => void; // C#: ChooseMultiple
+  chooseEx: (
+    message: string,
+    options: Array<{ text: string; condition?: string }>,
+    resultVar: string
+  ) => void; // C#: ChooseEx
+  chooseMultiple: (
+    columns: number,
+    rows: number,
+    varPrefix: string,
+    message: string,
+    options: Array<{ text: string; condition?: string }>
+  ) => void; // C#: ChooseMultiple
   isChooseExEnd: () => boolean; // C#: IsChooseExEnd
   isChooseMultipleEnd: () => boolean; // C#: IsChooseMultipleEnd
   getMultiSelectionResult: () => number; // C#: GetMultiSelectionResult

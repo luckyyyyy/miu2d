@@ -28,9 +28,7 @@ export function ScriptEditor() {
             <p className="text-6xl">📜</p>
             <p className="mt-4 text-xl">脚本编辑器</p>
             <p className="mt-2 text-sm">Hello World - 功能开发中...</p>
-            <p className="mt-1 text-xs text-gray-600">
-              将集成 Monaco Editor 实现语法高亮
-            </p>
+            <p className="mt-1 text-xs text-gray-600">将集成 Monaco Editor 实现语法高亮</p>
           </div>
         </div>
 

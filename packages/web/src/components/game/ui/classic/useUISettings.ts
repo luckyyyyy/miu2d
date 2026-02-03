@@ -2,7 +2,7 @@
  * React Hook for loading UI Settings
  * Provides async loading of UI_Settings.ini with caching
  */
-import { useEffect, useState } from "react";
+
 import {
   type BuySellGuiConfig,
   type DialogGuiConfig,
@@ -34,6 +34,7 @@ import {
   type SystemGuiConfig,
   type XiuLianGuiConfig,
 } from "@miu2d/engine/gui/uiSettings";
+import { useEffect, useState } from "react";
 
 // Cached parsed configs
 let cachedConfigs: {

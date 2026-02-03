@@ -56,7 +56,12 @@ function getPanelImagePath(playerIndex: number): string {
   return `asf/ui/common/panel5${suffix}.asf`;
 }
 
-export const StateGui: React.FC<StateGuiProps> = ({ isVisible, stats, playerIndex = 0, screenWidth }) => {
+export const StateGui: React.FC<StateGuiProps> = ({
+  isVisible,
+  stats,
+  playerIndex = 0,
+  screenWidth,
+}) => {
   // 从 UI_Settings.ini 加载配置
   const config = useStateGuiConfig();
 

@@ -3,10 +3,10 @@
  * 支持 UI 主题切换等设置
  */
 import type React from "react";
-import { useMemo, useState, useCallback } from "react";
-import { GlassButton, PanelHeader, Divider } from "./components";
-import { borderRadius, glassEffect, modernColors, spacing, typography } from "./theme";
+import { useCallback, useMemo, useState } from "react";
 import type { UITheme } from "../index";
+import { Divider, GlassButton, PanelHeader } from "./components";
+import { borderRadius, glassEffect, modernColors, spacing, typography } from "./theme";
 
 interface SettingsPanelProps {
   isVisible: boolean;
@@ -55,7 +55,7 @@ interface SliderProps {
 }
 
 const Slider: React.FC<SliderProps> = ({ value, min = 0, max = 100, onChange }) => {
-  const [isDragging, setIsDragging] = useState(false);
+  const [_isDragging, _setIsDragging] = useState(false);
   const percent = ((value - min) / (max - min)) * 100;
 
   const handleChange = useCallback(
@@ -104,13 +104,7 @@ interface ThemeButtonProps {
   onClick: () => void;
 }
 
-const ThemeButton: React.FC<ThemeButtonProps> = ({
-  theme,
-  label,
-  icon,
-  isActive,
-  onClick,
-}) => {
+const ThemeButton: React.FC<ThemeButtonProps> = ({ theme, label, icon, isActive, onClick }) => {
   const [isHovered, setIsHovered] = useState(false);
 
   return (
@@ -125,11 +119,9 @@ const ThemeButton: React.FC<ThemeButtonProps> = ({
         background: isActive
           ? "rgba(100, 200, 255, 0.3)"
           : isHovered
-          ? "rgba(255, 255, 255, 0.1)"
-          : "rgba(0, 0, 0, 0.2)",
-        border: `2px solid ${
-          isActive ? modernColors.primary : modernColors.border.glass
-        }`,
+            ? "rgba(255, 255, 255, 0.1)"
+            : "rgba(0, 0, 0, 0.2)",
+        border: `2px solid ${isActive ? modernColors.primary : modernColors.border.glass}`,
         borderRadius: borderRadius.md,
         cursor: "pointer",
         display: "flex",

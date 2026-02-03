@@ -10,8 +10,8 @@ export {
 export { type UseGameInputOptions, type UseGameInputResult, useGameInput } from "./useGameInput";
 export { type MobileState, useMobile } from "./useMobile";
 export {
-  type UseTouchDragSourceOptions,
   type TouchDragSourceHandlers,
+  type UseTouchDragSourceOptions,
   useTouchDragSource,
 } from "./useTouchDragSource";
 export {

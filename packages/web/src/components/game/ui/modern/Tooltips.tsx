@@ -2,9 +2,10 @@
  * Modern Tooltips - 物品/武功提示框
  * 智能定位，避免遮挡
  */
-import type React from "react";
-import { useMemo, useRef, useLayoutEffect, useState } from "react";
+
 import type { UIGoodData, UIMagicData } from "@miu2d/engine/ui/contract";
+import type React from "react";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useAsfImage } from "../classic/hooks";
 import { Divider, ProgressBar, StatRow } from "./components";
 import { borderRadius, glassEffect, modernColors, spacing, typography } from "./theme";
@@ -107,7 +108,9 @@ export const ItemTooltip: React.FC<ItemTooltipProps> = ({
   return (
     <div ref={tooltipRef} style={tooltipStyle}>
       {/* 头部 */}
-      <div style={{ display: "flex", alignItems: "center", gap: spacing.md, marginBottom: spacing.sm }}>
+      <div
+        style={{ display: "flex", alignItems: "center", gap: spacing.md, marginBottom: spacing.sm }}
+      >
         {/* 图标 */}
         <div
           style={{
@@ -162,15 +165,9 @@ export const ItemTooltip: React.FC<ItemTooltipProps> = ({
         {good.thew > 0 && (
           <StatRow label="体力" value={`+${good.thew}`} color={modernColors.stats.thew} />
         )}
-        {good.attack > 0 && (
-          <StatRow label="攻击" value={`+${good.attack}`} />
-        )}
-        {good.defend > 0 && (
-          <StatRow label="防御" value={`+${good.defend}`} />
-        )}
-        {good.evade > 0 && (
-          <StatRow label="身法" value={`+${good.evade}`} />
-        )}
+        {good.attack > 0 && <StatRow label="攻击" value={`+${good.attack}`} />}
+        {good.defend > 0 && <StatRow label="防御" value={`+${good.defend}`} />}
+        {good.evade > 0 && <StatRow label="身法" value={`+${good.evade}`} />}
       </div>
 
       {/* 描述 */}
@@ -267,7 +264,9 @@ export const MagicTooltip: React.FC<MagicTooltipProps> = ({
   return (
     <div ref={tooltipRef} style={tooltipStyle}>
       {/* 头部 */}
-      <div style={{ display: "flex", alignItems: "center", gap: spacing.md, marginBottom: spacing.sm }}>
+      <div
+        style={{ display: "flex", alignItems: "center", gap: spacing.md, marginBottom: spacing.sm }}
+      >
         <div
           style={{
             width: 48,
@@ -357,20 +356,20 @@ export const MagicTooltip: React.FC<MagicTooltipProps> = ({
 
 /** 物品品级枚举 */
 export enum ItemQuality {
-  Normal = 0,    // 普通 - 白色
-  Uncommon = 1,  // 精良 - 绿色
-  Rare = 2,      // 稀有 - 蓝色
-  Epic = 3,      // 史诗 - 紫色
+  Normal = 0, // 普通 - 白色
+  Uncommon = 1, // 精良 - 绿色
+  Rare = 2, // 稀有 - 蓝色
+  Epic = 3, // 史诗 - 紫色
   Legendary = 4, // 传说 - 橙色
 }
 
 /** 品级颜色定义 - 武侠风格 */
 export const qualityColors: Record<ItemQuality, string> = {
-  [ItemQuality.Normal]: "rgba(255, 255, 255, 0.8)",    // 白色
-  [ItemQuality.Uncommon]: "#4CAF50",                   // 翠绿
-  [ItemQuality.Rare]: "#2196F3",                       // 蔚蓝
-  [ItemQuality.Epic]: "#9C27B0",                       // 紫晶
-  [ItemQuality.Legendary]: "#FF9800",                  // 金橙
+  [ItemQuality.Normal]: "rgba(255, 255, 255, 0.8)", // 白色
+  [ItemQuality.Uncommon]: "#4CAF50", // 翠绿
+  [ItemQuality.Rare]: "#2196F3", // 蔚蓝
+  [ItemQuality.Epic]: "#9C27B0", // 紫晶
+  [ItemQuality.Legendary]: "#FF9800", // 金橙
 };
 
 /** 品级发光颜色 (用于边框/阴影) */
@@ -387,11 +386,11 @@ export const qualityGlowColors: Record<ItemQuality, string> = {
  * 基于 cost 值区分物品稀有度
  */
 export function getItemQuality(cost: number): ItemQuality {
-  if (cost >= 2000) return ItemQuality.Legendary;  // 传说级
-  if (cost >= 1000) return ItemQuality.Epic;       // 史诗级
-  if (cost >= 500) return ItemQuality.Rare;        // 稀有级
-  if (cost >= 100) return ItemQuality.Uncommon;    // 精良级
-  return ItemQuality.Normal;                        // 普通级
+  if (cost >= 2000) return ItemQuality.Legendary; // 传说级
+  if (cost >= 1000) return ItemQuality.Epic; // 史诗级
+  if (cost >= 500) return ItemQuality.Rare; // 稀有级
+  if (cost >= 100) return ItemQuality.Uncommon; // 精良级
+  return ItemQuality.Normal; // 普通级
 }
 
 /**

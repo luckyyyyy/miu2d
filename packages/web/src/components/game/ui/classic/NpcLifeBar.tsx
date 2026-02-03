@@ -13,8 +13,9 @@
  * 2. NPC 名字颜色区分: 普通敌人白色，Boss敌人（ExpBonus > 0）黄色
  * 3. 实时更新，与游戏帧同步
  */
-import type React from "react";
+
 import type { Npc } from "@miu2d/engine/npc";
+import type React from "react";
 import { useNpcInfoShowConfig } from "./useUISettings";
 
 // Colors matching C# InfoDrawer.cs

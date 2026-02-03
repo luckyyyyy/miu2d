@@ -101,11 +101,7 @@ export function decodeAsfWasm(buffer: ArrayBuffer): AsfData | null {
     const offset = i * frameSize;
     const pixelData = allPixelData.subarray(offset, offset + frameSize);
 
-    const imageData = new ImageData(
-      new Uint8ClampedArray(pixelData),
-      header.width,
-      header.height
-    );
+    const imageData = new ImageData(new Uint8ClampedArray(pixelData), header.width, header.height);
 
     frames.push({
       width: header.width,

@@ -13,14 +13,18 @@
  * 3. start() - 启动游戏循环
  */
 
-import { useEffect, useRef, useState } from "react";
 import {
   GameEvents,
   type GameInitializedEvent,
   type GameLoadProgressEvent,
 } from "@miu2d/engine/core/gameEvents";
 import { logger } from "@miu2d/engine/core/logger";
-import { type GameEngine, type GameEngineState, getGameEngine } from "@miu2d/engine/game/gameEngine";
+import {
+  type GameEngine,
+  type GameEngineState,
+  getGameEngine,
+} from "@miu2d/engine/game/gameEngine";
+import { useEffect, useRef, useState } from "react";
 
 export interface UseGameEngineOptions {
   width: number;

@@ -16,7 +16,6 @@
 
 import type { Npc } from "../npc";
 import type { Obj } from "../obj/obj";
-import type { AsfFrame } from "../sprite/asf";
 
 /**
  * Edge highlight colors (matching C# Globals.cs)

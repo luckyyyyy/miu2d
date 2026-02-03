@@ -5,10 +5,8 @@
  * C# Reference: MagicSprite.CollisionDetaction(), CharacterHited()
  */
 
+import type { CharacterBase } from "../../character/base";
 import { Character } from "../../character/character";
-import { CharacterBase } from "../../character/base";
-import type { Npc } from "../../npc";
-import { NpcManager } from "../../npc";
 import { getEngineContext } from "../../core/engineContext";
 import { logger } from "../../core/logger";
 import {
@@ -18,16 +16,18 @@ import {
   findNeighborInDirection,
 } from "../../core/pathFinder";
 import type { Vector2 } from "../../core/types";
-import { getNeighbors, pixelToTile, tileToPixel, getDirectionFromVector } from "../../utils";
+import type { Npc } from "../../npc";
+import { NpcManager } from "../../npc";
 import type { MagicListManager } from "../../player/magic/magicListManager";
 import type { Player } from "../../player/player";
-import { type ApplyContext, type CharacterRef, type EndContext, getEffect } from "../effects";
-import { getCachedMagic, getMagicAtLevel, loadMagic } from "../magicLoader";
-import type { MagicSprite } from "../magicSprite";
+import { getDirectionFromVector, getNeighbors } from "../../utils";
 import { getDirection8, getDirectionOffset8 } from "../../utils/direction";
+import { normalizeVector } from "../../utils/math";
+import { type ApplyContext, type CharacterRef, type EndContext, getEffect } from "../effects";
+import { getCachedMagic, getMagicAtLevel } from "../magicLoader";
+import type { MagicSprite } from "../magicSprite";
 import type { MagicData } from "../types";
 import type { ICharacterHelper, MagicManagerDeps, MagicManagerState } from "./types";
-import { normalizeVector } from "../../utils/math";
 
 /**
  * 碰撞处理回调
@@ -402,7 +402,11 @@ export class CollisionHandler {
    * 跳跃到下一个目标
    * C# Reference: MagicSprite.LeapToNextTarget(Character hitedCharacter)
    */
-  private leapToNextTarget(sprite: MagicSprite, hitedCharacter: Character, hitedCharId: string): void {
+  private leapToNextTarget(
+    sprite: MagicSprite,
+    hitedCharacter: Character,
+    hitedCharId: string
+  ): void {
     const magic = sprite.magic;
     const belongCharacter = this.charHelper.getBelongCharacter(sprite.belongCharacterId);
 

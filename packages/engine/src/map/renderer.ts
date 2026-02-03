@@ -1,9 +1,10 @@
 /** 地图渲染器 - Canvas 基于的 JxqyMap 渲染 */
+
+import { ResourcePath } from "../config/resourcePaths";
 import { logger } from "../core/logger";
 import type { Camera, JxqyMapData, Mpc } from "../core/mapTypes";
 import { loadMpc } from "../resource/mpc";
 import { MapBase } from "./mapBase";
-import { ResourcePath } from "../config/resourcePaths";
 
 export interface MapRenderer {
   mapData: JxqyMapData;
@@ -170,8 +171,15 @@ function drawTileLayer(
 
   // 额外 1 像素避免浮点精度问题导致的缝隙（缩放时更明显）
   ctx.drawImage(
-    frameCanvas, 0, 0, frameCanvas.width, frameCanvas.height,
-    drawX, drawY, frameCanvas.width + 1, frameCanvas.height + 1
+    frameCanvas,
+    0,
+    0,
+    frameCanvas.width,
+    frameCanvas.height,
+    drawX,
+    drawY,
+    frameCanvas.width + 1,
+    frameCanvas.height + 1
   );
 }
 
@@ -306,7 +314,11 @@ export function renderMap(ctx: CanvasRenderingContext2D, renderer: MapRenderer):
     ctx.fillStyle = "#ffffff";
     ctx.font = "24px Arial";
     ctx.textAlign = "center";
-    ctx.fillText(`加载中... ${Math.round(renderer.loadProgress * 100)}%`, camera.width / 2, camera.height / 2);
+    ctx.fillText(
+      `加载中... ${Math.round(renderer.loadProgress * 100)}%`,
+      camera.width / 2,
+      camera.height / 2
+    );
     return;
   }
 
@@ -327,8 +339,8 @@ export function updateCamera(renderer: MapRenderer, deltaX: number, deltaY: numb
   if (!renderer.mapData) return;
 
   const { camera, mapData } = renderer;
-  let newX = Math.max(0, Math.min(camera.x + deltaX, mapData.mapPixelWidth - camera.width));
-  let newY = Math.max(0, Math.min(camera.y + deltaY, mapData.mapPixelHeight - camera.height));
+  const newX = Math.max(0, Math.min(camera.x + deltaX, mapData.mapPixelWidth - camera.width));
+  const newY = Math.max(0, Math.min(camera.y + deltaY, mapData.mapPixelHeight - camera.height));
 
   camera.x = Math.floor(newX);
   camera.y = Math.floor(newY);

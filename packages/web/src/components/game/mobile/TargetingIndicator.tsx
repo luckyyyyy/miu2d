@@ -31,9 +31,10 @@ export const TargetingIndicator = memo(function TargetingIndicator({
   // 计算瞄准线的终点（相对于起点的偏移）
   const lineLength = 80;
   const dirMagnitude = Math.sqrt(direction.x * direction.x + direction.y * direction.y);
-  const normalizedDir = dirMagnitude > 0
-    ? { x: direction.x / dirMagnitude, y: direction.y / dirMagnitude }
-    : { x: 0, y: -1 }; // 默认朝上
+  const normalizedDir =
+    dirMagnitude > 0
+      ? { x: direction.x / dirMagnitude, y: direction.y / dirMagnitude }
+      : { x: 0, y: -1 }; // 默认朝上
 
   const endX = normalizedDir.x * lineLength;
   const endY = normalizedDir.y * lineLength;
@@ -123,10 +124,7 @@ export const TargetingIndicator = memo(function TargetingIndicator({
         }}
       >
         <svg viewBox="0 0 16 16" className="w-full h-full">
-          <path
-            d="M8 0 L14 12 L8 8 L2 12 Z"
-            fill="rgba(255, 200, 100, 0.9)"
-          />
+          <path d="M8 0 L14 12 L8 8 L2 12 Z" fill="rgba(255, 200, 100, 0.9)" />
         </svg>
       </div>
     </div>

@@ -8,10 +8,11 @@
  * Store Indices: 1-36 (StoreIndexBegin to StoreIndexEnd)
  * Bottom Indices: 40-44 (BottomIndexBegin to BottomIndexEnd)
  */
+
+import type { MagicItemInfo } from "@miu2d/engine/magic";
 import type React from "react";
 import { useCallback, useMemo, useRef, useState } from "react";
-import type { MagicItemInfo } from "@miu2d/engine/magic";
-import { useDevice, useTouchDrag, type TouchDragData } from "@/contexts";
+import { type TouchDragData, useDevice, useTouchDrag } from "@/contexts";
 import { useTouchDropTarget } from "@/hooks";
 import { AsfAnimatedSprite } from "./AsfAnimatedSprite";
 import { useAsfImage } from "./hooks";
@@ -137,7 +138,7 @@ const MagicSlot: React.FC<MagicSlotProps> = ({
         }
       }, 200);
     },
-    [hasMagic, onTouchDragStart]
+    [hasMagic, onTouchDragStart, isMobile]
   );
 
   // 触摸移动 - 如果移动距离大于阈值，取消长按

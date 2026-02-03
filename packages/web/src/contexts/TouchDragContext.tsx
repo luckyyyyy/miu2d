@@ -5,9 +5,9 @@
  * HTML5 drag-and-drop 在触摸设备上不可靠，所以需要自己实现
  */
 
-import { createContext, useCallback, useContext, useRef, useState, type ReactNode } from "react";
 import type { MagicItemInfo } from "@miu2d/engine/magic";
 import type { Good } from "@miu2d/engine/player/goods";
+import { createContext, type ReactNode, useCallback, useContext, useRef, useState } from "react";
 
 /** 拖拽数据类型 */
 export interface TouchDragData {
@@ -65,7 +65,17 @@ export function TouchDragProvider({ children }: { children: ReactNode }) {
   const dropTargetsRef = useRef<Map<string, DropTarget>>(new Map());
 
   const startDrag = useCallback((data: TouchDragData) => {
-    console.log('[TouchDrag] startDrag:', data.type, data.source, 'bagIndex:', data.bagIndex, 'storeIndex:', data.storeIndex, 'equipSlot:', data.equipSlot);
+    console.log(
+      "[TouchDrag] startDrag:",
+      data.type,
+      data.source,
+      "bagIndex:",
+      data.bagIndex,
+      "storeIndex:",
+      data.storeIndex,
+      "equipSlot:",
+      data.equipSlot
+    );
     setDragData(data);
   }, []);
 
@@ -77,24 +87,32 @@ export function TouchDragProvider({ children }: { children: ReactNode }) {
     (x: number, y: number): boolean => {
       const currentData = dragData;
       if (!currentData) {
-        console.log('[TouchDrag] endDragAtPosition: no dragData');
+        console.log("[TouchDrag] endDragAtPosition: no dragData");
         return false;
       }
 
-      console.log('[TouchDrag] endDragAtPosition at', x, y, 'type:', currentData.type, 'targets:', dropTargetsRef.current.size);
+      console.log(
+        "[TouchDrag] endDragAtPosition at",
+        x,
+        y,
+        "type:",
+        currentData.type,
+        "targets:",
+        dropTargetsRef.current.size
+      );
 
       // 查找包含此坐标的 drop target
       for (const target of dropTargetsRef.current.values()) {
         const rect = target.element.getBoundingClientRect();
         if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
-          console.log('[TouchDrag] found target:', target.id);
+          console.log("[TouchDrag] found target:", target.id);
           // 检查是否可以接受
           if (target.canDrop && !target.canDrop(currentData)) {
-            console.log('[TouchDrag] target', target.id, 'rejected drop (canDrop returned false)');
+            console.log("[TouchDrag] target", target.id, "rejected drop (canDrop returned false)");
             continue;
           }
           // 执行 drop
-          console.log('[TouchDrag] executing drop on', target.id);
+          console.log("[TouchDrag] executing drop on", target.id);
           target.onDrop(currentData);
           setDragData(null);
           return true;
@@ -102,7 +120,7 @@ export function TouchDragProvider({ children }: { children: ReactNode }) {
       }
 
       // 没有找到有效的 drop target
-      console.log('[TouchDrag] no valid drop target found');
+      console.log("[TouchDrag] no valid drop target found");
       setDragData(null);
       return false;
     },

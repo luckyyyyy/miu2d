@@ -6,20 +6,9 @@ import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 
 // 技术 Logo 组件
-function TechLogo({
-  name,
-  icon,
-  color,
-}: {
-  name: string;
-  icon: string;
-  color: string;
-}) {
+function TechLogo({ name, icon, color }: { name: string; icon: string; color: string }) {
   return (
-    <motion.div
-      whileHover={{ scale: 1.1, y: -5 }}
-      className="flex flex-col items-center gap-2"
-    >
+    <motion.div whileHover={{ scale: 1.1, y: -5 }} className="flex flex-col items-center gap-2">
       <div
         className={`w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 flex items-center justify-center text-3xl sm:text-4xl shadow-lg hover:shadow-xl transition-shadow ${color}`}
       >
@@ -59,9 +48,7 @@ export function TechStack() {
           <h2 className="text-4xl sm:text-5xl font-bold text-zinc-900 dark:text-white">
             {t("tech.title")}
           </h2>
-          <p className="mt-4 text-lg text-zinc-600 dark:text-zinc-400">
-            {t("tech.subtitle")}
-          </p>
+          <p className="mt-4 text-lg text-zinc-600 dark:text-zinc-400">{t("tech.subtitle")}</p>
         </motion.div>
 
         {/* 技术栈网格 */}

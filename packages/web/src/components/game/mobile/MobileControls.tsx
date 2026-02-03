@@ -10,13 +10,13 @@
  * 物品使用：触发对应的快捷键功能（Z/X/C）
  */
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import type { GameEngine } from "@miu2d/engine/game/gameEngine";
 import { Direction } from "@miu2d/engine/core/types";
-import { VirtualJoystick } from "./VirtualJoystick";
+import type { GameEngine } from "@miu2d/engine/game/gameEngine";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { MobileActionButtons } from "./MobileActionButtons";
-import { TargetingIndicator } from "./TargetingIndicator";
 import { MobileInteractionBar } from "./MobileInteractionBar";
+import { TargetingIndicator } from "./TargetingIndicator";
+import { VirtualJoystick } from "./VirtualJoystick";
 
 export interface MobileControlsProps {
   /** 游戏引擎实例 */
@@ -35,7 +35,7 @@ export interface MobileControlsProps {
  * 方向到相对偏移量映射（用于计算目标点）
  * 基于等角坐标系：每个方向的世界坐标偏移
  */
-const DIRECTION_OFFSETS: Record<Direction, { x: number; y: number }> = {
+const _DIRECTION_OFFSETS: Record<Direction, { x: number; y: number }> = {
   [Direction.North]: { x: 0, y: -64 },
   [Direction.NorthEast]: { x: 32, y: -48 },
   [Direction.East]: { x: 64, y: 0 },
@@ -368,9 +368,7 @@ export function MobileControls({
         className="absolute left-1/2 transform -translate-x-1/2 pointer-events-none"
         style={{ bottom: 8 }}
       >
-        <div className="text-white/20 text-[10px] text-center">
-          摇杆移动 · 按住技能滑动瞄准
-        </div>
+        <div className="text-white/20 text-[10px] text-center">摇杆移动 · 按住技能滑动瞄准</div>
       </div>
     </div>
   );

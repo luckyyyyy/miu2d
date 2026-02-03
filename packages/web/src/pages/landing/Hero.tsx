@@ -4,7 +4,7 @@
 
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
-import { GridLine, GridNode, FloatingOrb, GridPattern } from "@/components";
+import { FloatingOrb, GridLine, GridNode, GridPattern } from "@/components";
 
 export function Hero() {
   const { t } = useTranslation();
@@ -92,7 +92,13 @@ export function Hero() {
           className="mt-4 flex items-center justify-center gap-2"
         >
           <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-orange-500/10 to-amber-500/10 border border-orange-500/20 text-orange-600 dark:text-orange-400 text-sm font-medium">
-            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg
+              className="w-4 h-4"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
               <rect x="5" y="2" width="14" height="20" rx="2" />
               <path d="M12 18h.01" />
             </svg>
@@ -136,7 +142,13 @@ export function Hero() {
           {[
             {
               icon: (
-                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <svg
+                  className="w-4 h-4"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
                   <rect x="2" y="3" width="20" height="14" rx="2" />
                   <path d="M8 21h8M12 17v4" />
                 </svg>
@@ -145,7 +157,13 @@ export function Hero() {
             },
             {
               icon: (
-                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <svg
+                  className="w-4 h-4"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
                   <path d="M12 2a3 3 0 0 0-3 3v1a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
                   <path d="M19 10a7 7 0 1 1-14 0" />
                   <path d="M12 14v8M8 18h8" />
@@ -155,7 +173,13 @@ export function Hero() {
             },
             {
               icon: (
-                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <svg
+                  className="w-4 h-4"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
                   <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Z" />
                   <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" />
                 </svg>
@@ -164,7 +188,13 @@ export function Hero() {
             },
             {
               icon: (
-                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <svg
+                  className="w-4 h-4"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
                   <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
                 </svg>
               ),
@@ -179,7 +209,9 @@ export function Hero() {
               className="px-4 py-2 rounded-full bg-white/60 dark:bg-zinc-800/60 backdrop-blur-sm border border-zinc-200/50 dark:border-zinc-700/50 flex items-center gap-2 text-zinc-600 dark:text-zinc-400"
             >
               {tech.icon}
-              <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">{tech.label}</span>
+              <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                {tech.label}
+              </span>
             </motion.div>
           ))}
         </motion.div>

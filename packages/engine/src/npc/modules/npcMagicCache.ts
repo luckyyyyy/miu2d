@@ -5,10 +5,10 @@
  * NPC 等级固定，无需像 Player 那样动态获取不同等级。
  */
 
+import type { FlyIniInfo } from "../../character/modules/flyIniManager";
 import { logger } from "../../core/logger";
 import { getMagicAtLevel, loadMagic, preloadMagicAsf } from "../../magic/magicLoader";
 import type { MagicData } from "../../magic/types";
-import type { FlyIniInfo } from "../../character/modules/flyIniManager";
 
 /** 特殊武功类型 */
 export type SpecialMagicType = "lifeLow" | "beAttacked" | "death";
@@ -38,7 +38,7 @@ export class NpcMagicCache {
   /** 获取特殊武功（同步） */
   getSpecial(type: SpecialMagicType): MagicData | null {
     const file = this._specialFiles.get(type);
-    return file ? this._cache.get(file) ?? null : null;
+    return file ? (this._cache.get(file) ?? null) : null;
   }
 
   has(magicIni: string): boolean {

@@ -9,20 +9,20 @@
  * 3. 从引擎获取数据并转换为 UI 友好格式
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DefaultPaths } from "@miu2d/engine/config";
-import type { Npc } from "@miu2d/engine/npc";
 import { logger } from "@miu2d/engine/core/logger";
 import type { JxqyMapData } from "@miu2d/engine/core/mapTypes";
-import { resourceLoader } from "@miu2d/engine/resource/resourceLoader";
 import type { Vector2 } from "@miu2d/engine/core/types";
 import type { GameEngine } from "@miu2d/engine/game/gameEngine";
+import type { ShopItemInfo } from "@miu2d/engine/gui/buyManager";
 import type { MagicItemInfo } from "@miu2d/engine/magic";
+import type { Npc } from "@miu2d/engine/npc";
 import type { Good } from "@miu2d/engine/player/goods";
 import { GoodKind } from "@miu2d/engine/player/goods";
+import { resourceLoader } from "@miu2d/engine/resource/resourceLoader";
 import type { TimerState } from "@miu2d/engine/timer";
-import type { ShopItemInfo } from "@miu2d/engine/gui/buyManager";
 import type { UIEquipSlotName } from "@miu2d/engine/ui/contract";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useUIBridge } from "../adapters";
 import type { DragData, EquipSlotType } from "../ui/classic";
 import { slotTypeToEquipPosition } from "../ui/classic";
@@ -117,7 +117,15 @@ export interface UseGameUILogicOptions {
 
 export function useGameUILogic({ engine }: UseGameUILogicOptions) {
   // 使用 UIBridge hook 获取UI状态
-  const { dispatch, panels, dialog, selection, multiSelection, message, player: uiPlayer } = useUIBridge(engine);
+  const {
+    dispatch,
+    panels,
+    dialog,
+    selection,
+    multiSelection,
+    message,
+    player: uiPlayer,
+  } = useUIBridge(engine);
 
   // 获取玩家数据
   const player = engine?.getPlayer();
@@ -203,7 +211,7 @@ export function useGameUILogic({ engine }: UseGameUILogicOptions) {
 
     const playerMoney = engine.getPlayer()?.money ?? 0;
     return { items, equips, bottomGoods, money: playerMoney };
-  }, [engine, panels?.goods, panels?.equip, updateTrigger]);
+  }, [engine]);
 
   // 获取武功数据
   const magicData: MagicData = useMemo(() => {
@@ -217,7 +225,7 @@ export function useGameUILogic({ engine }: UseGameUILogicOptions) {
     const xiuLianMagic = gameManager?.getMagicListManager().getItemInfo(49) ?? null;
 
     return { storeMagics, bottomMagics, xiuLianMagic };
-  }, [engine, panels?.magic, panels?.xiulian, updateTrigger]);
+  }, [engine]);
 
   // 获取商店数据
   const buyData: BuyData = useMemo(() => {
@@ -242,7 +250,7 @@ export function useGameUILogic({ engine }: UseGameUILogicOptions) {
       numberValid: buyManager.isNumberValid(),
       canSellSelfGoods: buyManager.getCanSellSelfGoods(),
     };
-  }, [engine, panels?.buy, updateTrigger]);
+  }, [engine]);
 
   // ============= NPC Hover State =============
 
@@ -259,7 +267,11 @@ export function useGameUILogic({ engine }: UseGameUILogicOptions) {
     const updateHoveredNpc = () => {
       const gameManager = engine.getGameManager();
       if (gameManager) {
-        const interactionManager = (gameManager as unknown as { interactionManager?: { getHoverTarget: () => { npc: Npc | null } } }).interactionManager;
+        const interactionManager = (
+          gameManager as unknown as {
+            interactionManager?: { getHoverTarget: () => { npc: Npc | null } };
+          }
+        ).interactionManager;
         if (interactionManager) {
           const hoverTarget = interactionManager.getHoverTarget();
           const currentNpc = hoverTarget.npc;
@@ -479,7 +491,9 @@ export function useGameUILogic({ engine }: UseGameUILogicOptions) {
         mapData: mapData,
         mapName: mapName,
         mapDisplayName: mapDisplayName,
-        playerPosition: playerInst ? { x: playerInst.pixelPosition.x, y: playerInst.pixelPosition.y } : { x: 0, y: 0 },
+        playerPosition: playerInst
+          ? { x: playerInst.pixelPosition.x, y: playerInst.pixelPosition.y }
+          : { x: 0, y: 0 },
         cameraPosition: cameraPos || { x: 0, y: 0 },
         characters,
       });
@@ -499,7 +513,9 @@ export function useGameUILogic({ engine }: UseGameUILogicOptions) {
   // ============= Panel Toggles =============
 
   const togglePanel = useCallback(
-    (panel: "state" | "equip" | "xiulian" | "goods" | "magic" | "memo" | "system" | "littleMap") => {
+    (
+      panel: "state" | "equip" | "xiulian" | "goods" | "magic" | "memo" | "system" | "littleMap"
+    ) => {
       dispatch({ type: "TOGGLE_PANEL", panel });
     },
     [dispatch]
@@ -519,7 +535,11 @@ export function useGameUILogic({ engine }: UseGameUILogicOptions) {
       if (data.type === "goods") {
         dispatch({ type: "EQUIP_ITEM", fromIndex: data.index, toSlot: equipSlotToUISlot(slot) });
       } else if (data.type === "equip" && data.sourceSlot) {
-        dispatch({ type: "SWAP_EQUIP_SLOTS", fromSlot: equipSlotToUISlot(data.sourceSlot), toSlot: equipSlotToUISlot(slot) });
+        dispatch({
+          type: "SWAP_EQUIP_SLOTS",
+          fromSlot: equipSlotToUISlot(data.sourceSlot),
+          toSlot: equipSlotToUISlot(slot),
+        });
       }
       setDragData(null);
     },
@@ -556,7 +576,11 @@ export function useGameUILogic({ engine }: UseGameUILogicOptions) {
       if (data.type === "goods") {
         dispatch({ type: "SWAP_ITEMS", fromIndex: data.index, toIndex: targetIndex });
       } else if (data.type === "equip") {
-        dispatch({ type: "EQUIP_ITEM", fromIndex: targetIndex, toSlot: equipSlotToUISlot(data.sourceSlot!) });
+        dispatch({
+          type: "EQUIP_ITEM",
+          fromIndex: targetIndex,
+          toSlot: equipSlotToUISlot(data.sourceSlot!),
+        });
       } else if (data.type === "bottom") {
         dispatch({ type: "SWAP_ITEMS", fromIndex: data.index, toIndex: targetIndex });
       }
@@ -630,7 +654,9 @@ export function useGameUILogic({ engine }: UseGameUILogicOptions) {
 
   const handleBottomMagicDragStart = useCallback(
     (bottomSlot: number) => {
-      const listIndex = engine?.getGameManager()?.getMagicListManager()?.bottomIndexToListIndex(bottomSlot) ?? (bottomSlot + 41);
+      const listIndex =
+        engine?.getGameManager()?.getMagicListManager()?.bottomIndexToListIndex(bottomSlot) ??
+        bottomSlot + 41;
       setBottomMagicDragData({ bottomSlot, listIndex });
       setMagicDragData(null);
     },
@@ -647,7 +673,11 @@ export function useGameUILogic({ engine }: UseGameUILogicOptions) {
       if (source && source.storeIndex > 0) {
         dispatch({ type: "SWAP_MAGIC", fromIndex: source.storeIndex, toIndex: targetStoreIndex });
       } else if (bottomMagicDragData) {
-        dispatch({ type: "SWAP_MAGIC", fromIndex: bottomMagicDragData.listIndex, toIndex: targetStoreIndex });
+        dispatch({
+          type: "SWAP_MAGIC",
+          fromIndex: bottomMagicDragData.listIndex,
+          toIndex: targetStoreIndex,
+        });
       }
       setMagicDragData(null);
       setBottomMagicDragData(null);
@@ -658,11 +688,22 @@ export function useGameUILogic({ engine }: UseGameUILogicOptions) {
   const handleMagicDropOnBottom = useCallback(
     (targetBottomSlot: number) => {
       if (magicDragData) {
-        dispatch({ type: "ASSIGN_MAGIC_TO_BOTTOM", magicIndex: magicDragData.storeIndex, bottomSlot: targetBottomSlot });
+        dispatch({
+          type: "ASSIGN_MAGIC_TO_BOTTOM",
+          magicIndex: magicDragData.storeIndex,
+          bottomSlot: targetBottomSlot,
+        });
       } else if (bottomMagicDragData) {
-        const targetListIndex = engine?.getGameManager()?.getMagicListManager()?.bottomIndexToListIndex(targetBottomSlot);
+        const targetListIndex = engine
+          ?.getGameManager()
+          ?.getMagicListManager()
+          ?.bottomIndexToListIndex(targetBottomSlot);
         if (targetListIndex !== undefined) {
-          dispatch({ type: "SWAP_MAGIC", fromIndex: bottomMagicDragData.listIndex, toIndex: targetListIndex });
+          dispatch({
+            type: "SWAP_MAGIC",
+            fromIndex: bottomMagicDragData.listIndex,
+            toIndex: targetListIndex,
+          });
         }
       }
       setMagicDragData(null);
@@ -676,9 +717,17 @@ export function useGameUILogic({ engine }: UseGameUILogicOptions) {
       const xiuLianIndex = 49;
 
       if (magicDragData && magicDragData.storeIndex > 0) {
-        dispatch({ type: "SWAP_MAGIC", fromIndex: magicDragData.storeIndex, toIndex: xiuLianIndex });
+        dispatch({
+          type: "SWAP_MAGIC",
+          fromIndex: magicDragData.storeIndex,
+          toIndex: xiuLianIndex,
+        });
       } else if (bottomMagicDragData) {
-        dispatch({ type: "SWAP_MAGIC", fromIndex: bottomMagicDragData.listIndex, toIndex: xiuLianIndex });
+        dispatch({
+          type: "SWAP_MAGIC",
+          fromIndex: bottomMagicDragData.listIndex,
+          toIndex: xiuLianIndex,
+        });
       } else if (sourceIndex > 0 && sourceIndex !== xiuLianIndex) {
         dispatch({ type: "SWAP_MAGIC", fromIndex: sourceIndex, toIndex: xiuLianIndex });
       }

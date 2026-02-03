@@ -19,17 +19,17 @@ import {
   type UIMultiSelectionChangeEvent,
   type UIPanelChangeEvent,
   type UISelectionChangeEvent,
-  type UIVideoPlayEvent,
   type UIVideoEndEvent,
+  type UIVideoPlayEvent,
 } from "../core/gameEvents";
 import { logger } from "../core/logger";
-import type { Good } from "../player/goods/good";
-import type { GoodsItemInfo, GoodsListManager } from "../player/goods/goodsListManager";
-import type { MagicItemInfo } from "../magic/types";
-import type { Player } from "../player/player";
 import type { BuyManager, ShopItemInfo } from "../gui/buyManager";
 import type { MemoListManager } from "../listManager/memoListManager";
+import type { MagicItemInfo } from "../magic/types";
+import type { Good } from "../player/goods/good";
+import type { GoodsItemInfo, GoodsListManager } from "../player/goods/goodsListManager";
 import type { MagicListManager } from "../player/magic/magicListManager";
+import type { Player } from "../player/player";
 import type { TimerManager } from "../timer/timerManager";
 import type {
   IUIBridge,
@@ -45,6 +45,7 @@ import type {
   UIMemoEntry,
   UIMemoState,
   UIMessageState,
+  UIMinimapState,
   UIMultiSelectionState,
   UINpcLifeBarState,
   UIPanelName,
@@ -59,7 +60,6 @@ import type {
   UIStateSubscriber,
   UITimerState,
   UIVideoState,
-  UIMinimapState,
 } from "./contract";
 
 // ============= 数据转换工具 =============
@@ -766,10 +766,7 @@ export class UIBridge implements IUIBridge {
 
   // ============= 内部方法 =============
 
-  private notifySubscribers<K extends keyof UIStateSubscriber>(
-    method: K,
-    data: unknown
-  ): void {
+  private notifySubscribers<K extends keyof UIStateSubscriber>(method: K, data: unknown): void {
     for (const subscriber of this.subscribers) {
       const handler = subscriber[method];
       if (handler) {

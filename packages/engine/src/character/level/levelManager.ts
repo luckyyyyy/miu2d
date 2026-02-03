@@ -8,9 +8,9 @@
  * - Attribute progression
  */
 
+import { DefaultPaths } from "../../config/resourcePaths";
 import { logger } from "../../core/logger";
 import { resourceLoader } from "../../resource/resourceLoader";
-import { DefaultPaths } from "../../config/resourcePaths";
 
 /**
  * Level detail structure matching C#'s Utils.LevelDetail

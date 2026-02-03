@@ -14,8 +14,9 @@
  * moveAlongPath will convert tile positions to pixel positions for rendering.
  */
 
-import type { Vector2 } from "./types";
 import { distance, getDirectionFromVector, getNeighbors, tileToPixel } from "../utils";
+import { logger } from "./logger";
+import type { Vector2 } from "./types";
 
 /**
  * C# PathFinder.PathType enum
@@ -362,8 +363,19 @@ export function findPathPerfect(
     return [];
   }
 
+  // 检查目标位置是否是障碍物
   if (isMapObstacle(endTile)) {
+    logger.debug(
+      `[PathFinder.findPathPerfect] 目标位置是障碍物: endTile=(${endTile.x}, ${endTile.y})`
+    );
     return [];
+  }
+
+  // 检查起点是否是障碍物（不应该发生，但用于调试）
+  if (isMapObstacle(startTile)) {
+    logger.debug(
+      `[PathFinder.findPathPerfect] 起点是障碍物（异常）: startTile=(${startTile.x}, ${startTile.y})`
+    );
   }
 
   const key = (v: Vector2) => `${v.x},${v.y}`;
@@ -375,9 +387,31 @@ export function findPathPerfect(
   costSoFar.set(key(startTile), 0);
 
   let tryCount = 0;
+  let noNeighborsCount = 0;
+
+  // 用于调试：记录探索的边界范围
+  let minX = startTile.x,
+    maxX = startTile.x;
+  let minY = startTile.y,
+    maxY = startTile.y;
+  let lastExplored: Vector2 | null = null;
 
   while (frontier.length > 0) {
-    if (maxTryCount !== -1 && tryCount++ > maxTryCount) break;
+    if (maxTryCount !== -1 && tryCount++ > maxTryCount) {
+      // 计算探索范围与目标的关系
+      const exploredInTargetDirection =
+        (endTile.y < startTile.y && minY < startTile.y) || // 目标在北，有向北探索
+        (endTile.y > startTile.y && maxY > startTile.y) || // 目标在南，有向南探索
+        (endTile.x < startTile.x && minX < startTile.x) || // 目标在西，有向西探索
+        (endTile.x > startTile.x && maxX > startTile.x); // 目标在东，有向东探索
+
+      logger.debug(
+        `[PathFinder.findPathPerfect] 超过最大尝试次数: maxTryCount=${maxTryCount}, from=(${startTile.x}, ${startTile.y}) to=(${endTile.x}, ${endTile.y}), ` +
+          `exploredRange=[(${minX},${minY})-(${maxX},${maxY})], exploredNodes=${costSoFar.size}, frontierSize=${frontier.length}, ` +
+          `exploredTowardTarget=${exploredInTargetDirection}, lastExplored=${lastExplored ? `(${lastExplored.x},${lastExplored.y})` : "null"}`
+      );
+      break;
+    }
 
     // Get node with lowest priority
     frontier.sort((a, b) => a.priority - b.priority);
@@ -385,6 +419,13 @@ export function findPathPerfect(
     if (!currentNode) break;
     const current = currentNode.tile;
     const currentKey = key(current);
+
+    // 更新探索边界
+    if (current.x < minX) minX = current.x;
+    if (current.x > maxX) maxX = current.x;
+    if (current.y < minY) minY = current.y;
+    if (current.y > maxY) maxY = current.y;
+    lastExplored = current;
 
     if (current.x === endTile.x && current.y === endTile.y) {
       break;
@@ -403,6 +444,13 @@ export function findPathPerfect(
       endTile
     );
 
+    if (neighbors.length === 0 && tryCount <= 3) {
+      noNeighborsCount++;
+      logger.debug(
+        `[PathFinder.findPathPerfect] 当前位置无可用邻居: current=(${current.x}, ${current.y}), tryCount=${tryCount}`
+      );
+    }
+
     for (const next of neighbors) {
       const nextKey = key(next);
       const newCost = (costSoFar.get(currentKey) ?? 0) + getTilePositionCost(current, next);
@@ -416,7 +464,15 @@ export function findPathPerfect(
     }
   }
 
-  return getPath(cameFrom, startTile, endTile);
+  const path = getPath(cameFrom, startTile, endTile);
+
+  if (path.length === 0 && tryCount > 0) {
+    logger.debug(
+      `[PathFinder.findPathPerfect] 寻路完成但无路径: from=(${startTile.x}, ${startTile.y}) to=(${endTile.x}, ${endTile.y}), tryCount=${tryCount}, frontierExhausted=${frontier.length === 0}, noNeighborsCount=${noNeighborsCount}`
+    );
+  }
+
+  return path;
 }
 
 /**
@@ -674,12 +730,7 @@ export function bouncingAtWall(
   const dirIndex = getDirectionFromVector(direction);
 
   // C#: var checks = new[]{(dir + 2)%8, (dir + 6)%8, (dir + 1)%8, (dir + 7)%8};
-  const checks = [
-    (dirIndex + 2) % 8,
-    (dirIndex + 6) % 8,
-    (dirIndex + 1) % 8,
-    (dirIndex + 7) % 8,
-  ];
+  const checks = [(dirIndex + 2) % 8, (dirIndex + 6) % 8, (dirIndex + 1) % 8, (dirIndex + 7) % 8];
 
   // C#: var neighbors = FindAllNeighbors(targetTilePosition);
   const neighbors = getNeighbors(targetTilePosition);
@@ -732,89 +783,136 @@ export function bouncingAtWall(
  * Find the farthest walkable tile in the direction from start to target.
  * Used when pathfinding fails - we try to move towards that direction as far as possible.
  *
- * Algorithm:
- * 1. Calculate direction from start to target
- * 2. Try to walk in that direction, if blocked try adjacent directions
- * 3. Return the farthest reachable point towards the target direction
+ * **New Strategy (for better mouse-hold experience):**
+ * Walk FROM the player's position TOWARDS the target direction, step by step.
+ * When the main direction is blocked, try adjacent directions (±1, ±2).
+ * Return the farthest reachable point in that general direction.
  *
- * @param startTile Starting tile position
- * @param targetTile Target tile position (used to calculate direction)
+ * This ensures that when clicking on an obstacle, the character walks as far
+ * as possible toward that direction instead of not moving at all.
+ *
+ * @param startTile Starting tile position (player's position)
+ * @param targetTile Target tile position (clicked position, used to calculate direction)
  * @param isMapObstacle Function to check if a tile is a map obstacle
- * @param maxSteps Maximum steps to search (default 30)
+ * @param isHardObstacle Function to check if a tile is a hard obstacle (for diagonal blocking)
+ * @param maxSteps Maximum steps to search (default 50)
  * @returns The farthest walkable tile in that direction, or null if can't move at all
  */
 export function findNearestWalkableTileInDirection(
   startTile: Vector2,
   targetTile: Vector2,
   isMapObstacle: (tile: Vector2) => boolean,
-  maxSteps: number = 30
+  isHardObstacle: (tile: Vector2) => boolean,
+  maxSteps: number = 50
 ): Vector2 | null {
+  const result = findPathInDirection(
+    startTile,
+    targetTile,
+    isMapObstacle,
+    isHardObstacle,
+    maxSteps
+  );
+  // 如果找到了路径（长度大于1，不只是起点），返回终点
+  if (result.path.length > 1) {
+    return result.destination;
+  }
+  return null;
+}
+
+/**
+ * Find a path by walking in the direction from start to target.
+ * Returns both the path and the destination.
+ *
+ * @param startTile Starting tile position (player's position)
+ * @param targetTile Target tile position (clicked position, used to calculate direction)
+ * @param isMapObstacle Function to check if a tile is a map obstacle
+ * @param isHardObstacle Function to check if a tile is a hard obstacle (for diagonal blocking)
+ * @param maxSteps Maximum steps to search (default 50)
+ * @returns Object with path array and destination tile
+ */
+export function findPathInDirection(
+  startTile: Vector2,
+  targetTile: Vector2,
+  isMapObstacle: (tile: Vector2) => boolean,
+  isHardObstacle: (tile: Vector2) => boolean,
+  maxSteps: number = 50
+): { path: Vector2[]; destination: Vector2 | null } {
   if (startTile.x === targetTile.x && startTile.y === targetTile.y) {
-    return null;
+    return { path: [], destination: null };
   }
 
-  // Calculate direction from start to target using pixel positions
+  // 计算从起点到目标的主方向
   const startPixel = tileToPixel(startTile.x, startTile.y);
   const targetPixel = tileToPixel(targetTile.x, targetTile.y);
-  const primaryDir = getDirectionFromVector({
+
+  const mainDirection = getDirectionFromVector({
     x: targetPixel.x - startPixel.x,
     y: targetPixel.y - startPixel.y,
   });
 
-  // Direction order: primary, then adjacent directions in order of preference
-  // Direction layout:
-  // 3  4  5
-  // 2     6
-  // 1  0  7
-  const directionOrder = [
-    primaryDir,
-    (primaryDir + 1) % 8,
-    (primaryDir + 7) % 8, // +7 = -1 mod 8
-    (primaryDir + 2) % 8,
-    (primaryDir + 6) % 8, // +6 = -2 mod 8
-  ];
+  // 从玩家位置开始，沿目标方向尽可能走远
+  // 当主方向被阻挡时，尝试相邻方向（优先靠近主方向的）
+  let currentTile = startTile;
+  const path: Vector2[] = [{ ...startTile }]; // 路径包含起点
+  let stepsWithoutProgress = 0;
+  const maxStepsWithoutProgress = 5; // 连续5步无法前进就停止
 
-  // Walk towards the target, finding the farthest walkable tile
-  let current = startTile;
-  let lastWalkable: Vector2 | null = null;
-  const targetDist = distance(startPixel, targetPixel);
+  for (let step = 0; step < maxSteps && stepsWithoutProgress < maxStepsWithoutProgress; step++) {
+    const neighbors = getNeighbors(currentTile);
 
-  for (let step = 0; step < maxSteps; step++) {
-    const neighbors = getNeighbors(current);
+    // 使用 getObstacleIndexList 来正确处理对角阻挡
+    // 这防止穿墙：如果对角方向是硬障碍物，会阻挡相邻的直线方向
+    const blockedDirections = getObstacleIndexList(neighbors, isMapObstacle, isHardObstacle);
 
-    // Try each direction in order of preference
-    let foundNext = false;
-    for (const dir of directionOrder) {
-      const next = neighbors[dir];
+    // 按方向优先级尝试：主方向 → 左偏1 → 右偏1 → 左偏2 → 右偏2
+    const directionsToTry = [
+      mainDirection,
+      (mainDirection + 7) % 8, // 左偏1（顺时针为正，所以-1等于+7）
+      (mainDirection + 1) % 8, // 右偏1
+      (mainDirection + 6) % 8, // 左偏2
+      (mainDirection + 2) % 8, // 右偏2
+    ];
 
-      // If this tile is walkable
-      if (!isMapObstacle(next)) {
-        // Check that we're moving closer to target or not too far from direction
-        const nextPixel = tileToPixel(next.x, next.y);
-        const distToTarget = distance(nextPixel, targetPixel);
-        const currentDistToTarget = distance(tileToPixel(current.x, current.y), targetPixel);
+    let moved = false;
+    for (const dir of directionsToTry) {
+      // 检查方向是否被阻挡（包括对角阻挡规则）
+      if (!blockedDirections.has(dir)) {
+        const nextTile = neighbors[dir];
+        currentTile = nextTile;
+        path.push({ ...nextTile });
+        moved = true;
+        stepsWithoutProgress = 0;
+        break;
+      }
+    }
 
-        // Only accept if we're getting closer to target
-        if (distToTarget < currentDistToTarget) {
-          lastWalkable = next;
-          current = next;
-          foundNext = true;
+    if (!moved) {
+      stepsWithoutProgress++;
 
-          // Check if we've reached or passed the target distance
-          const distFromStart = distance(nextPixel, startPixel);
-          if (distFromStart >= targetDist) {
-            return lastWalkable;
-          }
+      // 如果主方向和相邻方向都不通，尝试更大范围的偏转
+      // 这处理了需要稍微绕一下的情况
+      const widerDirections = [
+        (mainDirection + 5) % 8, // 左偏3
+        (mainDirection + 3) % 8, // 右偏3
+      ];
+
+      for (const dir of widerDirections) {
+        if (!blockedDirections.has(dir)) {
+          const nextTile = neighbors[dir];
+          currentTile = nextTile;
+          path.push({ ...nextTile });
+          stepsWithoutProgress = 0;
           break;
         }
       }
     }
-
-    // If no valid direction found, stop
-    if (!foundNext) {
-      break;
-    }
   }
 
-  return lastWalkable;
+  // 如果路径长度大于1（不只有起点），说明我们找到了可走的点
+  if (path.length > 1) {
+    const destination = path[path.length - 1];
+    return { path, destination };
+  }
+
+  return { path: [], destination: null };
 }

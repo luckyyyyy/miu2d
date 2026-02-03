@@ -167,9 +167,7 @@ export function Footer() {
           <p className="text-sm text-zinc-500 dark:text-zinc-400">
             © {currentYear} Miu2D Engine. {t("footer.license")}
           </p>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">
-            Made with ❤️ and AI ✨
-          </p>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">Made with ❤️ and AI ✨</p>
         </div>
       </div>
     </footer>

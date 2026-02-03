@@ -37,15 +37,15 @@
  */
 
 import type { AudioManager } from "../audio";
-import { getTextDecoder } from "../utils/encoding";
+import { ResourcePath } from "../config/resourcePaths";
 import { getEngineContext } from "../core/engineContext";
 import { logger } from "../core/logger";
 import type { Vector2 } from "../core/types";
-import { parseIni } from "../utils";
-import { resourceLoader } from "../resource/resourceLoader"
+import { resourceLoader } from "../resource/resourceLoader";
 import { loadAsf } from "../sprite/asf";
+import { parseIni } from "../utils";
+import { getTextDecoder } from "../utils/encoding";
 import { Obj, type ObjKind, type ObjResInfo, ObjState } from "./obj";
-import { ResourcePath } from "../config/resourcePaths";
 
 // Re-export types
 export { Obj, ObjKind, type ObjResInfo, ObjState } from "./obj";

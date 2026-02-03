@@ -503,7 +503,10 @@ export class GoodsListManager {
       const temp = this.goodsList[index1];
       this.goodsList[index1] = this.goodsList[index2];
       this.goodsList[index2] = temp;
-      console.log('[GoodsListManager] exchangeListItem: calling onUpdateView, callback exists:', !!this.onUpdateView);
+      console.log(
+        "[GoodsListManager] exchangeListItem: calling onUpdateView, callback exists:",
+        !!this.onUpdateView
+      );
       this.onUpdateView?.();
     }
   }

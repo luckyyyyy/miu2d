@@ -1,4 +1,3 @@
-import { useEffect, useRef, useState } from "react";
 import {
   createMapRenderer,
   loadMap,
@@ -9,6 +8,7 @@ import {
   updateCamera,
 } from "@miu2d/engine";
 import { logger } from "@miu2d/engine/core/logger";
+import { useEffect, useRef, useState } from "react";
 
 interface MapViewerProps {
   mapPath: string;

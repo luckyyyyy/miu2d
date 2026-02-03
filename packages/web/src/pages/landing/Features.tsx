@@ -2,8 +2,8 @@
  * Features - 功能特性介绍
  */
 
-import React, { useRef } from "react";
 import { motion } from "framer-motion";
+import React, { useRef } from "react";
 import { useTranslation } from "react-i18next";
 
 // 图标组件
@@ -135,7 +135,7 @@ function SaveIcon({ className }: { className?: string }) {
 }
 
 // 寻路图标
-function PathIcon({ className }: { className?: string }) {
+function _PathIcon({ className }: { className?: string }) {
   return (
     <svg
       className={className}
@@ -154,7 +154,7 @@ function PathIcon({ className }: { className?: string }) {
 }
 
 // 战斗图标
-function SwordIcon({ className }: { className?: string }) {
+function _SwordIcon({ className }: { className?: string }) {
   return (
     <svg
       className={className}
@@ -197,7 +197,7 @@ function BackpackIcon({ className }: { className?: string }) {
 }
 
 // 天气图标
-function WeatherIcon({ className }: { className?: string }) {
+function _WeatherIcon({ className }: { className?: string }) {
   return (
     <svg
       className={className}
@@ -235,7 +235,7 @@ function DebugIcon({ className }: { className?: string }) {
 }
 
 // 更多图标
-function MoreIcon({ className }: { className?: string }) {
+function _MoreIcon({ className }: { className?: string }) {
   return (
     <svg
       className={className}
@@ -515,10 +515,7 @@ export function Features() {
         </motion.div>
 
         {/* 功能卡片网格 */}
-        <div
-          ref={containerRef}
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-        >
+        <div ref={containerRef} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {features.map((feature, index) => {
             const Icon = feature.icon;
             return (

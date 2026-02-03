@@ -10,12 +10,12 @@
  * - ModernGameUIWrapper: 毛玻璃效果的现代风格渲染
  */
 
-import type React from "react";
 import type { GameEngine } from "@miu2d/engine/game/gameEngine";
-import type { UITheme } from "./ui";
-import { useGameUILogic } from "./hooks";
+import type React from "react";
 import { ClassicGameUI } from "./ClassicGameUI";
+import { useGameUILogic } from "./hooks";
 import { ModernGameUIWrapper } from "./ModernGameUIWrapper";
+import type { UITheme } from "./ui";
 
 interface GameUIProps {
   engine: GameEngine | null;
@@ -32,12 +32,7 @@ interface GameUIProps {
  * - "classic": 使用 ASF 精灵的经典复古风格
  * - "modern": 使用毛玻璃效果的现代风格
  */
-export const GameUI: React.FC<GameUIProps> = ({
-  engine,
-  width,
-  height,
-  uiTheme = "classic",
-}) => {
+export const GameUI: React.FC<GameUIProps> = ({ engine, width, height, uiTheme = "classic" }) => {
   // 共享的 UI 业务逻辑
   const logic = useGameUILogic({ engine });
 

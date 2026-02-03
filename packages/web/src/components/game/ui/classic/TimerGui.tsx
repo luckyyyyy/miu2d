@@ -5,9 +5,10 @@
  * 使用 ASF 图片作为背景，显示剩余时间
  * 配置来自 UI_Settings.ini [Timer] 和 [Timer_Text]
  */
+
+import type { TimerState } from "@miu2d/engine/timer";
 import type React from "react";
 import { useMemo } from "react";
-import type { TimerState } from "@miu2d/engine/timer";
 import { useAsfImage } from "./hooks";
 
 // UI_Settings.ini 配置

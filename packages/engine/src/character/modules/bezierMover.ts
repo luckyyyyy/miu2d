@@ -184,8 +184,14 @@ export class BezierMover<T = unknown> {
     // 计算曲线中点偏移量
     // C#: var halfPoint = (_bezierStartWorldPos + dir / 2) + perpendicular * Math.Max((Math.Abs(perpendicular.Y) * 100), 20);
     const halfPoint = {
-      x: this._startWorldPos.x + dir.x / 2 + perpendicular.x * Math.max(Math.abs(perpendicular.y) * 100, 20),
-      y: this._startWorldPos.y + dir.y / 2 + perpendicular.y * Math.max(Math.abs(perpendicular.y) * 100, 20),
+      x:
+        this._startWorldPos.x +
+        dir.x / 2 +
+        perpendicular.x * Math.max(Math.abs(perpendicular.y) * 100, 20),
+      y:
+        this._startWorldPos.y +
+        dir.y / 2 +
+        perpendicular.y * Math.max(Math.abs(perpendicular.y) * 100, 20),
     };
 
     // 生成贝塞尔曲线点

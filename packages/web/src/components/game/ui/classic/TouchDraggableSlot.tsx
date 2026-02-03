@@ -5,7 +5,6 @@
  */
 
 import type { CSSProperties, ReactNode } from "react";
-import { useCallback } from "react";
 import type { TouchDragData } from "@/contexts/TouchDragContext";
 import { useTouchDragSource } from "@/hooks/useTouchDragSource";
 

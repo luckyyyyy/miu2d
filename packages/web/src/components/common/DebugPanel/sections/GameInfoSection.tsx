@@ -2,8 +2,8 @@
  * 游戏信息区块 - 合并地图信息和游戏变量
  */
 
-import type React from "react";
 import type { GameVariables } from "@miu2d/engine/core/types";
+import type React from "react";
 import { DataRow } from "../DataRow";
 import { Section } from "../Section";
 import type { LoadedResources } from "../types";
@@ -22,7 +22,11 @@ export const GameInfoSection: React.FC<GameInfoSectionProps> = ({
   const variableCount = Object.keys(gameVariables || {}).length;
 
   return (
-    <Section title="游戏信息" defaultOpen={false} badge={variableCount > 0 ? variableCount : undefined}>
+    <Section
+      title="游戏信息"
+      defaultOpen={false}
+      badge={variableCount > 0 ? variableCount : undefined}
+    >
       {/* 地图信息 */}
       {loadedResources && (
         <div className="space-y-px mb-2">
