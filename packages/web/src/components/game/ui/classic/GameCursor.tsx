@@ -2,7 +2,7 @@
  * GameCursor Component - based on JxqyHD Engine/Gui/MouseGui.cs
  * Custom game cursor using ASF sprite from resources
  *
- * C# Reference: MouseGui.cs loads mouse.asf from UI_Settings.ini [Mouse] section
+ * loads mouse.asf from UI_Settings.ini [Mouse] section
  * Resource: asf/ui/common/mouse.asf
  *
  * 实现方式：

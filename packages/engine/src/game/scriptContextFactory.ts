@@ -2,7 +2,7 @@
  * Script Context Factory - Creates ScriptContext for script execution
  * Extracted from GameManager to reduce complexity
  *
- * Based on C#'s ScriptExecuter context bindings
+ *  context bindings
  */
 
 import type { AudioManager } from "../audio";
@@ -138,7 +138,7 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
 
   /**
    * Get character by name (player or NPC)
-   * Based on C#'s GetPlayerOrNpc
+   * 
    */
   const getCharacterByName = (name: string): Npc | Player | null => {
     if (player && player.name === name) {
@@ -213,7 +213,7 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
       await loadGameSave(index);
     },
     setPlayerPosition: (x, y, characterName?) => {
-      // C#: SetPlayerPos supports both 2-param and 3-param versions
+      // SetPlayerPos supports both 2-param and 3-param versions
       // 3-param: SetPlayerPos(name, x, y) - set position for named character
       // 2-param: SetPlayerPos(x, y) - set position for PlayerKindCharacter
       let targetCharacter: Player | Npc | null = null;
@@ -227,7 +227,7 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
         }
       } else {
         // 2-param version: use PlayerKindCharacter
-        // C#: Globals.PlayerKindCharacter = NpcManager.GetPlayerKindCharacter()
+        // Globals.PlayerKindCharacter = NpcManager.GetPlayerKindCharacter()
         //       ?? (ThePlayer.ControledCharacter ?? ThePlayer)
         const npcWithPlayerKind = npcManager.getPlayerKindCharacter();
         if (npcWithPlayerKind) {
@@ -246,7 +246,7 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
 
       targetCharacter.setPosition(x, y);
 
-      // C#: SetPlayerPos 后调用 Globals.TheCarmera.CenterPlayerInCamera()
+      // SetPlayerPos 后调用 Globals.TheCarmera.CenterPlayerInCamera()
       centerCameraOnPlayer();
 
       // Reset partner position relate to player position
@@ -255,14 +255,14 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
       }
 
       // After setting position, check and trigger trap at current position
-      // C#: Globals.ThePlayer.CheckMapTrap() - we use checkTrap which handles this
+      // we use checkTrap which handles this
       checkTrap({ x, y });
     },
     setPlayerDirection: (direction) => {
       player.setDirection(direction);
     },
     setPlayerState: (state) => {
-      // C#: Globals.ThePlayer.SetFightState(int.Parse(parameters[0]) != 0)
+      // Globals.ThePlayer.SetFightState(int.Parse(parameters[0]) != 0)
       // state != 0 means enter fighting mode, state == 0 means exit fighting mode
       player.setFightState(state !== 0);
     },
@@ -275,7 +275,7 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
       const pos = player.tilePosition;
       const atDestination = pos.x === destination.x && pos.y === destination.y;
 
-      // C#: IsStanding() includes Stand, Stand1, and FightStand
+      // IsStanding() includes Stand, Stand1, and FightStand
       const isStanding = player.isStanding();
 
       if (atDestination && isStanding) {
@@ -302,7 +302,7 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
       const pos = player.tilePosition;
       const atDestination = pos.x === destination.x && pos.y === destination.y;
 
-      // C#: IsStanding() includes Stand, Stand1, and FightStand
+      // IsStanding() includes Stand, Stand1, and FightStand
       const isStanding = player.isStanding();
 
       if (atDestination && isStanding) {
@@ -330,7 +330,7 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
 
     // NPC
     addNpc: (npcFile, x, y, direction?) => {
-      // C#: NpcManager.AddNpc(file, x, y, direction) - direction defaults to 4 (south)
+      // direction defaults to 4 (south)
       npcManager.addNpc(ResourcePath.npc(npcFile), x, y, direction ?? 4);
     },
     deleteNpc: (name) => {
@@ -355,7 +355,7 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
       npcManager.npcGoto(name, x, y);
     },
     isNpcGotoEnd: (name, destination) => {
-      // C# Reference: IsCharacterMoveEndAndStanding(character, destinationTilePosition, isRun=false)
+      // Reference: IsCharacterMoveEndAndStanding(character, destinationTilePosition, isRun=false)
       // 获取角色
       let character: Character | null = null;
       if (player && player.name === name) {
@@ -369,17 +369,17 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
       const tilePos = character.tilePosition;
       const atDestination = tilePos.x === destination.x && tilePos.y === destination.y;
 
-      // C#: var isEnd = true;
+      // var isEnd = true;
       let isEnd = true;
 
-      // C#: if (character != null && character.TilePosition != destinationTilePosition)
+      // if (character != null && character.TilePosition != destinationTilePosition)
       if (!atDestination) {
-        // C#: if (character.IsStanding()) { character.WalkTo(destinationTilePosition); }
+        // if (character.IsStanding()) { character.WalkTo(destinationTilePosition); }
         if (character.isStanding()) {
           character.walkTo(destination);
         }
 
-        // C#: Check moveable - path validity
+        // Check moveable - path validity
         // if (character.Path == null ||
         //     (character.Path.Count == 2 &&
         //      character.TilePosition != MapBase.ToTilePosition(character.Path.First.Next.Value) &&
@@ -393,7 +393,7 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
         } else if (path.length >= 1) {
           // path[0] is the next tile (since path.slice(1) is stored)
           const nextTile = path[0];
-          // C#: Path.Count == 2 意味着只剩一步要走
+          // Path.Count == 2 意味着只剩一步要走
           // 检查下一步是否有障碍物
           if (
             path.length === 1 &&
@@ -406,7 +406,7 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
           }
         }
       } else {
-        // C#: else if (character.TilePosition == destinationTilePosition && !character.IsStanding())
+        // else if (character.TilePosition == destinationTilePosition && !character.IsStanding())
         // At destination tile but still moving - keep waiting
         if (!character.isStanding()) {
           isEnd = false;
@@ -529,7 +529,7 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
       npcManager.setNpcState(name, state);
     },
     setNpcRelation: (name, relation) => {
-      // C#: GetPlayerAndAllNpcs - 包括 Player
+      // 包括 Player
       npcManager.setNpcRelation(name, relation);
       if (player && player.name === name) {
         player.setRelation(relation);
@@ -565,7 +565,7 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
       await npcManager.saveNpc(fileName);
     },
     watch: (char1Name, char2Name, watchType) => {
-      // C#: Watch - make characters face each other
+      // make characters face each other
       // watchType: 0 = both face each other, 1 = only char1 faces char2
       const char1 = getCharacterByName(char1Name);
       const char2 = getCharacterByName(char2Name);
@@ -608,7 +608,7 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
           addedGood = result.good;
         }
       }
-      // C# Reference: ScriptExecuter.AddGoods - shows message when item added
+      // shows message when item added
       if (addedGood) {
         guiManager.showMessage(`你获得了${addedGood.name}`);
       }
@@ -630,7 +630,7 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
       player.addExp(amount);
     },
 
-    // Player stats (C#: Globals.ThePlayer.FullLife/AddLife/etc.)
+    // Player stats
     fullLife: () => {
       if (player) {
         player.fullLife();
@@ -680,7 +680,7 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
       }
     },
     setMagicLevel: (magicFile, level) => {
-      // C#: MagicListManager.SetNonReplaceMagicLevel(fileName, level)
+      // MagicListManager.SetNonReplaceMagicLevel(fileName, level)
       const magicListManager = player.getMagicListManager();
       magicListManager.setNonReplaceMagicLevel(magicFile, level);
       logger.log(`[ScriptContext] SetMagicLevel: ${magicFile} -> level ${level}`);
@@ -712,7 +712,7 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
       await objManager.addObjByFile(fileName, x, y, direction);
     },
     delCurObj: () => {
-      // C# Reference: ScriptExecuter.DelCurObj - removes the object that triggered the script
+      // removes the object that triggered the script
       // The belongObject is stored in ScriptState, accessed via command handler
       // This is a no-op as the actual deletion is handled by delObj with __id__ prefix
       logger.log(`[ScriptContext] DelCurObj command (no-op, handled by delObj)`);
@@ -730,7 +730,7 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
       }
     },
     openBox: (objNameOrId) => {
-      // C# Reference: ScriptExecuter.OpenBox - plays box opening animation
+      // plays box opening animation
       // If no name provided, uses belongObject (handled by command)
       if (objNameOrId) {
         logger.log(`[ScriptContext] OpenBox: ${objNameOrId}`);
@@ -738,14 +738,14 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
       }
     },
     closeBox: (objNameOrId) => {
-      // C# Reference: ScriptExecuter.CloseBox - plays box closing animation
+      // plays box closing animation
       if (objNameOrId) {
         logger.log(`[ScriptContext] CloseBox: ${objNameOrId}`);
         objManager.closeBox(objNameOrId);
       }
     },
     setObjScript: (objNameOrId, scriptFile) => {
-      // C# Reference: ScriptExecuter.SetObjScript - sets object's script file
+      // sets object's script file
       // When scriptFile is empty, the object becomes non-interactive
       logger.log(`[ScriptContext] SetObjScript: ${objNameOrId} -> "${scriptFile}"`);
       objManager.setObjScript(objNameOrId, scriptFile);
@@ -754,7 +754,7 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
       await objManager.saveObj(fileName);
     },
     clearBody: () => {
-      // C#: ObjManager.ClearBody() - removes all objects with IsBody=true
+      // removes all objects with IsBody=true
       objManager.clearBodies();
       logger.log(`[ScriptContext] ClearBody`);
     },
@@ -767,7 +767,6 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
       return null;
     },
     addRandGoods: async (buyFileName) => {
-      // C# Reference: ScriptExecuter.AddRandGoods
       // Reads ini/buy/{buyFileName}, picks random item, calls AddGoods
       logger.log(`[ScriptContext] AddRandGoods: ${buyFileName}`);
       try {
@@ -843,7 +842,7 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
       audioManager.stopMusic();
     },
     playSound: (file, emitterPosition?) => {
-      // C#: PlaySound uses belongObject position for 3D spatial audio
+      // PlaySound uses belongObject position for 3D spatial audio
       if (emitterPosition) {
         audioManager.play3DSoundOnce(file, emitterPosition);
       } else {
@@ -851,7 +850,7 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
       }
     },
     playMovie: (file) => {
-      // C#: PlayMovie uses XNA VideoPlayer
+      // PlayMovie uses XNA VideoPlayer
       // Web implementation: Use HTML5 Video element
       logger.log(`[ScriptContext] PlayMovie: ${file}`);
       guiManager.playMovie(file);
@@ -884,13 +883,13 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
       screenEffects.setSpriteColor(r, g, b);
     },
     beginRain: (fileName) => {
-      // C#: WeatherManager.BeginRain(string fileName) - start rain effect
+      // start rain effect
       // fileName 是雨效果配置文件，如 "Rain2.ini"
       weatherManager.beginRain(fileName);
       logger.log(`[ScriptContext] BeginRain: ${fileName}`);
     },
     endRain: () => {
-      // C#: WeatherManager.StopRain - stop rain effect
+      // stop rain effect
       weatherManager.stopRain();
       // 恢复正常颜色
       screenEffects.setMapColor(255, 255, 255);
@@ -898,12 +897,12 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
       logger.log(`[ScriptContext] EndRain`);
     },
     showSnow: (show) => {
-      // C#: WeatherManager.ShowSnow - show/hide snow effect
+      // show/hide snow effect
       weatherManager.showSnow(show);
       logger.log(`[ScriptContext] ShowSnow: ${show}`);
     },
     freeMap: () => {
-      // C#: MapBase.Free() - release map resources
+      // release map resources
       // In JS, we rely on garbage collection
       // This is mainly a signal that map should be unloaded
       logger.log(`[ScriptContext] FreeMap (JS uses garbage collection)`);
@@ -927,7 +926,7 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
       logger.warn(`[ScriptContext] Could not load level file: ${file}`);
     },
 
-    // Timer commands (C#: TimerGui, ScriptExecuter)
+    // Timer commands
     openTimeLimit: (seconds) => {
       timerManager.openTimeLimit(seconds);
       logger.log(`[ScriptContext] OpenTimeLimit: ${seconds} seconds`);
@@ -941,61 +940,61 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
       logger.log(`[ScriptContext] HideTimerWnd`);
     },
     setTimeScript: (triggerSeconds, scriptFileName) => {
-      // C#: 只存储文件名，触发时根据当前地图构建路径
+      // 只存储文件名，触发时根据当前地图构建路径
       timerManager.setTimeScript(triggerSeconds, scriptFileName);
       logger.log(`[ScriptContext] SetTimeScript: ${triggerSeconds}s -> ${scriptFileName}`);
     },
 
-    // Input/ability control (C#: Globals.IsInputDisabled, Player.IsFightDisabled, etc.)
+    // Input/ability control
     // Note: IsInputDisabled is a global state that prevents player input during cutscenes
     // In TS, we handle this via script execution state - when script is running, input is already disabled
     disableInput: () => {
-      // C#: Globals.IsInputDisabled = true
+      // Globals.IsInputDisabled = true
       // In TypeScript, script execution already blocks input
       // This is mainly for explicit cutscene control
       logger.log("[ScriptContext] DisableInput");
     },
     enableInput: () => {
-      // C#: Globals.IsInputDisabled = false
+      // Globals.IsInputDisabled = false
       logger.log("[ScriptContext] EnableInput");
     },
     disableFight: () => {
-      // C#: Globals.ThePlayer.DisableFight()
+      // Globals.ThePlayer.DisableFight()
       if (player) {
         player.isFightDisabled = true;
         logger.log("[ScriptContext] DisableFight");
       }
     },
     enableFight: () => {
-      // C#: Globals.ThePlayer.EnableFight()
+      // Globals.ThePlayer.EnableFight()
       if (player) {
         player.isFightDisabled = false;
         logger.log("[ScriptContext] EnableFight");
       }
     },
     disableJump: () => {
-      // C#: Globals.ThePlayer.DisableJump()
+      // Globals.ThePlayer.DisableJump()
       if (player) {
         player.isJumpDisabled = true;
         logger.log("[ScriptContext] DisableJump");
       }
     },
     enableJump: () => {
-      // C#: Globals.ThePlayer.EnableJump()
+      // Globals.ThePlayer.EnableJump()
       if (player) {
         player.isJumpDisabled = false;
         logger.log("[ScriptContext] EnableJump");
       }
     },
     disableRun: () => {
-      // C#: Globals.ThePlayer.DisableRun()
+      // Globals.ThePlayer.DisableRun()
       if (player) {
         player.isRunDisabled = true;
         logger.log("[ScriptContext] DisableRun");
       }
     },
     enableRun: () => {
-      // C#: Globals.ThePlayer.EnableRun()
+      // Globals.ThePlayer.EnableRun()
       if (player) {
         player.isRunDisabled = false;
         logger.log("[ScriptContext] EnableRun");
@@ -1004,7 +1003,7 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
 
     // Character state
     toNonFightingState: () => {
-      // C#: Globals.PlayerKindCharacter.ToNonFightingState()
+      // Globals.PlayerKindCharacter.ToNonFightingState()
       // Used during dialogs (Say/Talk) to exit fighting mode
       const npcWithPlayerKind = npcManager.getPlayerKindCharacter();
       const targetCharacter = npcWithPlayerKind ?? player.controledCharacter ?? player;
@@ -1039,12 +1038,12 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
 
     // Map time
     setMapTime: (time) => {
-      // C#: MapBase.MapTime = time
+      // MapBase.MapTime = time
       deps.setMapTime(time);
     },
 
     // Player change - 多主角切换
-    // C#: Loader.ChangePlayer(index)
+    // Loader.ChangePlayer(index)
     playerChange: async (index) => {
       await deps.changePlayer(index);
       logger.log(`[ScriptContext] PlayerChange: switched to index ${index}`);
@@ -1053,7 +1052,7 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
     // ============= Extended Player Commands =============
     playerJumpTo: (x, y) => {
       if (player) {
-        // C#: Globals.ThePlayer.JumpTo(x, y)
+        // Globals.ThePlayer.JumpTo(x, y)
         const success = player.jumpTo({ x, y });
         logger.log(`[ScriptContext] PlayerJumpTo: (${x}, ${y}) success=${success}`);
       }
@@ -1075,7 +1074,7 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
       }
     },
     setPlayerScn: () => {
-      // C#: CenterPlayerInCamera - 将摄像机居中到玩家位置
+      // 将摄像机居中到玩家位置
       deps.centerCameraOnPlayer();
       logger.log(`[ScriptContext] SetPlayerScn: centering camera on player`);
     },
@@ -1120,7 +1119,7 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
     },
     limitMana: (limit) => {
       if (player) {
-        // C#: Globals.ThePlayer.ManaLimit = (int.Parse(parameters[0]) != 0)
+        // Globals.ThePlayer.ManaLimit = (int.Parse(parameters[0]) != 0)
         player.manaLimit = limit;
         logger.log(`[ScriptContext] LimitMana: ${limit}`);
       }
@@ -1134,7 +1133,7 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
     useMagic: (magicFile, x, y) => {
       if (!player) return;
 
-      // C#: ScriptExecuter.UseMagic - 获取魔法并让玩家使用
+      // 获取魔法并让玩家使用
       const magicListManager = player.getMagicListManager();
       const magicInfo = magicListManager.getMagicByFileName(magicFile);
 
@@ -1156,7 +1155,7 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
       }
 
       // 直接设置 pending magic 并触发魔法释放
-      // C#: Globals.ThePlayer.UseMagic(magicInfo.TheMagic, new Vector2(mapX, mapY))
+      // Globals.ThePlayer.UseMagic(magicInfo.TheMagic, new Vector2(mapX, mapY))
       const origin = player.positionInWorld;
       const destination = tileToPixel(mapX, mapY);
 
@@ -1174,7 +1173,7 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
     },
     addAttack: (value, type) => {
       if (player) {
-        // C#: type 1=_attack, 2=_attack2, 3=_attack3 (default 1)
+        // type 1=_attack, 2=_attack2, 3=_attack3 (default 1)
         const t = type ?? 1;
         if (t === 1) {
           player.attack += value;
@@ -1188,7 +1187,7 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
     },
     addDefend: (value, type) => {
       if (player) {
-        // C#: type 1=_defend, 2=_defend2, 3=_defend3 (default 1)
+        // type 1=_defend, 2=_defend2, 3=_defend3 (default 1)
         // Also clamps to 0 minimum
         const t = type ?? 1;
         if (t === 1) {
@@ -1262,7 +1261,7 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
       logger.log(`[ScriptContext] SetNpcKind: ${name} -> ${kind}`);
     },
     setNpcMagicFile: (name, magicFile) => {
-      // C#: SetMagicFile -> FlyIni = Utils.GetMagic(fileName)
+      // > FlyIni = Utils.GetMagic(fileName)
       const characters = getCharactersByName(name);
       for (const character of characters) {
         character.setFlyIni(magicFile);
@@ -1270,7 +1269,7 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
       logger.log(`[ScriptContext] SetNpcMagicFile: ${name} -> ${magicFile}`);
     },
     setNpcRes: (name, resFile) => {
-      // C#: SetRes -> SetNpcIni(fileName) -> refresh draw image
+      // > SetNpcIni(fileName) -> refresh draw image
       const character = getCharacterByName(name);
       if (character) {
         // 异步加载新资源文件
@@ -1285,7 +1284,7 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
       logger.log(`[ScriptContext] SetNpcRes: ${name} -> ${resFile}`);
     },
     setNpcAction: (name, action, x, y) => {
-      // C#: SetNpcAction - 设置 NPC 执行指定动作
+      // 设置 NPC 执行指定动作
       const character = getCharacterByName(name);
       if (!character) return;
       const destination = { x: x ?? 0, y: y ?? 0 };
@@ -1310,14 +1309,14 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
           character.performeAttack(pixelDest);
           break;
         case CharacterState.Magic:
-          // C#: target.UseMagic(target.FlyIni, destination)
+          // target.UseMagic(target.FlyIni, destination)
           // Use performeAttack with magic file to trigger magic state
           if (character.flyIni) {
             character.performeAttack(pixelDest, character.flyIni);
           }
           break;
         case CharacterState.Sit:
-          // C#: target.Sitdown() - 只有 Player 有此方法
+          // 只有 Player 有此方法
           if (
             "sitdown" in character &&
             typeof (character as unknown as Record<string, unknown>).sitdown === "function"
@@ -1355,7 +1354,7 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
       logger.log(`[ScriptContext] SetNpcAction: ${name}, action=${action}, pos=(${x}, ${y})`);
     },
     setNpcActionType: (name, actionType) => {
-      // C#: SetNpcActionType -> Action = type
+      // > Action = type
       const characters = getCharactersByName(name);
       for (const character of characters) {
         character.action = actionType;
@@ -1377,7 +1376,7 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
       logger.log(`[ScriptContext] SetAllNpcDeathScript: ${name} -> ${scriptFile}`);
     },
     npcAttack: (name, x, y) => {
-      // C#: target.PerformeAttack(MapBase.ToPixelPosition(value))
+      // target.PerformeAttack(MapBase.ToPixelPosition(value))
       const characters = getCharactersByName(name);
       const pixelPos = tileToPixel(x, y);
       for (const character of characters) {
@@ -1406,13 +1405,13 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
       );
     },
     addNpcProperty: (name, property, value) => {
-      // C#: AddNpcProperty - 使用反射设置属性
+      // 使用反射设置属性
       const npcs = npcManager.getAllNpcsByName(name);
       const characters: Character[] = [...npcs];
       if (player && player.name === name) {
         characters.push(player);
       }
-      // 将属性名转换为小写开头 (C# 属性名是 PascalCase)
+      // 将属性名转换为小写开头
       const propName = property.charAt(0).toLowerCase() + property.slice(1);
       for (const character of characters) {
         const charRecord = character as unknown as Record<string, unknown>;
@@ -1437,7 +1436,7 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
       logger.log(`[ScriptContext] ChangeFlyIni2: ${name} -> ${magicFile}`);
     },
     addFlyInis: (name, magicFile, distance) => {
-      // C#: AddFlyInis - 追加武功到 flyInis 列表
+      // 追加武功到 flyInis 列表
       const characters = getCharactersByName(name);
       for (const character of characters) {
         character.addFlyInis(magicFile, distance);
@@ -1445,7 +1444,7 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
       logger.log(`[ScriptContext] AddFlyInis: ${name}, ${magicFile}, distance=${distance}`);
     },
     setNpcDestination: (name, x, y) => {
-      // C#: SetNpcDestination - 设置 NPC 目的地坐标
+      // 设置 NPC 目的地坐标
       const npcs = npcManager.getAllNpcsByName(name);
       for (const npc of npcs) {
         npc.destinationMapPosX = x;
@@ -1454,7 +1453,7 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
       logger.log(`[ScriptContext] SetNpcDestination: ${name} -> (${x}, ${y})`);
     },
     getNpcCount: (kind1, kind2) => {
-      // C#: GetNpcCount - 统计指定类型范围的 NPC 数量
+      // 统计指定类型范围的 NPC 数量
       const allNpcs = npcManager.getAllNpcs();
       let count = 0;
       for (const [, npc] of allNpcs) {
@@ -1477,7 +1476,6 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
 
     // ============= Extended Goods Commands =============
     buyGoods: async (buyFile, canSellSelfGoods) => {
-      // C# Reference: BuyGui.BeginBuy
       logger.log(`[ScriptContext] BuyGoods: ${buyFile}, canSellSelfGoods=${canSellSelfGoods}`);
       const success = await buyManager.beginBuy(buyFile, null, canSellSelfGoods);
       if (success) {
@@ -1485,7 +1483,6 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
       }
     },
     isBuyGoodsEnd: () => {
-      // C# Reference: GuiManager.IsBuyGoodsEnd
       return !buyManager.isOpen();
     },
     getGoodsNum: (goodsFile) => {
@@ -1518,7 +1515,7 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
       return magicListManager.getFreeIndex() !== -1;
     },
     setDropIni: (name, dropFile) => {
-      // C#: SetDropIni - 设置角色的掉落物配置文件
+      // 设置角色的掉落物配置文件
       const character = getCharacterByName(name);
       if (character) {
         character.dropIni = dropFile;
@@ -1536,7 +1533,7 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
 
     // ============= Extended Camera Commands =============
     moveScreenEx: (x, y, speed) => {
-      // C#: MoveScreenEx - 将摄像机移动到指定瓦片位置（使该瓦片居中）
+      // 将摄像机移动到指定瓦片位置（使该瓦片居中）
       // _moveToBeginDestination = MapBase.ToPixelPosition(centerTilePosition) - GetHalfViewSize()
       // 这里我们将瓦片转为像素，视口偏移由 GameEngine 处理
       const pixelPos = tileToPixel(x, y);
@@ -1549,7 +1546,7 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
       return isCameraMoveToPositionEnd();
     },
     setMapPos: (x, y) => {
-      // C#: SetMapPos - 将瓦片坐标转换为像素坐标，设置摄像机位置
+      // 将瓦片坐标转换为像素坐标，设置摄像机位置
       // Globals.TheCarmera.CarmeraBeginPositionInWorld = MapBase.ToPixelPosition(x, y)
       const pixelPos = tileToPixel(x, y);
       setCameraPosition(pixelPos.x, pixelPos.y);
@@ -1622,7 +1619,7 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
     // ============= Effect Commands =============
     petrifyMillisecond: (ms) => {
       if (player) {
-        // C#: seconds = Globals.ThePlayer.PetrifiedSeconds < seconds ? seconds : Globals.ThePlayer.PetrifiedSeconds;
+        // seconds = Globals.ThePlayer.PetrifiedSeconds < seconds ? seconds : Globals.ThePlayer.PetrifiedSeconds;
         let seconds = ms / 1000;
         seconds = player.petrifiedSeconds < seconds ? seconds : player.petrifiedSeconds;
         player.setPetrifySeconds(seconds, true);
@@ -1631,7 +1628,7 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
     },
     poisonMillisecond: (ms) => {
       if (player) {
-        // C#: seconds = Globals.ThePlayer.PoisonSeconds < seconds ? seconds : Globals.ThePlayer.PoisonSeconds;
+        // seconds = Globals.ThePlayer.PoisonSeconds < seconds ? seconds : Globals.ThePlayer.PoisonSeconds;
         let seconds = ms / 1000;
         seconds = player.poisonSeconds < seconds ? seconds : player.poisonSeconds;
         player.setPoisonSeconds(seconds, true);
@@ -1640,7 +1637,7 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
     },
     frozenMillisecond: (ms) => {
       if (player) {
-        // C#: seconds = Globals.ThePlayer.FrozenSeconds < seconds ? seconds : Globals.ThePlayer.FrozenSeconds;
+        // seconds = Globals.ThePlayer.FrozenSeconds < seconds ? seconds : Globals.ThePlayer.FrozenSeconds;
         let seconds = ms / 1000;
         seconds = player.frozenSeconds < seconds ? seconds : player.frozenSeconds;
         player.setFrozenSeconds(seconds, true);
@@ -1668,7 +1665,7 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
       logger.log(`[ScriptContext] SetShowMapPos: ${show}`);
     },
     showSystemMsg: (msg, stayTime) => {
-      // C#: GuiManager.ShowSystemMsg(msg, stayTime) - stayTime in milliseconds
+      // stayTime in milliseconds
       guiManager.showMessage(msg, stayTime || 3000);
       logger.log(`[ScriptContext] ShowSystemMsg: "${msg}", stayTime=${stayTime || 3000}`);
     },
@@ -1692,8 +1689,8 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
       logger.log(`[ScriptContext] ChooseEx: "${message}" with ${options.length} options`);
     },
     chooseMultiple: (columns, rows, varPrefix, message, options) => {
-      // C#: GuiManager.ChooseMultiple(column, selectionCount, varName, message, selections, isShows)
-      // rows 参数对应 C# 的 selectionCount（需要选择的数量）
+      // GuiManager.ChooseMultiple(column, selectionCount, varName, message, selections, isShows)
+      // rows 参数对应selectionCount（需要选择的数量）
       const selectionOptions = options.map((opt, idx) => ({
         text: opt.text,
         label: String(idx),

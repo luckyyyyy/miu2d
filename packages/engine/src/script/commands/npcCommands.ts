@@ -7,7 +7,7 @@ import type { CommandHandler, CommandRegistry } from "./types";
 
 /**
  * AddNpc - Add NPC to map
- * C#: AddNpc(file, x, y, direction) - direction is required in C#
+ * direction is required
  */
 const addNpcCommand: CommandHandler = (params, _result, helpers) => {
   const npcFile = helpers.resolveString(params[0] || "");
@@ -70,7 +70,7 @@ const setNpcPosCommand: CommandHandler = (params, _result, helpers) => {
 
 /**
  * SetNpcDir - Set NPC facing direction
- * C#: GetTargetAndValue2 - supports 1-param (value) with belongObject or 2-param (name, value)
+ * supports 1-param (value) with belongObject or 2-param (name, value)
  */
 const setNpcDirCommand: CommandHandler = (params, _result, helpers) => {
   let npcName: string;
@@ -137,7 +137,7 @@ const npcGotoCommand: CommandHandler = (params, _result, helpers) => {
 
 /**
  * NpcGotoEx - Walk NPC to position (NON-BLOCKING)
- * C#: NpcGotoEx just calls target.WalkTo() without waiting
+ * NpcGotoEx just calls target.WalkTo() without waiting
  */
 const npcGotoExCommand: CommandHandler = (params, _result, helpers) => {
   const npcName = helpers.resolveString(params[0] || "");
@@ -209,7 +209,7 @@ const npcSpecialActionExCommand: CommandHandler = (params, _result, helpers) => 
 
 /**
  * ShowNpc - Show/hide NPC
- * C#: NpcManager.ShowNpc(name, show) - sets IsHide property
+ * sets IsHide property
  */
 const showNpcCommand: CommandHandler = (params, _result, helpers) => {
   const npcName = helpers.resolveString(params[0] || "");
@@ -220,7 +220,7 @@ const showNpcCommand: CommandHandler = (params, _result, helpers) => {
 
 /**
  * SetNpcScript - Set NPC interaction script
- * C#: ScriptExecuter.SetNpcScript - sets the ScriptFile property
+ * sets the ScriptFile property
  */
 const setNpcScriptCommand: CommandHandler = (params, _result, helpers) => {
   const npcName = helpers.resolveString(params[0] || "");
@@ -231,7 +231,7 @@ const setNpcScriptCommand: CommandHandler = (params, _result, helpers) => {
 
 /**
  * SetNpcDeathScript - Set NPC death script
- * C#: ScriptExecuter.SetNpcDeathScript - Sets the death script for an NPC
+ * Sets the death script for an NPC
  */
 const setNpcDeathScriptCommand: CommandHandler = (params, _result, helpers) => {
   const npcName = helpers.resolveString(params[0] || "");
@@ -242,7 +242,7 @@ const setNpcDeathScriptCommand: CommandHandler = (params, _result, helpers) => {
 
 /**
  * MergeNpc - Merge NPC file without clearing existing NPCs
- * C#: NpcManager.Merge - calls Load with clearCurrentNpcs=false
+ * calls Load with clearCurrentNpcs=false
  */
 const mergeNpcCommand: CommandHandler = async (params, _result, helpers) => {
   const npcFile = helpers.resolveString(params[0] || "");
@@ -252,7 +252,7 @@ const mergeNpcCommand: CommandHandler = async (params, _result, helpers) => {
 
 /**
  * SaveNpc - Save NPC state
- * C#: NpcManager.SaveNpc - saves current NPCs to save file
+ * saves current NPCs to save file
  */
 const saveNpcCommand: CommandHandler = async (params, _result, helpers) => {
   const fileName = params[0] ? helpers.resolveString(params[0]) : undefined;
@@ -280,7 +280,7 @@ const enableNpcAICommand: CommandHandler = (_params, _result, helpers) => {
 
 /**
  * SetNpcRelation - Set NPC relation type
- * C#: SetNpcRelation(name, relation) where relation is 0=Friend, 1=Enemy, 2=None
+ * SetNpcRelation(name, relation) where relation is 0=Friend, 1=Enemy, 2=None
  */
 const setNpcRelationCommand: CommandHandler = (params, _result, helpers) => {
   const npcName = helpers.resolveString(params[0] || "");
@@ -292,7 +292,7 @@ const setNpcRelationCommand: CommandHandler = (params, _result, helpers) => {
 
 /**
  * Watch - Make character face another character
- * C#: Watch(char1, char2, watchType)
+ * Watch(char1, char2, watchType)
  * watchType: 0 = both face each other (default), 1 = only char1 faces char2
  */
 const watchCommand: CommandHandler = (params, _result, helpers) => {
@@ -307,7 +307,7 @@ const watchCommand: CommandHandler = (params, _result, helpers) => {
 
 /**
  * SetNpcKind - Set NPC type/kind
- * C#: SetNpcKind(name, kind)
+ * SetNpcKind(name, kind)
  */
 const setNpcKindCommand: CommandHandler = (params, _result, helpers) => {
   const npcName = helpers.resolveString(params[0] || "");
@@ -318,7 +318,7 @@ const setNpcKindCommand: CommandHandler = (params, _result, helpers) => {
 
 /**
  * SetNpcMagicFile - Set NPC magic file
- * C#: 1-param (magicFile) with belongObject, or 2-param (name, magicFile)
+ * 1-param (magicFile) with belongObject, or 2-param (name, magicFile)
  */
 const setNpcMagicFileCommand: CommandHandler = (params, _result, helpers) => {
   let npcName: string;
@@ -345,7 +345,7 @@ const setNpcMagicFileCommand: CommandHandler = (params, _result, helpers) => {
 
 /**
  * SetNpcRes - Set NPC resource file
- * C#: SetNpcRes
+ *
  */
 const setNpcResCommand: CommandHandler = (params, _result, helpers) => {
   const npcName = helpers.resolveString(params[0] || "");
@@ -356,7 +356,7 @@ const setNpcResCommand: CommandHandler = (params, _result, helpers) => {
 
 /**
  * SetNpcAction - Set NPC action state
- * C#: SetNpcAction(name, action, x?, y?)
+ * SetNpcAction(name, action, x?, y?)
  */
 const setNpcActionCommand: CommandHandler = (params, _result, helpers) => {
   const npcName = helpers.resolveString(params[0] || "");
@@ -369,7 +369,7 @@ const setNpcActionCommand: CommandHandler = (params, _result, helpers) => {
 
 /**
  * SetNpcActionType - Set NPC action type
- * C#: SetNpcActionType
+ *
  */
 const setNpcActionTypeCommand: CommandHandler = (params, _result, helpers) => {
   const npcName = helpers.resolveString(params[0] || "");
@@ -380,7 +380,7 @@ const setNpcActionTypeCommand: CommandHandler = (params, _result, helpers) => {
 
 /**
  * SetAllNpcScript - Set script for all NPCs with same name
- * C#: SetAllNpcScript
+ *
  */
 const setAllNpcScriptCommand: CommandHandler = (params, _result, helpers) => {
   const npcName = helpers.resolveString(params[0] || "");
@@ -391,7 +391,7 @@ const setAllNpcScriptCommand: CommandHandler = (params, _result, helpers) => {
 
 /**
  * SetAllNpcDeathScript - Set death script for all NPCs with same name
- * C#: SetAllNpcDeathScript
+ *
  */
 const setAllNpcDeathScriptCommand: CommandHandler = (params, _result, helpers) => {
   const npcName = helpers.resolveString(params[0] || "");
@@ -402,7 +402,7 @@ const setAllNpcDeathScriptCommand: CommandHandler = (params, _result, helpers) =
 
 /**
  * NpcAttack - Make NPC attack at position
- * C#: NpcAttack(name, x, y)
+ * NpcAttack(name, x, y)
  */
 const npcAttackCommand: CommandHandler = (params, _result, helpers) => {
   const npcName = helpers.resolveString(params[0] || "");
@@ -414,7 +414,7 @@ const npcAttackCommand: CommandHandler = (params, _result, helpers) => {
 
 /**
  * FollowNpc - Make one character follow another
- * C#: FollowNpc(follower, target) or FollowNpc(target) with belongObject
+ * FollowNpc(follower, target) or FollowNpc(target) with belongObject
  */
 const followNpcCommand: CommandHandler = (params, _result, helpers) => {
   let follower: string;
@@ -436,7 +436,7 @@ const followNpcCommand: CommandHandler = (params, _result, helpers) => {
 
 /**
  * SetNpcMagicToUseWhenBeAttacked - Set NPC counter-attack magic
- * C#: SetNpcMagicToUseWhenBeAttacked
+ *
  */
 const setNpcMagicToUseWhenBeAttackedCommand: CommandHandler = (params, _result, helpers) => {
   const npcName = helpers.resolveString(params[0] || "");
@@ -448,7 +448,7 @@ const setNpcMagicToUseWhenBeAttackedCommand: CommandHandler = (params, _result, 
 
 /**
  * AddNpcProperty - Add value to NPC property
- * C#: AddNpcProperty(name, property, value)
+ * AddNpcProperty(name, property, value)
  */
 const addNpcPropertyCommand: CommandHandler = (params, _result, helpers) => {
   const npcName = helpers.resolveString(params[0] || "");
@@ -460,7 +460,7 @@ const addNpcPropertyCommand: CommandHandler = (params, _result, helpers) => {
 
 /**
  * ChangeFlyIni - Change NPC fly magic
- * C#: ChangeFlyIni(name, magicFile)
+ * ChangeFlyIni(name, magicFile)
  */
 const changeFlyIniCommand: CommandHandler = (params, _result, helpers) => {
   const npcName = helpers.resolveString(params[0] || "");
@@ -471,7 +471,7 @@ const changeFlyIniCommand: CommandHandler = (params, _result, helpers) => {
 
 /**
  * ChangeFlyIni2 - Change NPC secondary fly magic
- * C#: ChangeFlyIni2(name, magicFile)
+ * ChangeFlyIni2(name, magicFile)
  */
 const changeFlyIni2Command: CommandHandler = (params, _result, helpers) => {
   const npcName = helpers.resolveString(params[0] || "");
@@ -482,7 +482,7 @@ const changeFlyIni2Command: CommandHandler = (params, _result, helpers) => {
 
 /**
  * AddFlyInis - Add fly magic with distance
- * C#: AddFlyInis(name, magicFile, distance)
+ * AddFlyInis(name, magicFile, distance)
  */
 const addFlyInisCommand: CommandHandler = (params, _result, helpers) => {
   const npcName = helpers.resolveString(params[0] || "");
@@ -494,7 +494,7 @@ const addFlyInisCommand: CommandHandler = (params, _result, helpers) => {
 
 /**
  * SetNpcDestination - Set NPC destination
- * C#: SetNpcDestination(name, x, y)
+ * SetNpcDestination(name, x, y)
  */
 const setNpcDestinationCommand: CommandHandler = (params, _result, helpers) => {
   const npcName = helpers.resolveString(params[0] || "");
@@ -506,7 +506,7 @@ const setNpcDestinationCommand: CommandHandler = (params, _result, helpers) => {
 
 /**
  * GetNpcCount - Get NPC count by kind range
- * C#: GetNpcCount(kind1, kind2)
+ * GetNpcCount(kind1, kind2)
  */
 const getNpcCountCommand: CommandHandler = (params, _result, helpers) => {
   const kind1 = helpers.resolveNumber(params[0] || "0");
@@ -518,7 +518,7 @@ const getNpcCountCommand: CommandHandler = (params, _result, helpers) => {
 
 /**
  * SetKeepAttack - Set NPC keep attack position
- * C#: SetKeepAttack(name, x, y)
+ * SetKeepAttack(name, x, y)
  */
 const setKeepAttackCommand: CommandHandler = (params, _result, helpers) => {
   const npcName = helpers.resolveString(params[0] || "");

@@ -1,5 +1,5 @@
 /**
- * MPC file parser - matches C# Engine/Mpc.cs implementation
+ * MPC file parser - matches Engine/Mpc.cs implementation
  *
  * MPC files can optionally have associated SHD (shadow) files.
  * When SHD is present, shadow data is used as the base layer,
@@ -40,7 +40,7 @@ export async function loadMpc(url: string): Promise<Mpc | null> {
 
 /**
  * Load an MPC file with optional SHD shadow file
- * Based on C# Mpc(string path, string shdFileName) constructor
+ * (string path, string shdFileName) constructor
  *
  * When SHD is provided, shadow data serves as the base layer
  * and MPC color pixels are drawn on top (preserving shadow under transparent areas)

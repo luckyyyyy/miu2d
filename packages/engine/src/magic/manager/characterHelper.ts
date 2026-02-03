@@ -82,7 +82,7 @@ export class CharacterHelper implements ICharacterHelper {
 
   /**
    * 获取视野内的敌人（用于 SuperMode）
-   * C# Reference: MagicSprite.Destroy() - MoveKind == 15 目标选择逻辑
+   * - MoveKind == 15 目标选择逻辑
    */
   getEnemiesInView(userId: string, magic: MagicData): string[] {
     const targets: string[] = [];
@@ -133,7 +133,7 @@ export class CharacterHelper implements ICharacterHelper {
 
   /**
    * 查找最近的敌人
-   * C# Reference: NpcManager.GetClosestEnemyTypeCharacter / GetClosestFighter
+   * / GetClosestFighter
    */
   findClosestEnemy(sprite: MagicSprite): string | null {
     const npcs = this.npcManager.getAllNpcs();

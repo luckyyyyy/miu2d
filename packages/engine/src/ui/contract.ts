@@ -17,8 +17,8 @@ import type { Vector2 } from "../core/types";
 // ============= 玩家状态 =============
 
 export interface UIPlayerState {
-  readonly playerIndex: number; // C#: Globals.PlayerIndex - 当前角色索引，用于面板图像切换
-  readonly playerName: string; // C#: Globals.ThePlayer.Name - 角色名称，用于头像加载
+  readonly playerIndex: number; // 当前角色索引，用于面板图像切换
+  readonly playerName: string; // 角色名称，用于头像加载
   readonly level: number;
   readonly exp: number;
   readonly levelUpExp: number;
@@ -28,7 +28,7 @@ export interface UIPlayerState {
   readonly thewMax: number;
   readonly mana: number;
   readonly manaMax: number;
-  readonly manaLimit: boolean; // C#: Globals.ThePlayer.ManaLimit - 内力限制标志
+  readonly manaLimit: boolean; // 内力限制标志
   readonly attack: number;
   readonly defend: number;
   readonly evade: number;

@@ -1,6 +1,6 @@
 /**
  * AttrInt / AttrString - INI 配置中的随机值解析
- * Based on C# Engine/AttrInt.cs and Engine/AttrString.cs
+ * /AttrInt.cs and Engine/AttrString.cs
  *
  * 支持的格式：
  * - AttrInt:
@@ -15,10 +15,10 @@
  */
 
 /**
- * 随机数生成器（与 C# Globals.TheRandom 对应）
+ * 随机数生成器
  */
 function randomInt(min: number, max: number): number {
-  // max is inclusive, matching C#'s Random.Next(min, max+1)
+  // max is inclusive, matching 's Random.Next(min, max+1)
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 

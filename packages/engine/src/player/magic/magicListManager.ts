@@ -15,7 +15,7 @@ import { parseIni } from "../../utils";
 
 /**
  * 武功经验配置
- * 对应 C# Utils.cs 中的 MagicExp 相关
+ * 中的 MagicExp 相关
  */
 export interface MagicExpConfig {
   /** 根据命中角色等级获取经验值 */
@@ -26,7 +26,7 @@ export interface MagicExpConfig {
   useMagicExpFraction: number;
 }
 
-// 武功列表索引常量 - 对应 C# MagicListManager
+// 武功列表索引常量
 export const MAGIC_LIST_CONFIG = {
   maxMagic: 49, // 最大武功数量
   magicListIndexBegin: 1, // 列表起始索引
@@ -44,14 +44,14 @@ export interface MagicListCallbacks {
   onMagicUse?: (info: MagicItemInfo) => void;
   /**
    * 武功升级回调 - 用于 Player 更新属性
-   * C# Reference: Player.AddMagicExp - 武功升级时增加玩家属性
+   * 武功升级时增加玩家属性
    * @param oldMagic 旧等级武功（用于移除 FlyIni 等）
    * @param newMagic 新等级武功
    */
   onMagicLevelUp?: (oldMagic: MagicData, newMagic: MagicData) => void;
   /**
    * 修炼武功改变回调 - 用于 Player 更新 SpecialAttackTexture
-   * C# Reference: Player.XiuLianMagic setter
+   * setter
    */
   onXiuLianMagicChange?: (xiuLianMagic: MagicItemInfo | null) => void;
 }
@@ -84,7 +84,7 @@ export class MagicListManager {
   // 设置后才能预加载修炼武功的特殊攻击动画
   private _npcIniIndex: number = 1;
 
-  // === ReplaceMagicList (C#: _isInReplaceMagicList, _currentReplaceMagicListFilePath, ReplaceMagicList) ===
+  // === ReplaceMagicList ===
   // 用于变身/变形效果时临时替换武功列表
   private _isInReplaceMagicList: boolean = false;
   private _currentReplaceMagicListFilePath: string = "";
@@ -101,7 +101,7 @@ export class MagicListManager {
 
   /**
    * 初始化武功经验配置
-   * 对应 C# Utils.LoadMagicExpList()
+   * ()
    */
   async initializeMagicExp(): Promise<void> {
     if (this.magicExpInitialized) return;
@@ -169,7 +169,7 @@ export class MagicListManager {
 
   /**
    * 获取武功命中经验
-   * C# Reference: Utils.GetMagicExp(hitedCharacterLevel)
+   * Reference: Utils.GetMagicExp(hitedCharacterLevel)
    */
   getMagicExp(hitedCharacterLevel: number): number {
     const exp = this.magicExpConfig.expByLevel.get(hitedCharacterLevel);
@@ -348,7 +348,7 @@ export class MagicListManager {
 
   /**
    * 从配置文件加载玩家武功列表
-   * 对应 C# MagicListManager.LoadPlayerList
+   * 
    * Uses unified resourceLoader for text data fetching
    * @param filePath 配置文件路径，如 /resources/save/game/Magic0.ini
    */
@@ -593,7 +593,6 @@ export class MagicListManager {
 
   /**
    * 检查武功是否在隐藏列表中
-   * C# Reference: MagicListManager.IsMagicHided
    */
   isMagicHided(fileName: string): boolean {
     const lowerName = fileName.toLowerCase();
@@ -609,7 +608,6 @@ export class MagicListManager {
 
   /**
    * 获取非替换状态下的武功信息（包括隐藏列表）
-   * C# Reference: MagicListManager.GetNonReplaceMagic
    */
   getNonReplaceMagic(fileName: string): MagicItemInfo | null {
     const lowerName = fileName.toLowerCase();
@@ -635,7 +633,6 @@ export class MagicListManager {
 
   /**
    * 设置武功的隐藏状态
-   * C# Reference: MagicListManager.SetMagicHide
    * @param fileName 武功文件名
    * @param hide true=隐藏, false=显示
    * @returns 操作后的武功信息，如果武功不存在则返回 null
@@ -725,7 +722,7 @@ export class MagicListManager {
 
   /**
    * 交换列表项（同步，资源已在 addMagic 时预加载）
-   * 对应 C# ExchangeListItem
+   * 
    */
   exchangeListItem(index1: number, index2: number): void {
     if (index1 === index2) return;
@@ -790,7 +787,6 @@ export class MagicListManager {
 
   /**
    * 增加武功经验
-   * C# Reference: Player.AddMagicExp
    */
   addMagicExp(fileName: string, expToAdd: number): boolean {
     const index = this.getIndexByFileName(fileName);
@@ -799,7 +795,7 @@ export class MagicListManager {
     const info = this.getActiveMagicList()[index];
     if (!info || !info.magic) return false;
 
-    // C#: if (info.TheMagic.LevelupExp == 0) 已满级
+    // if (info.TheMagic.LevelupExp == 0) 已满级
     if (info.magic.levelupExp === 0) return false;
 
     info.exp += expToAdd;
@@ -814,13 +810,13 @@ export class MagicListManager {
       const newMagic = getMagicAtLevel(info.magic, info.level);
       info.magic = newMagic;
 
-      // C# Reference: 触发回调让 Player 处理属性加成
+      // Reference: 触发回调让 Player 处理属性加成
       // LifeMax += info.TheMagic.LifeMax; ThewMax += ...; etc.
       if (this.callbacks.onMagicLevelUp) {
         this.callbacks.onMagicLevelUp(oldMagic, newMagic);
       }
 
-      // C#: if (info.TheMagic.LevelupExp == 0) info.Exp = levelupExp (满级时经验设为升级经验)
+      // if (info.TheMagic.LevelupExp == 0) info.Exp = levelupExp (满级时经验设为升级经验)
       if (newMagic.levelupExp === 0) {
         info.exp = levelupExp;
       } else {
@@ -882,7 +878,7 @@ export class MagicListManager {
 
   /**
    * 设置修炼武功
-   * C# Reference: Player.XiuLianMagic setter - 同时更新 SpecialAttackTexture
+   * setter - 同时更新 SpecialAttackTexture
    */
   setXiuLianMagic(info: MagicItemInfo | null): void {
     this.xiuLianMagic = info;
@@ -1085,7 +1081,7 @@ export class MagicListManager {
 
   /**
    * 设置武功等级（脚本命令 SetMagicLevel）
-   * C#: MagicListManager.SetNonReplaceMagicLevel(fileName, level)
+   * MagicListManager.SetNonReplaceMagicLevel(fileName, level)
    *
    * 注意：这只影响主武功列表中的武功，不包括隐藏列表
    */
@@ -1120,7 +1116,6 @@ export class MagicListManager {
   /**
    * 获取所有武功信息（包括主列表和隐藏列表）
    * 用于 setMagicEffect 应用 FlyIni 等效果
-   * C# Reference: MagicListManager.SetMagicEffect
    */
   getAllMagicInfos(): MagicItemInfo[] {
     const result: MagicItemInfo[] = [];
@@ -1141,11 +1136,11 @@ export class MagicListManager {
   }
 
   // ============= 替换武功列表功能 (ReplaceMagicList) =============
-  // C# Reference: MagicListManager.ReplaceListTo, StopReplace
+  // MagicListManager.ReplaceListTo, StopReplace
 
   /**
    * 获取当前活动的武功列表（考虑是否在替换状态）
-   * C# Reference: MagicListManager.MagicList getter
+   * getter
    */
   private getActiveMagicList(): (MagicItemInfo | null)[] {
     if (this._isInReplaceMagicList && this._currentReplaceMagicListFilePath) {
@@ -1156,7 +1151,7 @@ export class MagicListManager {
 
   /**
    * 获取当前活动的隐藏武功列表（考虑是否在替换状态）
-   * C# Reference: MagicListManager.MagicListHide getter
+   * getter
    */
   private getActiveMagicListHide(): (MagicItemInfo | null)[] {
     if (this._isInReplaceMagicList && this._currentReplaceMagicListFilePath) {
@@ -1176,7 +1171,6 @@ export class MagicListManager {
 
   /**
    * 替换武功列表
-   * C# Reference: MagicListManager.ReplaceListTo
    * @param filePath 用于存储的文件路径（作为唯一标识）
    * @param magicFileNames 武功文件名列表
    */
@@ -1193,7 +1187,7 @@ export class MagicListManager {
       const newList: (MagicItemInfo | null)[] = new Array(size).fill(null);
       const newHideList: (MagicItemInfo | null)[] = new Array(size).fill(null);
 
-      // C#: 先填充 BottomIndex，再填充 StoreIndex
+      // 先填充 BottomIndex，再填充 StoreIndex
       let listI = 0;
 
       // 填充快捷栏 (BottomIndex)
@@ -1237,7 +1231,6 @@ export class MagicListManager {
 
   /**
    * 停止替换武功列表，恢复原始列表
-   * C# Reference: MagicListManager.StopReplace
    */
   stopReplace(): void {
     this._isInReplaceMagicList = false;
@@ -1247,7 +1240,6 @@ export class MagicListManager {
 
   /**
    * 清除所有替换列表
-   * C# Reference: MagicListManager.ClearReplaceList
    * 通常在加载新存档或重置游戏时调用
    */
   clearReplaceList(): void {
@@ -1260,7 +1252,6 @@ export class MagicListManager {
 
   /**
    * 序列化替换列表（用于存档）
-   * C# Reference: MagicListManager.SaveReplaceList
    * @returns 替换列表的序列化数据
    */
   serializeReplaceLists(): object {
@@ -1312,7 +1303,7 @@ export class MagicListManager {
 
   /**
    * 反序列化替换列表（从存档加载）
-   * C# Reference: MagicListManager.LoadList for replacement lists
+   * for replacement lists
    * @param data 序列化的替换列表数据
    */
   async deserializeReplaceLists(

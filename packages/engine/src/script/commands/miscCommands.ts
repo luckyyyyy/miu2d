@@ -26,16 +26,16 @@ const stopMusicCommand: CommandHandler = (_params, _result, helpers) => {
 
 /**
  * PlaySound - Play sound effect with optional 3D positioning
- * C#: PlaySound uses belongObject (Sprite) position for 3D spatial audio
- * C#: SoundManager.Play3DSoundOnece(sound, soundPosition - Globals.ListenerPosition)
+ * PlaySound uses belongObject (Sprite) position for 3D spatial audio
+ * SoundManager.Play3DSoundOnece(sound, soundPosition - Globals.ListenerPosition)
  */
 const playSoundCommand: CommandHandler = (params, _result, helpers) => {
   const file = helpers.resolveString(params[0] || "");
   logger.log(`[ScriptExecutor] PlaySound: "${file}"`);
 
-  // C#: var soundPosition = Globals.ListenerPosition;
-  // C#: var sprit = belongObject as Sprite;
-  // C#: if (sprit != null) soundPosition = sprit.PositionInWorld;
+  // var soundPosition = Globals.ListenerPosition;
+  // var sprit = belongObject as Sprite;
+  // if (sprit != null) soundPosition = sprit.PositionInWorld;
   const belongObject = helpers.state.belongObject;
   if (belongObject) {
     let position: { x: number; y: number } | null = null;
@@ -61,7 +61,7 @@ const playSoundCommand: CommandHandler = (params, _result, helpers) => {
 
 /**
  * PlayMovie - Play video file (BLOCKING)
- * C#: PlayMovie(fileName) plays video using XNA VideoPlayer
+ * PlayMovie(fileName) plays video using XNA VideoPlayer
  * Blocks script execution until video ends or is skipped
  */
 const playMovieCommand: CommandHandler = (params, _result, helpers) => {
@@ -163,7 +163,7 @@ const changeAsfColorCommand: CommandHandler = (params, _result, helpers) => {
 
 /**
  * BeginRain - Start rain effect
- * C#: WeatherManager.BeginRain(string fileName)
+ * WeatherManager.BeginRain(string fileName)
  * 参数是雨效果配置文件名，如 "Rain2.ini"
  */
 const beginRainCommand: CommandHandler = (params, _result, helpers) => {
@@ -174,7 +174,7 @@ const beginRainCommand: CommandHandler = (params, _result, helpers) => {
 
 /**
  * EndRain - Stop rain effect
- * C#: WeatherManager.StopRain
+ *
  */
 const endRainCommand: CommandHandler = (_params, _result, helpers) => {
   helpers.context.endRain();
@@ -183,7 +183,7 @@ const endRainCommand: CommandHandler = (_params, _result, helpers) => {
 
 /**
  * ShowSnow - Show snow effect
- * C#: WeatherManager.ShowSnow
+ *
  */
 const showSnowCommand: CommandHandler = (params, _result, helpers) => {
   const show = helpers.resolveNumber(params[0] || "1") !== 0;
@@ -219,7 +219,6 @@ const addObjCommand: CommandHandler = async (params, _result, helpers) => {
 
 /**
  * DelObj - Delete object by name
- * C# Reference: ScriptExecuter.DelObj
  */
 const delObjCommand: CommandHandler = (params, _result, helpers) => {
   const objName = helpers.resolveString(params[0] || "");
@@ -230,7 +229,6 @@ const delObjCommand: CommandHandler = (params, _result, helpers) => {
 
 /**
  * DelCurObj - Delete the object that triggered this script
- * C# Reference: ScriptExecuter.DelCurObj
  * Uses the belongObject from script state
  */
 const delCurObjCommand: CommandHandler = (_params, _result, helpers) => {
@@ -247,7 +245,6 @@ const delCurObjCommand: CommandHandler = (_params, _result, helpers) => {
 
 /**
  * OpenBox - Play box opening animation
- * C# Reference: ScriptExecuter.OpenBox
  */
 const openBoxCommand: CommandHandler = (params, _result, helpers) => {
   const objName = helpers.resolveString(params[0] || "");
@@ -271,7 +268,6 @@ const openBoxCommand: CommandHandler = (params, _result, helpers) => {
 
 /**
  * CloseBox - Play box closing animation
- * C# Reference: ScriptExecuter.CloseBox
  */
 const closeBoxCommand: CommandHandler = (params, _result, helpers) => {
   const objName = helpers.resolveString(params[0] || "");
@@ -291,7 +287,6 @@ const closeBoxCommand: CommandHandler = (params, _result, helpers) => {
 
 /**
  * AddRandGoods - Add random goods from buy file
- * C# Reference: ScriptExecuter.AddRandGoods
  */
 const _addRandGoodsCommand: CommandHandler = async (params, _result, helpers) => {
   const buyFileName = helpers.resolveString(params[0] || "");
@@ -302,7 +297,6 @@ const _addRandGoodsCommand: CommandHandler = async (params, _result, helpers) =>
 
 /**
  * SetObjScript - Set object script
- * C# Reference: ScriptExecuter.SetObjScript
  * When called as SetObjScript(, ) with empty name, uses belongObject
  * When scriptFile is empty, the object becomes non-interactive
  */
@@ -325,7 +319,7 @@ const setObjScriptCommand: CommandHandler = (params, _result, helpers) => {
 
 /**
  * SaveObj - Save object state
- * C#: ObjManager.Save - saves current objects to save file
+ * saves current objects to save file
  */
 const saveObjCommand: CommandHandler = async (params, _result, helpers) => {
   const fileName = params[0] ? helpers.resolveString(params[0]) : undefined;
@@ -414,7 +408,7 @@ const clearBodyCommand: CommandHandler = (_params, _result, helpers) => {
 
 /**
  * OpenTimeLimit - Start a countdown timer
- * C#: OpenTimeLimit(int seconds)
+ * OpenTimeLimit(int seconds)
  */
 const openTimeLimitCommand: CommandHandler = (params, _result, helpers) => {
   const seconds = helpers.resolveNumber(params[0] || "0");
@@ -424,7 +418,7 @@ const openTimeLimitCommand: CommandHandler = (params, _result, helpers) => {
 
 /**
  * CloseTimeLimit - Stop and hide the timer
- * C#: CloseTimeLimit()
+ * CloseTimeLimit()
  */
 const closeTimeLimitCommand: CommandHandler = (_params, _result, helpers) => {
   helpers.context.closeTimeLimit();
@@ -433,7 +427,7 @@ const closeTimeLimitCommand: CommandHandler = (_params, _result, helpers) => {
 
 /**
  * HideTimerWnd - Hide the timer window (timer keeps running)
- * C#: HideTimerWnd()
+ * HideTimerWnd()
  */
 const hideTimerWndCommand: CommandHandler = (_params, _result, helpers) => {
   helpers.context.hideTimerWnd();
@@ -442,7 +436,7 @@ const hideTimerWndCommand: CommandHandler = (_params, _result, helpers) => {
 
 /**
  * SetTimeScript - Set a script to run when timer reaches a certain time
- * C#: SetTimeScript(int triggerSeconds, string scriptFileName)
+ * SetTimeScript(int triggerSeconds, string scriptFileName)
  */
 const setTimeScriptCommand: CommandHandler = (params, _result, helpers) => {
   const triggerSeconds = helpers.resolveNumber(params[0] || "0");
@@ -455,7 +449,7 @@ const setTimeScriptCommand: CommandHandler = (params, _result, helpers) => {
 
 /**
  * BuyGoods - Open buy goods interface
- * C#: BuyGoods(buyFile, canSellSelfGoods)
+ * BuyGoods(buyFile, canSellSelfGoods)
  */
 const buyGoodsCommand: CommandHandler = (params, _result, helpers) => {
   const buyFile = helpers.resolveString(params[0] || "");
@@ -467,7 +461,7 @@ const buyGoodsCommand: CommandHandler = (params, _result, helpers) => {
 
 /**
  * SellGoods - Open sell goods interface (same as BuyGoods with canSellSelfGoods=true)
- * C#: SellGoods(buyFile) -> BuyGoods(buyFile, true)
+ * SellGoods(buyFile) -> BuyGoods(buyFile, true)
  */
 const sellGoodsCommand: CommandHandler = (params, _result, helpers) => {
   const buyFile = helpers.resolveString(params[0] || "");
@@ -478,7 +472,7 @@ const sellGoodsCommand: CommandHandler = (params, _result, helpers) => {
 
 /**
  * BuyGoodsOnly - Open buy goods interface without selling (canSellSelfGoods=false)
- * C#: BuyGoodsOnly(buyFile) -> BuyGoods(buyFile, false)
+ * BuyGoodsOnly(buyFile) -> BuyGoods(buyFile, false)
  */
 const buyGoodsOnlyCommand: CommandHandler = (params, _result, helpers) => {
   const buyFile = helpers.resolveString(params[0] || "");
@@ -489,7 +483,7 @@ const buyGoodsOnlyCommand: CommandHandler = (params, _result, helpers) => {
 
 /**
  * GetGoodsNum - Get goods count by file name
- * C#: GetGoodsNum
+ *
  */
 const getGoodsNumCommand: CommandHandler = (params, _result, helpers) => {
   const goodsFile = helpers.resolveString(params[0] || "");
@@ -500,7 +494,7 @@ const getGoodsNumCommand: CommandHandler = (params, _result, helpers) => {
 
 /**
  * GetGoodsNumByName - Get goods count by display name
- * C#: GetGoodsNumByName
+ *
  */
 const getGoodsNumByNameCommand: CommandHandler = (params, _result, helpers) => {
   const goodsName = helpers.resolveString(params[0] || "");
@@ -511,7 +505,7 @@ const getGoodsNumByNameCommand: CommandHandler = (params, _result, helpers) => {
 
 /**
  * ClearGoods - Clear all goods from inventory
- * C#: ClearGoods
+ *
  */
 const clearGoodsCommand: CommandHandler = (_params, _result, helpers) => {
   helpers.context.clearGoods();
@@ -520,7 +514,7 @@ const clearGoodsCommand: CommandHandler = (_params, _result, helpers) => {
 
 /**
  * ClearMagic - Clear all magic from player
- * C#: ClearMagic
+ *
  */
 const clearMagicCommand: CommandHandler = (_params, _result, helpers) => {
   helpers.context.clearMagic();
@@ -529,7 +523,7 @@ const clearMagicCommand: CommandHandler = (_params, _result, helpers) => {
 
 /**
  * DelGoodByName - Delete goods by display name
- * C#: DelGoodByName(name, count?)
+ * DelGoodByName(name, count?)
  */
 const delGoodByNameCommand: CommandHandler = (params, _result, helpers) => {
   const name = helpers.resolveString(params[0] || "");
@@ -540,7 +534,7 @@ const delGoodByNameCommand: CommandHandler = (params, _result, helpers) => {
 
 /**
  * CheckFreeGoodsSpace - Check if there's free goods space
- * C#: CheckFreeGoodsSpace
+ *
  */
 const checkFreeGoodsSpaceCommand: CommandHandler = (params, _result, helpers) => {
   const varName = (params[0] || "$FreeSpace").replace("$", "");
@@ -551,7 +545,7 @@ const checkFreeGoodsSpaceCommand: CommandHandler = (params, _result, helpers) =>
 
 /**
  * CheckFreeMagicSpace - Check if there's free magic space
- * C#: CheckFreeMagicSpace
+ *
  */
 const checkFreeMagicSpaceCommand: CommandHandler = (params, _result, helpers) => {
   const varName = (params[0] || "$FreeSpace").replace("$", "");
@@ -562,7 +556,7 @@ const checkFreeMagicSpaceCommand: CommandHandler = (params, _result, helpers) =>
 
 /**
  * SetDropIni - Set drop file for character
- * C#: SetDropIni(name, dropFile)
+ * SetDropIni(name, dropFile)
  */
 const setDropIniCommand: CommandHandler = (params, _result, helpers) => {
   const name = helpers.resolveString(params[0] || "");
@@ -573,7 +567,7 @@ const setDropIniCommand: CommandHandler = (params, _result, helpers) => {
 
 /**
  * EnableDrop - Enable item drop on defeat
- * C#: EnableDrop
+ *
  */
 const enableDropCommand: CommandHandler = (_params, _result, helpers) => {
   helpers.context.enableDrop();
@@ -582,7 +576,7 @@ const enableDropCommand: CommandHandler = (_params, _result, helpers) => {
 
 /**
  * DisableDrop - Disable item drop on defeat
- * C#: DisableDrop
+ *
  */
 const disableDropCommand: CommandHandler = (_params, _result, helpers) => {
   helpers.context.disableDrop();
@@ -593,7 +587,7 @@ const disableDropCommand: CommandHandler = (_params, _result, helpers) => {
 
 /**
  * MoveScreenEx - Move screen to position (BLOCKING)
- * C#: MoveScreenEx(x, y, speed)
+ * MoveScreenEx(x, y, speed)
  */
 const moveScreenExCommand: CommandHandler = (params, _result, helpers) => {
   const x = helpers.resolveNumber(params[0] || "0");
@@ -611,7 +605,7 @@ const moveScreenExCommand: CommandHandler = (params, _result, helpers) => {
 
 /**
  * SetMapPos - Set camera/map position
- * C#: SetMapPos(x, y)
+ * SetMapPos(x, y)
  */
 const setMapPosCommand: CommandHandler = (params, _result, helpers) => {
   const x = helpers.resolveNumber(params[0] || "0");
@@ -622,7 +616,7 @@ const setMapPosCommand: CommandHandler = (params, _result, helpers) => {
 
 /**
  * OpenWaterEffect - Enable water ripple effect
- * C#: OpenWaterEffect
+ *
  */
 const openWaterEffectCommand: CommandHandler = (_params, _result, helpers) => {
   helpers.context.openWaterEffect();
@@ -631,7 +625,7 @@ const openWaterEffectCommand: CommandHandler = (_params, _result, helpers) => {
 
 /**
  * CloseWaterEffect - Disable water ripple effect
- * C#: CloseWaterEffect
+ *
  */
 const closeWaterEffectCommand: CommandHandler = (_params, _result, helpers) => {
   helpers.context.closeWaterEffect();
@@ -642,7 +636,7 @@ const closeWaterEffectCommand: CommandHandler = (_params, _result, helpers) => {
 
 /**
  * SaveMapTrap - Save map trap state
- * C#: SaveMapTrap
+ *
  */
 const saveMapTrapCommand: CommandHandler = (_params, _result, helpers) => {
   helpers.context.saveMapTrap();
@@ -651,7 +645,7 @@ const saveMapTrapCommand: CommandHandler = (_params, _result, helpers) => {
 
 /**
  * ClearAllSave - Delete all save files
- * C#: ClearAllSave
+ *
  */
 const clearAllSaveCommand: CommandHandler = (_params, _result, helpers) => {
   helpers.context.clearAllSave();
@@ -660,7 +654,7 @@ const clearAllSaveCommand: CommandHandler = (_params, _result, helpers) => {
 
 /**
  * EnableSave - Enable saving
- * C#: EnableSave
+ *
  */
 const enableSaveCommand: CommandHandler = (_params, _result, helpers) => {
   helpers.context.enableSave();
@@ -669,7 +663,7 @@ const enableSaveCommand: CommandHandler = (_params, _result, helpers) => {
 
 /**
  * DisableSave - Disable saving
- * C#: DisableSave
+ *
  */
 const disableSaveCommand: CommandHandler = (_params, _result, helpers) => {
   helpers.context.disableSave();
@@ -680,7 +674,7 @@ const disableSaveCommand: CommandHandler = (_params, _result, helpers) => {
 
 /**
  * ClearAllVar - Clear all variables except specified ones
- * C#: ClearAllVar(keep1, keep2, ...)
+ * ClearAllVar(keep1, keep2, ...)
  */
 const clearAllVarCommand: CommandHandler = (params, _result, helpers) => {
   const keepsVars = params.map((p) => helpers.resolveString(p));
@@ -690,7 +684,7 @@ const clearAllVarCommand: CommandHandler = (params, _result, helpers) => {
 
 /**
  * GetPartnerIdx - Get partner index
- * C#: GetPartnerIdx
+ *
  */
 const getPartnerIdxCommand: CommandHandler = (params, _result, helpers) => {
   const varName = (params[0] || "$PartnerIdx").replace("$", "");
@@ -703,7 +697,7 @@ const getPartnerIdxCommand: CommandHandler = (params, _result, helpers) => {
 
 /**
  * PetrifyMillisecond - Apply petrify effect
- * C#: PetrifyMillisecond
+ *
  */
 const petrifyMillisecondCommand: CommandHandler = (params, _result, helpers) => {
   const ms = helpers.resolveNumber(params[0] || "0");
@@ -713,7 +707,7 @@ const petrifyMillisecondCommand: CommandHandler = (params, _result, helpers) => 
 
 /**
  * PoisonMillisecond - Apply poison effect
- * C#: PoisonMillisecond
+ *
  */
 const poisonMillisecondCommand: CommandHandler = (params, _result, helpers) => {
   const ms = helpers.resolveNumber(params[0] || "0");
@@ -723,7 +717,7 @@ const poisonMillisecondCommand: CommandHandler = (params, _result, helpers) => {
 
 /**
  * FrozenMillisecond - Apply frozen effect
- * C#: FrozenMillisecond
+ *
  */
 const frozenMillisecondCommand: CommandHandler = (params, _result, helpers) => {
   const ms = helpers.resolveNumber(params[0] || "0");
@@ -735,7 +729,7 @@ const frozenMillisecondCommand: CommandHandler = (params, _result, helpers) => {
 
 /**
  * SetObjOfs - Set object offset
- * C#: SetObjOfs(name, x, y)
+ * SetObjOfs(name, x, y)
  */
 const setObjOfsCommand: CommandHandler = (params, _result, helpers) => {
   const objName = helpers.resolveString(params[0] || "");
@@ -747,7 +741,7 @@ const setObjOfsCommand: CommandHandler = (params, _result, helpers) => {
 
 /**
  * SetShowMapPos - Set whether to show map position
- * C#: SetShowMapPos
+ *
  */
 const setShowMapPosCommand: CommandHandler = (params, _result, helpers) => {
   const show = helpers.resolveNumber(params[0] || "0") > 0;
@@ -757,7 +751,7 @@ const setShowMapPosCommand: CommandHandler = (params, _result, helpers) => {
 
 /**
  * ShowSystemMsg - Show system message
- * C#: ShowSystemMsg(msg, stayTime?)
+ * ShowSystemMsg(msg, stayTime?)
  */
 const showSystemMsgCommand: CommandHandler = (params, _result, helpers) => {
   const msg = helpers.resolveString(params[0] || "");
@@ -768,7 +762,7 @@ const showSystemMsgCommand: CommandHandler = (params, _result, helpers) => {
 
 /**
  * RandRun - Randomly run one of two scripts
- * C#: RandRun(probability, script1, script2)
+ * RandRun(probability, script1, script2)
  */
 const randRunCommand: CommandHandler = async (params, _result, helpers) => {
   const probability = helpers.context.getVariable((params[0] || "").replace("$", ""));
@@ -783,7 +777,7 @@ const randRunCommand: CommandHandler = async (params, _result, helpers) => {
 
 /**
  * StopSound - Stop all sounds
- * C#: StopSound
+ *
  */
 const stopSoundCommand: CommandHandler = (_params, _result, helpers) => {
   helpers.context.stopSound();
@@ -818,7 +812,7 @@ export function registerMiscCommands(registry: CommandRegistry): void {
   registry.set("delobj", delObjCommand);
   registry.set("delcurobj", delCurObjCommand);
   registry.set("openbox", openBoxCommand);
-  registry.set("openobj", openBoxCommand); // C# alias: OpenObj calls OpenBox
+  registry.set("openobj", openBoxCommand); // alias: OpenObj calls OpenBox
   registry.set("closebox", closeBoxCommand);
   registry.set("setobjscript", setObjScriptCommand);
   registry.set("saveobj", saveObjCommand);
@@ -854,7 +848,7 @@ export function registerMiscCommands(registry: CommandRegistry): void {
   registry.set("checkfreemagicspace", checkFreeMagicSpaceCommand);
   registry.set("setdropini", setDropIniCommand);
   registry.set("enabledrop", enableDropCommand);
-  registry.set("enabeldrop", enableDropCommand); // C# alias (typo in original)
+  registry.set("enabeldrop", enableDropCommand); // alias (typo in original)
   registry.set("disabledrop", disableDropCommand);
 
   // Camera extended

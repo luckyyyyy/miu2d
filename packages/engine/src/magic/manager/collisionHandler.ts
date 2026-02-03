@@ -2,7 +2,7 @@
  * Collision Handler - 碰撞检测和伤害处理
  * 从 MagicManager 提取
  *
- * C# Reference: MagicSprite.CollisionDetaction(), CharacterHited()
+ * Reference: MagicSprite.CollisionDetaction(), CharacterHited()
  */
 
 import type { CharacterBase } from "../../character/base";
@@ -74,7 +74,7 @@ export class CollisionHandler {
 
   /**
    * 检查地图障碍物碰撞
-   * C# Reference: MagicSprite.CheckDestroyForObstacleInMap()
+   * Reference: MagicSprite.CheckDestroyForObstacleInMap()
    */
   checkMapObstacle(sprite: MagicSprite): boolean {
     if (sprite.magic.passThroughWall > 0) return false;
@@ -87,7 +87,7 @@ export class CollisionHandler {
 
     if (!isObstacle) return false;
 
-    // C# Reference: Ball > 0 时撞墙弹跳
+    // Ball > 0 时撞墙弹跳
     // if (destroy && BelongMagic.Ball > 0) {
     //   MoveDirection = PathFinder.BouncingAtWall(RealMoveDirection, PositionInWorld, TilePosition);
     //   TilePosition = PathFinder.FindNeighborInDirection(TilePosition, RealMoveDirection);
@@ -133,14 +133,14 @@ export class CollisionHandler {
 
   /**
    * 检查敌人碰撞并调用 apply
-   * C# Reference: MagicSprite.CollisionDetaction()
+   * Reference: MagicSprite.CollisionDetaction()
    */
   checkCollision(sprite: MagicSprite): boolean {
     if (sprite.isInDestroy) {
       return false;
     }
 
-    // C# Reference: 如果正在粘附角色，检查粘附状态
+    // Reference: 如果正在粘附角色，检查粘附状态
     // if (_stickedCharacter != null && _stickedCharacter.MovedByMagicSprite == this) return;
     if (sprite.stickedCharacterId !== null) {
       const stickedChar = this.charHelper.getBelongCharacter(sprite.stickedCharacterId);
@@ -153,7 +153,7 @@ export class CollisionHandler {
       }
     }
 
-    // C# Reference: 如果已经找到寄生目标，不进行碰撞检测
+    // Reference: 如果已经找到寄生目标，不进行碰撞检测
     // if (_parasitiferCharacter != null) return;
     if (sprite.parasitiferCharacterId !== null) {
       return false;
@@ -230,7 +230,7 @@ export class CollisionHandler {
 
   /**
    * 处理角色被命中
-   * C# Reference: MagicSprite.CharacterHited(Character character)
+   * character)
    */
   characterHited(sprite: MagicSprite, character: Character | null): boolean {
     if (character === null) return false;
@@ -273,7 +273,7 @@ export class CollisionHandler {
     let shouldDestroy = true;
 
     // Sticky 粘附效果 - 武功命中后粘住目标角色，使其跟随武功精灵移动
-    // C# Reference: MagicSprite.CharacterHited - if (BelongMagic.Sticky > 0)
+    // if (BelongMagic.Sticky > 0)
     if (magic.sticky > 0) {
       shouldDestroy = false;
       character.standingImmediately();
@@ -289,7 +289,7 @@ export class CollisionHandler {
     }
 
     // Parasitic 寄生效果 - 武功寄生在目标身上，持续跟随并造成伤害
-    // C# Reference: MagicSprite.CharacterHited - if (BelongMagic.Parasitic > 0)
+    // if (BelongMagic.Parasitic > 0)
     if (magic.parasitic > 0) {
       sprite.parasitiferCharacterId = charId;
       shouldDestroy = true; // 寄生后进入销毁状态，但不真正销毁
@@ -334,7 +334,7 @@ export class CollisionHandler {
     this.handleMagicToUseWhenBeAttacked(sprite, character, belongCharacter);
 
     // ============= Ball 弹跳处理 =============
-    // C# Reference: if (BelongMagic.Ball > 0) { ... MoveDirection = PathFinder.BouncingAtPoint(...) }
+    // if (BelongMagic.Ball > 0) { ... MoveDirection = PathFinder.BouncingAtPoint(...) }
     if (magic.ball > 0) {
       shouldDestroy = false;
       const newDirection = bouncingAtPoint(
@@ -367,19 +367,19 @@ export class CollisionHandler {
     }
 
     // ============= LeapToNextTarget 跳跃传递处理 =============
-    // C# Reference: if (_canLeap) { LeapToNextTarget(character); }
+    // if (_canLeap) { LeapToNextTarget(character); }
     if (sprite.canLeap) {
       this.leapToNextTarget(sprite, character, charId);
       return true; // 跳跃武功不进入销毁流程
     }
 
     // 处理穿透或销毁
-    // C# Reference: 穿透不销毁，粘附不销毁，寄生时只进入销毁动画但不真正销毁
+    // Reference: 穿透不销毁，粘附不销毁，寄生时只进入销毁动画但不真正销毁
     if (sprite.magic.passThrough > 0) {
       if (sprite.magic.vanishImage) {
         this.callbacks.createHitEffect(sprite);
       }
-      // C#: 穿透后移动到邻居格子
+      // 穿透后移动到邻居格子
       if (sprite.velocity > 0 && (sprite.direction.x !== 0 || sprite.direction.y !== 0)) {
         const dirIndex = getDirectionFromVector(sprite.direction);
         sprite.tilePosition = findNeighborInDirection(sprite.tilePosition, dirIndex);
@@ -388,7 +388,7 @@ export class CollisionHandler {
       // Sticky 粘附状态，不销毁
     } else if (sprite.parasitiferCharacterId !== null) {
       // Parasitic 寄生状态：进入销毁动画但不立即销毁
-      // C# Reference: 寄生后 destroy=true 但 _parasitiferCharacter != null 时不真正销毁
+      // Reference: 寄生后 destroy=true 但 _parasitiferCharacter != null 时不真正销毁
       // 动画会无限播放，直到目标死亡或达到最大伤害
       this.callbacks.startDestroyAnimation(sprite);
     } else if (shouldDestroy) {
@@ -400,7 +400,7 @@ export class CollisionHandler {
 
   /**
    * 跳跃到下一个目标
-   * C# Reference: MagicSprite.LeapToNextTarget(Character hitedCharacter)
+   * hitedCharacter)
    */
   private leapToNextTarget(
     sprite: MagicSprite,
@@ -410,7 +410,7 @@ export class CollisionHandler {
     const magic = sprite.magic;
     const belongCharacter = this.charHelper.getBelongCharacter(sprite.belongCharacterId);
 
-    // C#: if (_leftLeapTimes > 0) { _leftLeapTimes--; reduce effects }
+    // if (_leftLeapTimes > 0) { _leftLeapTimes--; reduce effects }
     if (sprite.leftLeapTimes > 0) {
       sprite.leftLeapTimes--;
       sprite.reduceEffectByPercentage(magic.effectReducePercentage);
@@ -434,7 +434,7 @@ export class CollisionHandler {
     }
 
     // 寻找下一个目标
-    // C#: if (BelongMagic.AttackAll > 0) nextTarget = NpcManager.GetClosestFighter(...)
+    // if (BelongMagic.AttackAll > 0) nextTarget = NpcManager.GetClosestFighter(...)
     //     else nextTarget = NpcManager.GetClosestEnemy(...)
     let nextTarget: Character | null = null;
     if (magic.attackAll > 0) {
@@ -455,7 +455,7 @@ export class CollisionHandler {
     }
 
     // 更新武功精灵
-    // C#: Texture = BelongMagic.LeapImage; PlayFrames(BelongMagic.LeapFrame);
+    // Texture = BelongMagic.LeapImage; PlayFrames(BelongMagic.LeapFrame);
     if (magic.leapImage) {
       sprite.flyingAsfPath = magic.leapImage;
     }
@@ -464,7 +464,7 @@ export class CollisionHandler {
     }
 
     // 设置新的移动方向
-    // C#: MoveDirection = nextTarget.PositionInWorld - PositionInWorld;
+    // MoveDirection = nextTarget.PositionInWorld - PositionInWorld;
     const newDirection = {
       x: nextTarget.pixelPosition.x - sprite.positionInWorld.x,
       y: nextTarget.pixelPosition.y - sprite.positionInWorld.y,
@@ -472,7 +472,7 @@ export class CollisionHandler {
     sprite.setMoveDirection(newDirection);
 
     // 移动到邻居格子
-    // C#: TilePosition = PathFinder.FindNeighborInDirection(TilePosition, RealMoveDirection);
+    // TilePosition = PathFinder.FindNeighborInDirection(TilePosition, RealMoveDirection);
     const dirIndex = getDirectionFromVector(sprite.direction);
     sprite.tilePosition = findNeighborInDirection(sprite.tilePosition, dirIndex);
 

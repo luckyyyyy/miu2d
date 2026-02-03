@@ -1,14 +1,13 @@
 /**
  * Bezier curve utilities
  * 贝塞尔曲线工具 - 用于角色跳跃移动
- * C# Reference: Engine/Lib/BezierCurve.cs
+ * Reference: Engine/Lib/BezierCurve.cs
  */
 import type { Vector2 } from "../core/types";
 
 /**
  * Factorial lookup table (precomputed up to 32)
  * 阶乘查找表（预计算到 32）
- * C# Reference: BezierCurve.FactorialLookup
  */
 const FACTORIAL_LOOKUP: readonly number[] = [
   1.0, 1.0, 2.0, 6.0, 24.0, 120.0, 720.0, 5040.0, 40320.0, 362880.0, 3628800.0, 39916800.0,
@@ -24,7 +23,7 @@ const FACTORIAL_LOOKUP: readonly number[] = [
 /**
  * Factorial
  * 阶乘
- * C# Reference: BezierCurve.factorial(int n)
+ * n)
  */
 function factorial(n: number): number {
   if (n < 0 || n > 32) {
@@ -36,7 +35,7 @@ function factorial(n: number): number {
 /**
  * Binomial coefficient C(n, i) = n! / (i! * (n-i)!)
  * 二项式系数
- * C# Reference: BezierCurve.Ni(int n, int i)
+ * n, int i)
  */
 function binomialCoefficient(n: number, i: number): number {
   return factorial(n) / (factorial(i) * factorial(n - i));
@@ -45,7 +44,7 @@ function binomialCoefficient(n: number, i: number): number {
 /**
  * Bernstein basis polynomial
  * 伯恩斯坦基函数
- * C# Reference: BezierCurve.Bernstein(int n, int i, double t)
+ * n, int i, double t)
  */
 function bernstein(n: number, i: number, t: number): number {
   // t^i
@@ -58,7 +57,7 @@ function bernstein(n: number, i: number, t: number): number {
 /**
  * Calculate points on a Bezier curve
  * 计算贝塞尔曲线上的点
- * C# Reference: BezierCurve.Bezier2D(List<Vector2> inPoints, int outPointsCount)
+ * Reference: BezierCurve.Bezier2D(List<Vector2> inPoints, int outPointsCount)
  *
  * @param controlPoints Control points array / 控制点数组
  * @param outputPointCount Number of output points / 输出点数量

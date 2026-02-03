@@ -2,7 +2,7 @@
  * Binary data parsing utilities
  * 二进制数据解析工具
  *
- * Matches C# Utils class binary reading functions
+ * Matches Utils class binary reading functions
  */
 
 import { getTextDecoder } from "./encoding";

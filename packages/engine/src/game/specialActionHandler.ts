@@ -2,7 +2,7 @@
  * Special Action Handler - Manages special action state updates
  * Extracted from GameManager to reduce complexity
  *
- * C# Reference: Character.Update checks IsPlayCurrentDirOnceEnd()
+ * checks IsPlayCurrentDirOnceEnd()
  * Note: Magic state is now handled via Character.updateMagic() switch case,
  * this handler only manages script-triggered special actions (e.g., kneel/stand)
  */
@@ -36,7 +36,7 @@ export class SpecialActionHandler {
 
   /**
    * Update special action states
-   * C# Reference: Character.Update checks IsPlayCurrentDirOnceEnd()
+   * checks IsPlayCurrentDirOnceEnd()
    */
   update(): void {
     this.updatePlayerSpecialAction();

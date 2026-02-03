@@ -45,7 +45,7 @@ import {
 
 /**
  * 解析武功配置文件内容
- * 对应 C# Magic.Load()
+ * ()
  */
 export function parseMagicIni(content: string, fileName: string): MagicData {
   const magic = createDefaultMagicData();
@@ -100,7 +100,7 @@ export function parseMagicIni(content: string, fileName: string): MagicData {
 
 /**
  * 为武功数据赋值
- * 对应 C# Magic.AssignToValue()
+ * ()
  */
 function assignMagicValue(magic: MagicData, key: string, value: string): void {
   try {
@@ -680,7 +680,7 @@ function assignLevelValue(levelData: Partial<MagicData>, key: string, value: str
 
 /**
  * 获取指定等级的武功数据
- * 对应 C# Magic.GetLevel()
+ * ()
  */
 export function getMagicAtLevel(baseMagic: MagicData, level: number): MagicData {
   if (!baseMagic.levels || !baseMagic.levels.has(level)) {

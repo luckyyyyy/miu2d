@@ -1,11 +1,11 @@
 /**
- * SHD (Shadow) file parser - matches C# Engine/Shd.cs implementation
+ * SHD (Shadow) file parser - matches Engine/Shd.cs implementation
  *
  * SHD files store shadow data for MPC sprites. Unlike MPC files:
  * - No palette (shadow is always semi-transparent black)
  * - Pixels are either transparent or 60% opacity black
  *
- * C# Reference: Engine/Shd.cs
+ * Reference: Engine/Shd.cs
  */
 
 import { logger } from "../core/logger";
@@ -33,7 +33,7 @@ export interface Shd {
 
 /**
  * Parse an SHD file buffer
- * Based on C# Shd.cs LoadFrame()
+ *  LoadFrame()
  *
  * Key differences from MPC:
  * - LoadPalette is empty (no palette in SHD files)
@@ -74,7 +74,7 @@ export function parseShdBuffer(buffer: ArrayBuffer): Shd | null {
     }
 
     // Skip header (no palette in SHD files!)
-    // C# Shd.LoadPalette() is empty, so we skip directly to frame offsets
+    // Shd.LoadPalette() is empty, so we skip directly to frame offsets
     // After 64 + 32 (head) + 32 (skip) = 128, but no palette
     offset = 128;
 
@@ -92,7 +92,7 @@ export function parseShdBuffer(buffer: ArrayBuffer): Shd | null {
     const frames: ShdFrame[] = [];
 
     // Shadow color: semi-transparent black (60% opacity)
-    // C# uses Color.Black * 0.6f which results in (0, 0, 0, 153)
+    // uses Color.Black * 0.6f which results in (0, 0, 0, 153)
     const SHADOW_ALPHA = Math.round(255 * 0.6); // 153
 
     for (let j = 0; j < head.frameCounts; j++) {
@@ -137,7 +137,7 @@ export function parseShdBuffer(buffer: ArrayBuffer): Shd | null {
           dataStart++;
         } else {
           // Shadow pixels - semi-transparent black
-          // C# version: data[dataidx++] = Color.Black * 0.6f
+          // 原版: data[dataidx++] = Color.Black * 0.6f
           const colorCount = byte;
           dataStart++;
           for (let ci = 0; ci < colorCount && dataIdx < width * height; ci++) {
@@ -181,7 +181,7 @@ export async function loadShd(url: string): Promise<Shd | null> {
 
 /**
  * Get frame data from parsed SHD
- * Based on C# Shd.GetFrameData()
+ * ()
  */
 export function getShdFrameData(shd: Shd, index: number): Uint8ClampedArray | null {
   if (index >= 0 && index < shd.frames.length) {

@@ -11,7 +11,6 @@
  * - 8: 解除异常状态
  * - 9: 替换飞行INI (FlyIniChangeBy)
  *
- * C# Reference: MagicManager.AddFollowCharacterMagicSprite
  */
 
 import { logger } from "../../core/logger";
@@ -72,7 +71,7 @@ export function createFollowCharacterEffect(): MagicEffect {
           break;
 
         // 隐身（攻击时消失）
-        // C#: user.InvisibleByMagicTime = effectAmount; user.IsVisibleWhenAttack = false;
+        // user.InvisibleByMagicTime = effectAmount; user.IsVisibleWhenAttack = false;
         case MagicSpecialKind.InvisibleHide:
           if (caster.type === "player") {
             caster.player.invisibleByMagicTime = effectAmount;
@@ -87,7 +86,7 @@ export function createFollowCharacterEffect(): MagicEffect {
           break;
 
         // 隐身（攻击时显现）
-        // C#: user.InvisibleByMagicTime = effectAmount; user.IsVisibleWhenAttack = true;
+        // user.InvisibleByMagicTime = effectAmount; user.IsVisibleWhenAttack = true;
         case MagicSpecialKind.InvisibleShow:
           if (caster.type === "player") {
             caster.player.invisibleByMagicTime = effectAmount;
@@ -102,7 +101,7 @@ export function createFollowCharacterEffect(): MagicEffect {
           break;
 
         // 变身
-        // C#: user.ChangeCharacterBy(sprite);
+        // user.ChangeCharacterBy(sprite);
         case MagicSpecialKind.ChangeCharacter:
           if (caster.type === "player") {
             caster.player.changeCharacterBy(sprite);
@@ -113,7 +112,7 @@ export function createFollowCharacterEffect(): MagicEffect {
           break;
 
         // 解除异常状态
-        // C#: user.RemoveAbnormalState();
+        // user.RemoveAbnormalState();
         case MagicSpecialKind.RemoveAbnormal:
           if (caster.type === "player") {
             caster.player.removeAbnormalState();
@@ -124,7 +123,7 @@ export function createFollowCharacterEffect(): MagicEffect {
           break;
 
         // 改变飞行INI
-        // C#: user.FlyIniChangeBy(sprite);
+        // user.FlyIniChangeBy(sprite);
         case MagicSpecialKind.ChangeFlyIni:
           if (caster.type === "player") {
             caster.player.flyIniChangeBy(sprite);
@@ -159,7 +158,7 @@ export function createFollowCharacterEffect(): MagicEffect {
       }
 
       // 移除隐身
-      // C#: InvisibleByMagicTime 会在 Character.Update 中自动减少，到 0 时自动恢复可见
+      // InvisibleByMagicTime 会在 Character.Update 中自动减少，到 0 时自动恢复可见
       // 这里不需要额外处理，因为 invisibleByMagicTime 会自然到期
       if (
         magic.specialKind === MagicSpecialKind.InvisibleHide ||
@@ -171,7 +170,7 @@ export function createFollowCharacterEffect(): MagicEffect {
       }
 
       // 移除变身效果
-      // C#: _changeCharacterByMagicSpriteTime 会在 Character.Update 中自动减少
+      // _changeCharacterByMagicSpriteTime 会在 Character.Update 中自动减少
       if (magic.specialKind === MagicSpecialKind.ChangeCharacter) {
         // 变身效果由 StatusEffectsManager.update 自动处理
         // changeCharacterByMagicSpriteTime 到 0 时自动恢复

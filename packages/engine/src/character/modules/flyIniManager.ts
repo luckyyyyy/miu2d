@@ -4,7 +4,7 @@
  * 从 Character 类提取的技能配置（FlyIni）相关逻辑
  * 包括：技能列表管理、临时替换、变身恢复
  *
- * C# Reference: Character.cs - FlyIni, FlyIni2, FlyInis, AddFlyIniReplace, etc.
+ * FlyIni, FlyIni2, FlyInis, AddFlyIniReplace, etc.
  */
 
 import { logger } from "../../core/logger";
@@ -68,7 +68,7 @@ export class FlyIniManager {
 
   /**
    * 重建技能列表
-   * C#: FlyIni setter calls AddMagicToInfos
+   * FlyIni setter calls AddMagicToInfos
    *
    * @param attackRadius 默认攻击距离（用于没有指定距离的技能）
    * @param characterName 角色名称（用于日志）
@@ -117,7 +117,7 @@ export class FlyIniManager {
 
   /**
    * 获取最接近目标距离的攻击距离
-   * C#: GetClosedAttackRadius(toTargetDistance)
+   * GetClosedAttackRadius(toTargetDistance)
    */
   getClosedAttackRadius(toTargetDistance: number): number {
     if (this._flyIniInfos.length === 0) {
@@ -140,7 +140,7 @@ export class FlyIniManager {
 
   /**
    * 获取指定距离的随机技能
-   * C#: GetRamdomMagicWithUseDistance(useDistance)
+   * GetRamdomMagicWithUseDistance(useDistance)
    */
   getRandomMagicWithUseDistance(useDistance: number): string | null {
     let start = -1;
@@ -183,7 +183,7 @@ export class FlyIniManager {
 
   /**
    * 添加临时替换的 FlyIni
-   * C#: AddFlyIniReplace(Magic magic)
+   * AddFlyIniReplace(Magic magic)
    */
   addFlyIniReplace(magicFileName: string, attackRadius: number): void {
     if (this._flyIniReplace.length === 0) {
@@ -196,7 +196,7 @@ export class FlyIniManager {
 
   /**
    * 移除临时替换的 FlyIni
-   * C#: RemoveFlyIniReplace(Magic magic)
+   * RemoveFlyIniReplace(Magic magic)
    */
   removeFlyIniReplace(magicFileName: string, attackRadius: number): void {
     this.removeMagicFromInfos(magicFileName, attackRadius);
@@ -212,7 +212,7 @@ export class FlyIniManager {
 
   /**
    * 添加临时替换的 FlyIni2
-   * C#: AddFlyIni2Replace(Magic magic)
+   * AddFlyIni2Replace(Magic magic)
    */
   addFlyIni2Replace(magicFileName: string, attackRadius: number): void {
     if (this._flyIni2Replace.length === 0) {
@@ -224,7 +224,7 @@ export class FlyIniManager {
 
   /**
    * 移除临时替换的 FlyIni2
-   * C#: RemoveFlyIni2Replace(Magic magic)
+   * RemoveFlyIni2Replace(Magic magic)
    */
   removeFlyIni2Replace(magicFileName: string, attackRadius: number): void {
     this.removeMagicFromInfos(magicFileName, attackRadius);
@@ -241,7 +241,7 @@ export class FlyIniManager {
 
   /**
    * 替换技能列表（变身时）
-   * C#: OnReplaceMagicList
+   *
    */
   replaceMagicList(listStr: string, attackRadius: number, characterName: string = ""): void {
     if (!listStr) return;
@@ -264,7 +264,7 @@ export class FlyIniManager {
 
   /**
    * 恢复技能列表（变身结束）
-   * C#: OnRecoverFromReplaceMagicList
+   *
    */
   recoverMagicList(characterName: string = ""): void {
     this._flyIniInfos = [...this._backup];
@@ -327,7 +327,7 @@ export class FlyIniManager {
 
   /**
    * 解析技能列表字符串（带距离）
-   * C#: ParseMagicList
+   *
    * @param listStr 格式: "Magic1:Distance1;Magic2:Distance2" 或 "Magic1;Magic2"
    */
   static parseMagicList(listStr: string): FlyIniInfo[] {
@@ -354,7 +354,7 @@ export class FlyIniManager {
 
   /**
    * 解析技能列表字符串（不带距离）
-   * C#: ParseMagicListNoDistance
+   *
    */
   static parseMagicListNoDistance(listStr: string): string[] {
     const result: string[] = [];

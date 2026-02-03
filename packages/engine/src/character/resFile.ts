@@ -5,7 +5,7 @@
  * Handles loading and parsing npcres INI files (state to ASF mappings).
  * NPC config parsing moved to iniParser.ts for better separation.
  *
- * C# Reference: Engine/ResFile.cs
+ * Reference: Engine/ResFile.cs
  */
 
 import { ResourcePath } from "../config/resourcePaths";
@@ -24,7 +24,7 @@ export {
 
 /**
  * NpcRes state info parsed from ini/npcres/*.ini
- * Based on C# ResStateInfo
+ * 
  */
 export interface NpcResStateInfo {
   imagePath: string; // ASF or MPC file name
@@ -34,7 +34,7 @@ export interface NpcResStateInfo {
 
 /**
  * State name to CharacterState mapping
- * Based on C# ResFile.GetState()
+ * ()
  */
 const STATE_NAMES: Record<string, number> = {
   Stand: CharacterState.Stand,
@@ -57,7 +57,7 @@ const STATE_NAMES: Record<string, number> = {
 
 /**
  * Parse npcres INI file content
- * Based on C# ResFile.ReadFile()
+ * ()
  */
 export function parseNpcResIni(content: string): Map<number, NpcResStateInfo> {
   const stateMap = new Map<number, NpcResStateInfo>();
@@ -80,7 +80,7 @@ export function parseNpcResIni(content: string): Map<number, NpcResStateInfo> {
 
 /**
  * Load ASF file from character or interlude directory
- * Based on C# ResFile.GetAsfFilePathBase()
+ * ()
  */
 export async function loadCharacterAsf(asfFileName: string): Promise<AsfData | null> {
   // Encode Chinese characters in filename for URL
@@ -104,7 +104,7 @@ export async function loadCharacterAsf(asfFileName: string): Promise<AsfData | n
 
 /**
  * Load character sprite image (ASF or MPC format)
- * Based on C# ResFile.GetStateInfo() which checks file extension
+ * () which checks file extension
  *
  * @param imagePath - Image filename (can be .asf or .mpc)
  * @param shadePath - Optional SHD shadow filename (for MPC only)
@@ -169,7 +169,7 @@ function mpcToAsfData(mpc: import("../core/mapTypes").Mpc): AsfData {
 
 /**
  * Load NpcRes INI file to get state -> ASF mappings
- * Based on C# ResFile.ReadFile(@"ini\npcres\" + fileName, ResType.Npc)
+ * (@"ini\npcres\" + fileName, ResType.Npc)
  * Uses resourceLoader.loadIni to cache parsed result
  */
 export async function loadNpcRes(npcIni: string): Promise<Map<number, NpcResStateInfo> | null> {

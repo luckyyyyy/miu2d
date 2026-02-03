@@ -2,7 +2,7 @@
  * SystemGui Component - based on JxqyHD Engine/Gui/SystemGui.cs
  * Displays system menu with save/load, options, exit buttons
  *
- * C# Reference: SystemGui.cs shows system menu with 4 buttons
+ * shows system menu with 4 buttons
  * Resources loaded from UI_Settings.ini
  */
 
@@ -92,7 +92,7 @@ export const SystemGui: React.FC<SystemGuiProps> = ({
   // 加载面板背景
   const panelImage = useAsfImage(config?.panel.image || "asf/ui/common/panel.asf");
 
-  // 计算面板位置 - C#: (Globals.WindowWidth - Width) / 2f + leftAdjust
+  // 计算面板位置 - (Globals.WindowWidth - Width) / 2f + leftAdjust
   const panelStyle = useMemo(() => {
     if (!config) return null;
     const panelWidth = panelImage.width || 185;

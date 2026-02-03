@@ -2,7 +2,7 @@
  * BottomGui Component - based on JxqyHD Engine/Gui/BottomGui.cs
  * Bottom hotbar for items and skills using ASF images from resources
  *
- * C# Reference: BottomGui.cs handles item slots and magic slots
+ * handles item slots and magic slots
  * Resources: asf/ui/bottom/window.asf
  *
  * Slots 0-2: Items (from GoodsListManager, indices BottomIndexBegin+0 to +2)
@@ -39,7 +39,7 @@ const UI_CONFIG = {
   ],
 };
 
-// 快捷键 - C#: Z,X,C 物品, A,S,D,F,G 武功
+// 快捷键 : Z,X,C 物品, A,S,D,F,G 武功
 const SLOT_KEYS = ["Z", "X", "C", "A", "S", "D", "F", "G"];
 
 // 拖放数据类型
@@ -134,7 +134,7 @@ const Slot: React.FC<SlotProps> = ({
     count = goodsData.count;
   } else if (magicData?.magic) {
     // Use icon (small image) for BottomGui, fall back to image if no icon
-    // C# Reference: BottomGui.UpdateItem uses magic.Icon
+    // uses magic.Icon
     iconPath = magicData.magic.icon ?? magicData.magic.image ?? null;
     displayName = `${magicData.magic.name} Lv.${magicData.level}`;
     level = magicData.level;
@@ -383,7 +383,7 @@ export const BottomGui: React.FC<BottomGuiProps> = ({
   const panelImage = useAsfImage(UI_CONFIG.panel.image);
 
   // 计算面板位置
-  // C#: Position = new Vector2((Globals.WindowWidth - BaseTexture.Width)/2f + leftAdjust,
+  // Position = new Vector2((Globals.WindowWidth - BaseTexture.Width)/2f + leftAdjust,
   //                            Globals.WindowHeight - BaseTexture.Height + topAdjust)
   const panelStyle = useMemo(() => {
     const panelWidth = panelImage.width || 390; // fallback size

@@ -2,7 +2,7 @@
  * XiuLianGui Component - based on JxqyHD Engine/Gui/XiuLianGui.cs
  * Displays magic/skill cultivation interface
  *
- * C# Reference: XiuLianGui.cs shows magic info, level, exp, and introduction
+ * shows magic info, level, exp, and introduction
  * Resources loaded from UI_Settings.ini
  *
  * 修炼武功存储在 MagicListManager 的 xiuLianIndex (索引 49)
@@ -158,7 +158,7 @@ export const XiuLianGui: React.FC<XiuLianGuiProps> = ({
     enabled: isMobile,
   });
 
-  // 计算面板位置 - C#: Globals.WindowWidth / 2f - Width + leftAdjust
+  // 计算面板位置 - Globals.WindowWidth / 2f - Width + leftAdjust
   const panelStyle = useMemo(() => {
     if (!config) return null;
     const panelWidth = panelImage.width || 290;

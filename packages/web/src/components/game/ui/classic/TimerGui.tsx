@@ -1,6 +1,6 @@
 /**
  * TimerGui - 计时器 UI 组件
- * 基于 C# JxqyHD/Engine/Gui/TimerGui.cs
+ * 基于JxqyHD/Engine/Gui/TimerGui.cs
  *
  * 使用 ASF 图片作为背景，显示剩余时间
  * 配置来自 UI_Settings.ini [Timer] 和 [Timer_Text]
@@ -47,14 +47,14 @@ interface TimerGuiProps {
 
 /**
  * 计时器 UI
- * C#: Position = new Vector2(Globals.WindowWidth/2f + LeftAdjust, TopAdjust)
+ * Position = new Vector2(Globals.WindowWidth/2f + LeftAdjust, TopAdjust)
  */
 export const TimerGui: React.FC<TimerGuiProps> = ({ timerState, screenWidth = 800 }) => {
   // 加载背景图片
   const panelImage = useAsfImage(TIMER_CONFIG.image, 0);
 
   // 计算面板位置
-  // C#: Position = new Vector2(Globals.WindowWidth/2f + LeftAdjust, TopAdjust)
+  // Position = new Vector2(Globals.WindowWidth/2f + LeftAdjust, TopAdjust)
   const panelStyle = useMemo(() => {
     const panelWidth = panelImage.width || 200;
     const panelHeight = panelImage.height || 80;
@@ -76,7 +76,7 @@ export const TimerGui: React.FC<TimerGuiProps> = ({ timerState, screenWidth = 80
   }
 
   // 格式化时间: " 00分 00秒" 格式
-  // C#: string.Format("{0: 00;-00}", _seconds / 60) + "分" + string.Format("{0: 00;-00}", _seconds % 60) + "秒"
+  // string.Format("{0: 00;-00}", _seconds / 60) + "分" + string.Format("{0: 00;-00}", _seconds % 60) + "秒"
   const minutes = Math.floor(timerState.seconds / 60);
   const seconds = timerState.seconds % 60;
   const timeText = `${minutes.toString().padStart(2, "0")}分${seconds.toString().padStart(2, "0")}秒`;

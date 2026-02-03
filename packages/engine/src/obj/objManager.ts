@@ -33,7 +33,7 @@
  * === 3D Spatial Audio ===
  * Objects with Kind=LoopingSound (3) or Kind=RandSound (4) play positional audio.
  * The audio position is relative to the player (listener) for 3D effect.
- * C# Reference: Obj.UpdateSound(), Obj.PlaySound(), Obj.PlayRandSound()
+ * Reference: Obj.UpdateSound(), Obj.PlaySound(), Obj.PlayRandSound()
  */
 
 import type { AudioManager } from "../audio";
@@ -79,13 +79,13 @@ function parseObjResIni(content: string): ObjResInfo | null {
 }
 
 export class ObjManager {
-  // C#: private static LinkedList<Obj> _list = new LinkedList<Obj>();
-  // 使用数组而不是 Map，与 C# 保持一致，允许多个对象（包括同类尸体）
+  // private static LinkedList<Obj> _list = new LinkedList<Obj>();
+  // 使用数组而不是 Map，，允许多个对象（包括同类尸体）
   private objects: Obj[] = [];
   private fileName: string = "";
 
   // === 性能优化：预计算视野内物体 ===
-  // C# Reference: ObjManager._objInView, UpdateObjsInView()
+  // ObjManager._objInView, UpdateObjsInView()
   // 在 Update 阶段预计算，Render 阶段直接使用
   private _objsInView: Obj[] = [];
   private _objsByRow: Map<number, Obj[]> = new Map();
@@ -161,14 +161,14 @@ export class ObjManager {
 
   /**
    * Load objects from an .obj file
-   * Based on C# Utils.GetNpcObjFilePath - tries save/game/ first, then ini/save/
+   *  - tries save/game/ first, then ini/save/
    */
   async load(fileName: string): Promise<boolean> {
     logger.log(`[ObjManager] Loading obj file: ${fileName}`);
     this.clearAll();
     this.fileName = fileName;
 
-    // Try multiple paths like C# GetNpcObjFilePath
+    // Try multiple paths
     const paths = [ResourcePath.saveGame(fileName), ResourcePath.iniSave(fileName)];
 
     for (const filePath of paths) {
@@ -259,7 +259,7 @@ export class ObjManager {
         `[ObjManager] Created obj: ${obj.objName} (kind=${obj.kind}) at (${mapX}, ${mapY}), texture=${obj.texture ? "loaded" : "null"}${wasRestored ? " [state restored]" : ""}`
       );
     }
-    // C#: _list.AddLast(obj)
+    // _list.AddLast(obj)
     this.objects.push(obj);
   }
 
@@ -294,7 +294,7 @@ export class ObjManager {
 
   /**
    * Add a single object
-   * C#: public static void AddObj(Obj obj) { if (obj != null) _list.AddLast(obj); }
+   * public static void AddObj(Obj obj) { if (obj != null) _list.AddLast(obj); }
    */
   addObj(obj: Obj): void {
     if (obj) {
@@ -337,7 +337,7 @@ export class ObjManager {
 
   /**
    * Get object by name
-   * C#: public static Obj GetObj(string objName)
+   * public static Obj GetObj(string objName)
    */
   getObj(name: string): Obj | undefined {
     for (const obj of this.objects) {
@@ -357,7 +357,7 @@ export class ObjManager {
 
   /**
    * Get objects at tile position
-   * C#: public static List<Obj> getObj(Vector2 tilePos)
+   * public static List<Obj> getObj(Vector2 tilePos)
    */
   getObjsAtPosition(tile: Vector2): Obj[] {
     const result: Obj[] = [];
@@ -371,7 +371,7 @@ export class ObjManager {
 
   /**
    * Check if tile has obstacle
-   * Matches C# ObjManager.IsObstacle
+   * Matches ObjManager.IsObstacle
    */
   isObstacle(tileX: number, tileY: number): boolean {
     for (const obj of this.objects) {
@@ -389,7 +389,7 @@ export class ObjManager {
 
   /**
    * 在 Update 阶段预计算视野内物体（每帧调用一次）
-   * C# Reference: ObjManager.UpdateObjsInView()
+   * Reference: ObjManager.UpdateObjsInView()
    * 同时按行分组，供交错渲染使用
    */
   updateObjsInView(viewRect: { x: number; y: number; width: number; height: number }): void {
@@ -430,7 +430,7 @@ export class ObjManager {
 
   /**
    * 获取预计算的视野内物体列表（只读）
-   * C# Reference: ObjManager.ObjsInView property
+   * property
    * 在 Render 阶段使用，避免重复计算
    */
   get objsInView(): readonly Obj[] {
@@ -473,7 +473,7 @@ export class ObjManager {
 
   /**
    * Get all objects
-   * C#: public static LinkedList<Obj> ObjList { get { return _list; } }
+   * public static LinkedList<Obj> ObjList { get { return _list; } }
    */
   getAllObjs(): Obj[] {
     return [...this.objects];
@@ -481,30 +481,30 @@ export class ObjManager {
 
   /**
    * Delete object by name
-   * C#: public static void DeleteObj(string objName)
+   * public static void DeleteObj(string objName)
    */
   deleteObj(name: string): void {
     for (let i = this.objects.length - 1; i >= 0; i--) {
       const obj = this.objects[i];
       if (obj.objName === name) {
-        obj.isRemoved = true; // C# sets IsRemoved = true
+        obj.isRemoved = true; // sets IsRemoved = true
         this.saveObjState(obj); // Persist state for map reload
         this.objects.splice(i, 1);
         logger.log(`[ObjManager] Deleted obj by name: ${name}`);
-        // C# 不 break，会删除所有同名对象
+        // 不 break，会删除所有同名对象
       }
     }
   }
 
   /**
    * Delete object by id
-   * C# Reference: Obj.IsRemoved = true
+   * = true
    */
   deleteObjById(id: string): void {
     const index = this.objects.findIndex((obj) => obj.id === id);
     if (index !== -1) {
       const obj = this.objects[index];
-      obj.isRemoved = true; // C# sets IsRemoved = true
+      obj.isRemoved = true; // sets IsRemoved = true
       this.saveObjState(obj); // Persist state for map reload
       this.objects.splice(index, 1);
       logger.log(`[ObjManager] Deleted obj by id: ${id} (${obj.objName})`);
@@ -513,7 +513,7 @@ export class ObjManager {
 
   /**
    * Open a box (play animation forward)
-   * C# Reference: Obj.OpenBox() -> PlayFrames(FrameEnd - CurrentFrameIndex)
+   * -> PlayFrames(FrameEnd - CurrentFrameIndex)
    */
   openBox(objNameOrId: string): void {
     const obj = this.getObj(objNameOrId) || this.getObjById(objNameOrId);
@@ -527,7 +527,7 @@ export class ObjManager {
 
   /**
    * Close a box (play animation backward)
-   * C# Reference: Obj.CloseBox() -> PlayFrames(CurrentFrameIndex - FrameBegin, true)
+   * -> PlayFrames(CurrentFrameIndex - FrameBegin, true)
    */
   closeBox(objNameOrId: string): void {
     const obj = this.getObj(objNameOrId) || this.getObjById(objNameOrId);
@@ -541,7 +541,7 @@ export class ObjManager {
 
   /**
    * Set script file for an object
-   * C# Reference: ScriptExecuter.SetObjScript - target.ScriptFile = scriptFileName
+   * target.ScriptFile = scriptFileName
    * When scriptFile is empty, the object becomes non-interactive
    */
   setObjScript(objNameOrId: string, scriptFile: string): void {
@@ -558,7 +558,7 @@ export class ObjManager {
 
   /**
    * Clear all bodies (dead NPCs)
-   * C#: public static void ClearBody()
+   * public static void ClearBody()
    */
   clearBodies(): void {
     for (let i = this.objects.length - 1; i >= 0; i--) {
@@ -570,7 +570,7 @@ export class ObjManager {
 
   /**
    * Clear all objects
-   * C#: public static void ClearAllObjAndFileName()
+   * public static void ClearAllObjAndFileName()
    */
   clearAll(): void {
     // Stop all object sounds before clearing
@@ -687,7 +687,7 @@ export class ObjManager {
 
   /**
    * Update all objects (animation, timers, sound, trap damage, etc.)
-   * C# Reference: Obj.Update - handles animation, timer scripts, removal, sound, trap
+   * handles animation, timer scripts, removal, sound, trap
    *
    * Obj 现在通过 engine (IEngineContext) 直接访问 NpcManager、Player 和 ScriptExecutor，
    * 不再需要传入回调上下文。
@@ -703,7 +703,7 @@ export class ObjManager {
       obj.update(deltaTime);
 
       // Handle 3D spatial audio for sound objects
-      // C# Reference: Obj.Update() switch on Kind for LoopingSound/RandSound
+      // Reference: Obj.Update() switch on Kind for LoopingSound/RandSound
       if (this.audioManager && obj.hasSound) {
         this.updateObjSound(obj);
       }
@@ -712,7 +712,7 @@ export class ObjManager {
 
   /**
    * Update sound for a single object
-   * C# Reference: Obj.Update() - UpdateSound() and PlaySound()/PlayRandSound()
+   * - UpdateSound() and PlaySound()/PlayRandSound()
    */
   private updateObjSound(obj: Obj): void {
     if (!this.audioManager || !obj.hasSound) return;
@@ -722,13 +722,13 @@ export class ObjManager {
 
     // Use Obj helper methods to check sound type
     if (obj.shouldPlayLoopingSound()) {
-      // C# Reference: case ObjKind.LoopingSound: UpdateSound(); PlaySound();
+      // ObjKind.LoopingSound: UpdateSound(); PlaySound();
       // Looping sounds play continuously with 3D positioning
       this.audioManager.play3DSoundLoop(obj.soundId, soundFile, emitterPosition);
     } else if (obj.shouldPlayRandomSound()) {
-      // C# Reference: case ObjKind.RandSound: UpdateSound(); PlayRandSound();
+      // ObjKind.RandSound: UpdateSound(); PlayRandSound();
       // Random sounds have 1/200 chance to play each frame
-      // C#: if (Globals.TheRandom.Next(0, 200) == 0) PlaySound();
+      // if (Globals.TheRandom.Next(0, 200) == 0) PlaySound();
       this.audioManager.play3DSoundRandom(obj.soundId, soundFile, emitterPosition, 0.005);
     }
     // Other object types don't auto-play sounds
@@ -768,9 +768,9 @@ export class ObjManager {
 
   /**
    * Save object state to file
-   * C#: ObjManager.Save - saves current objects to save file
+   * saves current objects to save file
    * Note: Web version uses JSON-based save system in Loader.collectObjData()
-   * This method is a stub for C# compatibility, actual save is done through Loader
+   * This method is a stub actual save is done through Loader
    */
   async saveObj(fileName?: string): Promise<void> {
     const saveFileName = fileName || this.fileName;

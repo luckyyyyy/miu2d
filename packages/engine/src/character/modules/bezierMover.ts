@@ -3,7 +3,7 @@
  * 从 Character 类提取的贝塞尔曲线移动逻辑（弧线跳跃）
  *
  * 使用组合模式，确保完整的类型推导支持
- * C# Reference: Character.cs 中的 BezierMoveTo, UpdateBezierMove
+ * 中的 BezierMoveTo, UpdateBezierMove
  */
 
 import type { Vector2 } from "../../core/types";
@@ -123,7 +123,6 @@ export class BezierMover<T = unknown> {
 
   /**
    * 开始贝塞尔曲线移动
-   * C# Reference: Character.BezierMoveTo
    *
    * @param currentWorldPos 当前世界坐标
    * @param destinationWorldPos 目标世界坐标
@@ -172,7 +171,7 @@ export class BezierMover<T = unknown> {
     this._moveLineDir = normalizeVector(dir);
 
     // 计算垂直方向（用于抛物线的中点偏移）
-    // C#: var perpendicular = dir.X < 0 ? new Vector2(-dir.Y, dir.X) : new Vector2(dir.Y, -dir.X);
+    // var perpendicular = dir.X < 0 ? new Vector2(-dir.Y, dir.X) : new Vector2(dir.Y, -dir.X);
     let perpendicular: Vector2;
     if (dir.x < 0) {
       perpendicular = { x: -dir.y, y: dir.x };
@@ -182,7 +181,7 @@ export class BezierMover<T = unknown> {
     perpendicular = normalizeVector(perpendicular);
 
     // 计算曲线中点偏移量
-    // C#: var halfPoint = (_bezierStartWorldPos + dir / 2) + perpendicular * Math.Max((Math.Abs(perpendicular.Y) * 100), 20);
+    // var halfPoint = (_bezierStartWorldPos + dir / 2) + perpendicular * Math.Max((Math.Abs(perpendicular.Y) * 100), 20);
     const halfPoint = {
       x:
         this._startWorldPos.x +
@@ -195,7 +194,7 @@ export class BezierMover<T = unknown> {
     };
 
     // 生成贝塞尔曲线点
-    // C#: Math.Max((int)dir.Length() / 10, 5)
+    // Math.Max((int)dir.Length() / 10, 5)
     const pointCount = Math.max(Math.floor(vectorLength(dir) / 10), 5);
     this._bezierPoints = bezier2D([this._startWorldPos, halfPoint, this._endWorldPos], pointCount);
 
@@ -213,7 +212,6 @@ export class BezierMover<T = unknown> {
 
   /**
    * 更新贝塞尔曲线移动
-   * C# Reference: Character.UpdateBezierMove
    *
    * @param deltaTime 时间差（秒）
    * @param pixelToTile 像素坐标转瓦片坐标的函数

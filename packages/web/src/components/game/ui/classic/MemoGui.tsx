@@ -2,7 +2,7 @@
  * MemoGui Component - based on JxqyHD Engine/Gui/MemoGui.cs
  * Displays game memo/quest log
  *
- * C# Reference: MemoGui.cs shows text with scroll bar
+ * shows text with scroll bar
  * Resources loaded from UI_Settings.ini
  */
 import type React from "react";
@@ -27,7 +27,7 @@ export const MemoGui: React.FC<MemoGuiProps> = ({ isVisible, memos, screenWidth 
   // 加载面板背景
   const panelImage = useAsfImage(config?.panel.image || "asf/ui/common/panel4.asf");
 
-  // 计算面板位置 - C#: Globals.WindowWidth / 2f + leftAdjust
+  // 计算面板位置 - Globals.WindowWidth / 2f + leftAdjust
   const panelStyle = useMemo(() => {
     if (!config) return null;
     const panelWidth = panelImage.width || 185;

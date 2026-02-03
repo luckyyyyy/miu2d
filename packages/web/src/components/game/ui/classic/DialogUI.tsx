@@ -2,7 +2,7 @@
  * Dialog UI Component - based on JxqyHD Engine/Gui/DialogGui.cs
  * Displays NPC dialogue with portrait images from resources
  *
- * C# Reference: DialogGui.cs loads portraits from HeadFile.ini
+ * loads portraits from HeadFile.ini
  * Resources loaded from UI_Settings.ini
  */
 import type React from "react";
@@ -275,7 +275,7 @@ export const DialogUI: React.FC<DialogUIProps> = ({
 }) => {
   const [displayedText, setDisplayedText] = useState("");
   const [hoveredSelection, setHoveredSelection] = useState<number>(-1);
-  const [keyboardSelection, setKeyboardSelection] = useState<number>(0); // C# 默认选中第一项
+  const [keyboardSelection, setKeyboardSelection] = useState<number>(0); // 默认选中第一项
 
   // 从 UI_Settings.ini 加载配置
   const config = useDialogGuiConfig();
@@ -321,7 +321,7 @@ export const DialogUI: React.FC<DialogUIProps> = ({
   // 重置选择状态 - 每次进入选择模式时
   useEffect(() => {
     if (state.isInSelecting) {
-      setKeyboardSelection(0); // C# 默认选中第一项
+      setKeyboardSelection(0); // 默认选中第一项
       setHoveredSelection(-1);
     }
   }, [state.isInSelecting]);
@@ -377,7 +377,7 @@ export const DialogUI: React.FC<DialogUIProps> = ({
   if (!state.isVisible || !config) return null;
 
   // 计算面板位置
-  // C#: Position = new Vector2((Globals.WindowWidth - BaseTexture.Width) / 2f + leftAdjust,
+  // Position = new Vector2((Globals.WindowWidth - BaseTexture.Width) / 2f + leftAdjust,
   //                            Globals.WindowHeight + topAdjust)
   // Position 是面板左上角坐标，topAdjust 为负值（如 -208）
   // 换算成 CSS bottom 定位：
@@ -390,13 +390,13 @@ export const DialogUI: React.FC<DialogUIProps> = ({
   const panelLeft = (screenWidth - panelWidth) / 2 + config.panel.leftAdjust;
   const panelBottom = -config.panel.topAdjust - panelHeight;
 
-  // 选项颜色 - C#: 蓝色普通，红色悬停/选中
+  // 选项颜色 - 蓝色普通，红色悬停/选中
   // config.selectA.color 已经是 CSS rgba 字符串
   const selectionNormalColor = config.selectA.color || "rgba(0,0,255,0.8)";
   const selectionActiveColor = "rgba(255, 0, 0, 0.8)";
 
   // 判断选项是否激活（hover 或 键盘选中）
-  // C# 默认选中第一项
+  // 默认选中第一项
   const isOptionAActive =
     hoveredSelection === 0 || (hoveredSelection === -1 && keyboardSelection === 0);
   const isOptionBActive =

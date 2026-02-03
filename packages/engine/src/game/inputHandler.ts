@@ -2,8 +2,8 @@
  * Input Handler - Handles keyboard and mouse input
  * Extracted from GameManager to reduce complexity
  *
- * C# Reference: Player.cs HandleKeyboardInput, HandleMouseInput
- * C# Reference: Character.cs InteractWith, InteractIsOk, PerformeInteract
+ * HandleKeyboardInput, HandleMouseInput
+ * InteractWith, InteractIsOk, PerformeInteract
  *
  * Enhanced with interaction support:
  * - Mouse hover detection for NPCs and Objects
@@ -24,13 +24,12 @@ import { getDirectionFromVector, getViewTileDistance, pixelToTile } from "../uti
 
 /**
  * Pending interaction target
- * C# Reference: Character._interactiveTarget
  */
 interface PendingInteraction {
   type: "npc" | "obj";
   target: Npc | Obj;
   useRightScript: boolean;
-  interactDistance: number; // C#: 1 for obj, dialogRadius for NPC
+  interactDistance: number; // 1 for obj, dialogRadius for NPC
 }
 
 /**
@@ -48,14 +47,13 @@ export class InputHandler {
   private deps: InputHandlerDependencies;
 
   // Last known input state for mouse position access
-  // C# Reference: Player.cs stores mouse state for targeting
+  // stores mouse state for targeting
   private lastInput: InputState | null = null;
 
   // Pending interaction target (player walking towards)
-  // C# Reference: Character._interactiveTarget
   private pendingInteraction: PendingInteraction | null = null;
 
-  // C# Reference: Player.cs _lastMouseState
+  // Player.cs _lastMouseState
   // 跟踪上一帧的鼠标按键状态，用于检测"新按下"事件
   private lastLeftButtonDown: boolean = false;
   private lastRightButtonDown: boolean = false;
@@ -107,7 +105,7 @@ export class InputHandler {
 
   /**
    * 获取当前活动角色（被控角色优先）
-   * C# Reference: Player.HandleMouseInput - var character = ControledCharacter ?? this
+   * var character = ControledCharacter ?? this
    *
    * 驭魂术（MoveKind=21）允许玩家控制一个 NPC，此时：
    * - 移动/攻击/交互操作转发到被控角色
@@ -143,7 +141,7 @@ export class InputHandler {
   /**
    * Update - Check if player has reached pending interaction target
    * Called every frame from game loop
-   * C# Reference: Character.InteractIsOk() called during Update
+   * called during Update
    */
   update(): void {
     if (!this.pendingInteraction) return;
@@ -166,7 +164,7 @@ export class InputHandler {
       this.performPendingInteraction();
     } else {
       // Player stopped but not close enough - try to move again
-      // C# Reference: InteractIsOk() calls MoveToTarget when distance is not enough
+      // Reference: InteractIsOk() calls MoveToTarget when distance is not enough
       const targetTile =
         this.pendingInteraction.type === "npc"
           ? (this.pendingInteraction.target as Npc).tilePosition
@@ -200,7 +198,6 @@ export class InputHandler {
 
   /**
    * Check if player is within interaction distance of pending target
-   * C# Reference: Character.InteractIsOk
    */
   private checkInteractionDistance(): boolean {
     if (!this.pendingInteraction) return false;
@@ -215,7 +212,7 @@ export class InputHandler {
         ? (target as Npc).tilePosition
         : (target as Obj).tilePosition;
 
-    // Calculate isometric tile distance (C#: PathFinder.GetViewTileDistance)
+    // Calculate isometric tile distance
     const tileDistance = getViewTileDistance(playerTile, targetTile);
 
     return tileDistance <= interactDistance;
@@ -223,7 +220,6 @@ export class InputHandler {
 
   /**
    * Perform the pending interaction (player arrived at target)
-   * C# Reference: Character.PerformeInteract
    */
   private async performPendingInteraction(): Promise<void> {
     if (!this.pendingInteraction) return;
@@ -255,7 +251,7 @@ export class InputHandler {
     }
 
     // Item hotkeys: Z, X, C (slots 0-2)
-    // C# Reference: BottomGui.cs HandleKeyboardInput() - Keys.Z, Keys.X, Keys.C
+    // HandleKeyboardInput() - Keys.Z, Keys.X, Keys.C
     const itemHotkeys: Record<string, number> = {
       KeyZ: 0,
       KeyX: 1,
@@ -269,7 +265,7 @@ export class InputHandler {
     }
 
     // Magic hotkeys: A, S, D, F, G (slots 0-4)
-    // C# Reference: Player.cs HandleKeyboardInput()
+    // HandleKeyboardInput()
     const magicHotkeys: Record<string, number> = {
       KeyA: 0,
       KeyS: 1,
@@ -286,7 +282,7 @@ export class InputHandler {
 
     // Q key: interact with closest obj
     // E key: interact with closest NPC
-    // C# Reference: Player.cs - Q/E keys for auto interact
+    // Q/E keys for auto interact
     if (code === "KeyQ" && !scriptExecutor.isRunning()) {
       this.interactWithClosestObj();
       return true;
@@ -297,7 +293,7 @@ export class InputHandler {
     }
 
     // V key: toggle sitting (打坐)
-    // C# Reference: Player.cs - Keys.V for Sitdown/StandingImmediately
+    // Keys.V for Sitdown/StandingImmediately
     if (code === "KeyV" && !scriptExecutor.isRunning()) {
       this.toggleSitting();
       return true;
@@ -308,7 +304,7 @@ export class InputHandler {
 
   /**
    * Use item from bottom goods slots (Z/X/C)
-   * C# Reference: GuiManager.UsingBottomGood(index)
+   * Reference: GuiManager.UsingBottomGood(index)
    */
   private async useBottomGood(slotIndex: number): Promise<void> {
     const player = this.player;
@@ -329,7 +325,7 @@ export class InputHandler {
       // Apply drug effect to player
       player.useDrug(info.good);
 
-      // C# Reference: Player.cs line 834-840
+      // line 834-840
       // 如果药品有 FollowPartnerHasDrugEffect > 0，则让所有伙伴也使用该药品
       // if (drug.FollowPartnerHasDrugEffect.GetOneValue() > 0) {
       //     NpcManager.ForEachPartner(character => character.UseDrug(drug));
@@ -345,7 +341,7 @@ export class InputHandler {
   /**
    * Update mouse hover state
    * Called every frame to detect NPCs/Objs under mouse cursor
-   * C# Reference: Player.cs HandleMouseInput - OutEdge detection
+   * HandleMouseInput - OutEdge detection
    *
    * @param worldX Mouse world X coordinate
    * @param worldY Mouse world Y coordinate
@@ -369,15 +365,15 @@ export class InputHandler {
     const mouseTile = pixelToTile(worldX, worldY);
 
     // Check NPCs first (priority over objects)
-    // C# Reference: Player.cs - iterates NpcsInView for OutEdgeNpc
+    // iterates NpcsInView for OutEdgeNpc
     // 性能优化：使用 Update 阶段预计算的 npcsInView，避免重复遍历
     const npcsInView = npcManager.npcsInView;
     for (const npc of npcsInView) {
-      // C# check: if (!one.IsInteractive || !one.IsVisible || one.IsDeath) continue;
+      // check: if (!one.IsInteractive || !one.IsVisible || one.IsDeath) continue;
       if (!npc.isInteractive || !npc.isVisible || npc.isDeath) continue;
 
       // Check if mouse is over NPC (pixel collision)
-      // C#: Collider.IsPixelCollideForNpcObj(mouseWorldPosition, one.RegionInWorld, texture)
+      // Collider.IsPixelCollideForNpcObj(mouseWorldPosition, one.RegionInWorld, texture)
       if (interactionManager.isPointInNpcBounds(worldX, worldY, npc)) {
         interactionManager.setHoveredNpc(npc);
         return; // NPC found, don't check objects
@@ -385,15 +381,15 @@ export class InputHandler {
     }
 
     // Check Objects if no NPC found
-    // C# Reference: Player.cs - iterates ObjsInView for OutEdgeObj
+    // iterates ObjsInView for OutEdgeObj
     // 性能优化：使用 Update 阶段预计算的 objsInView，避免重复遍历
     const visibleObjs = objManager.objsInView;
     for (const obj of visibleObjs) {
-      // C# check: if (!one.IsInteractive || one.ScriptFileJustTouch > 0 || one.IsRemoved) continue;
+      // check: if (!one.IsInteractive || one.ScriptFileJustTouch > 0 || one.IsRemoved) continue;
       if (!obj.isInteractive || obj.scriptFileJustTouch > 0 || obj.isRemoved) continue;
 
       // Check if mouse is over Object (pixel collision or tile match)
-      // C#: if (mouseTilePosition == one.TilePosition || Collider.IsPixelCollideForNpcObj(...))
+      // if (mouseTilePosition == one.TilePosition || Collider.IsPixelCollideForNpcObj(...))
       if (
         interactionManager.isTileOnObj(mouseTile.x, mouseTile.y, obj) ||
         interactionManager.isPointInObjBounds(worldX, worldY, obj)
@@ -406,11 +402,11 @@ export class InputHandler {
 
   /**
    * Check if NPC is interactive
-   * C# Reference: Player.cs - !one.IsInteractive || !one.IsVisible || one.IsDeath
-   * C# IsInteractive = (HasInteractScript || HasInteractScriptRight || IsEnemy || IsFighterFriend || IsNoneFighter)
+   * !one.IsInteractive || !one.IsVisible || one.IsDeath
+   * IsInteractive = (HasInteractScript || HasInteractScriptRight || IsEnemy || IsFighterFriend || IsNoneFighter)
    */
   private isNpcInteractive(npc: Npc): boolean {
-    // C#: Character.IsInteractive property
+    // Character.IsInteractive property
     // Interactive if: has script, has right script, is enemy, is fighter friend, or is non-fighter
     return npc.isInteractive;
   }
@@ -418,9 +414,9 @@ export class InputHandler {
   /**
    * Handle mouse click
    * Enhanced with interaction manager support and ControledCharacter (驭魂术) support
-   * C# Reference: Player.HandleMouseInput - Ctrl+Click = attack, Alt+Click = jump
+   * Ctrl+Click = attack, Alt+Click = jump
    *
-   * C# 中交互只在 _lastMouseState.LeftButton == Released 时触发
+   * 中交互只在 _lastMouseState.LeftButton == Released 时触发
    * 这里通过 lastLeftButtonDown/lastRightButtonDown 模拟相同逻辑
    */
   handleClick(
@@ -432,7 +428,7 @@ export class InputHandler {
   ): void {
     const { guiManager, interactionManager, player, scriptExecutor, magicHandler } = this;
 
-    // C# Reference: _lastMouseState.LeftButton == ButtonState.Released
+    // _lastMouseState.LeftButton == ButtonState.Released
     // 只在"新按下"时触发交互，防止重复触发
     if (button === "left") {
       if (this.lastLeftButtonDown) {
@@ -447,7 +443,7 @@ export class InputHandler {
       this.lastRightButtonDown = true;
     }
 
-    // C#: CanInput = !Globals.IsInputDisabled && !ScriptManager.IsInRunningScript && MouseInBound()
+    // CanInput = !Globals.IsInputDisabled && !ScriptManager.IsInRunningScript && MouseInBound()
     // If script is running, only allow dialog clicks (handled by GUI blocking)
     if (guiManager.isBlockingInput()) {
       if (button === "left") {
@@ -462,16 +458,16 @@ export class InputHandler {
     }
 
     // ============= 驭魂术支持 =============
-    // C# Reference: var character = ControledCharacter ?? this
+    // character = ControledCharacter ?? this
     // 当控制其他角色时，操作转发到被控角色
     const activeCharacter = this.getActiveCharacter();
     const isControlling = this.isControllingCharacter();
 
-    // C#: if (ControledCharacter != null) _isRun = false;
+    // if (ControledCharacter != null) _isRun = false;
     // 控制状态下强制走路，不能跑
     const isRun = !isControlling && player.isRun;
 
-    // C# Reference: Player.HandleMouseInput - Alt+Left Click = jump
+    // Alt+Left Click = jump
     if (button === "left" && altKey) {
       // 跳跃会打断待处理的交互
       this.cancelPendingInteraction();
@@ -485,7 +481,7 @@ export class InputHandler {
       return;
     }
 
-    // C# Reference: Player.HandleMouseInput - Ctrl+Left Click = attack at position
+    // Ctrl+Left Click = attack at position
     // Note: This is an IMMEDIATE attack in place, NOT walk-then-attack
     if (button === "left" && ctrlKey) {
       // 攻击会打断待处理的交互
@@ -499,10 +495,9 @@ export class InputHandler {
     const hoverTarget = interactionManager.getHoverTarget();
 
     if (button === "left") {
-      // C# Reference: Player.HandleMouseInput
       // If hovering over enemy NPC, attack it (walk to and attack)
       if (hoverTarget.npc) {
-        // C#: Globals.OutEdgeNpc != ControledCharacter - 不能攻击自己控制的角色
+        // Globals.OutEdgeNpc != ControledCharacter - 不能攻击自己控制的角色
         if (isControlling && hoverTarget.npc === player.controledCharacter) {
           // 不做任何事，不能攻击被控角色
           return;
@@ -527,7 +522,7 @@ export class InputHandler {
 
       // 没有悬停目标时，移动到点击位置
       // 主动移动会打断任何待处理的交互
-      // C# Reference: 用户主动点击地面走路时，会覆盖 _interactiveTarget
+      // Reference: 用户主动点击地面走路时，会覆盖 _interactiveTarget
       this.cancelPendingInteraction();
       const clickedTile = pixelToTile(worldX, worldY);
       if (isRun && !isControlling) {
@@ -538,12 +533,12 @@ export class InputHandler {
       return;
     } else if (button === "right") {
       // Right click: alternate interaction (ScriptFileRight) or use magic
-      // C#: ControledCharacter == null - Can't use magic when controlling other character
+      // ControledCharacter == null - Can't use magic when controlling other character
 
-      // C# Reference: Player.cs - rightButtonPressed with HasInteractScriptRight
+      // rightButtonPressed with HasInteractScriptRight
       // 先检查是否有右键交互脚本
       if (hoverTarget.npc?.scriptFileRight) {
-        // C#: Globals.OutEdgeNpc != ControledCharacter
+        // Globals.OutEdgeNpc != ControledCharacter
         if (!(isControlling && hoverTarget.npc === player.controledCharacter)) {
           this.interactWithNpc(hoverTarget.npc, true);
           return;
@@ -555,7 +550,7 @@ export class InputHandler {
       }
 
       // 没有右键交互目标时，尝试使用武功
-      // C#: ControledCharacter == null - Can't use magic when controlling other character
+      // ControledCharacter == null - Can't use magic when controlling other character
       if (isControlling) {
         guiManager.showMessage("控制角色时无法使用武功");
         return;
@@ -568,7 +563,7 @@ export class InputHandler {
 
   /**
    * Attack an NPC - walk to target and attack
-   * C# Reference: Player.HandleMouseInput - click on enemy NPC
+   * click on enemy NPC
    */
   private attackNpc(npc: Npc): void {
     const player = this.player;
@@ -582,12 +577,12 @@ export class InputHandler {
 
   /**
    * Attack an NPC using specified character (for ControledCharacter support)
-   * C# Reference: Player.HandleMouseInput - character.Attacking(target.TilePosition, isRun)
+   * character.Attacking(target.TilePosition, isRun)
    */
   private attackNpcWithCharacter(attacker: Character, npc: Npc, isRun: boolean): void {
     const player = this.player;
 
-    // C#: if (ControledCharacter == null) { _autoAttackTarget = ... }
+    // if (ControledCharacter == null) { _autoAttackTarget = ... }
     // 只有玩家直接攻击时才设置自动攻击目标
     if (attacker === player) {
       player.setAutoAttackTarget(npc, isRun);
@@ -642,7 +637,7 @@ export class InputHandler {
 
   /**
    * Interact with an NPC
-   * C# Reference: Character.InteractWith(target)
+   * Reference: Character.InteractWith(target)
    * @param npc The NPC to interact with
    * @param useRightScript Use ScriptFileRight instead of ScriptFile
    */
@@ -655,7 +650,6 @@ export class InputHandler {
       return;
     }
 
-    // C# Reference: Character.GetInteractTargetInfo
     // For NPCs, interactDistance is DialogRadius (default 1)
     const interactDistance = npc.dialogRadius || 1;
     const canInteractDirectly = (npc.canInteractDirectly || 0) > 0;
@@ -683,7 +677,7 @@ export class InputHandler {
 
   /**
    * Execute the actual NPC interaction (turn, face, run script)
-   * C# Reference: Character.PerformeInteract, Character.StartInteract
+   * Character.StartInteract
    */
   private async executeNpcInteraction(npc: Npc, useRightScript: boolean): Promise<void> {
     const player = this.player;
@@ -692,7 +686,7 @@ export class InputHandler {
     const scriptFile = useRightScript ? npc.scriptFileRight : npc.scriptFile;
     if (!scriptFile) return;
 
-    // C# Reference: Character.StartInteract - turn to face each other
+    // turn to face each other
     const dx = npc.pixelPosition.x - player.pixelPosition.x;
     const dy = npc.pixelPosition.y - player.pixelPosition.y;
     player.setDirectionFromDelta(dx, dy);
@@ -707,7 +701,7 @@ export class InputHandler {
 
   /**
    * Interact with an Object
-   * C# Reference: Character.InteractWith(target)
+   * Reference: Character.InteractWith(target)
    * @param obj The object to interact with
    * @param useRightScript Use ScriptFileRight instead of ScriptFile
    */
@@ -719,7 +713,6 @@ export class InputHandler {
       return;
     }
 
-    // C# Reference: Character.GetInteractTargetInfo
     // For Objs, interactDistance is always 1
     const interactDistance = 1;
     const canInteractDirectly = (obj.canInteractDirectly || 0) > 0;
@@ -747,7 +740,6 @@ export class InputHandler {
 
   /**
    * Execute the actual Object interaction (turn, run script)
-   * C# Reference: Obj.StartInteract
    */
   private async executeObjInteraction(obj: Obj, useRightScript: boolean): Promise<void> {
     const { player, interactionManager, audioManager } = this;
@@ -756,7 +748,7 @@ export class InputHandler {
     if (!obj.canInteract(useRightScript)) return;
 
     // Play object sound effect if exists
-    // C# Reference: Obj.PlaySound() - called during interaction
+    // Reference: Obj.PlaySound() - called during interaction
     if (obj.hasSound && audioManager) {
       audioManager.playSound(obj.getSoundFile());
     }
@@ -779,9 +771,9 @@ export class InputHandler {
 
   /**
    * Walk player towards a target tile
-   * C# Reference: Character.InteractWith - 计算目标位置并处理障碍物
+   * 计算目标位置并处理障碍物
    *
-   * C# 算法：
+   * 算法：
    * 1. 计算从目标指向玩家方向，距离目标 interactDistance 的位置
    * 2. 如果该位置是障碍物，尝试所有 8 个方向
    * 3. 如果所有方向都不可达，放弃交互
@@ -789,7 +781,7 @@ export class InputHandler {
   private walkToTarget(targetTile: Vector2, interactDistance: number): void {
     const player = this.player;
 
-    // Use isometric tile distance (C#: PathFinder.GetViewTileDistance)
+    // Use isometric tile distance
     const dist = getViewTileDistance(player.tilePosition, targetTile);
 
     if (dist <= interactDistance) {
@@ -801,7 +793,7 @@ export class InputHandler {
     const destTile = this.findWalkableDestination(targetTile, interactDistance, isTileWalkable);
 
     if (!destTile) {
-      // C#: 所有方向都不可达，取消交互
+      // 所有方向都不可达，取消交互
       logger.log(
         `[InputHandler] Cannot find walkable path to target at (${targetTile.x}, ${targetTile.y})`
       );
@@ -819,7 +811,7 @@ export class InputHandler {
   /**
    * Find a walkable destination tile near target
    * Extracted from walkToTarget for reuse in update() retry logic
-   * C# Reference: Character.InteractWith - 尝试 8 个方向找可达位置
+   * 尝试 8 个方向找可达位置
    */
   private findWalkableDestination(
     targetTile: Vector2,
@@ -869,7 +861,6 @@ export class InputHandler {
 
   /**
    * Find a tile at specified distance in a direction from origin
-   * C# Reference: PathFinder.FindDistanceTileInDirection
    *
    * Key insight: In isometric maps, we can't just add direction * distance
    * because tiles don't follow simple Cartesian coordinates.
@@ -880,12 +871,12 @@ export class InputHandler {
     direction: Vector2,
     distance: number
   ): Vector2 {
-    // C#: if (direction == Vector2.Zero || tileDistance < 1) return tilePosition;
+    // if (direction == Vector2.Zero || tileDistance < 1) return tilePosition;
     if ((direction.x === 0 && direction.y === 0) || distance < 1) {
       return origin;
     }
 
-    // C#: for (var i = 0; i < tileDistance; i++) { neighbor = FindNeighborInDirection(neighbor, direction); }
+    // for (var i = 0; i < tileDistance; i++) { neighbor = FindNeighborInDirection(neighbor, direction); }
     let current = origin;
     for (let i = 0; i < distance; i++) {
       current = this.findNeighborInDirection(current, direction);
@@ -896,14 +887,14 @@ export class InputHandler {
 
   /**
    * Find neighbor tile in a specific direction
-   * C# Reference: PathFinder.FindNeighborInDirection(tilePosition, direction)
+   * Reference: PathFinder.FindNeighborInDirection(tilePosition, direction)
    */
   private findNeighborInDirection(tilePosition: Vector2, direction: Vector2): Vector2 {
     if (direction.x === 0 && direction.y === 0) {
       return tilePosition;
     }
 
-    // C#: return FindAllNeighbors(tilePosition)[Utils.GetDirectionIndex(direction, 8)];
+    // return FindAllNeighbors(tilePosition)[Utils.GetDirectionIndex(direction, 8)];
     const directionIndex = getDirectionFromVector(direction);
     const neighbors = this.getNeighbors(tilePosition);
     return neighbors[directionIndex];
@@ -911,7 +902,6 @@ export class InputHandler {
 
   /**
    * Get all 8 neighbors of a tile in isometric coordinates
-   * C# Reference: PathFinder.FindAllNeighbors
    * Direction layout:
    * 3  4  5
    * 2     6
@@ -950,7 +940,6 @@ export class InputHandler {
 
   /**
    * Check if tile has NPC or Obj obstacle
-   * C# Reference: Character.HasObstacle
    */
   private hasObstacle(tile: Vector2): boolean {
     const { npcManager, objManager } = this;
@@ -977,7 +966,7 @@ export class InputHandler {
 
   /**
    * Handle mouse button release
-   * C# Reference: 更新 _lastMouseState，允许下次点击触发交互
+   * Reference: 更新 _lastMouseState，允许下次点击触发交互
    */
   handleMouseUp(isRightButton: boolean): void {
     if (isRightButton) {
@@ -1003,7 +992,7 @@ export class InputHandler {
    */
   private async interactWithClosestNpc(): Promise<void> {
     const { player, npcManager } = this;
-    // Get closest interactive NPC within 13 tiles (matching C# MaxAutoInteractTileDistance)
+    // Get closest interactive NPC within 13 tiles
     let closestNpc: Npc | null = null;
     let closestDist = 13;
 
@@ -1025,14 +1014,14 @@ export class InputHandler {
 
   /**
    * Toggle sitting state (V key)
-   * C# Reference: Player.cs Update() - Keys.V handling
+   * Update() - Keys.V handling
    * if (IsSitting()) StandingImmediately();
    * else Sitdown();
    */
   private toggleSitting(): void {
     const player = this.player;
 
-    // C#: !IsPetrified && ControledCharacter == null
+    // !IsPetrified && ControledCharacter == null
     // For now we just check basic conditions
     if (player.isSitting()) {
       // Already sitting - stand up

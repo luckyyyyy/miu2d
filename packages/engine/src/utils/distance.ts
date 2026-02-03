@@ -24,7 +24,7 @@ export function tileDistance(a: Vector2, b: Vector2): number {
 
 /**
  * Calculate view tile distance in isometric coordinates
- * C# Reference: PathFinder.GetViewTileDistance -> GetTileDistanceOff
+ * > GetTileDistanceOff
  *
  * In isometric maps, the distance calculation must account for
  * the staggered row layout (even/odd rows have different neighbor offsets)
@@ -39,7 +39,7 @@ export function getViewTileDistance(startTile: Vector2, endTile: Vector2): numbe
   const endX = Math.floor(endTile.x);
   const endY = Math.floor(endTile.y);
 
-  // C#: If start and end tiles are not both at even row or odd row,
+  // If start and end tiles are not both at even row or odd row,
   // adjust the start position
   if (endY % 2 !== startY % 2) {
     // Change row to match parity

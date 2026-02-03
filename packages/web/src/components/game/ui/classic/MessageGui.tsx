@@ -2,7 +2,7 @@
  * MessageGui Component - based on JxqyHD Engine/Gui/MessageGui.cs
  * Displays system messages like level up notifications
  *
- * C# Reference: MessageGui.cs shows messages with auto-hide after 2 seconds
+ * shows messages with auto-hide after 2 seconds
  * Resources loaded from UI_Settings.ini [Message] and [Message_Text] sections
  */
 import type React from "react";
@@ -34,7 +34,7 @@ export const MessageGui: React.FC<MessageGuiProps> = ({
   const panelImage = useAsfImage(config?.panel.image || "asf/ui/message/msgbox.asf");
 
   // 计算面板位置
-  // C#: Position = new Vector2((Globals.WindowWidth - Width) / 2 + leftAdjust,
+  // Position = new Vector2((Globals.WindowWidth - Width) / 2 + leftAdjust,
   //                            Globals.WindowHeight - Height + topAdjust);
   const panelStyle = useMemo(() => {
     if (!config || !panelImage.width || !panelImage.height) return null;
@@ -54,7 +54,7 @@ export const MessageGui: React.FC<MessageGuiProps> = ({
   }, [screenWidth, screenHeight, panelImage.width, panelImage.height, config]);
 
   // 文本样式
-  // C#: TextGui 从 left 位置开始，文本从左往右排列
+  // TextGui 从 left 位置开始，文本从左往右排列
   const textStyle = useMemo((): React.CSSProperties | null => {
     if (!config) return null;
 

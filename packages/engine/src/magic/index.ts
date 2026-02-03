@@ -28,7 +28,7 @@ export {
 // Magic Renderer
 export { MagicRenderer, magicRenderer } from "./magicRenderer";
 // MagicSprite class (inherits from Sprite)
-// C# Reference: MagicSprite.cs - 武功精灵类
+// 武功精灵类
 export { MagicSprite, type WorkItem } from "./magicSprite";
 // Magic Manager (refactored)
 export { MagicManager, type MagicManagerDeps } from "./manager";

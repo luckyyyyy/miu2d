@@ -106,7 +106,6 @@ export class BuyManager {
 
   /**
    * Begin buying session
-   * C# Reference: BuyGui.BeginBuy
    */
   async beginBuy(
     listFileName: string,
@@ -177,7 +176,6 @@ export class BuyManager {
 
   /**
    * End buying session
-   * C# Reference: BuyGui.EndBuy
    */
   endBuy(): void {
     if (!this.state.isOpen) return;
@@ -191,7 +189,6 @@ export class BuyManager {
   /**
    * Buy a good
    * Returns true if purchase successful
-   * C# Reference: Player.BuyGood
    */
   async buyGood(
     index: number,
@@ -240,7 +237,6 @@ export class BuyManager {
 
   /**
    * Add a good to shop (for selling player items)
-   * C# Reference: BuyGui.AddGood
    */
   addGood(good: Good): void {
     if (!good) return;

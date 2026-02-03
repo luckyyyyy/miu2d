@@ -2,7 +2,7 @@
  * Direction calculation utilities
  * 方向计算工具
  *
- * C# Reference: Utils.GetDirectionIndex, Utils.GetDirection8List, Utils.GetDirection32List
+ * Utils.GetDirection8List, Utils.GetDirection32List
  * 方向从 South (0,1) 开始，顺时针 0-7 (8方向) 或 0-31 (32方向)
  */
 import type { Direction, Vector2 } from "../core/types";
@@ -11,7 +11,7 @@ import type { Direction, Vector2 } from "../core/types";
 
 /**
  * 8方向像素偏移（用于计算目标位置）
- * C# Reference: Utils.GetDirection8 返回的向量 * 某个距离
+ * 返回的向量 * 某个距离
  * 方向从 South 开始，顺时针 0-7
  */
 const DIRECTION_PIXEL_OFFSETS: readonly Vector2[] = [
@@ -44,7 +44,6 @@ const DIRECTION_TILE_OFFSETS: readonly Vector2[] = [
 
 /**
  * 获取方向索引 (支持任意方向数)
- * C# Reference: Utils.GetDirectionIndex
  * @param direction 方向向量
  * @param directionCount 方向数量 (通常为 8 或 32)
  * @returns 方向索引 (0 到 directionCount-1)
@@ -59,10 +58,10 @@ export function getDirectionIndex(direction: Vector2, directionCount: number): n
   const normX = direction.x / length;
   const normY = direction.y / length;
 
-  // Calculate angle from South (0, 1) - matches C# Vector2.Dot(direction, new Vector2(0, 1))
+  // Calculate angle from South (0, 1) - matches Vector2.Dot(direction, new Vector2(0, 1))
   // acos returns 0 when direction is (0,1), PI when direction is (0,-1)
   let angle = Math.acos(normY);
-  // C#: if (direction.X > 0) angle = twoPi - angle;
+  // if (direction.X > 0) angle = twoPi - angle;
   if (normX > 0) angle = TWO_PI - angle;
 
   // 2*PI / (2*directionCount) = PI / directionCount
@@ -75,7 +74,7 @@ export function getDirectionIndex(direction: Vector2, directionCount: number): n
 
 /**
  * Get direction from one tile to another (8 directions)
- * This implementation matches C# Utils.GetDirectionIndex
+ * This implementation matches Utils.GetDirectionIndex
  */
 export function getDirection(from: Vector2, to: Vector2): Direction {
   const dx = to.x - from.x;
@@ -86,7 +85,7 @@ export function getDirection(from: Vector2, to: Vector2): Direction {
 /**
  * Get 8-direction index from a direction vector
  * Direction 0 points South (down), clockwise
- * C# Reference: Utils.GetDirectionIndex()
+ * Reference: Utils.GetDirectionIndex()
  */
 export function getDirectionFromVector(direction: Vector2): Direction {
   return getDirectionIndex(direction, 8) as Direction;
@@ -114,7 +113,7 @@ export function getDirectionVector(direction: Direction): Vector2 {
 
 /**
  * 获取8方向向量（归一化）
- * C# Reference: Utils.GetDirection8List()
+ * Reference: Utils.GetDirection8List()
  * 方向从 South 开始，顺时针
  */
 export function getDirection8(index: number): Vector2 {
@@ -134,8 +133,8 @@ export function getDirection8(index: number): Vector2 {
 
 /**
  * 获取32方向列表
- * C# Reference: Utils.GetDirection32List()
- * 重要：C# 使用 (-sin, cos) 而不是 (cos, sin)
+ * Reference: Utils.GetDirection32List()
+ * 重要：原版使用 (-sin, cos) 而不是 (cos, sin)
  * 这使得 index=0 指向 South (0, 1)，顺时针旋转
  */
 export function getDirection32List(): Vector2[] {
@@ -200,7 +199,6 @@ export function getNeighborTileInDirection(tile: Vector2, directionIndex: number
 
 /**
  * 获取8方向偏移（用于墙类武功）
- * C# Reference: MagicManager.GetDirectionOffsetOf8
  * 根据方向索引返回用于创建武功墙的偏移量
  */
 export function getDirectionOffset8(direction: Vector2): Vector2 {
@@ -225,7 +223,7 @@ export function getDirectionOffset8(direction: Vector2): Vector2 {
 
 /**
  * 获取V字移动的偏移
- * C# Reference: AddVMoveMagicSprite uses origin - i * offset
+ * uses origin - i * offset
  * 方向 0 = South (下)
  */
 export function getVOffsets(directionIndex: number): Vector2[] {

@@ -98,7 +98,7 @@ export interface GoodRawData {
   changeMoveSpeedPercent: string;
   coldMilliSeconds: string;
 
-  // 扩展属性（C# 版本有）
+  // 扩展属性
   replaceMagic: string;
   useReplaceMagic: string;
   magicToUseWhenBeAttacked: string;
@@ -488,7 +488,7 @@ export class Good {
 
   /**
    * Get the effect type based on kind and part
-   * Based on C#'s Good.TheEffectType property
+   *  property
    */
   get theEffectType(): GoodEffectType {
     switch (this.kind) {

@@ -13,7 +13,7 @@ import { logger } from "../../core/logger";
 import { resourceLoader } from "../../resource/resourceLoader";
 
 /**
- * Level detail structure matching C#'s Utils.LevelDetail
+ * Level detail structure matching 's Utils.LevelDetail
  */
 export interface LevelDetail {
   /** Experience required to reach next level */
@@ -73,7 +73,7 @@ function createDefaultLevelDetail(): LevelDetail {
 
 /**
  * Parse level configuration INI file
- * Matches C#'s Utils.GetLevelLists implementation
+ * Matches 's Utils.GetLevelLists implementation
  *
  * @param content INI file content
  * @returns Map of level number to level detail
@@ -163,7 +163,7 @@ function parseLevelIni(content: string): Map<number, LevelDetail> {
 
 /**
  * Load level configuration from file
- * Matches C#'s Utils.GetLevelLists with caching
+ * Matches 's Utils.GetLevelLists with caching
  * Uses unified resourceLoader for caching parsed results
  *
  * @param filePath Path to level INI file
@@ -218,7 +218,7 @@ export interface LevelUpResult {
 
 /**
  * Calculate stat changes from level up
- * Matches C#'s Player.LevelUpTo logic
+ * Matches 's Player.LevelUpTo logic
  *
  * @param levelConfig Level configuration
  * @param fromLevel Current level
@@ -307,7 +307,7 @@ export function getNpcLevelDetail(level: number): LevelDetail | null {
  * LevelManager - 角色等级配置管理
  *
  * 每个 Character 持有一个实例，管理该角色的等级配置。
- * C# Reference: Character.LevelIni, Character.LevelIniFile
+ * Character.LevelIniFile
  */
 export class LevelManager {
   /** 等级配置文件路径 */
@@ -330,7 +330,7 @@ export class LevelManager {
 
   /**
    * 设置等级配置文件并加载
-   * C# Reference: SetLevelFile 命令 -> target.LevelIni = Utils.GetLevelLists(path)
+   * 命令 -> target.LevelIni = Utils.GetLevelLists(path)
    */
   async setLevelFile(filePath: string): Promise<void> {
     this._levelFile = filePath;
@@ -346,7 +346,6 @@ export class LevelManager {
 
   /**
    * 获取等级配置表
-   * C# Reference: Character.LevelIni
    */
   getLevelConfig(): Map<number, LevelDetail> | null {
     return this._levelConfig;
@@ -361,7 +360,7 @@ export class LevelManager {
 
   /**
    * 获取指定等级的配置详情
-   * C# Reference: LevelIni[level]
+   * Reference: LevelIni[level]
    */
   getLevelDetail(level: number): LevelDetail | null {
     return getLevelDetail(this._levelConfig, level);

@@ -1,5 +1,5 @@
 /**
- * Player 类 - 对应 C# Player.cs
+ * Player 类
  * 继承 Character，处理输入、升级、装备等玩家特有功能
  */
 
@@ -36,19 +36,19 @@ import { GoodEffectType } from "./goods/good";
 import { GoodsListManager } from "./goods/goodsListManager";
 import { MagicListManager } from "./magic/magicListManager";
 
-// C#: Thew cost constants from Player.cs
+// Thew cost constants from Player.cs
 const THEW_USE_AMOUNT_WHEN_RUN = 1;
 const THEW_USE_AMOUNT_WHEN_ATTACK = 5;
 const THEW_USE_AMOUNT_WHEN_JUMP = 10;
 const IS_USE_THEW_WHEN_NORMAL_RUN = false;
-// C#: Mana restore interval when sitting (ms)
+// Mana restore interval when sitting (ms)
 const SITTING_MANA_RESTORE_INTERVAL = 150;
 
-// C#: Restore percentages from Player.cs
+// Restore percentages from Player.cs
 const LIFE_RESTORE_PERCENT = 0.01;
 const THEW_RESTORE_PERCENT = 0.03;
 const MANA_RESTORE_PERCENT = 0.02;
-// C#: Restore interval (ms) - every 1 second
+// Restore interval (ms) - every 1 second
 const RESTORE_INTERVAL_MS = 1000;
 
 /** 玩家动作类型 */
@@ -59,11 +59,11 @@ export interface PlayerAction {
   itemSlot?: number;
 }
 
-/** Player 类 - 对应 C# Player.cs */
+/** Player 类*/
 export class Player extends Character {
   // === 角色索引（多主角系统）===
   /**
-   * 玩家角色索引 (C#: Globals.PlayerIndex)
+   * 玩家角色索引
    * 决定加载哪个 Player{index}.ini / Magic{index}.ini / Goods{index}.ini
    */
   private _playerIndex: number = 0;
@@ -108,11 +108,11 @@ export class Player extends Character {
   private _autoAttackTimer: number = 0;
   private _autoAttackIsRun: boolean = false;
 
-  // C#: ControledCharacter - Character currently being controlled by player
+  // Character currently being controlled by player
   // Used by magic like "驭魂术" (soul control) to take over an NPC
   private _controledCharacter: Character | null = null;
 
-  // C#: SpecialAttackTexture - 修炼武功的特殊攻击动画
+  // 修炼武功的特殊攻击动画
   // 当 XiuLianMagic 有 ActionFile 时加载的 ASF 数据
   private _specialAttackTexture: AsfData | null = null;
 
@@ -120,14 +120,14 @@ export class Player extends Character {
   // 这样在攻击时不需要异步加载，直接使用
   private _xiuLianAttackMagic: MagicData | null = null;
 
-  // C#: NpcIniIndex - 从 npcIni 文件名中提取的数字索引
+  // 从 npcIni 文件名中提取的数字索引
   // 用于构建 SpecialAttackTexture 路径：ActionFile + NpcIniIndex + ".asf"
   private _npcIniIndex: number = 1;
 
   // Equipment effects
   private _isNotUseThewWhenRun: boolean = false;
   private _isManaRestore: boolean = false;
-  // C#: SetFlyIniAdditionalEffect - 武器的附加效果（中毒/冰冻/石化）
+  // 武器的附加效果（中毒/冰冻/石化）
   private _flyIniAdditionalEffect: MagicAddonEffect = MagicAddonEffect.None;
   private _addLifeRestorePercent: number = 0;
   private _addManaRestorePercent: number = 0;
@@ -139,7 +139,7 @@ export class Player extends Character {
   private _manaLimit: boolean = false;
   private _currentUseMagicIndex: number = 0;
 
-  // === ReplacedMagic (C#: Dictionary<string, Magic> _replacedMagic) ===
+  // === ReplacedMagic ===
   // 装备带来的武功替换：key=原武功文件名, value=替换后的武功数据
   // 例如某装备让"火球术"变成"大火球术"
   private _replacedMagic: Map<string, MagicData> = new Map();
@@ -155,7 +155,7 @@ export class Player extends Character {
   private _onMoneyChange: (() => void) | null = null;
   private _pendingAction: PlayerAction | null = null;
   // _magicSpritesInEffect 已在 Character 基类中定义
-  // C# Reference: _magicDestination, _magicTarget in Character.cs
+  // _magicDestination, _magicTarget in Character.cs
   private _pendingMagic: {
     magic: MagicData;
     origin: Vector2;
@@ -172,7 +172,7 @@ export class Player extends Character {
     // Walkability 现在通过 IEngineContext.map 获取
 
     // Set default player config
-    // C#: Player 没有显式设置 Relation，继承 Character 默认值 0 (Friend)
+    // Player 没有显式设置 Relation，继承 Character 默认值 0 (Friend)
     // 但 IsPlayer 通过 Kind 判断，不依赖 Relation
     this.name = "杨影枫";
     this.setNpcIni("z-杨影枫.ini");
@@ -206,13 +206,13 @@ export class Player extends Character {
   }
 
   /**
-   * C#: Player.SetNpcIni - 设置 npcIni 并提取 NpcIniIndex
+   * 设置 npcIni 并提取 NpcIniIndex
    * NpcIniIndex 用于构建 SpecialAttackTexture 路径
    */
   setNpcIni(fileName: string): void {
     this.npcIni = fileName;
 
-    // C#: private static readonly Regex NpcIniIndexRegx = new Regex(@".*([0-9]+)\.ini");
+    // private static readonly Regex NpcIniIndexRegx = new Regex(@".*([0-9]+)\.ini");
     // 从文件名中提取数字索引，例如 "z-杨影枫1.ini" -> 1
     const match = fileName.match(/.*?(\d+)\.ini$/i);
     if (match) {
@@ -229,7 +229,7 @@ export class Player extends Character {
     // 通知 MagicListManager 更新 npcIniIndex（用于预加载 SpecialAttackTexture）
     this._magicListManager.setNpcIniIndex(this._npcIniIndex);
 
-    // C#: XiuLianMagic = XiuLianMagic; // Renew xiulian magic
+    // XiuLianMagic = XiuLianMagic; // Renew xiulian magic
     // 同步获取已预加载的资源
     const xiuLianMagic = this._magicListManager.getXiuLianMagic();
     this.updateSpecialAttackTexture(xiuLianMagic);
@@ -243,17 +243,17 @@ export class Player extends Character {
   }
 
   /**
-   * C#: XiuLianMagic setter - 更新 SpecialAttackTexture
+   * XiuLianMagic setter - 更新 SpecialAttackTexture
    * 当修炼武功改变时，同步获取预加载的资源
    * 注意：所有资源已在 MagicListManager._setMagicItemAt 中预加载
    */
   private updateSpecialAttackTexture(xiuLianMagic: MagicItemInfo | null): void {
-    // C#: if (_xiuLianMagic != null &&
+    // if (_xiuLianMagic != null &&
     //         _xiuLianMagic.TheMagic.AttackFile != null &&
     //         !string.IsNullOrEmpty(_xiuLianMagic.TheMagic.ActionFile))
     //     asf = Utils.GetAsf(@"asf\character\", _xiuLianMagic.TheMagic.ActionFile + NpcIniIndex + ".asf");
     if (xiuLianMagic?.magic?.attackFile && xiuLianMagic.magic.actionFile) {
-      // C#: {ActionFile}{NpcIniIndex}.asf
+      // {ActionFile}{NpcIniIndex}.asf
       const asfFileName = `${xiuLianMagic.magic.actionFile}${this._npcIniIndex}.asf`;
 
       // 同步从缓存获取 SpecialAttackTexture（已在 MagicListManager 中预加载）
@@ -271,7 +271,7 @@ export class Player extends Character {
       }
 
       // 同步从缓存获取修炼武功的 AttackFile（已在 MagicListManager 中预加载）
-      // C#: AttackFile = new Magic(path, noLevel=true, noAttackFile=true)
+      // AttackFile = new Magic(path, noLevel=true, noAttackFile=true)
       const baseMagic = getCachedMagic(xiuLianMagic.magic.attackFile);
       if (baseMagic) {
         this._xiuLianAttackMagic = baseMagic;
@@ -303,10 +303,10 @@ export class Player extends Character {
   }
 
   /**
-   * C#: override HasObstacle(tilePosition)
+   * override HasObstacle(tilePosition)
    * Player 版本检查 NPC、Obj、Magic 障碍，但不检查地图障碍
    *
-   * C#: return (NpcManager.IsObstacle(tilePosition) ||
+   * return (NpcManager.IsObstacle(tilePosition) ||
    *            ObjManager.IsObstacle(tilePosition) ||
    *            MagicManager.IsObstacle(tilePosition));
    */
@@ -348,7 +348,7 @@ export class Player extends Character {
   /**
    * 应用武功列表中的 FlyIni 效果
    * 在游戏加载后调用，把武功列表中武功的 FlyIni/FlyIni2 应用到玩家身上
-   * C# Reference: Player.LoadMagicEffect(MagicItemInfo[] infos)
+   * Reference: Player.LoadMagicEffect(MagicItemInfo[] infos)
    */
   loadMagicEffect(): void {
     const allMagicInfos = this._magicListManager.getAllMagicInfos();
@@ -357,7 +357,7 @@ export class Player extends Character {
       if (!info.magic) continue;
 
       // MagicToUseWhenBeAttacked - 被攻击时使用的武功
-      // C# Reference: 武功有 MagicToUseWhenBeAttacked 属性，会添加到 MagicToUseWhenAttackedList
+      // Reference: 武功有 MagicToUseWhenBeAttacked 属性，会添加到 MagicToUseWhenAttackedList
       // 此功能待实现：需要在 CharacterBase 中添加 magicToUseWhenAttackedList 并在被击时触发
 
       // FlyIni - 添加飞行动画替换
@@ -401,7 +401,7 @@ export class Player extends Character {
   // === Properties ===
 
   /**
-   * C# Reference: Player.PathType override
+   * override
    * Player uses PerfectMaxPlayerTry when _pathFinder=1, otherwise PathOneStep
    */
   override getPathType(): PathType {
@@ -420,7 +420,7 @@ export class Player extends Character {
   }
 
   /**
-   * C#: ControledCharacter - Currently controlled character
+   * Currently controlled character
    * Used by soul control magic to take over NPCs
    */
   get controledCharacter(): Character | null {
@@ -433,20 +433,19 @@ export class Player extends Character {
 
   /**
    * 结束控制角色
-   * C# Reference: Player.EndControlCharacter
    *
    * 释放当前被控制的角色，清除相关状态
    */
   endControlCharacter(): void {
     if (this._controledCharacter !== null) {
-      // C#: NpcManager.CleartFollowTargetIfEqual(ControledCharacter)
+      // NpcManager.CleartFollowTargetIfEqual(ControledCharacter)
       // 清除其他 NPC 对被控制角色的追踪
       this.engine.npcManager.cleartFollowTargetIfEqual(this._controledCharacter);
 
-      // C#: ControledCharacter.ControledMagicSprite = null
+      // ControledCharacter.ControledMagicSprite = null
       this._controledCharacter.controledMagicSprite = null;
 
-      // C#: ControledCharacter = null
+      // ControledCharacter = null
       this._controledCharacter = null;
 
       logger.log("[Player] EndControlCharacter: released controlled character");
@@ -529,7 +528,6 @@ export class Player extends Character {
 
   /**
    * Override: 显示消息给玩家
-   * C# Reference: GuiManager.ShowMessage
    */
   protected override showMessage(message: string): void {
     if (this.guiManager) {
@@ -541,12 +539,12 @@ export class Player extends Character {
 
   /**
    * Handle input for movement
-   * Based on C# Player.cs Update()
+   *  Update()
    */
   handleInput(input: InputState, _cameraX: number, _cameraY: number): PlayerAction | null {
     this._pendingAction = null;
 
-    // C# Reference: PerformActionOk() - 在 Magic/Attack/Jump/Hurt/Death 等状态下不能移动
+    // Reference: PerformActionOk() - 在 Magic/Attack/Jump/Hurt/Death 等状态下不能移动
     if (!this.canPerformAction()) {
       logger.debug(`[Player.handleInput] BLOCKED: canPerformAction=false, state=${this._state}`);
       return null;
@@ -555,7 +553,7 @@ export class Player extends Character {
     // Determine run mode
     this._isRun = this.canRun(input.isShiftDown);
 
-    // C# Reference: if (ControledCharacter == null) { HandleMoveKeyboardInput(); }
+    // if (ControledCharacter == null) { HandleMoveKeyboardInput(); }
     // 控制其他角色时不处理键盘移动（由鼠标控制被控角色移动）
     if (this._controledCharacter === null) {
       // Handle keyboard movement (highest priority)
@@ -599,7 +597,7 @@ export class Player extends Character {
       // );
 
       // Cancel auto attack when moving to a new location
-      // C# Reference: Player.HandleMouseInput - _autoAttackTarget = null when walking
+      // _autoAttackTarget = null when walking
       this.cancelAutoAttack();
 
       let success = false;
@@ -652,7 +650,7 @@ export class Player extends Character {
     if (!this.canRunCheck()) return false;
 
     if (!this._isNotUseThewWhenRun) {
-      // C#: if (IsInFighting || Globals.IsUseThewWhenNormalRun)
+      // if (IsInFighting || Globals.IsUseThewWhenNormalRun)
       if (this._isInFighting || IS_USE_THEW_WHEN_NORMAL_RUN) {
         this.thew = Math.max(0, this.thew - THEW_USE_AMOUNT_WHEN_RUN);
       }
@@ -661,44 +659,44 @@ export class Player extends Character {
   }
 
   /**
-   * C# Reference: Player.CanJump()
+   * Reference: Player.CanJump()
    * Override to check and consume thew for jumping
    * Player needs thew to jump, NPC's don't
    */
   protected override canJump(): boolean {
-    // C#: if (IsJumpDisabled || NpcIni == null || !NpcIni.ContainsKey(Jump) || NpcIni[Jump].Image == null)
+    // if (IsJumpDisabled || NpcIni == null || !NpcIni.ContainsKey(Jump) || NpcIni[Jump].Image == null)
     if (this.isJumpDisabled) {
       return false;
     }
 
-    // C#: IsStateImageOk check - inherited from Character
+    // IsStateImageOk check - inherited from Character
     if (!this.isStateImageOk(CharacterState.Jump)) {
       return false;
     }
 
-    // C#: if (Thew < ThewUseAmountWhenJump) { GuiManager.ShowMessage("体力不足!"); return false; }
+    // if (Thew < ThewUseAmountWhenJump) { GuiManager.ShowMessage("体力不足!"); return false; }
     if (this.thew < THEW_USE_AMOUNT_WHEN_JUMP) {
       this.guiManager?.showMessage("体力不足!");
       return false;
     }
 
-    // C#: else { Thew -= ThewUseAmountWhenJump; return true; }
+    // else { Thew -= ThewUseAmountWhenJump; return true; }
     this.thew -= THEW_USE_AMOUNT_WHEN_JUMP;
     return true;
   }
 
   /**
-   * C# Reference: Player.CanAttack()
+   * Reference: Player.CanAttack()
    * Check and consume thew for attacking
    */
   private canAttack(): boolean {
-    // C#: if (Thew < ThewUseAmountWhenAttack) { GuiManager.ShowMessage("体力不足!"); return false; }
+    // if (Thew < ThewUseAmountWhenAttack) { GuiManager.ShowMessage("体力不足!"); return false; }
     if (this.thew < THEW_USE_AMOUNT_WHEN_ATTACK) {
       this.guiManager?.showMessage("体力不足!");
       return false;
     }
 
-    // C#: else { Thew -= ThewUseAmountWhenAttack; return true; }
+    // else { Thew -= ThewUseAmountWhenAttack; return true; }
     this.thew -= THEW_USE_AMOUNT_WHEN_ATTACK;
     return true;
   }
@@ -732,21 +730,21 @@ export class Player extends Character {
 
   /**
    * Move in a direction
-   * C# Reference: Player.MoveToDirection(int direction)
-   * C# 使用 WalkTo/RunTo 而不是直接设置 path，确保经过完整的寻路和障碍物检测
+   * direction)
+   * 使用 WalkTo/RunTo 而不是直接设置 path，确保经过完整的寻路和障碍物检测
    *
-   * 注意：Direction 枚举（0=North）和 C# 的方向索引（0=South）不同，需要转换
+   * 注意：Direction 枚举（0=North）和原版的方向索引（0=South）不同，需要转换
    * Direction 枚举:    0=N, 1=NE, 2=E, 3=SE, 4=S, 5=SW, 6=W, 7=NW
-   * C# 邻居数组索引:   0=S, 1=SW, 2=W, 3=NW, 4=N, 5=NE, 6=E, 7=SE
+   * 邻居数组索引:   0=S, 1=SW, 2=W, 3=NW, 4=N, 5=NE, 6=E, 7=SE
    *
    * Enhancement: When primary direction is blocked, try adjacent directions
    * to allow smoother movement around obstacles (especially for mobile joystick)
    */
   private moveInDirection(direction: Direction, isRun: boolean = false): void {
-    // 将 Direction 枚举转换为 C# 的邻居数组索引
+    // 将 Direction 枚举转换为原版的邻居数组索引
     // Direction: 0=N, 1=NE, 2=E, 3=SE, 4=S, 5=SW, 6=W, 7=NW
-    // C# index:  0=S, 1=SW, 2=W, 3=NW, 4=N, 5=NE, 6=E, 7=SE
-    // 映射: Direction -> C# index
+    // index:  0=S, 1=SW, 2=W, 3=NW, 4=N, 5=NE, 6=E, 7=SE
+    // 映射: Direction -> 原版 index
     // N(0)->4, NE(1)->5, E(2)->6, SE(3)->7, S(4)->0, SW(5)->1, W(6)->2, NW(7)->3
     const directionToCSharpIndex = [4, 5, 6, 7, 0, 1, 2, 3];
     const primaryCSharpDir = directionToCSharpIndex[direction];
@@ -772,7 +770,6 @@ export class Player extends Character {
         continue;
       }
 
-      // C# Reference: Player.MoveToDirection
       // Convert back to Direction enum for _currentDirection
       const csharpToDirection = [4, 5, 6, 7, 0, 1, 2, 3]; // inverse mapping
       this._currentDirection = csharpToDirection[csharpDirIndex] as Direction;
@@ -832,7 +829,7 @@ export class Player extends Character {
     this.path = [];
     this._isMoving = false;
     this._targetPosition = null;
-    // C#: Use FightStand if in fighting mode
+    // Use FightStand if in fighting mode
     if (this._isInFighting && this.isStateImageOk(CharacterState.FightStand)) {
       this.state = CharacterState.FightStand;
     } else {
@@ -846,13 +843,13 @@ export class Player extends Character {
 
   /**
    * Start sitting action
-   * C# Reference: Character.Sitdown()
+   * Reference: Character.Sitdown()
    * - Sets state to Sit
    * - Plays sit animation (FrameEnd - FrameBegin frames)
    * - Calls OnSitDown() hook
    */
   sitdown(): void {
-    // C#: if (PerformActionOk() && IsStateImageOk(CharacterState.Sit))
+    // if (PerformActionOk() && IsStateImageOk(CharacterState.Sit))
     if (!this.canPerformAction()) {
       return;
     }
@@ -866,7 +863,7 @@ export class Player extends Character {
 
     // Set state to Sit and play sit animation
     this.state = CharacterState.Sit;
-    // C#: PlayFrames(FrameEnd - FrameBegin) - NOT PlayCurrentDirOnce()
+    // NOT PlayCurrentDirOnce()
     // PlayFrames(n) plays n frames starting from current frame
     // So PlayFrames(FrameEnd - FrameBegin) stops exactly at FrameEnd
     // (e.g., if FrameBegin=0, FrameEnd=5, plays frames 0,1,2,3,4 then stops at frame 5)
@@ -878,7 +875,7 @@ export class Player extends Character {
 
   /**
    * Override standingImmediately to reset Player-specific sitting timer
-   * C# Reference: Player.cs only - _sittedMilliseconds is Player-specific
+   * only - _sittedMilliseconds is Player-specific
    * Note: _isSitted is now reset in Character.standingImmediately()
    */
   override standingImmediately(): void {
@@ -890,9 +887,9 @@ export class Player extends Character {
 
   /**
    * Walk/run to target and attack when in range (used when clicking on enemy NPC)
-   * 1:1 复刻 C# Character.Attacking(Vector2 destinationTilePosition, bool isRun)
+   * 1:1 复刻Character.Attacking(Vector2 destinationTilePosition, bool isRun)
    *
-   * C# 原版逻辑:
+   * 原版逻辑:
    * public void Attacking(Vector2 destinationTilePosition, bool isRun = false)
    * {
    *     if (PerformActionOk() &&
@@ -913,27 +910,27 @@ export class Player extends Character {
    * - performeAttack() = IMMEDIATE attack in place (used for Ctrl+Click)
    */
   attacking(destinationTilePosition: Vector2, isRun: boolean = false): void {
-    // C#: if (PerformActionOk() && (IsStateImageOk(Attack) || ...))
+    // if (PerformActionOk() && (IsStateImageOk(Attack) || ...))
     // 只有当可以执行动作时才处理（不在攻击/跳跃/死亡等动画中）
     if (!this.canPerformAction()) {
       return;
     }
 
-    // C#: Check if attack state image is available
+    // Check if attack state image is available
     // 简化：假设攻击状态图像总是可用
     // if (!this.isStateImageOk(CharacterState.Attack)) return;
 
-    // C#: _isRunToTarget = isRun;
+    // _isRunToTarget = isRun;
     this._isRunToTarget = isRun;
 
-    // C#: DestinationAttackTilePosition = destinationTilePosition;
+    // DestinationAttackTilePosition = destinationTilePosition;
     this._destinationAttackTilePosition = {
       x: destinationTilePosition.x,
       y: destinationTilePosition.y,
     };
 
-    // C#: Magic magicToUse;
-    // C#: if (AttackingIsOk(out magicToUse)) PerformeAttack(magicToUse);
+    // Magic magicToUse;
+    // if (AttackingIsOk(out magicToUse)) PerformeAttack(magicToUse);
     // AttackingIsOk 会处理移动（如果距离不够）或返回 true（如果可以攻击）
     const result = this.attackingIsOk();
 
@@ -947,9 +944,9 @@ export class Player extends Character {
 
   /**
    * Update auto attack behavior
-   * 1:1 复刻 C# Player.UpdateAutoAttack(GameTime gameTime)
+   * 1:1 复刻Player.UpdateAutoAttack(GameTime gameTime)
    *
-   * C# 原版逻辑:
+   * 原版逻辑:
    * public void UpdateAutoAttack(GameTime gameTime)
    * {
    *     if(_autoAttackTarget != null)
@@ -972,7 +969,7 @@ export class Player extends Character {
    */
   updateAutoAttack(deltaTime: number): void {
     if (this._autoAttackTarget !== null) {
-      // C#: 检查目标是否仍然有效
+      // 检查目标是否仍然有效
       // if (_autoAttackTarget.IsDeathInvoked || !_autoAttackTarget.IsEnemy || !NpcManager.HasNpc(_autoAttackTarget))
       if (
         this._autoAttackTarget.isDeathInvoked ||
@@ -981,16 +978,16 @@ export class Player extends Character {
       ) {
         this._autoAttackTarget = null;
       } else {
-        // C#: _autoAttackTimer += (float)gameTime.ElapsedGameTime.TotalMilliseconds;
+        // _autoAttackTimer += (float)gameTime.ElapsedGameTime.TotalMilliseconds;
         this._autoAttackTimer += deltaTime * 1000;
         // 只在调用 attacking 时打印日志，避免每帧刷屏
 
-        // C#: if (_autoAttackTimer >= 100)
+        // if (_autoAttackTimer >= 100)
         if (this._autoAttackTimer >= 100) {
-          // C#: _autoAttackTimer -= 100;
+          // = 100;
           this._autoAttackTimer -= 100;
 
-          // C#: Attacking(_autoAttackTarget.TilePosition, _autoAttackIsRun);
+          // Attacking(_autoAttackTarget.TilePosition, _autoAttackIsRun);
           // 关键：使用目标的**当前位置**，这样如果目标移动了，玩家会跟随
           const targetPos = this._autoAttackTarget.tilePosition;
           this.attacking(targetPos, this._autoAttackIsRun);
@@ -1001,7 +998,7 @@ export class Player extends Character {
 
   /**
    * 检查玩家当前位置是否有可自动触发的物体脚本
-   * C# Reference: Player.UpdateTouchObj()
+   * Reference: Player.UpdateTouchObj()
    *
    * 当玩家站在有 ScriptFileJustTouch > 0 的物体位置上时，
    * 自动运行该物体的脚本（通常用于陷阱、机关等）
@@ -1029,7 +1026,7 @@ export class Player extends Character {
 
   /**
    * Perform attack at a target position (IMMEDIATE attack in place)
-   * C# Reference: Character.PerformeAttack(Vector2 destinationPositionInWorld, Magic magicToUse)
+   * destinationPositionInWorld, Magic magicToUse)
    *
    * NOTE: This is different from attacking():
    * - performeAttack() = IMMEDIATE attack in place, face target direction (used for Ctrl+Click)
@@ -1038,30 +1035,30 @@ export class Player extends Character {
    * @param destinationPixelPosition Target position in pixel coordinates (direction to face)
    */
   performeAttack(destinationPixelPosition: Vector2): void {
-    // C#: if (PerformActionOk())
+    // if (PerformActionOk())
     if (!this.canPerformAction()) {
       return;
     }
 
-    // C#: if (!CanPerformeAttack()) return;
+    // if (!CanPerformeAttack()) return;
     // CanPerformeAttack() checks DisableSkillMilliseconds <= 0
     if (this.disableSkillMilliseconds > 0) {
       return;
     }
 
-    // C# Reference: Player.PerformeAttack() calls CanAttack() to check/consume thew
+    // Reference: Player.PerformeAttack() calls CanAttack() to check/consume thew
     if (!this.canAttack()) {
       return;
     }
 
-    // C#: StateInitialize(); ToFightingState();
+    // StateInitialize(); ToFightingState();
     this.toFightingState();
 
     // Set up attack direction
     const direction = getDirection(this.pixelPosition, destinationPixelPosition);
     this._currentDirection = direction;
 
-    // C#: Random attack state (Attack, Attack1, Attack2)
+    // Random attack state (Attack, Attack1, Attack2)
     const randomValue = Math.floor(Math.random() * 3);
     let chosenState = CharacterState.Attack;
     if (randomValue === 1 && this.isStateImageOk(CharacterState.Attack1)) {
@@ -1072,7 +1069,7 @@ export class Player extends Character {
 
     this.state = chosenState;
 
-    // C#: OnPerformeAttack() - 如果是 Attack2 且有 SpecialAttackTexture，使用它
+    // 如果是 Attack2 且有 SpecialAttackTexture，使用它
     this.onPerformeAttack();
 
     // Play animation once
@@ -1083,13 +1080,13 @@ export class Player extends Character {
 
     // BUG FIX: Set the magic to use when attack animation completes
     // This was missing - causing player attacks to never fire magic sprites
-    // C#: _magicToUseWhenAttack = GetRamdomMagicWithUseDistance(AttackRadius);
+    // _magicToUseWhenAttack = GetRamdomMagicWithUseDistance(AttackRadius);
     this._magicToUseWhenAttack = this.getRandomMagicWithUseDistance(this.getAttackRadius());
   }
 
   /**
    * 获取替换后的武功（考虑装备带来的武功替换）
-   * C# Reference: Player.UseMagic - _replacedMagic 检查
+   * _replacedMagic 检查
    * @param magic 原始武功
    * @returns 替换后的武功（如果有替换）或原始武功
    */
@@ -1099,7 +1096,7 @@ export class Player extends Character {
     let replaced = this._replacedMagic.get(magic.fileName);
     if (!replaced) return magic;
 
-    // C#: if (magic.CurrentLevel != magicUse.CurrentLevel) magic = magic.GetLevel(...)
+    // if (magic.CurrentLevel != magicUse.CurrentLevel) magic = magic.GetLevel(...)
     // 如果替换武功的等级与原武功不同，获取正确等级
     if (replaced.currentLevel !== magic.currentLevel) {
       const leveledMagic = getMagicAtLevel(replaced, magic.currentLevel);
@@ -1109,7 +1106,7 @@ export class Player extends Character {
       }
     }
 
-    // C#: magic.CopyInfo(magicUse) - 复制附加效果
+    // 复制附加效果
     // 注意：这里创建一个浅拷贝以避免修改原始数据
     return {
       ...replaced,
@@ -1119,7 +1116,7 @@ export class Player extends Character {
 
   /**
    * 添加装备的武功替换
-   * C# Reference: Player.Equiping - _replacedMagic[equip.ReplaceMagic] = Utils.GetMagic(equip.UseReplaceMagic)
+   * _replacedMagic[equip.ReplaceMagic] = Utils.GetMagic(equip.UseReplaceMagic)
    */
   addReplacedMagic(originalMagicFileName: string, replacementMagic: MagicData): void {
     this._replacedMagic.set(originalMagicFileName, replacementMagic);
@@ -1130,7 +1127,7 @@ export class Player extends Character {
 
   /**
    * 移除装备的武功替换
-   * C# Reference: Player.UnEquiping - _replacedMagic.Remove(equip.ReplaceMagic)
+   * _replacedMagic.Remove(equip.ReplaceMagic)
    */
   removeReplacedMagic(originalMagicFileName: string): void {
     this._replacedMagic.delete(originalMagicFileName);
@@ -1139,7 +1136,7 @@ export class Player extends Character {
 
   /**
    * Override: 攻击动画结束时发射武功
-   * C#: MagicManager.UseMagic(this, _magicToUseWhenAttack, PositionInWorld, _attackDestination)
+   * MagicManager.UseMagic(this, _magicToUseWhenAttack, PositionInWorld, _attackDestination)
    *
    * 战斗中同步获取缓存（武功应在 addMagic 时预加载）
    */
@@ -1163,10 +1160,10 @@ export class Player extends Character {
     // 使用玩家等级获取武功
     let magicAtLevel = getMagicAtLevel(magic, this.level);
 
-    // C# Reference: Player.UseMagic - 检查 _replacedMagic 并替换
+    // 检查 _replacedMagic 并替换
     magicAtLevel = this.getReplacedMagic(magicAtLevel);
 
-    // C# Reference: Character.Equiping/SetFlyIniAdditionalEffect
+    // Reference: Character.Equiping/SetFlyIniAdditionalEffect
     // 应用武器的附加效果（中毒/冰冻/石化）到武功上
     if (this._flyIniAdditionalEffect !== MagicAddonEffect.None) {
       magicAtLevel = {
@@ -1189,34 +1186,34 @@ export class Player extends Character {
   }
 
   /**
-   * C#: Player.OnPerformeAttack()
+   * Player.OnPerformeAttack()
    * 攻击开始时，如果是 Attack2 状态且有 SpecialAttackTexture，使用它
    */
   protected override onPerformeAttack(): void {
-    // C#: if (SpecialAttackTexture != null && State == (int)CharacterState.Attack2)
+    // if (SpecialAttackTexture != null && State == (int)CharacterState.Attack2)
     //     Texture = SpecialAttackTexture;
     if (this._specialAttackTexture !== null && this.state === CharacterState.Attack2) {
-      // 使用预加载的 SpecialAttackTexture（与 C# 一致，同步设置）
+      // 使用预加载的 SpecialAttackTexture（与原版一致，同步设置）
       this.texture = this._specialAttackTexture;
     }
   }
 
   /**
    * Called when attack animation completes
-   * C# Reference: Character.OnAttacking(_attackDestination)
+   * Reference: Character.OnAttacking(_attackDestination)
    *
-   * 在 C# 中，Player 覆盖 OnAttacking 来处理修炼武功的 AttackFile。
+   * 在原版中，Player 覆盖 OnAttacking 来处理修炼武功的 AttackFile。
    * 普通攻击的伤害通过 FlyIni 武功发射 MagicSprite 来处理。
    * 武功发射现在在基类的 useMagicWhenAttack 中处理。
    */
   protected override onAttacking(): void {
-    // C#: Player.OnAttacking - 如果是 Attack2 且有修炼武功的 AttackFile，释放它
+    // 如果是 Attack2 且有修炼武功的 AttackFile，释放它
     // if (State == (int)CharacterState.Attack2 && XiuLianMagic?.TheMagic?.AttackFile != null)
     //   MagicManager.UseMagic(this, XiuLianMagic.TheMagic.AttackFile, PositionInWorld, _attackDestination);
     if (this.state === CharacterState.Attack2 && this._attackDestination) {
       // 使用预加载的修炼武功攻击魔法
       if (this._xiuLianAttackMagic && this.magicManager) {
-        // C# Reference: SetFlyIniAdditionalEffect - 应用武器的附加效果
+        // 应用武器的附加效果
         let magicToUse: MagicData = this._xiuLianAttackMagic;
         if (this._flyIniAdditionalEffect !== MagicAddonEffect.None) {
           magicToUse = {
@@ -1240,33 +1237,33 @@ export class Player extends Character {
   }
 
   // ========== ReplaceMagicList Overrides ==========
-  // C# Reference: Player.OnReplaceMagicList, OnRecoverFromReplaceMagicList
+  // Player.OnReplaceMagicList, OnRecoverFromReplaceMagicList
 
   /**
    * 替换武功列表事件 - Player 特有实现
-   * C# Reference: Player.OnReplaceMagicList (override)
-   * 注意：Player 完全覆盖此方法，不调用基类（与 C# 一致）
+   * (override)
+   * 注意：Player 完全覆盖此方法，不调用基类（与原版一致）
    * Player 只处理 MagicListManager，不处理 flyIniInfos
    */
   protected override onReplaceMagicList(reasonMagic: MagicData, listStr: string): void {
     if (!listStr) return;
 
-    // C#: Player 不调用 base.OnReplaceMagicList，直接处理 MagicListManager
+    // Player 不调用 base.OnReplaceMagicList，直接处理 MagicListManager
 
     // 保存当前使用的武功索引
     const currentIndex = this.currentUseMagicIndex;
 
-    // C#: var magics = list == "无" ? new List<string>() : ParseMagicListNoDistance(list);
+    // var magics = list == "无" ? new List<string>() : ParseMagicListNoDistance(list);
     const magics = listStr === "无" ? [] : Character.parseMagicListNoDistance(listStr);
 
-    // C#: var path = StorageBase.SaveGameDirectory + @"\" + Name + "_" + reasonMagic.Name + "_" + string.Join("_", magics) + ".ini";
+    // var path = StorageBase.SaveGameDirectory + @"\" + Name + "_" + reasonMagic.Name + "_" + string.Join("_", magics) + ".ini";
     const path = `${this.name}_${reasonMagic.name}_${magics.join("_")}.ini`;
 
     // 替换 MagicListManager 列表
     this._magicListManager.replaceListTo(path, magics).then(() => {
       // 恢复当前使用的武功索引
       this.currentUseMagicIndex = currentIndex;
-      // C#: XiuLianMagic = MagicListManager.GetItemInfo(MagicListManager.XiuLianIndex)
+      // XiuLianMagic = MagicListManager.GetItemInfo(MagicListManager.XiuLianIndex)
       this.updateSpecialAttackTexture(this._magicListManager.getXiuLianMagic());
     });
 
@@ -1275,14 +1272,14 @@ export class Player extends Character {
 
   /**
    * 从替换武功列表恢复事件 - Player 特有实现
-   * C# Reference: Player.OnRecoverFromReplaceMagicList (override)
-   * 注意：Player 完全覆盖此方法，不调用基类（与 C# 一致）
+   * (override)
+   * 注意：Player 完全覆盖此方法，不调用基类（与原版一致）
    * Player 只处理 MagicListManager，不处理 flyIniInfos
    */
   protected override onRecoverFromReplaceMagicList(reasonMagic: MagicData): void {
     if (!reasonMagic.replaceMagic) return;
 
-    // C#: Player 不调用 base.OnRecoverFromReplaceMagicList，直接处理 MagicListManager
+    // Player 不调用 base.OnRecoverFromReplaceMagicList，直接处理 MagicListManager
 
     // 保存当前使用的武功索引
     const currentIndex = this.currentUseMagicIndex;
@@ -1292,7 +1289,7 @@ export class Player extends Character {
 
     // 恢复当前使用的武功索引
     this.currentUseMagicIndex = currentIndex;
-    // C#: XiuLianMagic = MagicListManager.GetItemInfo(MagicListManager.XiuLianIndex)
+    // XiuLianMagic = MagicListManager.GetItemInfo(MagicListManager.XiuLianIndex)
     this.updateSpecialAttackTexture(this._magicListManager.getXiuLianMagic());
 
     logger.log(`[Player] OnRecoverFromReplaceMagicList: restored original magic list`);
@@ -1300,7 +1297,6 @@ export class Player extends Character {
 
   /**
    * Set auto attack target
-   * C# Reference: Player._autoAttackTarget
    */
   setAutoAttackTarget(target: Character | null, isRun: boolean = false): void {
     this._autoAttackTarget = target;
@@ -1324,7 +1320,7 @@ export class Player extends Character {
 
   /**
    * Override: Called when reaching destination and ready to attack
-   * C# Reference: After reaching destination, PerformeAttack(magicToUse) is called
+   * reaching destination, PerformeAttack(magicToUse) is called
    */
   protected override performAttackAtDestination(): void {
     if (!this._destinationAttackTilePosition) return;
@@ -1347,21 +1343,21 @@ export class Player extends Character {
 
   /**
    * Override main update to call Player-specific updates
-   * C# Reference: Player.cs - Update(GameTime gameTime)
+   * Update(GameTime gameTime)
    *
-   * C# 中恢复逻辑是在 base.Update() 之前统一处理，而不是在各个状态 override 中。
+   * 中恢复逻辑是在 base.Update() 之前统一处理，而不是在各个状态 override 中。
    * 这样可以确保：
    * 1. 非 standing/walking 状态时，_standingMilliseconds 被正确重置
    * 2. sitting 状态时的 thew→mana 转换逻辑
    */
   override update(deltaTime: number): void {
-    // C#: UpdateAutoAttack(gameTime);
+    // UpdateAutoAttack(gameTime);
     this.updateAutoAttack(deltaTime);
 
-    // C#: UpdateTouchObj() - 触发 ScriptFileJustTouch > 0 的物体脚本
+    // 触发 ScriptFileJustTouch > 0 的物体脚本
     this.updateTouchObj();
 
-    // C#: if ((IsStanding() || IsWalking()) && BodyFunctionWell)
+    // if ((IsStanding() || IsWalking()) && BodyFunctionWell)
     // 只有在站立或行走时才恢复，其他状态重置计时器
     if ((this.isStanding() || this.isWalking()) && this.bodyFunctionWell) {
       this.updateStandingRestore(deltaTime);
@@ -1369,7 +1365,7 @@ export class Player extends Character {
       this._standingMilliseconds = 0;
     }
 
-    // C#: if (IsSitted) { ... } - sitting thew→mana conversion
+    // if (IsSitted) { ... } - sitting thew→mana conversion
     // 注意：这个逻辑在 updateSitting() 中处理
 
     // Call base Character update
@@ -1381,7 +1377,7 @@ export class Player extends Character {
 
   /**
    * Override running state to consume thew
-   * C#: Player.Update() - handles thew consumption when running
+   * handles thew consumption when running
    */
   protected override updateRunning(deltaTime: number): void {
     const result = this.moveAlongPath(deltaTime, RUN_SPEED_FOLD);
@@ -1390,7 +1386,7 @@ export class Player extends Character {
     if (result.moved && !result.reachedDestination && this.path.length > 0) {
       if (!this.consumeRunningThew()) {
         // Not enough thew, switch to walking
-        // C#: Use FightWalk if in fighting mode
+        // Use FightWalk if in fighting mode
         if (this._isInFighting && this.isStateImageOk(CharacterState.FightWalk)) {
           this.state = CharacterState.FightWalk;
         } else {
@@ -1408,13 +1404,13 @@ export class Player extends Character {
 
   /**
    * Override sitting state for Player-specific Thew->Mana conversion
-   * C# Reference: Player.Update() - case CharacterState.Sit with IsSitted logic
+   * - case CharacterState.Sit with IsSitted logic
    */
   protected override updateSitting(deltaTime: number): void {
     const deltaMs = deltaTime * 1000;
 
-    // C#: if (!IsSitted) base.Update(gameTime);
-    // C#: if (!IsInPlaying) IsSitted = true;
+    // if (!IsSitted) base.Update(gameTime);
+    // if (!IsInPlaying) IsSitted = true;
     if (!this.isSitted) {
       // Check if sit animation has finished BEFORE updating
       // This prevents the frame from wrapping back to the beginning
@@ -1430,7 +1426,7 @@ export class Player extends Character {
       return;
     }
 
-    // C# Player.cs IsSitted logic:
+    // Player.cs IsSitted logic:
     // Convert Thew to Mana while sitting
     let changeManaAmount = Math.floor(this.manaMax / 100);
     if (changeManaAmount === 0) changeManaAmount = 1;
@@ -1451,7 +1447,7 @@ export class Player extends Character {
 
   /**
    * Override standing state for player-specific logic
-   * 恢复逻辑已移至 Player.update() 中，与 C# 一致
+   * 恢复逻辑已移至 Player.update() 中，与原版一致
    */
   protected override updateStanding(deltaTime: number): void {
     this.updateAnimation(deltaTime);
@@ -1460,7 +1456,7 @@ export class Player extends Character {
 
   /**
    * Override walking state for player - movement only, restore handled in main update
-   * 恢复逻辑已移至 Player.update() 中，与 C# 一致
+   * 恢复逻辑已移至 Player.update() 中，与原版一致
    */
   protected override updateWalking(deltaTime: number): void {
     this.moveAlongPath(deltaTime, this.walkSpeed);
@@ -1469,7 +1465,7 @@ export class Player extends Character {
   }
 
   /**
-   * C#: Player.Update() standing/walking restore logic
+   * Player.Update() standing/walking restore logic
    * Life, Thew, and Mana restore every 1 second while standing or walking
    * 注意：条件检查已在 Player.update() 中完成，这里直接执行恢复逻辑
    */
@@ -1478,23 +1474,23 @@ export class Player extends Character {
     this._standingMilliseconds += deltaMs;
 
     if (this._standingMilliseconds >= RESTORE_INTERVAL_MS) {
-      // C#: Life += (int)((LifeRestorePercent + AddLifeRestorePercent / 1000f) * LifeMax);
+      // Life += (int)((LifeRestorePercent + AddLifeRestorePercent / 1000f) * LifeMax);
       const lifeRestore = Math.floor(
         (LIFE_RESTORE_PERCENT + this._addLifeRestorePercent / 1000) * this.lifeMax
       );
       this.life = Math.min(this.lifeMax, this.life + lifeRestore);
 
-      // C#: Thew += (int)((ThewRestorePercent + AddThewRestorePercent / 1000f) * ThewMax);
+      // Thew += (int)((ThewRestorePercent + AddThewRestorePercent / 1000f) * ThewMax);
       const thewRestore = Math.floor(
         (THEW_RESTORE_PERCENT + this._addThewRestorePercent / 1000) * this.thewMax
       );
       this.thew = Math.min(this.thewMax, this.thew + thewRestore);
 
-      // C#: Mana += (int)((AddManaRestorePercent / 1000f) * ManaMax);
+      // Mana += (int)((AddManaRestorePercent / 1000f) * ManaMax);
       const manaRestore = Math.floor((this._addManaRestorePercent / 1000) * this.manaMax);
       this.mana = Math.min(this.manaMax, this.mana + manaRestore);
 
-      // C#: if (IsManaRestore) { Mana += (int)(ManaMax * ManaRestorePercent); }
+      // if (IsManaRestore) { Mana += (int)(ManaMax * ManaRestorePercent); }
       if (this._isManaRestore) {
         const bonusManaRestore = Math.floor(this.manaMax * MANA_RESTORE_PERCENT);
         this.mana = Math.min(this.manaMax, this.mana + bonusManaRestore);
@@ -1508,7 +1504,7 @@ export class Player extends Character {
 
   /**
    * Override death to run death script and disable input
-   * C# Reference: Player.Death() - calls base.Death() then Globals.IsInputDisabled = true
+   * - calls base.Death() then Globals.IsInputDisabled = true
    */
   override death(killer: Character | null = null): void {
     if (this.isDeathInvoked) return;
@@ -1527,17 +1523,17 @@ export class Player extends Character {
       engine.runScript(fullPath);
     }
 
-    // C#: Globals.IsInputDisabled = true
+    // Globals.IsInputDisabled = true
     // 注意：这里暂时只打印日志，完整实现需要设置全局输入禁用状态
     logger.log(`[Player] Player died - input should be disabled`);
   }
 
   /**
    * Override fullLife to re-enable input
-   * C# Reference: Player.FullLife()
+   * Reference: Player.FullLife()
    */
   override fullLife(): void {
-    // C#: if (IsDeath) Globals.IsInputDisabled = false
+    // if (IsDeath) Globals.IsInputDisabled = false
     if (this.isDeath) {
       logger.log(`[Player] Revived - input should be re-enabled`);
     }
@@ -1546,15 +1542,15 @@ export class Player extends Character {
 
   /**
    * Override magic cast hook - called when magic animation completes
-   * C# Reference: Character.Update() case CharacterState.Magic - CanUseMagic() + PlaySoundEffect + MagicManager.UseMagic()
+   * case CharacterState.Magic - CanUseMagic() + PlaySoundEffect + MagicManager.UseMagic()
    */
   protected override onMagicCast(): void {
     // Play Magic state sound effect
-    // C# Reference: PlaySoundEffect(NpcIni[(int)CharacterState.Magic].Sound)
+    // Reference: PlaySoundEffect(NpcIni[(int)CharacterState.Magic].Sound)
     this.playStateSound(CharacterState.Magic);
 
     if (this._pendingMagic && this.magicManager) {
-      // C# Reference: Player.CanUseMagic() - 在动画结束后扣除内力/体力/生命
+      // Reference: Player.CanUseMagic() - 在动画结束后扣除内力/体力/生命
       // 再次检查能否使用（防止期间消耗改变）
       const canUse = this.canUseMagic(this._pendingMagic.magic);
       if (!canUse.canUse) {
@@ -1566,7 +1562,7 @@ export class Player extends Character {
       // 扣除消耗
       this.consumeMagicCost(this._pendingMagic.magic);
 
-      // C# Reference: Player.UseMagic - 检查 _replacedMagic 并替换
+      // 检查 _replacedMagic 并替换
       const magicToUse = this.getReplacedMagic(this._pendingMagic.magic);
 
       logger.log(`[Magic] Releasing ${magicToUse.name} after casting animation`);
@@ -1583,7 +1579,7 @@ export class Player extends Character {
 
   /**
    * Set pending magic to release after casting animation
-   * C# Reference: Character stores MagicUse, _magicDestination, _magicTarget for release in Update()
+   * stores MagicUse, _magicDestination, _magicTarget for release in Update()
    */
   setPendingMagic(
     magic: MagicData,
@@ -1595,21 +1591,21 @@ export class Player extends Character {
   }
 
   /**
-   * C#: Player.ResetPartnerPosition()
+   * Player.ResetPartnerPosition()
    * Reset all partners to positions around the player
    */
   resetPartnerPosition(): void {
     const partners = this.npcManager.getAllPartner();
     if (partners.length === 0) return;
 
-    // C#: var neighbors = Engine.PathFinder.FindAllNeighbors(TilePosition);
+    // var neighbors = Engine.PathFinder.FindAllNeighbors(TilePosition);
     const neighbors = this.findAllNeighbors(this.tilePosition);
 
-    // C#: var index = CurrentDirection + 4; (start from behind the player)
+    // var index = CurrentDirection + 4; (start from behind the player)
     let index = this._currentDirection + 4;
 
     for (const partner of partners) {
-      // C#: if (index == CurrentDirection) index++; (skip player's facing direction)
+      // if (index == CurrentDirection) index++; (skip player's facing direction)
       if (index % 8 === this._currentDirection) index++;
       partner.setPosition(neighbors[index % 8].x, neighbors[index % 8].y);
       index++;
@@ -1623,7 +1619,7 @@ export class Player extends Character {
     const neighbors: Vector2[] = [];
     const isOddRow = tilePos.y % 2 === 1;
 
-    // 8 directions: S, SW, W, NW, N, NE, E, SE (matching C# direction order)
+    // 8 directions: S, SW, W, NW, N, NE, E, SE (matching direction order)
     const offsets = [
       { x: 0, y: 2 }, // 0: South
       { x: isOddRow ? 0 : -1, y: 1 }, // 1: SouthWest
@@ -1658,11 +1654,11 @@ export class Player extends Character {
 
       const frameInterval = this._texture.interval || 100;
 
-      // C#: Only advance if elapsed > interval
+      // Only advance if elapsed > interval
       if (this._elapsedMilliSecond > frameInterval) {
         this._elapsedMilliSecond -= frameInterval;
 
-        // C#: Advance frame based on reverse flag
+        // Advance frame based on reverse flag
         if (this.isInPlaying && this._isPlayReverse) {
           this.currentFrameIndex--;
         } else {
@@ -1670,7 +1666,7 @@ export class Player extends Character {
         }
         this.frameAdvanceCount = 1;
 
-        // C#: Decrement frames left to play
+        // Decrement frames left to play
         if (this._leftFrameToPlay > 0) {
           this._leftFrameToPlay--;
         }
@@ -1710,7 +1706,7 @@ export class Player extends Character {
 
   /**
    * 增加经验值
-   * C# Reference: Player.AddExp(amount, addMagicExp)
+   * Reference: Player.AddExp(amount, addMagicExp)
    * @param amount 经验值
    * @param addMagicExp 是否同时给武功增加经验（击杀时为 true）
    */
@@ -1748,10 +1744,10 @@ export class Player extends Character {
 
   /**
    * 处理武功升级时的玩家属性加成
-   * C# Reference: Player.AddMagicExp - magic level up, add player properties
+   * magic level up, add player properties
    */
   private handleMagicLevelUp(oldMagic: MagicData, newMagic: MagicData): void {
-    // C#: LifeMax += info.TheMagic.LifeMax; etc.
+    // LifeMax += info.TheMagic.LifeMax; etc.
     this.lifeMax += newMagic.lifeMax || 0;
     this.thewMax += newMagic.thewMax || 0;
     this.manaMax += newMagic.manaMax || 0;
@@ -1766,7 +1762,7 @@ export class Player extends Character {
     this._addThewRestorePercent += newMagic.addThewRestorePercent || 0;
     this._addManaRestorePercent += newMagic.addManaRestorePercent || 0;
 
-    // C# Reference: Player.AddMagicExp - FlyIni 替换逻辑
+    // FlyIni 替换逻辑
     // if (oldMagic.FlyIni != newMagic.FlyIni) { RemoveFlyIniReplace(old); AddFlyIniReplace(new); }
     if (oldMagic.flyIni !== newMagic.flyIni) {
       if (oldMagic.flyIni) {
@@ -1786,7 +1782,7 @@ export class Player extends Character {
     }
 
     // MagicToUseWhenBeAttacked 更新逻辑
-    // C# Reference: 武功升级时需要更新 MagicToUseWhenAttackedList 中的条目
+    // Reference: 武功升级时需要更新 MagicToUseWhenAttackedList 中的条目
     // 此功能待实现
 
     // 显示升级消息
@@ -1831,7 +1827,7 @@ export class Player extends Character {
 
   /**
    * 设置等级配置文件
-   * C#: SetLevelFile 脚本命令
+   * SetLevelFile 脚本命令
    */
   async setLevelFile(filePath: string): Promise<void> {
     await this.levelManager.setLevelFile(filePath);
@@ -1945,7 +1941,7 @@ export class Player extends Character {
   /**
    * 从存档数据加载玩家
    * 用于 JSON 存档恢复，由 Loader.loadPlayerFromJSON 调用
-   * C# Reference: Character.Load() + Player 特有字段
+   * + Player 特有字段
    */
   loadFromSaveData(data: PlayerSaveData): void {
     // === 基本信息 ===
@@ -2146,7 +2142,7 @@ export class Player extends Character {
 
   /**
    * Add money to player with message display
-   * C# Reference: Player.AddMoney - shows message "你得到了 X 两银子。" or "你失去了 X 两银子。"
+   * shows message "你得到了 X 两银子。" or "你失去了 X 两银子。"
    */
   addMoney(amount: number): void {
     if (amount > 0) {
@@ -2163,7 +2159,7 @@ export class Player extends Character {
 
   /**
    * Add money without showing message
-   * C# Reference: Player.AddMoneyValue - just adds amount, no message
+   * just adds amount, no message
    */
   addMoneyValue(amount: number): void {
     this._money += amount;
@@ -2190,7 +2186,7 @@ export class Player extends Character {
 
   /**
    * Override takeDamage to use Character's proper damage calculation
-   * C# Reference: Character.takeDamage handles defend, hit rate, and min damage
+   * handles defend, hit rate, and min damage
    *
    * Note: This method signature matches Character's takeDamage for proper override
    */
@@ -2225,7 +2221,7 @@ export class Player extends Character {
   // === Equipment ===
 
   equiping(equip: Good | null, currentEquip: Good | null, justEffectType: boolean = false): void {
-    // C# Reference: 保存当前 Life/Thew/Mana 用于装备后恢复
+    // Reference: 保存当前 Life/Thew/Mana 用于装备后恢复
     const savedLife = this.life;
     const savedThew = this.thew;
     const savedMana = this.mana;
@@ -2250,7 +2246,7 @@ export class Player extends Character {
         }
       }
 
-      // C# Reference: Character.Equiping - 根据 TheEffectType 设置效果
+      // 根据 TheEffectType 设置效果
       const effectType = equip.theEffectType;
       switch (effectType) {
         case GoodEffectType.ThewNotLoseWhenRun:
@@ -2259,7 +2255,7 @@ export class Player extends Character {
         case GoodEffectType.ManaRestore:
           this._isManaRestore = true;
           break;
-        // C# Reference: SetFlyIniAdditionalEffect for weapon effects
+        // for weapon effects
         case GoodEffectType.EnemyFrozen:
           this.setFlyIniAdditionalEffect(MagicAddonEffect.Frozen);
           break;
@@ -2279,7 +2275,7 @@ export class Player extends Character {
       this._addMagicEffectPercent += equip.addMagicEffectPercent;
       this._addMagicEffectAmount += equip.addMagicEffectAmount;
 
-      // C# Reference: Character.Equiping - MagicToUseWhenBeAttacked 处理
+      // MagicToUseWhenBeAttacked 处理
       // if (!string.IsNullOrEmpty(equip.MagicToUseWhenBeAttacked.GetValue())) {
       //     MagicToUseWhenAttackedList.AddLast(new MagicToUseInfoItem { From = equip.FileName, Magic = ..., Dir = ... });
       // }
@@ -2291,7 +2287,7 @@ export class Player extends Character {
         );
       }
 
-      // C# Reference: Character.Equiping - FlyIniReplace 处理
+      // FlyIniReplace 处理
       // if (!string.IsNullOrEmpty(equip.FlyIni.GetValue())) { AddFlyIniReplace(...) }
       if (equip.flyIni) {
         this.addFlyIniReplace(equip.flyIni);
@@ -2300,7 +2296,7 @@ export class Player extends Character {
         this.addFlyIni2Replace(equip.flyIni2);
       }
 
-      // C# Reference: Player.Equiping - ReplaceMagic 处理
+      // ReplaceMagic 处理
       // if (!string.IsNullOrEmpty(equip.ReplaceMagic.GetValue())) {
       //     _replacedMagic[equip.ReplaceMagic] = Utils.GetMagic(equip.UseReplaceMagic, false);
       // }
@@ -2308,14 +2304,14 @@ export class Player extends Character {
         this.loadAndAddEquipReplaceMagic(equip.replaceMagic, equip.useReplaceMagic);
       }
 
-      // C# Reference: Player.Equiping - MagicIniWhenUse 处理
+      // MagicIniWhenUse 处理
       // 装备带来的武功，显示隐藏的武功或添加新武功
       if (!justEffectType && equip.magicIniWhenUse) {
         this.handleEquipMagicIniWhenUse(equip.magicIniWhenUse, true);
       }
     }
 
-    // C# Reference: 恢复保存的 Life/Thew/Mana，但不超过新的 Max 值
+    // Reference: 恢复保存的 Life/Thew/Mana，但不超过新的 Max 值
     this.life = Math.min(savedLife, this.lifeMax);
     this.thew = Math.min(savedThew, this.thewMax);
     this.mana = Math.min(savedMana, this.manaMax);
@@ -2341,7 +2337,7 @@ export class Player extends Character {
       }
     }
 
-    // C# Reference: Character.UnEquiping - 根据 TheEffectType 清除效果
+    // 根据 TheEffectType 清除效果
     const effectType = equip.theEffectType;
     switch (effectType) {
       case GoodEffectType.ThewNotLoseWhenRun:
@@ -2350,7 +2346,7 @@ export class Player extends Character {
       case GoodEffectType.ManaRestore:
         this._isManaRestore = false;
         break;
-      // C# Reference: SetFlyIniAdditionalEffect(None) for weapon effects
+      // Reference: SetFlyIniAdditionalEffect(None) for weapon effects
       case GoodEffectType.EnemyFrozen:
       case GoodEffectType.EnemyPoisoned:
       case GoodEffectType.EnemyPetrified:
@@ -2366,7 +2362,7 @@ export class Player extends Character {
     this._addMagicEffectPercent -= equip.addMagicEffectPercent;
     this._addMagicEffectAmount -= equip.addMagicEffectAmount;
 
-    // C# Reference: Character.UnEquiping - MagicToUseWhenBeAttacked 处理
+    // MagicToUseWhenBeAttacked 处理
     // if (!string.IsNullOrEmpty(equip.MagicToUseWhenBeAttacked.GetValue())) {
     //     RemoveMagicToUseWhenAttackedList(equip.FileName);
     // }
@@ -2374,7 +2370,7 @@ export class Player extends Character {
       this.removeMagicToUseWhenAttackedList(equip.fileName);
     }
 
-    // C# Reference: Character.UnEquiping - FlyIniReplace 处理
+    // FlyIniReplace 处理
     // if (!string.IsNullOrEmpty(equip.FlyIni.GetValue())) { RemoveFlyIniReplace(...) }
     if (equip.flyIni) {
       this.removeFlyIniReplace(equip.flyIni);
@@ -2383,7 +2379,7 @@ export class Player extends Character {
       this.removeFlyIni2Replace(equip.flyIni2);
     }
 
-    // C# Reference: Player.UnEquiping - ReplaceMagic 处理
+    // ReplaceMagic 处理
     // if (!string.IsNullOrEmpty(equip.ReplaceMagic.GetValue())) {
     //     _replacedMagic.Remove(equip.ReplaceMagic);
     // }
@@ -2391,7 +2387,7 @@ export class Player extends Character {
       this.removeReplacedMagic(equip.replaceMagic);
     }
 
-    // C# Reference: Player.UnEquiping - MagicIniWhenUse 处理
+    // MagicIniWhenUse 处理
     // 隐藏装备带来的武功
     if (!justEffectType && equip.magicIniWhenUse) {
       this.handleEquipMagicIniWhenUse(equip.magicIniWhenUse, false);
@@ -2404,18 +2400,17 @@ export class Player extends Character {
 
   /**
    * 设置武功的附加效果
-   * C# Reference: Character.SetFlyIniAdditionalEffect
    */
   protected setFlyIniAdditionalEffect(effect: MagicAddonEffect): void {
     this._flyIniAdditionalEffect = effect;
-    // C#: if (FlyIni != null) FlyIni.AdditionalEffect = effect;
-    // C#: if (FlyIni2 != null) FlyIni2.AdditionalEffect = effect;
+    // if (FlyIni != null) FlyIni.AdditionalEffect = effect;
+    // if (FlyIni2 != null) FlyIni2.AdditionalEffect = effect;
     // 注意：TypeScript 中 FlyIni 的效果在 useMagicWhenAttack 时动态应用
   }
 
   /**
    * 异步加载并添加装备的被攻击触发武功
-   * C# Reference: Character.Equiping - MagicToUseWhenAttackedList.AddLast
+   * MagicToUseWhenAttackedList.AddLast
    */
   private async loadAndAddEquipMagicToUseWhenBeAttacked(
     equipFileName: string,
@@ -2444,7 +2439,7 @@ export class Player extends Character {
 
   /**
    * 异步加载并添加装备的武功替换
-   * C# Reference: Player.Equiping - _replacedMagic[equip.ReplaceMagic] = Utils.GetMagic(equip.UseReplaceMagic)
+   * _replacedMagic[equip.ReplaceMagic] = Utils.GetMagic(equip.UseReplaceMagic)
    */
   private async loadAndAddEquipReplaceMagic(
     originalMagicFileName: string,
@@ -2467,13 +2462,13 @@ export class Player extends Character {
 
   /**
    * 处理装备的 MagicIniWhenUse
-   * C# Reference: Player.Equiping/UnEquiping - MagicIniWhenUse 处理
+   * Reference: Player.Equiping/UnEquiping - MagicIniWhenUse 处理
    * @param magicFileName 武功文件名
    * @param isEquip true=装备时, false=卸下时
    */
   private handleEquipMagicIniWhenUse(magicFileName: string, isEquip: boolean): void {
     if (isEquip) {
-      // C#: 装备时检查武功是否已隐藏，如果是则取消隐藏，否则添加新武功
+      // 装备时检查武功是否已隐藏，如果是则取消隐藏，否则添加新武功
       const isHide = this._magicListManager.isMagicHided(magicFileName);
       const existingMagic = this._magicListManager.getNonReplaceMagic(magicFileName);
       const hasHideCount = existingMagic?.hideCount ? existingMagic.hideCount > 0 : false;
@@ -2489,11 +2484,11 @@ export class Player extends Character {
         this.addMagic(magicFileName);
       }
     } else {
-      // C#: 卸下时隐藏武功
+      // 卸下时隐藏武功
       const info = this._magicListManager.setMagicHide(magicFileName, true);
       if (info && info.hideCount === 0) {
         this.showMessage(`武功${info.magic?.name}已不可使用`);
-        // C#: OnDeleteMagic(info) - 处理修炼武功和当前使用武功
+        // 处理修炼武功和当前使用武功
         this.onDeleteMagicFromEquip(info);
       }
     }
@@ -2501,7 +2496,6 @@ export class Player extends Character {
 
   /**
    * 当装备移除导致武功不可用时的处理
-   * C# Reference: Player.OnDeleteMagic
    */
   private onDeleteMagicFromEquip(info: MagicItemInfo | null): void {
     if (!info?.magic) return;
@@ -2522,7 +2516,7 @@ export class Player extends Character {
   /**
    * 使用药品
    * 覆盖基类实现，直接调用 super.useDrug
-   * C# Reference: Player 继承 Character.UseDrug，没有覆盖
+   * 继承 Character.UseDrug，没有覆盖
    */
   override useDrug(drug: Good): boolean {
     return super.useDrug(drug);
@@ -2536,7 +2530,7 @@ export class Player extends Character {
     return this._isManaRestore;
   }
 
-  // C#: Player.AddLifeRestorePercent, AddManaRestorePercent, AddThewRestorePercent
+  // Player.AddLifeRestorePercent, AddManaRestorePercent, AddThewRestorePercent
   getAddLifeRestorePercent(): number {
     return this._addLifeRestorePercent;
   }
@@ -2561,7 +2555,7 @@ export class Player extends Character {
     this._addThewRestorePercent = value;
   }
 
-  // C#: ManaLimit - Can't use mana
+  // Can't use mana
   get manaLimit(): boolean {
     return this._manaLimit;
   }
@@ -2570,7 +2564,7 @@ export class Player extends Character {
     this._manaLimit = value;
   }
 
-  // C#: CurrentUseMagicIndex - Current use magic index in magic list
+  // Current use magic index in magic list
   get currentUseMagicIndex(): number {
     return this._currentUseMagicIndex;
   }
@@ -2596,7 +2590,7 @@ export class Player extends Character {
       return { canUse: false, reason: "需要满血才能使用此武功" };
     }
 
-    // C#: if (Mana < MagicUse.ManaCost || ManaLimit)
+    // if (Mana < MagicUse.ManaCost || ManaLimit)
     if (this.mana < magic.manaCost || this._manaLimit) {
       return { canUse: false, reason: "没有足够的内力使用这种武功" };
     }
@@ -2629,7 +2623,7 @@ export class Player extends Character {
   }
 
   // === Occlusion Transparency System ===
-  // C# Reference: Player.Draw - 当玩家被遮挡物覆盖时绘制半透明效果
+  // 当玩家被遮挡物覆盖时绘制半透明效果
 
   // 位置缓存，用于优化遮挡检测（只在位置变化时重新计算）
   private _lastOcclusionCheckTileX: number = -1;
@@ -2668,7 +2662,7 @@ export class Player extends Character {
   /**
    * 检测玩家是否被地图瓦片或 NPC 遮挡
    * 返回是否需要绘制半透明叠加层
-   * C# Reference: Player.Draw 中检测 layer2, layer3 和 NPC 碰撞
+   * 中检测 layer2, layer3 和 NPC 碰撞
    */
   private checkOcclusionTransparency(): boolean {
     const engine = this.engine;
@@ -2724,7 +2718,6 @@ export class Player extends Character {
   }
 
   /**
-   * C# Reference: Player.Draw
    * 重写绘制方法
    * 注意：半透明遮挡效果在 gameEngine.ts 中绘制（在所有地图层之后）
    */
@@ -2735,7 +2728,7 @@ export class Player extends Character {
     offX: number = 0,
     offY: number = 0
   ): void {
-    // C#: if (IsDraw) { ... }
+    // if (IsDraw) { ... }
     if (!this.isDraw) return;
 
     // 确定绘制颜色（状态效果）
@@ -2757,7 +2750,7 @@ export class Player extends Character {
   }
 
   // === BUFF System ===
-  // C# Reference: Character.cs - LinkedList<MagicSprite> MagicSpritesInEffect
+  // LinkedList<MagicSprite> MagicSpritesInEffect
   // 已在 Character 基类中实现：addMagicSpriteInEffect, removeMagicSpriteInEffect, getMagicSpritesInEffect
 
   /**
@@ -2793,7 +2786,7 @@ export class Player extends Character {
 
   /**
    * 清理已销毁的武功精灵
-   * C# Reference: Character.Update - for (var node = MagicSpritesInEffect.First; ...)
+   * for (var node = MagicSpritesInEffect.First; ...)
    */
   cleanupDestroyedMagicSprites(): void {
     this._magicSpritesInEffect = this._magicSpritesInEffect.filter((s) => !s.isDestroyed);
@@ -2801,7 +2794,6 @@ export class Player extends Character {
 
   /**
    * 计算武功减伤量（金钟罩等）
-   * C# Reference: MagicSprite.CharacterHited
    * GetEffectAmount(magic, character) 中 character 是被保护角色 (this)
    */
   calculateDamageReduction(): { effect: number; effect2: number; effect3: number } {
@@ -2817,7 +2809,7 @@ export class Player extends Character {
         magic.moveKind === MagicMoveKind.FollowCharacter &&
         magic.specialKind === MagicSpecialKind.BuffOrPetrify
       ) {
-        // C# MagicManager.GetEffectAmount - 包含 AddMagicEffect 加成
+        // MagicManager.GetEffectAmount - 包含 AddMagicEffect 加成
         const effect = getEffectAmount(magic, this, "effect");
         const effect2 = getEffectAmount(magic, this, "effect2");
         const effect3 = getEffectAmount(magic, this, "effect3");
@@ -2841,7 +2833,6 @@ export class Player extends Character {
 
   /**
    * 检查是否有免疫伤害的 BUFF（SpecialKind=6）
-   * C# Reference: Character.DecreaseLifeAddHurt
    */
   hasImmunityBuff(): boolean {
     for (const sprite of this._magicSpritesInEffect) {

@@ -39,7 +39,7 @@ export const xiuLianAttackEffect: PassiveEffect = {
     if (!magic) return null;
 
     // 只在 Attack2 状态触发（普通攻击的第二段）
-    // C# 参考: if (State == (int)CharacterState.Attack2 && ...)
+    // 参考: if (State == (int)CharacterState.Attack2 && ...)
     if (ctx.attackState !== CharacterState.Attack2) {
       return null;
     }
@@ -81,7 +81,7 @@ export const xiuLianExpEffect: PassiveEffect = {
   trigger: PassiveTrigger.OnKill,
 
   onKill(ctx: KillContext, xiuLianMagic: MagicItemInfo): void {
-    // C# 参考: AddMagicExp(XiuLianMagic, (int)(amount * Utils.XiuLianMagicExpFraction))
+    // 参考: AddMagicExp(XiuLianMagic, (int)(amount * Utils.XiuLianMagicExpFraction))
     const expFraction = 0.3; // 修炼武功获得 30% 经验
     const xiuLianExp = Math.floor(ctx.expGained * expFraction);
 

@@ -439,11 +439,11 @@ export class MagicManager {
     sprite.initializeEffects(effect, effect2, effect3);
 
     // 初始化跳跃传递参数
-    // C# Reference: MagicSprite.Init() - _canLeap = BelongMagic.LeapTimes > 0
+    // Reference: MagicSprite.Init() - _canLeap = BelongMagic.LeapTimes > 0
     sprite.initializeLeap();
 
     // 初始化范围效果计时器
-    // C# Reference: MagicSprite.Init() - _rangeElapsedMilliseconds = belongMagic.RangeTimeInerval;
+    // Reference: MagicSprite.Init() - _rangeElapsedMilliseconds = belongMagic.RangeTimeInerval;
     // 初始值为间隔时间，这样第一次触发会立即发生
     sprite.rangeElapsedMilliseconds = sprite.magic.rangeTimeInterval;
   }

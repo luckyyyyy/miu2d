@@ -494,9 +494,9 @@ export class GuiManager {
 
   /**
    * Handle hotkey press
-   * C# Reference: GuiManager.Update - 按优先级处理各种界面的输入
+   * 按优先级处理各种界面的输入
    *
-   * 优先级顺序（与 C# 完全一致）:
+   * 优先级顺序:
    * 1. SaveLoadInterface - ESC 关闭
    * 2. TitleInterface - 不处理 ESC
    * 3. SystemInterface - ESC 关闭
@@ -509,7 +509,7 @@ export class GuiManager {
    */
   handleHotkey(code: string): boolean {
     // ============= 1. SaveLoad 界面 =============
-    // C#: if (SaveLoadInterface.IsShow) { if (ESC) ShowSaveLoad(false); }
+    // if (SaveLoadInterface.IsShow) { if (ESC) ShowSaveLoad(false); }
     if (this.state.panels.saveLoad) {
       if (code === "Escape") {
         this.showSaveLoad(false);
@@ -519,11 +519,11 @@ export class GuiManager {
     }
 
     // ============= 2. Title 界面 =============
-    // C#: else if (TitleInterface.IsShow) { /* 不处理 ESC */ }
+    // else if (TitleInterface.IsShow) { /* 不处理 ESC */ }
     // Title 界面由 TitleGui 组件自行处理
 
     // ============= 3. System 菜单 =============
-    // C#: else if (SystemInterface.IsShow) { if (ESC) ShowSystem(false); }
+    // else if (SystemInterface.IsShow) { if (ESC) ShowSystem(false); }
     if (this.state.panels.system) {
       if (code === "Escape") {
         this.showSystem(false);
@@ -533,7 +533,7 @@ export class GuiManager {
     }
 
     // ============= 4. 小地图界面 =============
-    // C#: else if (LittleMapInterface.IsShow) { if (Tab || ESC) close; }
+    // else if (LittleMapInterface.IsShow) { if (Tab || ESC) close; }
     if (this.state.panels.littleMap) {
       if (code === "Tab" || code === "Escape") {
         this.toggleMinimap();
@@ -543,7 +543,7 @@ export class GuiManager {
     }
 
     // ============= 5 & 6. Selection 界面 (ChooseEx / ChooseMultiple) =============
-    // C#: else if (SelectionInterface.IsShow) { /* 不处理 ESC，必须选择 */ }
+    // else if (SelectionInterface.IsShow) { /* 不处理 ESC，必须选择 */ }
     if (this.state.selection.isVisible) {
       // 方向键选择
       if (code === "ArrowUp" || code === "KeyW") {
@@ -577,7 +577,7 @@ export class GuiManager {
     }
 
     // ============= 7. Dialog 界面 =============
-    // C#: else if (DialogInterface.IsShow) { if (IsTalkNext()) NextPage(); }
+    // else if (DialogInterface.IsShow) { if (IsTalkNext()) NextPage(); }
     // IsTalkNext = 鼠标点击 || 空格 || (编辑模式 && ESC)
     if (this.state.dialog.isVisible) {
       // 选择模式下不处理跳过
@@ -589,7 +589,7 @@ export class GuiManager {
         this.handleDialogClick();
         return true;
       }
-      // C#: ESC 在编辑模式下跳过对话 (Globals.TheGame.IsInEditMode)
+      // ESC 在编辑模式下跳过对话 (Globals.TheGame.IsInEditMode)
       // Web 版本始终允许 ESC 跳过对话，方便调试
       if (code === "Escape") {
         this.handleDialogClick();
@@ -599,7 +599,7 @@ export class GuiManager {
     }
 
     // ============= 8. Buy/Shop 界面 =============
-    // C#: if (BuyInterface.IsShow) { if (ESC) { EndBuyGoods(); ShowAllPanels(false); } }
+    // if (BuyInterface.IsShow) { if (ESC) { EndBuyGoods(); ShowAllPanels(false); } }
     if (this.state.panels.buy) {
       if (code === "Escape") {
         // 结束购物会话
@@ -614,11 +614,11 @@ export class GuiManager {
     }
 
     // ============= 9. 默认情况 - 常规面板和热键 =============
-    // C#: IsKeyPressedAndCanInput - 脚本运行期间禁止打开面板
+    // 脚本运行期间禁止打开面板
     const isScriptRunning = this.isScriptRunning();
 
     // ESC 处理
-    // C#: if (HasPanelsShow()) ShowAllPanels(false); else ShowSystem();
+    // if (HasPanelsShow()) ShowAllPanels(false); else ShowSystem();
     if (code === "Escape") {
       if (this.isAnyPanelOpen()) {
         this.closeAllPanels();
@@ -635,7 +635,7 @@ export class GuiManager {
     }
 
     // Tab - 小地图
-    // C#: if (IsShowLittleMapKeyPressed) { ShowAllPanels(false); LittleMapInterface.IsShow = true; }
+    // if (IsShowLittleMapKeyPressed) { ShowAllPanels(false); LittleMapInterface.IsShow = true; }
     if (code === "Tab") {
       this.closeAllPanels();
       this.toggleMinimap();
@@ -787,7 +787,7 @@ export class GuiManager {
 
   /**
    * 结束当前对话
-   * C# Reference: GuiManager.EndDialog()
+   * Reference: GuiManager.EndDialog()
    */
   endDialog(): void {
     if (this.state.dialog.isVisible) {
@@ -797,7 +797,7 @@ export class GuiManager {
 
   /**
    * 关闭时间限制 (计时器)
-   * C# Reference: GuiManager.CloseTimeLimit()
+   * Reference: GuiManager.CloseTimeLimit()
    * 注意: 实际计时器逻辑由调用者（Loader）通过 deps.setTimerState 处理
    */
   closeTimeLimit(): void {

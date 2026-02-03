@@ -1,6 +1,6 @@
 /**
  * Region Based Effects - MoveKind=11 区域类武功
- * C# Reference: MagicManager.cs Region 相关方法
+ * Region 相关方法
  *
  * Region 值决定区域形状：
  * 1: Square - 方形区域

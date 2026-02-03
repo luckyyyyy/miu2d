@@ -2,7 +2,7 @@
  * NpcLifeBar Component - based on JxqyHD Engine/InfoDrawer.cs
  * Displays hovered NPC's life bar at the top center of the screen
  *
- * C# Reference: InfoDrawer.DrawLife(spriteBatch, Globals.OutEdgeNpc)
+ * Reference: InfoDrawer.DrawLife(spriteBatch, Globals.OutEdgeNpc)
  * - Shows at top center of screen
  * - Color based on relation: Enemy=Red, Friend=Green, None=Blue
  * - Name color based on NPC type: Boss enemies (ExpBonus > 0) get yellow color
@@ -18,17 +18,17 @@ import type { Npc } from "@miu2d/engine/npc";
 import type React from "react";
 import { useNpcInfoShowConfig } from "./useUISettings";
 
-// Colors matching C# InfoDrawer.cs
+// Colors matching InfoDrawer.cs
 const LIFE_COLORS = {
-  enemy: "rgba(163, 18, 21, 0.9)", // C#: EnemyLifeColor = new Color(163, 18, 21) * 0.9f
-  friend: "rgba(16, 165, 28, 0.9)", // C#: FriendLifeColor = new Color(16, 165, 28) * 0.9f
-  none: "rgba(40, 30, 245, 0.9)", // C#: NoneLifeColor = new Color(40, 30, 245) * 0.9f
-  lose: "rgba(0, 0, 0, 0.7)", // C#: LifeLoseColor = Color.Black * 0.7f
+  enemy: "rgba(163, 18, 21, 0.9)", // EnemyLifeColor = new Color(163, 18, 21) * 0.9f
+  friend: "rgba(16, 165, 28, 0.9)", // FriendLifeColor = new Color(16, 165, 28) * 0.9f
+  none: "rgba(40, 30, 245, 0.9)", // NoneLifeColor = new Color(40, 30, 245) * 0.9f
+  lose: "rgba(0, 0, 0, 0.7)", // LifeLoseColor = Color.Black * 0.7f
 } as const;
 
 const NAME_COLORS = {
-  normal: "rgba(255, 255, 255, 0.8)", // C#: NameColor = Color.White * 0.8f
-  boss: "rgba(200, 200, 10, 0.9)", // C#: EnemyBossNameColor = new Color(200, 200, 10) * 0.9f
+  normal: "rgba(255, 255, 255, 0.8)", // NameColor = Color.White * 0.8f
+  boss: "rgba(200, 200, 10, 0.9)", // EnemyBossNameColor = new Color(200, 200, 10) * 0.9f
 } as const;
 
 // Default config (matches UI_Settings.ini [NpcInfoShow] defaults)
@@ -53,37 +53,37 @@ function getLifePercent(npc: Npc): number {
   const lifeMax = npc.lifeMax;
   const life = npc.life;
 
-  // C#: if (npc.LifeMax <= 0) percent = 1f
+  // if (npc.LifeMax <= 0) percent = 1f
   if (lifeMax <= 0) return 1;
-  // C#: if (npc.Life < 0) implied percent = 0
+  // if (npc.Life < 0) implied percent = 0
   if (life < 0) return 0;
 
   const percent = life / lifeMax;
-  // C#: if (percent > 1f) percent = 1f
+  // if (percent > 1f) percent = 1f
   return Math.min(1, Math.max(0, percent));
 }
 
 /**
  * Get life bar color based on NPC relation
- * C# Reference: InfoDrawer.DrawLife()
+ * Reference: InfoDrawer.DrawLife()
  */
 function getLifeColor(npc: Npc): string {
-  // C#: if (npc.IsEnemy) drawColor = EnemyLifeColor
+  // if (npc.IsEnemy) drawColor = EnemyLifeColor
   if (npc.isEnemy) return LIFE_COLORS.enemy;
-  // C#: else if (npc.IsFighterFriend) drawColor = FriendLifeColor
+  // else if (npc.IsFighterFriend) drawColor = FriendLifeColor
   if (npc.isFighterFriend) return LIFE_COLORS.friend;
-  // C#: else if (npc.IsNoneFighter) drawColor = NoneLifeColor
+  // else if (npc.IsNoneFighter) drawColor = NoneLifeColor
   if (npc.isNoneFighter) return LIFE_COLORS.none;
-  // C#: else return (don't draw)
+  // else return (don't draw)
   return LIFE_COLORS.none;
 }
 
 /**
  * Get name color based on NPC type
- * C# Reference: InfoDrawer.DrawLife() - Boss enemies have special color
+ * - Boss enemies have special color
  */
 function getNameColor(npc: Npc): string {
-  // C#: if (npc.ExpBonus > 0) nameColor = EnemyBossNameColor
+  // if (npc.ExpBonus > 0) nameColor = EnemyBossNameColor
   if (npc.isEnemy && npc.expBonus > 0) {
     return NAME_COLORS.boss;
   }
@@ -92,11 +92,11 @@ function getNameColor(npc: Npc): string {
 
 /**
  * Check if NPC should show life bar
- * C# Reference: Only fighters show life bars
+ * fighters show life bars
  */
 function shouldShowLifeBar(npc: Npc | null): boolean {
   if (!npc) return false;
-  // C#: Only show for fighters (enemies, fighter friends, or non-fighters with combat)
+  // Only show for fighters (enemies, fighter friends, or non-fighters with combat)
   return npc.isEnemy || npc.isFighterFriend || npc.isNoneFighter;
 }
 
@@ -114,14 +114,14 @@ export const NpcLifeBar: React.FC<NpcLifeBarProps> = ({ npc, screenWidth }) => {
   if (!shouldShowLifeBar(npc)) return null;
 
   // Calculate life bar position and size
-  // C#: var topLeftX = Globals.WindowWidth / 2 - width / 2 + leftAdjust
+  // var topLeftX = Globals.WindowWidth / 2 - width / 2 + leftAdjust
   const topLeftX = screenWidth / 2 - width / 2 + leftAdjust;
-  // C#: int topLeftY = 0 + topAdjust
+  // int topLeftY = 0 + topAdjust
   const topLeftY = topAdjust;
 
   // Calculate life percentage and bar length
   const lifePercent = getLifePercent(npc!);
-  // C#: var lifeLength = (int)(width * percent)
+  // var lifeLength = (int)(width * percent)
   const lifeLength = Math.floor(width * lifePercent);
 
   // Get colors
@@ -140,7 +140,7 @@ export const NpcLifeBar: React.FC<NpcLifeBarProps> = ({ npc, screenWidth }) => {
         pointerEvents: "none",
       }}
     >
-      {/* Life bar background (lost health) - C#: lifeLoseRegion */}
+      {/* Life bar background (lost health) */}
       <div
         style={{
           position: "absolute",
@@ -151,7 +151,7 @@ export const NpcLifeBar: React.FC<NpcLifeBarProps> = ({ npc, screenWidth }) => {
           backgroundColor: LIFE_COLORS.lose,
         }}
       />
-      {/* Life bar foreground (current health) - C#: lifeRegion */}
+      {/* Life bar foreground (current health) */}
       <div
         style={{
           position: "absolute",
@@ -163,7 +163,7 @@ export const NpcLifeBar: React.FC<NpcLifeBarProps> = ({ npc, screenWidth }) => {
           transition: "width 0.1s ease-out", // Smooth animation for health changes
         }}
       />
-      {/* NPC Name - C#: spriteBatch.DrawString(Globals.FontSize12, npc.Name, namePosition, nameColor) */}
+      {/* NPC Name : spriteBatch.DrawString(Globals.FontSize12, npc.Name, namePosition, nameColor) */}
       {npc?.name && (
         <div
           style={{

@@ -1,8 +1,8 @@
 /**
  * PathFinder - A* and other pathfinding algorithms
- * C# Reference: JxqyHD/Engine/PathFinder.cs
+ * Reference: JxqyHD/Engine/PathFinder.cs
  *
- * This module implements multiple pathfinding strategies to match C# behavior:
+ * This module implements multiple pathfinding strategies to match 
  * - PathOneStep: Simple greedy algorithm, walks ~10 steps
  * - SimpleMaxNpcTry: Greedy best-first search, maxTry=100
  * - PerfectMaxNpcTry: A* algorithm for NPCs, maxTry=100
@@ -19,7 +19,7 @@ import { logger } from "./logger";
 import type { Vector2 } from "./types";
 
 /**
- * C# PathFinder.PathType enum
+ * PathFinder.PathType enum
  */
 export enum PathType {
   PathOneStep = 0, // Simple greedy, ~10 steps
@@ -40,7 +40,6 @@ interface PathNode {
 
 /**
  * Get tile position cost using pixel distance
- * C# Reference: PathFinder.GetTilePositionCost
  */
 function getTilePositionCost(fromTile: Vector2, toTile: Vector2): number {
   const fromPixel = tileToPixel(fromTile.x, fromTile.y);
@@ -50,7 +49,6 @@ function getTilePositionCost(fromTile: Vector2, toTile: Vector2): number {
 
 /**
  * Get obstacle index list for diagonal blocking
- * C# Reference: PathFinder.GetObstacleIndexList
  *
  * Direction layout:
  * 3  4  5
@@ -68,7 +66,7 @@ function getObstacleIndexList(
     if (isObstacle(neighbors[i])) {
       removeList.add(i);
 
-      // C#: if (MapBase.Instance.IsObstacle(neighborList[i]))
+      // if (MapBase.Instance.IsObstacle(neighborList[i]))
       // Apply diagonal blocking only for hard obstacles
       if (isHardObstacle(neighbors[i])) {
         switch (i) {
@@ -98,7 +96,6 @@ function getObstacleIndexList(
 
 /**
  * Check if can move in a specific direction given canMoveDirectionCount
- * C# Reference: PathFinder.CanMoveInDirection
  */
 export function canMoveInDirection(direction: number, canMoveDirectionCount: number): boolean {
   // Direction layout:
@@ -119,7 +116,6 @@ export function canMoveInDirection(direction: number, canMoveDirectionCount: num
 
 /**
  * Find non-obstacle neighbors at a location
- * C# Reference: PathFinder.FindNeighbors
  *
  * @param location Tile position
  * @param isMapObstacle Check if tile is a map obstacle (MapBase.Instance.IsObstacleForCharacter)
@@ -153,10 +149,9 @@ function findNeighbors(
 
 /**
  * Reconstruct path from cameFrom map
- * C# Reference: PathFinder.GetPath
  * Returns path in TILE positions (not pixel positions)
  *
- * Note: C# version returns pixel positions, but our TypeScript Character.moveAlongPath
+ * Note: version returns pixel positions, but our TypeScript Character.moveAlongPath
  * expects tile positions and converts them internally.
  */
 function getPath(cameFrom: Map<string, Vector2>, startTile: Vector2, endTile: Vector2): Vector2[] {
@@ -184,7 +179,6 @@ function getPath(cameFrom: Map<string, Vector2>, startTile: Vector2, endTile: Ve
 
 /**
  * Simple greedy step-by-step pathfinding
- * C# Reference: PathFinder.FindPathStep
  *
  * Algorithm: Greedy movement towards target, preferring directions closer to target
  * Used for simple short-distance movement
@@ -202,7 +196,7 @@ export function findPathStep(
     return [];
   }
 
-  // C#: if (MapBase.Instance.IsObstacleForCharacter(endTile)) return null;
+  // if (MapBase.Instance.IsObstacleForCharacter(endTile)) return null;
   if (isMapObstacle(endTile)) {
     return [];
   }
@@ -275,7 +269,6 @@ export function findPathStep(
 
 /**
  * Greedy best-first search (Simple)
- * C# Reference: PathFinder.FindPathSimple
  *
  * Algorithm: Prioritizes tiles closest to target (by heuristic only)
  * Faster but doesn't guarantee optimal path
@@ -317,7 +310,7 @@ export function findPathSimple(
       break;
     }
 
-    // C#: if (finder.HasObstacle(current) && current != startTile) continue;
+    // if (finder.HasObstacle(current) && current != startTile) continue;
     if ((current.x !== startTile.x || current.y !== startTile.y) && hasObstacle(current)) {
       continue;
     }
@@ -345,7 +338,6 @@ export function findPathSimple(
 
 /**
  * A* pathfinding algorithm (Perfect)
- * C# Reference: PathFinder.FindPathPerfect
  *
  * Algorithm: A* with both g-cost (path so far) and h-cost (heuristic to target)
  * Guarantees optimal path if one exists
@@ -431,7 +423,7 @@ export function findPathPerfect(
       break;
     }
 
-    // C#: if (finder.HasObstacle(current) && current != startTile) continue;
+    // if (finder.HasObstacle(current) && current != startTile) continue;
     if ((current.x !== startTile.x || current.y !== startTile.y) && hasObstacle(current)) {
       continue;
     }
@@ -477,7 +469,6 @@ export function findPathPerfect(
 
 /**
  * Get straight line path (ignores obstacles)
- * C# Reference: PathFinder.GetLinePath
  *
  * Used for flying characters that can move through obstacles
  * Always returns tile positions (the tilePosition param is ignored for consistency)
@@ -519,7 +510,7 @@ export function getLinePath(startTile: Vector2, endTile: Vector2, maxTry: number
 
 /**
  * Main pathfinding entry point
- * C# Reference: PathFinder.FindPath(finder, startTile, endTile, type)
+ * Reference: PathFinder.FindPath(finder, startTile, endTile, type)
  *
  * @param startTile Starting tile position
  * @param endTile Target tile position
@@ -603,7 +594,6 @@ export function findPath(
 
 /**
  * Find neighbor in a specific direction (0-7)
- * C# Reference: PathFinder.FindNeighborInDirection
  */
 export function findNeighborInDirection(tilePosition: Vector2, direction: number): Vector2 {
   if (direction < 0 || direction > 7) {
@@ -614,7 +604,6 @@ export function findNeighborInDirection(tilePosition: Vector2, direction: number
 
 /**
  * Find tile at a distance in a direction
- * C# Reference: PathFinder.FindDistanceTileInDirection
  */
 export function findDistanceTileInDirection(
   tilePosition: Vector2,
@@ -637,7 +626,6 @@ export function findDistanceTileInDirection(
 
 /**
  * Check if there are map obstacles in a tile position list
- * C# Reference: PathFinder.HasMapObstacalInTilePositionList
  */
 export function hasMapObstacleInTilePositionList(
   tilePositionList: Vector2[],
@@ -660,7 +648,6 @@ export function hasMapObstacleInTilePositionList(
 
 /**
  * 计算在点上弹跳后的方向
- * C# Reference: PathFinder.BouncingAtPoint
  *
  * @param direction 当前移动方向（已归一化或零向量）
  * @param worldPosition 武功当前像素位置
@@ -672,7 +659,7 @@ export function bouncingAtPoint(
   worldPosition: Vector2,
   targetWorldPosition: Vector2
 ): Vector2 {
-  // C#: if (direction == Vector2.Zero || worldPosition == targetWorldPosition)
+  // if (direction == Vector2.Zero || worldPosition == targetWorldPosition)
   //       return worldPosition - targetWorldPosition;
   if (
     (direction.x === 0 && direction.y === 0) ||
@@ -684,7 +671,7 @@ export function bouncingAtPoint(
     };
   }
 
-  // C#: var normal = Vector2.Normalize(worldPosition - targetWorldPosition);
+  // var normal = Vector2.Normalize(worldPosition - targetWorldPosition);
   //     return Vector2.Reflect(direction, normal);
   const normalX = worldPosition.x - targetWorldPosition.x;
   const normalY = worldPosition.y - targetWorldPosition.y;
@@ -707,7 +694,6 @@ export function bouncingAtPoint(
 
 /**
  * 计算在墙上弹跳后的方向
- * C# Reference: PathFinder.BouncingAtWall
  *
  * @param direction 当前移动方向（已归一化或零向量）
  * @param worldPosition 武功当前像素位置
@@ -721,21 +707,21 @@ export function bouncingAtWall(
   targetTilePosition: Vector2,
   isMapObstacle: (tile: Vector2) => boolean
 ): Vector2 {
-  // C#: if (direction == Vector2.Zero) return direction;
+  // if (direction == Vector2.Zero) return direction;
   if (direction.x === 0 && direction.y === 0) {
     return { ...direction };
   }
 
-  // C#: var dir = Utils.GetDirectionIndex(direction, 8);
+  // var dir = Utils.GetDirectionIndex(direction, 8);
   const dirIndex = getDirectionFromVector(direction);
 
-  // C#: var checks = new[]{(dir + 2)%8, (dir + 6)%8, (dir + 1)%8, (dir + 7)%8};
+  // var checks = new[]{(dir + 2)%8, (dir + 6)%8, (dir + 1)%8, (dir + 7)%8};
   const checks = [(dirIndex + 2) % 8, (dirIndex + 6) % 8, (dirIndex + 1) % 8, (dirIndex + 7) % 8];
 
-  // C#: var neighbors = FindAllNeighbors(targetTilePosition);
+  // var neighbors = FindAllNeighbors(targetTilePosition);
   const neighbors = getNeighbors(targetTilePosition);
 
-  // C#: Find which neighbor is an obstacle
+  // Find which neighbor is an obstacle
   let foundIndex = 8;
   for (const checkDir of checks) {
     if (isMapObstacle(neighbors[checkDir])) {
@@ -744,13 +730,13 @@ export function bouncingAtWall(
     }
   }
 
-  // C#: if (get == 8) return BouncingAtPoint(direction, worldPosition, MapBase.ToPixelPosition(targetTilePosition));
+  // if (get == 8) return BouncingAtPoint(direction, worldPosition, MapBase.ToPixelPosition(targetTilePosition));
   if (foundIndex === 8) {
     const targetPixel = tileToPixel(targetTilePosition.x, targetTilePosition.y);
     return bouncingAtPoint(direction, worldPosition, targetPixel);
   }
 
-  // C#: var normal = MapBase.ToPixelPosition(targetTilePosition) - MapBase.ToPixelPosition(neighbors[get]);
+  // var normal = MapBase.ToPixelPosition(targetTilePosition) - MapBase.ToPixelPosition(neighbors[get]);
   //     normal = Vector2.Normalize(new Vector2(-normal.Y, normal.X));
   //     return Vector2.Reflect(direction, normal);
   const targetPixel = tileToPixel(targetTilePosition.x, targetTilePosition.y);

@@ -1,7 +1,7 @@
 /**
  * MapBase - 地图基类
  *
- * 完全对应 C# Engine/Map/MapBase.cs + JxqyMap.cs 实现
+ * 完全实现
  *
  * 功能包含：
  * - 坐标转换（ToTilePosition, ToPixelPosition）
@@ -21,7 +21,7 @@ import type { Vector2 } from "../core/types";
 import { resourceLoader } from "../resource/resourceLoader";
 import { parseIni, pixelToTile, tileToPixel } from "../utils";
 
-// ============= 障碍类型常量 (C# BarrierType) =============
+// ============= 障碍类型常量 =============
 /** 无障碍 */
 const NONE = 0x00;
 /** 完全障碍 */
@@ -49,12 +49,12 @@ export const LAYER_INDEX = {
 
 /**
  * 地图基类 - 单例模式
- * 对应 C# MapBase + JxqyMap
+ * 
  *
  * 所有状态都在实例上，通过 MapBase.Instance 或 engine.map 访问
  */
 export class MapBase {
-  /** 单例实例 (对应 C# MapBase.Instance) */
+  /** 单例实例 () */
   private static _instance: MapBase | null = null;
 
   // ============= 地图数据 =============
@@ -214,7 +214,7 @@ export class MapBase {
 
   /**
    * 像素坐标 → 瓦片坐标
-   * 对应 C# MapBase.ToTilePosition
+   * 
    * 内部使用 core/utils.ts 的实现
    */
   static ToTilePosition(pixelX: number, pixelY: number, boundCheck: boolean = true): Vector2 {
@@ -233,7 +233,7 @@ export class MapBase {
 
   /**
    * 瓦片坐标 → 像素坐标（瓦片中心）
-   * 对应 C# MapBase.ToPixelPosition
+   * 
    * 内部使用 core/utils.ts 的实现
    */
   static ToPixelPosition(col: number, row: number, boundCheck: boolean = true): Vector2 {
@@ -254,7 +254,7 @@ export class MapBase {
 
   /**
    * 获取当前视图内的起始瓦片
-   * 对应 C# MapBase.GetStartTileInView
+   * 
    */
   getStartTileInView(): Vector2 {
     return MapBase.GetStartTileInViewStatic(this.viewBeginX, this.viewBeginY);
@@ -262,7 +262,7 @@ export class MapBase {
 
   /**
    * 获取当前视图内的结束瓦片
-   * 对应 C# MapBase.GetEndTileInView
+   * 
    */
   getEndTileInView(): Vector2 {
     return MapBase.GetEndTileInViewStatic(
@@ -302,7 +302,7 @@ export class MapBase {
 
   /**
    * 检查瓦片是否在地图范围内
-   * 对应 C# MapBase.IsTileInMapRange
+   * 
    */
   isTileInMapRange(x: number, y: number): boolean {
     if (!this._mapData) return false;
@@ -318,9 +318,9 @@ export class MapBase {
 
   /**
    * 检查瓦片是否在地图视图范围内（用于碰撞检测）
-   * 对应 C# MapBase.IsTileInMapViewRange
+   * 
    *
-   * C# 原始逻辑：
+   * 原始逻辑：
    * return (col < MapColumnCounts && row < MapRowCounts - 1 && col >= 0 && row > 0);
    *
    * 注意：row 必须 > 0（不是 >= 0），row 必须 < MapRowCounts - 1（不是 < MapRowCounts）
@@ -349,7 +349,7 @@ export class MapBase {
 
   /**
    * 检查是否为障碍物（仅检查 Obstacle 标志）
-   * 对应 C# JxqyMap.IsObstacle
+   * 
    */
   isObstacle(col: number, row: number): boolean {
     if (!this.isTileInMapViewRange(col, row)) {
@@ -357,7 +357,7 @@ export class MapBase {
     }
     const tileInfo = this.getTileInfo(col, row);
     if (tileInfo) {
-      // C#: if ((type & Obstacle) == 0) return false;
+      // if ((type & Obstacle) == 0) return false;
       return (tileInfo.barrierType & OBSTACLE) !== 0;
     }
     return true;
@@ -372,7 +372,7 @@ export class MapBase {
 
   /**
    * 检查是否为角色障碍（检查 Obstacle + Trans）
-   * 对应 C# JxqyMap.IsObstacleForCharacter
+   * 
    *
    * 用于普通行走碰撞检测
    */
@@ -382,7 +382,7 @@ export class MapBase {
     }
     const tileInfo = this.getTileInfo(col, row);
     if (tileInfo) {
-      // C#: if ((type & (Obstacle + Trans)) == 0) return false;
+      // if ((type & (Obstacle + Trans)) == 0) return false;
       const isObstacle = (tileInfo.barrierType & (OBSTACLE + TRANS)) !== 0;
       return isObstacle;
     }
@@ -419,7 +419,7 @@ export class MapBase {
 
   /**
    * 检查是否为角色跳跃障碍
-   * 对应 C# JxqyMap.IsObstacleForCharacterJump
+   * 
    *
    * 跳跃时可以越过 CanOver (0x20) 标志的瓦片
    */
@@ -429,7 +429,7 @@ export class MapBase {
     }
     const tileInfo = this.getTileInfo(col, row);
     if (tileInfo) {
-      // C#: if (type == None || (type & CanOver) != 0) return false;
+      // if (type == None || (type & CanOver) != 0) return false;
       const barrier = tileInfo.barrierType;
       if (barrier === NONE || (barrier & CAN_OVER) !== 0) {
         return false; // 可跳过
@@ -447,7 +447,7 @@ export class MapBase {
 
   /**
    * 检查是否为武功障碍
-   * 对应 C# JxqyMap.IsObstacleForMagic
+   * 
    *
    * 武功可以穿过 Trans (0x40) 标志的瓦片
    */
@@ -457,7 +457,7 @@ export class MapBase {
     }
     const tileInfo = this.getTileInfo(col, row);
     if (tileInfo) {
-      // C#: if (type == None || (type & Trans) != 0) return false;
+      // if (type == None || (type & Trans) != 0) return false;
       const barrier = tileInfo.barrierType;
       if (barrier === NONE || (barrier & TRANS) !== 0) {
         return false; // 武功可通过
@@ -532,7 +532,7 @@ export class MapBase {
 
   /**
    * 获取瓦片的陷阱索引
-   * 对应 C# JxqyMap.GetTileTrapIndex
+   * 
    * @returns 陷阱索引，0 表示无陷阱
    */
   getTileTrapIndex(col: number, row: number): number {
@@ -552,7 +552,7 @@ export class MapBase {
 
   /**
    * 从文件加载陷阱配置
-   * 对应 C# MapBase.LoadTrap
+   * 
    */
   async loadTrap(filePath: string): Promise<void> {
     // 清空已忽略的陷阱列表
@@ -593,7 +593,7 @@ export class MapBase {
 
   /**
    * 保存陷阱配置到文件（在 Web 环境中主要用于调试）
-   * 对应 C# MapBase.SaveTrap
+   * 
    */
   saveTrap(): string {
     let output = "";
@@ -609,7 +609,7 @@ export class MapBase {
 
   /**
    * 加载已忽略的陷阱索引列表
-   * 对应 C# MapBase.LoadTrapIndexIgnoreList
+   * 
    */
   loadTrapIndexIgnoreList(data: number[]): void {
     this._ignoredTrapsIndex.clear();
@@ -621,7 +621,7 @@ export class MapBase {
 
   /**
    * 获取已忽略的陷阱索引列表（用于存档）
-   * 对应 C# MapBase.SaveTrapIndexIgnoreList
+   * 
    */
   getIgnoredTrapIndices(): number[] {
     return Array.from(this._ignoredTrapsIndex);
@@ -629,7 +629,7 @@ export class MapBase {
 
   /**
    * 清空已忽略的陷阱列表（加载新地图时调用）
-   * 对应 C# JxqyMap.LoadMapFromBuffer 中的 _ingnoredTrapsIndex.Clear()
+   * 中的 _ingnoredTrapsIndex.Clear()
    */
   clearIgnoredTraps(): void {
     this._ignoredTrapsIndex.clear();
@@ -637,7 +637,7 @@ export class MapBase {
 
   /**
    * 设置地图陷阱
-   * 对应 C# MapBase.SetMapTrap
+   * 
    */
   setMapTrap(index: number, trapFileName: string, mapName?: string): void {
     const targetMap = mapName || this._mapFileNameWithoutExtension;
@@ -665,7 +665,7 @@ export class MapBase {
 
   /**
    * 获取地图陷阱脚本解析器
-   * 对应 C# MapBase.GetMapTrap
+   * 
    * @returns 脚本文件名，如果没有返回 null
    */
   getMapTrapFileName(index: number, mapName?: string): string | null {
@@ -683,7 +683,7 @@ export class MapBase {
 
   /**
    * 检查瓦片是否有陷阱脚本
-   * 对应 C# MapBase.HasTrapScript
+   * 
    */
   hasTrapScript(tilePosition: Vector2): boolean {
     const index = this.getTileTrapIndexVector(tilePosition);
@@ -702,7 +702,7 @@ export class MapBase {
 
   /**
    * 运行瓦片陷阱脚本
-   * 对应 C# MapBase.RunTileTrapScript
+   * 
    *
    * @param tilePosition 瓦片位置
    * @param runScript 执行脚本的回调函数
@@ -730,10 +730,10 @@ export class MapBase {
       `[MapBase] Triggering trap ${trapIndex} at tile (${tilePosition.x}, ${tilePosition.y})`
     );
 
-    // C#: Globals.ThePlayer.StandingImmediately()
+    // Globals.ThePlayer.StandingImmediately()
     onTrapTriggered?.();
 
-    // C#: _isInRunMapTrap = true
+    // _isInRunMapTrap = true
     this._isInRunMapTrap = true;
 
     // 添加到忽略列表（不会再次触发）
@@ -805,7 +805,7 @@ export class MapBase {
 
   /**
    * 检查并触发陷阱
-   * 对应 C# MapBase.RunTileTrapScript 的完整流程
+   * 的完整流程
    *
    * @param tile 瓦片位置
    * @param mapData 地图数据
@@ -831,7 +831,7 @@ export class MapBase {
       return false;
     }
 
-    // C#: Don't run trap if already in trap script execution
+    // Don't run trap if already in trap script execution
     if (this._isInRunMapTrap) {
       return false;
     }
@@ -872,7 +872,7 @@ export class MapBase {
       // 设置陷阱执行标志
       this._isInRunMapTrap = true;
 
-      // C#: Globals.ThePlayer.StandingImmediately()
+      // Globals.ThePlayer.StandingImmediately()
       onTrapTriggered?.();
 
       // 运行脚本
@@ -917,7 +917,7 @@ export class MapBase {
 
   /**
    * 设置图层是否绘制
-   * 对应 C# MapBase.SetLayerDraw
+   * 
    */
   setLayerDraw(layer: number, isDraw: boolean): void {
     if (layer < 0 || layer > MAX_LAYER - 1) return;
@@ -926,7 +926,7 @@ export class MapBase {
 
   /**
    * 检查图层是否绘制
-   * 对应 C# MapBase.IsLayerDraw
+   * 
    */
   isLayerDraw(layer: number): boolean {
     if (layer < 0 || layer > MAX_LAYER - 1) return false;
@@ -935,7 +935,7 @@ export class MapBase {
 
   /**
    * 切换图层绘制状态
-   * 对应 C# MapBase.SwitchLayerDraw
+   * 
    */
   switchLayerDraw(layer: number): void {
     this.setLayerDraw(layer, !this.isLayerDraw(layer));
@@ -945,7 +945,7 @@ export class MapBase {
 
   /**
    * 设置地图信息（地图加载后调用）
-   * 对应 C# MapBase.LoadMap 的后半部分
+   * 的后半部分
    */
   setMapInfo(mapFileName: string): void {
     const pathParts = mapFileName.split("/");
@@ -957,7 +957,7 @@ export class MapBase {
 
   /**
    * 释放地图资源
-   * 对应 C# MapBase.Free
+   * 
    */
   free(): void {
     this._mapData = null;
@@ -966,7 +966,7 @@ export class MapBase {
 
   /**
    * 获取随机位置
-   * 对应 C# MapBase.GetRandPositon
+   * 
    */
   getRandPosition(tilePosition: Vector2, max: number): Vector2 {
     const randPosition: Vector2 = { x: 0, y: 0 };

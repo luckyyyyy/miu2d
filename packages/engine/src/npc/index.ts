@@ -1,7 +1,7 @@
 /**
  * NPC system exports
  *
- * NPC classes and manager (based on C# JxqyHD):
+ * NPC classes and manager ():
  * - Npc (extends Character) - npc.ts
  * - NpcManager - npcManager.ts
  * - NpcMagicCache - modules/npcMagicCache.ts

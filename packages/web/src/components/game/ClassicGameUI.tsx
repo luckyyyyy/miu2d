@@ -255,7 +255,7 @@ export const ClassicGameUI: React.FC<ClassicGameUIProps> = ({ logic, width, heig
         onSystemClick={() => togglePanel("system")}
       />
 
-      {/* Partner Heads (队友头像) - C#: LittleHeadGui */}
+      {/* Partner Heads (队友头像) */}
       {partnersData.length > 0 && (
         <LittleHeadGui
           partners={partnersData}

@@ -40,7 +40,6 @@ export function normalizeVector(v: Vector2): Vector2 {
 
 /**
  * 计算速度比率（用于斜向移动时的等视速度补偿）
- * C# Reference: MagicManager.GetSpeedRatio
  * @param direction 归一化的方向向量
  * @returns 速度比率 (0.5 到 1.0)
  */

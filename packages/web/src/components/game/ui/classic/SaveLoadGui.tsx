@@ -2,7 +2,7 @@
  * SaveLoadGui Component - based on JxqyHD Engine/Gui/SaveLoadGui.cs
  * Displays save/load interface with slot list, snapshot preview, and action buttons
  *
- * C# Reference: SaveLoadGui.cs shows save/load menu with 7 slots
+ * shows save/load menu with 7 slots
  * Resources loaded from UI_Settings.ini [SaveLoad] section
  */
 
@@ -107,7 +107,7 @@ const SlotItem: React.FC<SlotItemProps> = ({
 }) => {
   const [isHovered, setIsHovered] = useState(false);
 
-  // C# 版本只显示 "进度一" 到 "进度七"，不显示等级
+  // 版本只显示 "进度一" 到 "进度七"，不显示等级
   const displayText = label;
 
   return (

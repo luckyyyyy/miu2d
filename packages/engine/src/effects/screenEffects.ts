@@ -32,7 +32,7 @@ export interface ScreenEffectsState {
 }
 
 const DEFAULT_COLOR: Color = { r: 255, g: 255, b: 255, a: 255 };
-// C# uses 0.03 per frame at 60fps = 0.03 * 60 = 1.8 per second
+// uses 0.03 per frame at 60fps = 0.03 * 60 = 1.8 per second
 // Complete fade takes ~33 frames = ~550ms
 const FADE_SPEED_PER_SECOND = 1.8; // 1.0 / 0.55 seconds
 
@@ -57,7 +57,7 @@ export class ScreenEffects {
 
   /**
    * Start fade out effect (screen goes to black)
-   * Based on ScriptExecuter.FadeOut() in C#
+   * Based on ScriptExecuter.FadeOut()
    */
   fadeOut(): void {
     this.state.isInFadeOut = true;
@@ -67,7 +67,7 @@ export class ScreenEffects {
 
   /**
    * Check if fade out is complete
-   * Based on ScriptExecuter.IsFadeOutEnd() in C#
+   * Based on ScriptExecuter.IsFadeOutEnd()
    */
   isFadeOutEnd(): boolean {
     return this.state.fadeTransparency >= 1;
@@ -75,7 +75,7 @@ export class ScreenEffects {
 
   /**
    * Start fade in effect (screen goes from black to normal)
-   * Based on ScriptExecuter.FadeIn() in C#
+   * Based on ScriptExecuter.FadeIn()
    */
   fadeIn(): void {
     this.state.isInFadeOut = false;
@@ -85,7 +85,7 @@ export class ScreenEffects {
 
   /**
    * Check if fade in is complete
-   * Based on ScriptExecuter.IsFadeInEnd() in C#
+   * Based on ScriptExecuter.IsFadeInEnd()
    */
   isFadeInEnd(): boolean {
     return !this.state.isInFadeIn;
@@ -101,7 +101,7 @@ export class ScreenEffects {
 
   /**
    * Set map draw color (tinting)
-   * Based on ScriptExecuter.ChangeMapColor() in C#
+   * Based on ScriptExecuter.ChangeMapColor()
    */
   setMapColor(r: number, g: number, b: number): void {
     this.state.mapDrawColor = { r, g, b, a: 255 };
@@ -109,7 +109,7 @@ export class ScreenEffects {
 
   /**
    * Set sprite/ASF draw color (tinting)
-   * Based on ScriptExecuter.ChangeAsfColor() in C#
+   * Based on ScriptExecuter.ChangeAsfColor()
    */
   setSpriteColor(r: number, g: number, b: number): void {
     this.state.spriteDrawColor = { r, g, b, a: 255 };
@@ -135,7 +135,7 @@ export class ScreenEffects {
 
   /**
    * Initialize/reset screen effects
-   * Based on ScriptExecuter.Init() in C#
+   * Based on ScriptExecuter.Init()
    */
   init(): void {
     this.state.isInFadeIn = false;
@@ -147,8 +147,8 @@ export class ScreenEffects {
 
   /**
    * Update screen effects
-   * Based on ScriptExecuter.Update() fade logic in C#
-   * C# uses 0.03 per frame at 60fps, so fade completes in ~550ms
+   * Based on ScriptExecuter.Update() fade logic
+   * uses 0.03 per frame at 60fps, so fade completes in ~550ms
    * @param deltaTime - time elapsed in seconds
    */
   update(deltaTime: number): void {
@@ -187,7 +187,7 @@ export class ScreenEffects {
 
   /**
    * Draw fade overlay on canvas
-   * Based on ScriptExecuter.DrawFade() in C#
+   * Based on ScriptExecuter.DrawFade()
    */
   drawFade(ctx: CanvasRenderingContext2D, width: number, height: number): void {
     if (this.state.fadeTransparency > 0) {
@@ -271,7 +271,7 @@ export class ScreenEffects {
 
   /**
    * Enable water ripple effect
-   * C#: Globals.IsWaterEffectEnabled = true
+   * Globals.IsWaterEffectEnabled = true
    */
   openWaterEffect(): void {
     this.state.isWaterEffectEnabled = true;
@@ -280,7 +280,7 @@ export class ScreenEffects {
 
   /**
    * Disable water ripple effect
-   * C#: Globals.IsWaterEffectEnabled = false
+   * Globals.IsWaterEffectEnabled = false
    */
   closeWaterEffect(): void {
     this.state.isWaterEffectEnabled = false;

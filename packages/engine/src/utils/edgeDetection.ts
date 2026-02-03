@@ -1,7 +1,7 @@
 /**
  * Edge Detection Utility - based on JxqyHD Engine/TextureGenerator.cs GetOuterEdge
  *
- * C# 实现:
+ * 实现:
  * 1. 遍历所有像素，找到透明像素旁边有不透明像素的位置
  * 2. 这些位置就是边缘像素
  * 3. 将边缘像素绘制为指定颜色
@@ -29,7 +29,7 @@ function _getCanvasId(canvas: HTMLCanvasElement | OffscreenCanvas): number {
 
 /**
  * 检查颜色是否透明（用于NPC/Obj碰撞）
- * C#: IsColorTransparentForNpcObj - alpha < 200
+ * alpha < 200
  */
 function isColorTransparent(alpha: number): boolean {
   return alpha < 200;
@@ -55,7 +55,7 @@ function parseColor(color: string): { r: number; g: number; b: number; a: number
 
 /**
  * 生成边缘纹理
- * C#: TextureGenerator.GetOuterEdge
+ *
  *
  * 算法：
  * 1. 遍历每个透明像素

@@ -6,7 +6,7 @@ import type { Vector2 } from "../core/types";
 
 /**
  * Get neighboring tiles (8-direction)
- * Matches C# PathFinder.FindAllNeighbors exactly
+ * Matches PathFinder.FindAllNeighbors exactly
  *
  * Direction indices:
  * 3  4  5
@@ -46,7 +46,7 @@ export function getNeighbors(tile: Vector2): Vector2[] {
 
 /**
  * Get walkable neighbors with diagonal blocking logic
- * Matches C# PathFinder.FindNeighbors + GetObstacleIndexList
+ * Matches PathFinder.FindNeighbors + GetObstacleIndexList
  *
  * Key insight: In isometric maps, when moving "straight" (N/S/E/W which skip 2 tiles),
  * you actually pass through intermediate tiles. If those intermediate tiles are blocked,
@@ -78,7 +78,7 @@ export function getWalkableNeighbors(
 
       // Apply diagonal blocking: if a diagonal direction is a "hard" obstacle,
       // also block the adjacent cardinal directions
-      // C# checks MapBase.Instance.IsObstacle (not IsObstacleForCharacter)
+      // checks MapBase.Instance.IsObstacle (not IsObstacleForCharacter)
       // IsObstacle is the raw map barrier, IsObstacleForCharacter also checks NPCs/Objs
       const isHardObstacle = isMapObstacle ? isMapObstacle(neighbor) : !isWalkable(neighbor);
 

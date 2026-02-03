@@ -63,7 +63,7 @@ export interface MinimapState {
   characters: CharacterMarker[];
 }
 
-// PartnerData 用于渲染队友头像 (C#: LittleHeadGui)
+// PartnerData 用于渲染队友头像
 export interface PartnerData {
   name: string;
   level: number;
@@ -149,7 +149,7 @@ export function useGameUILogic({ engine }: UseGameUILogicOptions) {
     return () => unsubs.forEach((unsub) => unsub());
   }, [engine]);
 
-  // 定期刷新 player 状态（模拟 C# StateGui.Update 每帧调用 UpdateItems）
+  // 定期刷新 player 状态
   // 当状态面板打开时，每 200ms 刷新一次
   useEffect(() => {
     if (!panels?.state) return;

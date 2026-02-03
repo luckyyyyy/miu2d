@@ -54,7 +54,7 @@ export const MagicTooltip: React.FC<MagicTooltipProps> = ({ magicInfo, position,
   const adjustedX = Math.min(position.x + 10, window.innerWidth - tooltipWidth - 20);
   const adjustedY = Math.min(position.y + 27, window.innerHeight - tooltipHeight - 20);
 
-  // Build display data - matches C# ShowMagic method
+  // Build display data - matches ShowMagic method
   const name = magic?.name || "无名称";
   const level = `等级： ${magicInfo.level}`;
   const intro = magic?.intro || "无简介";
@@ -98,7 +98,7 @@ export const MagicTooltip: React.FC<MagicTooltipProps> = ({ magicInfo, position,
         />
       )}
 
-      {/* Magic Image - C# config: Left=132, Top=47, Width=60, Height=75 */}
+      {/* Magic Image - config: Left=132, Top=47, Width=60, Height=75 */}
       <div
         style={{
           position: "absolute",
@@ -124,7 +124,7 @@ export const MagicTooltip: React.FC<MagicTooltipProps> = ({ magicInfo, position,
         )}
       </div>
 
-      {/* Magic Name - C# config: Left=67, Top=191, Color=102,73,212,204 (purple) */}
+      {/* Magic Name - config: Left=67, Top=191, Color=102,73,212,204 (purple) */}
       <div
         style={{
           position: "absolute",
@@ -142,7 +142,7 @@ export const MagicTooltip: React.FC<MagicTooltipProps> = ({ magicInfo, position,
         {name}
       </div>
 
-      {/* Level - C# config: Left=160, Top=191, Color=91,31,27,204 (dark red) */}
+      {/* Level - config: Left=160, Top=191, Color=91,31,27,204 (dark red) */}
       <div
         style={{
           position: "absolute",
@@ -159,7 +159,7 @@ export const MagicTooltip: React.FC<MagicTooltipProps> = ({ magicInfo, position,
         {level}
       </div>
 
-      {/* Magic Intro - C# config [ToolTip_Type1_Item_Magic_Intro]:
+      {/* Magic Intro - config [ToolTip_Type1_Item_Magic_Intro]:
           Left=67, Top=210, Width=196, Height=120, Color=52,21,14,204 (brown) */}
       <div
         style={{

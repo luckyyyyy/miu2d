@@ -13,7 +13,7 @@ import type { ApplyContext, CastContext, EndContext, MagicEffect } from "./types
 
 /**
  * Kind19 武功效果 - 持续留痕武功
- * C# Reference: MagicManager.UseMagic case 19 + MagicManager.Update _kind19Magics
+ * case 19 + MagicManager.Update _kind19Magics
  *
  * 角色移动时持续在原位置留下武功痕迹（如火焰脚印、毒雾路径等），
  * 痕迹存在 keepMilliseconds 毫秒后消失。
@@ -63,7 +63,7 @@ export const kind19Effect: MagicEffect = {
 
 /**
  * Transport 武功效果 - 传送
- * C# Reference: MagicManager.UseMagic case 20
+ * case 20
  */
 export const transportEffect: MagicEffect = {
   onCast(ctx: CastContext): void {
@@ -75,7 +75,7 @@ export const transportEffect: MagicEffect = {
     }
 
     // 检查是否已在传送中（防止重复传送）
-    // C# 使用 user.IsInTransport 标记
+    // 使用 user.IsInTransport 标记
     // 在 Web 版本中，可以通过 Player 状态管理
   },
 
@@ -100,7 +100,7 @@ export const transportEffect: MagicEffect = {
 
 /**
  * ControlCharacter 武功效果 - 控制角色
- * C# Reference: MagicManager.UseMagic case 21
+ * case 21
  * 玩家可以控制目标角色，前提是目标等级不超过武功 MaxLevel
  */
 export const controlCharacterEffect: MagicEffect = {
@@ -141,7 +141,7 @@ export const controlCharacterEffect: MagicEffect = {
 
 /**
  * Summon 武功效果 - 召唤 NPC
- * C# Reference: MagicManager.UseMagic case 22
+ * case 22
  * 在目标位置召唤一个 NPC
  */
 export const summonEffect: MagicEffect = {

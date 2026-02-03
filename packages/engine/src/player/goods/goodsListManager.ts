@@ -310,7 +310,7 @@ export class GoodsListManager {
 
   /**
    * Add good to list
-   * Based on C# GoodsListManager.AddGoodToList
+   * 
    *
    * Key logic:
    * - Equipment with random attributes (hasRandAttr) should NOT stack,
@@ -326,12 +326,12 @@ export class GoodsListManager {
     }
 
     // Handle equipment with random attributes - generate unique instance
-    // Based on C# GoodsListManager.cs lines 296-300
+    //  lines 296-300
     let hasUniqueRandomAttrs = false;
     if (good.kind === GoodKind.Equipment && good.hasRandAttr) {
       good = good.getOneNonRandom();
       hasUniqueRandomAttrs = true;
-      // Note: C# saves to game directory here, but we handle this differently
+      // Note: saves to game directory here, but we handle this differently
     }
 
     // Try to stack with existing same item
@@ -635,7 +635,7 @@ export class GoodsListManager {
 
   /**
    * Use a good (drug, equipment, event item)
-   * C#: GoodsListManager.UsingGood(goodIndex)
+   * GoodsListManager.UsingGood(goodIndex)
    * @param playerName - Player name for checking item user restriction
    */
   async usingGood(
@@ -653,7 +653,7 @@ export class GoodsListManager {
 
     const good = info.good;
 
-    // C#: Check user requirements
+    // Check user requirements
     // if (good.User != null && good.User.Length > 0) { if (!good.User.Contains(user.Name)) ... }
     if (good.user && good.user.length > 0 && playerName) {
       if (!good.user.includes(playerName)) {
@@ -699,7 +699,7 @@ export class GoodsListManager {
         break;
 
       case GoodKind.Event:
-        // C#: ScriptManager.RunScript(good.Script)
+        // ScriptManager.RunScript(good.Script)
         // 使用 IEngineContext 运行脚本
         if (good.script) {
           const engine = getEngineContext();

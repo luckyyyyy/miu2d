@@ -24,7 +24,7 @@ export interface MagicManagerDeps {
   screenEffects: ScreenEffects;
   audioManager: AudioManager;
   magicListManager: MagicListManager;
-  /** 震屏回调 C# Reference: Carmera.VibaratingScreen */
+  /** 震屏回调 */
   vibrateScreen?: (intensity: number) => void;
 }
 

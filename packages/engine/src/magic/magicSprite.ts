@@ -1,9 +1,9 @@
 /**
  * MagicSprite - 武功精灵类
- * 对应 C# Engine/MagicSprite.cs
+ * 
  * 继承自 Sprite，用于表示游戏中的武功特效
  *
- * C# 架构：
+ * 架构：
  * - MagicSprite : Sprite - 继承 Sprite
  * - 复用父类的动画系统：_currentFrameIndex, _leftFrameToPlay, isInPlaying, playFrames(), update()
  * - 复用父类的移动系统：_velocity, _positionInWorld, _movedDistance
@@ -35,7 +35,6 @@ export function nextSpriteId(): number {
 
 /**
  * 圆形移动信息
- * C# Reference: MagicSprite.RoundMoveInfo
  */
 interface RoundMoveInfo {
   curDegree: number;
@@ -52,7 +51,7 @@ export interface WorkItem {
 
 /**
  * MagicSprite - 武功精灵
- * C# Reference: Engine/MagicSprite.cs
+ * Reference: Engine/MagicSprite.cs
  *
  * 继承自 Sprite，复用父类的动画和移动系统，只添加武功特有的属性和行为
  */
@@ -60,67 +59,67 @@ export class MagicSprite extends Sprite {
   // ============= 唯一ID =============
   private _id: number;
 
-  // ============= C# MagicSprite 特有字段 =============
+  // ============= MagicSprite 特有字段 =============
 
-  /** C#: _belongCharacter (使用ID引用) */
+  /** 使用ID引用 */
   belongCharacterId: string = "";
-  /** C#: _belongMagic */
+  
   private _magic: MagicData;
-  /** C#: _moveDirection (normalized or zero) */
+  /** normalized or zero */
   private _moveDirection: Vector2 = { x: 0, y: 0 };
-  /** C#: _destnationPixelPosition */
+  
   private _destination: Vector2 = { x: 0, y: 0 };
-  /** C#: _isDestroyed */
+  
   private _isDestroyed: boolean = false;
-  /** C#: _isInDestroy */
+  
   private _isInDestroy: boolean = false;
-  /** C#: _destroyOnEnd */
+  
   destroyOnEnd: boolean = false;
 
-  /** C#: _waitMilliSeconds */
+  
   private _waitMilliseconds: number = 0;
 
-  /** C#: _currentEffect, _currentEffect2, _currentEffect3, _currentEffectMana */
+  /** _currentEffect, _currentEffect2, _currentEffect3, _currentEffectMana */
   currentEffect: number = 0;
   currentEffect2: number = 0;
   currentEffect3: number = 0;
   currentEffectMana: number = 0;
 
-  /** C#: _index - Index for multiple sprites in same magic */
+  /** Index for multiple sprites in same magic */
   index: number = 0;
 
-  /** C#: _elaspedMillisecond - 武功已存在时间 */
+  /** 武功已存在时间 */
   elapsedMilliseconds: number = 0;
 
-  /** C#: _passThroughedCharacters - 已穿透的目标 */
+  /** 已穿透的目标 */
   private _passThroughedTargets: string[] = [];
 
-  /** C#: _stickedCharacter - 粘附的角色（Sticky > 0 时使用） */
+  /** 粘附的角色（Sticky > 0 时使用） */
   private _stickedCharacterId: string | null = null;
 
-  /** C#: _parasitiferCharacter - 寄生的角色（Parasitic > 0 时使用） */
+  /** 寄生的角色（Parasitic > 0 时使用） */
   private _parasitiferCharacterId: string | null = null;
-  /** C#: _parasticTime - 寄生伤害计时器 */
+  /** 寄生伤害计时器 */
   private _parasiticTime: number = 0;
-  /** C#: _totalParasticEffect - 寄生累计伤害 */
+  /** 寄生累计伤害 */
   private _totalParasiticEffect: number = 0;
 
-  /** C#: _isInMoveBack - 是否在回拉状态（Sticky + MoveBack） */
+  /** 是否在回拉状态（Sticky + MoveBack） */
   private _isInMoveBack: boolean = false;
 
-  /** C#: _superModeDestroySprites - SuperMode 特效精灵列表 */
+  /** SuperMode 特效精灵列表 */
   superModeDestroySprites: MagicSprite[] = [];
 
   // ============= Leap (跳跃传递) 相关属性 =============
-  /** C#: _leftLeapTimes - 剩余跳跃次数 */
+  /** 剩余跳跃次数 */
   private _leftLeapTimes: number = 0;
-  /** C#: _canLeap - 是否能跳跃 */
+  /** 是否能跳跃 */
   private _canLeap: boolean = false;
-  /** C#: _leapedCharacters - 已跳跃命中的角色ID列表 */
+  /** 已跳跃命中的角色ID列表 */
   private _leapedCharacterIds: string[] = [];
 
   // ============= RangeEffect (周期触发) 相关属性 =============
-  /** C#: _rangeElapsedMilliseconds - 范围效果计时器 */
+  /** 范围效果计时器 */
   rangeElapsedMilliseconds: number = 0;
 
   /** ASF 路径 */
@@ -136,7 +135,7 @@ export class MagicSprite extends Sprite {
   // ============= Constructor =============
 
   /**
-   * C# Reference: MagicSprite constructor
+   * constructor
    */
   constructor(magic: MagicData) {
     super();
@@ -154,7 +153,7 @@ export class MagicSprite extends Sprite {
 
   /**
    * 初始化效果值
-   * C# Reference: MagicSprite.Begin() 中使用 GetEffectAmount 计算
+   * 中使用 GetEffectAmount 计算
    * 由 MagicManager 在添加 sprite 时调用
    */
   initializeEffects(effect: number, effect2: number, effect3: number): void {
@@ -164,11 +163,10 @@ export class MagicSprite extends Sprite {
   }
 
   // ============= Static Factory Methods =============
-  // C# Reference: MagicManager.GetMoveMagicSprite, GetFixedPositionMagicSprite
+  // MagicManager.GetMoveMagicSprite, GetFixedPositionMagicSprite
 
   /**
    * 创建移动武功精灵
-   * C# Reference: MagicManager.GetMoveMagicSprite
    */
   static createMoving(
     userId: string,
@@ -194,7 +192,6 @@ export class MagicSprite extends Sprite {
 
   /**
    * 创建移动武功精灵（指定方向）
-   * C# Reference: MagicManager.GetMoveMagicSpriteOnDirection
    */
   static createMovingOnDirection(
     userId: string,
@@ -219,7 +216,6 @@ export class MagicSprite extends Sprite {
 
   /**
    * 创建固定位置武功精灵
-   * C# Reference: MagicManager.GetFixedPositionMagicSprite
    */
   static createFixed(
     userId: string,
@@ -263,13 +259,13 @@ export class MagicSprite extends Sprite {
   // ============= Private Methods =============
 
   /**
-   * C# Reference: MagicSprite.Begin()
-   * 初始化位置并向前偏移 30 像素（与 C# 保持一致）
+   * Reference: MagicSprite.Begin()
+   * 初始化位置并向前偏移 30 像素
    */
   private _begin(origin: Vector2): void {
     let startPos = { ...origin };
     if (this.velocity > 0 && (this._moveDirection.x !== 0 || this._moveDirection.y !== 0)) {
-      // C# 使用 30 像素偏移：var second = 30f / Velocity; MoveToNoNormalizeDirection(MoveDirection, second);
+      // 使用 30 像素偏移：var second = 30f / Velocity; MoveToNoNormalizeDirection(MoveDirection, second);
       const initialOffset = 30;
       startPos = {
         x: origin.x + this._moveDirection.x * initialOffset,
@@ -300,7 +296,7 @@ export class MagicSprite extends Sprite {
   }
 
   /**
-   * C#: MoveDirection (normalized or zero)
+   * MoveDirection (normalized or zero)
    * 使用 setMoveDirection() 来设置，会自动归一化
    */
   get direction(): Vector2 {
@@ -312,7 +308,7 @@ export class MagicSprite extends Sprite {
 
   /**
    * 设置移动方向（自动归一化）
-   * C# Reference: MagicSprite.MoveDirection setter
+   * setter
    */
   setMoveDirection(value: Vector2): void {
     if (value.x !== 0 || value.y !== 0) {
@@ -322,7 +318,7 @@ export class MagicSprite extends Sprite {
     }
   }
 
-  /** C#: _destnationPixelPosition */
+  
   get destination(): Vector2 {
     return this._destination;
   }
@@ -330,7 +326,7 @@ export class MagicSprite extends Sprite {
     this._destination = { ...value };
   }
 
-  /** C#: IsDestroyed */
+  
   get isDestroyed(): boolean {
     return this._isDestroyed;
   }
@@ -338,7 +334,7 @@ export class MagicSprite extends Sprite {
     this._isDestroyed = value;
   }
 
-  /** C#: IsInDestroy - 是否正在播放消失动画 */
+  /** 是否正在播放消失动画 */
   get isInDestroy(): boolean {
     return this._isInDestroy;
   }
@@ -346,7 +342,7 @@ export class MagicSprite extends Sprite {
     this._isInDestroy = value;
   }
 
-  /** C#: _waitMilliSeconds */
+  
   get waitMilliseconds(): number {
     return this._waitMilliseconds;
   }
@@ -398,11 +394,11 @@ export class MagicSprite extends Sprite {
     return this._frameEnd + 1;
   }
   set frameCountsPerDirection(value: number) {
-    // 模仿 C# CurrentDirection setter 的行为：设置 _frameEnd
+    // 模仿 CurrentDirection setter 的行为：设置 _frameEnd
     this._frameEnd = value - 1;
   }
 
-  /** C#: MoveKind == 15 - 是否为超级模式 */
+  /** MoveKind == 15 - 是否为超级模式 */
   get isSuperMode(): boolean {
     return this._magic.moveKind === MagicMoveKind.SuperMode;
   }
@@ -417,7 +413,7 @@ export class MagicSprite extends Sprite {
   }
 
   /**
-   * C#: SetDirection(Vector2)
+   * SetDirection(Vector2)
    * Override: 同时设置 _moveDirection 用于武功移动计算
    */
   override setDirection(direction: Vector2 | number): void {
@@ -431,7 +427,7 @@ export class MagicSprite extends Sprite {
 
   /**
    * 开始消失动画
-   * C# Reference: MagicSprite.Destroy()
+   * Reference: MagicSprite.Destroy()
    */
   destroy(): void {
     if (this._isInDestroy || this._isDestroyed) return;
@@ -444,11 +440,11 @@ export class MagicSprite extends Sprite {
   }
 
   /**
-   * C# Reference: MagicSprite.ResetPlay()
+   * Reference: MagicSprite.ResetPlay()
    * 根据 MoveKind 和 LifeFrame 设置播放帧数，使用父类的 playFrames()
    */
   resetPlay(): void {
-    // C#: 使用父类 FrameCountsPerDirection
+    // 使用父类 FrameCountsPerDirection
     const framesPerDir = this.frameCountsPerDirection;
     let framesToPlay = this._magic.lifeFrame;
 
@@ -465,7 +461,7 @@ export class MagicSprite extends Sprite {
       this._magic.moveKind === MagicMoveKind.FollowCharacter ||
       this._magic.moveKind === MagicMoveKind.TimeStop
     ) {
-      // C#: 使用 Texture.Interval
+      // 使用 Texture.Interval
       const textureInterval = this.interval || 100;
       framesToPlay = Math.floor((this._magic.lifeFrame * 10) / textureInterval);
       // FollowCharacter/TimeStop 如果 LifeFrame=0，也使用一轮动画
@@ -477,7 +473,7 @@ export class MagicSprite extends Sprite {
       framesToPlay = framesPerDir;
     }
 
-    // C#: PlayFrames(count) 设置 _leftFrameToPlay = count
+    // PlayFrames(count) 设置 _leftFrameToPlay = count
     this.playFrames(Math.max(1, framesToPlay));
   }
 
@@ -503,7 +499,7 @@ export class MagicSprite extends Sprite {
   }
 
   /**
-   * C# Reference: MagicSprite.SetDestroyed()
+   * Reference: MagicSprite.SetDestroyed()
    */
   markDestroyed(): void {
     this._isDestroyed = true;
@@ -527,7 +523,7 @@ export class MagicSprite extends Sprite {
 
   // ============= 粘附角色 (Sticky) =============
 
-  /** C#: _stickedCharacter */
+  
   get stickedCharacterId(): string | null {
     return this._stickedCharacterId;
   }
@@ -536,7 +532,7 @@ export class MagicSprite extends Sprite {
     this._stickedCharacterId = value;
   }
 
-  /** C#: _isInMoveBack */
+  
   get isInMoveBack(): boolean {
     return this._isInMoveBack;
   }
@@ -547,7 +543,7 @@ export class MagicSprite extends Sprite {
 
   /**
    * 清除粘附角色
-   * C# Reference: MagicSprite.CollisionDetaction() 中清除逻辑
+   * 中清除逻辑
    */
   clearStickedCharacter(): void {
     this._stickedCharacterId = null;
@@ -555,7 +551,7 @@ export class MagicSprite extends Sprite {
 
   // ============= 寄生角色 (Parasitic) =============
 
-  /** C#: _parasitiferCharacter */
+  
   get parasitiferCharacterId(): string | null {
     return this._parasitiferCharacterId;
   }
@@ -564,7 +560,7 @@ export class MagicSprite extends Sprite {
     this._parasitiferCharacterId = value;
   }
 
-  /** C#: _parasticTime */
+  
   get parasiticTime(): number {
     return this._parasiticTime;
   }
@@ -573,7 +569,7 @@ export class MagicSprite extends Sprite {
     this._parasiticTime = value;
   }
 
-  /** C#: _totalParasticEffect */
+  
   get totalParasiticEffect(): number {
     return this._totalParasiticEffect;
   }
@@ -598,7 +594,7 @@ export class MagicSprite extends Sprite {
   }
 
   /**
-   * C# Reference: CanDiscard property
+   * property
    * 检查是否可以丢弃该精灵（没有粘附或寄生目标，且不是特定 MoveKind）
    */
   get canDiscard(): boolean {
@@ -614,7 +610,7 @@ export class MagicSprite extends Sprite {
 
   // ============= 跳跃传递 (Leap) =============
 
-  /** C#: _canLeap - 是否能跳跃 */
+  /** 是否能跳跃 */
   get canLeap(): boolean {
     return this._canLeap;
   }
@@ -623,7 +619,7 @@ export class MagicSprite extends Sprite {
     this._canLeap = value;
   }
 
-  /** C#: _leftLeapTimes - 剩余跳跃次数 */
+  /** 剩余跳跃次数 */
   get leftLeapTimes(): number {
     return this._leftLeapTimes;
   }
@@ -634,7 +630,7 @@ export class MagicSprite extends Sprite {
 
   /**
    * 初始化跳跃参数
-   * C# Reference: MagicSprite.Init() 中 _canLeap = BelongMagic.LeapTimes > 0
+   * 中 _canLeap = BelongMagic.LeapTimes > 0
    */
   initializeLeap(): void {
     if (this._magic.leapTimes > 0) {
@@ -669,7 +665,7 @@ export class MagicSprite extends Sprite {
 
   /**
    * 减少效果值（每次跳跃后）
-   * C# Reference: LeapToNextTarget() 中的效果递减
+   * 中的效果递减
    */
   reduceEffectByPercentage(percentage: number): void {
     this.currentEffect -= Math.floor((this.currentEffect * percentage) / 100);
@@ -680,7 +676,7 @@ export class MagicSprite extends Sprite {
 
   /**
    * 结束跳跃
-   * C# Reference: EndLeap()
+   * Reference: EndLeap()
    */
   endLeap(): void {
     this._leftLeapTimes = 0;

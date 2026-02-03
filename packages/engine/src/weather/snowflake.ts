@@ -1,11 +1,11 @@
 /**
  * SnowFlake - 雪花粒子
- * 基于 C# JxqyHD/Engine/Weather/SnowFlake.cs
+ * 基于JxqyHD/Engine/Weather/SnowFlake.cs
  *
  * 雪花是带有速度和方向的精灵，随风飘落
  */
 
-/** 雪花形状类型（对应 C# 的 4 种纹理） */
+/** 雪花形状类型（对应4 种纹理） */
 export type SnowFlakeType = 0 | 1 | 2 | 3;
 
 export class SnowFlake {
@@ -45,7 +45,7 @@ export class SnowFlake {
 
   /**
    * 更新雪花位置
-   * C#: MoveTo(_direction, elapsedSeconds)
+   * MoveTo(_direction, elapsedSeconds)
    */
   update(deltaTime: number): void {
     const moveX = this.direction.x * this.velocity * deltaTime;
@@ -58,7 +58,7 @@ export class SnowFlake {
 
   /**
    * 绘制雪花（调用方应统一设置 fillStyle）
-   * C#: 使用 4 种不同的雪花纹理
+   * 使用 4 种不同的雪花纹理
    * 性能优化：移除 ctx.save()/restore()，由调用方批量设置 fillStyle
    */
   draw(ctx: CanvasRenderingContext2D, cameraX: number, cameraY: number): void {

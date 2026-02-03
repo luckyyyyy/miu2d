@@ -48,7 +48,7 @@ export abstract class Character extends CharacterCombat {
   // =============================================
 
   override update(deltaTime: number): void {
-    // C#: if(!IsVisibleByVariable) { return; }
+    // if(!IsVisibleByVariable) { return; }
     if (!this.isVisibleByVariable) return;
 
     const deltaMs = deltaTime * 1000;
@@ -315,7 +315,7 @@ export abstract class Character extends CharacterCombat {
       logger.log(`[Character] ${this.name} would use magic: ${this._magicToUseWhenAttack}`);
     }
     this._magicToUseWhenAttack = null;
-    // C#: _attackDestination 不在此处清空，它保持有效直到下次攻击
+    // _attackDestination 不在此处清空，它保持有效直到下次攻击
     // 这样 onAttacking() 可以使用它来释放修炼武功
   }
 
@@ -359,7 +359,7 @@ export abstract class Character extends CharacterCombat {
   // =============================================
 
   /**
-   * C# Reference: Character.OnAttacking(Vector2 attackDestinationPixelPosition)
+   * attackDestinationPixelPosition)
    * Override this to do something when attacking (use magic FlyIni FlyIni2)
    */
   protected onAttacking(_attackDestinationPixelPosition: Vector2 | null): void {
@@ -715,7 +715,7 @@ export abstract class Character extends CharacterCombat {
     offX: number = 0,
     offY: number = 0
   ): void {
-    // C#: if (IsDraw) { ... }
+    // if (IsDraw) { ... }
     if (!this.isDraw) return;
 
     let drawColor = "white";
@@ -776,7 +776,7 @@ export abstract class Character extends CharacterCombat {
 
   /**
    * 结束控制角色（空实现，由 Player 覆写）
-   * C# Reference: Player.EndControlCharacter - 只有 Player 有实际实现
+   * 只有 Player 有实际实现
    */
   endControlCharacter(): void {
     // 空实现 - Character 基类不需要此功能
@@ -785,7 +785,6 @@ export abstract class Character extends CharacterCombat {
 
   /**
    * 清除冰冻、中毒、石化状态
-   * C# Reference: Character.ToNormalState
    */
   toNormalState(): void {
     this.clearFrozen();
@@ -795,7 +794,6 @@ export abstract class Character extends CharacterCombat {
 
   /**
    * 解除所有异常状态
-   * C# Reference: Character.RemoveAbnormalState
    */
   removeAbnormalState(): void {
     this.clearFrozen();

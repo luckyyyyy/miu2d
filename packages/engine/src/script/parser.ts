@@ -9,8 +9,8 @@ import type { ScriptCode, ScriptData } from "../core/types";
 import { resourceLoader } from "../resource/resourceLoader";
 
 /**
- * Label regex - matches @LabelName: format (like C# RegGoto)
- * Note: C# uses ^@([a-zA-Z0-9]+): to match labels
+ * Label regex - matches @LabelName: format
+ * Note: uses ^@([a-zA-Z0-9]+): to match labels
  */
 const REG_LABEL = /^@([a-zA-Z0-9_]+):/;
 
@@ -26,7 +26,7 @@ function parseLine(line: string, lineNumber: number): ScriptCode | null {
   }
 
   // Check if it's a label (format: @LabelName:)
-  // In C#, labels are stored with the colon, e.g., "@Begin:"
+  // labels are stored with the colon, e.g., "@Begin:"
   const labelMatch = REG_LABEL.exec(trimmed);
   if (labelMatch) {
     return {
@@ -175,7 +175,7 @@ export function parseScript(content: string, fileName: string): ScriptData {
 
 /**
  * Load and parse a script file from URL
- * Implements C# Utils.GetScriptFilePath fallback:
+ * Implements Utils.GetScriptFilePath fallback:
  * 1. First tries map-specific path: script/map/{mapName}/{fileName}
  * 2. Falls back to common path: script/common/{fileName}
  *
@@ -193,7 +193,6 @@ export async function loadScript(url: string): Promise<ScriptData | null> {
   }
 
   // If map-specific script not found, try fallback paths
-  // C# Reference: Utils.GetScriptFilePath
   if (url.includes("/script/map/")) {
     const fileName = url.split("/").pop() || "";
 

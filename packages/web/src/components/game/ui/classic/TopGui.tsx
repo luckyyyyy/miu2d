@@ -2,7 +2,7 @@
  * TopGui Component - based on JxqyHD Engine/Gui/TopGui.cs
  * Top button bar for accessing game panels using ASF images from resources
  *
- * C# Reference: TopGui.cs loads button images from UI_Settings.ini [Top_*_Btn]
+ * loads button images from UI_Settings.ini [Top_*_Btn]
  * Resources: asf/ui/top/*.asf
  */
 import type React from "react";
@@ -220,7 +220,7 @@ export const TopGui: React.FC<TopGuiProps> = ({
   );
 
   // 计算面板位置
-  // C#: Position = new Vector2((Globals.WindowWidth - BaseTexture.Width) / 2f + leftAdjust, topAdjust)
+  // Position = new Vector2((Globals.WindowWidth - BaseTexture.Width) / 2f + leftAdjust, topAdjust)
   const panelStyle = useMemo(() => {
     const panelWidth = panelImage.width || 286; // fallback size
     const panelHeight = panelImage.height || 19;

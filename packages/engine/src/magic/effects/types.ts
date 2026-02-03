@@ -42,7 +42,7 @@ export interface CastContext {
   guiManager: GuiManager;
   screenEffects: ScreenEffects;
   audioManager: AudioManager;
-  /** 震屏回调 C# Reference: Carmera.VibaratingScreen */
+  /** 震屏回调 */
   vibrateScreen?: (intensity: number) => void;
 }
 
@@ -194,7 +194,7 @@ export function getThewMax(ref: CharacterRef): number {
 
 /**
  * 获取攻击力 (使用 realAttack，考虑 BUFF 加成)
- * C# Reference: MagicManager.GetEffectAmount uses belongCharacter.RealAttack
+ * uses belongCharacter.RealAttack
  */
 export function getAttack(ref: CharacterRef): number {
   return ref.type === "player" ? (ref.player.realAttack ?? 0) : (ref.npc.realAttack ?? 0);

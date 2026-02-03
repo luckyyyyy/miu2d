@@ -1,6 +1,6 @@
 /**
  * TimerManager - 游戏计时器管理器
- * 基于 C# JxqyHD/Engine/Gui/TimerGui.cs
+ * 基于JxqyHD/Engine/Gui/TimerGui.cs
  *
  * 用于实现游戏中的时间限制功能，如限时任务
  */
@@ -47,7 +47,7 @@ export class TimerManager {
 
   /**
    * 开启时间限制
-   * C#: OpenTimeLimit(int seconds)
+   * OpenTimeLimit(int seconds)
    * @param seconds 限制时间（秒）
    */
   openTimeLimit(seconds: number): void {
@@ -61,7 +61,7 @@ export class TimerManager {
 
   /**
    * 关闭时间限制
-   * C#: CloseTimeLimit()
+   * CloseTimeLimit()
    */
   closeTimeLimit(): void {
     this.state.isRunning = false;
@@ -74,7 +74,7 @@ export class TimerManager {
 
   /**
    * 隐藏计时器窗口（计时继续）
-   * C#: HideTimerWnd()
+   * HideTimerWnd()
    */
   hideTimerWnd(): void {
     this.state.isHidden = true;
@@ -83,11 +83,11 @@ export class TimerManager {
 
   /**
    * 设置时间脚本
-   * C#: SetTimeScript(int time, string scriptFileName)
+   * SetTimeScript(int time, string scriptFileName)
    * 当计时器剩余时间等于 time 时，执行指定脚本
    *
-   * 注意：C# 只支持一个 TimeScript，后设置的会覆盖前面的
-   * 这里严格遵循 C# 行为，使用覆盖模式而非累加模式
+   * 注意：只支持一个 TimeScript，后设置的会覆盖前面的
+   * 这里严格遵循原版行为，使用覆盖模式而非累加模式
    *
    * @param triggerSeconds 触发时间（剩余秒数）
    * @param scriptFileName 脚本文件名
@@ -98,8 +98,8 @@ export class TimerManager {
       return;
     }
 
-    // C# 行为：覆盖之前设置的 TimeScript，而不是累加
-    // C# Reference: ScriptExecuter._timeScriptSeconds, _timeScriptFileName, _isTimeScriptSet
+    // 原版行为：覆盖之前设置的 TimeScript，而不是累加
+    // ScriptExecuter._timeScriptSeconds, _timeScriptFileName, _isTimeScriptSet
     this.state.timeScripts = [
       {
         triggerSeconds,

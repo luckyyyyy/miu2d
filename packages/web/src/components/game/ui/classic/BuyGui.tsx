@@ -2,7 +2,7 @@
  * BuyGui Component - based on JxqyHD Engine/Gui/BuyGui.cs
  * Displays shop interface for buying items from NPC
  *
- * C# Reference: BuyGui.cs shows a 3x3 item grid with scroll bar and close button
+ * shows a 3x3 item grid with scroll bar and close button
  * Resources loaded from UI_Settings.ini [BuySell] section
  *
  * 商店物品配置格式 (resources/ini/buy/*.ini):
@@ -148,7 +148,7 @@ export const BuyGui: React.FC<BuyGuiProps> = ({
   // Load panel background
   const panelImage = useAsfImage(config?.panel.image || "asf/ui/common/panel8.asf");
 
-  // Calculate panel position - C#: Globals.WindowWidth / 2f - baseTexture.Width + leftAdjust
+  // Calculate panel position - Globals.WindowWidth / 2f - baseTexture.Width + leftAdjust
   const panelStyle = useMemo(() => {
     if (!config) return null;
     const panelWidth = panelImage.width || 300;

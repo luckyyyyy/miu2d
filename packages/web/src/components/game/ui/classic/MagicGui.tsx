@@ -2,7 +2,7 @@
  * MagicGui Component - based on JxqyHD Engine/Gui/MagicGui.cs
  * Displays player magic/skill list with drag-drop support
  *
- * C# Reference: MagicGui.cs shows a 3x3 magic grid with scroll bar
+ * shows a 3x3 magic grid with scroll bar
  * Resources loaded from UI_Settings.ini
  *
  * Store Indices: 1-36 (StoreIndexBegin to StoreIndexEnd)
@@ -322,7 +322,7 @@ export const MagicGui: React.FC<MagicGuiProps> = ({
   // 加载面板背景
   const panelImage = useAsfImage(config?.panel.image || "asf/ui/common/panel2.asf");
 
-  // 计算面板位置 - C#: Globals.WindowWidth / 2f + leftAdjust
+  // 计算面板位置 - Globals.WindowWidth / 2f + leftAdjust
   const panelStyle = useMemo(() => {
     if (!config) return null;
     const panelWidth = panelImage.width || 330;

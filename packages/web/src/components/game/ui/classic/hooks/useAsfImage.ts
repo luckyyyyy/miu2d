@@ -1,6 +1,6 @@
 /**
  * useAsfImage Hook - Load ASF files and convert to usable images
- * Based on C# Utils.GetAsf() pattern
+ * () pattern
  */
 
 import { buildPath } from "@miu2d/engine/config/resourcePaths";
@@ -271,7 +271,7 @@ const frameDataUrlCache = new Map<string, string[]>();
 
 /**
  * Hook to load an ASF file and animate it (play through all frames)
- * Based on C# Texture class with Update() method for animation
+ *  class with Update() method for animation
  *
  * 性能优化：预先生成并缓存所有帧的 dataUrl，避免每帧调用 toDataURL()
  *
@@ -387,7 +387,7 @@ export function useAsfAnimation(
     }
 
     // 使用文件中的 interval 值，如果为 0 或未定义则使用默认值
-    // C# Texture.Update() 使用 _texture.Interval，当 interval 为 0 时每帧更新
+    // Texture.Update() 使用 _texture.Interval，当 interval 为 0 时每帧更新
     // 这里设置合理的默认值 100ms (10 FPS)
     const interval = asf.interval > 0 ? asf.interval : 100;
 

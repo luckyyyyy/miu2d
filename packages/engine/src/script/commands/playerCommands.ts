@@ -7,7 +7,7 @@ import type { CommandHandler, CommandRegistry } from "./types";
 
 /**
  * SetPlayerPos - Set player tile position
- * C#: 2 params (x, y) for player, 3 params (name, x, y) for any character
+ * 2 params (x, y) for player, 3 params (name, x, y) for any character
  */
 const setPlayerPosCommand: CommandHandler = (params, _result, helpers) => {
   if (params.length >= 3) {
@@ -107,7 +107,6 @@ const addGoodsCommand: CommandHandler = (params, _result, helpers) => {
 
 /**
  * AddRandGoods - Add random item from buy file
- * C# Reference: ScriptExecuter.AddRandGoods
  */
 const addRandGoodsCommand: CommandHandler = async (params, _result, helpers) => {
   const buyFileName = helpers.resolveString(params[0] || "");
@@ -167,7 +166,7 @@ const addExpCommand: CommandHandler = (params, _result, helpers) => {
 
 /**
  * FullLife - Fully restore player health
- * C#: Globals.ThePlayer.FullLife()
+ * Globals.ThePlayer.FullLife()
  */
 const fullLifeCommand: CommandHandler = (_params, _result, helpers) => {
   helpers.context.fullLife();
@@ -176,7 +175,7 @@ const fullLifeCommand: CommandHandler = (_params, _result, helpers) => {
 
 /**
  * FullMana - Fully restore player mana
- * C#: Globals.ThePlayer.FullMana()
+ * Globals.ThePlayer.FullMana()
  */
 const fullManaCommand: CommandHandler = (_params, _result, helpers) => {
   helpers.context.fullMana();
@@ -185,7 +184,7 @@ const fullManaCommand: CommandHandler = (_params, _result, helpers) => {
 
 /**
  * FullThew - Fully restore player stamina
- * C#: Globals.ThePlayer.FullThew()
+ * Globals.ThePlayer.FullThew()
  */
 const fullThewCommand: CommandHandler = (_params, _result, helpers) => {
   helpers.context.fullThew();
@@ -194,7 +193,7 @@ const fullThewCommand: CommandHandler = (_params, _result, helpers) => {
 
 /**
  * AddLife - Add health to player
- * C#: Globals.ThePlayer.AddLife(value)
+ * Globals.ThePlayer.AddLife(value)
  */
 const addLifeCommand: CommandHandler = (params, _result, helpers) => {
   const amount = helpers.resolveNumber(params[0] || "0");
@@ -204,7 +203,7 @@ const addLifeCommand: CommandHandler = (params, _result, helpers) => {
 
 /**
  * AddMana - Add mana to player
- * C#: Globals.ThePlayer.AddMana(value)
+ * Globals.ThePlayer.AddMana(value)
  */
 const addManaCommand: CommandHandler = (params, _result, helpers) => {
   const amount = helpers.resolveNumber(params[0] || "0");
@@ -214,7 +213,7 @@ const addManaCommand: CommandHandler = (params, _result, helpers) => {
 
 /**
  * AddThew - Add stamina to player
- * C#: Globals.ThePlayer.AddThew(value)
+ * Globals.ThePlayer.AddThew(value)
  */
 const addThewCommand: CommandHandler = (params, _result, helpers) => {
   const amount = helpers.resolveNumber(params[0] || "0");
@@ -224,7 +223,7 @@ const addThewCommand: CommandHandler = (params, _result, helpers) => {
 
 /**
  * AddMagic - Add magic to player
- * C#: Globals.ThePlayer.AddMagic(fileName)
+ * Globals.ThePlayer.AddMagic(fileName)
  */
 const addMagicCommand: CommandHandler = async (params, _result, helpers) => {
   const magicFile = helpers.resolveString(params[0] || "");
@@ -234,7 +233,7 @@ const addMagicCommand: CommandHandler = async (params, _result, helpers) => {
 
 /**
  * SetMagicLevel - Set magic level
- * C#: MagicListManager.SetNonReplaceMagicLevel(fileName, level)
+ * MagicListManager.SetNonReplaceMagicLevel(fileName, level)
  */
 const setMagicLevelCommand: CommandHandler = (params, _result, helpers) => {
   const magicFile = helpers.resolveString(params[0] || "");
@@ -247,7 +246,7 @@ const setMagicLevelCommand: CommandHandler = (params, _result, helpers) => {
 
 /**
  * PlayerGotoEx - Walk player to position (NON-BLOCKING)
- * C#: PlayerGotoEx - just calls WalkTo() without waiting
+ * just calls WalkTo() without waiting
  */
 const playerGotoExCommand: CommandHandler = (params, _result, helpers) => {
   const x = helpers.resolveNumber(params[0] || "0");
@@ -258,7 +257,7 @@ const playerGotoExCommand: CommandHandler = (params, _result, helpers) => {
 
 /**
  * PlayerJumpTo - Jump player to position (BLOCKING)
- * C#: PlayerJumpTo
+ *
  */
 const playerJumpToCommand: CommandHandler = (params, _result, helpers) => {
   const x = helpers.resolveNumber(params[0] || "0");
@@ -276,7 +275,7 @@ const playerJumpToCommand: CommandHandler = (params, _result, helpers) => {
 
 /**
  * PlayerRunToEx - Run player to position (NON-BLOCKING)
- * C#: PlayerRunToEx - just calls RunTo() without waiting
+ * just calls RunTo() without waiting
  */
 const playerRunToExCommand: CommandHandler = (params, _result, helpers) => {
   const x = helpers.resolveNumber(params[0] || "0");
@@ -287,7 +286,7 @@ const playerRunToExCommand: CommandHandler = (params, _result, helpers) => {
 
 /**
  * SetPlayerScn - Center camera on player
- * C#: SetPlayerScn
+ *
  */
 const setPlayerScnCommand: CommandHandler = (_params, _result, helpers) => {
   helpers.context.setPlayerScn();
@@ -296,7 +295,7 @@ const setPlayerScnCommand: CommandHandler = (_params, _result, helpers) => {
 
 /**
  * GetMoneyNum - Get money amount into variable
- * C#: GetMoneyNum
+ *
  */
 const getMoneyNumCommand: CommandHandler = (params, result, helpers) => {
   const varName = (params[0] || result || "$MoneyNum").replace("$", "");
@@ -307,7 +306,7 @@ const getMoneyNumCommand: CommandHandler = (params, result, helpers) => {
 
 /**
  * SetMoneyNum - Set money amount
- * C#: SetMoneyNum
+ *
  */
 const setMoneyNumCommand: CommandHandler = (params, _result, helpers) => {
   const amount = helpers.resolveNumber(params[0] || "0");
@@ -317,7 +316,7 @@ const setMoneyNumCommand: CommandHandler = (params, _result, helpers) => {
 
 /**
  * GetPlayerExp - Get player exp into variable
- * C#: GetPlayerExp
+ *
  */
 const getPlayerExpCommand: CommandHandler = (params, _result, helpers) => {
   const varName = (params[0] || "$PlayerExp").replace("$", "");
@@ -328,7 +327,7 @@ const getPlayerExpCommand: CommandHandler = (params, _result, helpers) => {
 
 /**
  * GetPlayerState - Get player state (Level/Attack/Defend/etc) into variable
- * C#: GetPlayerState
+ *
  */
 const getPlayerStateCommand: CommandHandler = (params, _result, helpers) => {
   const stateName = helpers.resolveString(params[0] || "");
@@ -340,7 +339,7 @@ const getPlayerStateCommand: CommandHandler = (params, _result, helpers) => {
 
 /**
  * GetPlayerMagicLevel - Get player magic level into variable
- * C#: GetPlayerMagicLevel
+ *
  */
 const getPlayerMagicLevelCommand: CommandHandler = (params, _result, helpers) => {
   const magicFile = helpers.resolveString(params[0] || "");
@@ -352,7 +351,7 @@ const getPlayerMagicLevelCommand: CommandHandler = (params, _result, helpers) =>
 
 /**
  * LimitMana - Limit mana usage
- * C#: LimitMana
+ *
  */
 const limitManaCommand: CommandHandler = (params, _result, helpers) => {
   const limit = helpers.resolveNumber(params[0] || "0") !== 0;
@@ -362,7 +361,7 @@ const limitManaCommand: CommandHandler = (params, _result, helpers) => {
 
 /**
  * AddMoveSpeedPercent - Add move speed percentage
- * C#: AddMoveSpeedPercent
+ *
  */
 const addMoveSpeedPercentCommand: CommandHandler = (params, _result, helpers) => {
   const percent = helpers.resolveNumber(params[0] || "0");
@@ -372,7 +371,7 @@ const addMoveSpeedPercentCommand: CommandHandler = (params, _result, helpers) =>
 
 /**
  * UseMagic - Use a magic skill
- * C#: UseMagic
+ *
  */
 const useMagicCommand: CommandHandler = (params, _result, helpers) => {
   const magicFile = helpers.resolveString(params[0] || "");
@@ -384,7 +383,7 @@ const useMagicCommand: CommandHandler = (params, _result, helpers) => {
 
 /**
  * IsEquipWeapon - Check if weapon is equipped, store result in variable
- * C#: IsEquipWeapon
+ *
  */
 const isEquipWeaponCommand: CommandHandler = (params, _result, helpers) => {
   const varName = (params[0] || "$IsEquipWeapon").replace("$", "");
@@ -395,7 +394,7 @@ const isEquipWeaponCommand: CommandHandler = (params, _result, helpers) => {
 
 /**
  * AddAttack - Add attack power
- * C#: AddAttack(value, type)
+ * AddAttack(value, type)
  */
 const addAttackCommand: CommandHandler = (params, _result, helpers) => {
   const value = helpers.resolveNumber(params[0] || "0");
@@ -406,7 +405,7 @@ const addAttackCommand: CommandHandler = (params, _result, helpers) => {
 
 /**
  * AddDefend - Add defense power
- * C#: AddDefend(value, type)
+ * AddDefend(value, type)
  */
 const addDefendCommand: CommandHandler = (params, _result, helpers) => {
   const value = helpers.resolveNumber(params[0] || "0");
@@ -417,7 +416,7 @@ const addDefendCommand: CommandHandler = (params, _result, helpers) => {
 
 /**
  * AddEvade - Add evade
- * C#: AddEvade
+ *
  */
 const addEvadeCommand: CommandHandler = (params, _result, helpers) => {
   const value = helpers.resolveNumber(params[0] || "0");
@@ -427,7 +426,7 @@ const addEvadeCommand: CommandHandler = (params, _result, helpers) => {
 
 /**
  * AddLifeMax - Add max life
- * C#: AddLifeMax
+ *
  */
 const addLifeMaxCommand: CommandHandler = (params, _result, helpers) => {
   const value = helpers.resolveNumber(params[0] || "0");
@@ -437,7 +436,7 @@ const addLifeMaxCommand: CommandHandler = (params, _result, helpers) => {
 
 /**
  * AddManaMax - Add max mana
- * C#: AddManaMax
+ *
  */
 const addManaMaxCommand: CommandHandler = (params, _result, helpers) => {
   const value = helpers.resolveNumber(params[0] || "0");
@@ -447,7 +446,7 @@ const addManaMaxCommand: CommandHandler = (params, _result, helpers) => {
 
 /**
  * AddThewMax - Add max stamina
- * C#: AddThewMax
+ *
  */
 const addThewMaxCommand: CommandHandler = (params, _result, helpers) => {
   const value = helpers.resolveNumber(params[0] || "0");
@@ -457,7 +456,7 @@ const addThewMaxCommand: CommandHandler = (params, _result, helpers) => {
 
 /**
  * DelMagic - Delete magic from player
- * C#: DelMagic
+ *
  */
 const delMagicCommand: CommandHandler = (params, _result, helpers) => {
   const magicFile = helpers.resolveString(params[0] || "");
@@ -467,7 +466,7 @@ const delMagicCommand: CommandHandler = (params, _result, helpers) => {
 
 /**
  * SetPlayerMagicToUseWhenBeAttacked - Set counter-attack magic
- * C#: SetPlayerMagicToUseWhenBeAttacked
+ *
  */
 const setPlayerMagicToUseWhenBeAttackedCommand: CommandHandler = (params, _result, helpers) => {
   const magicFile = helpers.resolveString(params[0] || "");
@@ -478,7 +477,7 @@ const setPlayerMagicToUseWhenBeAttackedCommand: CommandHandler = (params, _resul
 
 /**
  * SetWalkIsRun - Set walk as run mode
- * C#: SetWalkIsRun
+ *
  */
 const setWalkIsRunCommand: CommandHandler = (params, _result, helpers) => {
   const value = helpers.resolveNumber(params[0] || "0");
@@ -488,7 +487,7 @@ const setWalkIsRunCommand: CommandHandler = (params, _result, helpers) => {
 
 /**
  * PlayerChange - Change player character
- * C#: Loader.ChangePlayer(int.Parse(parameters[0]))
+ * Loader.ChangePlayer(int.Parse(parameters[0]))
  */
 const playerChangeCommand: CommandHandler = async (params, _result, helpers) => {
   const index = helpers.resolveNumber(params[0] || "0");
@@ -540,7 +539,7 @@ export function registerPlayerCommands(registry: CommandRegistry): void {
   registry.set("getmoneynum", getMoneyNumCommand);
   registry.set("setmoneynum", setMoneyNumCommand);
   registry.set("getplayerexp", getPlayerExpCommand);
-  registry.set("getexp", getPlayerExpCommand); // C# alias
+  registry.set("getexp", getPlayerExpCommand); // alias: 
   registry.set("getplayerstate", getPlayerStateCommand);
   registry.set("getplayermagiclevel", getPlayerMagicLevelCommand);
 

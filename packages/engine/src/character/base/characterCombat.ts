@@ -80,14 +80,13 @@ export abstract class CharacterCombat extends CharacterMovement {
 
   /**
    * 增加经验
-   * C# Reference: Character.AddExp
    */
   addExp(amount: number): void {
     if (this.levelUpExp <= 0 || this.canLevelUp <= 0) return;
 
     this.exp += amount;
     if (this.exp > this.levelUpExp) {
-      // C# Reference: GuiManager.ShowMessage(Name + "的等级提升了");
+      // Reference: GuiManager.ShowMessage(Name + "的等级提升了");
       const gui = this.engine?.getManager("gui") as
         | { showMessage?: (msg: string) => void }
         | undefined;
@@ -98,7 +97,6 @@ export abstract class CharacterCombat extends CharacterMovement {
 
   /**
    * 根据经验值计算应该升到的等级
-   * C# Reference: Character.ToLevel
    */
   private toLevelByExp(exp: number): void {
     const levelConfig = this.levelManager.getLevelConfig();
@@ -118,7 +116,6 @@ export abstract class CharacterCombat extends CharacterMovement {
 
   /**
    * 升级到指定等级
-   * C# Reference: Character.LevelUpTo
    */
   levelUpTo(level: number): void {
     const levelConfig = this.levelManager.getLevelConfig();
@@ -180,7 +177,7 @@ export abstract class CharacterCombat extends CharacterMovement {
 
   /**
    * 计算击杀经验
-   * C# Reference: GetExp() 或类似逻辑
+   * 或类似逻辑
    */
   static getCharacterDeathExp(
     killer: { level: number },
@@ -434,32 +431,32 @@ export abstract class CharacterCombat extends CharacterMovement {
   // === Death Methods ===
   // =============================================
 
-  // C#: private static Asf FrozenDie/PoisonDie/PetrifiedDie
+  // private static Asf FrozenDie/PoisonDie/PetrifiedDie
   private static FrozenDie: AsfData | null = null;
   private static PoisonDie: AsfData | null = null;
   private static PetrifiedDie: AsfData | null = null;
 
   /**
    * 角色死亡处理
-   * C# Reference: Character.Death()
+   * Reference: Character.Death()
    */
   death(killer: CharacterCombat | null = null): void {
     if (this.isDeathInvoked) return;
     this.isDeathInvoked = true;
 
-    // C#: if (ReviveMilliseconds > 0) LeftMillisecondsToRevive = ReviveMilliseconds;
+    // if (ReviveMilliseconds > 0) LeftMillisecondsToRevive = ReviveMilliseconds;
     if (this.reviveMilliseconds > 0) {
       this.leftMillisecondsToRevive = this.reviveMilliseconds;
     }
 
-    // C#: InvisibleByMagicTime = 0
+    // InvisibleByMagicTime = 0
     this.invisibleByMagicTime = 0;
 
-    // C#: SppedUpByMagicSprite = null (取消加速效果)
+    // SppedUpByMagicSprite = null (取消加速效果)
     this.speedUpByMagicSprite = null;
 
-    // C#: if (ControledMagicSprite != null) - 处理被控制状态
-    // C# 代码: var player = ControledMagicSprite.BelongCharacter as Player; player.EndControlCharacter();
+    // if (ControledMagicSprite != null) - 处理被控制状态
+    // 原版代码: var player = ControledMagicSprite.BelongCharacter as Player; player.EndControlCharacter();
     if (this._controledMagicSprite !== null) {
       // TypeScript 中通过 belongCharacterId 判断是否是玩家控制
       if (this._controledMagicSprite.belongCharacterId === "player") {
@@ -468,7 +465,7 @@ export abstract class CharacterCombat extends CharacterMovement {
       this._controledMagicSprite = null;
     }
 
-    // C#: if (SummonedByMagicSprite != null) - 召唤物死亡处理
+    // if (SummonedByMagicSprite != null) - 召唤物死亡处理
     if (this.summonedByMagicSprite !== null) {
       this.isDeath = true;
       if (!this.summonedByMagicSprite.isInDestroy && !this.summonedByMagicSprite.isDestroyed) {
@@ -494,7 +491,7 @@ export abstract class CharacterCombat extends CharacterMovement {
     if (this.isStateImageOk(CharacterState.Death)) {
       this.state = CharacterState.Death;
 
-      // C# Reference: Character.Death() - 状态效果死亡动画
+      // Reference: Character.Death() - 状态效果死亡动画
       // 冰冻死亡 -> 冰碎动画
       if (this.isFrozened && this.isFrozenVisualEffect) {
         this.applySpecialDeathAnimation("frozen");
@@ -508,7 +505,7 @@ export abstract class CharacterCombat extends CharacterMovement {
         this.applySpecialDeathAnimation("petrified");
       }
 
-      // C#: ToNormalState() - 清除冰冻、中毒、石化状态
+      // 清除冰冻、中毒、石化状态
       this._statusEffects.toNormalState();
       this.playCurrentDirOnce();
     } else {
@@ -518,7 +515,7 @@ export abstract class CharacterCombat extends CharacterMovement {
 
   /**
    * 应用特殊死亡动画
-   * C# Reference: Character.Death() - FrozenDie/PoisonDie/PetrifiedDie
+   * - FrozenDie/PoisonDie/PetrifiedDie
    */
   private applySpecialDeathAnimation(type: "frozen" | "poison" | "petrified"): void {
     let asf: AsfData | null = null;
@@ -572,7 +569,7 @@ export abstract class CharacterCombat extends CharacterMovement {
       this.currentDirection = 0;
     }
 
-    // C#: _notAddBody = true - 特殊死亡不添加尸体
+    // _notAddBody = true - 特殊死亡不添加尸体
     this.notAddBody = true;
   }
 

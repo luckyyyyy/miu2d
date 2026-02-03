@@ -133,7 +133,7 @@ export class GameEngine implements IEngineContext {
   private lastTime: number = 0;
   private isRunning: boolean = false;
 
-  // 帧率控制 - 锁定 60 FPS（与 C# XNA 版本一致）
+  // 帧率控制 - 锁定 60 FPS（与 XNA 版本一致）
   private static readonly TARGET_FPS = 60;
   private static readonly FRAME_INTERVAL = 1000 / GameEngine.TARGET_FPS; // ~16.67ms
   private nextFrameTime: number = 0;
@@ -172,7 +172,7 @@ export class GameEngine implements IEngineContext {
   private mapLoadProgressCallback: ((progress: number, text: string) => void) | null = null;
 
   // 摄像机跟随 - 记录上次玩家位置，只有玩家移动时才更新摄像机
-  // 对应 C# Carmera._lastPlayerPosition
+  // 
   private lastPlayerPositionForCamera: Vector2 | null = null;
 
   // 引擎是否已完成一次性初始化（全局资源已加载）
@@ -312,7 +312,7 @@ export class GameEngine implements IEngineContext {
    * 加载全局资源，创建渲染器和游戏管理器。
    * 这一步不会开始游戏，只是准备好引擎。
    *
-   * 对应 C# 的 JxqyGame.Initialize() + LoadContent()
+   * 对应JxqyGame.Initialize() + LoadContent()
    */
   async initialize(): Promise<void> {
     if (this.isEngineInitialized) {
@@ -368,7 +368,7 @@ export class GameEngine implements IEngineContext {
       );
 
       // 设置计时器脚本执行回调
-      // C#: ScriptExecuter.Update 中使用 Utils.GetScriptParser(_timeScriptFileName) 获取脚本
+      // ScriptExecuter.Update 中使用 Utils.GetScriptParser(_timeScriptFileName) 获取脚本
       // Utils.GetScriptParser 会根据 **当前地图** 构建路径，而不是设置时的地图
       this.timerManager.setScriptRunner((scriptFileName) => {
         // 根据当前地图构建完整脚本路径
@@ -399,7 +399,7 @@ export class GameEngine implements IEngineContext {
    * 运行 NewGame.txt 脚本，该脚本会调用 LoadGame(0) 加载初始存档。
    * 必须先调用 initialize() 完成引擎初始化。
    *
-   * 对应 C# 的 Loader.NewGame()
+   * 对应Loader.NewGame()
    */
   async newGame(): Promise<void> {
     if (!this.isEngineInitialized) {
@@ -451,7 +451,7 @@ export class GameEngine implements IEngineContext {
    *
    * @param index 存档索引 (1-7)，0 表示初始存档
    *
-   * 对应 C# 的 Loader.LoadGame(index)
+   * 对应Loader.LoadGame(index)
    */
   async loadGame(index: number): Promise<void> {
     if (!this.isEngineInitialized) {
@@ -665,7 +665,7 @@ export class GameEngine implements IEngineContext {
       if (mapData) {
         const mapName = fullMapPath.split("/").pop()?.replace(".map", "") || "";
 
-        // C#: 加载新地图时清空已触发的陷阱列表
+        // 加载新地图时清空已触发的陷阱列表
         // 参考 JxqyMap.LoadMapFromBuffer() 中的 _ingnoredTrapsIndex.Clear()
         MapBase.Instance.clearIgnoredTraps();
 
@@ -803,7 +803,7 @@ export class GameEngine implements IEngineContext {
 
   /**
    * 游戏主循环
-   * 锁定 60 FPS，与 C# XNA 版本保持一致
+   * 锁定 60 FPS，与 XNA 版本保持一致
    */
   private gameLoop(timestamp: number): void {
     if (!this.isRunning) return;
@@ -826,7 +826,7 @@ export class GameEngine implements IEngineContext {
     // 标记帧开始
     this.performanceStats.beginFrame();
 
-    // 固定 deltaTime = 1/60 秒（与 C# XNA IsFixedTimeStep 一致）
+    // 固定 deltaTime = 1/60 秒（与 XNA IsFixedTimeStep 一致）
     const fixedDeltaTime = 1 / GameEngine.TARGET_FPS;
 
     // 更新游戏逻辑
@@ -863,7 +863,7 @@ export class GameEngine implements IEngineContext {
     };
 
     // === 性能优化：Update 阶段预计算视野内对象 ===
-    // C# Reference: JxqyGame.UpdatePlaying 中调用 UpdateNpcsInView, UpdateObjsInView
+    // 中调用 UpdateNpcsInView, UpdateObjsInView
     // 这样 Render 阶段直接使用预计算结果，避免每帧重复遍历
     this.gameManager.getNpcManager().updateNpcsInView(viewRect);
     this.gameManager.getObjManager().updateObjsInView(viewRect);
@@ -877,7 +877,7 @@ export class GameEngine implements IEngineContext {
     );
 
     // Update mouse hover state for interaction highlights
-    // C# Reference: Player.cs HandleMouseInput - updates OutEdgeNpc/OutEdgeObj
+    // HandleMouseInput - updates OutEdgeNpc/OutEdgeObj
     this.gameManager.updateMouseHover(
       this.inputState.mouseWorldX,
       this.inputState.mouseWorldY,
@@ -885,7 +885,7 @@ export class GameEngine implements IEngineContext {
     );
 
     // 更新音频监听者位置（玩家位置）
-    // C# Reference: Globals.ListenerPosition = ThePlayer.PositionInWorld
+    // Globals.ListenerPosition = ThePlayer.PositionInWorld
     const player = this.gameManager.getPlayer();
     if (player) {
       this.audioManager.setListenerPosition(player.pixelPosition);
@@ -903,15 +903,15 @@ export class GameEngine implements IEngineContext {
     this.updateCamera(deltaTime);
 
     // 更新天气系统
-    // C# Reference: WeatherManager.Update(gameTime)
+    // Reference: WeatherManager.Update(gameTime)
     this.weatherManager.update(deltaTime, this.mapRenderer.camera.x, this.mapRenderer.camera.y);
 
     // 更新计时器系统
-    // C# Reference: TimerGui.Update(gameTime)
+    // Reference: TimerGui.Update(gameTime)
     this.timerManager.update(deltaTime);
 
     // 雨天时设置地图/精灵颜色为灰色
-    // C# Reference: Sprite.DrawColor = MapBase.DrawColor = RainMapColor
+    // Sprite.DrawColor = MapBase.DrawColor = RainMapColor
     if (this.weatherManager.isRaining) {
       const color = this.weatherManager.rainColor;
       // 闪电时屏幕变白
@@ -937,7 +937,7 @@ export class GameEngine implements IEngineContext {
     // 检查是否有 SetPlayerScn 请求（居中到玩家）
     const pendingCenter = this.gameManager.consumePendingCenterOnPlayer();
     if (pendingCenter) {
-      // C#: CenterPlayerInCamera - 将摄像机居中到玩家
+      // 将摄像机居中到玩家
       const targetCameraX = player.pixelPosition.x - width / 2;
       const targetCameraY = player.pixelPosition.y - height / 2;
       this.mapRenderer.camera.x = targetCameraX;
@@ -966,7 +966,7 @@ export class GameEngine implements IEngineContext {
       }
     } else {
       // 正常跟随玩家
-      // 对应 C# Carmera.UpdatePlayerView - 只有玩家位置改变时才更新摄像机
+      // - 只有玩家位置改变时才更新摄像机
       const currentPlayerPos = player.pixelPosition;
       const lastPos = this.lastPlayerPositionForCamera;
 
@@ -976,7 +976,7 @@ export class GameEngine implements IEngineContext {
       const hasPlayerMoved = offsetX !== 0 || offsetY !== 0;
 
       if (hasPlayerMoved || !lastPos) {
-        // C# Carmera.UpdatePlayerView 逻辑：
+        // Carmera.UpdatePlayerView 逻辑：
         // 当玩家向某个方向移动时，如果玩家已经超过屏幕中心，相机才会跟随
         // 这样可以让玩家在中心区域移动时相机保持不动
         const halfWidth = width / 2;
@@ -989,7 +989,7 @@ export class GameEngine implements IEngineContext {
           centerX = currentPlayerPos.x;
           centerY = currentPlayerPos.y;
         } else {
-          // C#: 根据玩家移动方向，只有当玩家超过中心点时才更新相机
+          // 根据玩家移动方向，只有当玩家超过中心点时才更新相机
           if (
             (offsetX > 0 && currentPlayerPos.x > centerX) ||
             (offsetX < 0 && currentPlayerPos.x < centerX)
@@ -1077,7 +1077,7 @@ export class GameEngine implements IEngineContext {
     this.renderMapInterleaved(ctx);
 
     // 应用地图颜色叠加（ChangeMapColor 效果）
-    // C#: 使用 Color.Multiply 将颜色应用到地图和精灵
+    // 使用 Color.Multiply 将颜色应用到地图和精灵
     const screenEffects = this.gameManager.getScreenEffects();
     if (screenEffects.isMapTinted()) {
       const tint = screenEffects.getMapTintColor();
@@ -1090,7 +1090,7 @@ export class GameEngine implements IEngineContext {
     }
 
     // 渲染天气效果（雨、雪）
-    // C# Reference: WeatherManager.Draw(spriteBatch)
+    // Reference: WeatherManager.Draw(spriteBatch)
     this.weatherManager.draw(ctx, this.mapRenderer.camera.x, this.mapRenderer.camera.y);
 
     // 渲染屏幕特效（淡入淡出、闪烁）
@@ -1101,7 +1101,7 @@ export class GameEngine implements IEngineContext {
    * 交错渲染地图、NPC、玩家、物体
    * Enhanced with interaction highlights
    *
-   * C# Reference: Player.Draw 中高亮边缘在所有内容绘制完成后单独绘制
+   * 中高亮边缘在所有内容绘制完成后单独绘制
    */
   private renderMapInterleaved(ctx: CanvasRenderingContext2D): void {
     if (!this.mapRenderer || !this.gameManager || !this.objRenderer) return;
@@ -1120,7 +1120,7 @@ export class GameEngine implements IEngineContext {
     const edgeColor = interactionManager.getEdgeColor();
 
     // === 性能优化：使用 Update 阶段预计算的视野内对象 ===
-    // C# Reference: MapBase.Draw 中直接使用 NpcManager.NpcsInView, ObjManager.ObjsInView
+    // 中直接使用 NpcManager.NpcsInView, ObjManager.ObjsInView
     // 不再每帧重新计算和分组，直接使用预计算的按行分组结果
     const npcManager = this.gameManager.getNpcManager();
     const objManager = this.gameManager.getObjManager();
@@ -1173,7 +1173,7 @@ export class GameEngine implements IEngineContext {
     });
 
     // === 玩家遮挡半透明效果 ===
-    // C# Reference: Player.Draw - 当玩家被遮挡物覆盖时绘制半透明效果
+    // 当玩家被遮挡物覆盖时绘制半透明效果
     // 在所有地图层和角色绘制完成后，如果玩家被遮挡，再单独绘制一层半透明玩家
     // 注意：需要检查 isDraw，否则 ShowNpc("杨影枫", 0) 隐藏玩家时半透明层仍会显示
     if (player.isSpritesLoaded() && player.isOccluded && player.isDraw) {
@@ -1184,7 +1184,7 @@ export class GameEngine implements IEngineContext {
     }
 
     // === SuperMode 精灵渲染（在所有内容之上） ===
-    // C# Reference: JxqyGame.DrawGamePlay - if (Globals.IsInSuperMagicMode) { Globals.SuperModeMagicSprite.Draw(_spriteBatch); }
+    // if (Globals.IsInSuperMagicMode) { Globals.SuperModeMagicSprite.Draw(_spriteBatch); }
     // SuperMode 精灵不在普通列表中，需要单独渲染
     const superModeMagicMgr = this.getManager("magic");
     if (superModeMagicMgr?.isInSuperMagicMode) {
@@ -1195,7 +1195,7 @@ export class GameEngine implements IEngineContext {
     }
 
     // === 高亮边缘在所有内容渲染完成后单独绘制（最高层） ===
-    // C# Reference: Player.Draw 末尾: if (Globals.OutEdgeSprite != null) { ... }
+    // 末尾: if (Globals.OutEdgeSprite != null) { ... }
     if (hoverTarget.type === "npc" && hoverTarget.npc) {
       const npc = hoverTarget.npc;
       if (npc.isSpritesLoaded() && npc.isVisible) {
@@ -1299,7 +1299,7 @@ export class GameEngine implements IEngineContext {
     this.inputState.mouseWorldX = worldX;
     this.inputState.mouseWorldY = worldY;
 
-    // C# style: Update clickedTile while mouse is held down
+    // Update clickedTile while mouse is held down
     // This enables continuous walking by holding mouse button
     if (this.inputState.isMouseDown) {
       this.inputState.clickedTile = this.worldToTile(worldX, worldY);
@@ -1327,7 +1327,7 @@ export class GameEngine implements IEngineContext {
     this.inputState.mouseWorldY = worldY;
 
     // 设置点击瓦片 - 但如果是 Ctrl+Click(攻击) 或 Alt+Click(跳跃)，不设置，防止触发移动
-    // C# Reference: Player.HandleMouseInput - Ctrl/Alt clicks are special actions, not movement
+    // Ctrl/Alt clicks are special actions, not movement
     if (!ctrlKey && !altKey) {
       this.inputState.clickedTile = this.worldToTile(worldX, worldY);
     }
@@ -1335,7 +1335,7 @@ export class GameEngine implements IEngineContext {
 
   /**
    * 处理鼠标松开
-   * C# Reference: 更新 _lastMouseState
+   * Reference: 更新 _lastMouseState
    */
   handleMouseUp(isRightButton: boolean = false): void {
     if (isRightButton) {
@@ -1521,7 +1521,7 @@ export class GameEngine implements IEngineContext {
 
   /**
    * 获取脚本变量值
-   * C# Reference: ScriptExecuter.GetVariablesValue("$" + VariableName)
+   * Reference: ScriptExecuter.GetVariablesValue("$" + VariableName)
    */
   getScriptVariable(name: string): number {
     return this.gameManager.getVariable(name);
@@ -1531,7 +1531,7 @@ export class GameEngine implements IEngineContext {
    * 通知玩家状态变更
    * 用于切换角色、读档后刷新 UI（状态面板、物品、武功等）
    *
-   * C# Reference: GuiManager.StateInterface.Index = GuiManager.EquipInterface.Index = index
+   * = GuiManager.EquipInterface.Index = index
    */
   notifyPlayerStateChanged(): void {
     this.events.emit(GameEvents.UI_PLAYER_CHANGE, {});
@@ -1647,7 +1647,7 @@ export class GameEngine implements IEngineContext {
             goodsManager?.usingGood(index);
             // Apply drug effect to player
             player?.useDrug(entry.good);
-            // C# Reference: Player.cs line 834-840 - Partner drug effect
+            // line 834-840 - Partner drug effect
             if (entry.good.followPartnerHasDrugEffect > 0 && npcManager) {
               npcManager.forEachPartner((partner) => {
                 partner.useDrug(entry.good);
@@ -1677,7 +1677,7 @@ export class GameEngine implements IEngineContext {
         // Apply drug effect to player and partners
         if (entry?.good && entry.good.kind === GoodKind.Drug) {
           player?.useDrug(entry.good);
-          // C# Reference: Player.cs line 834-840 - Partner drug effect
+          // line 834-840 - Partner drug effect
           if (entry.good.followPartnerHasDrugEffect > 0 && npcManager) {
             npcManager.forEachPartner((partner) => {
               partner.useDrug(entry.good);

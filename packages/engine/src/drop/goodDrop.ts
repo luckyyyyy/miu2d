@@ -1,6 +1,6 @@
 /**
  * GoodDrop - NPC击杀后的物品掉落系统
- * 对应 C# Engine/GoodDrop.cs
+ * 
  *
  * 掉落逻辑：
  * 1. 只有敌人（IsEnemy）死亡时才会掉落
@@ -15,7 +15,7 @@ import { logger } from "../core/logger";
 import type { Vector2 } from "../core/types";
 import { Obj } from "../obj/obj";
 
-/** 物品类型枚举 - 对应 C# GoodDrop.GoodType */
+/** 物品类型枚举*/
 export enum GoodType {
   Weapon = 0, // 武器
   Armor = 1, // 防具
@@ -37,7 +37,6 @@ export interface DropCharacter {
 
 /**
  * 获取掉落脚本文件名
- * C# Reference: GoodDrop.GetScriptFileName
  *
  * 武器/防具/金钱：根据等级计算（level/12 + 1，最大7级）
  * 药品：根据等级范围
@@ -47,7 +46,7 @@ function getScriptFileName(type: GoodType, characterLevel: number): string {
     case GoodType.Weapon:
     case GoodType.Armor:
     case GoodType.Money: {
-      // C#: var level = characterLevel/12 + 1; if (level > 7) level = 7;
+      // var level = characterLevel/12 + 1; if (level > 7) level = 7;
       let level = Math.floor(characterLevel / 12) + 1;
       if (level > 7) level = 7;
 
@@ -62,7 +61,7 @@ function getScriptFileName(type: GoodType, characterLevel: number): string {
       break;
     }
     case GoodType.Drug:
-      // C#: 药品根据等级范围
+      // 药品根据等级范围
       if (characterLevel <= 10) {
         return "低级药品.txt";
       } else if (characterLevel <= 30) {
@@ -78,7 +77,7 @@ function getScriptFileName(type: GoodType, characterLevel: number): string {
 
 /**
  * 获取掉落物品的 ini 文件名
- * C# Reference: GoodDrop.GetObj 中的 fileName 选择
+ * 中的 fileName 选择
  */
 function getDropIniFileName(type: GoodType): string {
   switch (type) {
@@ -97,7 +96,6 @@ function getDropIniFileName(type: GoodType): string {
 
 /**
  * 创建掉落物品对象
- * C# Reference: GoodDrop.GetObj
  *
  * @param type 物品类型
  * @param character 死亡角色信息
@@ -114,7 +112,7 @@ async function createDropObj(type: GoodType, character: DropCharacter): Promise<
   obj.tilePosition = { ...character.tilePosition };
 
   // 计算等级（Boss有额外等级加成）
-  // C#: if (character.ExpBonus > 0) 根据随机数加 0/12/24
+  // if (character.ExpBonus > 0) 根据随机数加 0/12/24
   let level = character.level;
   if (character.expBonus > 0) {
     const rand = Math.floor(Math.random() * 100);
@@ -135,7 +133,7 @@ async function createDropObj(type: GoodType, character: DropCharacter): Promise<
 
 /**
  * 解析 DropIni 配置
- * C# Reference: GoodDrop.GetDropObj 中对 DropIni 的解析
+ * 中对 DropIni 的解析
  *
  * 格式：
  * - "xxx.ini" - 直接使用该 ini 文件
@@ -170,7 +168,7 @@ function parseDropIni(dropIni: string): { ini: string; shouldDrop: boolean } {
 
 /**
  * 获取 NPC 死亡时的掉落物品
- * C# Reference: GoodDrop.GetDropObj(Character character)
+ * character)
  *
  * 调用时机：NPC.IsDeath && NPC.IsBodyIniAdded == 0 时，在 NpcManager.Update 中调用
  *
@@ -182,13 +180,13 @@ export async function getDropObj(
   character: DropCharacter,
   isDropEnabled: boolean
 ): Promise<Obj | null> {
-  // C#: if (Globals.IsDropGoodWhenDefeatEnemyDisabled || !character.IsEnemy || character.NoDropWhenDie > 0) return null;
+  // if (Globals.IsDropGoodWhenDefeatEnemyDisabled || !character.IsEnemy || character.NoDropWhenDie > 0) return null;
   if (!isDropEnabled || !character.isEnemy || character.noDropWhenDie > 0) {
     return null;
   }
 
   // 1. 检查自定义 DropIni
-  // C#: if (!string.IsNullOrEmpty(character.DropIni))
+  // if (!string.IsNullOrEmpty(character.DropIni))
   if (character.dropIni) {
     const { ini, shouldDrop } = parseDropIni(character.dropIni);
     if (!shouldDrop) {
@@ -205,7 +203,7 @@ export async function getDropObj(
   }
 
   // 2. Boss 必定掉落武器或防具
-  // C#: if (character.ExpBonus > 0) return GetObj(Random.Next(0, 2) == 0 ? Weapon : Armor, character);
+  // if (character.ExpBonus > 0) return GetObj(Random.Next(0, 2) == 0 ? Weapon : Armor, character);
   if (character.expBonus > 0) {
     const type = Math.floor(Math.random() * 2) === 0 ? GoodType.Weapon : GoodType.Armor;
     const obj = await createDropObj(type, character);
@@ -218,16 +216,16 @@ export async function getDropObj(
   }
 
   // 3. 普通敌人随机掉落
-  // C#: var goodType = (GoodType)Random.Next(0, (int)GoodType.MaxType);
+  // var goodType = (GoodType)Random.Next(0, (int)GoodType.MaxType);
   const goodType = Math.floor(Math.random() * GoodType.MaxType) as GoodType;
 
-  // C#: 武器/防具的掉落概率为 1/10，其他为 1/2
+  // 武器/防具的掉落概率为 1/10，其他为 1/2
   let maxRandValue = 2;
   if (goodType === GoodType.Weapon || goodType === GoodType.Armor) {
     maxRandValue = 10;
   }
 
-  // C#: if (Random.Next(maxRandValue) == 0)
+  // if (Random.Next(maxRandValue) == 0)
   if (Math.floor(Math.random() * maxRandValue) === 0) {
     const obj = await createDropObj(goodType, character);
     if (obj) {

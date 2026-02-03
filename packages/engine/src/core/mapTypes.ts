@@ -1,4 +1,4 @@
-// Map tile types matching C# implementation
+// Map tile types matching implementation
 export interface MapMpcIndex {
   frame: number; // byte
   mpcIndex: number; // byte
@@ -54,7 +54,7 @@ export interface Camera {
   height: number;
 }
 
-// Barrier types from C# implementation
+// Barrier types
 export const BarrierType = {
   None: 0x00,
   Obstacle: 0x80,

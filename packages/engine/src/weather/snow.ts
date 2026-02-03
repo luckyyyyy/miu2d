@@ -1,6 +1,6 @@
 /**
  * Snow - 雪效果系统
- * 基于 C# JxqyHD/Engine/Weather/Snow.cs
+ * 基于JxqyHD/Engine/Weather/Snow.cs
  *
  * 特性：
  * - 从屏幕顶部生成雪花
@@ -43,7 +43,7 @@ export class Snow {
 
   /**
    * 生成一排雪花
-   * C#: GenerateSnowFlakes
+   *
    */
   private generateSnowFlakes(cameraX: number, cameraY: number): void {
     // 在屏幕顶部生成雪花，水平间距 50 像素
@@ -67,7 +67,7 @@ export class Snow {
 
   /**
    * 显示/隐藏雪效果
-   * C#: Show(bool isShow)
+   * Show(bool isShow)
    */
   show(isShow: boolean): void {
     this.snowFlakes = [];

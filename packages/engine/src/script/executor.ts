@@ -20,7 +20,6 @@ export type { ScriptContext } from "./commands";
 
 /**
  * 并行脚本项
- * C# Reference: ScriptManager.ParallelScriptItem
  */
 interface ParallelScriptItem {
   filePath: string;
@@ -30,7 +29,6 @@ interface ParallelScriptItem {
 
 /**
  * 并行脚本运行器（简化版 ScriptRunner）
- * C# Reference: ScriptManager.ParallelScriptItem.ScriptInRun
  *
  * 并行脚本用于在主脚本执行时运行独立的后台脚本。
  * 典型用例：延迟触发事件、循环检查条件等。
@@ -169,7 +167,7 @@ class ParallelScriptRunner {
 
 /**
  * 脚本队列项
- * C# Reference: ScriptManager._list 中的 LinkedList<ScriptRunner>
+ * 中的 LinkedList<ScriptRunner>
  */
 interface ScriptQueueItem {
   scriptPath: string;
@@ -181,11 +179,11 @@ export class ScriptExecutor {
   private context: ScriptContext;
   private commandRegistry: CommandRegistry;
 
-  // 脚本队列（C# Reference: ScriptManager._list）
+  // 脚本队列
   // 外部触发的脚本加入队列，Update 中逐帧处理
   private scriptQueue: ScriptQueueItem[] = [];
 
-  // 并行脚本列表（C# Reference: ScriptManager._parallelListDelayed, _parallelListImmediately）
+  // 并行脚本列表
   private parallelListDelayed: ParallelScriptItem[] = [];
   private parallelListImmediately: ParallelScriptItem[] = [];
 
@@ -202,7 +200,7 @@ export class ScriptExecutor {
       callStack: [],
       isInTalk: false,
       talkQueue: [],
-      // C#: ScriptRunner.BelongObject - the target that triggered this script
+      // the target that triggered this script
       belongObject: null,
       // Blocking wait states
       waitingForPlayerGoto: false,
@@ -253,11 +251,10 @@ export class ScriptExecutor {
 
   /**
    * Load and run a script file
-   * Following C# ScriptManager.RunScript - uses callStack for nested execution
+   * Following ScriptManager.RunScript - uses callStack for nested execution
    *
    * @param scriptPath Path to the script file
    * @param belongObject Optional target (NPC or Obj) that triggered this script
-   *                     C# Reference: ScriptRunner.BelongObject
    */
   async runScript(
     scriptPath: string,
@@ -278,7 +275,7 @@ export class ScriptExecutor {
       return;
     }
 
-    // Save current script state to callStack before switching (like C# LinkedList)
+    // Save current script state to callStack before switching
     // Save currentLine as-is; after Return, the execute loop will do currentLine++
     // which will move to the next command after RunScript
     if (this.state.currentScript) {
@@ -312,7 +309,7 @@ export class ScriptExecutor {
 
   /**
    * Queue a script for execution (外部触发入口)
-   * C# Reference: ScriptManager.RunScript - 把脚本添加到 _list 队列
+   * 把脚本添加到 _list 队列
    *
    * 外部事件（如 NPC 死亡、物体交互）应使用此方法。
    * 脚本会被加入队列，在 Update 中按顺序执行。
@@ -480,7 +477,7 @@ export class ScriptExecutor {
 
   /**
    * End current script and restore parent script if available
-   * Following C# ScriptManager behavior - when script ends, continue with parent
+   * Following ScriptManager behavior - when script ends, continue with parent
    */
   private endScript(): void {
     // Check if there's a parent script in the callStack
@@ -525,7 +522,7 @@ export class ScriptExecutor {
    * Update executor (called each frame)
    */
   update(deltaTime: number): void {
-    // Update parallel scripts first (C# Reference: ScriptManager.Update)
+    // Update parallel scripts first
     // 使用 void 忽略 Promise，因为并行脚本是异步执行的
     void this.updateParallelScripts(deltaTime);
 
@@ -676,7 +673,7 @@ export class ScriptExecutor {
       return;
     }
 
-    // C# Reference: ScriptManager.Update 中的队列处理
+    // 中的队列处理
     // 如果当前没有脚本在运行，从队列取一个执行
     if (!this.state.isRunning && this.scriptQueue.length > 0) {
       const next = this.scriptQueue.shift()!;
@@ -732,13 +729,13 @@ export class ScriptExecutor {
 
   /**
    * Handle multi-selection made (ChooseMultiple)
-   * C# Reference: IsChooseMultipleEnd - stores results in varPrefix0, varPrefix1, ...
+   * stores results in varPrefix0, varPrefix1, ...
    */
   onMultiSelectionMade(selectedIndices: number[]): void {
     if (this.state.waitingForInput && this.state.waitingForChooseMultiple) {
       const varPrefix = this.state.chooseMultipleVarPrefix;
       if (varPrefix) {
-        // C#: Variables[varName + i] = result[i];
+        // Variables[varName + i] = result[i];
         for (let i = 0; i < selectedIndices.length; i++) {
           this.context.setVariable(`${varPrefix}${i}`, selectedIndices[i]);
         }
@@ -763,7 +760,7 @@ export class ScriptExecutor {
 
   /**
    * Stop all running scripts and reset state
-   * C# Reference: ScriptManager.Clear()
+   * Reference: ScriptManager.Clear()
    *
    * This should be called before loading a save to prevent
    * script state from persisting across loads.
@@ -803,10 +800,10 @@ export class ScriptExecutor {
     // Reset selection state if exists
     this.state.selectionResultVar = undefined;
 
-    // Clear script queue (C# Reference: ScriptManager.Clear)
+    // Clear script queue
     this.scriptQueue = [];
 
-    // Clear parallel scripts (C# Reference: ScriptManager.ClearParallelScript)
+    // Clear parallel scripts
     this.parallelListDelayed = [];
     this.parallelListImmediately = [];
 
@@ -817,7 +814,7 @@ export class ScriptExecutor {
 
   /**
    * Run a script in parallel
-   * C# Reference: ScriptManager.RunParallelScript(scriptFilePath, delayMilliseconds)
+   * Reference: ScriptManager.RunParallelScript(scriptFilePath, delayMilliseconds)
    */
   runParallelScript(scriptFilePath: string, delayMilliseconds: number = 0): void {
     const item: ParallelScriptItem = {
@@ -839,10 +836,9 @@ export class ScriptExecutor {
 
   /**
    * Update parallel scripts
-   * C# Reference: ScriptManager.Update 中的并行脚本更新逻辑
+   * 中的并行脚本更新逻辑
    */
   private async updateParallelScripts(deltaTime: number): Promise<void> {
-    // C# Reference: ScriptManager.Update
     // "New item may added when script run, count items added before this frame."
     // 只处理本帧之前添加的脚本，防止新添加的脚本在同一帧被执行
 
@@ -916,7 +912,7 @@ export class ScriptExecutor {
 
   /**
    * Clear all parallel scripts
-   * C# Reference: ScriptManager.ClearParallelScript()
+   * Reference: ScriptManager.ClearParallelScript()
    */
   clearParallelScripts(): void {
     this.parallelListDelayed = [];
@@ -926,13 +922,13 @@ export class ScriptExecutor {
 
   /**
    * Get parallel scripts for saving
-   * C# Reference: ScriptManager.SaveParallelScript()
+   * Reference: ScriptManager.SaveParallelScript()
    */
   getParallelScriptsForSave(): Array<{ filePath: string; waitMilliseconds: number }> {
     const result: Array<{ filePath: string; waitMilliseconds: number }> = [];
 
     // Save delayed scripts with remaining wait time
-    // C# uses (int)parallelScriptItem.WaitMilliseconds to truncate to integer
+    // uses (int)parallelScriptItem.WaitMilliseconds to truncate to integer
     for (const item of this.parallelListDelayed) {
       result.push({
         filePath: item.filePath,
@@ -953,7 +949,7 @@ export class ScriptExecutor {
 
   /**
    * Load parallel scripts from save data
-   * C# Reference: ScriptManager.LoadParallelScript()
+   * Reference: ScriptManager.LoadParallelScript()
    */
   loadParallelScriptsFromSave(
     scripts: Array<{ filePath: string; waitMilliseconds: number }>

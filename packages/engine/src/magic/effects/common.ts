@@ -68,7 +68,7 @@ export function deductCost(ctx: CastContext): void {
 }
 
 /**
- * C# MagicManager.GetEffectAmount
+ * MagicManager.GetEffectAmount
  * 计算武功效果值（含装备加成）
  *
  * @param magic 武功数据
@@ -91,7 +91,7 @@ export function getEffectAmount(
 
   let baseEffect: number;
   if (effectType === "effect") {
-    // C#: (magic.Effect == 0 || !belongCharacter.IsPlayer) ? RealAttack : magic.Effect
+    // (magic.Effect == 0 || !belongCharacter.IsPlayer) ? RealAttack : magic.Effect
     baseEffect = magic.effect === 0 || !isPlayer ? belongCharacter.realAttack : magic.effect;
     // effectExt 只加在 effect 上
     baseEffect += magic.effectExt || 0;
@@ -101,12 +101,12 @@ export function getEffectAmount(
     baseEffect = magic.effect3 === 0 || !isPlayer ? belongCharacter.attack3 : magic.effect3;
   }
 
-  // C# AddMagicEffect - 应用装备等加成
+  // AddMagicEffect - 应用装备等加成
   return addMagicEffect(magic, belongCharacter, baseEffect);
 }
 
 /**
- * C# MagicManager.AddMagicEffect
+ * MagicManager.AddMagicEffect
  * 应用武功效果加成（百分比 + 固定值）
  */
 export function addMagicEffect(
@@ -128,7 +128,7 @@ export function addMagicEffect(
   const percent = player.getAddMagicEffectPercent?.() ?? 0;
   const amount = player.getAddMagicEffectAmount?.() ?? 0;
 
-  // C# 还有按武功名称/类型的加成 (GetAddMagicEffectInfoWithName/Type)
+  // 还有按武功名称/类型的加成 (GetAddMagicEffectInfoWithName/Type)
   // 低优先级功能，暂未实现
 
   if (percent > 0) {
@@ -142,7 +142,7 @@ export function addMagicEffect(
 /**
  * 对目标造成伤害
  *
- * C# Reference: MagicSprite.CharacterHited + MagicManager.GetEffectAmount
+ * + MagicManager.GetEffectAmount
  * 使用 Character.takeDamageFromMagic 来处理：
  * - 命中率计算 (基于闪避)
  * - 多类型伤害 (damage, damage2, damage3, damageMana)
@@ -155,7 +155,7 @@ export function dealDamage(ctx: ApplyContext): number {
   const targetChar = getCharacterInstance(target);
   const casterChar = getCharacterInstance(caster);
 
-  // C# Reference: var amount = _canLeap ? _currentEffect : MagicManager.GetEffectAmount(BelongMagic, BelongCharacter);
+  // amount = _canLeap ? _currentEffect : MagicManager.GetEffectAmount(BelongMagic, BelongCharacter);
   // 跳跃武功使用 sprite 上存储的当前效果值（会随跳跃次数递减）
   // 普通武功使用 getEffectAmount 计算
   let damage: number;

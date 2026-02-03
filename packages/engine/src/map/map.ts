@@ -1,5 +1,5 @@
 /**
- * JxqyMap parser - matches C# Engine/Map/JxqyMap.cs implementation
+ * JxqyMap parser - matches Engine/Map/JxqyMap.cs implementation
  */
 
 import { logger } from "../core/logger";

@@ -2,7 +2,7 @@
  * StateGui Component - based on JxqyHD Engine/Gui/StateGui.cs
  * Displays player status information (level, exp, stats)
  *
- * C# Reference: StateGui.cs shows level, exp, life, thew, mana, attack, defend, evade
+ * shows level, exp, life, thew, mana, attack, defend, evade
  * Resources loaded from UI_Settings.ini
  */
 import type React from "react";
@@ -33,14 +33,14 @@ export interface PlayerStats {
 interface StateGuiProps {
   isVisible: boolean;
   stats: PlayerStats;
-  playerIndex?: number; // C#: GuiManager.StateInterface.Index - 用于切换角色头像面板
+  playerIndex?: number; // 用于切换角色头像面板
   screenWidth: number;
   onClose: () => void;
 }
 
 /**
  * 根据角色索引获取面板图像路径
- * C# Reference: StateGui.cs Index property
+ * Index property
  * fileName = "panel5" + (char)('a' + value) + ".asf"
  * index 0: panel5.asf
  * index 1: panel5b.asf (因为 'a' + 1 = 'b')
@@ -51,7 +51,7 @@ function getPanelImagePath(playerIndex: number): string {
   if (playerIndex <= 0) {
     return "asf/ui/common/panel5.asf";
   }
-  // C#: (char)('a' + value) -> 'a' + playerIndex
+  // (char)('a' + value) -> 'a' + playerIndex
   const suffix = String.fromCharCode("a".charCodeAt(0) + playerIndex);
   return `asf/ui/common/panel5${suffix}.asf`;
 }
@@ -66,11 +66,11 @@ export const StateGui: React.FC<StateGuiProps> = ({
   const config = useStateGuiConfig();
 
   // 根据角色索引动态加载面板背景
-  // C# Reference: StateGui.cs Index setter changes BaseTexture based on player index
+  // Index setter changes BaseTexture based on player index
   const panelPath = useMemo(() => getPanelImagePath(playerIndex), [playerIndex]);
   const panelImage = useAsfImage(panelPath);
 
-  // 计算面板位置 - C#: Globals.WindowWidth / 2f - Width + leftAdjust
+  // 计算面板位置 - Globals.WindowWidth / 2f - Width + leftAdjust
   const panelStyle = useMemo(() => {
     if (!config) return null;
     const panelWidth = panelImage.width || 172;

@@ -49,7 +49,7 @@ export const ItemTooltip: React.FC<ItemTooltipProps> = ({
   // Load item image
   const itemImage = useAsfImage(good?.imagePath ?? null, 0);
 
-  // Build effect text (matches C#'s ShowGood method)
+  // Build effect text (matches ShowGood method)
   const effectText = useMemo(() => {
     if (!good) return "";
     return good.getEffectString();
@@ -112,7 +112,7 @@ export const ItemTooltip: React.FC<ItemTooltipProps> = ({
         />
       )}
 
-      {/* Item Image - C# config: Left=132, Top=47, Width=60, Height=75 */}
+      {/* Item Image - config: Left=132, Top=47, Width=60, Height=75 */}
       <div
         style={{
           position: "absolute",
@@ -138,7 +138,7 @@ export const ItemTooltip: React.FC<ItemTooltipProps> = ({
         )}
       </div>
 
-      {/* Item Name - C# config: Left=67, Top=191, Color=102,73,212,204 (purple) */}
+      {/* Item Name - config: Left=67, Top=191, Color=102,73,212,204 (purple) */}
       <div
         style={{
           position: "absolute",
@@ -156,7 +156,7 @@ export const ItemTooltip: React.FC<ItemTooltipProps> = ({
         {good.name || "无名称"}
       </div>
 
-      {/* Price - C# config: Left=160, Top=191, Color=91,31,27,204 (dark red) */}
+      {/* Price - config: Left=160, Top=191, Color=91,31,27,204 (dark red) */}
       <div
         style={{
           position: "absolute",
@@ -173,7 +173,7 @@ export const ItemTooltip: React.FC<ItemTooltipProps> = ({
         {priceText}
       </div>
 
-      {/* Effect Text - C# config: Left=67, Top=215, Color=0,0,255,204 (blue) */}
+      {/* Effect Text - config: Left=67, Top=215, Color=0,0,255,204 (blue) */}
       <div
         style={{
           position: "absolute",

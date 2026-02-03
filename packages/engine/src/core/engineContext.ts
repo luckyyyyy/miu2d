@@ -55,9 +55,9 @@ export interface INpc extends ICharacter {
 export interface IPlayer extends ICharacter {
   tilePosition: Vector2;
   addExp(amount: number, addMagicExp?: boolean): void;
-  /** 结束对角色的控制 (C#: EndControlCharacter) */
+  /** 结束对角色的控制 */
   endControlCharacter(): void;
-  /** 重置伙伴位置到玩家周围 (C#: ResetPartnerPosition) */
+  /** 重置伙伴位置到玩家周围 */
   resetPartnerPosition(): void;
 }
 
@@ -112,7 +112,6 @@ export interface INpcManager {
 
   /**
    * 清除所有 NPC 对指定角色的追踪目标
-   * C# Reference: NpcManager.CleartFollowTargetIfEqual
    */
   cleartFollowTargetIfEqual(target: ICharacter): void;
 }
@@ -197,7 +196,7 @@ export interface IEngineContext {
 
   /**
    * 获取脚本变量值
-   * C# Reference: ScriptExecuter.GetVariablesValue("$" + VariableName)
+   * Reference: ScriptExecuter.GetVariablesValue("$" + VariableName)
    */
   getScriptVariable(name: string): number;
 

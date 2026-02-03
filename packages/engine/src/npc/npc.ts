@@ -1,5 +1,5 @@
 /**
- * Npc 类 - 对应 C# Npc.cs
+ * Npc 类
  * 继承 Character，实现 AI、巡逻、战斗等 NPC 特有功能
  */
 
@@ -16,7 +16,7 @@ import { generateId, getDirectionFromVector, tileToPixel } from "../utils";
 import { NpcMagicCache } from "./modules";
 import type { NpcManager } from "./npcManager";
 
-/** Npc 类 - 对应 C# Npc.cs */
+/** Npc 类*/
 export class Npc extends Character {
   private _id: string;
   private _actionPathTilePositions: Vector2[] | null = null;
@@ -36,7 +36,7 @@ export class Npc extends Character {
   // NpcManager 和 Player 现在通过 IEngineContext 获取
 
   // Magic cache - 使用 NpcMagicCache 模块管理武功缓存
-  // C#: Magic objects are cached when loaded from ini files
+  // Magic objects are cached when loaded from ini files
   private _magicCache: NpcMagicCache | null = null;
 
   constructor(id?: string) {
@@ -80,7 +80,7 @@ export class Npc extends Character {
   // === Properties ===
 
   /**
-   * C# Reference: Npc.PathType override
+   * override
    *
    * NPC PathType depends on Kind, relation, and _pathFinder value:
    * - Flyer: PathStraightLine (ignores obstacles)
@@ -179,14 +179,14 @@ export class Npc extends Character {
   // aiType getter/setter - inherited from Character
 
   /**
-   * C#: IsRandMoveRandAttack => AIType == 1 || AIType == 2
+   * IsRandMoveRandAttack => AIType == 1 || AIType == 2
    */
   get isRandMoveRandAttack(): boolean {
     return this.aiType === 1 || this.aiType === 2;
   }
 
   /**
-   * C#: IsNotFightBackWhenBeHit => AIType == 2
+   * IsNotFightBackWhenBeHit => AIType == 2
    */
   get isNotFightBackWhenBeHit(): boolean {
     return this.aiType === 2;
@@ -206,7 +206,7 @@ export class Npc extends Character {
 
   /**
    * 预加载 NPC 的所有武功（唯一的异步入口）
-   * C#: Magic objects are loaded when Character is constructed
+   * Magic objects are loaded when Character is constructed
    *
    * 使用 NpcMagicCache 模块管理，参考 Player 的 MagicListManager.addMagic 模式
    */
@@ -243,7 +243,7 @@ export class Npc extends Character {
 
   /**
    * Create NPC from config file path
-   * Based on C# Npc(string filePath) constructor
+   * (string filePath) constructor
    */
   static async fromFile(
     configPath: string,
@@ -260,7 +260,7 @@ export class Npc extends Character {
 
   /**
    * Create NPC from config object
-   * Based on C# Npc(KeyDataCollection) constructor
+   * (KeyDataCollection) constructor
    */
   static fromConfig(
     config: CharacterConfig,
@@ -279,7 +279,7 @@ export class Npc extends Character {
 
   /**
    * Override death to run death script
-   * C#: Character.Death() runs _currentRunDeathScript = ScriptManager.RunScript(DeathScript, this)
+   * Character.Death() runs _currentRunDeathScript = ScriptManager.RunScript(DeathScript, this)
    */
   override death(killer: Character | null = null): void {
     if (this.isDeathInvoked) return;
@@ -293,15 +293,15 @@ export class Npc extends Character {
       return; // 召唤物在基类中已完全处理
     }
 
-    // C#: 使用死亡时的武功 (MagicToUseWhenDeath)
+    // 使用死亡时的武功 (MagicToUseWhenDeath)
     this.useMagicWhenDeath(killer);
 
-    // C#: NpcManager.AddDead(this)
+    // NpcManager.AddDead(this)
     if (this.npcManager) {
       this.npcManager.addDead(this);
     }
 
-    // C#: Run death script
+    // Run death script
     logger.log(
       `[NPC] ${this.name} death check - deathScript: "${this.deathScript}", hasNpcManager: ${!!this.npcManager}`
     );
@@ -320,9 +320,9 @@ export class Npc extends Character {
 
   /**
    * 使用死亡时的武功
-   * C# Reference: MagicSprite.CharacterHited 检查 MagicToUseWhenDeath
+   * 检查 MagicToUseWhenDeath
    *
-   * C# 逻辑:
+   * 逻辑:
    * if (character.MagicToUseWhenDeath != null) {
    *     var magicDirectionType = character.MagicDirectionWhenDeath;
    *     Vector2 magicDirection = 根据 magicDirectionType 计算方向;
@@ -335,7 +335,7 @@ export class Npc extends Character {
       return;
     }
 
-    // C#: MagicDirectionWhenDeath 决定武功方向
+    // MagicDirectionWhenDeath 决定武功方向
     // 0 = 当前朝向, 1 = 朝向攻击者, 2 = 攻击者位置
     const dirType = this.magicDirectionWhenDeath;
     let destination: Vector2;
@@ -388,14 +388,14 @@ export class Npc extends Character {
   // === AI Update ===
 
   /**
-   * C#: Update(gameTime)
+   * Update(gameTime)
    * Main NPC update method with AI behavior
    */
   override update(deltaTime: number): void {
-    // C#: if(!IsVisibleByVariable) { return; }
+    // if(!IsVisibleByVariable) { return; }
     if (!this.isVisibleByVariable) return;
 
-    // C#: Dead NPCs only update death animation, no AI
+    // Dead NPCs only update death animation, no AI
     // When IsDeathInvoked or IsDeath, skip all AI logic
     if (this.isDeathInvoked || this.isDeath) {
       // Only update the sprite animation (for death animation)
@@ -403,15 +403,15 @@ export class Npc extends Character {
       return;
     }
 
-    // C#: if(_controledMagicSprite != null) { base.Update(); return; }
+    // if(_controledMagicSprite != null) { base.Update(); return; }
     // Skip if controlled by magic (not implemented yet)
 
-    // C#: Update blind time
+    // Update blind time
     if (this._blindMilliseconds > 0) {
       this._blindMilliseconds -= deltaTime * 1000;
     }
 
-    // C#: if (KeepAttackX > 0 || KeepAttackY > 0) { ... }
+    // if (KeepAttackX > 0 || KeepAttackY > 0) { ... }
     // Keep attacking a fixed position (used by certain boss AI)
     if (this.keepAttackX > 0 || this.keepAttackY > 0) {
       if (
@@ -426,12 +426,12 @@ export class Npc extends Character {
     }
 
     // Find follow target
-    // C#: if (!IsFollowTargetFound || FollowTarget == null || FollowTarget.IsDeathInvoked || ...)
-    // C#: Also check relation changes - enemy shouldn't follow same-group enemy, friend shouldn't follow friend
+    // if (!IsFollowTargetFound || FollowTarget == null || FollowTarget.IsDeathInvoked || ...)
+    // Also check relation changes - enemy shouldn't follow same-group enemy, friend shouldn't follow friend
     if (
       !this.isFollowTargetFound ||
       this.followTarget === null ||
-      this.followTarget.isDeathInvoked || // C#: FollowTarget.IsDeathInvoked
+      this.followTarget.isDeathInvoked ||
       !this.followTarget.isVisible ||
       (this.isEnemy && this.followTarget.isEnemy && this.followTarget.group === this.group) ||
       (this.isFighterFriend && (this.followTarget.isFighterFriend || this.followTarget.isPlayer)) ||
@@ -443,38 +443,38 @@ export class Npc extends Character {
     }
 
     // Perform follow or other actions
-    // C#: if (MovedByMagicSprite == null) { ... }
-    // C#: if (!CheckKeepDistanceWhenFriendDeath() && !KeepDistanceWhenLifeLow() && MagicToUseWhenLifeLow != null && ...)
+    // if (MovedByMagicSprite == null) { ... }
+    // if (!CheckKeepDistanceWhenFriendDeath() && !KeepDistanceWhenLifeLow() && MagicToUseWhenLifeLow != null && ...)
     if (!this.checkKeepDistanceWhenFriendDeath() && !this.keepDistanceWhenLifeLow()) {
-      // C#: MagicToUseWhenLifeLow - use special magic when low on health
+      // use special magic when low on health
       if (
         this.magicToUseWhenLifeLow &&
         this.magicManager !== null &&
         this.lifeMax > 0 &&
         this.life / this.lifeMax <= this.lifeLowPercent / 100.0
       ) {
-        // C#: PerformeAttack(PositionInWorld + Utils.GetDirection8(CurrentDirection), MagicToUseWhenLifeLow)
+        // PerformeAttack(PositionInWorld + Utils.GetDirection8(CurrentDirection), MagicToUseWhenLifeLow)
         this.useMagicWhenLifeLow();
       }
       this.performFollow();
     }
 
-    // C#: Attack interval counter
+    // Attack interval counter
     if (this._idledFrame < this.idle) {
       this._idledFrame++;
     }
 
-    // C#: If following target, reset action path
+    // If following target, reset action path
     if (this.isFollowTargetFound) {
       this._actionPathTilePositions = null;
     } else {
-      // C#: Handle destination from script commands (DestinationMapPosX/Y)
+      // Handle destination from script commands (DestinationMapPosX/Y)
       if ((this._destinationMapPosX !== 0 || this._destinationMapPosY !== 0) && this.isStanding()) {
         if (this._mapX === this._destinationMapPosX && this._mapY === this._destinationMapPosY) {
           this._destinationMapPosX = 0;
           this._destinationMapPosY = 0;
         } else {
-          // C#: WalkTo(..., Engine.PathFinder.PathType.PerfectMaxPlayerTry)
+          // WalkTo(..., Engine.PathFinder.PathType.PerfectMaxPlayerTry)
           this.walkTo(
             {
               x: this._destinationMapPosX,
@@ -489,7 +489,7 @@ export class Npc extends Character {
           }
         }
       } else {
-        // C#: RandMoveRandAttack behavior
+        // RandMoveRandAttack behavior
         if (this.isRandMoveRandAttack && this.isStanding()) {
           const poses = this.getRandTilePath(2, false, 10);
           if (poses.length >= 2) {
@@ -500,7 +500,7 @@ export class Npc extends Character {
     }
 
     // Non-fighter behavior
-    // C#: if ((FollowTarget == null || !IsFollowTargetFound) && !(IsFighterKind && IsAIDisabled))
+    // if ((FollowTarget == null || !IsFollowTargetFound) && !(IsFighterKind && IsAIDisabled))
     if (
       (this.followTarget === null || !this.isFollowTargetFound) &&
       !(this.isFighterKind && (this.npcManager?.isGlobalAIDisabled || this._isAIDisabled))
@@ -509,7 +509,7 @@ export class Npc extends Character {
       const randWalkProbability = 400;
       const flyerRandWalkProbability = 20;
 
-      // C#: LoopWalk along FixedPos
+      // LoopWalk along FixedPos
       if (this.action === ActionType.LoopWalk && this._fixedPathTilePositions !== null) {
         this.loopWalk(
           this._fixedPathTilePositions,
@@ -517,7 +517,7 @@ export class Npc extends Character {
           isFlyer
         );
       } else {
-        // C#: Based on Kind and Action
+        // Based on Kind and Action
         switch (this.kind) {
           case CharacterKind.Normal:
           case CharacterKind.Fighter:
@@ -532,7 +532,7 @@ export class Npc extends Character {
               );
             }
             break;
-          // C#: AfraidPlayerAnimal keeps distance from player
+          // AfraidPlayerAnimal keeps distance from player
           case CharacterKind.AfraidPlayerAnimal:
             if (this.player) {
               this.keepMinTileDistance(this.player.tilePosition, this.visionRadius);
@@ -549,7 +549,7 @@ export class Npc extends Character {
   // === AI Helpers ===
 
   /**
-   * C#: Find follow target based on NPC type and relation
+   * Find follow target based on NPC type and relation
    */
   private findFollowTarget(): void {
     if (this.npcManager?.isGlobalAIDisabled || this._isAIDisabled || this._blindMilliseconds > 0) {
@@ -558,9 +558,9 @@ export class Npc extends Character {
       return;
     }
 
-    // C#: if (IsEnemy) { ... }
+    // if (IsEnemy) { ... }
     if (this.isEnemy) {
-      // C#: Enemy NPCs target player or friendly fighters
+      // Enemy NPCs target player or friendly fighters
       if (
         (this.stopFindingTarget === 0 && !this.isRandMoveRandAttack) ||
         (this.isRandMoveRandAttack && this.isStanding() && Math.random() > 0.7)
@@ -580,25 +580,25 @@ export class Npc extends Character {
         this.followTarget = null;
       }
     } else if (this.isFighterFriend) {
-      // C#: Friendly fighters target enemies
+      // Friendly fighters target enemies
       if (this.stopFindingTarget === 0) {
         this.followTarget = this.getClosestEnemyCharacter();
       } else if (this.followTarget?.isDeathInvoked) {
         this.followTarget = null;
       }
-      // C#: If no enemy and is partner, move to player
+      // If no enemy and is partner, move to player
       if (this.followTarget === null && this.isPartner) {
         this.moveToPlayer();
       }
     } else if (this.isNoneFighter) {
-      // C#: None-fighter NPCs target non-neutral fighters
+      // fighter NPCs target non-neutral fighters
       if (this.stopFindingTarget === 0) {
         this.followTarget = this.getClosestNonneturalFighter();
       } else if (this.followTarget?.isDeathInvoked) {
         this.followTarget = null;
       }
     } else if (this.isPartner) {
-      // C#: Partners follow player
+      // Partners follow player
       this.moveToPlayer();
     }
 
@@ -610,7 +610,7 @@ export class Npc extends Character {
   }
 
   /**
-   * C#: PerformeFollow() - Check if follow target is visible and act accordingly
+   * Check if follow target is visible and act accordingly
    */
   private performFollow(): void {
     if (this.followTarget === null) return;
@@ -626,7 +626,7 @@ export class Npc extends Character {
 
     let canSeeTarget = false;
 
-    // C#: if (tileDistance <= VisionRadius)
+    // if (tileDistance <= VisionRadius)
     if (tileDistance <= this.visionRadius) {
       canSeeTarget = this.canViewTarget(
         { x: this._mapX, y: this._mapY },
@@ -647,7 +647,7 @@ export class Npc extends Character {
   }
 
   /**
-   * C#: FollowTargetFound(attackCanReach) - Called when target is in sight
+   * Called when target is in sight
    */
   protected followTargetFound(attackCanReach: boolean): void {
     if (this.npcManager?.isGlobalAIDisabled || this._isAIDisabled || this._blindMilliseconds > 0) {
@@ -655,11 +655,11 @@ export class Npc extends Character {
       return;
     }
 
-    // C#: MoveTargetChanged = true - force path recalculation
+    // MoveTargetChanged = true - force path recalculation
     this._moveTargetChanged = true;
 
     if (attackCanReach) {
-      // C#: Attack if idle counter has reached threshold
+      // Attack if idle counter has reached threshold
       if (this._idledFrame >= this.idle) {
         this._idledFrame = 0;
         const targetTile = this.followTarget?.tilePosition;
@@ -668,7 +668,7 @@ export class Npc extends Character {
         }
       }
     } else {
-      // C#: Walk to target
+      // Walk to target
       const targetTile = this.followTarget?.tilePosition;
       if (targetTile) {
         this.walkTo(targetTile);
@@ -677,7 +677,7 @@ export class Npc extends Character {
   }
 
   /**
-   * C#: FollowTargetLost() - Called when target is lost
+   * Called when target is lost
    */
   protected followTargetLost(): void {
     this.cancleAttackTarget();
@@ -687,14 +687,14 @@ export class Npc extends Character {
   }
 
   /**
-   * C#: Attacking(destinationTilePosition)
+   * Attacking(destinationTilePosition)
    * Set up attack against a target position
    * For casting NPCs: checks distance, may move away if too close
    */
   attacking(destinationTilePosition: Vector2): void {
     this._destinationAttackTilePosition = destinationTilePosition;
 
-    // C# Reference: AttackingIsOk(out Magic magicToUse)
+    // Reference: AttackingIsOk(out Magic magicToUse)
     // For NPCs with FlyInis (casting NPCs), this handles distance management
     if (this.hasMagicConfigured()) {
       // Use full AttackingIsOk logic for casting NPCs
@@ -715,7 +715,7 @@ export class Npc extends Character {
       destinationTilePosition
     );
 
-    // C#: Check if attack distance is ok (using attackRadius as melee range)
+    // Check if attack distance is ok (using attackRadius as melee range)
     const attackRadius = this.attackRadius || 1;
 
     if (tileDistance <= attackRadius) {
@@ -732,7 +732,7 @@ export class Npc extends Character {
 
   /**
    * Perform a magic attack (for casting NPCs)
-   * C# Reference: PerformMagic with MagicManager
+   * with MagicManager
    */
   private performMagicAttack(targetTilePosition: Vector2, magicIni: string): void {
     // Face the target
@@ -740,7 +740,7 @@ export class Npc extends Character {
     const dy = targetTilePosition.y - this._mapY;
     this._currentDirection = getDirectionFromVector({ x: dx, y: dy });
 
-    // C#: StateInitialize(); ToFightingState();
+    // StateInitialize(); ToFightingState();
     this.toFightingState();
 
     // Set magic state
@@ -756,9 +756,9 @@ export class Npc extends Character {
 
   /**
    * Override: Called when magic animation completes
-   * C# Reference: Character.Update() case CharacterState.Magic
+   * case CharacterState.Magic
    *
-   * C# 逻辑:
+   * 逻辑:
    * PlaySoundEffect(NpcIni[(int)CharacterState.Magic].Sound);
    * MagicManager.UseMagic(this, MagicUse, PositionInWorld, _magicDestination, _magicTarget);
    */
@@ -781,7 +781,7 @@ export class Npc extends Character {
         this._destinationAttackTilePosition.y
       );
 
-      // C#: MagicManager.UseMagic(this, magic, PositionInWorld, destination)
+      // MagicManager.UseMagic(this, magic, PositionInWorld, destination)
       this.magicManager.useMagic({
         userId: this._id,
         magic: magic,
@@ -804,7 +804,7 @@ export class Npc extends Character {
 
   /**
    * Perform the actual attack - set state and play animation
-   * C#: PerformeAttack(destinationPositionInWorld, Magic magicToUse)
+   * PerformeAttack(destinationPositionInWorld, Magic magicToUse)
    *
    * 使用基类的 performeAttack 方法，传入武功文件名和缓存的武功数据
    *
@@ -822,7 +822,7 @@ export class Npc extends Character {
 
   /**
    * Override: 攻击动画结束时发射武功
-   * C#: MagicManager.UseMagic(this, _magicToUseWhenAttack, PositionInWorld, _attackDestination)
+   * MagicManager.UseMagic(this, _magicToUseWhenAttack, PositionInWorld, _attackDestination)
    *
    * NPC 使用缓存的武功数据，避免异步加载延迟
    */
@@ -857,7 +857,7 @@ export class Npc extends Character {
 
   /**
    * Override: Called when attack animation completes
-   * C# Reference: Character.OnAttacking(_attackDestination)
+   * Reference: Character.OnAttacking(_attackDestination)
    *
    * 武功发射已经在 useMagicWhenAttack() 中处理
    * 这里只做清理工作
@@ -868,7 +868,7 @@ export class Npc extends Character {
   }
 
   /**
-   * C#: CancleAttackTarget()
+   * CancleAttackTarget()
    */
   cancleAttackTarget(): void {
     this._destinationAttackTilePosition = null;
@@ -876,7 +876,7 @@ export class Npc extends Character {
 
   /**
    * Use magic when life is low
-   * C#: PerformeAttack(PositionInWorld + Utils.GetDirection8(CurrentDirection), MagicToUseWhenLifeLow)
+   * PerformeAttack(PositionInWorld + Utils.GetDirection8(CurrentDirection), MagicToUseWhenLifeLow)
    */
   private useMagicWhenLifeLow(): void {
     const magic = this.magicCache.getSpecial("lifeLow");
@@ -914,7 +914,7 @@ export class Npc extends Character {
 
   /**
    * Override: Called when character takes damage
-   * C# Reference: MagicSprite.CharacterHited triggers MagicToUseWhenBeAttacked
+   * triggers MagicToUseWhenBeAttacked
    *
    * Note: MagicToUseWhenBeAttacked 现在在 MagicManager.handleMagicToUseWhenBeAttacked 中处理，
    * 因为需要武功精灵的方向信息。这里只处理其他受伤反应。
@@ -932,7 +932,7 @@ export class Npc extends Character {
   // partnerMoveTo() - inherited from Character
 
   /**
-   * C#: MoveToPlayer() - Partner follows player
+   * Partner follows player
    */
   private moveToPlayer(): void {
     if (this.player && !this.player.isStanding()) {
@@ -941,7 +941,7 @@ export class Npc extends Character {
   }
 
   /**
-   * C#: KeepDistanceWhenLifeLow() - Run away when health is low
+   * Run away when health is low
    */
   private keepDistanceWhenLifeLow(): boolean {
     if (
@@ -970,15 +970,15 @@ export class Npc extends Character {
   }
 
   /**
-   * C#: CheckKeepDistanceWhenFriendDeath() - Keep distance from killer when friend dies
-   * Based on C# Npc.CheckKeepDistanceWhenFriendDeath
+   * Keep distance from killer when friend dies
+   * 
    */
   private checkKeepDistanceWhenFriendDeath(): boolean {
     if (this.keepRadiusWhenFriendDeath <= 0) {
       return false;
     }
 
-    // C#: Kind != 3 - Follower has no effect
+    // Kind != 3 - Follower has no effect
     if (this.kind === CharacterKind.Follower) {
       return false;
     }
@@ -990,7 +990,7 @@ export class Npc extends Character {
       target = null;
       this._keepDistanceCharacterWhenFriendDeath = null;
 
-      // C#: Find dead friend killed by live character within vision radius
+      // Find dead friend killed by live character within vision radius
       if (this.npcManager) {
         const dead = this.npcManager.findFriendDeadKilledByLiveCharacter(this, this.visionRadius);
         if (dead) {
@@ -1029,12 +1029,12 @@ export class Npc extends Character {
   }
 
   /**
-   * C#: KeepMinTileDistance(targetTilePosition, minTileDistance)
+   * KeepMinTileDistance(targetTilePosition, minTileDistance)
    * Keep minimum distance from a target position (for AfraidPlayerAnimal)
-   * Based on C# Character.KeepMinTileDistance
+   * 
    */
   protected keepMinTileDistance(targetTilePosition: Vector2, minTileDistance: number): void {
-    // C#: if (_isInInteract) return; - skip if interacting
+    // if (_isInInteract) return; - skip if interacting
     // We don't have _isInInteract yet, skip this check
 
     const tileDistance = this.getViewTileDistance(
@@ -1042,7 +1042,7 @@ export class Npc extends Character {
       targetTilePosition
     );
 
-    // C#: if (tileDistance < minTileDistance && IsStanding())
+    // if (tileDistance < minTileDistance && IsStanding())
     if (tileDistance < minTileDistance && this.isStanding()) {
       this.moveAwayTarget(
         tileToPixel(targetTilePosition.x, targetTilePosition.y),
@@ -1059,7 +1059,7 @@ export class Npc extends Character {
 
   /**
    * Get player or closest fighter friend
-   * C#: NpcManager.GetLiveClosestPlayerOrFighterFriend
+   *
    */
   private getPlayerOrFighterFriend(): Character | null {
     if (!this.npcManager) {
@@ -1085,7 +1085,7 @@ export class Npc extends Character {
 
   /**
    * Get closest non-neutral fighter
-   * C#: GetLiveClosestNonneturalFighter (typo preserved)
+   * GetLiveClosestNonneturalFighter (typo preserved)
    */
   private getClosestNonneturalFighter(): Character | null {
     return this.npcManager.getLiveClosestNonneturalFighter(this._positionInWorld);
@@ -1094,12 +1094,12 @@ export class Npc extends Character {
   // === Obstacle Check ===
 
   /**
-   * C#: override HasObstacle(tilePosition)
+   * override HasObstacle(tilePosition)
    * Check if position is blocked (includes NPCs, objects, magic)
    * NPC version adds Flyer check and NPC/Player position checks
    *
-   * 注意：C# Npc.HasObstacle 不检查地图障碍，地图障碍由 PathFinder 单独处理
-   * C#: return (NpcManager.IsObstacle(tilePosition) ||
+   * 注意：Npc.HasObstacle 不检查地图障碍，地图障碍由 PathFinder 单独处理
+   * return (NpcManager.IsObstacle(tilePosition) ||
    *            ObjManager.IsObstacle(tilePosition) ||
    *            MagicManager.IsObstacle(tilePosition) ||
    *            Globals.ThePlayer.TilePosition == tilePosition);
@@ -1135,7 +1135,7 @@ export class Npc extends Character {
 
   /**
    * Start special action animation
-   * Based on C# Character.SetSpecialAction
+   * 
    */
   startSpecialAction(asf: AsfData | null): void {
     this.isInSpecialAction = true;
@@ -1153,7 +1153,7 @@ export class Npc extends Character {
 
   /**
    * Set custom action file for a state
-   * Based on C# Character.SetNpcActionFile
+   * 
    */
   setActionFile(stateType: number, asfFile: string): void {
     this.setCustomActionFile(stateType, asfFile);
@@ -1161,7 +1161,7 @@ export class Npc extends Character {
   }
 
   /**
-   * C#: FixedPos getter
+   * FixedPos getter
    */
   getFixedPos(): string {
     // Return empty string - the actual path is stored in _fixedPathTilePositions
@@ -1169,7 +1169,7 @@ export class Npc extends Character {
   }
 
   /**
-   * C#: FixedPos setter - parse and set LoopWalk path
+   * FixedPos setter - parse and set LoopWalk path
    * Overrides base to also parse the path
    */
   override setFixedPos(value: string): void {
@@ -1178,11 +1178,11 @@ export class Npc extends Character {
   }
 
   /**
-   * C#: ToFixedPosTilePositionList(fixPos)
+   * ToFixedPosTilePositionList(fixPos)
    * Parse FixedPos hex string to tile position list
    */
   private parseFixedPos(fixPos: string): Vector2[] | null {
-    // C#: FixedPos string pattern xx000000yy000000xx000000yy000000
+    // FixedPos string pattern xx000000yy000000xx000000yy000000
     const steps = this.splitStringInCharCount(fixPos, 8);
     const count = steps.length;
     if (count < 4) return null; // Less than 2 positions

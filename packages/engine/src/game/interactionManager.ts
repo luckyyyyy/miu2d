@@ -1,7 +1,7 @@
 /**
  * InteractionManager - Manages interaction state for NPCs and Objects
  *
- * Based on C# implementation:
+ * :
  * - Globals.cs: OutEdgeNpc, OutEdgeObj, OutEdgeSprite, OutEdgeColor
  * - Player.cs: HandleMouseInput - checks NPC/Obj under mouse for interaction
  * - Character.cs: InteractWith, PerformeInteract
@@ -18,7 +18,7 @@ import type { Npc } from "../npc";
 import type { Obj } from "../obj/obj";
 
 /**
- * Edge highlight colors (matching C# Globals.cs)
+ * Edge highlight colors
  * Colors are RGBA format for canvas rendering
  */
 export const EdgeColors = {
@@ -46,7 +46,7 @@ export interface InteractionTarget {
 
 /**
  * Obj interaction state - tracks whether objects have been interacted with
- * C# equivalent is tracked within Obj.cs via IsRemoved and script state
+ * equivalent is tracked within Obj.cs via IsRemoved and script state
  */
 export interface ObjInteractionState {
   hasInteracted: boolean;
@@ -58,7 +58,7 @@ export interface ObjInteractionState {
  * InteractionManager - singleton for managing interaction state
  */
 export class InteractionManager {
-  // Current hover target (C#: Globals.OutEdgeNpc, OutEdgeObj, OutEdgeSprite)
+  // Current hover target
   private _hoveredNpc: Npc | null = null;
   private _hoveredObj: Obj | null = null;
   private _edgeColor: string = EdgeColors.NPC;
@@ -66,13 +66,13 @@ export class InteractionManager {
   // Interaction state for objects
   private _objInteractionState: Map<string, ObjInteractionState> = new Map();
 
-  // Interaction target offset (C#: Globals.OffX, OffY)
+  // Interaction target offset
   private _offsetX: number = 0;
   private _offsetY: number = 0;
 
   /**
    * Clear all hover state (called at start of each frame)
-   * C# Reference: Globals.ClearGlobalOutEdge()
+   * Reference: Globals.ClearGlobalOutEdge()
    */
   clearHoverState(): void {
     this._hoveredNpc = null;
@@ -91,7 +91,7 @@ export class InteractionManager {
 
     if (npc) {
       // Determine edge color based on NPC relation
-      // C# Reference: Player.cs HandleMouseInput - edgeColor logic
+      // HandleMouseInput - edgeColor logic
       // Default: NpcEdgeColor (yellow)
       // IsEnemy: EnemyEdgeColor (red)
       // IsFighterFriend: FriendEdgeColor (green)
@@ -223,7 +223,6 @@ export class InteractionManager {
   // ============= Pixel Collision Detection =============
 
   /**
-   * C# Reference: TextureGenerator.IsColorTransparentForNpcObj
    * Check if a pixel color is transparent (alpha < 200)
    */
   private isColorTransparentForNpcObj(alpha: number): boolean {
@@ -232,7 +231,7 @@ export class InteractionManager {
 
   /**
    * Check if a world position collides with an NPC's non-transparent pixels
-   * C# Reference: Collider.IsPixelCollideForNpcObj(position, region, texture)
+   * Reference: Collider.IsPixelCollideForNpcObj(position, region, texture)
    *
    * @param worldX World X coordinate
    * @param worldY World Y coordinate
@@ -250,13 +249,13 @@ export class InteractionManager {
     // Get NPC's world position
     const npcPixelPos = npc.pixelPosition;
 
-    // Calculate sprite region in world (C#: RegionInWorld)
+    // Calculate sprite region in world
     const regionLeft = Math.floor(npcPixelPos.x) - texture.left;
     const regionTop = Math.floor(npcPixelPos.y) - texture.bottom;
     const regionRight = regionLeft + frame.width;
     const regionBottom = regionTop + frame.height;
 
-    // C#: if (region.Contains(point))
+    // if (region.Contains(point))
     if (
       worldX < regionLeft ||
       worldX >= regionRight ||
@@ -267,23 +266,22 @@ export class InteractionManager {
     }
 
     // Calculate pixel offset within the frame
-    // C#: var offX = point.X - region.Left; var offY = point.Y - region.Top;
+    // var offX = point.X - region.Left; var offY = point.Y - region.Top;
     const offX = Math.floor(worldX - regionLeft);
     const offY = Math.floor(worldY - regionTop);
 
     // Get pixel alpha from imageData
-    // C#: var idx = offX + offY * texture.Width;
+    // var idx = offX + offY * texture.Width;
     // ImageData.data is RGBA, so each pixel is 4 bytes, alpha is at index 3
     const idx = (offY * frame.width + offX) * 4 + 3; // +3 for alpha channel
     const alpha = frame.imageData.data[idx];
 
-    // C#: if (!TextureGenerator.IsColorTransparentForNpcObj(data[idx])) return true;
+    // if (!TextureGenerator.IsColorTransparentForNpcObj(data[idx])) return true;
     return !this.isColorTransparentForNpcObj(alpha);
   }
 
   /**
    * Check if a world position collides with an Obj's non-transparent pixels
-   * C# Reference: Collider.IsPixelCollideForNpcObj
    */
   isPointInObjBounds(worldX: number, worldY: number, obj: Obj): boolean {
     if (!obj.texture) return false;

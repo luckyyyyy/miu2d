@@ -1,6 +1,6 @@
 /**
  * UI Settings Loader - loads and parses UI_Settings.ini
- * Based on C# GuiManager.Settings
+ * 
  *
  * INI files in resources/ are now UTF-8 encoded.
  */
@@ -221,7 +221,7 @@ export interface MemoGuiConfig {
     height: number;
     imageBtn: string;
   };
-  // NOTE: scrollBar 用于滚动条显示，参考 C# MemoGui.cs
+  // NOTE: scrollBar 用于滚动条显示，参考MemoGui.cs
   scrollBar: {
     left: number;
     top: number;
@@ -239,7 +239,7 @@ export interface DialogGuiConfig {
 }
 
 // ============= SaveLoad GUI Config =============
-// Based on C#'s SaveLoadGui.cs - shows save/load interface
+//  - shows save/load interface
 
 export interface SaveLoadGuiConfig {
   panel: PanelConfig;
@@ -582,7 +582,7 @@ export function parseMemoGuiConfig(
       height: parseInt2(slider.Height, 190),
       imageBtn: normalizeImagePath(slider.Image_Btn || "asf/ui/option/slidebtn.asf"),
     },
-    // NOTE: scrollBar 默认值，参考 C# MemoGui.cs 的滚动条位置
+    // NOTE: scrollBar 默认值，参考MemoGui.cs 的滚动条位置
     scrollBar: {
       left: parseInt2(slider.Left, 295),
       top: parseInt2(slider.Top, 108),
@@ -645,7 +645,7 @@ export function parseDialogGuiConfig(
 }
 
 // ============= SaveLoad GUI Config Parser =============
-// Based on C#'s SaveLoadGui.cs
+// 
 
 export function parseSaveLoadGuiConfig(
   settings: Record<string, Record<string, string>>
@@ -742,7 +742,7 @@ export function parseSaveLoadGuiConfig(
 }
 
 // ============= Message GUI Config =============
-// Based on C#'s MessageGui.cs - shows system messages like level up notifications
+//  - shows system messages like level up notifications
 
 export interface MessageGuiConfig {
   panel: {
@@ -786,8 +786,8 @@ export function parseMessageGuiConfig(
 }
 
 // ============= NPC Info Show Config =============
-// Based on C#'s InfoDrawer.cs - displays NPC life bar at top of screen
-// C# Reference: InfoDrawer.DrawLife() reads [NpcInfoShow] section
+//  - displays NPC life bar at top of screen
+// Reference: InfoDrawer.DrawLife() reads [NpcInfoShow] section
 
 export interface NpcInfoShowConfig {
   width: number;
@@ -810,7 +810,7 @@ export function parseNpcInfoShowConfig(
 }
 
 // ============= LittleMap (小地图) Config =============
-// Based on C#'s LittleMapGui.cs - shows a mini map for navigation
+//  - shows a mini map for navigation
 
 export interface LittleMapButtonConfig {
   left: number;
@@ -921,7 +921,7 @@ export function parseLittleMapGuiConfig(
 }
 
 // ============= BuySell (商店) Config =============
-// Based on C#'s BuyGui.cs - shows shop interface for buying/selling items
+//  - shows shop interface for buying/selling items
 
 export interface BuySellGuiConfig {
   panel: {

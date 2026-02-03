@@ -2,7 +2,7 @@
  * Selection UI Component - based on JxqyHD Engine/Gui/SelectionGui.cs
  * Displays multiple choice options with message text
  *
- * C# Reference: SelectionGui.cs shows message + options centered on screen
+ * shows message + options centered on screen
  * with dark overlay, NO panel background (just black semi-transparent)
  * Message in gold color, options in green (yellow on hover)
  */
@@ -18,7 +18,7 @@ interface SelectionUIProps {
   onSelect: (index: number) => void;
 }
 
-// 颜色配置 - 对应 C# SelectionGui 中的颜色
+// 颜色配置中的颜色
 const COLORS = {
   normal: "rgba(0, 255, 0, 0.8)", // 绿色 - 普通状态
   hover: "rgba(255, 255, 0, 0.8)", // 黄色 - 悬停状态
@@ -102,8 +102,8 @@ export const SelectionUI: React.FC<SelectionUIProps> = ({
     return state.options.map((opt, index) => ({ ...opt, index })).filter((opt) => opt.enabled);
   }, [state.options]);
 
-  // 计算内容起始Y位置 - C# 风格，从中间向上下扩展
-  // C#: var startY = (Globals.WindowHeight - (selections.Count + 1) * (lineHeight + lineGap)) / 2;
+  // 计算内容起始Y位置 - 原版风格，从中间向上下扩展
+  // var startY = (Globals.WindowHeight - (selections.Count + 1) * (lineHeight + lineGap)) / 2;
   const totalLines = visibleOptions.length + (state.message ? 1 : 0);
   const totalHeight = totalLines * (LAYOUT.lineHeight + LAYOUT.lineGap);
   const startY = (screenHeight - totalHeight) / 2;

@@ -25,7 +25,7 @@ const loadGameCommand: CommandHandler = async (params, _result, helpers) => {
 
 /**
  * FreeMap - Free map resources
- * C#: MapBase.Free() - release map resources
+ * release map resources
  */
 const freeMapCommand: CommandHandler = (_params, _result, helpers) => {
   helpers.context.freeMap();
@@ -106,13 +106,13 @@ const subCommand: CommandHandler = (params, _result, helpers) => {
 
 /**
  * GetRandNum - Generate random number
- * C#: GetRandNum(var, min, max) - generates random in range [min, max]
+ * generates random in range [min, max]
  */
 const getRandNumCommand: CommandHandler = (params, _result, helpers) => {
   const varName = params[0]?.replace("$", "") || "";
   const min = helpers.resolveNumber(params[1] || "0");
   const max = helpers.resolveNumber(params[2] || "100");
-  // C#: Globals.TheRandom.Next(min, max + 1) - inclusive of both min and max
+  // inclusive of both min and max
   const randValue = min + Math.floor(Math.random() * (max - min + 1));
   helpers.context.setVariable(varName, randValue);
   return true;
@@ -141,7 +141,7 @@ const runScriptCommand: CommandHandler = async (params, _result, helpers) => {
 
 /**
  * DisableInput - Disable player input
- * C#: Globals.IsInputDisabled = true
+ * Globals.IsInputDisabled = true
  */
 const disableInputCommand: CommandHandler = (_params, _result, helpers) => {
   helpers.context.disableInput();
@@ -150,7 +150,7 @@ const disableInputCommand: CommandHandler = (_params, _result, helpers) => {
 
 /**
  * EnableInput - Enable player input
- * C#: Globals.IsInputDisabled = false
+ * Globals.IsInputDisabled = false
  */
 const enableInputCommand: CommandHandler = (_params, _result, helpers) => {
   helpers.context.enableInput();
@@ -159,7 +159,7 @@ const enableInputCommand: CommandHandler = (_params, _result, helpers) => {
 
 /**
  * DisableFight - Disable combat
- * C#: Globals.ThePlayer.DisableFight()
+ * Globals.ThePlayer.DisableFight()
  */
 const disableFightCommand: CommandHandler = (_params, _result, helpers) => {
   helpers.context.disableFight();
@@ -168,7 +168,7 @@ const disableFightCommand: CommandHandler = (_params, _result, helpers) => {
 
 /**
  * EnableFight - Enable combat
- * C#: Globals.ThePlayer.EnableFight()
+ * Globals.ThePlayer.EnableFight()
  */
 const enableFightCommand: CommandHandler = (_params, _result, helpers) => {
   helpers.context.enableFight();
@@ -177,7 +177,7 @@ const enableFightCommand: CommandHandler = (_params, _result, helpers) => {
 
 /**
  * DisableJump - Disable jumping
- * C#: Globals.ThePlayer.DisableJump()
+ * Globals.ThePlayer.DisableJump()
  */
 const disableJumpCommand: CommandHandler = (_params, _result, helpers) => {
   helpers.context.disableJump();
@@ -186,7 +186,7 @@ const disableJumpCommand: CommandHandler = (_params, _result, helpers) => {
 
 /**
  * EnableJump - Enable jumping
- * C#: Globals.ThePlayer.EnableJump()
+ * Globals.ThePlayer.EnableJump()
  */
 const enableJumpCommand: CommandHandler = (_params, _result, helpers) => {
   helpers.context.enableJump();
@@ -195,7 +195,7 @@ const enableJumpCommand: CommandHandler = (_params, _result, helpers) => {
 
 /**
  * DisableRun - Disable running
- * C#: Globals.ThePlayer.DisableRun()
+ * Globals.ThePlayer.DisableRun()
  */
 const disableRunCommand: CommandHandler = (_params, _result, helpers) => {
   helpers.context.disableRun();
@@ -204,7 +204,7 @@ const disableRunCommand: CommandHandler = (_params, _result, helpers) => {
 
 /**
  * EnableRun - Enable running
- * C#: Globals.ThePlayer.EnableRun()
+ * Globals.ThePlayer.EnableRun()
  */
 const enableRunCommand: CommandHandler = (_params, _result, helpers) => {
   helpers.context.enableRun();
@@ -222,7 +222,7 @@ const setLevelFileCommand: CommandHandler = async (params, _result, helpers) => 
 
 /**
  * ReturnToTitle - Return to title screen
- * C#: ScriptExecuter.ReturnToTitle() - 清除脚本，显示标题界面
+ * 清除脚本，显示标题界面
  */
 const returnToTitleCommand: CommandHandler = (_params, _result, helpers) => {
   helpers.context.returnToTitle();
@@ -231,7 +231,7 @@ const returnToTitleCommand: CommandHandler = (_params, _result, helpers) => {
 
 /**
  * SetMapTime - Set the map time
- * C#: MapBase.MapTime = int.Parse(parameters[0])
+ * MapBase.MapTime = int.Parse(parameters[0])
  */
 const setMapTimeCommand: CommandHandler = (params, _result, helpers) => {
   const time = helpers.resolveNumber(params[0] || "0");
@@ -241,7 +241,7 @@ const setMapTimeCommand: CommandHandler = (params, _result, helpers) => {
 
 /**
  * RunParallelScript - Run a script in parallel
- * C#: ScriptManager.RunParallelScript(path, delay)
+ * ScriptManager.RunParallelScript(path, delay)
  */
 const runParallelScriptCommand: CommandHandler = (params, _result, helpers) => {
   const scriptFile = helpers.resolveString(params[0] || "");

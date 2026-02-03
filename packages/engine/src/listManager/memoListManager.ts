@@ -2,7 +2,7 @@
  * Memo List Manager - based on JxqyHD Engine/ListManager/MemoListManager.cs
  * Manages game memo/quest log entries
  *
- * C# Reference: MemoListManager.cs uses LinkedList<string> to store memos
+ * uses LinkedList<string> to store memos
  * Memos are prefixed with "●" bullet point
  * Text is split into lines of 10 characters max (Chinese)
  */
@@ -12,7 +12,7 @@ import type { TalkTextListManager } from "./talkTextList";
 
 /**
  * Split string into lines based on character count (for Chinese text display)
- * Based on C#'s Utils.SpliteStringInCharCount
+ * 
  */
 function splitStringInCharCount(text: string, charCount: number): string[] {
   const lines: string[] = [];
@@ -65,7 +65,7 @@ export class MemoListManager {
 
   /**
    * Load memo list from save data
-   * Format matches C#: [Memo] section with Count and numbered keys
+   * Format: [Memo] section with Count and numbered keys
    */
   loadList(data: Record<string, string>): void {
     this.renewList();
@@ -137,7 +137,7 @@ export class MemoListManager {
 
   /**
    * Add memo text
-   * Based on C#: prepends "●", splits into lines, adds to front
+   * Based on:prepends "●", splits into lines, adds to front
    */
   addMemo(text: string): void {
     // Prepend bullet point
@@ -156,7 +156,7 @@ export class MemoListManager {
 
   /**
    * Delete memo text
-   * Based on C#: finds and removes matching lines
+   * Based on:finds and removes matching lines
    */
   delMemo(text: string): void {
     const prefixedText = `●${text}`;
@@ -203,7 +203,7 @@ export class MemoListManager {
 
   /**
    * Add memo from TalkTextList by ID
-   * Based on C#'s AddToMemo which uses TalkTextList.GetTextDetail
+   *  which uses TalkTextList.GetTextDetail
    */
   async addToMemo(textId: number): Promise<void> {
     try {

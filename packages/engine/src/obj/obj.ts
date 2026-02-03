@@ -13,7 +13,7 @@ import { Sprite } from "../sprite/sprite";
 import { parseIni } from "../utils";
 
 /**
- * Object Kind enum matching C# Obj.ObjKind
+ * Object Kind enum matching Obj.ObjKind
  */
 export enum ObjKind {
   Dynamic = 0, // Animated, obstacle
@@ -27,7 +27,7 @@ export enum ObjKind {
 }
 
 /**
- * Object state enum matching C# ObjState
+ * Object state enum matching ObjState
  */
 export enum ObjState {
   Common = 0,
@@ -46,7 +46,7 @@ export interface ObjResInfo {
 
 /**
  * Object save data for persistence
- * C#: Obj.Save(KeyDataCollection keyDataCollection)
+ * Obj.Save(KeyDataCollection keyDataCollection)
  */
 export interface ObjSaveData {
   ObjName: string;
@@ -74,61 +74,61 @@ export interface ObjSaveData {
 
 /**
  * State map for object textures
- * C#: StateMapList = Dictionary<int, ResStateInfo>
+ * StateMapList = Dictionary<int, ResStateInfo>
  */
 export type StateMapList = Map<number, ObjResInfo>;
 
 /**
  * Obj class - Interactive object on the map
- * Based on C# Engine/Obj.cs which extends Sprite
+ * /Obj.cs which extends Sprite
  */
 export class Obj extends Sprite {
-  // C#: FileName - file name for this object
+  // file name for this object
   protected _fileName: string = "";
-  // C#: IsRemoved
+
   protected _isRemoved: boolean = false;
 
-  // ============= Object Properties (from C# Obj.cs) =============
-  // C#: _objName
+  // ============= Object Properties =============
+
   protected _objName: string = "";
-  // C#: _kind
+
   protected _kind: ObjKind = ObjKind.Dynamic;
-  // C#: _dir (direction stored separately for obj, parent has _currentDirection)
+  // _dir (direction stored separately for obj, parent has _currentDirection)
   protected _dir: number = 0;
-  // C#: _damage
+
   protected _damage: number = 0;
-  // C#: _frame (initial frame)
+  // _frame (initial frame)
   protected _frame: number = 0;
-  // C#: _height
+
   protected _height: number = 0;
-  // C#: _lum (luminosity)
+  // _lum (luminosity)
   protected _lum: number = 0;
-  // C#: _objFile (StateMapList)
+  // _objFile (StateMapList)
   protected _objFile: StateMapList = new Map();
-  // C#: _objFileName (reference to objres file)
+  // _objFileName (reference to objres file)
   protected _objFileName: string = "";
-  // C#: _scriptFile
+
   protected _scriptFile: string = "";
-  // C#: _scriptFileRight
+
   protected _scriptFileRight: string = "";
-  // C#: _canInteractDirectly
+
   protected _canInteractDirectly: number = 0;
-  // C#: _timerScriptFile
+
   protected _timerScriptFile: string = "";
-  // C#: _timerScriptInterval
-  protected _timerScriptInterval: number = 3000; // C# Globals.DefaultNpcObjTimeScriptInterval
-  // C#: _timerScriptIntervlElapsed
+
+  protected _timerScriptInterval: number = 3000; // Globals.DefaultNpcObjTimeScriptInterval
+
   protected _timerScriptIntervalElapsed: number = 0;
-  // C#: _wavFileName
+
   protected _wavFileName: string = "";
-  // C#: _offX, _offY
+  // _offX, _offY
   protected _offX: number = 0;
   protected _offY: number = 0;
-  // C#: _reviveNpcIni
+
   protected _reviveNpcIni: string = "";
-  // C#: _scriptFileJustTouch
+
   protected _scriptFileJustTouch: number = 0;
-  // C#: _millisecondsToRemove
+
   protected _millisecondsToRemove: number = 0;
 
   // Unique ID for this object instance
@@ -161,7 +161,7 @@ export class Obj extends Sprite {
   }
 
   /**
-   * C#: RegionInWorld - override to include offsets
+   * override to include offsets
    */
   get regionInWorld(): { x: number; y: number; width: number; height: number } {
     const baseRegion = {
@@ -326,7 +326,7 @@ export class Obj extends Sprite {
 
   /**
    * Check if this is a looping sound object
-   * C# Reference: ObjKind.LoopingSound = 3
+   * = 3
    */
   get isLoopingSound(): boolean {
     return this._kind === ObjKind.LoopingSound;
@@ -334,7 +334,7 @@ export class Obj extends Sprite {
 
   /**
    * Check if this is a random sound object
-   * C# Reference: ObjKind.RandSound = 4
+   * = 4
    */
   get isRandSound(): boolean {
     return this._kind === ObjKind.RandSound;
@@ -375,7 +375,7 @@ export class Obj extends Sprite {
   // ============= Computed Properties =============
 
   /**
-   * C#: IsObstacle - check if object blocks movement
+   * check if object blocks movement
    */
   get isObstacle(): boolean {
     return (
@@ -384,14 +384,14 @@ export class Obj extends Sprite {
   }
 
   /**
-   * C#: IsDrop - check if object is a dropped item
+   * check if object is a dropped item
    */
   get isDrop(): boolean {
     return this._kind === ObjKind.Drop;
   }
 
   /**
-   * C#: IsAutoPlay - check if object should auto-animate
+   * check if object should auto-animate
    */
   get isAutoPlay(): boolean {
     return (
@@ -400,35 +400,35 @@ export class Obj extends Sprite {
   }
 
   /**
-   * C#: IsInteractive - check if object can be interacted with
+   * check if object can be interacted with
    */
   get isInteractive(): boolean {
     return this.hasInteractScript;
   }
 
   /**
-   * C#: HasInteractScript
+   *
    */
   get hasInteractScript(): boolean {
     return this._scriptFile !== "";
   }
 
   /**
-   * C#: HasInteractScriptRight
+   *
    */
   get hasInteractScriptRight(): boolean {
     return this._scriptFileRight !== "";
   }
 
   /**
-   * C#: IsTrap
+   *
    */
   get isTrap(): boolean {
     return this._kind === ObjKind.Trap;
   }
 
   /**
-   * C#: IsBody
+   *
    */
   get isBody(): boolean {
     return this._kind === ObjKind.Body;
@@ -437,7 +437,7 @@ export class Obj extends Sprite {
   // ============= Methods =============
 
   /**
-   * C#: SetObjFile(fileName)
+   * SetObjFile(fileName)
    * Load the objres file and set up textures
    */
   setObjFile(fileName: string): void {
@@ -446,14 +446,14 @@ export class Obj extends Sprite {
   }
 
   /**
-   * C#: SetWaveFile(fileName)
+   * SetWaveFile(fileName)
    */
   setWaveFile(fileName: string): void {
     this.wavFile = fileName;
   }
 
   /**
-   * C#: InitializeFigure()
+   * InitializeFigure()
    * Initialize the object's appearance
    */
   initializeFigure(): void {
@@ -469,9 +469,9 @@ export class Obj extends Sprite {
   }
 
   /**
-   * C#: OpenBox()
+   * OpenBox()
    * Play animation forward (open) - from current frame to end
-   * C#: PlayFrames(FrameEnd - CurrentFrameIndex)
+   * PlayFrames(FrameEnd - CurrentFrameIndex)
    * @returns The target frame index (for state saving)
    */
   openBox(): number {
@@ -484,9 +484,9 @@ export class Obj extends Sprite {
   }
 
   /**
-   * C#: CloseBox()
+   * CloseBox()
    * Play animation backward (close) - from current frame to begin
-   * C#: PlayFrames(CurrentFrameIndex - FrameBegin, true)
+   * PlayFrames(CurrentFrameIndex - FrameBegin, true)
    * @returns The target frame index (for state saving)
    */
   closeBox(): number {
@@ -501,7 +501,7 @@ export class Obj extends Sprite {
   }
 
   /**
-   * C#: SetOffSet(Vector2)
+   * SetOffSet(Vector2)
    */
   setOffset(offset: Vector2): void {
     this._offX = offset.x;
@@ -511,7 +511,7 @@ export class Obj extends Sprite {
   // ============= Save/Load Methods =============
 
   /**
-   * C#: Save(KeyDataCollection keyDataCollection)
+   * Save(KeyDataCollection keyDataCollection)
    * Save object state for persistence
    * @returns ObjSaveData record
    */
@@ -564,7 +564,7 @@ export class Obj extends Sprite {
   // ============= Interaction Methods =============
 
   /**
-   * C#: StartInteract(bool isRight)
+   * StartInteract(bool isRight)
    * Start interaction with this object by running its script
    *
    * @param isRight Whether to use ScriptFileRight instead of ScriptFile
@@ -609,7 +609,7 @@ export class Obj extends Sprite {
 
   /**
    * Get the sound file path for this object
-   * C#: WavFile property with SoundEffect loading
+   * WavFile property with SoundEffect loading
    */
   getSoundFile(): string {
     return this._wavFileName;
@@ -617,7 +617,7 @@ export class Obj extends Sprite {
 
   /**
    * Check if this object should play looping sound
-   * C#: ObjKind.LoopingSound check in Update()
+   * ObjKind.LoopingSound check in Update()
    */
   shouldPlayLoopingSound(): boolean {
     return this._kind === ObjKind.LoopingSound && !!this._wavFileName;
@@ -625,7 +625,7 @@ export class Obj extends Sprite {
 
   /**
    * Check if this object should play random sound
-   * C#: ObjKind.RandSound check in Update()
+   * ObjKind.RandSound check in Update()
    */
   shouldPlayRandomSound(): boolean {
     return this._kind === ObjKind.RandSound && !!this._wavFileName;
@@ -633,7 +633,7 @@ export class Obj extends Sprite {
 
   /**
    * Get the position for 3D sound calculations
-   * C#: PositionInWorld used in UpdateSound()
+   * PositionInWorld used in UpdateSound()
    */
   getSoundPosition(): Vector2 {
     return { ...this._positionInWorld };
@@ -642,10 +642,10 @@ export class Obj extends Sprite {
   // ============= Update Methods =============
 
   /**
-   * C#: Update(GameTime)
+   * Update(GameTime)
    * Update object state - handles timer scripts, removal, animation, and trap damage
    *
-   * 与 C# 的差异：C# 直接访问 NpcManager 和 Globals.ThePlayer，
+   * 与原版的差异：原版直接访问 NpcManager 和 Globals.ThePlayer，
    * TS 版本通过 engine (IEngineContext) 访问这些服务。
    *
    * @param deltaTime Time since last update in seconds
@@ -654,7 +654,7 @@ export class Obj extends Sprite {
     const deltaMs = deltaTime * 1000;
 
     // Handle removal timer
-    // C#: if (_millisecondsToRemove > 0) { ... if (_millisecondsToRemove <= 0) IsRemoved = true; }
+    // if (_millisecondsToRemove > 0) { ... if (_millisecondsToRemove <= 0) IsRemoved = true; }
     if (this._millisecondsToRemove > 0) {
       this._millisecondsToRemove -= deltaMs;
       if (this._millisecondsToRemove <= 0) {
@@ -663,27 +663,27 @@ export class Obj extends Sprite {
     }
 
     // Handle timer script
-    // C#: if (!string.IsNullOrEmpty(_timerScriptFile)) { ... ScriptManager.RunScript(_timeScriptParserCache, this); }
+    // if (!string.IsNullOrEmpty(_timerScriptFile)) { ... ScriptManager.RunScript(_timeScriptParserCache, this); }
     if (this._timerScriptFile) {
       this._timerScriptIntervalElapsed += deltaMs;
       if (this._timerScriptIntervalElapsed >= this._timerScriptInterval) {
         this._timerScriptIntervalElapsed -= this._timerScriptInterval;
-        // 通过 engine 运行脚本（C#: ScriptManager.RunScript）
+        // 通过 engine 运行脚本
         this.engine.runScript(ResourcePath.script(this._timerScriptFile));
       }
     }
 
     // Update animation only if auto-play or playing
-    // C#: if ((Texture.FrameCounts > 1 && IsAutoPlay) || IsInPlaying) base.Update(gameTime);
+    // if ((Texture.FrameCounts > 1 && IsAutoPlay) || IsInPlaying) base.Update(gameTime);
     if ((this._texture && this._texture.frameCount > 1 && this.isAutoPlay) || this.isInPlaying) {
       super.update(deltaTime);
     }
 
     // Handle based on object kind
-    // C#: switch ((ObjKind)Kind) { case ObjKind.Trap: ... }
+    // switch ((ObjKind)Kind) { case ObjKind.Trap: ... }
     switch (this._kind) {
       case ObjKind.Trap:
-        // C#: if (Damage > 0 && CurrentFrameIndex == FrameBegin) // Hurting fighter character at frame begin
+        // if (Damage > 0 && CurrentFrameIndex == FrameBegin) // Hurting fighter character at frame begin
         if (this._damage > 0 && this._currentFrameIndex === this._frameBegin) {
           this.applyTrapDamage();
         }
@@ -694,7 +694,7 @@ export class Obj extends Sprite {
 
   /**
    * 应用陷阱伤害给同位置的 NPC 和玩家
-   * C#: npc.DecreaseLifeAddHurt(Damage) / ThePlayer.DecreaseLifeAddHurt(Damage)
+   * npc.DecreaseLifeAddHurt(Damage) / ThePlayer.DecreaseLifeAddHurt(Damage)
    */
   private applyTrapDamage(): void {
     const engine = this.engine;
@@ -722,7 +722,7 @@ export class Obj extends Sprite {
   }
 
   /**
-   * C#: Draw(SpriteBatch)
+   * Draw(SpriteBatch)
    * Draw the object with offsets
    */
   override draw(
@@ -734,7 +734,7 @@ export class Obj extends Sprite {
   ): void {
     if (!this.isShow || !this._texture || this._isRemoved) return;
 
-    // C#: Draw at PositionInWorld - Texture.Left + OffX, PositionInWorld - Texture.Bottom + OffY
+    // Draw at PositionInWorld - Texture.Left + OffX, PositionInWorld - Texture.Bottom + OffY
     const screenX = this._positionInWorld.x - cameraX - this._texture.left + this._offX + offX;
     const screenY = this._positionInWorld.y - cameraY - this._texture.bottom + this._offY + offY;
 
@@ -804,7 +804,7 @@ export class Obj extends Sprite {
 
   /**
    * 从 ini/obj/ 文件创建 Obj 实例
-   * 对应 C# 的 new Obj(@"ini\obj\" + fileName) 构造函数
+   * 对应new Obj(@"ini\obj\" + fileName) 构造函数
    * 用于 BodyIni 等场景
    */
   static async createFromFile(fileName: string): Promise<Obj | null> {

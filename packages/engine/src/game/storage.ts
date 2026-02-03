@@ -1,7 +1,7 @@
 /**
  * Storage - 存档数据结构和 localStorage 操作
  *
- * 参考 C# 实现：
+ * 参考实现：
  * - JxqyHD/Engine/Storage/StorageBase.cs
  * - JxqyHD/Engine/Storage/Saver.cs
  * - JxqyHD/Engine/Storage/Loader.cs
@@ -69,8 +69,8 @@ export interface TimerData {
 
 /**
  * 玩家数据 (对应 Player.ini)
- * 参考 C# Character.Save() 和 Player.Save()
- * 完整对应 C# 所有存档字段
+ * 参考Character.Save() 和 Player.Save()
+ * 完整对应所有存档字段
  */
 export interface PlayerSaveData {
   // === 基本信息 ===
@@ -245,7 +245,7 @@ export interface MemoData {
 
 /**
  * 并行脚本项
- * 参考 C# ScriptManager.ParallelScriptItem
+ * 参考ScriptManager.ParallelScriptItem
  */
 export interface ParallelScriptItem {
   /** 脚本文件路径 */
@@ -256,7 +256,7 @@ export interface ParallelScriptItem {
 
 /**
  * 陷阱数据
- * 参考 C# MapBase.SaveTrap() 和 MapBase.SaveTrapIndexIgnoreList()
+ * 参考MapBase.SaveTrap() 和 MapBase.SaveTrapIndexIgnoreList()
  *
  * 存档时需要保存两部分：
  * 1. mapTraps - 动态修改的陷阱配置（通过 SetMapTrap 命令添加/修改的）
@@ -273,9 +273,9 @@ export interface TrapData {
 }
 
 /**
- * NPC 保存数据 (对应 C# Character.Save)
+ * NPC 保存数据 ()
  * 参考 JxqyHD/Engine/Character.cs 的 Save 方法
- * 完整对应 C# 所有存档字段
+ * 完整对应所有存档字段
  */
 export interface NpcSaveItem {
   // === 基本信息 ===
@@ -402,7 +402,7 @@ export interface NpcSaveItem {
   hurtPlayerRadius: number;
 
   // === NPC 特有 ===
-  /** C#: IsHide - script-controlled hiding (IsVisible is computed, not saved) */
+  /** script-controlled hiding (IsVisible is computed, not saved) */
   isHide: boolean;
   isAIDisabled: boolean;
 
@@ -421,7 +421,7 @@ export interface NpcSaveData {
 }
 
 /**
- * 物体保存数据 (对应 C# Obj.Save)
+ * 物体保存数据 ()
  * 参考 JxqyHD/Engine/Obj.cs 的 Save 方法
  */
 export interface ObjSaveItem {
@@ -512,7 +512,7 @@ export interface SaveData {
   magics: MagicItemData[];
   /** 修炼武功索引 */
   xiuLianIndex: number;
-  /** 替换武功列表 (角色变身时的临时武功)  C# Reference: MagicListManager.SaveReplaceList */
+  /** 替换武功列表 (角色变身时的临时武功) */
   replaceMagicLists?: object;
   /** 备忘录 */
   memo: MemoData;
@@ -520,7 +520,7 @@ export interface SaveData {
   traps: TrapData;
   /** NPC 数据 (不包含伙伴) */
   npcData: NpcSaveData;
-  /** 伙伴数据 (C# Reference: partner{chr}.ini) */
+  /** 伙伴数据 */
   partnerData: NpcSaveData;
   /** 物体数据 */
   objData: ObjSaveData;

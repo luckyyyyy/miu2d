@@ -1,6 +1,6 @@
 /**
  * INI Field Parser - 统一的 NPC/Character/Player 配置解析
- * Based on C# Character.AssignToValue() and Player.AssignToValue()
+ * () and Player.AssignToValue()
  *
  * 单一数据源：FIELD_DEFS 定义所有字段映射
  */
@@ -30,7 +30,7 @@ interface FieldDef {
 }
 
 // ============= Single Source of Truth =============
-// C# Character.AssignToValue + Player.AssignToValue 的完整映射
+// Character.AssignToValue + Player.AssignToValue 的完整映射
 
 const FIELD_DEFS: FieldDef[] = [
   // =============================================
@@ -62,7 +62,7 @@ const FIELD_DEFS: FieldDef[] = [
   { key: "levelini", prop: "levelIniFile", type: "string", target: "config" },
   { key: "poisonbycharactername", prop: "poisonByCharacterName", type: "string", target: "config" },
 
-  // Equipment strings (C#: HeadEquip, NeckEquip, etc.)
+  // Equipment strings
   { key: "headequip", prop: "headEquip", type: "string", target: "config" },
   { key: "neckequip", prop: "neckEquip", type: "string", target: "config" },
   { key: "bodyequip", prop: "bodyEquip", type: "string", target: "config" },
@@ -175,7 +175,7 @@ const FIELD_DEFS: FieldDef[] = [
   { key: "dir", prop: "dir", type: "int", target: "stats" },
 
   // =============================================
-  // Player-only Fields (C# Player.AssignToValue)
+  // Player-only Fields
   // =============================================
   { key: "money", prop: "money", type: "int", target: "config", class: "player" },
   { key: "manalimit", prop: "manaLimit", type: "bool", target: "config", class: "player" },
@@ -211,9 +211,9 @@ const CHAR_FIELDS = FIELD_DEFS.filter((d) => d.class !== "player");
 const PLAYER_FIELDS = FIELD_DEFS.filter((d) => d.class === "player");
 
 // ============= Character Interface =============
-// C# Character 的所有可配置属性
+// Character 的所有可配置属性
 
-/** Character instance - matches C# Character public properties */
+/** Character instance - matches Character public properties */
 export interface CharacterInstance {
   // Config properties (string)
   name: string;
@@ -321,7 +321,7 @@ export interface CharacterInstance {
 }
 
 // ============= Player Interface =============
-// C# Player 继承 Character，有额外属性
+// Player 继承 Character，有额外属性
 
 /** Player instance - extends CharacterInstance with Player-only properties */
 export interface PlayerInstance extends CharacterInstance {
@@ -435,7 +435,7 @@ function applyFields(
 /**
  * Apply CharacterConfig to a Character/NPC instance
  * Pure field assignment - call character.initializeAfterLoad() after this
- * C# Reference: Character.AssignToValue()
+ * Reference: Character.AssignToValue()
  */
 export function applyConfigToCharacter(
   config: CharacterConfig,
@@ -447,7 +447,7 @@ export function applyConfigToCharacter(
 /**
  * Apply CharacterConfig to a Player instance (includes player-only fields)
  * Pure field assignment - call player.initializeAfterLoad() after this
- * C# Reference: Character.AssignToValue() + Player.AssignToValue()
+ * + Player.AssignToValue()
  */
 export function applyConfigToPlayer(config: CharacterConfig, player: PlayerInstance): void {
   const record = player as unknown as Record<string, unknown>;

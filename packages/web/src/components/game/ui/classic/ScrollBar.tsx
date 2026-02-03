@@ -2,7 +2,7 @@
  * ScrollBar Component - based on JxqyHD Engine/Gui/ScrollBar.cs
  * Vertical scroll bar with ASF texture button and drag support
  *
- * C# Reference: ScrollBar.cs handles mouse drag and click to change value
+ * handles mouse drag and click to change value
  * Resources: asf/ui/option/slidebtn.asf (default slider button)
  */
 

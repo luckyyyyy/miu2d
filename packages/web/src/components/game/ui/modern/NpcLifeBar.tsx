@@ -2,7 +2,7 @@
  * Modern NpcLifeBar - NPC血条
  * Props 与经典 NpcLifeBar 完全一致
  *
- * C# Reference: InfoDrawer.DrawLife(spriteBatch, Globals.OutEdgeNpc)
+ * Reference: InfoDrawer.DrawLife(spriteBatch, Globals.OutEdgeNpc)
  * - Shows at top center of screen
  * - Color based on relation: Enemy=Red, Friend=Green, None=Blue
  * - Name color based on NPC type: Boss enemies (ExpBonus > 0) get yellow color
@@ -13,7 +13,7 @@ import type React from "react";
 import { useMemo } from "react";
 import { borderRadius, modernColors, typography } from "./theme";
 
-// Colors matching C# InfoDrawer.cs (adapted for modern style)
+// Colors matching InfoDrawer.cs (adapted for modern style)
 const LIFE_COLORS = {
   enemy: "#ff4444", // Red for enemies
   friend: "#44ff44", // Green for friends

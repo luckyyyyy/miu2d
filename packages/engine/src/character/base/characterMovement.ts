@@ -183,7 +183,7 @@ export abstract class CharacterMovement extends CharacterBase {
 
   /**
    * 沿路径移动
-   * C# Reference: Character.MoveAlongPath(elapsedSeconds, speedFold)
+   * Reference: Character.MoveAlongPath(elapsedSeconds, speedFold)
    */
   moveAlongPath(deltaTime: number, speedFold: number = 1): CharacterUpdateResult {
     const result: CharacterUpdateResult = {
@@ -356,7 +356,7 @@ export abstract class CharacterMovement extends CharacterBase {
       // 正常移动
       this._positionInWorld.x = newPosX;
       this._positionInWorld.y = newPosY;
-      // C# Reference: MoveTo(direction, ...) 使用移动方向来设置方向
+      // Reference: MoveTo(direction, ...) 使用移动方向来设置方向
       // 使用移动方向 (dx, dy) 而不是移动后位置到目标点的方向
       // 这样即使接近目标点，方向也保持正确
       if (dx !== 0 || dy !== 0) {
@@ -404,11 +404,11 @@ export abstract class CharacterMovement extends CharacterBase {
 
   /**
    * 走到目标瓦片
-   * C# Reference: Character.WalkTo(Vector2 destinationTilePosition, PathType pathType)
-   * C# checks PerformActionOk() at the start to prevent interrupting special actions
+   * destinationTilePosition, PathType pathType)
+   * checks PerformActionOk() at the start to prevent interrupting special actions
    */
   walkTo(destTile: Vector2, pathTypeOverride: PathType = PathType.End): boolean {
-    // C#: if (PerformActionOk() && destinationTilePosition != TilePosition && ...)
+    // if (PerformActionOk() && destinationTilePosition != TilePosition && ...)
     if (!this.performActionOk()) {
       // logger.debug(
       //   `[CharacterMovement.walkTo] BLOCKED: performActionOk=false, state=${this._state}, isInSpecialAction=${this.isInSpecialAction}, inBezierMove=${this.inBezierMove}`
@@ -518,15 +518,15 @@ export abstract class CharacterMovement extends CharacterBase {
 
   /**
    * 跑到目标瓦片
-   * C# Reference: Character.RunTo(Vector2 destinationTilePosition, PathType pathType)
-   * C# checks PerformActionOk() at the start to prevent interrupting special actions
+   * destinationTilePosition, PathType pathType)
+   * checks PerformActionOk() at the start to prevent interrupting special actions
    *
    * Enhancement: When the target tile is an obstacle, automatically find the nearest
    * walkable tile in that direction. This allows continuous running towards obstacles
    * (e.g., when holding Shift+click on a wall).
    */
   runTo(destTile: Vector2, pathTypeOverride: PathType = PathType.End): boolean {
-    // C#: if (PerformActionOk() && destinationTilePosition != TilePosition && ...)
+    // if (PerformActionOk() && destinationTilePosition != TilePosition && ...)
     if (!this.performActionOk()) {
       // logger.debug(
       //   `[CharacterMovement.runTo] BLOCKED: performActionOk=false, state=${this._state}, isInSpecialAction=${this.isInSpecialAction}, inBezierMove=${this.inBezierMove}`
@@ -539,7 +539,7 @@ export abstract class CharacterMovement extends CharacterBase {
       return true;
     }
 
-    // C#: if (!IsStateImageOk(CharacterState.Run)) { return; }
+    // if (!IsStateImageOk(CharacterState.Run)) { return; }
     if (!this.isStateImageOk(CharacterState.Run) && !this.isStateImageOk(CharacterState.FightRun)) {
       // logger.debug(
       //   `[CharacterMovement.runTo] BLOCKED: Run/FightRun state image not available`
@@ -626,13 +626,13 @@ export abstract class CharacterMovement extends CharacterBase {
 
   /**
    * 按方向行走
-   * C# Reference: Character.WalkToDirection + CheckStepMove
+   * + CheckStepMove
    *
-   * C# uses a step-by-step approach where each step finds the neighbor in that direction.
+   * uses a step-by-step approach where each step finds the neighbor in that direction.
    * For isometric maps, the neighbor offset depends on whether the current Y is odd or even.
    * We calculate the final destination by iterating step by step.
    *
-   * Direction indices (matching C# FindAllNeighbors):
+   * Direction indices:
    * 3  4  5
    * 2     6
    * 1  0  7
@@ -772,13 +772,13 @@ export abstract class CharacterMovement extends CharacterBase {
   // =============================================
 
   /**
-   * C#: Character.PartnerMoveTo(destinationTilePosition)
+   * Character.PartnerMoveTo(destinationTilePosition)
    * If distance greater than 20, reset partner position around player.
    * If distance greater than 5, run to destination.
    * If distance greater than 2, and is running, run to destination, else walk to destination.
    */
   partnerMoveTo(destinationTilePosition: Vector2): void {
-    // C#: if (MapBase.Instance.IsObstacleForCharacter(destinationTilePosition)) return;
+    // if (MapBase.Instance.IsObstacleForCharacter(destinationTilePosition)) return;
     if (this.checkMapObstacleForCharacter(destinationTilePosition)) {
       return;
     }
@@ -786,7 +786,7 @@ export abstract class CharacterMovement extends CharacterBase {
     const dist = this.getViewTileDistance(this.tilePosition, destinationTilePosition);
 
     if (dist > 20) {
-      // C#: Globals.ThePlayer.ResetPartnerPosition();
+      // Globals.ThePlayer.ResetPartnerPosition();
       this.engine.player.resetPartnerPosition();
     } else if (dist > 5) {
       this.runTo(destinationTilePosition);
@@ -1120,7 +1120,7 @@ export abstract class CharacterMovement extends CharacterBase {
   // =============================================
 
   /**
-   * C# Reference: Character.CancleAttackTarget()
+   * Reference: Character.CancleAttackTarget()
    * 取消攻击目标，用于在行走时清除之前的攻击目标
    */
   cancelAttackTarget(): void {
@@ -1129,7 +1129,7 @@ export abstract class CharacterMovement extends CharacterBase {
   }
 
   /**
-   * C# Reference: Character.StateInitialize(bool endInteract, bool noEndPlayCurrentDir)
+   * endInteract, bool noEndPlayCurrentDir)
    * 重置角色状态前的初始化，清理路径、攻击目标和播放状态
    */
   stateInitialize(endInteract: boolean = true, noEndPlayCurrentDir: boolean = false): void {
@@ -1142,7 +1142,7 @@ export abstract class CharacterMovement extends CharacterBase {
       console.trace("[stateInitialize] 调用栈");
     }
 
-    // C#: if(!noEndPlayCurrentDir) { EndPlayCurrentDirOnce(); }
+    // if(!noEndPlayCurrentDir) { EndPlayCurrentDirOnce(); }
     if (!noEndPlayCurrentDir) {
       this.endPlayCurrentDirOnce();
     }
@@ -1161,18 +1161,18 @@ export abstract class CharacterMovement extends CharacterBase {
     if (this.isDeathInvoked || this.isDeath) {
       return;
     }
-    // C# Reference: StandingImmediately() calls StateInitialize(false, true)
+    // Reference: StandingImmediately() calls StateInitialize(false, true)
     // 必须清理 destinationMoveTilePosition，否则后续移动判断会出错
     this.stateInitialize(false, true);
     if (this._isInFighting && this.isStateImageOk(CharacterState.FightStand)) {
-      // C# Reference: StandingImmediately() - 如果已经是 FightStand，不改变状态以保持动画循环
+      // Reference: StandingImmediately() - 如果已经是 FightStand，不改变状态以保持动画循环
       if (this._state === CharacterState.FightStand) {
         return;
       }
       this.state = CharacterState.FightStand;
     } else {
-      // C# Reference: StandingImmediately() - 如果已经是站立状态，不改变状态以保持动画循环
-      // C# 通过 SetState() 返回 isSameState 来判断，只有状态真正改变时才重置动画
+      // Reference: StandingImmediately() - 如果已经是站立状态，不改变状态以保持动画循环
+      // 原版通过 SetState() 返回 isSameState 来判断，只有状态真正改变时才重置动画
       // 这里如果已经是 Stand 或 Stand1，直接返回不改变状态
       if (this._state === CharacterState.Stand || this._state === CharacterState.Stand1) {
         // 已经在站立状态，不改变（允许动画自然循环）

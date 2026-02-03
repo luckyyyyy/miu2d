@@ -2,7 +2,7 @@
  * EquipGui Component - based on JxqyHD Engine/Gui/EquipGui.cs
  * Displays player equipment slots with full drag-drop support
  *
- * C# Reference: EquipGui.cs shows 7 equipment slots (head, neck, body, back, hand, wrist, foot)
+ * shows 7 equipment slots (head, neck, body, back, hand, wrist, foot)
  * Resources loaded from UI_Settings.ini
  */
 
@@ -224,7 +224,7 @@ const EquipSlot: React.FC<EquipSlotProps> = ({
               cursor: "grab",
             }}
           />
-          {/* Count display - always show count like C# TopLeftText */}
+          {/* Count display - always show count like TopLeftText */}
           <span
             style={{
               position: "absolute",
@@ -263,7 +263,7 @@ export const EquipGui: React.FC<EquipGuiProps> = ({
   // Load panel background
   const panelImage = useAsfImage(config?.panel.image || "asf/ui/common/panel7.asf");
 
-  // Calculate panel position - C#: Globals.WindowWidth / 2f - Width + leftAdjust
+  // Calculate panel position - Globals.WindowWidth / 2f - Width + leftAdjust
   const panelStyle = useMemo(() => {
     if (!config) return null;
     const panelWidth = panelImage.width || 300;

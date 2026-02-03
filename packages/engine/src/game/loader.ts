@@ -10,7 +10,7 @@
  * 4. loadGameFromJSON(data) - 从 JSON 数据加载存档
  * 5. collectSaveData() - 收集当前游戏状态用于保存
  *
- * 参考 C# 实现：
+ * 参考实现：
  * - JxqyHD/Engine/Storage/Loader.cs
  * - JxqyHD/Engine/Storage/Saver.cs
  * - JxqyHD/Engine/Storage/StorageBase.cs
@@ -314,34 +314,34 @@ export class Loader {
 
     try {
       // Step 1: 清理 managers
-      // C# Reference: Loader.LoadGame(bool isInitializeGame)
+      // Reference: Loader.LoadGame(bool isInitializeGame)
       if (isInitializeGame) {
         this.reportProgress(2, "清理数据...");
         logger.debug(`[Loader] Clearing all managers...`);
-        // C#: ScriptManager.Clear() - 停止所有脚本
+        // 停止所有脚本
         const scriptExecutor = getScriptExecutor();
         scriptExecutor.stopAllScripts();
-        // C#: ScriptExecuter.Init() - 重置脚本执行器状态
-        // C#: Utils.ClearScriptParserCache()
+        // 重置脚本执行器状态
+        // Utils.ClearScriptParserCache()
         clearScriptCache();
-        // C#: 清理变量
+        // 清理变量
         clearVariables();
-        // C#: MagicManager.Clear() - 由 MagicManager 自己管理清理
-        // C#: NpcManager.ClearAllNpc()
+        // 由 MagicManager 自己管理清理
+        // NpcManager.ClearAllNpc()
         npcManager.clearAllNpc();
-        // C#: ObjManager.ClearAllObjAndFileName()
+        // ObjManager.ClearAllObjAndFileName()
         objManager.clearAll();
-        // C#: MapBase.Free() - 释放地图（会在 loadMap 时重新加载）
-        // C#: GuiManager.CloseTimeLimit()
+        // 释放地图（会在 loadMap 时重新加载）
+        // GuiManager.CloseTimeLimit()
         guiManager.closeTimeLimit();
-        // C#: GuiManager.EndDialog()
+        // GuiManager.EndDialog()
         guiManager.endDialog();
-        // C#: BackgroundMusic.Stop()
+        // BackgroundMusic.Stop()
         audioManager.stopMusic();
-        // C#: Globals.IsInputDisabled = false
-        // C#: Globals.IsSaveDisabled = false
+        // Globals.IsInputDisabled = false
+        // Globals.IsSaveDisabled = false
         this.deps.setSaveEnabled?.(true);
-        // C#: Npc.EnableAI() - 启用 NPC AI
+        // 启用 NPC AI
       }
 
       // 确定存档路径
@@ -401,11 +401,11 @@ export class Loader {
         }
 
         // 玩家角色索引（支持多主角）
-        // C#: Globals.PlayerIndex = int.Parse(state["Chr"]);
+        // Globals.PlayerIndex = int.Parse(state["Chr"]);
         chrIndex = parseInt(stateSection.Chr || "0", 10);
         player.setPlayerIndex(chrIndex);
 
-        // C#: Globals.ScriptShowMapPos - 脚本显示地图坐标
+        // 脚本显示地图坐标
         if (stateSection.ScriptShowMapPos) {
           const showMapPos = parseInt(stateSection.ScriptShowMapPos, 10) > 0;
           this.deps.setScriptShowMapPos?.(showMapPos);
@@ -414,7 +414,7 @@ export class Loader {
       }
 
       // ========== [Option] Section ==========
-      // C# Reference: Loader.cs LoadGameFile() option section
+      // LoadGameFile() option section
       if (optionSection) {
         // MapTime
         if (optionSection.MapTime) {
@@ -444,11 +444,11 @@ export class Loader {
         }
 
         // MpcStyle - 地图绘制颜色
-        // C#: MapBase.DrawColor = StorageBase.GetColorFromString(option["MpcStyle"])
-        // 格式: BBGGRR00 (C# 保存格式)
+        // MapBase.DrawColor = StorageBase.GetColorFromString(option["MpcStyle"])
+        // 格式: BBGGRR00
         if (optionSection.MpcStyle && optionSection.MpcStyle !== "FFFFFF00") {
           const hex = optionSection.MpcStyle;
-          // C# 格式是 BBGGRR00，需要转换
+          // 格式是 BBGGRR00，需要转换
           const b = parseInt(hex.substring(0, 2), 16) || 255;
           const g = parseInt(hex.substring(2, 4), 16) || 255;
           const r = parseInt(hex.substring(4, 6), 16) || 255;
@@ -482,7 +482,7 @@ export class Loader {
       }
 
       // ========== [Timer] Section ==========
-      // C# Reference: Loader.cs LoadGameFile() timer section
+      // LoadGameFile() timer section
       if (timerSection && this.deps.setTimerState) {
         const isOn = timerSection.IsOn !== "0";
         if (isOn) {
@@ -505,11 +505,11 @@ export class Loader {
       }
 
       // ========== [Var] Section - 脚本变量 ==========
-      // C# Reference: ScriptExecuter.LoadVariables(data["Var"])
+      // Reference: ScriptExecuter.LoadVariables(data["Var"])
       if (varSection && this.deps.setVariables) {
         const variables: Record<string, number> = {};
         for (const [key, value] of Object.entries(varSection)) {
-          // C# 保存时去掉了 $ 前缀，加载时要加回来
+          // 保存时去掉了 $ 前缀，加载时要加回来
           const varName = `$${key}`;
           variables[varName] = parseInt(value, 10) || 0;
         }
@@ -518,11 +518,11 @@ export class Loader {
       }
 
       // ========== [ParallelScript] Section - 并行脚本 ==========
-      // C# Reference: ScriptManager.LoadParallelScript(data["ParallelScript"])
+      // Reference: ScriptManager.LoadParallelScript(data["ParallelScript"])
       if (parallelScriptSection && this.deps.loadParallelScripts) {
         const scripts: Array<{ filePath: string; waitMilliseconds: number }> = [];
         for (const [, value] of Object.entries(parallelScriptSection)) {
-          // C# 格式: "scriptPath:delayMs"
+          // 格式: "scriptPath:delayMs"
           const parts = value.split(":");
           if (parts.length >= 2) {
             scripts.push({
@@ -538,7 +538,7 @@ export class Loader {
       }
 
       // Step 3: 加载 Magic、Goods、Memo (72-78%)
-      // C# Reference: Loader.LoadMagicGoodList - 先停止替换并清理替换列表
+      // 先停止替换并清理替换列表
       this.reportProgress(72, "加载武功...");
       magicListManager.stopReplace();
       magicListManager.clearReplaceList();
@@ -573,30 +573,30 @@ export class Loader {
 
       this.reportProgress(88, "应用装备特效...");
       // 应用装备特效
-      // C# Reference: Loader.LoadPlayer() -> GoodsListManager.ApplyEquipSpecialEffectFromList
+      // Reference: Loader.LoadPlayer() -> GoodsListManager.ApplyEquipSpecialEffectFromList
       goodsListManager.applyEquipSpecialEffectFromList();
 
       // 应用武功效果（FlyIni 替换等）
-      // C# Reference: Loader.LoadPlayer() -> Globals.ThePlayer.LoadMagicEffect()
+      // Reference: Loader.LoadPlayer() -> Globals.ThePlayer.LoadMagicEffect()
       player.loadMagicEffect();
 
       // Step 4.1: 应用修炼武功
-      // C# Reference: Globals.ThePlayer.XiuLianMagic = MagicListManager.GetItemInfo(MagicListManager.XiuLianIndex)
+      // Globals.ThePlayer.XiuLianMagic = MagicListManager.GetItemInfo(MagicListManager.XiuLianIndex)
       // 这在 magicListManager.loadPlayerList 中已经处理
 
       // Step 5: 加载同伴 (partner) (90-92%)
-      // C# Reference: Loader.LoadPartner() -> NpcManager.LoadPartner(StorageBase.PartnerFilePath)
+      // Reference: Loader.LoadPartner() -> NpcManager.LoadPartner(StorageBase.PartnerFilePath)
       this.reportProgress(90, "加载伙伴...");
       const partnerPath = `${basePath}/partner${chrIndex}.ini`;
       await this.loadPartner(partnerPath, npcManager, parseIni);
 
       // Step 6: 加载陷阱 (92-94%)
-      // C# Reference: Loader.LoadTraps() -> MapBase.loadTrap(StorageBase.TrapsFilePath)
+      // Reference: Loader.LoadTraps() -> MapBase.loadTrap(StorageBase.TrapsFilePath)
       this.reportProgress(92, "加载陷阱...");
       await MapBase.Instance.loadTrap(`${basePath}/Traps.ini`);
 
       // Step 7: 加载陷阱忽略列表（可选，如果存在）(94-96%)
-      // C# Reference: Loader.LoadTrapIgnoreList() -> MapBase.Instance.loadTrapIndexIgnoreList()
+      // Reference: Loader.LoadTrapIgnoreList() -> MapBase.Instance.loadTrapIndexIgnoreList()
       // 注意：初始存档可能没有这个文件
       this.reportProgress(94, "加载陷阱配置...");
       try {
@@ -625,7 +625,7 @@ export class Loader {
 
   /**
    * 加载同伴 (partner)
-   * C# Reference: NpcManager.LoadPartner(string filePath)
+   * filePath)
    */
   private async loadPartner(
     filePath: string,
@@ -648,7 +648,7 @@ export class Loader {
         return;
       }
 
-      // C# Reference: 先移除所有现有的 partner
+      // Reference: 先移除所有现有的 partner
       npcManager.removeAllPartner();
 
       // 加载每个 NPC section
@@ -669,9 +669,9 @@ export class Loader {
 
   /**
    * 加载陷阱忽略列表
-   * C# Reference: MapBase.LoadTrapIndexIgnoreList(string filePath)
+   * filePath)
    *
-   * C# 格式：
+   * 格式：
    * [Init]
    * 0=5
    * 1=3
@@ -682,7 +682,7 @@ export class Loader {
     parseIni: (content: string) => Record<string, Record<string, string>>
   ): void {
     const sections = parseIni(content);
-    // C# 使用第一个 section (通常是 [Init])
+    // 使用第一个 section (通常是 [Init])
     const initSection = sections.Init || Object.values(sections)[0];
     if (!initSection) return;
 
@@ -736,7 +736,7 @@ export class Loader {
   /**
    * 保存存档到 localStorage
    *
-   * 参考 C# Saver.SaveGame(int index, Texture2D snapShot)
+   * 参考Saver.SaveGame(int index, Texture2D snapShot)
    *
    * @param index 存档索引 (1-7)
    * @returns 是否保存成功
@@ -774,7 +774,7 @@ export class Loader {
 
   /**
    * 保存当前玩家数据到内存
-   * C# Reference: Saver.SavePlayer() -> 保存到 Player{index}.ini
+   * -> 保存到 Player{index}.ini
    *
    * Web 版使用内存存储，不使用 localStorage
    * 避免跨存档污染
@@ -798,7 +798,7 @@ export class Loader {
 
   /**
    * 保存当前武功/物品/备忘录到内存
-   * C# Reference: Saver.SaveMagicGoodMemoList()
+   * Reference: Saver.SaveMagicGoodMemoList()
    */
   private saveMagicGoodMemoListToMemory(): void {
     const { player, memoListManager } = this.deps;
@@ -834,11 +834,11 @@ export class Loader {
 
   /**
    * 加载武功和物品列表
-   * C# Reference: Loader.LoadMagicGoodList()
+   * Reference: Loader.LoadMagicGoodList()
    *
    * 优先从内存加载，如果内存为空则从资源文件加载初始数据
-   * C# Reference: StorageBase.MagicListFilePath = save/game/Magic{index}.ini
-   * C# Reference: StorageBase.GoodsListFilePath = save/game/Goods{index}.ini
+   * = save/game/Magic{index}.ini
+   * = save/game/Goods{index}.ini
    */
   private async loadMagicGoodListFromMemory(): Promise<void> {
     const { player } = this.deps;
@@ -846,7 +846,7 @@ export class Loader {
     const magicListManager = player.getMagicListManager();
     const index = player.playerIndex;
 
-    // C# Reference: MagicListManager.StopReplace() + ClearReplaceList()
+    // Reference: MagicListManager.StopReplace() + ClearReplaceList()
     magicListManager.stopReplace();
     magicListManager.clearReplaceList();
 
@@ -879,7 +879,7 @@ export class Loader {
 
     if (!magicLoaded) {
       // 从资源文件加载初始武功
-      // C# Reference: MagicListManager.LoadPlayerList(StorageBase.MagicListFilePath)
+      // Reference: MagicListManager.LoadPlayerList(StorageBase.MagicListFilePath)
       const magicIniPath = ResourcePath.saveGame(`Magic${index}.ini`);
       try {
         const magicItems = await this.parseMagicListIni(magicIniPath);
@@ -912,7 +912,7 @@ export class Loader {
 
     if (!goodsLoaded) {
       // 从资源文件加载初始物品
-      // C# Reference: GoodsListManager.LoadList(StorageBase.GoodsListFilePath)
+      // Reference: GoodsListManager.LoadList(StorageBase.GoodsListFilePath)
       const goodsIniPath = ResourcePath.saveGame(`Goods${index}.ini`);
       try {
         const goodsItems = await this.parseGoodsListIni(goodsIniPath);
@@ -1062,10 +1062,10 @@ export class Loader {
 
   /**
    * 加载玩家数据
-   * C# Reference: Loader.LoadPlayer()
+   * Reference: Loader.LoadPlayer()
    *
    * 优先从内存加载，如果内存为空则从资源文件加载初始数据
-   * C# Reference: StorageBase.PlayerFilePath = save/game/Player{index}.ini
+   * = save/game/Player{index}.ini
    */
   private async loadPlayerFromMemory(): Promise<void> {
     const { player } = this.deps;
@@ -1082,7 +1082,7 @@ export class Loader {
       try {
         await this.loadPlayerFromJSON(memoryData.player, player);
         // 重新加载角色精灵（ASF）
-        // C# Reference: Globals.ThePlayer 在切换时会重新设置精灵
+        // 在切换时会重新设置精灵
         if (memoryData.player.npcIni) {
           await player.loadSpritesFromNpcIni(memoryData.player.npcIni);
         }
@@ -1095,7 +1095,7 @@ export class Loader {
 
     if (!loaded) {
       // 内存为空，从资源文件加载初始数据
-      // C# Reference: var path = StorageBase.PlayerFilePath -> save/game/Player{index}.ini
+      // path = StorageBase.PlayerFilePath -> save/game/Player{index}.ini
       const playerIniPath = ResourcePath.saveGame(`Player${index}.ini`);
       try {
         const config = await loadCharacterConfig(playerIniPath);
@@ -1103,7 +1103,7 @@ export class Loader {
           // 把 CharacterConfig 应用到 player
           applyConfigToPlayer(config, player);
           // 需要重新加载精灵
-          // C# Reference: Globals.ThePlayer = new Player(path) 会从 npcIni 加载精灵
+          // Globals.ThePlayer = new Player(path) 会从 npcIni 加载精灵
           await player.loadSpritesFromNpcIni(config.npcIni);
           loaded = true;
           logger.log(`[Loader] LoadPlayer: loaded from INI file (index=${index})`);
@@ -1116,14 +1116,14 @@ export class Loader {
     }
 
     if (loaded) {
-      // C# Reference: GoodsListManager.ApplyEquipSpecialEffectFromList(Globals.ThePlayer)
+      // Reference: GoodsListManager.ApplyEquipSpecialEffectFromList(Globals.ThePlayer)
       goodsListManager.applyEquipSpecialEffectFromList();
 
-      // C# Reference: Globals.ThePlayer.LoadMagicEffect()
+      // Reference: Globals.ThePlayer.LoadMagicEffect()
       player.loadMagicEffect();
     }
 
-    // C# Reference: GuiManager.StateInterface.Index = GuiManager.EquipInterface.Index = Globals.PlayerIndex;
+    // GuiManager.StateInterface.Index = GuiManager.EquipInterface.Index = Globals.PlayerIndex;
     // Web 版 UI 响应式更新，playerIndex 变更会自动反映到 UI
     // 不需要显式通知
   }
@@ -1136,9 +1136,9 @@ export class Loader {
     logger.log(
       `[Loader] Saving current player (index ${this.deps.player.playerIndex}) to memory...`
     );
-    // C#: Saver.SavePlayer() - 保存当前玩家数据到内存
+    // 保存当前玩家数据到内存
     this.savePlayerToMemory();
-    // C#: Saver.SaveMagicGoodMemoList() - 保存武功/物品/备忘录到内存
+    // 保存武功/物品/备忘录到内存
     this.saveMagicGoodMemoListToMemory();
   }
 
@@ -1149,9 +1149,9 @@ export class Loader {
   async loadPlayerDataFromMemory(): Promise<void> {
     const index = this.deps.player.playerIndex;
     logger.log(`[Loader] Loading player (index ${index}) data from memory...`);
-    // C#: LoadMagicGoodList() - 加载新角色的武功/物品
+    // 加载新角色的武功/物品
     await this.loadMagicGoodListFromMemory();
-    // C#: LoadPlayer() - 加载新角色
+    // 加载新角色
     await this.loadPlayerFromMemory();
   }
 
@@ -1183,18 +1183,18 @@ export class Loader {
 
     try {
       // Step 0: 立即设置屏幕全黑，防止在加载过程中看到摄像机移动
-      // C# Reference: 存档加载时画面保持黑色直到 FadeIn
+      // Reference: 存档加载时画面保持黑色直到 FadeIn
       screenEffects.setFadeTransparency(1);
 
       // Step 1: 停止所有正在运行的脚本 (0-5%)
-      // C# Reference: ScriptManager.Clear()
+      // Reference: ScriptManager.Clear()
       this.reportProgress(0, "停止脚本...");
       logger.debug(`[Loader] Stopping all scripts...`);
       const scriptExecutor = getScriptExecutor();
       scriptExecutor.stopAllScripts();
 
       // Step 2: 重置 UI 状态（关闭对话框、选择框等）(5-10%)
-      // C# Reference: GuiManager.EndDialog(), GuiManager.CloseTimeLimit()
+      // Reference: GuiManager.EndDialog(), GuiManager.CloseTimeLimit()
       this.reportProgress(5, "重置界面...");
       logger.debug(`[Loader] Resetting UI state...`);
       guiManager.resetAllUI();
@@ -1212,7 +1212,7 @@ export class Loader {
       this.clearCharacterMemory();
 
       // 清除运行时保存的陷阱数据（避免跨存档污染）
-      // C# Reference: 读档时会从存档复制 Traps.ini 到 save/game/
+      // Reference: 读档时会从存档复制 Traps.ini 到 save/game/
       localStorage.removeItem("jxqy_traps_runtime");
 
       // Step 4: 加载游戏状态
@@ -1226,7 +1226,7 @@ export class Loader {
       }
 
       // 注意：不从 .npc 文件加载，而是从 JSON 存档数据恢复
-      // C# 在存档时会把 NPC 状态写到 save/game/xxx.npc 文件
+      // 在存档时会把 NPC 状态写到 save/game/xxx.npc 文件
       // Web 版直接从 JSON 恢复，所以跳过 npcManager.loadNpcFile()
       // 只设置 fileName 用于后续可能的引用
       if (state.npc) {
@@ -1234,7 +1234,7 @@ export class Loader {
       }
 
       // 注意：不从 .obj 文件加载，而是从 JSON 存档数据恢复
-      // C# 在存档时会把 Obj 状态写到 save/game/xxx.obj 文件
+      // 在存档时会把 Obj 状态写到 save/game/xxx.obj 文件
       // Web 版直接从 JSON 恢复，所以跳过 objManager.load()
       // 只设置 fileName 用于后续可能的引用
       if (state.obj) {
@@ -1247,7 +1247,7 @@ export class Loader {
       }
 
       // 玩家角色索引（支持多主角）
-      // C#: Globals.PlayerIndex = int.Parse(state["Chr"]);
+      // Globals.PlayerIndex = int.Parse(state["Chr"]);
       // 必须在加载武功/物品/玩家数据之前设置，因为它们依赖 playerIndex
       const chrIndex = state.chr ?? 0;
       player.setPlayerIndex(chrIndex);
@@ -1262,14 +1262,14 @@ export class Loader {
 
       // Step 6: 加载武功列表 (72-75%)
       this.reportProgress(72, "加载武功...");
-      // C# Reference: Loader.LoadMagicGoodList - 先停止替换并清理替换列表
+      // 先停止替换并清理替换列表
       magicListManager.stopReplace();
       magicListManager.clearReplaceList();
       logger.debug(`[Loader] Loading magics...`);
       await this.loadMagicsFromJSON(data.magics, data.xiuLianIndex, magicListManager);
 
       // 加载替换武功列表（如果有）
-      // C# Reference: ReplaceListTo 会在角色变身时创建替换列表，保存时通过 SaveReplaceList 持久化
+      // 会在角色变身时创建替换列表，保存时通过 SaveReplaceList 持久化
       if (data.replaceMagicLists) {
         logger.debug(`[Loader] Loading replace magic lists...`);
         await magicListManager.deserializeReplaceLists(data.replaceMagicLists);
@@ -1296,7 +1296,7 @@ export class Loader {
       await this.loadPlayerFromJSON(data.player, player);
 
       // 清除自定义动作文件（如脚本设置的跪地动作）
-      // C# Reference: In C# loading creates a new Player object, effectively resetting custom actions
+      // loading creates a new Player object, effectively resetting custom actions
       player.clearCustomActionFiles();
 
       // 设置加载中状态（-1），确保后面设置真正 state 时会触发纹理更新
@@ -1304,7 +1304,7 @@ export class Loader {
 
       // 加载玩家精灵 (85-88%)
       this.reportProgress(85, "加载玩家精灵...");
-      // C# Reference: Loader.LoadPlayer() -> new Player(path) -> Load() -> Initlize()
+      // Reference: Loader.LoadPlayer() -> new Player(path) -> Load() -> Initlize()
       if (this.deps.loadPlayerSprites) {
         const playerNpcIni = player.npcIni;
         logger.debug(`[Loader] Loading player sprites: ${playerNpcIni}`);
@@ -1315,17 +1315,17 @@ export class Loader {
       player.state = data.player.state ?? 0;
 
       // 应用装备特效
-      // C# Reference: Loader.LoadPlayer() -> GoodsListManager.ApplyEquipSpecialEffectFromList
+      // Reference: Loader.LoadPlayer() -> GoodsListManager.ApplyEquipSpecialEffectFromList
       goodsListManager.applyEquipSpecialEffectFromList();
 
       // 应用武功效果（FlyIni 替换等）
-      // C# Reference: Loader.LoadPlayer() -> Globals.ThePlayer.LoadMagicEffect()
+      // Reference: Loader.LoadPlayer() -> Globals.ThePlayer.LoadMagicEffect()
       player.loadMagicEffect();
 
       // Step 10: 加载陷阱 (88-90%)
-      // C# Reference: MapBase.loadTrap() + loadTrapIndexIgnoreList()
+      // Reference: MapBase.loadTrap() + loadTrapIndexIgnoreList()
       //
-      // C# 流程：
+      // 流程：
       // 1. CopyGameToSave - 把存档槽的完整 Traps.ini 复制到 save/game/
       // 2. LoadTrap - 从 save/game/Traps.ini 加载完整配置（替换 _traps）
       // 3. LoadTrapIgnoreList - 加载忽略列表
@@ -1351,7 +1351,7 @@ export class Loader {
 
       // Step 11: 从 JSON 恢复 NPC (90-93%)
       // 清空并从 JSON 存档数据重新创建所有 NPC（而不是从 .npc 文件加载）
-      // C# Reference: NpcManager.Load() - clears and creates from save file
+      // Reference: NpcManager.Load() - clears and creates from save file
       this.reportProgress(90, "加载 NPC...");
       logger.debug(`[Loader] Loading NPCs...`);
       npcManager.clearAllNpc();
@@ -1360,7 +1360,7 @@ export class Loader {
       }
 
       // Step 11.5: 从 JSON 恢复伙伴 (93-95%)
-      // C# Reference: Loader.LoadPartner() -> NpcManager.LoadPartner(StorageBase.PartnerFilePath)
+      // Reference: Loader.LoadPartner() -> NpcManager.LoadPartner(StorageBase.PartnerFilePath)
       this.reportProgress(93, "加载伙伴...");
       logger.debug(`[Loader] Loading partners...`);
       if (data.partnerData?.npcs && data.partnerData.npcs.length > 0) {
@@ -1378,7 +1378,7 @@ export class Loader {
       }
 
       // Step 13: 加载选项设置
-      // 参考 C# Loader.cs LoadGame() 中的 option 恢复
+      // 参考Loader.cs LoadGame() 中的 option 恢复
       if (data.option) {
         logger.debug(`[Loader] Restoring game options...`);
         // mapTime
@@ -1420,7 +1420,7 @@ export class Loader {
       }
 
       // Step 14: 加载计时器状态
-      // 参考 C# Loader.cs LoadGame() 中的 timer 恢复
+      // 参考Loader.cs LoadGame() 中的 timer 恢复
       if (data.timer?.isOn && this.deps.setTimerState) {
         logger.debug(`[Loader] Restoring timer state...`);
         this.deps.setTimerState({
@@ -1434,21 +1434,18 @@ export class Loader {
       }
 
       // Step 14.1: 恢复脚本显示地图坐标开关
-      // C# Reference: Globals.ScriptShowMapPos
       if (data.state?.scriptShowMapPos !== undefined && this.deps.setScriptShowMapPos) {
         this.deps.setScriptShowMapPos(data.state.scriptShowMapPos);
         logger.debug(`[Loader] Restored scriptShowMapPos: ${data.state.scriptShowMapPos}`);
       }
 
       // Step 14.2: 恢复水波效果开关
-      // C# Reference: Globals.IsWaterEffectEnabled
       if (data.option?.water !== undefined && this.deps.setWaterEffectEnabled) {
         this.deps.setWaterEffectEnabled(data.option.water);
         logger.debug(`[Loader] Restored water effect: ${data.option.water}`);
       }
 
       // Step 14.3: 加载并行脚本
-      // C# Reference: ScriptManager.LoadParallelScript
       if (
         data.parallelScripts &&
         data.parallelScripts.length > 0 &&
@@ -1545,7 +1542,7 @@ export class Loader {
     // 获取绘制颜色 (mpcStyle = map draw color, asfStyle = sprite draw color)
     const mapColor = screenEffects.getMapTintColor();
     const spriteColor = screenEffects.getSpriteTintColor();
-    // 转换为十六进制字符串（C# 保存格式：RRGGBB）
+    // 转换为十六进制字符串（格式：RRGGBB）
     const colorToHex = (c: { r: number; g: number; b: number }) => {
       const r = c.r.toString(16).padStart(2, "0");
       const g = c.g.toString(16).padStart(2, "0");
@@ -1568,11 +1565,11 @@ export class Loader {
         scriptShowMapPos: this.deps.isScriptShowMapPos?.() ?? false,
       },
 
-      // 选项 - 参考 C# Saver.cs [Option] section
+      // 选项 - 参考Saver.cs [Option] section
       option: {
         mapTime: getMapTime?.() ?? 0,
         snowShow: weatherState.isSnowing,
-        rainFile: weatherState.isRaining ? "rain" : "", // C# 保存雨声文件名
+        rainFile: weatherState.isRaining ? "rain" : "", // 保存雨声文件名
         water: this.deps.isWaterEffectEnabled?.() ?? false,
         mpcStyle: colorToHex(mapColor),
         asfStyle: colorToHex(spriteColor),
@@ -1580,11 +1577,11 @@ export class Loader {
         isDropGoodWhenDefeatEnemyDisabled: !(isDropEnabled?.() ?? true),
       },
 
-      // 计时器 - 参考 C# Saver.cs [Timer] section
+      // 计时器 - 参考Saver.cs [Timer] section
       timer: {
         isOn: timerState.isOn,
         totalSecond: timerState.totalSecond,
-        isTimerWindowShow: !timerState.isHidden, // C# 保存的是 "是否显示"，TypeScript 内部存的是 "是否隐藏"
+        isTimerWindowShow: !timerState.isHidden, // 保存的是 "是否显示"，TypeScript 内部存的是 "是否隐藏"
         isScriptSet: timerState.isScriptSet,
         timerScript: timerState.timerScript,
         triggerTime: timerState.triggerTime,
@@ -1593,7 +1590,7 @@ export class Loader {
       // 脚本变量
       variables: { ...variables },
 
-      // 并行脚本 (C# Reference: ScriptManager.SaveParallelScript)
+      // 并行脚本
       parallelScripts: this.deps.getParallelScripts?.() ?? [],
 
       // 玩家数据
@@ -1607,7 +1604,7 @@ export class Loader {
       magics: this.collectMagicsData(magicListManager),
       xiuLianIndex: magicListManager.getXiuLianIndex(),
       // 替换武功列表 (角色变身时的临时武功)
-      // C# Reference: GuiManager.Save -> MagicListManager.SaveReplaceList
+      // > MagicListManager.SaveReplaceList
       replaceMagicLists: magicListManager.serializeReplaceLists(),
 
       // 备忘录
@@ -1623,7 +1620,7 @@ export class Loader {
         npcs: this.collectNpcData(npcManager, false),
       },
 
-      // 伙伴数据 (C# Reference: SavePartner -> partner{chr}.ini)
+      // 伙伴数据
       partnerData: {
         npcs: this.collectNpcData(npcManager, true),
       },
@@ -1671,7 +1668,7 @@ export class Loader {
 
   /**
    * 收集玩家数据
-   * C# Reference: Character.Save() + Player.Save()
+   * + Player.Save()
    */
   private collectPlayerData(player: Player): PlayerSaveData {
     return {
@@ -1859,7 +1856,7 @@ export class Loader {
 
   /**
    * 收集武功数据
-   * 参考 C# MagicListManager.SaveList
+   * 参考MagicListManager.SaveList
    */
   private collectMagicsData(magicListManager: MagicListManager): MagicItemData[] {
     const items: MagicItemData[] = [];
@@ -1894,8 +1891,8 @@ export class Loader {
 
   /**
    * 收集 NPC 数据
-   * C# Reference: NpcManager.Save() + Character.Save()
-   * 完整对应 C# 所有存档字段
+   * + Character.Save()
+   * 完整对应所有存档字段
    * @param npcManager NPC 管理器
    * @param partnersOnly 是否只收集伙伴 (true=伙伴, false=非伙伴)
    */
@@ -1905,14 +1902,14 @@ export class Loader {
 
     for (const [, npc] of allNpcs) {
       // 根据 partnersOnly 参数过滤
-      // C# Reference: NpcManager.Save(fileName, isSaveParter)
+      // Reference: NpcManager.Save(fileName, isSaveParter)
       // if ((isSaveParter && !npc.IsPartner) || (!isSaveParter && npc.IsPartner)) continue;
       if (partnersOnly !== npc.isPartner) {
         continue;
       }
 
       // 跳过被召唤的 NPC（由魔法召唤的）
-      // C# Reference: if (npc.SummonedByMagicSprite != null) continue;
+      // if (npc.SummonedByMagicSprite != null) continue;
       if (npc.summonedByMagicSprite !== null) {
         continue;
       }
@@ -2042,7 +2039,7 @@ export class Loader {
         hurtPlayerRadius: npc.hurtPlayerRadius,
 
         // === NPC 特有 ===
-        // C#: IsHide is script-controlled hiding, IsVisible is computed from magic time
+        // IsHide is script-controlled hiding, IsVisible is computed from magic time
         isHide: npc.isHide,
         isAIDisabled: npc.isAIDisabled,
 
@@ -2065,7 +2062,7 @@ export class Loader {
 
   /**
    * 收集物体数据
-   * 参考 C# ObjManager.Save() 和 Obj.Save()
+   * 参考ObjManager.Save() 和 Obj.Save()
    */
   private collectObjData(objManager: ObjManager): ObjSaveItem[] {
     const items: ObjSaveItem[] = [];
@@ -2120,14 +2117,14 @@ export class Loader {
    * 从 JSON 加载玩家数据
    * 委托给 Player.loadFromSaveData()
    *
-   * C# Reference: Character.Load() 会加载 LevelIni 配置
+   * 会加载 LevelIni 配置
    * 这里需要异步加载等级配置文件（难度设置）
    */
   private async loadPlayerFromJSON(data: PlayerSaveData, player: Player): Promise<void> {
     player.loadFromSaveData(data);
 
     // 加载等级配置文件（如果存档中有保存）
-    // C# Reference: case "LevelIni": -> Utils.GetLevelLists(@"ini\level\" + keyData.Value)
+    // case "LevelIni": -> Utils.GetLevelLists(@"ini\level\" + keyData.Value)
     // 注意：存档可能保存完整路径或仅文件名，需要兼容两种情况
     if (data.levelIniFile) {
       const levelFile = data.levelIniFile;
@@ -2163,7 +2160,7 @@ export class Loader {
 
   /**
    * 从 JSON 加载武功列表
-   * 参考 C# MagicListManager.LoadList
+   * 参考MagicListManager.LoadList
    */
   private async loadMagicsFromJSON(
     magics: MagicItemData[],
@@ -2248,12 +2245,12 @@ export class Loader {
   /**
    * 从 JSON 存档数据创建所有 NPC
    *
-   * 工作流程（参考 C# NpcManager.Load）：
+   * 工作流程（参考NpcManager.Load）：
    * 1. 调用前已清空 npcManager
    * 2. 遍历存档数据，为每个 NPC 创建实例
    * 3. 加载对应的资源（npcres -> asf）
    *
-   * 注意：C# 版本存档时会把完整 NPC 数据写到 save/game/xxx.npc 文件
+   * 注意：版本存档时会把完整 NPC 数据写到 save/game/xxx.npc 文件
    * Web 版本则直接从 JSON 恢复
    */
   private async loadNpcsFromJSON(npcs: NpcSaveItem[], npcManager: NpcManager): Promise<void> {
@@ -2281,12 +2278,12 @@ export class Loader {
   /**
    * 从 JSON 存档数据创建所有 Obj
    *
-   * 工作流程（参考 C# ObjManager.Load）：
+   * 工作流程（参考ObjManager.Load）：
    * 1. 调用前已清空 objManager
    * 2. 遍历存档数据，为每个 Obj 创建实例
    * 3. 加载对应的资源（objres -> asf）
    *
-   * 注意：C# 版本存档时会把完整 Obj 数据写到 save/game/xxx.obj 文件
+   * 注意：版本存档时会把完整 Obj 数据写到 save/game/xxx.obj 文件
    * Web 版本则直接从 JSON 恢复
    */
   private async loadObjsFromJSON(objs: ObjSaveItem[], objManager: ObjManager): Promise<void> {

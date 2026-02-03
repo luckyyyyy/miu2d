@@ -2,7 +2,7 @@
  * Sprite Factory - 武功精灵创建工厂
  * 从 MagicManager 提取，负责创建各种类型的 MagicSprite
  *
- * C# Reference: MagicManager.Add*MagicSprite methods
+ * Reference: MagicManager.Add*MagicSprite methods
  */
 
 import type { Character } from "../../character/character";
@@ -51,7 +51,6 @@ export class SpriteFactory {
 
   /**
    * 添加固定位置武功精灵
-   * C# Reference: MagicManager.AddFixedPositionMagicSprite
    */
   addFixedPositionMagicSprite(
     userId: string,
@@ -66,7 +65,6 @@ export class SpriteFactory {
 
   /**
    * 添加单体移动武功（自由方向）
-   * C# Reference: MagicManager.GetMoveMagicSprite
    */
   addSingleMoveMagicSprite(
     userId: string,
@@ -91,7 +89,6 @@ export class SpriteFactory {
 
   /**
    * 添加直线移动武功
-   * C# Reference: MagicManager.AddLineMoveMagicSprite
    */
   addLineMoveMagicSprite(
     userId: string,
@@ -120,7 +117,6 @@ export class SpriteFactory {
 
   /**
    * 添加V字移动武功
-   * C# Reference: MagicManager.AddVMoveMagicSprite
    */
   addVMoveMagicSprite(
     userId: string,
@@ -146,7 +142,7 @@ export class SpriteFactory {
     );
     this.callbacks.addMagicSprite(centerSprite);
 
-    // 两侧武功 - 按照 C# 的 switch-case 实现
+    // 两侧武功 - 按照switch-case 实现
     for (let i = 1; i <= level; i++) {
       let pos1: Vector2;
       let pos2: Vector2;
@@ -210,7 +206,6 @@ export class SpriteFactory {
 
   /**
    * 添加圆形移动武功
-   * C# Reference: MagicManager.AddCircleMoveMagicSprite
    */
   addCircleMoveMagicSprite(
     userId: string,
@@ -235,7 +230,6 @@ export class SpriteFactory {
 
   /**
    * 添加扇形移动武功
-   * C# Reference: MagicManager.AddSectorMoveMagicSprite
    */
   addSectorMoveMagicSprite(
     userId: string,
@@ -298,7 +292,6 @@ export class SpriteFactory {
 
   /**
    * 添加固定墙武功
-   * C# Reference: MagicManager.AddFixedWallMagicSprite
    */
   addFixedWallMagicSprite(
     userId: string,
@@ -330,7 +323,6 @@ export class SpriteFactory {
 
   /**
    * 添加心形移动武功
-   * C# Reference: MagicManager.AddHeartMoveMagicSprite
    */
   addHeartMoveMagicSprite(
     userId: string,
@@ -430,7 +422,6 @@ export class SpriteFactory {
 
   /**
    * 添加螺旋移动武功
-   * C# Reference: MagicManager.AddSpiralMoveMagicSprite
    */
   addSpiralMoveMagicSprite(
     userId: string,
@@ -462,7 +453,6 @@ export class SpriteFactory {
 
   /**
    * 添加随机扇形移动武功
-   * C# Reference: MagicManager.AddRandomSectorMoveMagicSprite
    */
   addRandomSectorMoveMagicSprite(
     userId: string,
@@ -526,7 +516,6 @@ export class SpriteFactory {
 
   /**
    * 添加移动墙武功
-   * C# Reference: MagicManager.AddWallMoveMagicSprite
    */
   addWallMoveMagicSprite(
     userId: string,
@@ -586,7 +575,6 @@ export class SpriteFactory {
 
   /**
    * 添加跟随角色武功（BUFF类）
-   * C# Reference: MagicManager.AddFollowCharacterMagicSprite
    */
   addFollowCharacterMagicSprite(
     userId: string,
@@ -673,7 +661,6 @@ export class SpriteFactory {
 
   /**
    * 添加超级模式武功
-   * C# Reference: MagicManager.AddSuperModeMagic
    */
   addSuperModeMagicSprite(
     userId: string,
@@ -722,7 +709,7 @@ export class SpriteFactory {
 
   /**
    * 添加投掷武功
-   * C# Reference: MagicManager - Throw magic
+   * Throw magic
    */
   addThrowMagicSprite(
     userId: string,
@@ -770,7 +757,7 @@ export class SpriteFactory {
 
   /**
    * 添加区域武功
-   * C# Reference: MagicManager.UseMagic case 11
+   * case 11
    */
   addRegionBasedMagicSprite(
     userId: string,
@@ -871,7 +858,6 @@ export class SpriteFactory {
 
   /**
    * 矩形区域武功
-   * C# Reference: MagicManager.AddRegtangleFixedPositionMagicSprite
    */
   private addRectangleFixedPositionMagicSprite(
     userId: string,
@@ -1210,7 +1196,6 @@ export class SpriteFactory {
 
   /**
    * 查找指定方向的相邻瓦片
-   * C# Reference: PathFinder.FindNeighborInDirection
    * 使用 getNeighbors 来正确处理等角瓦片的奇偶行偏移
    */
   private findNeighborInDirection(tile: Vector2, direction: number): Vector2 {

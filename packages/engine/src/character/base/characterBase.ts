@@ -29,7 +29,6 @@ export const LOADING_STATE = -1 as CharacterState;
 
 /**
  * 被攻击时使用的武功信息项
- * C# Reference: Character.MagicToUseInfoItem
  */
 export interface MagicToUseInfoItem {
   /** 来源标识（装备或武功文件名） */
@@ -100,7 +99,7 @@ export abstract class CharacterBase extends Sprite implements CharacterInstance 
   // =============================================
   protected _state: CharacterState = CharacterState.Stand;
   path: Vector2[] = [];
-  /** C# Reference: public bool IsHide { get; set; } - Script controlled hide */
+  /** bool IsHide { get; set; } - Script controlled hide */
   protected _isHide: boolean = false;
   isDeath: boolean = false;
   isDeathInvoked: boolean = false;
@@ -412,7 +411,7 @@ export abstract class CharacterBase extends Sprite implements CharacterInstance 
   // === Run To Target ===
   protected _isRunToTarget: boolean = false;
 
-  // === Step Move (C#: _isInStepMove for WalkToDirection) ===
+  // === Step Move ===
   protected _isInStepMove: boolean = false;
 
   // =============================================
@@ -649,17 +648,17 @@ export abstract class CharacterBase extends Sprite implements CharacterInstance 
 
   /**
    * 魔法隐身状态
-   * C# Reference: public bool IsVisible { get { return InvisibleByMagicTime <= 0; } }
+   * bool IsVisible { get { return InvisibleByMagicTime <= 0; } }
    * 注意：这只检查魔法隐身，不包括脚本控制的 IsHide
    */
   get isVisible(): boolean {
-    // C#: return InvisibleByMagicTime <= 0;
+    // return InvisibleByMagicTime <= 0;
     return this.invisibleByMagicTime <= 0;
   }
 
   /**
    * 脚本控制的隐藏状态
-   * C# Reference: public bool IsHide { get; set; }
+   * bool IsHide { get; set; }
    */
   get isHide(): boolean {
     return this._isHide;
@@ -671,7 +670,7 @@ export abstract class CharacterBase extends Sprite implements CharacterInstance 
 
   /**
    * 是否应该绘制
-   * C# Reference: public bool IsDraw { get { return !(IsDeath || IsHide || IsInTransport || !IsVisible || !IsVisibleByVariable || ...); } }
+   * bool IsDraw { get { return !(IsDeath || IsHide || IsInTransport || !IsVisible || !IsVisibleByVariable || ...); } }
    */
   get isDraw(): boolean {
     return !(this.isDeath || this._isHide || !this.isVisible || !this.isVisibleByVariable);
@@ -679,14 +678,14 @@ export abstract class CharacterBase extends Sprite implements CharacterInstance 
 
   /**
    * 根据脚本变量判断是否可见
-   * C# Reference: public bool IsVisibleByVariable = true;
-   * C# Update: IsVisibleByVariable = ScriptExecuter.GetVariablesValue("$" + VisibleVariableName) >= VisibleVariableValue;
+   * bool IsVisibleByVariable = true;
+   * Update: IsVisibleByVariable = ScriptExecuter.GetVariablesValue("$" + VisibleVariableName) >= VisibleVariableValue;
    */
   get isVisibleByVariable(): boolean {
     if (!this.visibleVariableName) {
       return true;
     }
-    // C#: IsVisibleByVariable = ScriptExecuter.GetVariablesValue("$" + VisibleVariableName) >= VisibleVariableValue;
+    // IsVisibleByVariable = ScriptExecuter.GetVariablesValue("$" + VisibleVariableName) >= VisibleVariableValue;
     const value = this.engine.getScriptVariable(this.visibleVariableName);
     return value >= this.visibleVariableValue;
   }
@@ -971,7 +970,7 @@ export abstract class CharacterBase extends Sprite implements CharacterInstance 
       if (customAsf) {
         this._texture = customAsf;
         // 通过 setter 重新设置方向，自动处理取模和帧范围计算
-        // C#: Texture setter 调用 CurrentDirection = CurrentDirection; CurrentFrameIndex = _frameBegin;
+        // Texture setter 调用 CurrentDirection = CurrentDirection; CurrentFrameIndex = _frameBegin;
         this.currentDirection = this._currentDirection;
         this._currentFrameIndex = this._frameBegin;
         return;

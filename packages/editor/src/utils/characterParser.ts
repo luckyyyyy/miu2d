@@ -56,7 +56,7 @@ export function parseIniContent(content: string): Record<string, Record<string, 
 
 /**
  * 将 INI 键名映射到 EditorCharacterConfig 键名
- * C# 中使用的是 Pascal 命名，我们使用 camelCase
+ * 中使用的是 Pascal 命名，我们使用 camelCase
  */
 const keyMapping: Record<string, keyof EditorCharacterConfig> = {
   Name: "name",
@@ -81,7 +81,7 @@ const keyMapping: Record<string, keyof EditorCharacterConfig> = {
   Attack3: "attack3",
   AttackLevel: "attackLevel",
   Defend: "defend",
-  Defence: "defend", // C# 有拼写变体
+  Defence: "defend", // 有拼写变体
   Defend2: "defend2",
   Defend3: "defend3",
   Evade: "evade",

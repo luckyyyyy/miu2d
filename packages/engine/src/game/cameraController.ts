@@ -2,14 +2,14 @@
  * Camera Controller - Handles camera movement for script commands
  * Extracted from GameManager
  *
- * Based on C#'s Camera.MoveTo functionality
+ *  functionality
  */
 import type { Vector2 } from "../core/types";
 
 /**
  * Direction vectors for 8-way movement
  * 方向从 South 开始，顺时针
- * C# Reference: Utils.GetDirection8List()
+ * Reference: Utils.GetDirection8List()
  */
 const sqrt2 = Math.SQRT1_2; // 1/sqrt(2) ≈ 0.707
 const DIRECTION_VECTORS: Vector2[] = [
@@ -40,7 +40,7 @@ export class CameraController {
   private moveToSpeed: number = 0;
 
   // Vibrating screen (震屏效果)
-  // C# Reference: Carmera.cs - _vibratingDegree, _xVibratingSum, _yVibratingSum
+  // _vibratingDegree, _xVibratingSum, _yVibratingSum
   private vibratingDegree: number = 0;
   private xVibratingSum: number = 0;
   private yVibratingSum: number = 0;
@@ -61,11 +61,11 @@ export class CameraController {
 
   /**
    * Move camera in a direction for a given number of frames
-   * Based on C# Camera.MoveTo(direction, keepFrameCount, speed)
+   * (direction, keepFrameCount, speed)
    *
    * @param directionIndex 8-way direction index (0=S, 1=SW, 2=W, 3=NW, 4=N, 5=NE, 6=E, 7=SE)
    * @param keepFrameCount Number of frames to move
-   * @param speed Pixels per frame (will be multiplied by 2 like C#)
+   * @param speed Pixels per frame (will be multiplied by 2)
    */
   moveTo(directionIndex: number, keepFrameCount: number, speed: number): void {
     const dir = DIRECTION_VECTORS[directionIndex % 8] || { x: 0, y: 0 };
@@ -82,7 +82,7 @@ export class CameraController {
 
   /**
    * Move camera to a specific position (for MoveScreenEx)
-   * Based on C# Camera.MoveTo(centerTilePosition, speed)
+   * (centerTilePosition, speed)
    *
    * @param destPixelX Destination camera X position (pixel)
    * @param destPixelY Destination camera Y position (pixel)
@@ -108,7 +108,7 @@ export class CameraController {
 
   /**
    * Update camera movement (called from game loop)
-   * C# Reference: Carmera.UpdateMove() and UpdateMoveTo()
+   * and UpdateMoveTo()
    *
    * @param currentX Current camera X position
    * @param currentY Current camera Y position
@@ -126,7 +126,7 @@ export class CameraController {
       return null;
     }
 
-    // C# UpdateMove:
+    // UpdateMove:
     // _totalMovedDistance += _moveDirection * _moveSpeed * 2;
     // 每帧移动 speed * 2 像素
     // 我们需要模拟帧率，假设 60fps
@@ -160,7 +160,7 @@ export class CameraController {
 
   /**
    * Update position-based camera movement (MoveScreenEx)
-   * C# Reference: Carmera.UpdateMoveTo()
+   * Reference: Carmera.UpdateMoveTo()
    */
   private updateMoveToPosition(currentX: number, currentY: number): Vector2 | null {
     // Calculate direction to destination
@@ -213,7 +213,7 @@ export class CameraController {
 
   /**
    * Start vibrating screen effect
-   * C# Reference: Carmera.VibaratingScreen(int degree)
+   * degree)
    *
    * @param degree Intensity of vibration (decrements each frame)
    */
@@ -232,7 +232,7 @@ export class CameraController {
 
   /**
    * Update vibrating screen effect
-   * C# Reference: Carmera.UpdateVibratingScreen()
+   * Reference: Carmera.UpdateVibratingScreen()
    *
    * Returns offset to apply to camera position
    */

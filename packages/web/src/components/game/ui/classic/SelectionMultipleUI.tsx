@@ -2,7 +2,6 @@
  * Selection Multiple UI Component - based on JxqyHD Engine/Gui/SelectionMultipleGui.cs
  * 多选UI组件 - 允许玩家从多个选项中选择固定数量的项目
  *
- * C# Reference: SelectionMultipleGui.cs
  * - 全屏背景使用 ASF 资源
  * - 顶部显示消息文本（金色居中）
  * - 选项按行排列，每行 column 个项目
@@ -23,7 +22,7 @@ interface SelectionMultipleUIProps {
   onToggleSelection: (index: number) => void;
 }
 
-// 颜色配置 - 对应 C# SelectionMultipleGui
+// 颜色配置
 const COLORS = {
   normal: "rgba(0, 255, 0, 0.8)", // 绿色 - 普通状态
   hover: "rgba(255, 255, 0, 0.8)", // 黄色 - 悬停状态
@@ -31,7 +30,7 @@ const COLORS = {
   selectedBg: "rgba(255, 255, 0, 0.2)", // 已选中背景
 };
 
-// 布局配置 - 对应 C# 常量
+// 布局配置 - 对应常量
 const LAYOUT = {
   fontSize: 12, // Globals.FontSize12
   lineGap: 5,
@@ -72,7 +71,7 @@ export const SelectionMultipleUI: React.FC<SelectionMultipleUIProps> = ({
       .filter((opt) => opt.enabled);
   }, [state.options]);
 
-  // 计算网格布局 - 按行排列，与 C# 一致
+  // 计算网格布局 - 按行排列，与原版一致
   const gridLayout = useMemo(() => {
     const columns = state.columns;
     const itemMaxWidth = Math.floor((screenWidth - 2 * LAYOUT.xMargin) / columns);

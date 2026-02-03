@@ -1,6 +1,6 @@
 /**
  * Rain - 雨效果系统
- * 基于 C# JxqyHD/Engine/Weather/Rain.cs
+ * 基于JxqyHD/Engine/Weather/Rain.cs
  *
  * 特性：
  * - 随机分布的雨滴粒子
@@ -64,14 +64,14 @@ export class Rain {
 
   /**
    * 生成雨滴
-   * C#: GenerateRainDrops
+   *
    * 减少密度以适应更高帧率的 Web 版本
    */
   private generateRainDrops(): void {
     this.rainDrops = [];
 
     // 在屏幕上生成随机分布的雨滴
-    // 比 C# 原版稀疏一些，避免太密集
+    // 比原版稀疏一些，避免太密集
     // 水平间距：4-16 像素（原版 2-10）
     // 垂直间距：20-150 像素（原版 10-100）
     let w = Math.floor(Math.random() * 12) + 4;
@@ -127,7 +127,7 @@ export class Rain {
 
   /**
    * 开始/停止下雨
-   * C#: Raining(bool isRain)
+   * Raining(bool isRain)
    */
   setRaining(isRain: boolean): void {
     this._isRaining = isRain;
@@ -160,7 +160,7 @@ export class Rain {
       drop.update();
     }
 
-    // C#: 1/300 概率触发雷声和闪电
+    // 1/300 概率触发雷声和闪电
     // 随机触发雷声
     if (Math.random() < 1 / 300) {
       this.isInFlash = true;

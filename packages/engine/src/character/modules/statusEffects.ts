@@ -3,7 +3,7 @@
  * 从 Character 类提取的状态效果逻辑（冰冻、中毒、石化、弱化、隐身等）
  *
  * 使用组合模式，确保完整的类型推导支持
- * C# Reference: Character.cs 中的状态效果相关字段和方法
+ * 中的状态效果相关字段和方法
  */
 
 import type { MagicSprite } from "../../magic/magicSprite";
@@ -56,14 +56,14 @@ export class StatusEffectsManager {
   disableMoveMilliseconds = 0;
   disableSkillMilliseconds = 0;
 
-  // ========== 弱化效果 (C#: _weakByMagicSprite) ==========
+  // ========== 弱化效果 ==========
   weakByMagicSprite: MagicSprite | null = null;
   weakByMagicSpriteTime = 0;
 
-  // ========== 加速效果 (C#: SppedUpByMagicSprite) ==========
+  // ========== 加速效果 ==========
   speedUpByMagicSprite: MagicSprite | null = null;
 
-  // ========== 变身效果 (C#: _changeCharacterByMagicSprite) ==========
+  // ========== 变身效果 ==========
   changeCharacterByMagicSprite: MagicSprite | null = null;
   changeCharacterByMagicSpriteTime = 0;
 
@@ -81,23 +81,23 @@ export class StatusEffectsManager {
 
   // ========== Computed Getters ==========
 
-  /** C#: IsFrozened - 是否被冻结 */
+  /** 是否被冻结 */
   get isFrozened(): boolean {
     return this.frozenSeconds > 0;
   }
 
-  /** C#: IsPoisoned - 是否中毒 */
+  /** 是否中毒 */
   get isPoisoned(): boolean {
     return this.poisonSeconds > 0;
   }
 
-  /** C#: IsPetrified - 是否被石化 */
+  /** 是否被石化 */
   get isPetrified(): boolean {
     return this.petrifiedSeconds > 0;
   }
 
   /**
-   * C#: BodyFunctionWell - 身体是否正常运作
+   * 身体是否正常运作
    * 未被冻结、中毒、石化时返回 true
    */
   get bodyFunctionWell(): boolean {
@@ -107,7 +107,7 @@ export class StatusEffectsManager {
   // ========== Set Methods (不覆盖已有效果) ==========
 
   /**
-   * C#: SetFrozenSeconds(float s, bool hasVisualEffect)
+   * SetFrozenSeconds(float s, bool hasVisualEffect)
    * 设置冻结时间，已冻结时不覆盖
    */
   setFrozenSeconds(seconds: number, hasVisualEffect: boolean): void {
@@ -117,7 +117,7 @@ export class StatusEffectsManager {
   }
 
   /**
-   * C#: SetPoisonSeconds(float s, bool hasVisualEffect)
+   * SetPoisonSeconds(float s, bool hasVisualEffect)
    * 设置中毒时间，已中毒时不覆盖
    */
   setPoisonSeconds(seconds: number, hasVisualEffect: boolean): void {
@@ -127,7 +127,7 @@ export class StatusEffectsManager {
   }
 
   /**
-   * C#: SetPetrifySeconds(float s, bool hasVisualEffect)
+   * SetPetrifySeconds(float s, bool hasVisualEffect)
    * 设置石化时间，已石化时不覆盖
    */
   setPetrifySeconds(seconds: number, hasVisualEffect: boolean): void {
@@ -140,7 +140,6 @@ export class StatusEffectsManager {
 
   /**
    * 清除冰冻、中毒、石化状态
-   * C# Reference: Character.ToNormalState
    */
   toNormalState(): void {
     this.clearFrozen();
@@ -150,7 +149,6 @@ export class StatusEffectsManager {
 
   /**
    * 解除所有异常状态
-   * C# Reference: Character.RemoveAbnormalState
    */
   removeAbnormalState(): void {
     this.clearFrozen();
@@ -183,7 +181,6 @@ export class StatusEffectsManager {
 
   /**
    * 弱化效果 - 降低攻防百分比
-   * C# Reference: Character.WeakBy
    */
   weakBy(magicSprite: MagicSprite): void {
     this.weakByMagicSprite = magicSprite;
@@ -192,19 +189,17 @@ export class StatusEffectsManager {
 
   /**
    * 变换阵营 - 临时变换敌我关系
-   * C# Reference: Character.ChangeToOpposite
    * @param milliseconds 变换时间（毫秒）
    * @param isPlayer 是否是玩家（玩家不能被变换阵营）
    */
   changeToOpposite(milliseconds: number, isPlayer: boolean): void {
     if (isPlayer) return;
-    // C#: _changeToOppositeMilliseconds = _changeToOppositeMilliseconds > 0 ? 0 : milliseconds;
+    // _changeToOppositeMilliseconds = _changeToOppositeMilliseconds > 0 ? 0 : milliseconds;
     this.changeToOppositeMilliseconds = this.changeToOppositeMilliseconds > 0 ? 0 : milliseconds;
   }
 
   /**
    * 通过武功精灵变身
-   * C# Reference: Character.ChangeCharacterBy
    * @param magicSprite 武功精灵
    * @returns 需要执行的 replaceMagic 字符串
    */
@@ -216,7 +211,6 @@ export class StatusEffectsManager {
 
   /**
    * 变形（短暂变身）
-   * C# Reference: Character.MorphBy
    * @param magicSprite 武功精灵
    * @returns 需要执行的 replaceMagic 字符串
    */
@@ -366,7 +360,6 @@ export class StatusEffectsManager {
 
   /**
    * 替换飞行INI
-   * C# Reference: Character.FlyIniChangeBy
    * @returns 需要添加的 flyIni 列表 [replaceFlyIni, replaceFlyIni2]
    */
   flyIniChangeBy(magicSprite: MagicSprite): string[] {

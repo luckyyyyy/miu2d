@@ -1,6 +1,6 @@
 /**
  * Magic Renderer - 武功渲染器
- * C# Reference: MagicSprite.Draw, MagicManager rendering
+ * MagicManager rendering
  * 负责将武功精灵渲染到 Canvas
  */
 
@@ -129,7 +129,6 @@ export class MagicRenderer {
 
   /**
    * 渲染武功精灵
-   * C# Reference: MagicSprite.Draw
    */
   render(
     ctx: CanvasRenderingContext2D,
@@ -139,17 +138,17 @@ export class MagicRenderer {
   ): void {
     if (sprite.isDestroyed) return;
 
-    // C# Reference: MagicSprite.Draw - SuperMode 特殊处理
+    // SuperMode 特殊处理
     // if (BelongMagic.MoveKind == 15 && IsInDestroy) {
     //     foreach (var sprite in _superModeDestroySprites) sprite.Draw(spriteBatch, color);
     // }
-    // base.Draw(spriteBatch, color);  <- C# 也调用了 base.Draw
+    // base.Draw(spriteBatch, color); <- 也调用了 base.Draw
     if (sprite.isSuperMode && sprite.isInDestroy) {
       // SuperMode 销毁状态：渲染所有特效精灵
       for (const effectSprite of sprite.superModeDestroySprites) {
         this.renderSingleSprite(ctx, effectSprite, cameraX, cameraY);
       }
-      // C#: 调用完 superModeDestroySprites 后也调用 base.Draw
+      // 调用完 superModeDestroySprites 后也调用 base.Draw
       // 但因为 flyingAsfPath 已被清除（Texture = null），base.Draw 实际不会绘制任何东西
       // 这里为了完全一致，我们也尝试渲染主精灵（会因为 asfPath 为空而跳过）
       this.renderSingleSprite(ctx, sprite, cameraX, cameraY);
@@ -192,7 +191,7 @@ export class MagicRenderer {
 
     if (!asfPath) {
       // 没有图像（如普通攻击），跳过渲染
-      // C# 中使用 Asf.Empty 代表空精灵，不绘制任何东西
+      // 中使用 Asf.Empty 代表空精灵，不绘制任何东西
       return;
     }
 
@@ -206,7 +205,7 @@ export class MagicRenderer {
     }
 
     // 计算当前帧
-    // C# 中根据方向索引和帧计算总帧号
+    // 中根据方向索引和帧计算总帧号
     // 通常格式是 directionCount * framesPerDirection + frameIndex
     // 使用 ASF 的 framesPerDirection（来自文件头）
     const asfFramesPerDirection = cached.framesPerDirection;
@@ -214,13 +213,13 @@ export class MagicRenderer {
     const asfDirections = cached.asf.directions || 1;
 
     // 根据 ASF 的实际方向数量重新计算方向索引
-    // C# Reference: SetDirection(Vector2) -> Utils.GetDirectionIndex(direction, Texture.DirectionCounts)
-    // C# 中每次设置 Texture 或调用 SetDirection 时都会用纹理的方向数重新计算
+    // Reference: SetDirection(Vector2) -> Utils.GetDirectionIndex(direction, Texture.DirectionCounts)
+    // 中每次设置 Texture 或调用 SetDirection 时都会用纹理的方向数重新计算
     const effectiveDirectionIndex = getDirectionIndex(sprite.direction, asfDirections);
 
     // 更新精灵的帧信息（根据当前状态：飞行或消失）
-    // C# Reference: MagicSprite.ResetPlay() - 设置实际播放帧数
-    // C# Reference: Sprite.Texture setter - 设置 Texture 时也会重置帧间隔
+    // Reference: MagicSprite.ResetPlay() - 设置实际播放帧数
+    // setter - 设置 Texture 时也会重置帧间隔
     if (sprite.isInDestroy) {
       // 消失动画：更新 vanishFramesPerDirection、frameInterval 和 leftFrameToPlay
       if (
@@ -284,7 +283,6 @@ export class MagicRenderer {
     const frameCanvas = getFrameCanvas(frame);
 
     // 计算绘制位置
-    // C# Reference: Sprite.Draw
     // Rectangle des = Globals.TheCarmera.ToViewRegion(new Rectangle(
     //   (int)PositionInWorld.X - Texture.Left + offX,
     //   (int)PositionInWorld.Y - Texture.Bottom + offY,

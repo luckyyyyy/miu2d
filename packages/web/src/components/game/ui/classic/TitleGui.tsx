@@ -2,7 +2,7 @@
  * TitleGui Component - based on JxqyHD Engine/Gui/TitleGui.cs
  * Main menu screen with ASF button images from resources
  *
- * C# Reference: TitleGui.cs loads title.jpg and button ASF files
+ * loads title.jpg and button ASF files
  * Resources: asf/ui/title/*.asf, asf/ui/title/title.jpg
  */
 

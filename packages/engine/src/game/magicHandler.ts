@@ -2,7 +2,7 @@
  * Magic Handler - Handles magic usage and management
  * Extracted from GameManager to reduce complexity
  *
- * C# Reference: Character.UseMagic, MagicManager.UseMagic
+ * MagicManager.UseMagic
  */
 
 import { ResourcePath } from "../config/resourcePaths";
@@ -69,7 +69,7 @@ export class MagicHandler {
 
   /**
    * Use magic from bottom slot index (0-4)
-   * C# Reference: Character.UseMagic and PerformeAttack
+   * and PerformeAttack
    */
   async useMagicByBottomSlot(slotIndex: number): Promise<void> {
     const player = this.player;
@@ -97,7 +97,7 @@ export class MagicHandler {
       return;
     }
 
-    // C# Reference: Character.PerformActionOk() - check if can perform action
+    // Reference: Character.PerformActionOk() - check if can perform action
     // Cannot use magic when: jumping, attacking, hurting, dead, petrified, etc.
     if (
       player.state === CharacterState.Jump ||
@@ -112,7 +112,7 @@ export class MagicHandler {
       return;
     }
 
-    // C# Reference: Player.CanUseMagic() - 内力/体力/生命消耗在动画结束后扣除
+    // Reference: Player.CanUseMagic() - 内力/体力/生命消耗在动画结束后扣除
     // 这里不扣除，而是在 onMagicCast() 中扣除
 
     // Set cooldown
@@ -125,7 +125,7 @@ export class MagicHandler {
     magicListManager.setCurrentMagicByBottomIndex(slotIndex);
 
     // Get player position - use actual pixel position from player data
-    // C# Reference: MagicManager.UseMagic(this, MagicUse, PositionInWorld, _magicDestination, _magicTarget);
+    // Reference: MagicManager.UseMagic(this, MagicUse, PositionInWorld, _magicDestination, _magicTarget);
     // PositionInWorld is the character's current pixel position
     const playerPixel = player.pixelPosition;
 
@@ -133,14 +133,14 @@ export class MagicHandler {
       `[Magic] Player pixelPosition: (${playerPixel.x}, ${playerPixel.y}), tilePosition: (${player.tilePosition.x}, ${player.tilePosition.y})`
     );
 
-    // C# Reference: Player.HandleMouseInput - check OutEdgeNpc for targeting
+    // check OutEdgeNpc for targeting
     // if (Globals.OutEdgeNpc != null)
     //     UseMagic(CurrentMagicInUse.TheMagic, Globals.OutEdgeNpc.TilePosition, Globals.OutEdgeNpc);
     // else UseMagic(CurrentMagicInUse.TheMagic, mouseTilePosition);
     const interactionManager = getEngineContext().getManager("interaction") as InteractionManager;
     const hoverTarget = interactionManager.getHoverTarget();
 
-    // C# Reference: Player.cs lines 1407-1419
+    // lines 1407-1419
     // Check BodyRadius requirement - need enemy target
     // if (CurrentMagicInUse.TheMagic.BodyRadius > 0 &&
     //     (Globals.OutEdgeNpc == null || !Globals.OutEdgeNpc.IsEnemy))
@@ -150,7 +150,7 @@ export class MagicHandler {
       return;
     }
 
-    // C# Reference: Player.cs lines 1415-1418
+    // lines 1415-1418
     // Check MoveKind == 21 requirement - need any target
     // else if (CurrentMagicInUse.TheMagic.MoveKind == 21 && Globals.OutEdgeNpc == null)
     // { GuiManager.ShowMessage("无目标"); }
@@ -162,10 +162,10 @@ export class MagicHandler {
     let destination: Vector2;
     let targetId: string | undefined;
 
-    // Check for hovered NPC first (C#: Globals.OutEdgeNpc)
+    // Check for hovered NPC first
     if (hoverTarget.npc) {
       // Use NPC's tile position as destination
-      // C# Reference: UseMagic(CurrentMagicInUse.TheMagic, Globals.OutEdgeNpc.TilePosition, Globals.OutEdgeNpc)
+      // Reference: UseMagic(CurrentMagicInUse.TheMagic, Globals.OutEdgeNpc.TilePosition, Globals.OutEdgeNpc)
       const npcTilePos = hoverTarget.npc.tilePosition;
       destination = tileToPixel(npcTilePos.x, npcTilePos.y);
       targetId = hoverTarget.npc.name; // Use NPC name as ID
@@ -175,11 +175,11 @@ export class MagicHandler {
       );
     } else {
       // No hovered NPC, use mouse position
-      // C# Reference: UseMagic(CurrentMagicInUse.TheMagic, mouseTilePosition)
+      // Reference: UseMagic(CurrentMagicInUse.TheMagic, mouseTilePosition)
       const lastInput = this.getLastInput();
 
       if (lastInput && (lastInput.mouseWorldX !== 0 || lastInput.mouseWorldY !== 0)) {
-        // C# Reference:
+        // Reference:
         // var mouseWorldPosition = Globals.TheCarmera.ToWorldPosition(mouseScreenPosition);
         // var mouseTilePosition = MapBase.ToTilePosition(mouseWorldPosition);
         // _magicDestination = MapBase.ToPixelPosition(magicDestinationTilePosition);
@@ -214,7 +214,7 @@ export class MagicHandler {
     }
 
     // Calculate direction from player to destination and turn player
-    // C# Reference: SetDirection(_magicDestination - PositionInWorld)
+    // Reference: SetDirection(_magicDestination - PositionInWorld)
     const dirVector = {
       x: destination.x - playerPixel.x,
       y: destination.y - playerPixel.y,
@@ -237,22 +237,22 @@ export class MagicHandler {
       `[Magic] Direction: (${dirVector.x.toFixed(0)}, ${dirVector.y.toFixed(0)}) -> ${dirNames[newDirection]} (${newDirection})`
     );
 
-    // C# Reference: StateInitialize(); ToFightingState();
+    // Reference: StateInitialize(); ToFightingState();
     player.toFightingState();
 
-    // C# Reference: Character.SetState(CharacterState.Magic) + PlayCurrentDirOnce()
+    // Reference: Character.SetState(CharacterState.Magic) + PlayCurrentDirOnce()
     // Set player to Magic state for casting animation
-    // Note: In C#, Magic state is handled in the switch statement, NOT via IsInSpecialAction
+    // Note: Magic state is handled in the switch statement, NOT via IsInSpecialAction
     // So we don't set isInSpecialAction = true here
     player.state = CharacterState.Magic;
 
     // Start the magic casting animation
-    // C# Reference: if (magicUse.UseActionFile != null) Texture = magicUse.UseActionFile;
+    // if (magicUse.UseActionFile != null) Texture = magicUse.UseActionFile;
     // UseActionFile is the character casting animation (e.g., from asf/character/)
     const useActionFile = magicInfo.magic.useActionFile;
     if (useActionFile) {
       // Use magic-specific action file for casting animation
-      // C#: UseActionFile is already a loaded Asf from "asf/character/" path
+      // UseActionFile is already a loaded Asf from "asf/character/" path
       const asf = await player.loadCustomAsf(useActionFile);
       if (asf) {
         logger.log(`[Magic] Loaded casting animation: ${useActionFile}`);
@@ -271,7 +271,7 @@ export class MagicHandler {
       }
     }
 
-    // C# Reference: Character stores MagicUse, _magicDestination, _magicTarget for release in Update()
+    // stores MagicUse, _magicDestination, _magicTarget for release in Update()
     // when IsPlayCurrentDirOnceEnd() - magic is released AFTER casting animation ends
     player.setPendingMagic(magicInfo.magic, playerPixel, destination, targetId);
 
@@ -284,7 +284,7 @@ export class MagicHandler {
    * Initialize player with starting magics
    * Called after game initialization is complete
    *
-   * C# Reference: MagicListManager.LoadPlayerList loads magics from ini file
+   * loads magics from ini file
    * Magics are stored in Store area (indices 1-36)
    * Player must manually drag them to bottom bar (indices 40-44)
    *
@@ -295,7 +295,7 @@ export class MagicHandler {
 
     const magicListManager = this.magicListManager;
 
-    // Load from save file (like C# MagicListManager.LoadPlayerList)
+    // Load from save file
     // Path format: /resources/save/game/Magic{playerIndex}.ini
     const magicListPath = ResourcePath.saveGame(`Magic${playerIndex}.ini`);
 
@@ -305,7 +305,7 @@ export class MagicHandler {
     }
 
     // NOTE: Do NOT auto-move magics to bottom bar
-    // C# behavior: Player must drag from MagicGui to BottomGui manually
+    // Player must drag from MagicGui to BottomGui manually
   }
 
   /**
@@ -354,7 +354,6 @@ export class MagicHandler {
 
   /**
    * Right-click magic in MagicGui to add to first empty bottom slot
-   * C# Reference: MagicGui.MouseRightClickdHandler
    */
   handleMagicRightClick(storeIndex: number): void {
     const magicListManager = this.magicListManager;

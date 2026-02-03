@@ -8,14 +8,14 @@ import type { CommandHandler, CommandRegistry } from "./types";
 
 /**
  * Say command - Show dialog with optional portrait
- * C#: Also calls PlayerKindCharacter.ToNonFightingState()
+ * Also calls PlayerKindCharacter.ToNonFightingState()
  */
 const sayCommand: CommandHandler = (params, _result, helpers) => {
   const text = helpers.resolveString(params[0] || "");
   const portrait = params[1] ? helpers.resolveNumber(params[1]) : 0;
   logger.log(`[ScriptExecutor] Say: "${text.substring(0, 50)}..." portrait=${portrait}`);
   helpers.context.showDialog(text, portrait);
-  // C#: Globals.PlayerKindCharacter.ToNonFightingState()
+  // Globals.PlayerKindCharacter.ToNonFightingState()
   helpers.context.toNonFightingState();
   helpers.state.waitingForInput = true;
   return false;
@@ -23,7 +23,7 @@ const sayCommand: CommandHandler = (params, _result, helpers) => {
 
 /**
  * Talk command - Show sequential dialogs from TalkIndex.txt
- * C#: Also calls PlayerKindCharacter.ToNonFightingState()
+ * Also calls PlayerKindCharacter.ToNonFightingState()
  */
 const talkCommand: CommandHandler = (params, _result, helpers) => {
   const startId = helpers.resolveNumber(params[0] || "0");
@@ -41,7 +41,7 @@ const talkCommand: CommandHandler = (params, _result, helpers) => {
 
     const first = helpers.state.talkQueue.shift()!;
     helpers.context.showDialog(first.text, first.portraitIndex);
-    // C#: Globals.PlayerKindCharacter.ToNonFightingState()
+    // Globals.PlayerKindCharacter.ToNonFightingState()
     helpers.context.toNonFightingState();
     helpers.state.waitingForInput = true;
   } else {
@@ -83,9 +83,9 @@ const chooseCommand: CommandHandler = (params, _result, helpers) => {
 
 /**
  * Select command - Show selection using TalkTextList IDs
- * C# Reference: Select(parameters) - uses TalkTextList.GetTextDetail(int.Parse(parameters[n])).Text
+ * - uses TalkTextList.GetTextDetail(int.Parse(parameters[n])).Text
  * Format: Select(messageId, optionAId, optionBId, $resultVar)
- * Note: C# uses GuiManager.Selection(message, selectA, selectB) via DialogInterface.Select()
+ * Note: uses GuiManager.Selection(message, selectA, selectB) via DialogInterface.Select()
  *       The result (0 or 1) is stored in parameters[3] (the variable name).
  */
 const selectCommand: CommandHandler = (params, _result, helpers) => {
@@ -99,7 +99,7 @@ const selectCommand: CommandHandler = (params, _result, helpers) => {
     return true;
   }
 
-  // C# Reference: GuiManager.Selection(message, selectA, selectB)
+  // Reference: GuiManager.Selection(message, selectA, selectB)
   const messageId = helpers.resolveNumber(params[0]);
   const optionAId = helpers.resolveNumber(params[1]);
   const optionBId = helpers.resolveNumber(params[2]);
@@ -130,7 +130,7 @@ const messageCommand: CommandHandler = (params, _result, helpers) => {
 
 /**
  * DisplayMessage command - Show direct text message
- * C# Reference: GuiManager.ShowMessage(Utils.RemoveStringQuotes(parameters[0]))
+ * Reference: GuiManager.ShowMessage(Utils.RemoveStringQuotes(parameters[0]))
  */
 const displayMessageCommand: CommandHandler = (params, _result, helpers) => {
   const text = helpers.resolveString(params[0] || "");
@@ -140,7 +140,7 @@ const displayMessageCommand: CommandHandler = (params, _result, helpers) => {
 
 /**
  * ShowMessage command - Show message from TalkTextList by ID
- * C# Reference: TalkTextList.GetTextDetail(int.Parse(parameters[0])).Text
+ * Reference: TalkTextList.GetTextDetail(int.Parse(parameters[0])).Text
  */
 const showMessageCommand: CommandHandler = (params, _result, helpers) => {
   const textId = helpers.resolveNumber(params[0] || "0");
@@ -159,7 +159,7 @@ const showMessageCommand: CommandHandler = (params, _result, helpers) => {
 
 /**
  * Helper to parse conditions from option text
- * C#: GetConditions - extracts {condition} from strings
+ * extracts {condition} from strings
  */
 function parseConditions(text: string): { text: string; conditions: string[] } {
   const conditions: string[] = [];
@@ -228,7 +228,7 @@ function evaluateCondition(condition: string, getVariable: (name: string) => num
 
 /**
  * ChooseEx - Extended selection with conditional options
- * C#: ChooseEx(message, option1, option2, ..., $resultVar)
+ * ChooseEx(message, option1, option2, ..., $resultVar)
  * Options can have {condition} syntax
  */
 const chooseExCommand: CommandHandler = (params, _result, helpers) => {
@@ -274,7 +274,7 @@ const chooseExCommand: CommandHandler = (params, _result, helpers) => {
 
 /**
  * ChooseMultiple - Multi-selection dialog
- * C#: ChooseMultiple(columns, rows, varPrefix, message, option1, option2, ...)
+ * ChooseMultiple(columns, rows, varPrefix, message, option1, option2, ...)
  */
 const chooseMultipleCommand: CommandHandler = (params, _result, helpers) => {
   if (params.length < 5) {

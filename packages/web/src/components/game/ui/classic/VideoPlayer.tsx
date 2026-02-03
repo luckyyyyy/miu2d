@@ -1,6 +1,6 @@
 /**
  * VideoPlayer - Full screen video player component
- * C# Reference: ScriptExecuter.PlayMovie using XNA VideoPlayer
+ * using XNA VideoPlayer
  *
  * Uses HTML5 Video element for Web implementation
  * Features: progress bar, volume control, pause/play, seek

@@ -1,6 +1,6 @@
 /**
  * WeatherManager - 天气管理器
- * 基于 C# JxqyHD/Engine/Weather/WeatherManager.cs
+ * 基于JxqyHD/Engine/Weather/WeatherManager.cs
  *
  * 统一管理雨、雪等天气效果
  */
@@ -49,7 +49,7 @@ export class WeatherManager {
 
   /**
    * 显示/隐藏雪效果
-   * C#: ShowSnow(bool isShow)
+   * ShowSnow(bool isShow)
    */
   showSnow(isShow: boolean): void {
     this.snow.show(isShow);
@@ -57,8 +57,8 @@ export class WeatherManager {
 
   /**
    * 开始下雨
-   * C#: BeginRain(string fileName)
-   * 注：fileName 在 C# 中用于指定雨声文件，这里简化处理
+   * BeginRain(string fileName)
+   * 注：fileName 在原版中用于指定雨声文件，这里简化处理
    */
   beginRain(_fileName?: string): void {
     this.rain.setRaining(true);
@@ -66,7 +66,7 @@ export class WeatherManager {
 
   /**
    * 停止下雨
-   * C#: StopRain()
+   * StopRain()
    */
   stopRain(): void {
     this.rain.setRaining(false);

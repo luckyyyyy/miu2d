@@ -2,7 +2,7 @@
  * BottomStateGui Component - based on JxqyHD Engine/Gui/ColumnGui.cs
  * Shows life, thew (stamina), and mana using ASF images from resources
  *
- * C# Reference: ColumnGui.cs uses ColumnView for each stat bar
+ * uses ColumnView for each stat bar
  * Resources: asf/ui/column/ColLife.asf, ColThew.asf, ColMana.asf, panel9.asf
  */
 import type React from "react";
@@ -52,7 +52,7 @@ interface BottomStateGuiProps {
 
 /**
  * ColumnView Component - renders a stat orb with fill based on percentage
- * Based on C# Engine/Gui/Base/ColumnView.cs
+ * /Gui/Base/ColumnView.cs
  */
 interface ColumnViewProps {
   imagePath: string;
@@ -103,7 +103,7 @@ export const BottomStateGui: React.FC<BottomStateGuiProps> = ({
   const thewPercent = maxThew > 0 ? Math.max(0, Math.min(1, thew / maxThew)) : 0;
   const manaPercent = maxMana > 0 ? Math.max(0, Math.min(1, mana / maxMana)) : 0;
 
-  // 计算面板位置 - 对应 C# 中的 Position 计算
+  // 计算面板位置 - 对应中的 Position 计算
   // Position = new Vector2(Globals.WindowWidth/2f + leftAdjust, Globals.WindowHeight - height + topAdjust)
   const panelStyle = useMemo(() => {
     const panelWidth = panelImage.width || 172; // fallback size

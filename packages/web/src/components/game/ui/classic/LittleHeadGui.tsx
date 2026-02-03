@@ -2,11 +2,10 @@
  * LittleHeadGui Component - based on JxqyHD Engine/Gui/LittleHeadGui.cs
  * Displays partner (follower) portraits in the top-left corner
  *
- * C# Reference: LittleHeadGui.cs
  * - Shows portraits from asf/ui/littlehead/{name}.asf
  * - Clicking opens NPC equipment interface (if CanEquip > 0)
  * - Shows level text if CanLevelUp > 0
- * - Position: x=5, y=5 (hardcoded in C#)
+ * - Position: x=5, y=5 (hardcoded)
  * - Width/Height: from ASF texture (item.BaseTexture.Width/Height)
  */
 import type React from "react";
@@ -30,7 +29,7 @@ interface LittleHeadGuiProps {
 
 /**
  * 单个队友头像项
- * C#: item.Width = item.BaseTexture.Width; item.Height = item.BaseTexture.Height;
+ * item.Width = item.BaseTexture.Width; item.Height = item.BaseTexture.Height;
  */
 interface PartnerHeadItemProps {
   partner: PartnerInfo;
@@ -38,7 +37,7 @@ interface PartnerHeadItemProps {
 }
 
 const PartnerHeadItem: React.FC<PartnerHeadItemProps> = ({ partner, onClick }) => {
-  // 加载队友头像 ASF - C#: Utils.GetAsf(@"asf\ui\littlehead\", name + ".asf")
+  // 加载队友头像 ASF : Utils.GetAsf(@"asf\ui\littlehead\", name + ".asf")
   const portraitPath = `asf/ui/littlehead/${partner.name}.asf`;
   const portrait = useAsfImage(portraitPath, 0);
 
@@ -57,7 +56,7 @@ const PartnerHeadItem: React.FC<PartnerHeadItemProps> = ({ partner, onClick }) =
     <div
       style={{
         position: "relative",
-        marginLeft: 5, // C#: const int x = 5
+        marginLeft: 5, // const int x = 5
         width: portrait.width,
         height: portrait.height,
         cursor: partner.canEquip ? "pointer" : "default",
@@ -79,7 +78,7 @@ const PartnerHeadItem: React.FC<PartnerHeadItemProps> = ({ partner, onClick }) =
         draggable={false}
       />
       {/* 等级文字 (如果 CanLevelUp > 0) */}
-      {/* C#: text.Position = new Vector2(item.Width + 3, item.Height - FontSize7.MeasureString("LV").Y) */}
+      {/* text.Position = new Vector2(item.Width + 3, item.Height - FontSize7.MeasureString("LV").Y) */}
       {partner.canLevelUp && (
         <span
           style={{
@@ -103,24 +102,24 @@ const PartnerHeadItem: React.FC<PartnerHeadItemProps> = ({ partner, onClick }) =
 /**
  * LittleHeadGui - 队友头像列表
  * 显示在屏幕左上角
- * C#: const int x = 5; var y = 5;
+ * const int x = 5; var y = 5;
  */
 export const LittleHeadGui: React.FC<LittleHeadGuiProps> = ({ partners, onPartnerClick }) => {
   if (partners.length === 0) {
     return null;
   }
 
-  // C#: const int x = 5; var y = 5; y += item.Height + 2;
-  // 使用 flex 布局自动处理垂直排列，gap=2 对应 C# 的 spacing
+  // const int x = 5; var y = 5; y += item.Height + 2;
+  // 使用 flex 布局自动处理垂直排列，gap=2 对应spacing
   return (
     <div
       style={{
         position: "absolute",
         left: 0,
-        top: 5, // C#: var y = 5
+        top: 5, // var y = 5
         display: "flex",
         flexDirection: "column",
-        gap: 2, // C#: y += item.Height + 2
+        gap: 2, // y += item.Height + 2
         pointerEvents: "auto",
         zIndex: 10,
       }}

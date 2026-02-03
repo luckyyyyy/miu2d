@@ -4,7 +4,7 @@
  *
  * 3D Audio Implementation:
  * - Uses Web Audio API PannerNode for spatial positioning
- * - Matches C# SoundManager.Apply3D behavior
+ * - Matches SoundManager.Apply3D behavior
  * - SoundMaxDistance: 1000 pixels (beyond this, sound is silent)
  * - Sound3DMaxDistance: 8 units (Web Audio coordinate scale)
  */
@@ -25,7 +25,7 @@ export interface AudioManagerConfig {
 
 /**
  * 3D Sound instance for spatial audio
- * C# Reference: SoundEffectInstance with Apply3D
+ * with Apply3D
  */
 export interface Sound3DInstance {
   source: AudioBufferSourceNode;
@@ -34,7 +34,7 @@ export interface Sound3DInstance {
   isLooping: boolean;
 }
 
-// Constants matching C# Globals
+// Constants matching Globals
 const SOUND_MAX_DISTANCE = 1000; // Pixels - max distance for sound to be heard
 const SOUND_3D_MAX_DISTANCE = 8; // Web Audio units - scale factor for panner
 
@@ -65,7 +65,7 @@ export class AudioManager {
   private activeSounds: Set<HTMLAudioElement> = new Set();
 
   // Looping sound effect (e.g., walk/run sounds)
-  // C# Reference: Character._sound (SoundEffectInstance with IsLooped = true)
+  // Character._sound (SoundEffectInstance with IsLooped = true)
   private loopingSoundElement: HTMLAudioElement | null = null;
   private loopingSoundFile: string = "";
 
@@ -114,7 +114,7 @@ export class AudioManager {
 
   /**
    * Play background music
-   * Based on BackgroundMusic.Play() in C#
+   * Based on BackgroundMusic.Play()
    */
   playMusic(fileName: string): void {
     if (!fileName) {
@@ -231,7 +231,7 @@ export class AudioManager {
 
   /**
    * Stop background music
-   * Based on BackgroundMusic.Stop() in C#
+   * Based on BackgroundMusic.Stop()
    */
   stopMusic(): void {
     // Invalidate any pending music load requests
@@ -250,7 +250,7 @@ export class AudioManager {
 
   /**
    * Pause background music
-   * Based on BackgroundMusic.Pause() in C#
+   * Based on BackgroundMusic.Pause()
    */
   pauseMusic(): void {
     if (this.musicElement && !this.isMusicPaused) {
@@ -261,7 +261,7 @@ export class AudioManager {
 
   /**
    * Resume background music
-   * Based on BackgroundMusic.Resume() in C#
+   * Based on BackgroundMusic.Resume()
    */
   resumeMusic(): void {
     if (this.isMusicDisabled) {
@@ -546,7 +546,7 @@ export class AudioManager {
 
   /**
    * Play a looping sound effect (e.g., walk/run sounds)
-   * C# Reference: Character._sound with IsLooped = true
+   * with IsLooped = true
    * Only one looping sound can play at a time (per character)
    */
   playLoopingSound(fileName: string): void {
@@ -734,7 +734,7 @@ export class AudioManager {
 
   /**
    * Stop the current looping sound
-   * C# Reference: Character._sound.Stop(true)
+   * Reference: Character._sound.Stop(true)
    */
   stopLoopingSound(): void {
     this.stopLoopingSoundInternal();
@@ -860,7 +860,7 @@ export class AudioManager {
   }
 
   // ============= 3D Spatial Audio =============
-  // C# Reference: SoundManager.cs - Play3DSoundOnece, Apply3D
+  // Play3DSoundOnece, Apply3D
 
   // Active 3D sound instances (for looping sounds like LoopingSound objects)
   private sound3DInstances: Map<string, Sound3DInstance> = new Map();
@@ -871,7 +871,7 @@ export class AudioManager {
   // IDs of sounds currently being stopped/fading out (to prevent restart during fade)
   private sound3DStopping: Set<string> = new Set();
 
-  // IDs of random sounds currently playing (to prevent overlapping, matching C# SoundEffectInstance behavior)
+  // IDs of random sounds currently playing (to prevent overlapping, matching SoundEffectInstance behavior)
   private sound3DRandomPlaying: Set<string> = new Set();
 
   // Listener position (player position in world)
@@ -879,7 +879,7 @@ export class AudioManager {
 
   /**
    * Set the listener position (usually the player's position)
-   * C# Reference: Globals.ListenerPosition = ThePlayer.PositionInWorld
+   * = ThePlayer.PositionInWorld
    */
   setListenerPosition(position: Vector2): void {
     this.listenerPosition = { x: position.x, y: position.y };
@@ -894,7 +894,7 @@ export class AudioManager {
 
   /**
    * Play a 3D positioned sound once
-   * C# Reference: SoundManager.Play3DSoundOnece(SoundEffect, Vector2 direction)
+   * Reference: SoundManager.Play3DSoundOnece(SoundEffect, Vector2 direction)
    *
    * @param fileName Sound file name
    * @param emitterPosition Position of the sound emitter in world coordinates
@@ -957,7 +957,7 @@ export class AudioManager {
 
   /**
    * Play a looping 3D sound (for LoopingSound objects)
-   * C# Reference: Obj with Kind=LoopingSound plays sound continuously with Apply3D
+   * with Kind=LoopingSound plays sound continuously with Apply3D
    *
    * @param id Unique identifier for this sound instance
    * @param fileName Sound file name
@@ -1076,7 +1076,7 @@ export class AudioManager {
 
   /**
    * Update the position of a 3D sound
-   * C# Reference: SoundManager.Apply3D called in Obj.UpdateSound()
+   * called in Obj.UpdateSound()
    *
    * @param id Sound instance identifier
    * @param emitterPosition New emitter position
@@ -1164,9 +1164,9 @@ export class AudioManager {
 
   /**
    * Play a random 3D sound (for RandSound objects)
-   * C# Reference: Obj.Update() calls UpdateSound() then PlayRandSound()
+   * calls UpdateSound() then PlayRandSound()
    *
-   * Key C# behavior:
+   * Key 
    * - _soundInstance is a persistent SoundEffectInstance
    * - Play() on SoundEffectInstance does NOT restart if already playing
    * - UpdateSound() updates 3D position every frame
@@ -1188,13 +1188,13 @@ export class AudioManager {
     // Skip if ambient sounds are disabled
     if (this.isAmbientDisabled) return;
 
-    // C# behavior: If sound is already playing, don't restart - just update position
+    // If sound is already playing, don't restart - just update position
     // This prevents overlapping sounds from the same object
     if (this.sound3DRandomPlaying.has(id)) {
       return;
     }
 
-    // Check distance first (UpdateSound in C# always updates position)
+    // Check distance first (UpdateSound in always updates position)
     const direction = {
       x: emitterPosition.x - this.listenerPosition.x,
       y: emitterPosition.y - this.listenerPosition.y,
@@ -1204,7 +1204,7 @@ export class AudioManager {
       return; // Too far to hear
     }
 
-    // Random check (C#: Globals.TheRandom.Next(0, 200) == 0)
+    // Random check == 0)
     if (Math.random() > probability) {
       return; // Didn't trigger this time
     }
@@ -1263,7 +1263,7 @@ export class AudioManager {
 
   /**
    * Create a PannerNode with proper 3D settings
-   * C# Reference: SoundManager.Apply3D uses AudioListener/AudioEmitter
+   * uses AudioListener/AudioEmitter
    */
   private createPannerNode(audioContext: AudioContext, direction: Vector2): PannerNode {
     const panner = audioContext.createPanner();
@@ -1288,9 +1288,9 @@ export class AudioManager {
 
   /**
    * Apply 3D position to a PannerNode
-   * C# Reference: SoundManager.Apply3D logic
+   * logic
    *
-   * In C#:
+   * 原版中:
    * - If distance > SoundMaxDistance, position emitter at (999999, 999999, 999999)
    * - Otherwise, normalize direction and scale by (percent * Sound3DMaxDistance)
    * - Listener is always at origin
@@ -1310,8 +1310,8 @@ export class AudioManager {
       panner.positionZ.value = 999999;
     } else {
       // Calculate scaled position
-      // C#: percent = length / SoundMaxDistance
-      // C#: emitter.Position = new Vector3(direction.X * percent * Sound3DMaxDistance, 0, direction.Y * percent * Sound3DMaxDistance)
+      // percent = length / SoundMaxDistance
+      // emitter.Position = new Vector3(direction.X * percent * Sound3DMaxDistance, 0, direction.Y * percent * Sound3DMaxDistance)
       const percent = distance / SOUND_MAX_DISTANCE;
       const normalizedX = direction.x / distance;
       const normalizedY = direction.y / distance;

@@ -2,7 +2,7 @@
  * LittleMapGui Component - based on JxqyHD Engine/Gui/LittleMapGui.cs
  * Displays a mini map for navigation
  *
- * C# Reference: LittleMapGui.cs shows a scaled-down map with player/NPC positions
+ * shows a scaled-down map with player/NPC positions
  * Resources:
  * - asf/ui/littlemap/panel.asf - main panel background
  * - asf/ui/littlemap/btnleft/right/up/down/close.asf - navigation buttons
@@ -12,7 +12,7 @@
  * - asf/ui/littlemap/路人坐标.asf - neutral NPC marker
  * - map/littlemap/*.png - pre-rendered minimap images
  *
- * Key concepts from C#:
+ * Key concepts from:
  * - ViewWidth = 320, ViewHeight = 240 (the viewport size for the map)
  * - MapViewDrawBeginX = 160, MapViewDrawBeginY = 120 (where to draw the map view)
  * - Ratio = 4 (scale factor between world coordinates and minimap)
@@ -31,7 +31,7 @@ const KAITI_FONT = '"STKaiti", "楷体", "KaiTi", "SimKai", serif';
 import { type AsfAnimationData, useAsfAnimation, useAsfImage } from "./hooks";
 import { useLittleMapGuiConfig } from "./useUISettings";
 
-// C# Constants
+// Constants
 const VIEW_WIDTH = 320;
 const VIEW_HEIGHT = 240;
 const MAP_VIEW_DRAW_BEGIN_X = 160;
@@ -214,7 +214,7 @@ export const LittleMapGui: React.FC<LittleMapGuiProps> = ({
   const [viewInitialized, setViewInitialized] = useState(false);
 
   // 初始化视口位置：只在小地图刚打开时执行一次
-  // C# 参考: ViewBeginX = MapBase.Instance.ViewBeginX / Ratio
+  // 参考: ViewBeginX = MapBase.Instance.ViewBeginX / Ratio
   useEffect(() => {
     if (!isVisible) {
       // 关闭时重置初始化标记
@@ -224,8 +224,8 @@ export const LittleMapGui: React.FC<LittleMapGuiProps> = ({
 
     if (viewInitialized || mapSize.width === 0) return;
 
-    // 使用相机位置初始化视口（与 C# 一致）
-    // C# 中 MapBase.Instance.ViewBeginX 就是相机左上角位置
+    // 使用相机位置初始化视口（与原版一致）
+    // 中 MapBase.Instance.ViewBeginX 就是相机左上角位置
     const initialX = Math.floor(cameraPosition.x / RATIO);
     const initialY = Math.floor(cameraPosition.y / RATIO);
 

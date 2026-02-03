@@ -2,7 +2,7 @@
  * Sprite Updater - 武功精灵更新循环
  * 从 MagicManager 提取
  *
- * C# Reference: MagicManager.Update(), MagicSprite.Update()
+ * Reference: MagicManager.Update(), MagicSprite.Update()
  */
 
 import type { AudioManager } from "../../audio";
@@ -235,7 +235,7 @@ export class SpriteUpdater {
     }
 
     // 寄生角色更新逻辑
-    // C# Reference: MagicSprite.Update() - if (_parasitiferCharacter != null)
+    // Reference: MagicSprite.Update() - if (_parasitiferCharacter != null)
     if (sprite.parasitiferCharacterId !== null) {
       this.updateParasiticCharacter(sprite, deltaMs);
       // 寄生状态下不进行其他逻辑
@@ -243,7 +243,7 @@ export class SpriteUpdater {
     }
 
     // MoveBack 回拉逻辑 - Sticky 命中后将目标拉回施法者位置
-    // C# Reference: MagicSprite.Update() - if (_isInMoveBack)
+    // Reference: MagicSprite.Update() - if (_isInMoveBack)
     if (sprite.isInMoveBack && sprite.stickedCharacterId !== null) {
       const belongCharacter = this.charHelper.getBelongCharacter(sprite.belongCharacterId);
       if (belongCharacter) {
@@ -317,13 +317,13 @@ export class SpriteUpdater {
     }
 
     // ============= RangeEffect 周期触发 =============
-    // C# Reference: MagicSprite.Update() - if (BelongMagic.RangeEffect > 0 && (_paths == null || _paths.Count <= 2))
+    // Reference: MagicSprite.Update() - if (BelongMagic.RangeEffect > 0 && (_paths == null || _paths.Count <= 2))
     if (sprite.magic.rangeEffect > 0) {
       this.updateRangeEffect(sprite, deltaMs);
     }
 
     // 检查动画播放结束
-    // C# Reference: MagicSprite.Update() - 动画结束后直接处理，不依赖 velocity
+    // Reference: MagicSprite.Update() - 动画结束后直接处理，不依赖 velocity
     if (!sprite.isInPlaying) {
       if (sprite.isSuperMode || sprite.magic.moveKind === MagicMoveKind.SuperMode) {
         // logger.log(`[SpriteUpdater] SuperMode animation ended, calling startDestroyAnimation`);
@@ -478,7 +478,7 @@ export class SpriteUpdater {
 
   /**
    * 更新寄生角色逻辑
-   * C# Reference: MagicSprite.Update() - if (_parasitiferCharacter != null)
+   * - if (_parasitiferCharacter != null)
    * 寄生效果：武功附着在目标身上，持续跟随并定期造成伤害
    */
   private updateParasiticCharacter(sprite: MagicSprite, deltaMs: number): void {
@@ -564,14 +564,14 @@ export class SpriteUpdater {
 
   /**
    * 造成寄生伤害
-   * C# Reference: CharacterHited(_parasitiferCharacter, GetEffectAmount, ...)
-   * 注意：C# 中 _totalParasticEffect 累加的是原始 damage（GetEffectAmount），不是最终伤害
+   * Reference: CharacterHited(_parasitiferCharacter, GetEffectAmount, ...)
+   * 注意：中 _totalParasticEffect 累加的是原始 damage（GetEffectAmount），不是最终伤害
    */
   private applyParasiticDamage(sprite: MagicSprite, targetId: string): void {
     const targetRef = this.charHelper.getCharacterRef(targetId);
     if (!targetRef) return;
 
-    // C# Reference: _totalParasticEffect += damage (原始 effectAmount)
+    // _totalParasticEffect += damage (原始 effectAmount)
     // 累加原始伤害值（effect amount），而非扣除防御后的最终伤害
     const rawDamage = sprite.currentEffect;
     sprite.addParasiticEffect(rawDamage);
@@ -593,7 +593,7 @@ export class SpriteUpdater {
    */
   private handleSpriteEnd(sprite: MagicSprite): void {
     // 清理粘附角色
-    // C# Reference: MagicSprite 销毁时 _stickedCharacter.MovedByMagicSprite = null
+    // 销毁时 _stickedCharacter.MovedByMagicSprite = null
     if (sprite.stickedCharacterId !== null) {
       const stickedChar = this.charHelper.getBelongCharacter(sprite.stickedCharacterId);
       if (stickedChar && stickedChar.movedByMagicSprite === sprite) {
@@ -777,7 +777,7 @@ export class SpriteUpdater {
 
   /**
    * 更新范围效果
-   * C# Reference: MagicSprite.Update() - RangeEffect 部分
+   * - RangeEffect 部分
    *
    * 周期性在范围内对友军施加增益或对敌人施加减益
    */
@@ -802,7 +802,7 @@ export class SpriteUpdater {
     const radius = magic.rangeRadius;
 
     // ============= 友军增益效果 =============
-    // C# Reference: RangeAddLife, RangeAddMana, RangeAddThew, RangeSpeedUp
+    // RangeAddLife, RangeAddMana, RangeAddThew, RangeSpeedUp
     if (
       magic.rangeAddLife > 0 ||
       magic.rangeAddMana > 0 ||
@@ -820,7 +820,7 @@ export class SpriteUpdater {
         if (magic.rangeAddThew > 0) {
           friend.addThew(magic.rangeAddThew);
         }
-        // C#: if (BelongMagic.RangeSpeedUp > 0 && target.SppedUpByMagicSprite == null)
+        // if (BelongMagic.RangeSpeedUp > 0 && target.SppedUpByMagicSprite == null)
         if (magic.rangeSpeedUp > 0 && friend.speedUpByMagicSprite === null) {
           friend.speedUpByMagicSprite = sprite;
         }
@@ -828,7 +828,7 @@ export class SpriteUpdater {
     }
 
     // ============= 敌人减益效果 =============
-    // C# Reference: RangeFreeze, RangePoison, RangePetrify, RangeDamage
+    // RangeFreeze, RangePoison, RangePetrify, RangeDamage
     if (
       magic.rangeFreeze > 0 ||
       magic.rangePoison > 0 ||
@@ -837,21 +837,21 @@ export class SpriteUpdater {
     ) {
       let enemies: Character[];
       if (magic.attackAll > 0) {
-        // C#: targets = NpcManager.FindFightersInTileDistance(TilePosition, BelongMagic.RangeRadius);
+        // targets = NpcManager.FindFightersInTileDistance(TilePosition, BelongMagic.RangeRadius);
         enemies = this.findFightersInTileDistance(tilePos, radius);
       } else {
-        // C#: targets = NpcManager.FindEnemiesInTileDistance(BelongCharacter, TilePosition, RangeRadius);
+        // targets = NpcManager.FindEnemiesInTileDistance(BelongCharacter, TilePosition, RangeRadius);
         enemies = this.findEnemiesInTileDistance(belongCharacter, tilePos, radius);
       }
 
       for (const enemy of enemies) {
-        // C#: if (BelongMagic.RangeFreeze > 0)
+        // if (BelongMagic.RangeFreeze > 0)
         //       target.SetFrozenSeconds(BelongMagic.RangeFreeze/1000.0f, BelongMagic.NoSpecialKindEffect == 0);
         if (magic.rangeFreeze > 0) {
           enemy.setFrozenSeconds(magic.rangeFreeze / 1000, magic.noSpecialKindEffect === 0);
         }
 
-        // C#: if (BelongMagic.RangePoison > 0) { ... }
+        // if (BelongMagic.RangePoison > 0) { ... }
         if (magic.rangePoison > 0) {
           enemy.setPoisonSeconds(magic.rangePoison / 1000, magic.noSpecialKindEffect === 0);
           if (belongCharacter.isPlayer || belongCharacter.isPartner) {
@@ -859,13 +859,13 @@ export class SpriteUpdater {
           }
         }
 
-        // C#: if (BelongMagic.RangePetrify > 0)
+        // if (BelongMagic.RangePetrify > 0)
         //       target.SetPetrifySeconds(BelongMagic.RangePetrify/1000.0f, BelongMagic.NoSpecialKindEffect == 0);
         if (magic.rangePetrify > 0) {
           enemy.setPetrifySeconds(magic.rangePetrify / 1000, magic.noSpecialKindEffect === 0);
         }
 
-        // C#: if (BelongMagic.RangeDamage > 0) { CharacterHited(...); AddDestroySprite(...); }
+        // if (BelongMagic.RangeDamage > 0) { CharacterHited(...); AddDestroySprite(...); }
         if (magic.rangeDamage > 0) {
           // 使用简化的伤害计算
           const damage = Math.max(magic.rangeDamage - enemy.realDefend, MagicSprite.MinimalDamage);
@@ -880,7 +880,6 @@ export class SpriteUpdater {
 
   /**
    * 查找范围内的友军
-   * C# Reference: NpcManager.FindFriendInTileDistance
    */
   private findFriendsInTileDistance(
     finder: Character,
@@ -915,7 +914,6 @@ export class SpriteUpdater {
 
   /**
    * 查找范围内的敌人
-   * C# Reference: NpcManager.FindEnemiesInTileDistance
    */
   private findEnemiesInTileDistance(
     finder: Character,
@@ -950,7 +948,6 @@ export class SpriteUpdater {
 
   /**
    * 查找范围内的所有战斗单位
-   * C# Reference: NpcManager.FindFightersInTileDistance
    */
   private findFightersInTileDistance(centerTile: Vector2, tileDistance: number): Character[] {
     const fighters: Character[] = [];
@@ -979,7 +976,6 @@ export class SpriteUpdater {
 
   /**
    * 计算视野格子距离（最大值）
-   * C# Reference: Utils.GetViewTileDistance
    */
   private getViewTileDistance(tile1: Vector2, tile2: Vector2): number {
     return Math.max(Math.abs(tile1.x - tile2.x), Math.abs(tile1.y - tile2.y));

@@ -1,6 +1,6 @@
 /**
  * RainDrop - 雨滴粒子
- * 基于 C# JxqyHD/Engine/Weather/RainDrop.cs
+ * 基于JxqyHD/Engine/Weather/RainDrop.cs
  */
 
 export class RainDrop {

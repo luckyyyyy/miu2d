@@ -113,7 +113,7 @@ function convertMagicInfoToSlot(info: MagicItemInfo | null, index: number): UIMa
 export interface UIBridgeDeps {
   events: EventEmitter;
   getPlayer: () => Player | null;
-  getPlayerIndex?: () => number; // C#: Globals.PlayerIndex - 用于切换角色后面板图像更新
+  getPlayerIndex?: () => number; // 用于切换角色后面板图像更新
   getGoodsListManager: () => GoodsListManager | null;
   getMagicListManager: () => MagicListManager | null;
   getBuyManager: () => BuyManager | null;
@@ -345,7 +345,7 @@ export class UIBridge implements IUIBridge {
     const player = this.deps.getPlayer();
     if (!player) return null;
 
-    // C#: Globals.PlayerIndex - 获取当前角色索引用于面板图像切换
+    // 获取当前角色索引用于面板图像切换
     const playerIndex = this.deps.getPlayerIndex?.() ?? 0;
 
     return {

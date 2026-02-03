@@ -1,10 +1,10 @@
 /**
  * Obj Renderer - Handles rendering of interactive objects
- * Updated to use ASF-based rendering matching C#'s Sprite.Draw
+ * Updated to use ASF-based rendering matching 's Sprite.Draw
  *
  * Enhanced with highlight support for interaction:
- * - C# Reference: Globals.OutEdgeObj, OutEdgeColor
- * - C# Reference: TextureGenerator.GetOuterEdge - 边缘检测算法
+ *
+ *边缘检测算法
  * - When mouse hovers over interactive object, draw colored edge
  *
  * 重要：高亮边缘应在所有内容绘制完成后单独绘制（在最高层）
@@ -36,7 +36,7 @@ export class ObjRenderer {
     // Calculate world pixel position from tile position
     const pixelPos = tileToPixel(obj.tilePosition.x, obj.tilePosition.y);
 
-    // C# draws at: PositionInWorld.X - Texture.Left + OffX, PositionInWorld.Y - Texture.Bottom + OffY
+    // draws at: PositionInWorld.X - Texture.Left + OffX, PositionInWorld.Y - Texture.Bottom + OffY
     const screenX = pixelPos.x - obj.texture.left + obj.offX - cameraX;
     const screenY = pixelPos.y - obj.texture.bottom + obj.offY - cameraY;
 
@@ -62,8 +62,8 @@ export class ObjRenderer {
 
   /**
    * Draw highlight edge for an object (called separately to ensure it's on top layer)
-   * C# Reference: Player.Draw 末尾绘制 OutEdgeSprite
-   * C# Reference: TextureGenerator.GetOuterEdge - 边缘检测算法
+   * 末尾绘制 OutEdgeSprite
+   * 边缘检测算法
    */
   drawObjHighlight(
     ctx: CanvasRenderingContext2D,
@@ -78,7 +78,7 @@ export class ObjRenderer {
     // Calculate world pixel position from tile position
     const pixelPos = tileToPixel(obj.tilePosition.x, obj.tilePosition.y);
 
-    // C# draws at: PositionInWorld.X - Texture.Left + OffX, PositionInWorld.Y - Texture.Bottom + OffY
+    // draws at: PositionInWorld.X - Texture.Left + OffX, PositionInWorld.Y - Texture.Bottom + OffY
     const screenX = pixelPos.x - obj.texture.left + obj.offX - cameraX;
     const screenY = pixelPos.y - obj.texture.bottom + obj.offY - cameraY;
 
@@ -94,7 +94,7 @@ export class ObjRenderer {
       const frame = obj.texture.frames[frameIndex];
       const canvas = getFrameCanvas(frame);
 
-      // 使用边缘检测生成边缘纹理（C# GetOuterEdge算法）
+      // 使用边缘检测生成边缘纹理
       const edgeCanvas = getOuterEdge(canvas, highlightColor);
 
       // 绘制边缘

@@ -1,5 +1,5 @@
 /**
- * NPC 管理器 - 对应 C# NpcManager.cs
+ * NPC 管理器
  * 管理所有 NPC 的创建、更新、查询
  */
 
@@ -39,21 +39,21 @@ export interface ViewRect {
   height: number;
 }
 
-/** NpcManager 类 - 对应 C# NpcManager.cs */
+/** NpcManager 类*/
 export class NpcManager {
   // Internal storage uses Npc class instances
   private npcs: Map<string, Npc> = new Map();
   // Note: NPC config caching is now handled by resourceLoader.loadIni
-  // Store loaded NPC file name (like C# _fileName)
+  // Store loaded NPC file name
   private fileName: string = "";
 
-  // List of dead NPCs (C#: NpcManager._deadNpcList)
+  // List of dead NPCs
   private _deadNpcs: Npc[] = [];
 
-  // C#: DeathInfos - tracks recently dead characters for CheckKeepDistanceWhenFriendDeath
+  // tracks recently dead characters for CheckKeepDistanceWhenFriendDeath
   private _deathInfos: DeathInfo[] = [];
 
-  // === 全局 AI 控制 (C#: Npc.IsAIDisabled static property) ===
+  // === 全局 AI 控制 ===
   private _globalAIDisabled: boolean = false;
 
   /** 检查全局 AI 是否禁用 */
@@ -62,7 +62,7 @@ export class NpcManager {
   }
 
   // === 性能优化：预计算视野内 NPC ===
-  // C# Reference: NpcManager._npcInView, UpdateNpcsInView()
+  // NpcManager._npcInView, UpdateNpcsInView()
   // 在 Update 阶段预计算，Render 阶段直接使用，避免每帧重复遍历
   private _npcsInView: Npc[] = [];
   private _npcsByRow: Map<number, Npc[]> = new Map();
@@ -78,7 +78,7 @@ export class NpcManager {
   /**
    * Run death script for an NPC (called from NPC.onDeath)
    * 使用 ScriptExecutor 的队列系统确保多个 NPC 同时死亡时脚本按顺序执行
-   * C# Reference: Character.Death() -> ScriptManager.RunScript(DeathScript)
+   * -> ScriptManager.RunScript(DeathScript)
    */
   runDeathScript(scriptPath: string, npc: Npc): void {
     if (!scriptPath) return;
@@ -89,20 +89,20 @@ export class NpcManager {
     const basePath = engine.getScriptBasePath();
     const fullPath = scriptPath.startsWith("/") ? scriptPath : `${basePath}/${scriptPath}`;
 
-    // 使用 ScriptExecutor 的队列系统（C# 是 ScriptManager._list）
+    // 使用 ScriptExecutor 的队列系统
     logger.log(`[NpcManager] Queueing death script for ${npc.name}: ${fullPath}`);
     engine.queueScript(fullPath);
   }
 
   /**
-   * Add NPC to dead list and death info (C#: NpcManager.AddDead)
+   * Add NPC to dead list and death info
    * Used for CheckKeepDistanceWhenFriendDeath AI behavior
    */
   addDead(npc: Npc): void {
     if (!this._deadNpcs.includes(npc)) {
       this._deadNpcs.push(npc);
     }
-    // C#: DeathInfos.AddLast(new DeathInfo(dead, 2))
+    // DeathInfos.AddLast(new DeathInfo(dead, 2))
     // Add to death infos for friend death detection with 2 frame lifetime
     this._deathInfos.push(new DeathInfo(npc, 2));
   }
@@ -116,7 +116,7 @@ export class NpcManager {
 
   /**
    * Find a friend that was killed by a live character within vision distance
-   * Based on C# NpcManager.FindFriendDeadKilledByLiveCharacter
+   * 
    *
    * @param finder The character looking for dead friends
    * @param maxTileDistance Maximum tile distance to search
@@ -134,7 +134,7 @@ export class NpcManager {
         continue;
       }
 
-      // C#: Check if killed by a live character with MagicSprite
+      // Check if killed by a live character with MagicSprite
       // We check lastAttacker instead since we don't have MagicSprite system yet
       const lastAttacker = (theDead as unknown as { _lastAttacker?: Character | null })
         ._lastAttacker;
@@ -142,7 +142,7 @@ export class NpcManager {
         continue;
       }
 
-      // C#: Check if finder and dead are on same side
+      // Check if finder and dead are on same side
       // Enemy finds dead enemy, FighterFriend finds dead FighterFriend
       if (
         (finder.isEnemy && theDead.isEnemy) ||
@@ -181,7 +181,7 @@ export class NpcManager {
 
   /**
    * 在 Update 阶段预计算视野内 NPC（每帧调用一次）
-   * C# Reference: NpcManager.UpdateNpcsInView()
+   * Reference: NpcManager.UpdateNpcsInView()
    * 同时按行分组，供交错渲染使用
    */
   updateNpcsInView(viewRect: ViewRect): void {
@@ -193,7 +193,7 @@ export class NpcManager {
     const viewBottom = viewRect.y + viewRect.height;
 
     for (const [, npc] of this.npcs) {
-      // C#: if (viewRegion.Intersects(npc.RegionInWorld))
+      // if (viewRegion.Intersects(npc.RegionInWorld))
       const region = npc.regionInWorld;
       const regionRight = region.x + region.width;
       const regionBottom = region.y + region.height;
@@ -223,7 +223,7 @@ export class NpcManager {
 
   /**
    * 获取预计算的视野内 NPC 列表（只读）
-   * C# Reference: NpcManager.NpcsInView property
+   * property
    * 在 Render 阶段使用，避免重复计算
    */
   get npcsInView(): readonly Npc[] {
@@ -240,7 +240,7 @@ export class NpcManager {
 
   /**
    * Get NPCs within a view region
-   * C# Reference: NpcManager.GetNpcsInView()
+   * Reference: NpcManager.GetNpcsInView()
    * Returns NPCs whose RegionInWorld intersects with viewRect
    * 注意：渲染时优先使用预计算的 npcsInView 和 getNpcsAtRow
    */
@@ -250,7 +250,7 @@ export class NpcManager {
     const viewBottom = viewRect.y + viewRect.height;
 
     for (const [, npc] of this.npcs) {
-      // C#: if (viewRegion.Intersects(npc.RegionInWorld))
+      // if (viewRegion.Intersects(npc.RegionInWorld))
       const region = npc.regionInWorld;
       const regionRight = region.x + region.width;
       const regionBottom = region.y + region.height;
@@ -282,7 +282,7 @@ export class NpcManager {
 
   /**
    * Get all NPCs with the specified name
-   * C#: NpcManager.GetAllNpcs(name) - returns all NPCs with matching name
+   * returns all NPCs with matching name
    * Multiple NPCs can have the same name (e.g., guards, enemies)
    */
   getAllNpcsByName(name: string): Npc[] {
@@ -304,7 +304,7 @@ export class NpcManager {
 
   /**
    * Get character with Kind=Player from NPC list
-   * C#: NpcManager.GetPlayerKindCharacter()
+   * NpcManager.GetPlayerKindCharacter()
    * Returns the first NPC with CharacterKind.Player, or null
    */
   getPlayerKindCharacter(): Npc | null {
@@ -423,7 +423,7 @@ export class NpcManager {
 
   /**
    * Clear all NPCs
-   * C#: NpcManager.ClearAllNpc
+   *
    */
   clearAllNpc(keepPartner: boolean = false): void {
     if (keepPartner) {
@@ -432,14 +432,14 @@ export class NpcManager {
         if (!npc.isPartner) {
           toDelete.push(id);
         } else {
-          // C#: npc.CancleAttackTarget()
+          // npc.CancleAttackTarget()
           npc.cancleAttackTarget();
         }
       }
       for (const id of toDelete) {
         this.npcs.delete(id);
       }
-      // C#: DeathInfos.Clear()
+      // DeathInfos.Clear()
       this._deathInfos.length = 0;
       this._deadNpcs.length = 0;
     } else {
@@ -449,7 +449,7 @@ export class NpcManager {
 
   /**
    * Clear all NPCs but keep partners (followers)
-   * C#: NpcManager.ClearAllNpcAndKeepPartner
+   *
    */
   clearAllNpcAndKeepPartner(): void {
     this.clearAllNpc(true);
@@ -457,7 +457,7 @@ export class NpcManager {
 
   /**
    * Remove all partner NPCs
-   * C#: NpcManager.RemoveAllPartner
+   *
    */
   removeAllPartner(): void {
     const toDelete: string[] = [];
@@ -495,7 +495,7 @@ export class NpcManager {
 
   /**
    * Make NPC walk in a direction for a number of steps
-   * Matches C# Character.WalkToDirection(direction, steps)
+   * Matches Character.WalkToDirection(direction, steps)
    */
   npcGotoDir(name: string, direction: number, steps: number): boolean {
     const npc = this.getNpc(name);
@@ -543,7 +543,7 @@ export class NpcManager {
 
   /**
    * Get Eventer NPC at tile position
-   * C# Reference: NpcManager.GetEventer(tilePosition)
+   * Reference: NpcManager.GetEventer(tilePosition)
    * Used for jump obstacle check - if there's an eventer at the tile, can't jump there
    */
   getEventer(tile: Vector2): Npc | null {
@@ -557,7 +557,7 @@ export class NpcManager {
 
   /**
    * Get enemy NPC at tile position
-   * C# Reference: NpcManager.GetEnemy(int tileX, int tileY, bool withNeutral)
+   * tileX, int tileY, bool withNeutral)
    */
   getEnemy(tileX: number, tileY: number, withNeutral: boolean = false): Npc | null {
     for (const [, npc] of this.npcs) {
@@ -585,7 +585,7 @@ export class NpcManager {
 
   /**
    * Get player or fighter friend at tile position
-   * C# Reference: NpcManager.GetPlayerOrFighterFriend(Vector2 tilePosition, bool withNeutral)
+   * tilePosition, bool withNeutral)
    */
   getPlayerOrFighterFriend(
     tileX: number,
@@ -611,7 +611,7 @@ export class NpcManager {
 
   /**
    * Get other group enemy at tile position
-   * C# Reference: NpcManager.GetOtherGropEnemy(int group, Vector2 tilePosition)
+   * group, Vector2 tilePosition)
    */
   getOtherGroupEnemy(group: number, tileX: number, tileY: number): Character | null {
     for (const [, npc] of this.npcs) {
@@ -626,7 +626,7 @@ export class NpcManager {
 
   /**
    * Get fighter (any combat-capable character) at tile position
-   * C# Reference: NpcManager.GetFighter(Vector2 tilePosition)
+   * tilePosition)
    */
   getFighter(tileX: number, tileY: number): Character | null {
     // Check player first
@@ -649,7 +649,7 @@ export class NpcManager {
 
   /**
    * Get non-neutral fighter at tile position
-   * C# Reference: NpcManager.GetNonneutralFighter(Vector2 tilePosition)
+   * tilePosition)
    */
   getNonneutralFighter(tileX: number, tileY: number): Character | null {
     // Check player first
@@ -669,7 +669,7 @@ export class NpcManager {
 
   /**
    * Get neutral fighter at tile position
-   * C# Reference: NpcManager.GetNeutralFighter(Vector2 tilePosition)
+   * tilePosition)
    */
   getNeutralFighter(tileX: number, tileY: number): Character | null {
     for (const [, npc] of this.npcs) {
@@ -684,7 +684,7 @@ export class NpcManager {
 
   /**
    * Get neighbor enemies of a character
-   * C# Reference: NpcManager.GetNeighborEnemy(Character character)
+   * character)
    * Find enemies in neighboring tiles (8-direction)
    */
   getNeighborEnemy(character: Character): Character[] {
@@ -703,7 +703,7 @@ export class NpcManager {
 
   /**
    * Get neighbor neutral fighters of a character
-   * C# Reference: NpcManager.GetNeighborNuturalFighter(Character character)
+   * character)
    * Find neutral fighters in neighboring tiles (8-direction)
    */
   getNeighborNeutralFighter(character: Character): Character[] {
@@ -722,7 +722,7 @@ export class NpcManager {
 
   /**
    * Check if two characters are enemies
-   * C# Reference: NpcManager.IsEnemy(Character a, Character b)
+   * a, Character b)
    */
   static isEnemy(a: CharacterBase, b: CharacterBase): boolean {
     // 非战斗者不是敌人
@@ -751,10 +751,10 @@ export class NpcManager {
 
   /**
    * Update all NPCs
-   * Based on C# NpcManager.Update
+   * 
    */
   update(deltaTime: number): void {
-    // C#: Update each NPC and handle death body addition
+    // Update each NPC and handle death body addition
     const npcsToDelete: string[] = [];
 
     // 通过 IEngineContext 获取 ObjManager 和 isDropEnabled
@@ -772,7 +772,7 @@ export class NpcManager {
         npc.isBodyIniAdded = 1;
 
         // Add body object only if valid and not a special death or summoned NPC
-        // C#: if (npc.IsBodyIniOk && !npc.IsNodAddBody && npc.SummonedByMagicSprite == null)
+        // if (npc.IsBodyIniOk && !npc.IsNodAddBody && npc.SummonedByMagicSprite == null)
         const isSummoned = npc.summonedByMagicSprite !== null;
         if (npc.isBodyIniOk && !npc.notAddBody && !isSummoned && objManager) {
           const bodyObj = npc.bodyIniObj!;
@@ -784,13 +784,13 @@ export class NpcManager {
             bodyObj.millisecondsToRemove = npc.leftMillisecondsToRevive;
           }
 
-          // C#: ObjManager.AddObj(npc.BodyIni) - 直接添加到列表
+          // 直接添加到列表
           objManager.addObj(bodyObj);
           logger.log(`[NpcManager] Added body object for dead NPC: ${npc.name}`);
         }
 
-        // C#: ObjManager.AddObj(GoodDrop.GetDropObj(npc)) - 掉落物品
-        // 注意：C# 中掉落逻辑不检查是否为召唤 NPC，所有满足条件的 NPC 都可以掉落
+        // 掉落物品
+        // 注意：中掉落逻辑不检查是否为召唤 NPC，所有满足条件的 NPC 都可以掉落
         // GoodDrop.GetDropObj 内部会检查 IsEnemy 和 NoDropWhenDie
         const dropCharacter: DropCharacter = {
           name: npc.name,
@@ -810,7 +810,7 @@ export class NpcManager {
           }
         });
 
-        // C#: if (npc.ReviveMilliseconds == 0) { DeleteNpc(node); }
+        // if (npc.ReviveMilliseconds == 0) { DeleteNpc(node); }
         // Remove NPC if no revive time
         if (npc.reviveMilliseconds === 0) {
           npcsToDelete.push(id);
@@ -824,7 +824,7 @@ export class NpcManager {
       logger.log(`[NpcManager] Removed dead NPC with id: ${id}`);
     }
 
-    // C#: Update death infos - decrease leftFrameToKeep and remove expired entries
+    // Update death infos - decrease leftFrameToKeep and remove expired entries
     // Used for CheckKeepDistanceWhenFriendDeath AI behavior
     for (let i = this._deathInfos.length - 1; i >= 0; i--) {
       this._deathInfos[i].leftFrameToKeep--;
@@ -852,7 +852,7 @@ export class NpcManager {
 
   /**
    * Get all partner NPCs
-   * C#: NpcManager.GetAllPartner()
+   * NpcManager.GetAllPartner()
    */
   getAllPartner(): Npc[] {
     const partners: Npc[] = [];
@@ -866,7 +866,7 @@ export class NpcManager {
 
   /**
    * Move all partners to destination
-   * C#: NpcManager.PartnersMoveTo(destinationTilePosition)
+   * NpcManager.PartnersMoveTo(destinationTilePosition)
    */
   partnersMoveTo(destinationTilePosition: Vector2): void {
     const partners = this.getAllPartner();
@@ -879,7 +879,7 @@ export class NpcManager {
 
   /**
    * Execute action for each partner
-   * C#: NpcManager.ForEachPartner(Action<Character> action)
+   * NpcManager.ForEachPartner(Action<Character> action)
    */
   forEachPartner(action: (partner: Npc) => void): void {
     for (const [, npc] of this.npcs) {
@@ -891,7 +891,7 @@ export class NpcManager {
 
   /**
    * Clear follow target for all NPCs if equal to target
-   * C#: NpcManager.CleartFollowTargetIfEqual(target)
+   * NpcManager.CleartFollowTargetIfEqual(target)
    */
   cleartFollowTargetIfEqual(target: Character): void {
     for (const [, npc] of this.npcs) {
@@ -923,7 +923,7 @@ export class NpcManager {
 
   /**
    * Hide NPC
-   * C# Reference: Sets IsHide property (script-controlled hiding)
+   * IsHide property (script-controlled hiding)
    */
   hideNpc(name: string): void {
     const npc = this.getNpc(name);
@@ -934,11 +934,11 @@ export class NpcManager {
 
   /**
    * Show/Hide NPC by name
-   * C#: NpcManager.ShowNpc - sets IsHide property
-   * Also checks player name for consistency with C# implementation
+   * sets IsHide property
+   * Also checks player name for consistency
    */
   showNpc(name: string, show: boolean = true): void {
-    // C#: First check if name matches player
+    // First check if name matches player
     if (this._player && this._player.name === name) {
       this._player.isHide = !show;
       return;
@@ -952,7 +952,7 @@ export class NpcManager {
 
   /**
    * Set NPC script file
-   * C#: SetNpcScript - Sets the ScriptFile property for interaction
+   * Sets the ScriptFile property for interaction
    */
   setNpcScript(name: string, scriptFile: string): void {
     const npc = this.getNpc(name);
@@ -966,7 +966,7 @@ export class NpcManager {
 
   /**
    * Merge NPC file without clearing existing NPCs
-   * C#: NpcManager.Merge - calls Load with clearCurrentNpcs=false
+   * calls Load with clearCurrentNpcs=false
    */
   async mergeNpc(fileName: string): Promise<void> {
     logger.log(`[NpcManager] Merging NPC file: ${fileName}`);
@@ -975,10 +975,10 @@ export class NpcManager {
 
   /**
    * Save NPC state
-   * C#: NpcManager.SaveNpc(fileName) - saves current NPCs (excluding partners) to save file
+   * saves current NPCs (excluding partners) to save file
    *
    * Web 版本说明：
-   * - C# 版本将 NPC 数据保存到 save\game\{fileName} 文件
+   * - 原版将 NPC 数据保存到 save\game\{fileName} 文件
    * - Web 版本在调用 saveGame() 时会通过 collectNpcData() 收集 NPC 数据
    * - 这里只更新 fileName 记录，实际数据保存在 Loader.saveGame() 中统一处理
    *
@@ -992,7 +992,7 @@ export class NpcManager {
     }
 
     // 更新 fileName 记录
-    // C#: if (!isSavePartner) { _fileName = fileName; }
+    // if (!isSavePartner) { _fileName = fileName; }
     this.fileName = saveFileName;
 
     logger.log(`[NpcManager] SaveNpc: ${saveFileName} (NPC data will be saved with next saveGame)`);
@@ -1005,7 +1005,7 @@ export class NpcManager {
 
   /**
    * Load Partner from file
-   * C#: NpcManager.LoadPartner(filePath)
+   * NpcManager.LoadPartner(filePath)
    */
   async loadPartner(filePath: string): Promise<void> {
     try {
@@ -1019,7 +1019,7 @@ export class NpcManager {
 
   /**
    * Save Partner state
-   * C#: NpcManager.SavePartner(fileName) - saves partner NPCs to save file
+   * saves partner NPCs to save file
    *
    * Web 版本说明：
    * - 与 saveNpc 类似，Partner 数据在 saveGame() 时统一保存
@@ -1043,7 +1043,7 @@ export class NpcManager {
 
   /**
    * Set NPC action file for a specific state
-   * Based on Character.SetNpcActionFile() in C#
+   * Based on Character.SetNpcActionFile()
    * This sets the ASF file for a specific character state
    */
   setNpcActionFile(name: string, stateType: number, asfFile: string): boolean {
@@ -1092,7 +1092,7 @@ export class NpcManager {
 
   /**
    * Set NPC action type
-   * Based on Character.SetNpcActionType() in C#
+   * Based on Character.SetNpcActionType()
    */
   setNpcActionType(name: string, actionType: number): boolean {
     const npc = this.getNpc(name);
@@ -1116,7 +1116,7 @@ export class NpcManager {
   /**
    * Kill all enemy NPCs (for debug/cheat system)
    * Uses normal death() method to ensure death scripts are triggered
-   * C# Reference: 通过调用正常死亡流程触发 DeathScript
+   * Reference: 通过调用正常死亡流程触发 DeathScript
    * Returns the number of enemies killed
    */
   killAllEnemies(): number {
@@ -1132,7 +1132,7 @@ export class NpcManager {
         !npc.isDeath
       ) {
         // Call normal death method to trigger death scripts
-        // C#: Character.Death() - 设置状态，运行死亡脚本，播放动画
+        // 设置状态，运行死亡脚本，播放动画
         npc.death();
         killed++;
       }
@@ -1166,8 +1166,8 @@ export class NpcManager {
 
   /**
    * Set NPC relation
-   * Based on C# SetNpcRelation(name, relation) where relation is 0=Friend, 1=Enemy, 2=None
-   * C#: GetPlayerAndAllNpcs changes relation for ALL NPCs with the same name
+   * (name, relation) where relation is 0=Friend, 1=Enemy, 2=None
+   * GetPlayerAndAllNpcs changes relation for ALL NPCs with the same name
    */
   setNpcRelation(name: string, relation: number): boolean {
     const npcs = this.getAllNpcsByName(name);
@@ -1188,7 +1188,7 @@ export class NpcManager {
 
   /**
    * Enable global NPC AI
-   * C#: Npc.EnableAI() - sets IsAIDisabled = false
+   * sets IsAIDisabled = false
    */
   enableAI(): void {
     logger.log("[NpcManager] Enabling global NPC AI");
@@ -1197,7 +1197,7 @@ export class NpcManager {
 
   /**
    * Disable global NPC AI
-   * C#: Npc.DisableAI() - sets IsAIDisabled = true and calls NpcManager.CancleFighterAttacking()
+   * sets IsAIDisabled = true and calls NpcManager.CancleFighterAttacking()
    */
   disableAI(): void {
     logger.log("[NpcManager] Disabling global NPC AI");
@@ -1207,7 +1207,7 @@ export class NpcManager {
 
   /**
    * Load NPCs from a .npc file
-   * Based on C#'s NpcManager.Load and Utils.GetNpcObjFilePath
+   *  and Utils.GetNpcObjFilePath
    * Uses unified resourceLoader for text data fetching
    *
    * @param fileName - The NPC file name (e.g., "wudangshanxia.npc")
@@ -1219,12 +1219,12 @@ export class NpcManager {
 
   /**
    * Internal method to load NPC file with clear option
-   * C#: NpcManager.Load(fileName, clearCurrentNpcs, randOne)
+   * NpcManager.Load(fileName, clearCurrentNpcs, randOne)
    */
   private async loadNpcFileInternal(fileName: string, clearCurrentNpcs: boolean): Promise<boolean> {
     logger.log(`[NpcManager] Loading NPC file: ${fileName} (clear=${clearCurrentNpcs})`);
 
-    // Try multiple paths like C# GetNpcObjFilePath
+    // Try multiple paths
     const paths = [ResourcePath.saveGame(fileName), ResourcePath.iniSave(fileName)];
 
     for (const filePath of paths) {
@@ -1237,14 +1237,14 @@ export class NpcManager {
           continue;
         }
 
-        // Clear existing NPCs if requested (keep partners like C#)
+        // Clear existing NPCs if requested (keep partners)
         if (clearCurrentNpcs) {
           this.clearAllNpcAndKeepPartner();
         }
 
         logger.log(`[NpcManager] Parsing NPC file from: ${filePath}`);
         await this.parseNpcFile(content);
-        this.fileName = fileName; // Store loaded file name like C#
+        this.fileName = fileName; // Store loaded file name
         logger.log(`[NpcManager] Loaded ${this.npcs.size} NPCs from ${fileName}`);
         return true;
       } catch (_error) {
@@ -1278,7 +1278,7 @@ export class NpcManager {
 
   /**
    * NPC 数据结构（统一的加载格式）
-   * C# Reference: Character.Load(KeyDataCollection) - 通用加载方法
+   * - 通用加载方法
    *
    * 这个接口同时支持：
    * 1. .npc 文件加载（INI 格式，解析后变成 Record<string, string>）
@@ -1290,7 +1290,7 @@ export class NpcManager {
       // 基本状态
       state?: number;
       action: number;
-      /** C#: IsHide - script-controlled hiding (IsVisible is computed from magic time) */
+      /** script-controlled hiding (IsVisible is computed from magic time) */
       isHide: boolean;
       isAIDisabled: boolean;
 
@@ -1401,14 +1401,14 @@ export class NpcManager {
     const attack = parseNum(data.Attack ?? data.attack, 10);
     const attack2 = parseNum(data.Attack2 ?? data.attack2, 0);
     const attackLevel = parseNum(data.AttackLevel ?? data.attackLevel, 0);
-    // C#: Defence is alias for Defend
+    // Defence is alias for Defend
     const defend = parseNum(data.Defend ?? data.defend ?? data.Defence ?? data.defence, 10);
     const defend2 = parseNum(data.Defend2 ?? data.defend2, 0);
     const evade = parseNum(data.Evade ?? data.evade, 0);
     const level = parseNum(data.Level ?? data.level, 1);
     const exp = parseNum(data.Exp ?? data.exp, 0);
     const levelUpExp = parseNum(data.LevelUpExp ?? data.levelUpExp, 100);
-    const expBonus = parseNum(data.ExpBonus ?? data.expBonus, 0); // C#: ExpBonus - Boss判断
+    const expBonus = parseNum(data.ExpBonus ?? data.expBonus, 0); // Boss判断
     const lum = parseNum(data.Lum ?? data.lum, 0);
 
     // 脚本和资源
@@ -1422,7 +1422,7 @@ export class NpcManager {
 
     // 状态（只有 JSON 存档才有）
     const state = data.state !== undefined ? parseNum(data.state, 0) : undefined;
-    // C#: IsHide is script-controlled hiding, IsVisible is magic invisibility (computed)
+    // IsHide is script-controlled hiding, IsVisible is magic invisibility (computed)
     // Web 存档兼容：同时支持 isHide 和旧的 isVisible 字段
     // 注意：只有当字段明确存在时才使用，否则默认 isHide = false
     const isHide =
@@ -1513,7 +1513,7 @@ export class NpcManager {
       flyIni2: flyIni2 || undefined,
       flyInis: flyInis || undefined,
       idle,
-      expBonus, // C#: ExpBonus - Boss判断（>0为Boss）
+      expBonus, // Boss判断（>0为Boss）
       // === AI/Combat Fields ===
       dropIni: dropIni || undefined,
       buyIniFile: buyIniFile || undefined,
@@ -1691,13 +1691,13 @@ export class NpcManager {
 
   /**
    * Create NPC from data object (统一的 NPC 创建方法)
-   * C# Reference: NpcManager.AddNpc(KeyDataCollection) + Character.Load()
+   * + Character.Load()
    *
    * 同时支持：
    * 1. .npc 文件加载（INI Section 解析后的 Record<string, string>）
    * 2. JSON 存档加载（完整类型的对象）
    *
-   * C# 逻辑：有什么字段就读什么字段，不区分来源
+   * 逻辑：有什么字段就读什么字段，不区分来源
    */
   async createNpcFromData(data: Record<string, unknown>): Promise<Npc | null> {
     const { config, extraState, mapX, mapY, dir } = this.parseNpcData(data);
@@ -1806,11 +1806,11 @@ export class NpcManager {
   }
 
   // ============== AI Query Methods ==============
-  // Based on C# NpcManager.cs AI-related static methods
+  //  AI-related static methods
 
   /**
    * Get closest enemy type character
-   * Based on C# NpcManager.GetClosestEnemyTypeCharacter
+   * 
    */
   getClosestEnemyTypeCharacter(
     positionInWorld: Position,
@@ -1843,7 +1843,7 @@ export class NpcManager {
 
   /**
    * Get closest enemy based on finder's relation
-   * Based on C# NpcManager.GetClosestEnemy
+   * 
    */
   getClosestEnemy(
     finder: Character,
@@ -1882,7 +1882,7 @@ export class NpcManager {
 
   /**
    * Get live closest enemy from a different group
-   * C#: NpcManager.GetLiveClosestOtherGropEnemy (typo preserved)
+   * NpcManager.GetLiveClosestOtherGropEnemy (typo preserved)
    */
   getLiveClosestOtherGropEnemy(group: number, positionInWorld: Position): Character | null {
     let closest: Character | null = null;
@@ -1904,7 +1904,7 @@ export class NpcManager {
 
   /**
    * Get closest player or fighter friend
-   * Based on C# NpcManager.GetLiveClosestPlayerOrFighterFriend
+   * 
    */
   getLiveClosestPlayerOrFighterFriend(
     positionInWorld: Position,
@@ -1951,7 +1951,7 @@ export class NpcManager {
 
   /**
    * Get closest non-neutral fighter
-   * C#: NpcManager.GetLiveClosestNonneturalFighter (typo preserved)
+   * NpcManager.GetLiveClosestNonneturalFighter (typo preserved)
    */
   getLiveClosestNonneturalFighter(
     positionInWorld: Position,
@@ -1992,7 +1992,7 @@ export class NpcManager {
 
   /**
    * Get closest fighter
-   * Based on C# NpcManager.GetClosestFighter
+   * 
    */
   getClosestFighter(
     targetPositionInWorld: Position,
@@ -2033,7 +2033,7 @@ export class NpcManager {
 
   /**
    * Find enemies within tile distance
-   * Based on C# NpcManager.FindEnemiesInTileDistance
+   * 
    */
   findEnemiesInTileDistance(
     finder: Character,
@@ -2065,7 +2065,7 @@ export class NpcManager {
 
   /**
    * Find fighters within tile distance
-   * Based on C# NpcManager.FindFightersInTileDistance
+   * 
    */
   findFightersInTileDistance(beginTilePosition: Position, tileDistance: number): Character[] {
     const fighters: Character[] = [];
@@ -2092,7 +2092,7 @@ export class NpcManager {
 
   /**
    * Cancel all fighter attacking (used when global AI is disabled)
-   * C#: NpcManager.CancleFighterAttacking
+   *
    */
   cancleFighterAttacking(): void {
     for (const [, npc] of this.npcs) {

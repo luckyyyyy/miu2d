@@ -2,7 +2,7 @@
  * GoodsGui Component - based on JxqyHD Engine/Gui/GoodsGui.cs
  * Displays player inventory with item grid and full drag-drop support
  *
- * C# Reference: GoodsGui.cs shows a 3x3 item grid with scroll bar and money display
+ * shows a 3x3 item grid with scroll bar and money display
  * Resources loaded from UI_Settings.ini
  */
 
@@ -166,7 +166,7 @@ const ItemSlot: React.FC<ItemSlotProps> = ({
               cursor: "grab",
             }}
           />
-          {/* Count display - always show count like C# TopLeftText */}
+          {/* Count display - always show count like TopLeftText */}
           <span
             style={{
               position: "absolute",
@@ -208,7 +208,7 @@ export const GoodsGui: React.FC<GoodsGuiProps> = ({
   // Load panel background
   const panelImage = useAsfImage(config?.panel.image || "asf/ui/common/panel3.asf");
 
-  // Calculate panel position - C#: Globals.WindowWidth / 2f + leftAdjust
+  // Calculate panel position - Globals.WindowWidth / 2f + leftAdjust
   const panelStyle = useMemo(() => {
     if (!config) return null;
     const panelWidth = panelImage.width || 330;

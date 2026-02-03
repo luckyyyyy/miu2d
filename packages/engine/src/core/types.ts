@@ -1,5 +1,5 @@
 /**
- * Core game types - based on JxqyHD C# implementation
+ * Core game types - based on JxqyHD implementation
  */
 
 // ============= Vector and Position =============
@@ -10,24 +10,24 @@ export interface Vector2 {
 
 // ============= Character Types =============
 /**
- * C# Character.CharacterKind enum
- * IMPORTANT: Order and values must match C# enum for save/load compatibility
+ * Character.CharacterKind enum
+ * IMPORTANT: Order and values must match enum for save/load compatibility
  */
 export enum CharacterKind {
-  Normal = 0, // C#: Normal - regular NPC
-  Fighter = 1, // C#: Fighter - combat NPC
-  Player = 2, // C#: Player - player character
-  Follower = 3, // C#: Follower - party member
-  GroundAnimal = 4, // C#: GroundAnimal - ground-based animal
-  Eventer = 5, // C#: Eventer - event/dialogue NPC
-  AfraidPlayerAnimal = 6, // C#: AfraidPlayerAnimal - animal that runs from player
-  Flyer = 7, // C#: Flyer - flying enemy
+  Normal = 0, // regular NPC
+  Fighter = 1, // combat NPC
+  Player = 2, // player character
+  Follower = 3, // party member
+  GroundAnimal = 4, // ground-based animal
+  Eventer = 5, // event/dialogue NPC
+  AfraidPlayerAnimal = 6, // animal that runs from player
+  Flyer = 7, // flying enemy
 }
 
 /**
- * C# RelationType enum - Character relation type
- * IMPORTANT: Order must match C# enum for correct save/load compatibility
- * C# order: Friend=0, Enemy=1, Neutral=2, None=3
+ * RelationType enum - Character relation type
+ * IMPORTANT: Order must match enum for correct save/load compatibility
+ * order: Friend=0, Enemy=1, Neutral=2, None=3
  */
 export enum RelationType {
   Friend = 0,
@@ -68,7 +68,7 @@ export enum Direction {
 }
 
 /**
- * C# Character.ActionType enum
+ * Character.ActionType enum
  * Defines NPC behavior patterns
  */
 export enum ActionType {
@@ -78,7 +78,7 @@ export enum ActionType {
 }
 
 // ============= Character Stats =============
-// Based on C# Character.cs fields
+//  fields
 export interface CharacterStats {
   // Basic stats
   life: number;
@@ -90,30 +90,30 @@ export interface CharacterStats {
 
   // Combat stats
   attack: number;
-  attack2: number; // C#: Attack2
-  attack3: number; // C#: Attack3
-  attackLevel: number; // C#: AttackLevel
-  defend: number; // C#: Defend (防御)
-  defend2: number; // C#: Defend2
-  defend3: number; // C#: Defend3
-  evade: number; // C#: Evade (闪避)
+  attack2: number;
+  attack3: number;
+  attackLevel: number;
+  defend: number; // Defend (防御)
+  defend2: number;
+  defend3: number;
+  evade: number; // Evade (闪避)
 
   // Experience & Level
   exp: number;
   levelUpExp: number;
   level: number;
-  canLevelUp: number; // C#: CanLevelUp (是否可以升级)
+  canLevelUp: number; // CanLevelUp (是否可以升级)
 
   // Movement & Interaction
   walkSpeed: number;
-  addMoveSpeedPercent: number; // C#: AddMoveSpeedPercent
+  addMoveSpeedPercent: number;
   visionRadius: number;
   attackRadius: number;
   dialogRadius: number;
 
   // Other
-  lum: number; // C#: Lum (亮度)
-  action: number; // C#: Action
+  lum: number; // Lum (亮度)
+  action: number;
 
   // Position (for save/load, optional)
   mapX?: number;
@@ -121,61 +121,61 @@ export interface CharacterStats {
   dir?: number;
 }
 
-// Based on C# Character.cs
+// 
 export interface CharacterConfig {
-  name: string; // C#: Name
+  name: string;
   npcIni: string;
   flyIni?: string;
-  flyIni2?: string; // C#: FlyIni2
-  flyInis?: string; // C#: FlyInis - 多法术距离配置 "magic:distance;magic2:distance2"
+  flyIni2?: string;
+  flyInis?: string; // 多法术距离配置 "magic:distance;magic2:distance2"
   bodyIni?: string;
-  kind: CharacterKind; // C#: Kind
-  relation: RelationType; // C#: Relation
-  group: number; // C#: Group (分组)
-  noAutoAttackPlayer: number; // C#: NoAutoAttackPlayer
-  idle?: number; // C#: Idle - 攻击间隔帧数
+  kind: CharacterKind;
+  relation: RelationType;
+  group: number; // Group (分组)
+  noAutoAttackPlayer: number;
+  idle?: number; // 攻击间隔帧数
   stats: CharacterStats;
   scriptFile?: string;
-  scriptFileRight?: string; // C#: ScriptFileRight (右键脚本)
+  scriptFileRight?: string; // ScriptFileRight (右键脚本)
   deathScript?: string;
   timerScript?: string;
   timerInterval?: number;
-  pathFinder: number; // C#: PathFinder (寻路类型)
-  canInteractDirectly?: number; // C#: CanInteractDirectly
-  expBonus?: number; // C#: ExpBonus - Boss判断（>0为Boss，名字显示黄色）
+  pathFinder: number; // PathFinder (寻路类型)
+  canInteractDirectly?: number;
+  expBonus?: number; // Boss判断（>0为Boss，名字显示黄色）
 
   // === AI/Combat Fields ===
-  dropIni?: string; // C#: DropIni - 掉落配置文件
-  buyIniFile?: string; // C#: BuyIniFile - 商店配置文件
-  keepRadiusWhenLifeLow?: number; // C#: KeepRadiusWhenLifeLow
-  lifeLowPercent?: number; // C#: LifeLowPercent
-  stopFindingTarget?: number; // C#: StopFindingTarget
-  keepRadiusWhenFriendDeath?: number; // C#: KeepRadiusWhenFriendDeath
-  aiType?: number; // C#: AIType - 0=normal, 1=rand move+attack, 2=rand move no fight
-  invincible?: number; // C#: Invincible - 无敌状态
-  reviveMilliseconds?: number; // C#: ReviveMilliseconds - 复活时间
+  dropIni?: string; // 掉落配置文件
+  buyIniFile?: string; // 商店配置文件
+  keepRadiusWhenLifeLow?: number;
+  lifeLowPercent?: number;
+  stopFindingTarget?: number;
+  keepRadiusWhenFriendDeath?: number;
+  aiType?: number; // 0=normal, 1=rand move+attack, 2=rand move no fight
+  invincible?: number; // 无敌状态
+  reviveMilliseconds?: number; // 复活时间
 
   // === Hurt Player (接触伤害) ===
-  hurtPlayerInterval?: number; // C#: HurtPlayerInterval - 伤害间隔（毫秒）
-  hurtPlayerLife?: number; // C#: HurtPlayerLife - 接触伤害值
-  hurtPlayerRadius?: number; // C#: HurtPlayerRadius - 接触伤害半径
+  hurtPlayerInterval?: number; // 伤害间隔（毫秒）
+  hurtPlayerLife?: number; // 接触伤害值
+  hurtPlayerRadius?: number; // 接触伤害半径
 
   // === Magic Direction ===
-  magicDirectionWhenBeAttacked?: number; // C#: MagicDirectionWhenBeAttacked
-  magicDirectionWhenDeath?: number; // C#: MagicDirectionWhenDeath
+  magicDirectionWhenBeAttacked?: number;
+  magicDirectionWhenDeath?: number;
 
   // === Visibility Control ===
-  fixedPos?: string; // C#: FixedPos - 固定路径点
-  visibleVariableName?: string; // C#: VisibleVariableName
-  visibleVariableValue?: number; // C#: VisibleVariableValue
+  fixedPos?: string; // 固定路径点
+  visibleVariableName?: string;
+  visibleVariableValue?: number;
 
   // === Auto Magic ===
-  magicToUseWhenLifeLow?: string; // C#: MagicToUseWhenLifeLow
-  magicToUseWhenBeAttacked?: string; // C#: MagicToUseWhenBeAttacked
-  magicToUseWhenDeath?: string; // C#: MagicToUseWhenDeath
+  magicToUseWhenLifeLow?: string;
+  magicToUseWhenBeAttacked?: string;
+  magicToUseWhenDeath?: string;
 
   // === Drop Control ===
-  noDropWhenDie?: number; // C#: NoDropWhenDie - 死亡时不掉落物品
+  noDropWhenDie?: number; // 死亡时不掉落物品
 }
 
 // ============= Sprite Types (forward declaration) =============
@@ -188,7 +188,7 @@ export interface CharacterSpriteData {
 }
 
 // ============= Player Types =============
-// Based on C# Player.cs (inherits Character)
+//  (inherits Character)
 export interface PlayerData {
   config: CharacterConfig;
   tilePosition: Vector2;
@@ -202,15 +202,15 @@ export interface PlayerData {
   sprite?: CharacterSpriteData;
   customActionFiles?: Map<number, string>;
 
-  // Player-specific fields (C# Player.cs)
-  money: number; // C#: _money
-  doing: number; // C#: _doing
-  desX: number; // C#: _desX (目标X)
-  desY: number; // C#: _desY (目标Y)
-  belong: number; // C#: _belong (归属)
-  fight: number; // C#: _fight (战斗状态)
+  // Player-specific fields
+  money: number;
+  doing: number;
+  desX: number; // _desX (目标X)
+  desY: number; // _desY (目标Y)
+  belong: number; // _belong (归属)
+  fight: number; // _fight (战斗状态)
 
-  // Special action state (C#: IsInSpecialAction, _specialActionLastDirection)
+  // Special action state
   isInSpecialAction?: boolean;
   specialActionAsf?: string;
   specialActionLastDirection?: Direction;
@@ -246,23 +246,23 @@ export interface ScriptState {
   isInTalk: boolean; // Whether currently in a Talk sequence
   talkQueue: { text: string; portraitIndex: number }[]; // Queue of talk dialogs
 
-  // C#: ScriptRunner.BelongObject - the NPC or Obj that triggered this script
+  // the NPC or Obj that triggered this script
   // Used by commands like DelCurObj, SetObjScript, etc.
   belongObject: { type: "npc" | "obj"; id: string } | null;
 
-  // Blocking wait states (C# ScriptRunner checks these each frame)
-  // PlayerGoto (C#: _playerGotoDesitination)
+  // Blocking wait states (ScriptRunner checks these each frame)
+  // PlayerGoto
   waitingForPlayerGoto: boolean;
   playerGotoDestination: Vector2 | null;
-  // PlayerGotoDir (C#: WalkToDirection)
+  // PlayerGotoDir
   waitingForPlayerGotoDir: boolean;
-  // PlayerRunTo (C#: _playerRunToDestination)
+  // PlayerRunTo
   waitingForPlayerRunTo: boolean;
   playerRunToDestination: Vector2 | null;
   // PlayerJumpTo
   waitingForPlayerJumpTo?: boolean;
   playerJumpToDestination?: Vector2 | null;
-  // NpcGoto (C#: _npcGotoCharacter, _npcGotoDestionation)
+  // NpcGoto
   waitingForNpcGoto: boolean;
   npcGotoName: string | null;
   npcGotoDestination: Vector2 | null;
@@ -272,12 +272,12 @@ export interface ScriptState {
   // FadeIn/FadeOut
   waitingForFadeIn: boolean;
   waitingForFadeOut: boolean;
-  // NpcSpecialActionEx (C#: blocks until IsInSpecialAction = false)
+  // NpcSpecialActionEx
   waitingForNpcSpecialAction: boolean;
   npcSpecialActionName: string | null;
-  // MoveScreen (C#: Camera.IsInMove)
+  // MoveScreen
   waitingForMoveScreen: boolean;
-  // MoveScreenEx (C#: Camera.IsInMoveTo)
+  // MoveScreenEx
   waitingForMoveScreenEx?: boolean;
   // BuyGoods
   waitingForBuyGoods?: boolean;
@@ -344,20 +344,20 @@ export interface GameState {
 }
 
 // ============= Input Types =============
-// Based on C# Player.cs input handling
+//  input handling
 export interface InputState {
   keys: Set<string>;
   mouseX: number;
   mouseY: number;
   mouseWorldX: number;
   mouseWorldY: number;
-  isMouseDown: boolean; // C#: MouseLeftButton == Pressed
+  isMouseDown: boolean; // MouseLeftButton == Pressed
   isRightMouseDown: boolean;
   clickedTile: Vector2 | null;
-  // New fields for continuous mouse movement (C# style)
-  isShiftDown: boolean; // C#: Keys.LeftShift || Keys.RightShift
-  isAltDown: boolean; // C#: Keys.LeftAlt || Keys.RightAlt
-  isCtrlDown: boolean; // C#: Keys.LeftControl || Keys.RightControl
+  // New fields for continuous mouse movement
+  isShiftDown: boolean; // Keys.LeftShift || Keys.RightShift
+  isAltDown: boolean; // Keys.LeftAlt || Keys.RightAlt
+  isCtrlDown: boolean; // Keys.LeftControl || Keys.RightControl
   // Mobile joystick direction input (方向移动，类似小键盘)
   // 使用方向移动而非鼠标点击，避免频繁寻路导致卡顿
   joystickDirection: Direction | null;
@@ -398,22 +398,22 @@ export interface AsfData {
 export const TILE_WIDTH = 64;
 export const TILE_HEIGHT = 32;
 
-// C# Globals.cs: BaseSpeed = 100, RunSpeedFold = 8
+// Globals.cs: BaseSpeed = 100, RunSpeedFold = 8
 // Movement uses: Velocity * elapsedSeconds * speedFold
 // Walk: speedFold = WalkSpeed (default 1)
 // Run: speedFold = RunSpeedFold (default 8)
-export const BASE_SPEED = 100; // C#: Globals.BaseSpeed
-export const RUN_SPEED_FOLD = 8; // C#: Globals.RunSpeedFold (跑步速度是走路的8倍!)
+export const BASE_SPEED = 100;
+export const RUN_SPEED_FOLD = 8; // Globals.RunSpeedFold (跑步速度是走路的8倍!)
 export const DEFAULT_RUN_SPEED = BASE_SPEED * RUN_SPEED_FOLD;
-export const MIN_CHANGE_MOVE_SPEED_PERCENT = -90; // C#: Globals.MinChangeMoveSpeedPercent
+export const MIN_CHANGE_MOVE_SPEED_PERCENT = -90;
 
 export const DIALOG_RADIUS = 3; // tiles
 
-// Default character stats (based on C# Character.cs defaults)
-// C# Character 字段默认值都是 0（C# int 默认）
+// Default character stats ( defaults)
+// Character 字段默认值都是 0（int 默认）
 // 这里定义的是 Player 的实际初始值，不是 Character 基类的默认值
 export const DEFAULT_PLAYER_STATS: CharacterStats = {
-  // Basic stats - C# Player 从存档或 INI 加载
+  // Basic stats - Player 从存档或 INI 加载
   life: 1000,
   lifeMax: 1000,
   mana: 1000,
@@ -440,9 +440,9 @@ export const DEFAULT_PLAYER_STATS: CharacterStats = {
   // Movement & Interaction
   walkSpeed: 1,
   addMoveSpeedPercent: 0,
-  visionRadius: 0, // C#: 默认 0，getter 返回 9 if 0
-  attackRadius: 0, // C#: 默认 0，getter 返回 1 if 0 (melee range)
-  dialogRadius: 0, // C#: 默认 0，getter 返回 1 if 0
+  visionRadius: 0, // 默认 0，getter 返回 9 if 0
+  attackRadius: 0, // 默认 0，getter 返回 1 if 0 (melee range)
+  dialogRadius: 0, // 默认 0，getter 返回 1 if 0
 
   // Other
   lum: 0,

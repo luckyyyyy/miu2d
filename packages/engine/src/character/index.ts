@@ -1,7 +1,7 @@
 /**
  * Character system exports
  *
- * Class-based architecture (based on C# JxqyHD):
+ * Class-based architecture ():
  * - Sprite (base class) - sprite/sprite.ts
  * - Character (abstract, extends Sprite) - characterBase.ts
  * - Npc (extends Character) - ../npc/npc.ts
@@ -26,7 +26,7 @@ export {
   loadCharacterConfig,
   parseCharacterIni,
 } from "./iniParser";
-// ResFile utilities - INI file loading (based on C# ResFile.cs)
+// ResFile utilities - INI file loading ()
 export {
   // Image loading (ASF/MPC with optional SHD shadow)
   loadCharacterAsf,

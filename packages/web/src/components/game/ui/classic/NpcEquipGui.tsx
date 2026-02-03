@@ -2,7 +2,7 @@
  * NpcEquipGui Component - based on JxqyHD Engine/Gui/NpcEquipGui.cs
  * Displays NPC equipment slots with drag-drop support
  *
- * C# Reference: NpcEquipGui.cs shows 7 equipment slots for NPC (head, neck, body, back, hand, wrist, foot)
+ * shows 7 equipment slots for NPC (head, neck, body, back, hand, wrist, foot)
  * Similar to EquipGui but for viewing/managing NPC equipment
  */
 
@@ -220,7 +220,7 @@ export const NpcEquipGui: React.FC<NpcEquipGuiProps> = ({
     character?.backgroundTextureEquip || config?.panel.image || "asf/ui/common/panel7.asf";
   const panelImage = useAsfImage(backgroundImage);
 
-  // Calculate panel position - C#: Globals.WindowWidth / 2f - Width + leftAdjust
+  // Calculate panel position - Globals.WindowWidth / 2f - Width + leftAdjust
   const panelStyle = useMemo(() => {
     if (!config) return null;
     const panelWidth = panelImage.width || 300;

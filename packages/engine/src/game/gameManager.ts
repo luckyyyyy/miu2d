@@ -257,7 +257,6 @@ export class GameManager {
     this.scriptExecutor = new ScriptExecutor(scriptContext);
 
     // Set up runParallelScript callback (after ScriptExecutor is created)
-    // C# Reference: ScriptManager.RunParallelScript
     scriptContext.runParallelScript = (scriptFile: string, delay?: number) => {
       this.scriptExecutor.runParallelScript(scriptFile, delay || 0);
     };
@@ -494,7 +493,7 @@ export class GameManager {
       // Trap save
       saveMapTrap: () => this.saveMapTrap(),
       // Change player (multi-protagonist system)
-      // C# Reference: Loader.ChangePlayer(index)
+      // Reference: Loader.ChangePlayer(index)
       changePlayer: async (index) => {
         // 1. 保存当前玩家数据到内存
         this.loader.saveCurrentPlayerToMemory();
@@ -512,7 +511,7 @@ export class GameManager {
       clearMouseInput: this.clearMouseInput,
       // Return to title
       returnToTitle: () => {
-        // C# Reference: ScriptExecuter.ReturnToTitle()
+        // Reference: ScriptExecuter.ReturnToTitle()
         // 1. 清除并行脚本
         this.scriptExecutor.clearParallelScripts();
         // 2. 停止所有脚本执行
@@ -564,7 +563,7 @@ export class GameManager {
       () => this.scriptExecutor.isWaitingForInput(),
       () => this.getScriptBasePath(),
       (scriptPath) => this.scriptExecutor.runScript(scriptPath),
-      // C#: Globals.ThePlayer.StandingImmediately()
+      // Globals.ThePlayer.StandingImmediately()
       // Player should stop immediately when trap is triggered
       () => this.player.standingImmediately()
     );
@@ -581,7 +580,7 @@ export class GameManager {
     const mapFileName = mapPath.split("/").pop() || mapPath;
     this.currentMapName = mapFileName.replace(/\.map$/i, "");
 
-    // Clear NPCs and Objs (keep partners - C#: ClearAllNpcAndKeepPartner)
+    // Clear NPCs and Objs (keep partners)
     this.npcManager.clearAllNpcAndKeepPartner();
     this.objManager.clearAll();
     // NOTE: 不要在换地图时清除脚本缓存！
@@ -590,7 +589,7 @@ export class GameManager {
     // this.scriptExecutor.clearCache();
 
     // 注意：不清空 ignoredTrapIndices
-    // C# 中 _ingnoredTrapsIndex 只在 LoadTrap（加载存档时）才会清空
+    // 中 _ingnoredTrapsIndex 只在 LoadTrap（加载存档时）才会清空
     // 因为 ignoredTrapIndices 是跨地图的全局状态
     // this.trapManager.clearIgnoredTraps(); // 移除此调用
 
@@ -628,7 +627,7 @@ export class GameManager {
    * Load game save from a save slot
    * Delegates to Loader
    *
-   * C#: LoadGame(index)
+   * LoadGame(index)
    * - index 0 = initial save (used by NewGame)
    * - index 1-7 = user save slots
    */
@@ -678,7 +677,7 @@ export class GameManager {
    * 开始新游戏
    * Delegates to Loader
    *
-   * 对应 C# 的 Loader.NewGame()
+   * 对应Loader.NewGame()
    */
   async newGame(): Promise<void> {
     await this.loader.newGame();
@@ -715,7 +714,7 @@ export class GameManager {
   /**
    * Use magic from bottom slot index (0-4)
    * Delegates to MagicHandler
-   * C# Reference: Character.UseMagic and PerformeAttack
+   * and PerformeAttack
    */
   async useMagicByBottomSlot(slotIndex: number): Promise<void> {
     await this.magicHandler.useMagicByBottomSlot(slotIndex);
@@ -737,7 +736,7 @@ export class GameManager {
 
   /**
    * Handle mouse button release
-   * C# Reference: 更新 _lastMouseState
+   * Reference: 更新 _lastMouseState
    */
   handleMouseUp(isRightButton: boolean): void {
     this.inputHandler.handleMouseUp(isRightButton);
@@ -782,13 +781,12 @@ export class GameManager {
     }
 
     // Store input for mouse position access in other methods (e.g., magic targeting)
-    // C# Reference: Player.cs tracks mouseState for UseMagic destination
+    // tracks mouseState for UseMagic destination
     this.inputHandler.setLastInput(input);
 
     this.gameTime += deltaTime;
 
     // ========== SuperMode 优先处理 ==========
-    // C# Reference: JxqyGame.UpdatePlaying
     // if (Globals.IsInSuperMagicMode) {
     //     Globals.SuperModeMagicSprite.Update(gameTime);
     //     return; // Just update super magic
@@ -823,9 +821,9 @@ export class GameManager {
     // Check for special action completion
     this.specialActionHandler.update();
 
-    // C#: CanInput = !Globals.IsInputDisabled && !ScriptManager.IsInRunningScript && MouseInBound()
+    // CanInput = !Globals.IsInputDisabled && !ScriptManager.IsInRunningScript && MouseInBound()
     // Don't process USER input if GUI is blocking OR script is running
-    // This matches C# behavior where player cannot move via mouse/keyboard during script execution
+    // This matches behavior where player cannot move via mouse/keyboard during script execution
     // BUT we still need to update player movement for script-controlled movement (PlayerGoto, etc.)
     const canInput = this.inputHandler.canProcessInput();
 
@@ -843,11 +841,10 @@ export class GameManager {
     this.player.update(deltaTime);
 
     // Update auto-attack behavior
-    // C# Reference: Player.UpdateAutoAttack
     this.player.updateAutoAttack(deltaTime);
 
     // Check for pending interaction targets (player walking to interact with NPC/Obj)
-    // C# Reference: Character.InteractIsOk called during Update
+    // called during Update
     this.inputHandler.update();
 
     // Check for trap at player's position
@@ -860,7 +857,7 @@ export class GameManager {
     this.npcManager.update(deltaTime);
 
     // Update Objects (animation, PlayFrames, trap damage, etc.)
-    // C# Reference: ObjManager.Update - updates all Obj sprites
+    // updates all Obj sprites
     // Obj 内部通过 engine (IEngineContext) 直接访问 NpcManager、Player 和 ScriptExecutor
     this.objManager.update(deltaTime);
 
@@ -910,7 +907,7 @@ export class GameManager {
   /**
    * Queue a script for execution (non-blocking)
    * Used for externally triggered scripts (e.g., death scripts)
-   * C# Reference: ScriptManager.RunScript adds to _list queue
+   * adds to _list queue
    */
   queueScript(scriptPath: string): void {
     this.scriptExecutor.queueScript(scriptPath);
@@ -1140,7 +1137,7 @@ export class GameManager {
 
   /**
    * Save map trap configuration
-   * C#: MapBase.SaveTrap(@"save\game\Traps.ini")
+   * MapBase.SaveTrap(@"save\game\Traps.ini")
    *
    * 这个命令允许脚本在游戏过程中立即保存陷阱配置，而不需要完整存档。
    * 例如：玩家触发陷阱后，脚本修改陷阱配置并调用 SaveMapTrap，
@@ -1248,7 +1245,7 @@ export class GameManager {
 
   /**
    * Request to center camera on player
-   * C#: Carmera.CenterPlayerInCamera()
+   * Carmera.CenterPlayerInCamera()
    */
   private pendingCenterOnPlayer: boolean = false;
 
@@ -1269,7 +1266,7 @@ export class GameManager {
 
   /**
    * Update mouse hover state for interaction highlights
-   * C# Reference: Player.cs HandleMouseInput - OutEdge detection
+   * HandleMouseInput - OutEdge detection
    *
    * @param worldX Mouse world X coordinate
    * @param worldY Mouse world Y coordinate
@@ -1331,7 +1328,6 @@ export class GameManager {
 
   /**
    * Right-click magic in MagicGui to add to first empty bottom slot
-   * C# Reference: MagicGui.MouseRightClickdHandler
    */
   handleMagicRightClick(storeIndex: number): void {
     this.magicHandler.handleMagicRightClick(storeIndex);
