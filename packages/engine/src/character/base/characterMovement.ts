@@ -356,7 +356,12 @@ export abstract class CharacterMovement extends CharacterBase {
       // 正常移动
       this._positionInWorld.x = newPosX;
       this._positionInWorld.y = newPosY;
-      this._currentDirection = getDirection(this._positionInWorld, targetPixel);
+      // C# Reference: MoveTo(direction, ...) 使用移动方向来设置方向
+      // 使用移动方向 (dx, dy) 而不是移动后位置到目标点的方向
+      // 这样即使接近目标点，方向也保持正确
+      if (dx !== 0 || dy !== 0) {
+        this._currentDirection = getDirection({ x: 0, y: 0 }, { x: dx, y: dy });
+      }
 
       if (
         this._state !== CharacterState.Walk &&

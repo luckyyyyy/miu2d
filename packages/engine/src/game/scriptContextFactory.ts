@@ -275,8 +275,8 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
       const pos = player.tilePosition;
       const atDestination = pos.x === destination.x && pos.y === destination.y;
 
-      const isStanding =
-        player.state === CharacterState.Stand || player.state === CharacterState.Stand1;
+      // C#: IsStanding() includes Stand, Stand1, and FightStand
+      const isStanding = player.isStanding();
 
       if (atDestination && isStanding) {
         return true;
@@ -302,8 +302,8 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
       const pos = player.tilePosition;
       const atDestination = pos.x === destination.x && pos.y === destination.y;
 
-      const isStanding =
-        player.state === CharacterState.Stand || player.state === CharacterState.Stand1;
+      // C#: IsStanding() includes Stand, Stand1, and FightStand
+      const isStanding = player.isStanding();
 
       if (atDestination && isStanding) {
         return true;
