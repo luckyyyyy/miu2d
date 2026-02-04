@@ -172,7 +172,7 @@ export class GameEngine implements IEngineContext {
   private mapLoadProgressCallback: ((progress: number, text: string) => void) | null = null;
 
   // 摄像机跟随 - 记录上次玩家位置，只有玩家移动时才更新摄像机
-  // 
+  //
   private lastPlayerPositionForCamera: Vector2 | null = null;
 
   // 引擎是否已完成一次性初始化（全局资源已加载）
@@ -1653,6 +1653,10 @@ export class GameEngine implements IEngineContext {
                 partner.useDrug(entry.good);
               });
             }
+          } else if (entry.good.kind === GoodKind.Event) {
+            // Event 类型物品：运行物品脚本
+            // C# 参考: GoodsListManager.cs line 801-805
+            goodsManager?.usingGood(index);
           }
         }
       },
@@ -1725,10 +1729,10 @@ export class GameEngine implements IEngineContext {
         return buyManager.buyGood(
           shopIndex,
           player.money,
-          async (fileName) => {
+          (fileName) => {
             const goodsManager = this._gameManager?.getGoodsListManager();
             if (!goodsManager) return false;
-            const result = await goodsManager.addGoodToList(fileName);
+            const result = goodsManager.addGoodToList(fileName);
             return result.success;
           },
           (amount) => {

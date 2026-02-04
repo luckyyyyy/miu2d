@@ -930,10 +930,10 @@ export abstract class Character extends CharacterCombat {
   protected standImmediately(): void {
     // 调试：追踪 standImmediately 调用
     if (this.isPlayer && this.path.length > 0) {
-      logger.debug(
-        `[Character.standImmediately] 清空路径! pathLen=${this.path.length}, destTile=(${this._destinationMoveTilePosition?.x}, ${this._destinationMoveTilePosition?.y})`
-      );
-      console.trace("[standImmediately] 调用栈");
+      // logger.debug(
+      //   `[Character.standImmediately] 清空路径! pathLen=${this.path.length}, destTile=(${this._destinationMoveTilePosition?.x}, ${this._destinationMoveTilePosition?.y})`
+      // );
+      // console.trace("[standImmediately] 调用栈");
     }
     if (this._isInFighting && this.isStateImageOk(CharacterState.FightStand)) {
       this.state = CharacterState.FightStand;

@@ -90,12 +90,17 @@ The original game was developed in C++, later remade by fans using C# + XNA fram
 
 ### Project Structure
 
-This project uses **pnpm monorepo** architecture with two independent packages:
+This project uses **pnpm monorepo** architecture:
 
 | Package | Directory | Description |
 |---------|-----------|-------------|
 | **@miu2d/engine** | `packages/engine/` | Pure TypeScript 2D RPG engine, **no React dependency** |
+| **@miu2d/ui** | `packages/ui/` | Generic UI components (no business logic) |
+| **@miu2d/viewer** | `packages/viewer/` | Resource viewers (ASF/Map/Magic) and editors |
 | **@miu2d/web** | `packages/web/` | React application with UI and user interaction |
+| **@miu2d/server** | `packages/server/` | NestJS backend with tRPC API |
+| **@miu2d/types** | `packages/types/` | Shared Zod schemas and TypeScript types |
+| **@miu2d/i18n** | `packages/i18n/` | Internationalization resources |
 
 **Import engine modules:**
 ```typescript

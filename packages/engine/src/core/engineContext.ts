@@ -172,7 +172,7 @@ export interface IEngineContext {
   /**
    * 运行脚本（等待完成）
    */
-  runScript(scriptPath: string, belongObject?: { type: string; id: string }): Promise<void>;
+  runScript(scriptPath: string, belongObject?: { type: "npc" | "obj" | "good"; id: string }): Promise<void>;
 
   /**
    * 将脚本加入队列（不等待）

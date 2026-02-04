@@ -117,10 +117,25 @@ const addRandGoodsCommand: CommandHandler = async (params, _result, helpers) => 
 
 /**
  * DelGoods - Remove items from inventory
+ * If no parameters, removes the current item (from belongObject)
  */
 const delGoodsCommand: CommandHandler = (params, _result, helpers) => {
-  const goodsName = helpers.resolveString(params[0] || "");
+  let goodsName: string;
   const count = helpers.resolveNumber(params[1] || "1");
+
+  if (params.length === 0 || !params[0]) {
+    // No parameter - use belongObject (current good being used)
+    const belongObject = helpers.state.belongObject;
+    if (belongObject && belongObject.type === "good") {
+      goodsName = belongObject.id;
+    } else {
+      logger.warn("[DelGoods] No parameter and no current good");
+      return true;
+    }
+  } else {
+    goodsName = helpers.resolveString(params[0]);
+  }
+
   helpers.context.removeGoods(goodsName, count);
   return true;
 };
@@ -539,7 +554,7 @@ export function registerPlayerCommands(registry: CommandRegistry): void {
   registry.set("getmoneynum", getMoneyNumCommand);
   registry.set("setmoneynum", setMoneyNumCommand);
   registry.set("getplayerexp", getPlayerExpCommand);
-  registry.set("getexp", getPlayerExpCommand); // alias: 
+  registry.set("getexp", getPlayerExpCommand); // alias:
   registry.set("getplayerstate", getPlayerStateCommand);
   registry.set("getplayermagiclevel", getPlayerMagicLevelCommand);
 

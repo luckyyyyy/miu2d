@@ -3,3 +3,4 @@
  */
 export * from "./mpc";
 export * from "./resourceLoader";
+export * from "./xnb";

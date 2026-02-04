@@ -121,7 +121,7 @@ export interface CharacterStats {
   dir?: number;
 }
 
-// 
+//
 export interface CharacterConfig {
   name: string;
   npcIni: string;
@@ -246,9 +246,9 @@ export interface ScriptState {
   isInTalk: boolean; // Whether currently in a Talk sequence
   talkQueue: { text: string; portraitIndex: number }[]; // Queue of talk dialogs
 
-  // the NPC or Obj that triggered this script
-  // Used by commands like DelCurObj, SetObjScript, etc.
-  belongObject: { type: "npc" | "obj"; id: string } | null;
+  // the NPC, Obj, or Good that triggered this script
+  // Used by commands like DelCurObj, SetObjScript, DelGoods, etc.
+  belongObject: { type: "npc" | "obj" | "good"; id: string } | null;
 
   // Blocking wait states (ScriptRunner checks these each frame)
   // PlayerGoto

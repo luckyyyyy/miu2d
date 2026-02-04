@@ -120,7 +120,7 @@ export interface ScriptContext {
   endRain: () => void; // stop rain effect
   showSnow: (show: boolean) => void; // show/hide snow effect
   freeMap: () => void; // release map resources
-  setLevelFile: (file: string) => void | Promise<void>;
+  setLevelFile: (file: string) => Promise<void>;
 
   // Timer commands
   openTimeLimit: (seconds: number) => void; // start countdown

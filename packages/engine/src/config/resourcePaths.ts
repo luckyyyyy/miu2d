@@ -4,9 +4,14 @@
  * 统一管理所有资源路径，方便后期修改资源根目录。
  * 所有资源加载都应该通过这个配置来获取完整路径。
  *
- * 支持通过环境变量 VITE_DEMO_RESOURCES_DOMAIN 配置外部资源域名（如 R2 CDN）
- * - 配置后: https://cdn.example.com/resources/...
- * - 未配置: /resources/... (当前域名)
+ * 资源路径由 gameSlug 动态确定：
+ * - 格式: /game/[gameSlug]/resources
+ * - 由 GameScreen 组件调用 setResourcePaths({ root: '/game/${gameSlug}/resources' }) 设置
+ *
+ * 环境变量：
+ * - VITE_DEMO_RESOURCES_DOMAIN: 外部资源域名（如 R2 CDN）
+ *   - 配置后: https://cdn.example.com/game/xxx/resources/...
+ *   - 未配置: /game/[gameSlug]/resources/... (当前域名)
  */
 
 // =============================================================================
@@ -46,63 +51,19 @@ export function getResourceUrl(path: string): string {
 }
 
 // =============================================================================
-// 游戏定义
+// 资源根目录配置
 // =============================================================================
 
-/** 游戏 ID 类型 */
-export type GameId = "yueying" | "canghai";
-
-/** 游戏信息 */
-export interface GameInfo {
-  id: GameId;
-  name: string;
-  resourceRoot: string;
-  icon: string;
-}
-
-/** 可用游戏列表 */
-export const AVAILABLE_GAMES: GameInfo[] = [
-  {
-    id: "yueying",
-    name: "月影传说",
-    resourceRoot: "/resources",
-    icon: "/icons/yueying.png",
-  },
-  // {
-  //   id: "canghai",
-  //   name: "沧海",
-  //   resourceRoot: "/canghai",
-  //   icon: "/icons/canghai.png",
-  // },
-];
-
-/** localStorage key for game selection */
-const GAME_SELECTION_KEY = "jxqy_selected_game";
-
 /**
- * 获取当前选择的游戏 ID
+ * 获取默认资源根目录
+ * 默认值: "/resources"（向后兼容，实际由前端动态设置）
+ *
+ * @returns 资源根目录（带前导斜杠），如 "/game/xxx/resources"
  */
-export function getSelectedGameId(): GameId {
-  const saved = localStorage.getItem(GAME_SELECTION_KEY);
-  if (saved === "yueying" || saved === "canghai") {
-    return saved;
-  }
-  return "yueying"; // 默认月影传说
-}
-
-/**
- * 设置当前选择的游戏
- */
-export function setSelectedGameId(gameId: GameId): void {
-  localStorage.setItem(GAME_SELECTION_KEY, gameId);
-}
-
-/**
- * 获取当前选择的游戏信息
- */
-export function getSelectedGame(): GameInfo {
-  const gameId = getSelectedGameId();
-  return AVAILABLE_GAMES.find((g) => g.id === gameId) || AVAILABLE_GAMES[0];
+function getDefaultResourceRoot(): string {
+  // 默认返回 /resources，实际由 GameScreen 通过 setResourcePaths 设置为
+  // /game/[gameSlug]/resources
+  return "/resources";
 }
 
 // =============================================================================
@@ -113,16 +74,16 @@ export function getSelectedGame(): GameInfo {
  * 资源路径配置接口
  */
 export interface ResourcePathsConfig {
-  /** 资源根目录，默认 "/resources" */
+  /** 资源根目录，如 "/game/xxx/resources" */
   root: string;
 }
 
 /**
- * 获取默认配置（基于当前选择的游戏）
+ * 获取默认配置（基于环境变量）
  */
 function getDefaultConfig(): ResourcePathsConfig {
   return {
-    root: getSelectedGame().resourceRoot,
+    root: getDefaultResourceRoot(),
   };
 }
 
@@ -154,25 +115,10 @@ export function getResourceRoot(): string {
 }
 
 /**
- * 重置为默认配置（基于当前选择的游戏）
+ * 重置为默认配置
  */
 export function resetResourcePaths(): void {
   currentConfig = getDefaultConfig();
-}
-
-/**
- * 切换游戏并重置资源路径
- * @param gameId 游戏 ID
- * @returns 是否需要刷新页面
- */
-export function switchGame(gameId: GameId): boolean {
-  const currentGameId = getSelectedGameId();
-  if (currentGameId === gameId) {
-    return false; // 没有变化
-  }
-  setSelectedGameId(gameId);
-  resetResourcePaths();
-  return true;
 }
 
 // =============================================================================

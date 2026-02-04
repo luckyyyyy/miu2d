@@ -15,11 +15,11 @@
  * 所有调试面板功能都从此模块导出
  */
 
-import { ALL_PLAYER_MAGICS } from "../constants/gameData";
 import { getEngineContext } from "../core/engineContext";
 import { logger } from "../core/logger";
 import type { GameVariables } from "../core/types";
 import type { GuiManager } from "../gui/guiManager";
+import { getAllCachedMagicFileNames } from "../magic";
 import type { MagicItemInfo } from "../magic";
 import type { NpcManager } from "../npc";
 import type { ObjManager } from "../obj";
@@ -27,9 +27,6 @@ import type { GoodsListManager } from "../player/goods";
 import type { MagicListManager } from "../player/magic/magicListManager";
 import type { Player } from "../player/player";
 import type { ScriptExecutor } from "../script/executor";
-
-// Re-export for backward compatibility
-export { ALL_PLAYER_MAGICS };
 
 export interface DebugManagerConfig {
   onMessage?: (message: string) => void;
@@ -470,13 +467,13 @@ export class DebugManager {
   /**
    * 添加物品
    */
-  async addItem(itemFile: string): Promise<boolean> {
+  addItem(itemFile: string): boolean {
     if (!this.goodsListManager) {
       this.showMessage("物品管理器未就绪。");
       return false;
     }
 
-    const result = await this.goodsListManager.addGoodToList(itemFile);
+    const result = this.goodsListManager.addGoodToList(itemFile);
     if (result.success && result.good) {
       this.showMessage(`获得物品: ${result.good.name}`);
       return true;
@@ -488,7 +485,7 @@ export class DebugManager {
 
   /**
    * 添加武功
-   * 委托给 Player.addMagic
+   * 委托给 Player.addMagic（消息由 Player.addMagic 统一显示）
    */
   async addMagic(magicFile: string): Promise<boolean> {
     if (!this.player) {
@@ -496,21 +493,7 @@ export class DebugManager {
       return false;
     }
 
-    const result = await this.player.addMagic(magicFile);
-    if (result) {
-      this.showMessage(`习得武功: ${magicFile}`);
-      return true;
-    }
-    // 如果添加失败可能是已有该武功
-    const magicListManager = this.magicListManager;
-    if (magicListManager) {
-      const existingMagic = magicListManager.getMagicByFileName(magicFile);
-      if (existingMagic?.magic) {
-        this.showMessage(`已拥有: ${existingMagic.magic.name}`);
-        return true;
-      }
-    }
-    return false;
+    return await this.player.addMagic(magicFile);
   }
 
   /**
@@ -522,9 +505,12 @@ export class DebugManager {
       return 0;
     }
 
+    // 从 API 缓存获取所有玩家武功
+    const playerMagics = getAllCachedMagicFileNames().filter(key => key.startsWith("player-magic-"));
+
     let addedCount = 0;
-    for (const magic of ALL_PLAYER_MAGICS) {
-      const result = await this.player.addMagic(magic.file);
+    for (const magicFile of playerMagics) {
+      const result = await this.player.addMagic(magicFile);
       if (result) addedCount++;
     }
     this.showMessage(`习得 ${addedCount} 门武功`);

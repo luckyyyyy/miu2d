@@ -38,7 +38,7 @@ export abstract class PlayerInput extends PlayerBase {
 
     // Reference: PerformActionOk() - 在 Magic/Attack/Jump/Hurt/Death 等状态下不能移动
     if (!this.canPerformAction()) {
-      logger.debug(`[Player.handleInput] BLOCKED: canPerformAction=false, state=${this._state}`);
+      // logger.debug(`[Player.handleInput] BLOCKED: canPerformAction=false, state=${this._state}`);
       return null;
     }
 

@@ -24,7 +24,7 @@ import { getDirectionFromVector, getNeighbors } from "../../utils";
 import { getDirection8, getDirectionOffset8 } from "../../utils/direction";
 import { normalizeVector } from "../../utils/math";
 import { type ApplyContext, type CharacterRef, type EndContext, getEffect } from "../effects";
-import { getCachedMagic, getMagicAtLevel } from "../magicLoader";
+import { getMagic, getMagicAtLevel } from "../magicLoader";
 import type { MagicSprite } from "../magicSprite";
 import type { MagicData } from "../types";
 import type { ICharacterHelper, MagicManagerDeps, MagicManagerState } from "./types";
@@ -118,15 +118,15 @@ export class CollisionHandler {
         };
       }
 
-      logger.log(
-        `[CollisionHandler] Ball bounce at wall: ${sprite.magic.name} at (${tile.x}, ${tile.y})`
-      );
+      // logger.log(
+      //   `[CollisionHandler] Ball bounce at wall: ${sprite.magic.name} at (${tile.x}, ${tile.y})`
+      // );
       return false; // 不销毁，继续飞行
     }
 
-    logger.log(
-      `[CollisionHandler] Sprite ${sprite.magic.name} hit map obstacle at (${tile.x}, ${tile.y})`
-    );
+    // logger.log(
+    //   `[CollisionHandler] Sprite ${sprite.magic.name} hit map obstacle at (${tile.x}, ${tile.y})`
+    // );
     this.callbacks.startDestroyAnimation(sprite);
     return true;
   }
@@ -180,11 +180,11 @@ export class CollisionHandler {
     } else if (belongCharacter.isPlayer || belongCharacter.isFighterFriend) {
       target = this.canCollide(sprite, this.npcManager.getEnemy(tileX, tileY, true));
       if (!target && sprite.elapsedMilliseconds < 100) {
-        const enemies = this.npcManager.getEnemyPositions();
-        const spritePw = sprite.positionInWorld;
-        logger.log(
-          `[CollisionHandler] Player magic ${sprite.magic.name} at tile(${tileX},${tileY})/pixel(${spritePw.x.toFixed(0)},${spritePw.y.toFixed(0)}), enemies: ${enemies}`
-        );
+        // const enemies = this.npcManager.getEnemyPositions();
+        // const spritePw = sprite.positionInWorld;
+        // logger.log(
+        //   `[CollisionHandler] Player magic ${sprite.magic.name} at tile(${tileX},${tileY})/pixel(${spritePw.x.toFixed(0)},${spritePw.y.toFixed(0)}), enemies: ${enemies}`
+        // );
       }
       characterHited = this.characterHited(sprite, target);
     } else if (belongCharacter.isEnemy) {
@@ -674,7 +674,7 @@ export class CollisionHandler {
     if (!belongCharacter) return;
 
     // 同步获取缓存
-    const baseMagic = getCachedMagic(sprite.magic.magicToUseWhenKillEnemy);
+    const baseMagic = getMagic(sprite.magic.magicToUseWhenKillEnemy);
     if (!baseMagic) {
       logger.warn(
         `[CollisionHandler] MagicToUseWhenKillEnemy not preloaded: ${sprite.magic.magicToUseWhenKillEnemy}`
@@ -725,7 +725,7 @@ export class CollisionHandler {
     if (target.magicToUseWhenBeAttacked) {
       if (target.isPlayer && this.player) {
         // 玩家: 从缓存同步获取
-        const baseMagic = getCachedMagic(target.magicToUseWhenBeAttacked);
+        const baseMagic = getMagic(target.magicToUseWhenBeAttacked);
         if (baseMagic) {
           const magic = getMagicAtLevel(baseMagic, target.level);
           this.triggerBeAttackedMagic(
@@ -881,7 +881,7 @@ export class CollisionHandler {
     directionMode: number,
     userId: string
   ): void {
-    const magic = getCachedMagic(magicFile);
+    const magic = getMagic(magicFile);
     if (!magic) {
       logger.warn(`[CollisionHandler] BounceFlyEndMagic not preloaded: ${magicFile}`);
       return;

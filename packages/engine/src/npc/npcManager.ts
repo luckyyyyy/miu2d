@@ -116,7 +116,7 @@ export class NpcManager {
 
   /**
    * Find a friend that was killed by a live character within vision distance
-   * 
+   *
    *
    * @param finder The character looking for dead friends
    * @param maxTileDistance Maximum tile distance to search
@@ -456,6 +456,21 @@ export class NpcManager {
   }
 
   /**
+   * 重新加载所有 NPC 的武功缓存（用于热重载武功配置）
+   * 清除旧缓存并重新从 API 加载
+   */
+  async reloadAllMagicCaches(): Promise<void> {
+    const promises: Promise<void>[] = [];
+    for (const npc of this.npcs.values()) {
+      npc.clearMagicCache();
+      // 重新加载武功
+      promises.push(npc.loadAllMagics());
+    }
+    await Promise.all(promises);
+    logger.info(`[NpcManager] Reloaded magic caches for ${this.npcs.size} NPCs`);
+  }
+
+  /**
    * Remove all partner NPCs
    *
    */
@@ -751,7 +766,7 @@ export class NpcManager {
 
   /**
    * Update all NPCs
-   * 
+   *
    */
   update(deltaTime: number): void {
     // Update each NPC and handle death body addition
@@ -1810,7 +1825,7 @@ export class NpcManager {
 
   /**
    * Get closest enemy type character
-   * 
+   *
    */
   getClosestEnemyTypeCharacter(
     positionInWorld: Position,
@@ -1843,7 +1858,7 @@ export class NpcManager {
 
   /**
    * Get closest enemy based on finder's relation
-   * 
+   *
    */
   getClosestEnemy(
     finder: Character,
@@ -1904,7 +1919,7 @@ export class NpcManager {
 
   /**
    * Get closest player or fighter friend
-   * 
+   *
    */
   getLiveClosestPlayerOrFighterFriend(
     positionInWorld: Position,
@@ -1992,7 +2007,7 @@ export class NpcManager {
 
   /**
    * Get closest fighter
-   * 
+   *
    */
   getClosestFighter(
     targetPositionInWorld: Position,
@@ -2033,7 +2048,7 @@ export class NpcManager {
 
   /**
    * Find enemies within tile distance
-   * 
+   *
    */
   findEnemiesInTileDistance(
     finder: Character,
@@ -2065,7 +2080,7 @@ export class NpcManager {
 
   /**
    * Find fighters within tile distance
-   * 
+   *
    */
   findFightersInTileDistance(beginTilePosition: Position, tileDistance: number): Character[] {
     const fighters: Character[] = [];

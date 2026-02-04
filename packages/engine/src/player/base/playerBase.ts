@@ -14,7 +14,7 @@ import type { Vector2 } from "../../core/types";
 import { CharacterKind, CharacterState, DEFAULT_PLAYER_STATS, Direction } from "../../core/types";
 import type { GuiManager } from "../../gui/guiManager";
 import type { MagicManager } from "../../magic";
-import { getCachedMagic, getMagicAtLevel } from "../../magic/magicLoader";
+import { getMagic, getMagicAtLevel } from "../../magic/magicLoader";
 import type { MagicData, MagicItemInfo } from "../../magic/types";
 import { MagicAddonEffect } from "../../magic/types";
 import type { Npc, NpcManager } from "../../npc";
@@ -272,7 +272,7 @@ export abstract class PlayerBase extends Character {
 
       // 同步从缓存获取修炼武功的 AttackFile（已在 MagicListManager 中预加载）
       // AttackFile = new Magic(path, noLevel=true, noAttackFile=true)
-      const baseMagic = getCachedMagic(xiuLianMagic.magic.attackFile);
+      const baseMagic = getMagic(xiuLianMagic.magic.attackFile);
       if (baseMagic) {
         this._xiuLianAttackMagic = baseMagic;
         logger.debug(`[Player] Got cached XiuLianAttackMagic: ${baseMagic.name}`);
@@ -390,16 +390,43 @@ export abstract class PlayerBase extends Character {
 
   /**
    * 添加武功到玩家武功列表
-   * @param magicFile 武功文件名（如 "剑系-无相心法.ini"）
+   * Reference: Player.AddMagic(string magicFileName)
+   *
+   * @param magicFile 武功文件名（如 "player-magic-漫天花雨.ini"）
    * @param level 武功等级，默认为 1
-   * @returns 是否添加成功
+   * @returns 是否添加成功（已存在也算成功）
    */
   async addMagic(magicFile: string, level: number = 1): Promise<boolean> {
-    const [success] = await this._magicListManager.addMagic(magicFile, { level });
-    if (!success) {
-      logger.warn(`[Player] Failed to add magic: ${magicFile}`);
+    if (!magicFile) return false;
+
+    const [isNew, index, magic] = await this._magicListManager.addMagic(magicFile, { level });
+
+    if (isNew && index !== -1 && magic) {
+      // 新学会武功
+      // Reference: GuiManager.ShowMessage("你学会了" + magic.Name);
+      this.showMessage(`你学会了${magic.name}`);
+      logger.debug(`[Player] Learned new magic: ${magic.name}`);
+      return true;
     }
-    return success;
+
+    if (!isNew && index !== -1) {
+      // 武功已存在
+      // Reference: GuiManager.ShowMessage("你已经学会了" + magic.Name);
+      if (magic) {
+        this.showMessage(`你已经学会了${magic.name}`);
+      }
+      logger.debug(`[Player] Magic already exists: ${magicFile}`);
+      return true;
+    }
+
+    // index === -1，添加失败（武功栏已满或加载失败）
+    // Reference: GuiManager.ShowMessage("武功栏已满");
+    if (magic === null) {
+      logger.warn(`[Player] Failed to load magic: ${magicFile}`);
+    } else {
+      this.showMessage("武功栏已满");
+    }
+    return false;
   }
 
   // =============================================

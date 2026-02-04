@@ -138,7 +138,7 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
 
   /**
    * Get character by name (player or NPC)
-   * 
+   *
    */
   const getCharacterByName = (name: string): Npc | Player | null => {
     if (player && player.name === name) {
@@ -599,11 +599,11 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
     },
 
     // Player
-    addGoods: async (goodsName, count) => {
+    addGoods: (goodsName, count) => {
       logger.log(`AddGoods: ${goodsName} x${count}`);
       let addedGood: Good | null = null;
       for (let i = 0; i < count; i++) {
-        const result = await goodsListManager.addGoodToList(goodsName);
+        const result = goodsListManager.addGoodToList(goodsName);
         if (result.success && result.good) {
           addedGood = result.good;
         }
@@ -816,7 +816,7 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
         logger.log(`[ScriptContext] AddRandGoods picked: ${randomItem}`);
 
         // Add the item using existing addGoods logic
-        const result = await goodsListManager.addGoodToList(randomItem);
+        const result = goodsListManager.addGoodToList(randomItem);
         if (result.success && result.good) {
           guiManager.showMessage(`你获得了${result.good.name}`);
         }
@@ -908,22 +908,8 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
       logger.log(`[ScriptContext] FreeMap (JS uses garbage collection)`);
     },
     setLevelFile: async (file) => {
-      const paths = [ResourcePath.level(file), ResourcePath.level(file.toLowerCase())];
-
-      for (const path of paths) {
-        try {
-          // Try to load the file - if it exists, it will be cached for later use
-          const content = await resourceLoader.loadText(path);
-          if (content) {
-            await levelManager.setLevelFile(path);
-            logger.log(`[ScriptContext] Level file set to: ${path}`);
-            return;
-          }
-        } catch {
-          // Try next path
-        }
-      }
-      logger.warn(`[ScriptContext] Could not load level file: ${file}`);
+      // 从 API 按需加载，自动转小写请求
+      await levelManager.setLevelFile(file);
     },
 
     // Timer commands

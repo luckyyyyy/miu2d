@@ -5,6 +5,23 @@
     "docs": "ドキュメント",
     "github": "GitHub"
   },
+  "errors": {
+    "auth": {
+      "invalidCredentials": "メールアドレスまたはパスワードが正しくありません",
+      "emailAlreadyRegistered": "このメールアドレスは既に登録されています",
+      "passwordMismatch": "パスワードが一致しません"
+    },
+    "common": {
+      "unauthorized": "ログインしてください",
+      "forbidden": "この操作を実行する権限がありません",
+      "notFound": "リソースが見つかりません",
+      "badRequest": "リクエストパラメータが無効です",
+      "serverError": "サーバーエラーが発生しました。後でもう一度お試しください",
+      "networkError": "ネットワーク接続に失敗しました。接続を確認してください",
+      "unknownError": "不明なエラーが発生しました",
+      "operationFailed": "操作に失敗しました"
+    }
+  },
   "hero": {
     "title": "Miu2D Engine",
     "slogan": "AI駆動、5分でWeb RPGゲームを作成し、世界中と共有",

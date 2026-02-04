@@ -165,7 +165,7 @@ export class GoodsListManager {
         if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
           // Process previous section
           if (currentIndex > 0 && iniFile) {
-            const good = await getGood(iniFile);
+            const good = getGood(iniFile);
             if (good) {
               this.goodsList[currentIndex] = {
                 good,
@@ -199,7 +199,7 @@ export class GoodsListManager {
 
       // Process last section
       if (currentIndex > 0 && iniFile) {
-        const good = await getGood(iniFile);
+        const good = getGood(iniFile);
         if (good) {
           this.goodsList[currentIndex] = {
             good,
@@ -268,10 +268,10 @@ export class GoodsListManager {
   /**
    * Set item at specific index (for loading saves)
    */
-  async setItemAtIndex(index: number, fileName: string, count: number = 1): Promise<boolean> {
+  setItemAtIndex(index: number, fileName: string, count: number = 1): boolean {
     if (!this.indexInRange(index)) return false;
 
-    const good = await getGood(fileName);
+    const good = getGood(fileName);
     if (!good) {
       logger.warn(`[GoodsListManager] Failed to load good: ${fileName}`);
       return false;
@@ -294,11 +294,11 @@ export class GoodsListManager {
   /**
    * Add good to list (with count parameter)
    */
-  async addGoodToListWithCount(
+  addGoodToListWithCount(
     fileName: string,
     count: number
-  ): Promise<{ success: boolean; index: number; good: Good | null }> {
-    const result = await this.addGoodToList(fileName);
+  ): { success: boolean; index: number; good: Good | null } {
+    const result = this.addGoodToList(fileName);
     if (result.success && result.index !== -1 && count > 1) {
       const info = this.goodsList[result.index];
       if (info) {
@@ -310,17 +310,17 @@ export class GoodsListManager {
 
   /**
    * Add good to list
-   * 
+   *
    *
    * Key logic:
    * - Equipment with random attributes (hasRandAttr) should NOT stack,
    *   each instance gets unique attribute values via getOneNonRandom()
    * - Regular items (drugs, event items) can stack by fileName
    */
-  async addGoodToList(
+  addGoodToList(
     fileName: string
-  ): Promise<{ success: boolean; index: number; good: Good | null }> {
-    let good = await getGood(fileName);
+  ): { success: boolean; index: number; good: Good | null } {
+    let good = getGood(fileName);
     if (!good) {
       return { success: false, index: -1, good: null };
     }
@@ -418,13 +418,16 @@ export class GoodsListManager {
 
   /**
    * Delete good by name and count
+   * Supports both display name (e.g., "羊皮") and fileName (e.g., "Goods-e22-羊皮.ini")
    */
   deleteGoodByName(name: string, count: number): void {
     let totalDeleted = 0;
+    const lowerName = name.toLowerCase();
 
     for (let i = LIST_INDEX_BEGIN; i <= LIST_INDEX_END; i++) {
       const info = this.goodsList[i];
-      if (info && info.good.name === name) {
+      // Match by display name or fileName (case-insensitive)
+      if (info && (info.good.name === name || info.good.fileName.toLowerCase() === lowerName)) {
         const good = info.good;
         let deleteCount = 0;
 
@@ -700,16 +703,17 @@ export class GoodsListManager {
 
       case GoodKind.Event:
         // ScriptManager.RunScript(good.Script)
-        // 使用 IEngineContext 运行脚本
+        // C# 参考: Utils.cs line 493-494 - Good 脚本路径固定为 script/goods/
         if (good.script) {
           const engine = getEngineContext();
           if (engine) {
-            const basePath = engine.getScriptBasePath();
+            // 物品脚本路径固定在 script/goods/ 目录下
             const fullPath = good.script.startsWith("/")
               ? good.script
-              : `${basePath}/${good.script}`;
+              : `script/goods/${good.script}`;
             logger.log(`[GoodsListManager] Running event script: ${fullPath}`);
-            engine.runScript(fullPath);
+            // Pass the good's fileName as belongObject so DelGoods() can find it
+            engine.runScript(fullPath, { type: "good", id: good.fileName });
           }
         }
         break;

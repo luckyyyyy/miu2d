@@ -3,7 +3,49 @@
     "features": "Features",
     "demo": "Demo",
     "docs": "Docs",
-    "github": "GitHub"
+    "github": "GitHub",
+    "login": "Sign in",
+    "register": "Sign up"
+  },
+  "auth": {
+    "login": {
+      "title": "Sign in to Miu2D",
+      "email": "Email",
+      "password": "Password",
+      "submit": "Sign in",
+      "loading": "Signing in...",
+      "noAccount": "Don't have an account?",
+      "toRegister": "Sign up"
+    },
+    "register": {
+      "title": "Sign up for Miu2D",
+      "name": "Username",
+      "email": "Email",
+      "password": "Password",
+      "confirmPassword": "Confirm Password",
+      "submit": "Sign up",
+      "loading": "Signing up...",
+      "hasAccount": "Already have an account?",
+      "toLogin": "Sign in"
+    },
+    "logout": "Sign out"
+  },
+  "errors": {
+    "auth": {
+      "invalidCredentials": "Invalid email or password",
+      "emailAlreadyRegistered": "Email already registered",
+      "passwordMismatch": "Passwords do not match"
+    },
+    "common": {
+      "unauthorized": "Please log in first",
+      "forbidden": "You don't have permission to perform this action",
+      "notFound": "Resource not found",
+      "badRequest": "Invalid request parameters",
+      "serverError": "Server error, please try again later",
+      "networkError": "Network connection failed, please check your network",
+      "unknownError": "An unknown error occurred",
+      "operationFailed": "Operation failed"
+    }
   },
   "hero": {
     "title": "Miu2D Engine",

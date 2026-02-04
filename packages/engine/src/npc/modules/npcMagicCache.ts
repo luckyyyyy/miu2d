@@ -7,7 +7,7 @@
 
 import type { FlyIniInfo } from "../../character/modules/flyIniManager";
 import { logger } from "../../core/logger";
-import { getMagicAtLevel, loadMagic, preloadMagicAsf } from "../../magic/magicLoader";
+import { getMagic, getMagicAtLevel, preloadMagicAsf } from "../../magic/magicLoader";
 import type { MagicData } from "../../magic/types";
 
 /** 特殊武功类型 */
@@ -96,7 +96,7 @@ export class NpcMagicCache {
 
   private async _load(magicIni: string): Promise<void> {
     if (this._cache.has(magicIni)) return;
-    const magic = await loadMagic(magicIni);
+    const magic = getMagic(magicIni);
     if (magic) {
       await preloadMagicAsf(magic);
       this._cache.set(magicIni, getMagicAtLevel(magic, this._attackLevel));

@@ -10,7 +10,7 @@ import type { CharacterBase } from "../../character/base";
 import { logger } from "../../core/logger";
 import type { Vector2 } from "../../core/types";
 import { CharacterState } from "../../core/types";
-import { getCachedMagic, getMagicAtLevel, loadMagic } from "../../magic/magicLoader";
+import { getMagic, getMagicAtLevel } from "../../magic/magicLoader";
 import type { MagicData, MagicItemInfo } from "../../magic/types";
 import { MagicAddonEffect } from "../../magic/types";
 import { getDirection, tileToPixel } from "../../utils";
@@ -245,7 +245,7 @@ export abstract class PlayerCombat extends PlayerInput {
     }
 
     // 同步获取缓存的武功
-    const magic = getCachedMagic(this._magicToUseWhenAttack);
+    const magic = getMagic(this._magicToUseWhenAttack);
     if (!magic) {
       logger.warn(`[Player] Magic not preloaded: ${this._magicToUseWhenAttack}`);
       this._magicToUseWhenAttack = null;
@@ -552,7 +552,7 @@ export abstract class PlayerCombat extends PlayerInput {
     direction: number
   ): Promise<void> {
     try {
-      const baseMagic = await loadMagic(magicFileName);
+      const baseMagic = getMagic(magicFileName);
       if (!baseMagic) {
         logger.warn(`[Player] Failed to load MagicToUseWhenBeAttacked: ${magicFileName}`);
         return;
@@ -580,7 +580,7 @@ export abstract class PlayerCombat extends PlayerInput {
     replacementMagicFileName: string
   ): Promise<void> {
     try {
-      const replacementMagic = await loadMagic(replacementMagicFileName);
+      const replacementMagic = getMagic(replacementMagicFileName);
       if (!replacementMagic) {
         logger.warn(`[Player] Failed to load UseReplaceMagic: ${replacementMagicFileName}`);
         return;

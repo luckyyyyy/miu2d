@@ -248,6 +248,13 @@ export class Npc extends Character {
     return this._magicCache.get(magicIni);
   }
 
+  /**
+   * 清除武功缓存（用于热重载武功配置）
+   */
+  clearMagicCache(): void {
+    this._magicCache.clear();
+  }
+
   // === Factory Methods ===
 
   /**

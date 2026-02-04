@@ -44,7 +44,6 @@ import type { Vector2 } from "../core/types";
 import { resourceLoader } from "../resource/resourceLoader";
 import { loadAsf } from "../sprite/asf";
 import { parseIni } from "../utils";
-import { getTextDecoder } from "../utils/encoding";
 import { Obj, type ObjKind, type ObjResInfo, ObjState } from "./obj";
 
 // Re-export types
@@ -173,18 +172,14 @@ export class ObjManager {
 
     for (const filePath of paths) {
       try {
-        // .obj files are still GBK encoded - load as binary and decode with GBK
-        const buffer = await resourceLoader.loadBinary(filePath);
+        // .obj files are now UTF-8 encoded
+        const content = await resourceLoader.loadText(filePath);
 
-        if (!buffer) {
+        if (!content) {
           continue;
         }
 
-        // Decode GBK content
-        const content = getTextDecoder().decode(buffer);
-
-        // Note: Unlike loadText, loadBinary doesn't detect HTML fallback
-        // Check for Vite's HTML fallback manually
+        // Check for Vite's HTML fallback
         if (content.trim().startsWith("<!DOCTYPE") || content.trim().startsWith("<html")) {
           continue;
         }

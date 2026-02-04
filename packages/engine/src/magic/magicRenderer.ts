@@ -226,8 +226,8 @@ export class MagicRenderer {
         sprite.vanishFramesPerDirection !== asfFramesPerDirection ||
         sprite.frameInterval !== asfInterval
       ) {
-        const oldFrameInterval = sprite.frameInterval;
-        const oldLeftFrameToPlay = sprite.leftFrameToPlay;
+        // const oldFrameInterval = sprite.frameInterval;
+        // const oldLeftFrameToPlay = sprite.leftFrameToPlay;
         sprite.vanishFramesPerDirection = asfFramesPerDirection;
         sprite.frameInterval = asfInterval;
         // 更新 leftFrameToPlay 为实际帧数（替换 startDestroyAnimation 中的占位值）
@@ -236,9 +236,9 @@ export class MagicRenderer {
         if (sprite.currentFrameIndex >= asfFramesPerDirection) {
           sprite.currentFrameIndex = sprite.currentFrameIndex % asfFramesPerDirection;
         }
-        logger.log(
-          `[MagicRenderer] Updated vanish animation: framesPerDir=${asfFramesPerDirection}, interval=${oldFrameInterval} -> ${asfInterval}, leftFrameToPlay=${oldLeftFrameToPlay} -> ${asfFramesPerDirection}`
-        );
+        // logger.log(
+        //   `[MagicRenderer] Updated vanish animation: framesPerDir=${asfFramesPerDirection}, interval=${oldFrameInterval} -> ${asfInterval}, leftFrameToPlay=${oldLeftFrameToPlay} -> ${asfFramesPerDirection}`
+        // );
       }
     } else {
       // 飞行动画：更新 frameCountsPerDirection 和 frameInterval

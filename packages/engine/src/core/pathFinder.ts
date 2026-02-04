@@ -2,7 +2,7 @@
  * PathFinder - A* and other pathfinding algorithms
  * Reference: JxqyHD/Engine/PathFinder.cs
  *
- * This module implements multiple pathfinding strategies to match 
+ * This module implements multiple pathfinding strategies to match
  * - PathOneStep: Simple greedy algorithm, walks ~10 steps
  * - SimpleMaxNpcTry: Greedy best-first search, maxTry=100
  * - PerfectMaxNpcTry: A* algorithm for NPCs, maxTry=100
@@ -357,9 +357,9 @@ export function findPathPerfect(
 
   // 检查目标位置是否是障碍物
   if (isMapObstacle(endTile)) {
-    logger.debug(
-      `[PathFinder.findPathPerfect] 目标位置是障碍物: endTile=(${endTile.x}, ${endTile.y})`
-    );
+    // logger.debug(
+    //   `[PathFinder.findPathPerfect] 目标位置是障碍物: endTile=(${endTile.x}, ${endTile.y})`
+    // );
     return [];
   }
 
@@ -391,17 +391,17 @@ export function findPathPerfect(
   while (frontier.length > 0) {
     if (maxTryCount !== -1 && tryCount++ > maxTryCount) {
       // 计算探索范围与目标的关系
-      const exploredInTargetDirection =
-        (endTile.y < startTile.y && minY < startTile.y) || // 目标在北，有向北探索
-        (endTile.y > startTile.y && maxY > startTile.y) || // 目标在南，有向南探索
-        (endTile.x < startTile.x && minX < startTile.x) || // 目标在西，有向西探索
-        (endTile.x > startTile.x && maxX > startTile.x); // 目标在东，有向东探索
+      // const exploredInTargetDirection =
+      //   (endTile.y < startTile.y && minY < startTile.y) || // 目标在北，有向北探索
+      //   (endTile.y > startTile.y && maxY > startTile.y) || // 目标在南，有向南探索
+      //   (endTile.x < startTile.x && minX < startTile.x) || // 目标在西，有向西探索
+      //   (endTile.x > startTile.x && maxX > startTile.x); // 目标在东，有向东探索
 
-      logger.debug(
-        `[PathFinder.findPathPerfect] 超过最大尝试次数: maxTryCount=${maxTryCount}, from=(${startTile.x}, ${startTile.y}) to=(${endTile.x}, ${endTile.y}), ` +
-          `exploredRange=[(${minX},${minY})-(${maxX},${maxY})], exploredNodes=${costSoFar.size}, frontierSize=${frontier.length}, ` +
-          `exploredTowardTarget=${exploredInTargetDirection}, lastExplored=${lastExplored ? `(${lastExplored.x},${lastExplored.y})` : "null"}`
-      );
+      // logger.debug(
+      //   `[PathFinder.findPathPerfect] 超过最大尝试次数: maxTryCount=${maxTryCount}, from=(${startTile.x}, ${startTile.y}) to=(${endTile.x}, ${endTile.y}), ` +
+      //     `exploredRange=[(${minX},${minY})-(${maxX},${maxY})], exploredNodes=${costSoFar.size}, frontierSize=${frontier.length}, ` +
+      //     `exploredTowardTarget=${exploredInTargetDirection}, lastExplored=${lastExplored ? `(${lastExplored.x},${lastExplored.y})` : "null"}`
+      // );
       break;
     }
 
@@ -459,9 +459,9 @@ export function findPathPerfect(
   const path = getPath(cameFrom, startTile, endTile);
 
   if (path.length === 0 && tryCount > 0) {
-    logger.debug(
-      `[PathFinder.findPathPerfect] 寻路完成但无路径: from=(${startTile.x}, ${startTile.y}) to=(${endTile.x}, ${endTile.y}), tryCount=${tryCount}, frontierExhausted=${frontier.length === 0}, noNeighborsCount=${noNeighborsCount}`
-    );
+    // logger.debug(
+    //   `[PathFinder.findPathPerfect] 寻路完成但无路径: from=(${startTile.x}, ${startTile.y}) to=(${endTile.x}, ${endTile.y}), tryCount=${tryCount}, frontierExhausted=${frontier.length === 0}, noNeighborsCount=${noNeighborsCount}`
+    // );
   }
 
   return path;

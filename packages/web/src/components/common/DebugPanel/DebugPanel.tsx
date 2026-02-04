@@ -43,6 +43,7 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({
   onXiuLianLevelUp,
   onXiuLianLevelDown,
   onReduceLife,
+  onReloadMagicConfig,
 }) => {
   // 检查脚本是否正在执行
   const isScriptRunning = !!(currentScriptInfo && !currentScriptInfo.isCompleted);
@@ -97,6 +98,7 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({
           onAddItem={onAddItem}
           onAddMagic={onAddMagic}
           onAddAllMagics={onAddAllMagics}
+          onReloadMagicConfig={onReloadMagicConfig}
         />
 
         {/* 修炼武功 */}

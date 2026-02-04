@@ -18,13 +18,19 @@ export { getSpeedRatio } from "../utils/math";
 export * from "./effects";
 // Loader
 export {
-  clearMagicCache,
-  getCachedMagic,
+  getMagic,
   getMagicAtLevel,
-  loadMagic,
-  parseMagicIni,
+  preloadMagicAsf,
   preloadMagics,
 } from "./magicLoader";
+// Magic Config Loader (API)
+export {
+  getAllCachedMagicFileNames,
+  getMagicFromApiCache,
+  isMagicApiLoaded,
+  loadMagicConfigFromApi,
+  reloadMagicConfigFromApi,
+} from "./magicConfigLoader";
 // Magic Renderer
 export { MagicRenderer, magicRenderer } from "./magicRenderer";
 // MagicSprite class (inherits from Sprite)

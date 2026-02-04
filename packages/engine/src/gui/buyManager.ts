@@ -156,7 +156,7 @@ export class BuyManager {
           count = parseInt(section.Number || "0", 10);
         }
 
-        const good = await getGood(iniFile);
+        const good = getGood(iniFile);
         if (good) {
           this.state.goods.set(i, { good, count });
         }

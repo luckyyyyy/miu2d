@@ -466,7 +466,7 @@ export class Player extends PlayerCombat {
 
   /**
    * 设置等级配置文件
-   * SetLevelFile 脚本命令
+   * SetLevelFile 脚本命令（从 API 按需加载，自动转小写）
    */
   async setLevelFile(filePath: string): Promise<void> {
     await this.levelManager.setLevelFile(filePath);

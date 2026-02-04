@@ -902,7 +902,7 @@ export class Loader {
         const goodsData = memoryData.goods;
         // 使用现有的 loadGoodsFromJSON 方法
         if (goodsData.items) {
-          await this.loadGoodsFromJSON(goodsData.items, goodsData.equips ?? [], goodsListManager);
+          this.loadGoodsFromJSON(goodsData.items, goodsData.equips ?? [], goodsListManager);
           goodsLoaded = true;
         }
       } catch (e) {
@@ -917,7 +917,7 @@ export class Loader {
       try {
         const goodsItems = await this.parseGoodsListIni(goodsIniPath);
         if (goodsItems.length > 0) {
-          await this.loadGoodsFromJSON(goodsItems, [], goodsListManager);
+          this.loadGoodsFromJSON(goodsItems, [], goodsListManager);
           logger.log(
             `[Loader] LoadGoodsList: loaded ${goodsItems.length} goods from INI (index=${index})`
           );
@@ -1278,7 +1278,7 @@ export class Loader {
       // Step 7: 加载物品列表 (75-78%)
       this.reportProgress(75, "加载物品...");
       logger.debug(`[Loader] Loading goods...`);
-      await this.loadGoodsFromJSON(data.goods, data.equips, goodsListManager);
+      this.loadGoodsFromJSON(data.goods, data.equips, goodsListManager);
 
       // Step 8: 加载备忘录 (78-80%)
       this.reportProgress(78, "加载备忘...");
@@ -1829,6 +1829,18 @@ export class Loader {
       }
     }
 
+    // 遍历快捷栏物品 (221-223)
+    for (let i = 221; i <= 223; i++) {
+      const info = goodsListManager.getItemInfo(i);
+      if (info?.good) {
+        items.push({
+          fileName: info.good.fileName,
+          count: info.count,
+          index: i, // 快捷栏物品需要记录索引
+        });
+      }
+    }
+
     return items;
   }
 
@@ -2125,36 +2137,10 @@ export class Loader {
 
     // 加载等级配置文件（如果存档中有保存）
     // case "LevelIni": -> Utils.GetLevelLists(@"ini\level\" + keyData.Value)
-    // 注意：存档可能保存完整路径或仅文件名，需要兼容两种情况
+    // 等级配置从 API 按需加载，自动转小写请求
     if (data.levelIniFile) {
-      const levelFile = data.levelIniFile;
-
-      // 判断是否已经是完整路径（以 / 或 /resources 开头）
-      const isFullPath = levelFile.startsWith("/");
-
-      // 构建候选路径列表
-      const paths: string[] = isFullPath
-        ? [levelFile, levelFile.toLowerCase()] // 已是完整路径，直接使用
-        : [ResourcePath.level(levelFile), ResourcePath.level(levelFile.toLowerCase())];
-
-      let loaded = false;
-      for (const path of paths) {
-        try {
-          const content = await resourceLoader.loadText(path);
-          if (content) {
-            await player.levelManager.setLevelFile(path);
-            logger.debug(`[Loader] Loaded player level config: ${path}`);
-            loaded = true;
-            break;
-          }
-        } catch {
-          // 尝试下一个路径
-        }
-      }
-
-      if (!loaded) {
-        logger.warn(`[Loader] Could not load level config file: ${levelFile}`);
-      }
+      await player.levelManager.setLevelFile(data.levelIniFile);
+      logger.debug(`[Loader] Loaded player level config: ${data.levelIniFile}`);
     }
   }
 
@@ -2205,17 +2191,23 @@ export class Loader {
   /**
    * 从 JSON 加载物品列表
    */
-  private async loadGoodsFromJSON(
+  private loadGoodsFromJSON(
     goods: GoodsItemData[],
     equips: (GoodsItemData | null)[],
     goodsListManager: GoodsListManager
-  ): Promise<void> {
+  ): void {
     // 清空列表
     goodsListManager.renewList();
 
-    // 加载背包物品
+    // 加载背包物品和快捷栏物品
     for (const item of goods) {
-      await goodsListManager.addGoodToListWithCount(item.fileName, item.count);
+      if (item.index !== undefined && item.index >= 221 && item.index <= 223) {
+        // 快捷栏物品：使用指定索引
+        goodsListManager.setItemAtIndex(item.index, item.fileName, item.count);
+      } else {
+        // 背包物品：自动分配位置
+        goodsListManager.addGoodToListWithCount(item.fileName, item.count);
+      }
     }
 
     // 加载装备
@@ -2223,7 +2215,7 @@ export class Loader {
       const equipItem = equips[i];
       if (equipItem) {
         const slotIndex = 201 + i;
-        await goodsListManager.setItemAtIndex(slotIndex, equipItem.fileName, 1);
+        goodsListManager.setItemAtIndex(slotIndex, equipItem.fileName, 1);
       }
     }
   }

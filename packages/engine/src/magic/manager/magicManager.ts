@@ -25,7 +25,7 @@ import {
   getEffect,
   getEffectAmount,
 } from "../effects";
-import { getCachedMagic, getMagicAtLevel } from "../magicLoader";
+import { getMagic, getMagicAtLevel } from "../magicLoader";
 import { type MagicSprite, resetMagicSpriteIdCounter } from "../magicSprite";
 import type { MagicData, UseMagicParams } from "../types";
 import { MagicMoveKind } from "../types";
@@ -565,7 +565,7 @@ export class MagicManager {
 
     const explodePos = position ?? sprite.position;
 
-    const explodeMagic = getCachedMagic(sprite.magic.explodeMagicFile);
+    const explodeMagic = getMagic(sprite.magic.explodeMagicFile);
     if (!explodeMagic) {
       logger.warn(`[MagicManager] ExplodeMagic not preloaded: ${sprite.magic.explodeMagicFile}`);
       return;

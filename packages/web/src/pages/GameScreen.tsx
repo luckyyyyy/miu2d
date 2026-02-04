@@ -12,10 +12,14 @@
  */
 
 import { logger } from "@miu2d/engine/core/logger";
+import { setResourcePaths } from "@miu2d/engine/config/resourcePaths";
+import { loadMagicConfigFromApi, reloadMagicConfigFromApi } from "@miu2d/engine/magic";
+import { setLevelConfigGameSlug, initNpcLevelConfig } from "@miu2d/engine/character/level";
+import { loadGoodsFromApi } from "@miu2d/engine/player/goods";
 import { GameEngine } from "@miu2d/engine/game/gameEngine";
 import { resourceLoader } from "@miu2d/engine/resource/resourceLoader";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import type { GameHandle } from "../components";
 import {
   DebugPanel,
@@ -104,6 +108,9 @@ type GamePhase = "title" | "playing";
 const MOBILE_SCALE = 0.75;
 
 export default function GameScreen() {
+  // 从 URL 获取 gameSlug
+  const { gameSlug } = useParams<{ gameSlug: string }>();
+
   const gameRef = useRef<GameHandle>(null);
   const gameAreaRef = useRef<HTMLDivElement>(null);
   const [gamePhase, setGamePhase] = useState<GamePhase>("title");
@@ -122,6 +129,32 @@ export default function GameScreen() {
   const { isMobile, isLandscape, screenWidth, screenHeight } = useMobile();
   // 标记是否已经处理过 URL 参数（防止从游戏返回标题后再次自动进入）
   const urlLoadHandledRef = useRef(false);
+
+  // 设置资源路径（基于 gameSlug）并加载武功/物品配置，设置等级配置 gameSlug
+  useEffect(() => {
+    if (gameSlug) {
+      setResourcePaths({ root: `/game/${gameSlug}/resources` });
+      logger.info(`[GameScreen] Resource root set to /game/${gameSlug}/resources`);
+
+      // 设置等级配置的 gameSlug（按需加载时使用）
+      setLevelConfigGameSlug(gameSlug);
+
+      // 初始化 NPC 等级配置（从 API 按需加载）
+      initNpcLevelConfig().catch((error) => {
+        logger.warn(`[GameScreen] Failed to load NPC level config:`, error);
+      });
+
+      // 加载武功配置（从 API）
+      loadMagicConfigFromApi(gameSlug).catch((error) => {
+        logger.warn(`[GameScreen] Failed to load magic config from API, will fallback to INI:`, error);
+      });
+
+      // 加载物品配置（从 API）
+      loadGoodsFromApi(gameSlug).catch((error) => {
+        logger.warn(`[GameScreen] Failed to load goods config from API:`, error);
+      });
+    }
+  }, [gameSlug]);
 
   // 获取 URL 参数
   const [searchParams, setSearchParams] = useSearchParams();
@@ -596,6 +629,12 @@ export default function GameScreen() {
                       }}
                       onXiuLianLevelUp={() => getDebugManager()?.xiuLianLevelUp()}
                       onXiuLianLevelDown={() => getDebugManager()?.xiuLianLevelDown()}
+                      onReloadMagicConfig={async () => {
+                        if (gameSlug) {
+                          // 一键重载：清除所有缓存（API + resourceLoader + NPC）并重新加载
+                          await reloadMagicConfigFromApi(gameSlug);
+                        }
+                      }}
                     />
                   </div>
                 )}

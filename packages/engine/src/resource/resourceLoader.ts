@@ -17,6 +17,7 @@
  */
 
 import { getResourceRoot, getResourceUrl } from "../config/resourcePaths";
+import { parseXnbAudio, xnbToAudioBuffer } from "./xnb";
 /**
  * 资源类型
  * - text/binary/audio: 原始资源类型
@@ -172,6 +173,12 @@ class ResourceLoaderImpl {
     // 确保以 / 开头
     if (!normalized.startsWith("/")) {
       normalized = `/${normalized}`;
+    }
+
+    // 如果路径已经包含 /game/ 前缀（编辑器场景），说明是完整路径，直接返回
+    // 例如: /game/william-chan/resources/mpc/map/...
+    if (normalized.startsWith("/game/")) {
+      return normalized;
     }
 
     // 使用配置的资源根目录
@@ -444,7 +451,24 @@ class ResourceLoaderImpl {
 
       const arrayBuffer = await response.arrayBuffer();
       const audioContext = this.getAudioContext();
-      const audioBuffer = await audioContext.decodeAudioData(arrayBuffer.slice(0));
+
+      let audioBuffer: AudioBuffer;
+
+      // 检查是否是 XNB 格式
+      if (path.toLowerCase().endsWith(".xnb")) {
+        // XNB 格式：使用自定义解析器
+        const xnbResult = parseXnbAudio(arrayBuffer);
+        if (!xnbResult.success || !xnbResult.data) {
+          logger.warn(`[ResourceLoader] XNB parse failed: ${path} - ${xnbResult.error}`);
+          this.stats.failures++;
+          this.failedPaths.add(path);
+          return null;
+        }
+        audioBuffer = xnbToAudioBuffer(xnbResult.data, audioContext);
+      } else {
+        // 标准音频格式：使用浏览器解码
+        audioBuffer = await audioContext.decodeAudioData(arrayBuffer.slice(0));
+      }
 
       // 缓存
       const estimatedSize = audioBuffer.length * audioBuffer.numberOfChannels * 4; // Float32
@@ -794,6 +818,29 @@ class ResourceLoaderImpl {
       default:
         return null;
     }
+  }
+
+  /**
+   * 同步设置缓存（用于外部预加载的数据）
+   * 例如：从 API 获取的武功配置数据
+   */
+  setCache<T>(path: string, data: T, type: ResourceType): void {
+    const normalizedPath = this.normalizePath(path);
+    const now = Date.now();
+
+    // 估算数据大小
+    const size = JSON.stringify(data).length;
+
+    const cacheKey = `${type}:${normalizedPath}`;
+    this.iniCache.set(cacheKey, {
+      data,
+      size,
+      loadTime: now,
+      lastAccess: now,
+      accessCount: 0,
+    });
+
+    this.updateCacheStats();
   }
 
   /**

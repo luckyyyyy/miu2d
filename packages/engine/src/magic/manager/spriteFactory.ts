@@ -598,11 +598,11 @@ export class SpriteFactory {
 
       switch (magic.specialKind) {
         case 1:
-          effectTarget.life += effectAmount;
+          effectTarget.addLife(effectAmount);
           this.callbacks.addMagicSprite(sprite);
           break;
         case 2:
-          effectTarget.thew += effectAmount;
+          effectTarget.addThew(effectAmount);
           this.callbacks.addMagicSprite(sprite);
           break;
         case 3:

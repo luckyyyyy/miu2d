@@ -1130,11 +1130,11 @@ export abstract class CharacterMovement extends CharacterBase {
   stateInitialize(endInteract: boolean = true, noEndPlayCurrentDir: boolean = false): void {
     // 调试：追踪谁在调用 stateInitialize
     if (this.path.length > 0) {
-      logger.debug(
-        `[CharacterMovement.stateInitialize] 清空路径! pathLen=${this.path.length}, destTile=(${this._destinationMoveTilePosition?.x}, ${this._destinationMoveTilePosition?.y}), state=${this._state}, endInteract=${endInteract}, noEndPlayCurrentDir=${noEndPlayCurrentDir}`
-      );
+      // logger.debug(
+      //   `[CharacterMovement.stateInitialize] 清空路径! pathLen=${this.path.length}, destTile=(${this._destinationMoveTilePosition?.x}, ${this._destinationMoveTilePosition?.y}), state=${this._state}, endInteract=${endInteract}, noEndPlayCurrentDir=${noEndPlayCurrentDir}`
+      // );
       // 打印调用栈
-      console.trace("[stateInitialize] 调用栈");
+      // console.trace("[stateInitialize] 调用栈");
     }
 
     // if(!noEndPlayCurrentDir) { EndPlayCurrentDirOnce(); }

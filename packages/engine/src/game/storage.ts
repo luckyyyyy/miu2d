@@ -220,6 +220,8 @@ export interface GoodsItemData {
   fileName: string;
   /** 数量 */
   count: number;
+  /** 物品索引 (可选，用于快捷栏物品 221-223) */
+  index?: number;
 }
 
 /**

@@ -48,11 +48,12 @@ async function loadCursorAsf(): Promise<void> {
   }
 
   loadPromise = (async () => {
-    const fullPath = buildPath(MOUSE_CONFIG.image);
-    logger.debug(`[GameCursor] Loading cursor ASF from: ${fullPath}`);
+    // loadAsf 内部会自动添加资源根目录
+    const imagePath = MOUSE_CONFIG.image;
+    logger.debug(`[GameCursor] Loading cursor ASF from: ${imagePath}`);
 
     try {
-      const data = await loadAsf(fullPath);
+      const data = await loadAsf(imagePath);
       if (data && data.frames.length > 0) {
         cachedAsfData = data;
         logger.debug(`[GameCursor] Loaded ${data.frames.length} frames`);

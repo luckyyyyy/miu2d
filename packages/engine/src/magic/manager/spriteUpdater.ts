@@ -20,7 +20,7 @@ import {
   getPosition as getCharPosition,
   getEffect,
 } from "../effects";
-import { getCachedMagic, getMagicAtLevel } from "../magicLoader";
+import { getMagic, getMagicAtLevel } from "../magicLoader";
 import type { WorkItem } from "../magicSprite";
 import { MagicSprite } from "../magicSprite";
 import type { MagicData } from "../types";
@@ -374,7 +374,7 @@ export class SpriteUpdater {
    */
   startDestroyAnimation(sprite: MagicSprite): void {
     if (sprite.isInDestroy) return;
-    logger.log(`[SpriteUpdater] startDestroyAnimation: ${sprite.magic.name}`);
+    // logger.log(`[SpriteUpdater] startDestroyAnimation: ${sprite.magic.name}`);
     sprite.isInDestroy = true;
 
     // SuperMode 全屏攻击
@@ -547,7 +547,7 @@ export class SpriteUpdater {
     const targetPos = this.charHelper.getCharacterPosition(targetId);
     if (!targetPos) return;
 
-    const magic = getCachedMagic(magicName);
+    const magic = getMagic(magicName);
     if (!magic) {
       logger.warn(`[SpriteUpdater] ParasiticMagic not preloaded: ${magicName}`);
       return;
@@ -759,7 +759,7 @@ export class SpriteUpdater {
     character: { positionInWorld: Vector2 },
     userId: string
   ): void {
-    const magic = getCachedMagic(magicFile);
+    const magic = getMagic(magicFile);
     if (!magic) {
       logger.warn(`[SpriteUpdater] JumpEndMagic not preloaded: ${magicFile}`);
       return;

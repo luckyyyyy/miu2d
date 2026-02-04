@@ -213,6 +213,7 @@ const enableRunCommand: CommandHandler = (_params, _result, helpers) => {
 
 /**
  * SetLevelFile - Set level file
+ * 从 API 按需加载等级配置，自动转小写请求
  */
 const setLevelFileCommand: CommandHandler = async (params, _result, helpers) => {
   const file = helpers.resolveString(params[0] || "");

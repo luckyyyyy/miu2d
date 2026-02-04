@@ -9,6 +9,8 @@
     "./audio": "./src/audio/index.ts",
     "./character": "./src/character/index.ts",
     "./character/*": "./src/character/*.ts",
+    "./character/level": "./src/character/level/index.ts",
+    "./character/level/*": "./src/character/level/*.ts",
     "./config": "./src/config/index.ts",
     "./config/*": "./src/config/*.ts",
     "./constants/*": "./src/constants/*.ts",

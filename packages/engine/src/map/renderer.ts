@@ -46,7 +46,9 @@ export async function loadMapMpcs(
   renderer: MapRenderer,
   mapData: JxqyMapData,
   mapNameWithoutExt: string,
-  onProgress?: (progress: number) => void
+  onProgress?: (progress: number) => void,
+  /** 可选的资源根目录，用于编辑器等场景覆盖默认路径 */
+  resourceRoot?: string
 ): Promise<boolean> {
   renderer.loadVersion++;
   const currentLoadVersion = renderer.loadVersion;
@@ -65,7 +67,13 @@ export async function loadMapMpcs(
     mpcBasePath = mpcBasePath.replace(/\\/g, "/");
   }
   if (!mpcBasePath.startsWith("/")) {
-    mpcBasePath = ResourcePath.from(mpcBasePath);
+    // 如果提供了 resourceRoot，使用它；否则使用全局配置
+    if (resourceRoot) {
+      const normalized = mpcBasePath.startsWith("/") ? mpcBasePath.slice(1) : mpcBasePath;
+      mpcBasePath = `${resourceRoot}/${normalized}`;
+    } else {
+      mpcBasePath = ResourcePath.from(mpcBasePath);
+    }
   }
 
   const totalMpcs = mapData.mpcFileNames.filter((n) => n !== null).length;
