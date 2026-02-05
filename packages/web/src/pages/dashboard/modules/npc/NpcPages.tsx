@@ -7,7 +7,8 @@ import { trpc } from "../../../../lib/trpc";
 import { useToast } from "../../../../contexts/ToastContext";
 import { DashboardIcons } from "../../icons";
 import { useDashboard } from "../../DashboardContext";
-import { ResourceFilePicker } from "../../../../components/common/ResourceFilePicker";
+import { NumberInput, ResourceFilePicker } from "../../../../components/common";
+import { MagicPicker } from "../../../../components/common/pickers";
 import type {
   Npc,
   NpcKind,
@@ -293,6 +294,8 @@ export function NpcDetailPage() {
                 formData={formData}
                 updateField={updateField}
                 visibleFields={visibleFields}
+                gameId={gameId!}
+                gameSlug={gameSlug!}
               />
             )}
 
@@ -406,23 +409,21 @@ function BasicInfoSection({
 
         <div>
           <label className="block text-sm text-[#858585] mb-1">等级</label>
-          <input
-            type="number"
+          <NumberInput
             value={formData.level ?? 1}
-            onChange={(e) => updateField("level", parseInt(e.target.value, 10) || 1)}
-            className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white focus:outline-none focus:border-[#0098ff]"
+            onChange={(val) => updateField("level", val ?? 1)}
+            className="w-full"
           />
         </div>
 
         <div>
           <label className="block text-sm text-[#858585] mb-1">移动速度</label>
-          <input
-            type="number"
+          <NumberInput
             min={0}
             max={10}
             value={formData.walkSpeed ?? 1}
-            onChange={(e) => updateField("walkSpeed", parseInt(e.target.value, 10) || 1)}
-            className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white focus:outline-none focus:border-[#0098ff]"
+            onChange={(val) => updateField("walkSpeed", val ?? 1)}
+            className="w-full"
           />
         </div>
 
@@ -446,10 +447,14 @@ function CombatSection({
   formData,
   updateField,
   visibleFields,
+  gameId,
+  gameSlug,
 }: {
   formData: Partial<Npc>;
   updateField: <K extends keyof Npc>(key: K, value: Npc[K]) => void;
   visibleFields: Set<string>;
+  gameId: string;
+  gameSlug: string;
 }) {
   return (
     <div className="space-y-5">
@@ -461,23 +466,21 @@ function CombatSection({
         <div className="p-4 grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm text-[#858585] mb-1">当前生命</label>
-            <input
-              type="number"
+            <NumberInput
               min={0}
               value={formData.life ?? 100}
-              onChange={(e) => updateField("life", parseInt(e.target.value, 10) || 0)}
-              className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white focus:outline-none focus:border-[#0098ff]"
+              onChange={(val) => updateField("life", val ?? 0)}
+              className="w-full"
             />
           </div>
 
           <div>
             <label className="block text-sm text-[#858585] mb-1">最大生命</label>
-            <input
-              type="number"
+            <NumberInput
               min={0}
               value={formData.lifeMax ?? 100}
-              onChange={(e) => updateField("lifeMax", parseInt(e.target.value, 10) || 0)}
-              className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white focus:outline-none focus:border-[#0098ff]"
+              onChange={(val) => updateField("lifeMax", val ?? 0)}
+              className="w-full"
             />
           </div>
 
@@ -485,23 +488,21 @@ function CombatSection({
             <>
               <div>
                 <label className="block text-sm text-[#858585] mb-1">当前体力</label>
-                <input
-                  type="number"
+                <NumberInput
                   min={0}
                   value={formData.thew ?? 100}
-                  onChange={(e) => updateField("thew", parseInt(e.target.value, 10) || 0)}
-                  className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white focus:outline-none focus:border-[#0098ff]"
+                  onChange={(val) => updateField("thew", val ?? 0)}
+                  className="w-full"
                 />
               </div>
 
               <div>
                 <label className="block text-sm text-[#858585] mb-1">最大体力</label>
-                <input
-                  type="number"
+                <NumberInput
                   min={0}
                   value={formData.thewMax ?? 100}
-                  onChange={(e) => updateField("thewMax", parseInt(e.target.value, 10) || 0)}
-                  className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white focus:outline-none focus:border-[#0098ff]"
+                  onChange={(val) => updateField("thewMax", val ?? 0)}
+                  className="w-full"
                 />
               </div>
             </>
@@ -511,23 +512,21 @@ function CombatSection({
             <>
               <div>
                 <label className="block text-sm text-[#858585] mb-1">当前内力</label>
-                <input
-                  type="number"
+                <NumberInput
                   min={0}
                   value={formData.mana ?? 100}
-                  onChange={(e) => updateField("mana", parseInt(e.target.value, 10) || 0)}
-                  className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white focus:outline-none focus:border-[#0098ff]"
+                  onChange={(val) => updateField("mana", val ?? 0)}
+                  className="w-full"
                 />
               </div>
 
               <div>
                 <label className="block text-sm text-[#858585] mb-1">最大内力</label>
-                <input
-                  type="number"
+                <NumberInput
                   min={0}
                   value={formData.manaMax ?? 100}
-                  onChange={(e) => updateField("manaMax", parseInt(e.target.value, 10) || 0)}
-                  className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white focus:outline-none focus:border-[#0098ff]"
+                  onChange={(val) => updateField("manaMax", val ?? 0)}
+                  className="w-full"
                 />
               </div>
             </>
@@ -544,24 +543,22 @@ function CombatSection({
           <div className="p-4 grid grid-cols-3 gap-4">
             <div>
               <label className="block text-sm text-[#858585] mb-1">攻击力</label>
-              <input
-                type="number"
+              <NumberInput
                 min={0}
                 value={formData.attack ?? 10}
-                onChange={(e) => updateField("attack", parseInt(e.target.value, 10) || 0)}
-                className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white focus:outline-none focus:border-[#0098ff]"
+                onChange={(val) => updateField("attack", val ?? 0)}
+                className="w-full"
               />
             </div>
 
             {visibleFields.has("defend") && (
               <div>
                 <label className="block text-sm text-[#858585] mb-1">防御力</label>
-                <input
-                  type="number"
+                <NumberInput
                   min={0}
                   value={formData.defend ?? 5}
-                  onChange={(e) => updateField("defend", parseInt(e.target.value, 10) || 0)}
-                  className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white focus:outline-none focus:border-[#0098ff]"
+                  onChange={(val) => updateField("defend", val ?? 0)}
+                  className="w-full"
                 />
               </div>
             )}
@@ -569,12 +566,11 @@ function CombatSection({
             {visibleFields.has("evade") && (
               <div>
                 <label className="block text-sm text-[#858585] mb-1">闪避值</label>
-                <input
-                  type="number"
+                <NumberInput
                   min={0}
                   value={formData.evade ?? 10}
-                  onChange={(e) => updateField("evade", parseInt(e.target.value, 10) || 0)}
-                  className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white focus:outline-none focus:border-[#0098ff]"
+                  onChange={(val) => updateField("evade", val ?? 0)}
+                  className="w-full"
                 />
               </div>
             )}
@@ -582,13 +578,12 @@ function CombatSection({
             {visibleFields.has("attackRadius") && (
               <div>
                 <label className="block text-sm text-[#858585] mb-1">攻击范围</label>
-                <input
-                  type="number"
+                <NumberInput
                   min={1}
                   max={10}
                   value={formData.attackRadius ?? 1}
-                  onChange={(e) => updateField("attackRadius", parseInt(e.target.value, 10) || 1)}
-                  className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white focus:outline-none focus:border-[#0098ff]"
+                  onChange={(val) => updateField("attackRadius", val ?? 1)}
+                  className="w-full"
                 />
               </div>
             )}
@@ -596,25 +591,24 @@ function CombatSection({
             {visibleFields.has("exp") && (
               <div>
                 <label className="block text-sm text-[#858585] mb-1">击杀经验</label>
-                <input
-                  type="number"
+                <NumberInput
                   min={0}
                   value={formData.exp ?? 0}
-                  onChange={(e) => updateField("exp", parseInt(e.target.value, 10) || 0)}
-                  className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white focus:outline-none focus:border-[#0098ff]"
+                  onChange={(val) => updateField("exp", val ?? 0)}
+                  className="w-full"
                 />
               </div>
             )}
 
             {visibleFields.has("flyIni") && (
               <div className="col-span-3">
-                <label className="block text-sm text-[#858585] mb-1">飞行攻击（关联武功 Key）</label>
-                <input
-                  type="text"
-                  value={formData.flyIni || ""}
-                  onChange={(e) => updateField("flyIni", e.target.value || null)}
-                  placeholder="例如: magic-杀人蜂攻击.ini"
-                  className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white focus:outline-none focus:border-[#0098ff]"
+                <MagicPicker
+                  label="飞行攻击"
+                  value={formData.flyIni}
+                  onChange={(v) => updateField("flyIni", v)}
+                  gameId={gameId}
+                  gameSlug={gameSlug}
+                  placeholder="选择关联武功"
                 />
               </div>
             )}
@@ -773,38 +767,35 @@ function BehaviorSection({
 
             <div>
               <label className="block text-sm text-[#858585] mb-1">初始方向 (0-7)</label>
-              <input
-                type="number"
+              <NumberInput
                 min={0}
                 max={7}
                 value={formData.dir ?? 0}
-                onChange={(e) => updateField("dir", parseInt(e.target.value, 10) || 0)}
-                className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white focus:outline-none focus:border-[#0098ff]"
+                onChange={(val) => updateField("dir", val ?? 0)}
+                className="w-full"
               />
             </div>
 
             {visibleFields.has("idle") && (
               <div>
                 <label className="block text-sm text-[#858585] mb-1">攻击间隔（帧）</label>
-                <input
-                  type="number"
+                <NumberInput
                   min={0}
                   value={formData.idle ?? 0}
-                  onChange={(e) => updateField("idle", parseInt(e.target.value, 10) || 0)}
-                  className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white focus:outline-none focus:border-[#0098ff]"
+                  onChange={(val) => updateField("idle", val ?? 0)}
+                  className="w-full"
                 />
               </div>
             )}
 
             <div>
               <label className="block text-sm text-[#858585] mb-1">亮度/透明度</label>
-              <input
-                type="number"
+              <NumberInput
                 min={0}
                 max={255}
                 value={formData.lum ?? 0}
-                onChange={(e) => updateField("lum", parseInt(e.target.value, 10) || 0)}
-                className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white focus:outline-none focus:border-[#0098ff]"
+                onChange={(val) => updateField("lum", val ?? 0)}
+                className="w-full"
               />
             </div>
           </div>

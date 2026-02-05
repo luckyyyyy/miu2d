@@ -5,6 +5,7 @@
 import { useCallback, useEffect, useState, useRef } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { trpc } from "../../../lib/trpc";
+import { NumberInput } from "@/components/common";
 import { useToast } from "../../../contexts/ToastContext";
 import { DashboardIcons } from "../icons";
 import { useDashboard } from "../DashboardContext";
@@ -433,11 +434,10 @@ export function LevelConfigDetailPage() {
                 <label className="block text-xs text-[#858585] mb-1">
                   最大等级
                 </label>
-                <input
-                  type="number"
+                <NumberInput
                   value={formData.maxLevel || 80}
-                  onChange={(e) => {
-                    const newMax = Math.min(100, Math.max(1, parseInt(e.target.value) || 80));
+                  onChange={(val) => {
+                    const newMax = Math.min(100, Math.max(1, val ?? 80));
                     setFormData((prev) => ({
                       ...prev,
                       maxLevel: newMax,
@@ -446,7 +446,7 @@ export function LevelConfigDetailPage() {
                   }}
                   min={1}
                   max={100}
-                  className="w-full px-3 py-2 bg-[#3c3c3c] border border-[#454545] rounded-lg text-white text-sm focus:outline-none focus:border-[#0098ff]"
+                  className="w-full"
                 />
               </div>
             </div>
@@ -516,122 +516,114 @@ export function LevelConfigDetailPage() {
                         </td>
                         {isPlayerConfig && (
                           <td className="px-3 py-1.5">
-                            <input
-                              type="number"
+                            <NumberInput
                               value={levelData.levelUpExp || 0}
-                              onChange={(e) =>
+                              onChange={(val) =>
                                 updateLevel(
                                   levelIndex,
                                   "levelUpExp",
-                                  parseInt(e.target.value) || 0
+                                  val ?? 0
                                 )
                               }
-                              className="w-24 px-2 py-1 bg-[#3c3c3c] border border-[#454545] rounded text-white text-center text-xs focus:outline-none focus:border-[#0098ff]"
+                              className="w-24"
                             />
                           </td>
                         )}
                         {!isPlayerConfig && (
                           <td className="px-3 py-1.5">
-                            <input
-                              type="number"
+                            <NumberInput
                               value={levelData.exp || 0}
-                              onChange={(e) =>
+                              onChange={(val) =>
                                 updateLevel(
                                   levelIndex,
                                   "exp",
-                                  parseInt(e.target.value) || 0
+                                  val ?? 0
                                 )
                               }
-                              className="w-20 px-2 py-1 bg-[#3c3c3c] border border-[#454545] rounded text-white text-center text-xs focus:outline-none focus:border-[#0098ff]"
+                              className="w-20"
                             />
                           </td>
                         )}
                         <td className="px-3 py-1.5">
-                          <input
-                            type="number"
+                          <NumberInput
                             value={levelData.lifeMax || 0}
-                            onChange={(e) =>
+                            onChange={(val) =>
                               updateLevel(
                                 levelIndex,
                                 "lifeMax",
-                                parseInt(e.target.value) || 0
+                                val ?? 0
                               )
                             }
-                            className="w-20 px-2 py-1 bg-[#3c3c3c] border border-[#454545] rounded text-white text-center text-xs focus:outline-none focus:border-[#0098ff]"
+                            className="w-20"
                           />
                         </td>
                         {isPlayerConfig && (
                           <>
                             <td className="px-3 py-1.5">
-                              <input
-                                type="number"
+                              <NumberInput
                                 value={levelData.thewMax || 0}
-                                onChange={(e) =>
+                                onChange={(val) =>
                                   updateLevel(
                                     levelIndex,
                                     "thewMax",
-                                    parseInt(e.target.value) || 0
+                                    val ?? 0
                                   )
                                 }
-                                className="w-16 px-2 py-1 bg-[#3c3c3c] border border-[#454545] rounded text-white text-center text-xs focus:outline-none focus:border-[#0098ff]"
+                                className="w-16"
                               />
                             </td>
                             <td className="px-3 py-1.5">
-                              <input
-                                type="number"
+                              <NumberInput
                                 value={levelData.manaMax || 0}
-                                onChange={(e) =>
+                                onChange={(val) =>
                                   updateLevel(
                                     levelIndex,
                                     "manaMax",
-                                    parseInt(e.target.value) || 0
+                                    val ?? 0
                                   )
                                 }
-                                className="w-16 px-2 py-1 bg-[#3c3c3c] border border-[#454545] rounded text-white text-center text-xs focus:outline-none focus:border-[#0098ff]"
+                                className="w-16"
                               />
                             </td>
                           </>
                         )}
                         <td className="px-3 py-1.5">
-                          <input
-                            type="number"
+                          <NumberInput
                             value={levelData.attack || 0}
-                            onChange={(e) =>
+                            onChange={(val) =>
                               updateLevel(
                                 levelIndex,
                                 "attack",
-                                parseInt(e.target.value) || 0
+                                val ?? 0
                               )
                             }
-                            className="w-16 px-2 py-1 bg-[#3c3c3c] border border-[#454545] rounded text-white text-center text-xs focus:outline-none focus:border-[#0098ff]"
+                            className="w-16"
                           />
                         </td>
                         <td className="px-3 py-1.5">
-                          <input
-                            type="number"
+                          <NumberInput
                             value={levelData.defend || 0}
-                            onChange={(e) =>
+                            onChange={(val) =>
                               updateLevel(
                                 levelIndex,
                                 "defend",
-                                parseInt(e.target.value) || 0
+                                val ?? 0
                               )
                             }
-                            className="w-16 px-2 py-1 bg-[#3c3c3c] border border-[#454545] rounded text-white text-center text-xs focus:outline-none focus:border-[#0098ff]"
+                            className="w-16"
                           />
                         </td>
                         <td className="px-3 py-1.5">
-                          <input
-                            type="number"
+                          <NumberInput
                             value={levelData.evade || 0}
-                            onChange={(e) =>
+                            onChange={(val) =>
                               updateLevel(
                                 levelIndex,
                                 "evade",
-                                parseInt(e.target.value) || 0
+                                val ?? 0
                               )
                             }
-                            className="w-14 px-2 py-1 bg-[#3c3c3c] border border-[#454545] rounded text-white text-center text-xs focus:outline-none focus:border-[#0098ff]"
+                            className="w-14"
                           />
                         </td>
                         {isPlayerConfig && (

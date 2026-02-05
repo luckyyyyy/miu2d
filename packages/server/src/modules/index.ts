@@ -6,4 +6,5 @@ import "./goods";
 import "./level";
 import "./magic";
 import "./npc";
+import "./obj";
 import "./user";

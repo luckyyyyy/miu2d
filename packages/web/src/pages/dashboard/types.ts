@@ -43,6 +43,12 @@ export const DASHBOARD_MODULES = {
     icon: "npc",
     basePath: "npcs",
   },
+  objs: {
+    id: "objs",
+    label: "物件管理",
+    icon: "obj",
+    basePath: "objs",
+  },
   goods: {
     id: "goods",
     label: "物品编辑",

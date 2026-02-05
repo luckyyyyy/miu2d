@@ -18,6 +18,7 @@ const activityBarItems: ActivityBarItem[] = [
   { id: "gameSettings", icon: "game", label: "游戏编辑", path: "game" },
   { id: "characters", icon: "character", label: "角色编辑", path: "characters" },
   { id: "npcs", icon: "npc", label: "NPC编辑", path: "npcs" },
+  { id: "objs", icon: "obj", label: "物件管理", path: "objs" },
   { id: "goods", icon: "goods", label: "物品编辑", path: "goods" },
   { id: "shops", icon: "shop", label: "商店编辑", path: "shops" },
   { id: "levels", icon: "level", label: "等级与强度", path: "levels" },

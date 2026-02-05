@@ -2,6 +2,10 @@
  * Common components - 通用组件（非游戏专属）
  */
 
+// Number Input - 自定义数字输入框
+export { NumberInput } from "./NumberInput";
+export type { NumberInputProps } from "./NumberInput";
+
 // Debug Panel - 开发调试面板
 export { DebugPanel } from "./DebugPanel/index";
 export type {

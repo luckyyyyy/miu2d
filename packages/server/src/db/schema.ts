@@ -173,3 +173,28 @@ export const npcs = pgTable("npcs", {
   unique("npcs_game_id_key_unique").on(t.gameId, t.key)
 ]);
 
+/**
+ * Object 表
+ * 存储 Object 配置（合并了 obj/*.ini 和 objres/*.ini 的内容）
+ * 类型定义在 @miu2d/types 中，供引擎、前端、后端共用
+ */
+export const objs = pgTable("objs", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  /** 所属游戏（索引字段） */
+  gameId: uuid("game_id").references(() => games.id, { onDelete: "cascade" }).notNull(),
+  /** 唯一标识符（文件名，gameId + key 唯一） */
+  key: text("key").notNull(),
+  /** Object 名称（索引字段，便于搜索） */
+  name: text("name").notNull(),
+  /** Object 类型（索引字段）: Dynamic / Static / Body / LoopingSound / RandSound / Door / Trap / Drop */
+  kind: text("kind", { enum: ["Dynamic", "Static", "Body", "LoopingSound", "RandSound", "Door", "Trap", "Drop"] }).notNull().default("Static"),
+  /** 完整 Object 配置（JSONB，存储所有属性和资源配置） */
+  data: jsonb("data").notNull(),
+  /** 创建时间 */
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  /** 更新时间 */
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow()
+}, (t) => [
+  unique("objs_game_id_key_unique").on(t.gameId, t.key)
+]);
+

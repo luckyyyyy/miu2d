@@ -2,6 +2,7 @@
  * 角色编辑页面
  */
 import { useParams, useNavigate } from "react-router-dom";
+import { NumberInput } from "@/components/common";
 import { ListEditorPage, DetailEditorPage } from "./ListEditorPage";
 
 // 模拟数据
@@ -89,10 +90,10 @@ export function CharacterDetailPage() {
             ].map((attr) => (
               <div key={attr.key}>
                 <label className="block text-sm text-[#858585] mb-1">{attr.label}</label>
-                <input
-                  type="number"
-                  defaultValue={attr.value}
-                  className="w-full px-3 py-2 bg-[#3c3c3c] border border-[#454545] rounded text-white focus:outline-none focus:border-[#0098ff]"
+                <NumberInput
+                  value={attr.value}
+                  onChange={() => {}}
+                  className="w-full"
                 />
               </div>
             ))}

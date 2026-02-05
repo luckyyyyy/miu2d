@@ -8,6 +8,7 @@ import { useToast } from "../../../../contexts/ToastContext";
 import { DashboardIcons } from "../../icons";
 import { useDashboard } from "../../DashboardContext";
 import { ResourceFieldGroup } from "../../../../components/common/ResourceFilePicker";
+import { NumberInput } from "@/components/common";
 import type {
   Magic,
   MagicLevel,
@@ -540,13 +541,11 @@ function BasicInfoSection({
 
           <div>
             <label className="block text-sm text-[#858585] mb-1">速度</label>
-            <input
-              type="number"
+            <NumberInput
               min={0}
               max={32}
               value={formData.speed ?? 8}
-              onChange={(e) => updateField("speed", parseInt(e.target.value, 10) || 0)}
-              className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white focus:outline-none focus:border-[#0098ff]"
+              onChange={(val) => updateField("speed", val ?? 0)}
             />
           </div>
 
@@ -569,12 +568,10 @@ function BasicInfoSection({
               </div>
               <div>
                 <label className="block text-sm text-[#858585] mb-1">范围半径</label>
-                <input
-                  type="number"
+                <NumberInput
                   min={0}
                   value={formData.rangeRadius ?? 0}
-                  onChange={(e) => updateField("rangeRadius", parseInt(e.target.value, 10) || 0)}
-                  className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white focus:outline-none focus:border-[#0098ff]"
+                  onChange={(val) => updateField("rangeRadius", val ?? 0)}
                 />
               </div>
             </>
@@ -584,35 +581,29 @@ function BasicInfoSection({
           {!isRegionBased && visibleFields.has("rangeRadius") && (
             <div>
               <label className="block text-sm text-[#858585] mb-1">范围半径</label>
-              <input
-                type="number"
+              <NumberInput
                 min={0}
                 value={formData.rangeRadius ?? 0}
-                onChange={(e) => updateField("rangeRadius", parseInt(e.target.value, 10) || 0)}
-                className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white focus:outline-none focus:border-[#0098ff]"
+                onChange={(val) => updateField("rangeRadius", val ?? 0)}
               />
             </div>
           )}
 
           <div>
             <label className="block text-sm text-[#858585] mb-1">等待帧数</label>
-            <input
-              type="number"
+            <NumberInput
               min={0}
               value={formData.waitFrame ?? 0}
-              onChange={(e) => updateField("waitFrame", parseInt(e.target.value, 10) || 0)}
-              className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white focus:outline-none focus:border-[#0098ff]"
+              onChange={(val) => updateField("waitFrame", val ?? 0)}
             />
           </div>
 
           <div>
             <label className="block text-sm text-[#858585] mb-1">生命帧数</label>
-            <input
-              type="number"
+            <NumberInput
               min={0}
               value={formData.lifeFrame ?? 4}
-              onChange={(e) => updateField("lifeFrame", parseInt(e.target.value, 10) || 0)}
-              className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white focus:outline-none focus:border-[#0098ff]"
+              onChange={(val) => updateField("lifeFrame", val ?? 0)}
             />
           </div>
 
@@ -681,12 +672,10 @@ function BasicInfoSection({
           {visibleFields.has("traceSpeed") && formData.traceEnemy && (
             <div>
               <label className="block text-sm text-[#858585] mb-1">追踪速度</label>
-              <input
-                type="number"
+              <NumberInput
                 min={0}
                 value={formData.traceSpeed ?? 0}
-                onChange={(e) => updateField("traceSpeed", parseInt(e.target.value, 10) || 0)}
-                className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white focus:outline-none focus:border-[#0098ff]"
+                onChange={(val) => updateField("traceSpeed", val ?? 0)}
               />
             </div>
           )}
@@ -717,11 +706,9 @@ function BasicInfoSection({
           {visibleFields.has("specialKindValue") && (
             <div>
               <label className="block text-sm text-[#858585] mb-1">效果值</label>
-              <input
-                type="number"
+              <NumberInput
                 value={formData.specialKindValue ?? 0}
-                onChange={(e) => updateField("specialKindValue", parseInt(e.target.value, 10) || 0)}
-                className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white focus:outline-none focus:border-[#0098ff]"
+                onChange={(val) => updateField("specialKindValue", val ?? 0)}
               />
             </div>
           )}
@@ -729,12 +716,10 @@ function BasicInfoSection({
           {visibleFields.has("specialKindMilliSeconds") && (
             <div>
               <label className="block text-sm text-[#858585] mb-1">持续时间(ms)</label>
-              <input
-                type="number"
+              <NumberInput
                 min={0}
                 value={formData.specialKindMilliSeconds ?? 0}
-                onChange={(e) => updateField("specialKindMilliSeconds", parseInt(e.target.value, 10) || 0)}
-                className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white focus:outline-none focus:border-[#0098ff]"
+                onChange={(val) => updateField("specialKindMilliSeconds", val ?? 0)}
               />
             </div>
           )}
@@ -754,25 +739,21 @@ function BasicInfoSection({
 
           <div>
             <label className="block text-sm text-[#858585] mb-1">飞行亮度 (0-31)</label>
-            <input
-              type="number"
+            <NumberInput
               min={0}
               max={31}
               value={formData.flyingLum ?? 0}
-              onChange={(e) => updateField("flyingLum", parseInt(e.target.value, 10) || 0)}
-              className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white focus:outline-none focus:border-[#0098ff]"
+              onChange={(val) => updateField("flyingLum", val ?? 0)}
             />
           </div>
 
           <div>
             <label className="block text-sm text-[#858585] mb-1">消失亮度 (0-31)</label>
-            <input
-              type="number"
+            <NumberInput
               min={0}
               max={31}
               value={formData.vanishLum ?? 0}
-              onChange={(e) => updateField("vanishLum", parseInt(e.target.value, 10) || 0)}
-              className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white focus:outline-none focus:border-[#0098ff]"
+              onChange={(val) => updateField("vanishLum", val ?? 0)}
             />
           </div>
         </div>
@@ -892,57 +873,39 @@ function LevelsSection({
               >
                 <td className="px-4 py-2.5 text-[#cccccc] font-medium">{level.level}</td>
                 <td className="px-4 py-2.5">
-                  <input
-                    type="number"
+                  <NumberInput
                     value={level.effect}
                     onClick={(e) => e.stopPropagation()}
-                    onChange={(e) =>
-                      updateLevel(index, "effect", parseInt(e.target.value, 10) || 0)
-                    }
-                    className="w-20 px-2 py-1.5 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white text-sm focus:outline-none focus:border-[#0098ff] transition-colors"
+                    onChange={(val) => updateLevel(index, "effect", val ?? 0)}
+                    className="w-20"
                   />
                 </td>
                 <td className="px-4 py-2.5">
-                  <input
-                    type="number"
+                  <NumberInput
                     value={level.manaCost}
                     onClick={(e) => e.stopPropagation()}
-                    onChange={(e) =>
-                      updateLevel(index, "manaCost", parseInt(e.target.value, 10) || 0)
-                    }
-                    className="w-20 px-2 py-1.5 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white text-sm focus:outline-none focus:border-[#0098ff] transition-colors"
+                    onChange={(val) => updateLevel(index, "manaCost", val ?? 0)}
+                    className="w-20"
                   />
                 </td>
                 <td className="px-4 py-2.5">
-                  <input
-                    type="number"
-                    value={level.levelupExp ?? ""}
+                  <NumberInput
+                    value={level.levelupExp}
                     onClick={(e) => e.stopPropagation()}
-                    onChange={(e) =>
-                      updateLevel(
-                        index,
-                        "levelupExp",
-                        e.target.value ? parseInt(e.target.value, 10) : null
-                      )
-                    }
+                    onChange={(val) => updateLevel(index, "levelupExp", val)}
+                    allowEmpty
                     placeholder={level.level === 10 ? "满级" : "-"}
-                    className="w-24 px-2 py-1.5 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white text-sm focus:outline-none focus:border-[#0098ff] transition-colors placeholder:text-[#666]"
+                    className="w-24"
                   />
                 </td>
                 <td className="px-4 py-2.5">
-                  <input
-                    type="number"
-                    value={level.speed ?? ""}
+                  <NumberInput
+                    value={level.speed}
                     onClick={(e) => e.stopPropagation()}
-                    onChange={(e) =>
-                      updateLevel(
-                        index,
-                        "speed",
-                        e.target.value ? parseInt(e.target.value, 10) : undefined
-                      )
-                    }
+                    onChange={(val) => updateLevel(index, "speed", val ?? undefined)}
+                    allowEmpty
                     placeholder="-"
-                    className="w-16 px-2 py-1.5 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white text-sm focus:outline-none focus:border-[#0098ff] transition-colors placeholder:text-[#666]"
+                    className="w-16"
                   />
                 </td>
                 <td className="px-4 py-2.5">
@@ -1100,31 +1063,27 @@ function AttackFileSection({
 
         <div>
           <label className="block text-sm text-[#858585] mb-1">速度</label>
-          <input
-            type="number"
+          <NumberInput
             value={attackFile.speed ?? 8}
-            onChange={(e) => updateAttackField("speed", parseInt(e.target.value, 10) || 8)}
-            className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white focus:outline-none focus:border-[#0098ff]"
+            onChange={(val) => updateAttackField("speed", val ?? 8)}
+            emptyValue={8}
           />
         </div>
 
         <div>
           <label className="block text-sm text-[#858585] mb-1">区域半径</label>
-          <input
-            type="number"
+          <NumberInput
             value={attackFile.rangeRadius ?? 0}
-            onChange={(e) => updateAttackField("rangeRadius", parseInt(e.target.value, 10) || 0)}
-            className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white focus:outline-none focus:border-[#0098ff]"
+            onChange={(val) => updateAttackField("rangeRadius", val ?? 0)}
           />
         </div>
 
         <div>
           <label className="block text-sm text-[#858585] mb-1">生命帧数</label>
-          <input
-            type="number"
+          <NumberInput
             value={attackFile.lifeFrame ?? 4}
-            onChange={(e) => updateAttackField("lifeFrame", parseInt(e.target.value, 10) || 4)}
-            className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white focus:outline-none focus:border-[#0098ff]"
+            onChange={(val) => updateAttackField("lifeFrame", val ?? 4)}
+            emptyValue={4}
           />
         </div>
 

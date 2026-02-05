@@ -2,6 +2,7 @@
  * 游戏编辑模块页面
  */
 import { useParams } from "react-router-dom";
+import { NumberInput } from "@/components/common";
 
 export function GameConfigPage() {
   const { gameId } = useParams();
@@ -58,18 +59,18 @@ export function GameConfigPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm text-[#858585] mb-1">初始X坐标</label>
-                  <input
-                    type="number"
-                    defaultValue={100}
-                    className="w-full px-3 py-2 bg-[#3c3c3c] border border-[#454545] rounded text-white focus:outline-none focus:border-[#0098ff]"
+                  <NumberInput
+                    value={100}
+                    onChange={() => {}}
+                    className="w-full"
                   />
                 </div>
                 <div>
                   <label className="block text-sm text-[#858585] mb-1">初始Y坐标</label>
-                  <input
-                    type="number"
-                    defaultValue={200}
-                    className="w-full px-3 py-2 bg-[#3c3c3c] border border-[#454545] rounded text-white focus:outline-none focus:border-[#0098ff]"
+                  <NumberInput
+                    value={200}
+                    onChange={() => {}}
+                    className="w-full"
                   />
                 </div>
               </div>
@@ -161,10 +162,10 @@ export function PlayerConfigPage() {
               </div>
               <div>
                 <label className="block text-sm text-[#858585] mb-1">角色等级</label>
-                <input
-                  type="number"
-                  defaultValue={1}
-                  className="w-full px-3 py-2 bg-[#3c3c3c] border border-[#454545] rounded text-white focus:outline-none focus:border-[#0098ff]"
+                <NumberInput
+                  value={1}
+                  onChange={() => {}}
+                  className="w-full"
                 />
               </div>
             </div>
@@ -184,10 +185,10 @@ export function PlayerConfigPage() {
               ].map((attr) => (
                 <div key={attr.key}>
                   <label className="block text-sm text-[#858585] mb-1">{attr.label}</label>
-                  <input
-                    type="number"
-                    defaultValue={attr.value}
-                    className="w-full px-3 py-2 bg-[#3c3c3c] border border-[#454545] rounded text-white focus:outline-none focus:border-[#0098ff]"
+                  <NumberInput
+                    value={attr.value}
+                    onChange={() => {}}
+                    className="w-full"
                   />
                 </div>
               ))}

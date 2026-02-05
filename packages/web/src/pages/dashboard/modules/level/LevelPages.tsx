@@ -4,6 +4,7 @@
  */
 import { useCallback, useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { NumberInput } from "@/components/common";
 import { trpc } from "../../../../lib/trpc";
 import { useToast } from "../../../../contexts/ToastContext";
 import { useDashboard } from "../../DashboardContext";
@@ -484,73 +485,66 @@ export function LevelDetailPage() {
                 {isPlayerConfig ? (
                   <>
                     <td className="px-2 py-1">
-                      <input
-                        type="number"
+                      <NumberInput
                         value={levelData.levelUpExp || 0}
-                        onChange={(e) =>
-                          updateLevel(idx, "levelUpExp", parseInt(e.target.value) || 0)
+                        onChange={(v) =>
+                          updateLevel(idx, "levelUpExp", v ?? 0)
                         }
-                        className="w-20 px-2 py-0.5 bg-[#3c3c3c] border border-[#454545] rounded text-white text-center text-xs focus:outline-none focus:border-[#0098ff]"
+                        className="w-20"
                       />
                     </td>
                     <td className="px-2 py-1">
-                      <input
-                        type="number"
+                      <NumberInput
                         value={levelData.lifeMax || 0}
-                        onChange={(e) =>
-                          updateLevel(idx, "lifeMax", parseInt(e.target.value) || 0)
+                        onChange={(v) =>
+                          updateLevel(idx, "lifeMax", v ?? 0)
                         }
-                        className="w-16 px-2 py-0.5 bg-[#3c3c3c] border border-[#454545] rounded text-white text-center text-xs focus:outline-none focus:border-[#0098ff]"
+                        className="w-16"
                       />
                     </td>
                     <td className="px-2 py-1">
-                      <input
-                        type="number"
+                      <NumberInput
                         value={levelData.thewMax || 0}
-                        onChange={(e) =>
-                          updateLevel(idx, "thewMax", parseInt(e.target.value) || 0)
+                        onChange={(v) =>
+                          updateLevel(idx, "thewMax", v ?? 0)
                         }
-                        className="w-14 px-2 py-0.5 bg-[#3c3c3c] border border-[#454545] rounded text-white text-center text-xs focus:outline-none focus:border-[#0098ff]"
+                        className="w-14"
                       />
                     </td>
                     <td className="px-3 py-1.5">
-                      <input
-                        type="number"
+                      <NumberInput
                         value={levelData.manaMax || 0}
-                        onChange={(e) =>
-                          updateLevel(idx, "manaMax", parseInt(e.target.value) || 0)
+                        onChange={(v) =>
+                          updateLevel(idx, "manaMax", v ?? 0)
                         }
-                        className="w-14 px-2 py-0.5 bg-[#3c3c3c] border border-[#454545] rounded text-white text-center text-xs focus:outline-none focus:border-[#0098ff]"
+                        className="w-14"
                       />
                     </td>
                     <td className="px-3 py-1.5">
-                      <input
-                        type="number"
+                      <NumberInput
                         value={levelData.attack || 0}
-                        onChange={(e) =>
-                          updateLevel(idx, "attack", parseInt(e.target.value) || 0)
+                        onChange={(v) =>
+                          updateLevel(idx, "attack", v ?? 0)
                         }
-                        className="w-14 px-2 py-0.5 bg-[#3c3c3c] border border-[#454545] rounded text-white text-center text-xs focus:outline-none focus:border-[#0098ff]"
+                        className="w-14"
                       />
                     </td>
                     <td className="px-3 py-1.5">
-                      <input
-                        type="number"
+                      <NumberInput
                         value={levelData.defend || 0}
-                        onChange={(e) =>
-                          updateLevel(idx, "defend", parseInt(e.target.value) || 0)
+                        onChange={(v) =>
+                          updateLevel(idx, "defend", v ?? 0)
                         }
-                        className="w-14 px-2 py-0.5 bg-[#3c3c3c] border border-[#454545] rounded text-white text-center text-xs focus:outline-none focus:border-[#0098ff]"
+                        className="w-14"
                       />
                     </td>
                     <td className="px-3 py-1.5">
-                      <input
-                        type="number"
+                      <NumberInput
                         value={levelData.evade || 0}
-                        onChange={(e) =>
-                          updateLevel(idx, "evade", parseInt(e.target.value) || 0)
+                        onChange={(v) =>
+                          updateLevel(idx, "evade", v ?? 0)
                         }
-                        className="w-12 px-2 py-0.5 bg-[#3c3c3c] border border-[#454545] rounded text-white text-center text-xs focus:outline-none focus:border-[#0098ff]"
+                        className="w-12"
                       />
                     </td>
                     <td className="px-3 py-1.5">
@@ -579,53 +573,48 @@ export function LevelDetailPage() {
                 ) : (
                   <>
                     <td className="px-3 py-1.5">
-                      <input
-                        type="number"
+                      <NumberInput
                         value={levelData.exp || 0}
-                        onChange={(e) =>
-                          updateLevel(idx, "exp", parseInt(e.target.value) || 0)
+                        onChange={(v) =>
+                          updateLevel(idx, "exp", v ?? 0)
                         }
-                        className="w-16 px-2 py-0.5 bg-[#3c3c3c] border border-[#454545] rounded text-white text-center text-xs focus:outline-none focus:border-[#0098ff]"
+                        className="w-16"
                       />
                     </td>
                     <td className="px-3 py-1.5">
-                      <input
-                        type="number"
+                      <NumberInput
                         value={levelData.life || levelData.lifeMax || 0}
-                        onChange={(e) =>
-                          updateLevel(idx, "life", parseInt(e.target.value) || 0)
+                        onChange={(v) =>
+                          updateLevel(idx, "life", v ?? 0)
                         }
-                        className="w-16 px-2 py-0.5 bg-[#3c3c3c] border border-[#454545] rounded text-white text-center text-xs focus:outline-none focus:border-[#0098ff]"
+                        className="w-16"
                       />
                     </td>
                     <td className="px-3 py-1.5">
-                      <input
-                        type="number"
+                      <NumberInput
                         value={levelData.attack || 0}
-                        onChange={(e) =>
-                          updateLevel(idx, "attack", parseInt(e.target.value) || 0)
+                        onChange={(v) =>
+                          updateLevel(idx, "attack", v ?? 0)
                         }
-                        className="w-14 px-2 py-0.5 bg-[#3c3c3c] border border-[#454545] rounded text-white text-center text-xs focus:outline-none focus:border-[#0098ff]"
+                        className="w-14"
                       />
                     </td>
                     <td className="px-3 py-1.5">
-                      <input
-                        type="number"
+                      <NumberInput
                         value={levelData.defend || 0}
-                        onChange={(e) =>
-                          updateLevel(idx, "defend", parseInt(e.target.value) || 0)
+                        onChange={(v) =>
+                          updateLevel(idx, "defend", v ?? 0)
                         }
-                        className="w-14 px-2 py-0.5 bg-[#3c3c3c] border border-[#454545] rounded text-white text-center text-xs focus:outline-none focus:border-[#0098ff]"
+                        className="w-14"
                       />
                     </td>
                     <td className="px-2 py-1">
-                      <input
-                        type="number"
+                      <NumberInput
                         value={levelData.evade || 0}
-                        onChange={(e) =>
-                          updateLevel(idx, "evade", parseInt(e.target.value) || 0)
+                        onChange={(v) =>
+                          updateLevel(idx, "evade", v ?? 0)
                         }
-                        className="w-12 px-2 py-0.5 bg-[#3c3c3c] border border-[#454545] rounded text-white text-center text-xs focus:outline-none focus:border-[#0098ff]"
+                        className="w-12"
                       />
                     </td>
                     <td className="px-2 py-1">

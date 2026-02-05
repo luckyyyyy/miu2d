@@ -3,6 +3,7 @@
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
+import { NumberInput } from "@/components/common";
 import { trpc } from "../../../../lib/trpc";
 import { useToast } from "../../../../contexts/ToastContext";
 import { DashboardIcons } from "../../icons";
@@ -509,11 +510,11 @@ export function GoodsDetailPage() {
 
               <div>
                 <label className="block text-sm text-[#858585] mb-1">价格</label>
-                <input
-                  type="number"
-                  value={formData.cost ?? ""}
-                  onChange={(e) => updateField("cost", e.target.value ? parseInt(e.target.value) : null)}
-                  className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white focus:outline-none focus:border-[#0098ff]"
+                <NumberInput
+                  value={formData.cost ?? null}
+                  onChange={(val) => updateField("cost", val)}
+                  allowEmpty
+                  className="w-full"
                 />
               </div>
 
@@ -577,29 +578,29 @@ export function GoodsDetailPage() {
                 <div className="grid grid-cols-3 gap-4">
                   <div>
                     <label className="block text-sm text-[#858585] mb-1">恢复生命</label>
-                    <input
-                      type="number"
-                      value={formData.life ?? ""}
-                      onChange={(e) => updateField("life", e.target.value ? parseInt(e.target.value) : null)}
-                      className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white focus:outline-none focus:border-[#0098ff]"
+                    <NumberInput
+                      value={formData.life ?? null}
+                      onChange={(val) => updateField("life", val)}
+                      allowEmpty
+                      className="w-full"
                     />
                   </div>
                   <div>
                     <label className="block text-sm text-[#858585] mb-1">恢复体力</label>
-                    <input
-                      type="number"
-                      value={formData.thew ?? ""}
-                      onChange={(e) => updateField("thew", e.target.value ? parseInt(e.target.value) : null)}
-                      className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white focus:outline-none focus:border-[#0098ff]"
+                    <NumberInput
+                      value={formData.thew ?? null}
+                      onChange={(val) => updateField("thew", val)}
+                      allowEmpty
+                      className="w-full"
                     />
                   </div>
                   <div>
                     <label className="block text-sm text-[#858585] mb-1">恢复内力</label>
-                    <input
-                      type="number"
-                      value={formData.mana ?? ""}
-                      onChange={(e) => updateField("mana", e.target.value ? parseInt(e.target.value) : null)}
-                      className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white focus:outline-none focus:border-[#0098ff]"
+                    <NumberInput
+                      value={formData.mana ?? null}
+                      onChange={(val) => updateField("mana", val)}
+                      allowEmpty
+                      className="w-full"
                     />
                   </div>
                 </div>
@@ -666,29 +667,29 @@ export function GoodsDetailPage() {
                 <div className="grid grid-cols-3 gap-4">
                   <div>
                     <label className="block text-sm text-[#858585] mb-1">生命上限</label>
-                    <input
-                      type="number"
-                      value={formData.lifeMax ?? ""}
-                      onChange={(e) => updateField("lifeMax", e.target.value ? parseInt(e.target.value) : null)}
-                      className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white focus:outline-none focus:border-[#0098ff]"
+                    <NumberInput
+                      value={formData.lifeMax ?? null}
+                      onChange={(val) => updateField("lifeMax", val)}
+                      allowEmpty
+                      className="w-full"
                     />
                   </div>
                   <div>
                     <label className="block text-sm text-[#858585] mb-1">体力上限</label>
-                    <input
-                      type="number"
-                      value={formData.thewMax ?? ""}
-                      onChange={(e) => updateField("thewMax", e.target.value ? parseInt(e.target.value) : null)}
-                      className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white focus:outline-none focus:border-[#0098ff]"
+                    <NumberInput
+                      value={formData.thewMax ?? null}
+                      onChange={(val) => updateField("thewMax", val)}
+                      allowEmpty
+                      className="w-full"
                     />
                   </div>
                   <div>
                     <label className="block text-sm text-[#858585] mb-1">内力上限</label>
-                    <input
-                      type="number"
-                      value={formData.manaMax ?? ""}
-                      onChange={(e) => updateField("manaMax", e.target.value ? parseInt(e.target.value) : null)}
-                      className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white focus:outline-none focus:border-[#0098ff]"
+                    <NumberInput
+                      value={formData.manaMax ?? null}
+                      onChange={(val) => updateField("manaMax", val)}
+                      allowEmpty
+                      className="w-full"
                     />
                   </div>
                 </div>
@@ -696,29 +697,29 @@ export function GoodsDetailPage() {
                 <div className="grid grid-cols-3 gap-4">
                   <div>
                     <label className="block text-sm text-[#858585] mb-1">攻击力</label>
-                    <input
-                      type="number"
-                      value={formData.attack ?? ""}
-                      onChange={(e) => updateField("attack", e.target.value ? parseInt(e.target.value) : null)}
-                      className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white focus:outline-none focus:border-[#0098ff]"
+                    <NumberInput
+                      value={formData.attack ?? null}
+                      onChange={(val) => updateField("attack", val)}
+                      allowEmpty
+                      className="w-full"
                     />
                   </div>
                   <div>
                     <label className="block text-sm text-[#858585] mb-1">防御力</label>
-                    <input
-                      type="number"
-                      value={formData.defend ?? ""}
-                      onChange={(e) => updateField("defend", e.target.value ? parseInt(e.target.value) : null)}
-                      className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white focus:outline-none focus:border-[#0098ff]"
+                    <NumberInput
+                      value={formData.defend ?? null}
+                      onChange={(val) => updateField("defend", val)}
+                      allowEmpty
+                      className="w-full"
                     />
                   </div>
                   <div>
                     <label className="block text-sm text-[#858585] mb-1">闪避</label>
-                    <input
-                      type="number"
-                      value={formData.evade ?? ""}
-                      onChange={(e) => updateField("evade", e.target.value ? parseInt(e.target.value) : null)}
-                      className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white focus:outline-none focus:border-[#0098ff]"
+                    <NumberInput
+                      value={formData.evade ?? null}
+                      onChange={(val) => updateField("evade", val)}
+                      allowEmpty
+                      className="w-full"
                     />
                   </div>
                 </div>

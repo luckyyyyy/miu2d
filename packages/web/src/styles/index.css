@@ -75,6 +75,15 @@ kbd {
   }
 }
 
+/* NumberInput 错误抖动动画 */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-4px); }
+  40% { transform: translateX(4px); }
+  60% { transform: translateX(-3px); }
+  80% { transform: translateX(3px); }
+}
+
 /* ============= 移动端样式 ============= */
 
 /* 移动端：防止默认触摸行为（缩放、滚动等） */
