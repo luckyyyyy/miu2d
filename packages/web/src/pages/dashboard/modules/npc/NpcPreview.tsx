@@ -14,7 +14,7 @@ import type { AsfData } from "@miu2d/engine/resource/asf";
 import { getFrameCanvas } from "@miu2d/engine/resource/asf";
 import { initWasm } from "@miu2d/engine/wasm/wasmManager";
 import { decodeAsfWasm } from "@miu2d/engine/wasm/wasmAsfDecoder";
-import type { Npc, NpcState, NpcResource } from "@miu2d/types";
+import type { Npc, NpcState, NpcResource, NpcAppearance } from "@miu2d/types";
 import { NpcStateLabels } from "@miu2d/types";
 
 // ========== 类型定义 ==========
@@ -22,6 +22,8 @@ import { NpcStateLabels } from "@miu2d/types";
 interface NpcPreviewProps {
   gameSlug: string;
   npc: Partial<Npc> | null;
+  /** 关联的 NPC 资源（用于获取资源） */
+  resource?: NpcAppearance;
 }
 
 /** 可预览的状态列表 */
@@ -29,7 +31,7 @@ const PREVIEW_STATES: NpcState[] = ["Stand", "Stand1", "Walk", "Attack", "Hurt",
 
 // ========== 主组件 ==========
 
-export function NpcPreview({ gameSlug, npc }: NpcPreviewProps) {
+export function NpcPreview({ gameSlug, npc, resource }: NpcPreviewProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number | null>(null);
 
@@ -55,6 +57,9 @@ export function NpcPreview({ gameSlug, npc }: NpcPreviewProps) {
   // 加载状态
   const [isLoading, setIsLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+
+  // 获取实际使用的资源配置（优先使用关联的资源，否则使用 NPC 自身的资源）
+  const resources = resource?.resources ?? npc?.resources;
 
   // ========== 初始化 WASM ==========
   useEffect(() => {
@@ -92,14 +97,14 @@ export function NpcPreview({ gameSlug, npc }: NpcPreviewProps) {
 
   // ========== 获取当前状态的资源路径 ==========
   const getResourcePath = useCallback((state: NpcState): string | null => {
-    if (!npc?.resources) return null;
+    if (!resources) return null;
 
     const stateKey = state.toLowerCase() as keyof NpcResource;
-    const resource = npc.resources[stateKey];
+    const resource = resources[stateKey];
 
     // 规范化路径（兼容旧数据）
     return normalizeImagePath(resource?.image);
-  }, [npc?.resources, normalizeImagePath]);
+  }, [resources, normalizeImagePath]);
 
   // ========== 加载 ASF 文件 ==========
   const loadAsf = useCallback(

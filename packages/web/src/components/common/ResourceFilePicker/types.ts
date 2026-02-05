@@ -34,6 +34,19 @@ export const ResourceBasePaths: Record<string, string> = {
   npc_sit_image: "asf/character",
   npc_special1_image: "asf/character",
   npc_special2_image: "asf/character",
+  // NpcResource 页面使用的字段名（npcResource_xxx_image）
+  npcResource_stand_image: "asf/character",
+  npcResource_stand1_image: "asf/character",
+  npcResource_walk_image: "asf/character",
+  npcResource_run_image: "asf/character",
+  npcResource_attack_image: "asf/character",
+  npcResource_attack1_image: "asf/character",
+  npcResource_attack2_image: "asf/character",
+  npcResource_hurt_image: "asf/character",
+  npcResource_death_image: "asf/character",
+  npcResource_sit_image: "asf/character",
+  npcResource_special1_image: "asf/character",
+  npcResource_special2_image: "asf/character",
 
   // NPC 音效资源（Content/sound/）
   npc_stand_sound: "Content/sound",
@@ -48,6 +61,31 @@ export const ResourceBasePaths: Record<string, string> = {
   npc_sit_sound: "Content/sound",
   npc_special1_sound: "Content/sound",
   npc_special2_sound: "Content/sound",
+  // NpcResource 页面使用的字段名（npcResource_xxx_sound）
+  npcResource_stand_sound: "Content/sound",
+  npcResource_stand1_sound: "Content/sound",
+  npcResource_walk_sound: "Content/sound",
+  npcResource_run_sound: "Content/sound",
+  npcResource_attack_sound: "Content/sound",
+  npcResource_attack1_sound: "Content/sound",
+  npcResource_attack2_sound: "Content/sound",
+  npcResource_hurt_sound: "Content/sound",
+  npcResource_death_sound: "Content/sound",
+  npcResource_sit_sound: "Content/sound",
+  npcResource_special1_sound: "Content/sound",
+  npcResource_special2_sound: "Content/sound",
+
+  // Obj 动画资源（asf/object/）
+  obj_common_image: "asf/object",
+  obj_open_image: "asf/object",
+  obj_opened_image: "asf/object",
+  obj_closed_image: "asf/object",
+
+  // Obj 音效资源（Content/sound/）
+  obj_common_sound: "Content/sound",
+  obj_open_sound: "Content/sound",
+  obj_opened_sound: "Content/sound",
+  obj_closed_sound: "Content/sound",
 
   // 脚本文件（仅存储文件名，引擎根据地图动态查找）
   // 路径查找优先级：script/map/{mapName}/ -> script/common/
@@ -133,6 +171,15 @@ export function getBasePath(fieldName: string): string {
 }
 
 /**
+ * NPC/角色 ASF 的搜索路径（按优先级）
+ * 引擎会按顺序尝试这些目录
+ */
+export const CharacterAsfSearchPaths = [
+  "asf/character",
+  "asf/interlude",
+] as const;
+
+/**
  * 构建完整的资源路径
  * @param fieldName 字段名（用于获取默认基础路径）
  * @param value 当前值（可能是相对路径或绝对路径）
@@ -160,7 +207,16 @@ export function buildResourcePath(fieldName: string, value: string): string {
     result = normalizedValue;
   } else {
     // 否则添加默认基础路径
-    const basePath = getBasePath(fieldName);
+    let basePath = getBasePath(fieldName);
+
+    // 特殊处理：如果是 NPC/Obj 的 image 字段，根据文件扩展名判断路径
+    // .mpc 文件在 mpc/character/ 或 mpc/object/，.asf 文件在 asf/character/ 或 asf/object/
+    if (basePath === "asf/character" && lowerValue.endsWith(".mpc")) {
+      basePath = "mpc/character";
+    } else if (basePath === "asf/object" && lowerValue.endsWith(".mpc")) {
+      basePath = "mpc/object";
+    }
+
     result = basePath ? `${basePath}/${normalizedValue}` : normalizedValue;
   }
 
@@ -171,6 +227,46 @@ export function buildResourcePath(fieldName: string, value: string): string {
 
   // 统一转小写
   return result.toLowerCase();
+}
+
+/**
+ * 构建角色资源的所有可能路径（用于预览时依次尝试）
+ * @param fieldName 字段名
+ * @param value 文件名或相对路径
+ * @returns 可能路径数组，按优先级排序
+ */
+export function buildCharacterResourcePaths(fieldName: string, value: string): string[] {
+  if (!value) return [];
+
+  // 规范化路径分隔符
+  let normalizedValue = value.replace(/\\/g, "/");
+
+  // 移除开头的斜杠
+  if (normalizedValue.startsWith("/")) {
+    normalizedValue = normalizedValue.slice(1);
+  }
+
+  const lowerValue = normalizedValue.toLowerCase();
+
+  // 如果已经是完整路径，直接返回
+  if (lowerValue.startsWith("asf/") || lowerValue.startsWith("mpc/") || lowerValue.startsWith("content/")) {
+    return [lowerValue];
+  }
+
+  const basePath = getBasePath(fieldName);
+
+  // 如果是角色动画资源，需要尝试多个目录
+  if (basePath === "asf/character") {
+    if (lowerValue.endsWith(".mpc")) {
+      return [`mpc/character/${lowerValue}`];
+    }
+    // ASF 文件尝试 character 和 interlude 两个目录
+    return CharacterAsfSearchPaths.map(dir => `${dir}/${lowerValue}`);
+  }
+
+  // 其他资源使用单一路径
+  const result = basePath ? `${basePath}/${normalizedValue}` : normalizedValue;
+  return [result.toLowerCase()];
 }
 
 /**

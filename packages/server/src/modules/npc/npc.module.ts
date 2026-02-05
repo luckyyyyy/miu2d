@@ -1,10 +1,9 @@
 import { Module } from "@nestjs/common";
-import { NpcController } from "./npc.controller";
 import { NpcRouter } from "./npc.router";
+import { NpcResourceRouter } from "./npcResource.router";
 
 @Module({
-	controllers: [NpcController],
-	providers: [NpcRouter],
-	exports: [NpcRouter]
+	providers: [NpcRouter, NpcResourceRouter],
+	exports: [NpcRouter, NpcResourceRouter]
 })
 export class NpcModule {}

@@ -18,10 +18,10 @@ import {
 import { CharactersListPage, CharacterDetailPage } from "./modules/CharactersPages";
 
 // NPC 编辑
-import { NpcListPage, NpcDetailPage } from "./modules/npc";
+import { NpcListPage, NpcDetailPage, NpcResourceDetailPage } from "./modules/npc";
 
 // Object 编辑
-import { ObjListPage, ObjDetailPage } from "./modules/obj";
+import { ObjListPage, ObjDetailPage, ObjResourceDetailPage } from "./modules/obj";
 
 // 物品编辑
 import { GoodsListPage, GoodsDetailPage } from "./modules/goods/GoodsPages";
@@ -110,6 +110,7 @@ export function DashboardApp() {
         {/* NPC 编辑 */}
         <Route path="npcs">
           <Route index element={<NpcListPage />} />
+          <Route path="resource/:resourceId" element={<NpcResourceDetailPage />} />
           <Route path=":npcId" element={<Navigate to="basic" replace />} />
           <Route path=":npcId/:tab" element={<NpcDetailPage />} />
         </Route>
@@ -117,6 +118,7 @@ export function DashboardApp() {
         {/* Object 编辑 */}
         <Route path="objs">
           <Route index element={<ObjListPage />} />
+          <Route path="resource/:resourceId" element={<ObjResourceDetailPage />} />
           <Route path=":objId" element={<Navigate to="basic" replace />} />
           <Route path=":objId/:tab" element={<ObjDetailPage />} />
         </Route>

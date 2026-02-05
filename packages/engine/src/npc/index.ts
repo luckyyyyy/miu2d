@@ -7,6 +7,12 @@
  * - NpcMagicCache - modules/npcMagicCache.ts
  */
 
+// NPC config loader (from API)
+export {
+  getAllNpcConfigKeys,
+  getNpcConfigFromCache,
+  isNpcConfigLoaded,
+} from "./npcConfigLoader";
 // NPC modules
 export { NpcMagicCache, type SpecialMagicType } from "./modules";
 // NPC class

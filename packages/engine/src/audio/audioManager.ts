@@ -28,6 +28,8 @@ export interface Sound3DInstance {
 // 常量
 const SOUND_MAX_DISTANCE = 1000; // 最大听觉距离（像素）
 const SOUND_3D_MAX_DISTANCE = 8; // Web Audio 坐标缩放因子
+const CLEANUP_INTERVAL_MS = 30000; // 音频实例清理间隔（30秒）
+const MAX_SOUND_INSTANCES = 50; // 最大音效实例数
 
 export class AudioManager {
   private musicBasePath: string;
@@ -63,6 +65,9 @@ export class AudioManager {
   private sound3DLoading = new Set<string>();
   private sound3DStopping = new Set<string>();
 
+  // 清理定时器
+  private cleanupTimer: ReturnType<typeof setInterval> | null = null;
+
   constructor(config: AudioManagerConfig = {}) {
     this.musicBasePath = config.musicBasePath || DefaultPaths.musicBasePath;
     this.soundBasePath = config.soundBasePath || DefaultPaths.soundBasePath;
@@ -70,6 +75,59 @@ export class AudioManager {
     this.musicVolume = config.musicVolume ?? 0.7;
     this.soundVolume = config.soundVolume ?? 1.0;
     this.ambientVolume = config.ambientVolume ?? 1.0;
+
+    // 启动定期清理任务
+    this.startCleanupTimer();
+  }
+
+  /**
+   * 启动定期清理任务，防止音频实例内存泄漏
+   */
+  private startCleanupTimer(): void {
+    if (this.cleanupTimer) return;
+    this.cleanupTimer = setInterval(() => this.cleanupStaleInstances(), CLEANUP_INTERVAL_MS);
+  }
+
+  /**
+   * 清理已结束但未被正确移除的音频实例
+   */
+  private cleanupStaleInstances(): void {
+    // 清理普通音效实例（检查 playbackState 或 buffer 状态）
+    for (const [path, instance] of this.soundInstances) {
+      try {
+        // AudioBufferSourceNode 播放结束后 buffer 仍然存在，但无法重新播放
+        // 通过 context.currentTime 和 startTime 判断是否已结束
+        // 简化处理：依赖 onended 回调，这里只做兜底清理
+        if (!instance.source.buffer) {
+          this.soundInstances.delete(path);
+        }
+      } catch {
+        // 如果访问失败，说明实例已失效
+        this.soundInstances.delete(path);
+      }
+    }
+
+    // 清理 3D 一次性音效实例
+    for (const [path, instance] of this.sound3DOnceInstances) {
+      try {
+        if (!instance.source.buffer) {
+          this.sound3DOnceInstances.delete(path);
+        }
+      } catch {
+        this.sound3DOnceInstances.delete(path);
+      }
+    }
+
+    // 清理过期的 loading/stopping 状态
+    // 这些 Set 应该很快被清理，如果残留太久说明有问题
+    if (this.sound3DLoading.size > 20) {
+      logger.warn(`[AudioManager] sound3DLoading has ${this.sound3DLoading.size} stale entries, clearing`);
+      this.sound3DLoading.clear();
+    }
+    if (this.sound3DStopping.size > 20) {
+      logger.warn(`[AudioManager] sound3DStopping has ${this.sound3DStopping.size} stale entries, clearing`);
+      this.sound3DStopping.clear();
+    }
   }
 
   private getAudioContext(): AudioContext {
@@ -688,9 +746,22 @@ export class AudioManager {
   // ==================== 清理 ====================
 
   dispose(): void {
+    // 停止清理定时器
+    if (this.cleanupTimer) {
+      clearInterval(this.cleanupTimer);
+      this.cleanupTimer = null;
+    }
+
     this.stopMusic();
     this.stopLoopingSound();
     this.stopAll3DSounds();
+    this.stopAllSounds();
+
+    // 清理所有实例缓存
+    this.soundInstances.clear();
+    this.sound3DOnceInstances.clear();
+    this.sound3DRandomPlaying.clear();
+
     if (this.audioContext) {
       this.audioContext.close().catch(() => {});
       this.audioContext = null;

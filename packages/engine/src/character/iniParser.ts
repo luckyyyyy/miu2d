@@ -7,7 +7,6 @@
 
 import { logger } from "../core/logger";
 import type { CharacterConfig, CharacterStats } from "../core/types";
-import { resourceLoader } from "../resource/resourceLoader";
 
 // ============= Type Definitions =============
 
@@ -387,21 +386,20 @@ export function parseCharacterIni(content: string): CharacterConfig | null {
 }
 
 /**
- * Load and parse character config from file path
- * Uses resourceLoader.loadIni to cache parsed result (avoids re-parsing on repeated loads)
+ * Load character config - 从 API 缓存获取
  */
 export async function loadCharacterConfig(url: string): Promise<CharacterConfig | null> {
-  try {
-    const config = await resourceLoader.loadIni(url, parseCharacterIni, "npcConfig");
-    if (!config) {
-      logger.warn(`[IniParser] Config not found or parse failed: ${url}`);
-      return null;
-    }
-    return config;
-  } catch (error) {
-    logger.error(`[IniParser] Error loading config ${url}:`, error);
+  const { getNpcConfigFromCache, isNpcConfigLoaded } = await import("../npc/npcConfigLoader");
+  if (!isNpcConfigLoaded()) {
+    logger.error(`[IniParser] Game data not loaded! Call loadGameData() first.`);
     return null;
   }
+
+  const config = getNpcConfigFromCache(url);
+  if (!config) {
+    logger.warn(`[IniParser] Config not found in cache: ${url}`);
+  }
+  return config;
 }
 
 // ============= Apply to Character =============

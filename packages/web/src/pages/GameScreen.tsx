@@ -12,10 +12,8 @@
  */
 
 import { logger } from "@miu2d/engine/core/logger";
-import { setResourcePaths } from "@miu2d/engine/config/resourcePaths";
-import { loadMagicConfigFromApi, reloadMagicConfigFromApi } from "@miu2d/engine/magic";
+import { loadGameData, reloadGameData, setResourcePaths } from "@miu2d/engine/config";
 import { setLevelConfigGameSlug, initNpcLevelConfig } from "@miu2d/engine/character/level";
-import { loadGoodsFromApi } from "@miu2d/engine/player/goods";
 import { GameEngine } from "@miu2d/engine/game/gameEngine";
 import { resourceLoader } from "@miu2d/engine/resource/resourceLoader";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -130,7 +128,7 @@ export default function GameScreen() {
   // 标记是否已经处理过 URL 参数（防止从游戏返回标题后再次自动进入）
   const urlLoadHandledRef = useRef(false);
 
-  // 设置资源路径（基于 gameSlug）并加载武功/物品配置，设置等级配置 gameSlug
+  // 设置资源路径（基于 gameSlug）并加载游戏数据，设置等级配置 gameSlug
   useEffect(() => {
     if (gameSlug) {
       setResourcePaths({ root: `/game/${gameSlug}/resources` });
@@ -144,14 +142,9 @@ export default function GameScreen() {
         logger.warn(`[GameScreen] Failed to load NPC level config:`, error);
       });
 
-      // 加载武功配置（从 API）
-      loadMagicConfigFromApi(gameSlug).catch((error) => {
-        logger.warn(`[GameScreen] Failed to load magic config from API, will fallback to INI:`, error);
-      });
-
-      // 加载物品配置（从 API）
-      loadGoodsFromApi(gameSlug).catch((error) => {
-        logger.warn(`[GameScreen] Failed to load goods config from API:`, error);
+      // 统一加载所有游戏数据（武功、物品、NPC、物体）
+      loadGameData(gameSlug).catch((error) => {
+        logger.warn(`[GameScreen] Failed to load game data from API:`, error);
       });
     }
   }, [gameSlug]);
@@ -632,7 +625,7 @@ export default function GameScreen() {
                       onReloadMagicConfig={async () => {
                         if (gameSlug) {
                           // 一键重载：清除所有缓存（API + resourceLoader + NPC）并重新加载
-                          await reloadMagicConfigFromApi(gameSlug);
+                          await reloadGameData(gameSlug);
                         }
                       }}
                     />

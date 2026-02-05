@@ -2038,13 +2038,24 @@ function NpcListPanel({ basePath }: { basePath: string }) {
   const gameId = currentGame?.id;
   const [showImportModal, setShowImportModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [filterKind, setFilterKind] = useState<"all" | "Fighter" | "Normal" | "Other">("all");
+  const [createType, setCreateType] = useState<"npc" | "resource">("npc");
+  const [filterKind, setFilterKind] = useState<"all" | "npc" | "resource">("all");
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
 
-  const { data: npcList, isLoading, refetch } = trpc.npc.list.useQuery(
+  const { data: npcList, isLoading: npcLoading, refetch: refetchNpcs } = trpc.npc.list.useQuery(
     { gameId: gameId! },
     { enabled: !!gameId }
   );
+
+  const { data: resourceList, isLoading: resourceLoading, refetch: refetchResources } = trpc.npcResource.list.useQuery(
+    { gameId: gameId! },
+    { enabled: !!gameId }
+  );
+
+  const refetch = () => {
+    refetchNpcs();
+    refetchResources();
+  };
 
   const batchImportMutation = trpc.npc.batchImportFromIni.useMutation({
     onSuccess: (result) => {
@@ -2056,7 +2067,7 @@ function NpcListPanel({ basePath }: { basePath: string }) {
     },
   });
 
-  // 按关系类型分组
+  // 按关系类型分组 NPC
   const groupedNpcs = useMemo(() => {
     if (!npcList) return { Friendly: [], Hostile: [], Neutral: [], Partner: [] };
 
@@ -2075,21 +2086,6 @@ function NpcListPanel({ basePath }: { basePath: string }) {
 
     return groups;
   }, [npcList]);
-
-  // 根据种类过滤
-  const filteredGroupedNpcs = useMemo(() => {
-    if (filterKind === "all") return groupedNpcs;
-
-    const result: Record<string, typeof npcList> = {};
-    for (const [relation, npcs] of Object.entries(groupedNpcs)) {
-      result[relation] = (npcs || []).filter((npc) => {
-        if (filterKind === "Fighter") return npc.kind === "Fighter";
-        if (filterKind === "Normal") return npc.kind === "Normal";
-        return !["Fighter", "Normal"].includes(npc.kind);
-      });
-    }
-    return result;
-  }, [groupedNpcs, filterKind]);
 
   const toggleGroup = (key: string) => {
     setCollapsedGroups(prev => ({ ...prev, [key]: !prev[key] }));
@@ -2113,6 +2109,10 @@ function NpcListPanel({ basePath }: { basePath: string }) {
     Partner: "🔵",
   };
 
+  const isLoading = npcLoading || resourceLoading;
+  const showNpcs = filterKind === "all" || filterKind === "npc";
+  const showResources = filterKind === "all" || filterKind === "resource";
+
   return (
     <>
       <div className="flex h-full w-60 flex-col bg-[#252526] border-r border-[#1e1e1e]">
@@ -2135,11 +2135,19 @@ function NpcListPanel({ basePath }: { basePath: string }) {
           </button>
           <button
             type="button"
-            onClick={() => setShowCreateModal(true)}
+            onClick={() => { setCreateType("npc"); setShowCreateModal(true); }}
             className="flex items-center gap-2 px-2 py-1.5 text-xs text-[#cccccc] hover:bg-[#3c3c3c] rounded transition-colors"
           >
             {DashboardIcons.add}
             <span>新建 NPC</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => { setCreateType("resource"); setShowCreateModal(true); }}
+            className="flex items-center gap-2 px-2 py-1.5 text-xs text-[#cccccc] hover:bg-[#3c3c3c] rounded transition-colors"
+          >
+            {DashboardIcons.add}
+            <span>新建 NPC 资源</span>
           </button>
         </div>
 
@@ -2158,76 +2166,122 @@ function NpcListPanel({ basePath }: { basePath: string }) {
           </button>
           <button
             type="button"
-            onClick={() => setFilterKind("Fighter")}
+            onClick={() => setFilterKind("npc")}
             className={`flex-1 px-2 py-1 text-xs rounded transition-colors ${
-              filterKind === "Fighter"
-                ? "bg-red-600 text-white"
-                : "text-red-400 hover:bg-[#3c3c3c]"
+              filterKind === "npc"
+                ? "bg-[#094771] text-white"
+                : "text-[#cccccc] hover:bg-[#3c3c3c]"
             }`}
           >
-            战斗
+            NPC
           </button>
           <button
             type="button"
-            onClick={() => setFilterKind("Normal")}
+            onClick={() => setFilterKind("resource")}
             className={`flex-1 px-2 py-1 text-xs rounded transition-colors ${
-              filterKind === "Normal"
-                ? "bg-green-600 text-white"
-                : "text-green-400 hover:bg-[#3c3c3c]"
+              filterKind === "resource"
+                ? "bg-purple-600 text-white"
+                : "text-purple-400 hover:bg-[#3c3c3c]"
             }`}
           >
-            普通
+            资源
           </button>
         </div>
 
-        {/* NPC 列表 - 按关系分组 */}
+        {/* 列表内容 */}
         <div className="flex-1 overflow-y-auto py-1">
           {isLoading ? (
             <div className="px-4 py-2 text-sm text-[#858585]">加载中...</div>
-          ) : !npcList || npcList.length === 0 ? (
-            <div className="px-4 py-2 text-sm text-[#858585]">暂无 NPC</div>
           ) : (
-            Object.entries(filteredGroupedNpcs).map(([relation, npcs]) => {
-              if (!npcs || npcs.length === 0) return null;
-              return (
-                <div key={relation}>
-                  <button
-                    type="button"
-                    onClick={() => toggleGroup(relation)}
-                    className="w-full px-3 py-1.5 text-xs font-medium text-[#858585] flex items-center gap-2 hover:bg-[#2a2d2e] transition-colors"
-                  >
-                    <span className={`transition-transform ${collapsedGroups[relation] ? '' : 'rotate-90'}`}>▶</span>
-                    <span>{relationIcons[relation]}</span>
-                    <span>{relationLabels[relation]}</span>
-                    <span className="text-[#666]">({npcs.length})</span>
-                  </button>
-                  {!collapsedGroups[relation] && npcs.map((npc) => (
-                    <NavLink
-                      key={npc.id}
-                      to={`${basePath}/${npc.id}`}
-                      className={({ isActive }) =>
-                        `flex items-center gap-3 px-3 py-2 pl-6 text-sm transition-colors ${
-                          isActive ? "bg-[#094771] text-white" : "hover:bg-[#2a2d2e]"
-                        }`
-                      }
-                    >
-                      <NpcIcon iconPath={npc.icon} gameSlug={currentGame?.slug} size={32} />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="truncate font-medium">{npc.name}</span>
-                          <span className={`text-xs ${
-                            npc.kind === "Fighter" ? "text-red-400" : "text-green-400"
-                          }`}>
-                            Lv.{npc.level ?? 1}
-                          </span>
+            <>
+              {/* NPC 列表 - 按关系分组 */}
+              {showNpcs && (
+                <>
+                  {filterKind === "all" && (
+                    <div className="px-3 py-1.5 text-xs font-medium text-[#569cd6] border-b border-[#1e1e1e]">
+                      🧙 NPC ({npcList?.length || 0})
+                    </div>
+                  )}
+                  {(!npcList || npcList.length === 0) ? (
+                    <div className="px-4 py-2 text-sm text-[#858585]">暂无 NPC</div>
+                  ) : (
+                    Object.entries(groupedNpcs).map(([relation, npcs]) => {
+                      if (!npcs || npcs.length === 0) return null;
+                      return (
+                        <div key={relation}>
+                          <button
+                            type="button"
+                            onClick={() => toggleGroup(relation)}
+                            className="w-full px-3 py-1.5 text-xs font-medium text-[#858585] flex items-center gap-2 hover:bg-[#2a2d2e] transition-colors"
+                          >
+                            <span className={`transition-transform ${collapsedGroups[relation] ? '' : 'rotate-90'}`}>▶</span>
+                            <span>{relationIcons[relation]}</span>
+                            <span>{relationLabels[relation]}</span>
+                            <span className="text-[#666]">({npcs.length})</span>
+                          </button>
+                          {!collapsedGroups[relation] && npcs.map((npc) => (
+                            <NavLink
+                              key={npc.id}
+                              to={`${basePath}/${npc.id}`}
+                              className={({ isActive }) =>
+                                `flex items-center gap-3 px-3 py-2 pl-6 text-sm transition-colors ${
+                                  isActive ? "bg-[#094771] text-white" : "hover:bg-[#2a2d2e]"
+                                }`
+                              }
+                            >
+                              <NpcIcon iconPath={npc.icon} gameSlug={currentGame?.slug} size={32} />
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <span className="truncate font-medium">{npc.name}</span>
+                                  <span className={`text-xs ${
+                                    npc.kind === "Fighter" ? "text-red-400" : "text-green-400"
+                                  }`}>
+                                    Lv.{npc.level ?? 1}
+                                  </span>
+                                </div>
+                                <span className="text-xs text-[#858585] truncate block">{npc.key}</span>
+                              </div>
+                            </NavLink>
+                          ))}
                         </div>
-                        <span className="text-xs text-[#858585] truncate block">{npc.key}</span>
-                      </div>
-                    </NavLink>
-                  ))}
-                </div>
-              );
-            })
+                      );
+                    })
+                  )}
+                </>
+              )}
+
+              {/* NPC 资源列表 */}
+              {showResources && (
+                <>
+                  {filterKind === "all" && (
+                    <div className="px-3 py-1.5 text-xs font-medium text-purple-400 border-b border-[#1e1e1e] mt-2">
+                      🎨 NPC 资源 ({resourceList?.length || 0})
+                    </div>
+                  )}
+                  {(!resourceList || resourceList.length === 0) ? (
+                    <div className="px-4 py-2 text-sm text-[#858585]">暂无 NPC 资源</div>
+                  ) : (
+                    resourceList.map((resource) => (
+                      <NavLink
+                        key={resource.id}
+                        to={`${basePath}/resource/${resource.id}`}
+                        className={({ isActive }) =>
+                          `flex items-center gap-3 px-3 py-2 text-sm transition-colors ${
+                            isActive ? "bg-purple-600/50 text-white" : "hover:bg-[#2a2d2e]"
+                          }`
+                        }
+                      >
+                        <NpcIcon iconPath={resource.icon} gameSlug={currentGame?.slug} size={32} />
+                        <div className="flex-1 min-w-0">
+                          <span className="truncate font-medium block">{resource.name}</span>
+                          <span className="text-xs text-[#858585] truncate block">{resource.key}</span>
+                        </div>
+                      </NavLink>
+                    ))
+                  )}
+                </>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -2245,9 +2299,17 @@ function NpcListPanel({ basePath }: { basePath: string }) {
         />
       )}
 
-      {/* 新建 NPC 模态框 */}
-      {showCreateModal && (
+      {/* 新建模态框 */}
+      {showCreateModal && createType === "npc" && (
         <CreateNpcModal
+          onClose={() => setShowCreateModal(false)}
+          basePath={basePath}
+          gameId={gameId!}
+          onSuccess={() => refetch()}
+        />
+      )}
+      {showCreateModal && createType === "resource" && (
+        <CreateNpcResourceModal
           onClose={() => setShowCreateModal(false)}
           basePath={basePath}
           gameId={gameId!}
@@ -2314,11 +2376,11 @@ function ImportNpcModal({
 }: {
   gameId: string;
   onClose: () => void;
-  onBatchImport: (items: Array<{ fileName: string; iniContent: string; npcResContent?: string }>) => void;
+  onBatchImport: (items: Array<{ fileName: string; type: "npc" | "resource"; iniContent?: string; npcResContent?: string }>) => void;
   isLoading: boolean;
-  batchResult?: { success: Array<{ fileName: string; id: string; name: string; hasResources: boolean }>; failed: Array<{ fileName: string; error: string }> } | null;
+  batchResult?: { success: Array<{ fileName: string; id: string; name: string; type: "npc" | "resource"; hasResources: boolean }>; failed: Array<{ fileName: string; error: string }> } | null;
 }) {
-  const [batchItems, setBatchItems] = useState<Array<{ fileName: string; iniContent: string; npcResContent?: string }>>([]);
+  const [batchItems, setBatchItems] = useState<Array<{ fileName: string; type: "npc" | "resource"; iniContent?: string; npcResContent?: string }>>([]);
   const [isDragging, setIsDragging] = useState(false);
 
   const handleDrop = async (e: React.DragEvent) => {
@@ -2408,8 +2470,9 @@ function ImportNpcModal({
     };
 
     // 合并 npc 和 npcres 文件
-    const items: Array<{ fileName: string; iniContent: string; npcResContent?: string }> = [];
+    const items: Array<{ fileName: string; type: "npc" | "resource"; iniContent?: string; npcResContent?: string }> = [];
 
+    // 处理 NPC 文件
     for (const [_fileName, npcInfo] of npcFiles) {
       // 从 npc ini 内容中解析 NpcIni 字段，用这个值去匹配 npcres 文件
       const npcIniField = parseNpcIniField(npcInfo.content);
@@ -2417,8 +2480,18 @@ function ImportNpcModal({
 
       items.push({
         fileName: npcInfo.file.name,
+        type: "npc",
         iniContent: npcInfo.content,
         npcResContent: npcResInfo?.content,
+      });
+    }
+
+    // 所有 npcres 文件都作为独立外观导入（无论是否被 NPC 引用）
+    for (const [_fileNameLower, npcResInfo] of npcResFiles) {
+      items.push({
+        fileName: npcResInfo.file.name,
+        type: "resource",
+        npcResContent: npcResInfo.content,
       });
     }
 
@@ -2446,9 +2519,9 @@ function ImportNpcModal({
             <p className="mb-1">支持拖入以下结构：</p>
             <ul className="list-disc list-inside space-y-0.5">
               <li><code className="text-[#ce9178]">npc/</code> - NPC 配置目录</li>
-              <li><code className="text-[#ce9178]">npcres/</code> - NPC 资源配置目录</li>
+              <li><code className="text-[#ce9178]">npcres/</code> - NPC 外观配置目录</li>
             </ul>
-            <p className="mt-2">同名的 .ini 文件会自动合并资源配置</p>
+            <p className="mt-2">NPC 会自动关联同名外观，独立外观也会被导入</p>
           </div>
 
           {/* 拖放区域 */}
@@ -2475,13 +2548,18 @@ function ImportNpcModal({
             <div className="max-h-48 overflow-y-auto border border-[#454545] rounded">
               {batchItems.map((item, index) => (
                 <div
-                  key={item.fileName}
+                  key={`${item.type}-${item.fileName}`}
                   className="flex items-center justify-between px-3 py-2 border-b border-[#454545] last:border-b-0 hover:bg-[#2a2d2e]"
                 >
-                  <div className="flex-1">
+                  <div className="flex-1 flex items-center gap-2">
+                    {item.type === "resource" ? (
+                      <span className="text-xs px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-400">外观</span>
+                    ) : (
+                      <span className="text-xs px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400">NPC</span>
+                    )}
                     <span className="text-sm text-white">{item.fileName}</span>
-                    {item.npcResContent && (
-                      <span className="ml-2 text-xs text-green-400">+ 资源</span>
+                    {item.type === "npc" && item.npcResContent && (
+                      <span className="text-xs text-green-400">+ 资源</span>
                     )}
                   </div>
                   <button
@@ -2502,12 +2580,24 @@ function ImportNpcModal({
               {batchResult.success.length > 0 && (
                 <div className="p-3 bg-green-500/10 border border-green-500/30 rounded">
                   <p className="text-green-400 text-sm font-medium mb-1">
-                    ✓ 成功导入 {batchResult.success.length} 个 NPC
+                    ✓ 成功导入 {batchResult.success.length} 个 (
+                    {batchResult.success.filter((s) => s.type === "npc").length} NPC,{" "}
+                    {batchResult.success.filter((s) => s.type === "resource").length} 资源)
                   </p>
                   <div className="text-xs text-green-400/80 max-h-24 overflow-y-auto">
                     {batchResult.success.map((s) => (
-                      <div key={s.id}>
-                        {s.name} {s.hasResources && <span className="text-green-300">+ 资源</span>}
+                      <div key={s.id} className="flex items-center gap-1">
+                        <span
+                          className={`px-1 rounded text-[10px] ${
+                            s.type === "npc"
+                              ? "bg-blue-500/30 text-blue-300"
+                              : "bg-purple-500/30 text-purple-300"
+                          }`}
+                        >
+                          {s.type === "npc" ? "NPC" : "外观"}
+                        </span>
+                        <span>{s.name}</span>
+                        {s.hasResources && <span className="text-green-300">+ 资源</span>}
                       </div>
                     ))}
                   </div>
@@ -2709,6 +2799,97 @@ function CreateNpcModal({
   );
 }
 
+// 新建 NPC 资源弹窗
+function CreateNpcResourceModal({
+  onClose,
+  basePath,
+  gameId,
+  onSuccess,
+}: {
+  onClose: () => void;
+  basePath: string;
+  gameId: string;
+  onSuccess: () => void;
+}) {
+  const navigate = useNavigate();
+  const [name, setName] = useState("");
+  const [key, setKey] = useState("");
+
+  const createMutation = trpc.npcResource.create.useMutation({
+    onSuccess: (data) => {
+      onSuccess();
+      onClose();
+      navigate(`${basePath}/resource/${data.id}`);
+    },
+  });
+
+  const handleCreate = () => {
+    createMutation.mutate({
+      gameId,
+      key: key || `npcres_${Date.now()}`,
+      name,
+    });
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="bg-[#252526] rounded-lg border border-[#454545] w-96">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-[#454545]">
+          <h3 className="font-medium text-white">新建 NPC 资源</h3>
+          <button type="button" onClick={onClose} className="text-[#858585] hover:text-white">
+            ✕
+          </button>
+        </div>
+        <div className="p-4 space-y-4">
+          <div>
+            <label className="block text-xs text-[#858585] mb-1">名称</label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="w-full px-3 py-2 bg-[#3c3c3c] border border-[#454545] rounded text-white text-sm focus:outline-none focus:border-[#007acc]"
+              placeholder="输入资源名称"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-[#858585] mb-1">标识符 (可选)</label>
+            <input
+              type="text"
+              value={key}
+              onChange={(e) => setKey(e.target.value)}
+              className="w-full px-3 py-2 bg-[#3c3c3c] border border-[#454545] rounded text-white text-sm focus:outline-none focus:border-[#007acc]"
+              placeholder="留空将自动生成"
+            />
+          </div>
+          <div className="text-xs text-[#858585] bg-[#1e1e1e] p-3 rounded">
+            <p>💡 NPC 资源用于定义 NPC 的视觉表现（动画、图标等），可被多个 NPC 共享使用。</p>
+          </div>
+          {createMutation.error && (
+            <div className="text-red-400 text-sm">{createMutation.error.message}</div>
+          )}
+        </div>
+        <div className="flex justify-end gap-2 px-4 py-3 border-t border-[#454545]">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 text-sm text-[#cccccc] hover:bg-[#3c3c3c] rounded"
+          >
+            取消
+          </button>
+          <button
+            type="button"
+            onClick={handleCreate}
+            disabled={!name.trim() || createMutation.isPending}
+            className="px-4 py-2 text-sm bg-purple-600 hover:bg-purple-700 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {createMutation.isPending ? "创建中..." : "创建"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ========== Object 列表面板 ==========
 function ObjListPanel({ basePath }: { basePath: string }) {
   const { currentGame, sidebarCollapsed } = useDashboard();
@@ -2716,20 +2897,36 @@ function ObjListPanel({ basePath }: { basePath: string }) {
   const gameId = currentGame?.id;
   const [showImportModal, setShowImportModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [filterKind, setFilterKind] = useState<"all" | "Static" | "Dynamic" | "Other">("all");
+  const [createType, setCreateType] = useState<"obj" | "resource">("obj");
+  const [filterKind, setFilterKind] = useState<"all" | "obj" | "resource">("all");
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
 
-  const { data: objList, isLoading, refetch } = trpc.obj.list.useQuery(
+  const { data: objList, isLoading: objLoading, refetch: refetchObjs } = trpc.obj.list.useQuery(
     { gameId: gameId! },
     { enabled: !!gameId }
   );
+
+  const { data: resourceList, isLoading: resourceLoading, refetch: refetchResources } = trpc.objResource.list.useQuery(
+    { gameId: gameId! },
+    { enabled: !!gameId }
+  );
+
+  const refetch = () => {
+    refetchObjs();
+    refetchResources();
+  };
 
   const batchImportMutation = trpc.obj.batchImportFromIni.useMutation({
     onSuccess: (result) => {
       refetch();
       setShowImportModal(false);
       if (result.success.length > 0) {
-        navigate(`${basePath}/${result.success[0].id}`);
+        const first = result.success[0];
+        if (first.type === "resource") {
+          navigate(`${basePath}/resource/${first.id}`);
+        } else {
+          navigate(`${basePath}/${first.id}`);
+        }
       }
     },
   });
@@ -2756,20 +2953,6 @@ function ObjListPanel({ basePath }: { basePath: string }) {
     return groups;
   }, [objList]);
 
-  // 根据种类过滤
-  const filteredGroupedObjs = useMemo(() => {
-    if (filterKind === "all") return groupedObjs;
-
-    const result: Record<string, typeof objList> = {};
-    for (const [group, objs] of Object.entries(groupedObjs)) {
-      if (filterKind === "Static" && group === "Static") result[group] = objs;
-      else if (filterKind === "Dynamic" && group === "Dynamic") result[group] = objs;
-      else if (filterKind === "Other" && !["Static", "Dynamic"].includes(group)) result[group] = objs;
-      else result[group] = [];
-    }
-    return result;
-  }, [groupedObjs, filterKind]);
-
   const toggleGroup = (key: string) => {
     setCollapsedGroups((prev) => ({ ...prev, [key]: !prev[key] }));
   };
@@ -2791,6 +2974,10 @@ function ObjListPanel({ basePath }: { basePath: string }) {
     Trap: "🪤",
     Other: "❓",
   };
+
+  const isLoading = objLoading || resourceLoading;
+  const showObjs = filterKind === "all" || filterKind === "obj";
+  const showResources = filterKind === "all" || filterKind === "resource";
 
   return (
     <>
@@ -2814,11 +3001,19 @@ function ObjListPanel({ basePath }: { basePath: string }) {
           </button>
           <button
             type="button"
-            onClick={() => setShowCreateModal(true)}
+            onClick={() => { setCreateType("obj"); setShowCreateModal(true); }}
             className="flex items-center gap-2 px-2 py-1.5 text-xs text-[#cccccc] hover:bg-[#3c3c3c] rounded transition-colors"
           >
             {DashboardIcons.add}
             <span>新建 Object</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => { setCreateType("resource"); setShowCreateModal(true); }}
+            className="flex items-center gap-2 px-2 py-1.5 text-xs text-[#cccccc] hover:bg-[#3c3c3c] rounded transition-colors"
+          >
+            {DashboardIcons.add}
+            <span>新建 Object 资源</span>
           </button>
         </div>
 
@@ -2837,25 +3032,25 @@ function ObjListPanel({ basePath }: { basePath: string }) {
           </button>
           <button
             type="button"
-            onClick={() => setFilterKind("Static")}
+            onClick={() => setFilterKind("obj")}
             className={`flex-1 px-2 py-1 text-xs rounded transition-colors ${
-              filterKind === "Static"
-                ? "bg-gray-600 text-white"
-                : "text-gray-400 hover:bg-[#3c3c3c]"
+              filterKind === "obj"
+                ? "bg-[#094771] text-white"
+                : "text-[#cccccc] hover:bg-[#3c3c3c]"
             }`}
           >
-            静态
+            Object
           </button>
           <button
             type="button"
-            onClick={() => setFilterKind("Dynamic")}
+            onClick={() => setFilterKind("resource")}
             className={`flex-1 px-2 py-1 text-xs rounded transition-colors ${
-              filterKind === "Dynamic"
-                ? "bg-blue-600 text-white"
-                : "text-blue-400 hover:bg-[#3c3c3c]"
+              filterKind === "resource"
+                ? "bg-purple-600 text-white"
+                : "text-purple-400 hover:bg-[#3c3c3c]"
             }`}
           >
-            动态
+            资源
           </button>
         </div>
 
@@ -2863,50 +3058,96 @@ function ObjListPanel({ basePath }: { basePath: string }) {
         <div className="flex-1 overflow-y-auto py-1">
           {isLoading ? (
             <div className="px-4 py-2 text-sm text-[#858585]">加载中...</div>
-          ) : !objList || objList.length === 0 ? (
-            <div className="px-4 py-2 text-sm text-[#858585]">暂无 Object</div>
           ) : (
-            Object.entries(filteredGroupedObjs).map(([kind, objs]) => {
-              if (!objs || objs.length === 0) return null;
-              return (
-                <div key={kind}>
-                  <button
-                    type="button"
-                    onClick={() => toggleGroup(kind)}
-                    className="w-full px-3 py-1.5 text-xs font-medium text-[#858585] flex items-center gap-2 hover:bg-[#2a2d2e] transition-colors"
-                  >
-                    <span
-                      className={`transition-transform ${collapsedGroups[kind] ? "" : "rotate-90"}`}
-                    >
-                      ▶
-                    </span>
-                    <span>{kindIcons[kind]}</span>
-                    <span>{kindLabels[kind]}</span>
-                    <span className="text-[#666]">({objs.length})</span>
-                  </button>
-                  {!collapsedGroups[kind] &&
-                    objs.map((obj) => (
+            <>
+              {/* Object 列表 - 按类型分组 */}
+              {showObjs && (
+                <>
+                  {filterKind === "all" && (
+                    <div className="px-3 py-1.5 text-xs font-medium text-[#569cd6] border-b border-[#1e1e1e]">
+                      📦 Object ({objList?.length || 0})
+                    </div>
+                  )}
+                  {(!objList || objList.length === 0) ? (
+                    <div className="px-4 py-2 text-sm text-[#858585]">暂无 Object</div>
+                  ) : (
+                    Object.entries(groupedObjs).map(([kind, objs]) => {
+                      if (!objs || objs.length === 0) return null;
+                      return (
+                        <div key={kind}>
+                          <button
+                            type="button"
+                            onClick={() => toggleGroup(kind)}
+                            className="w-full px-3 py-1.5 text-xs font-medium text-[#858585] flex items-center gap-2 hover:bg-[#2a2d2e] transition-colors"
+                          >
+                            <span
+                              className={`transition-transform ${collapsedGroups[kind] ? "" : "rotate-90"}`}
+                            >
+                              ▶
+                            </span>
+                            <span>{kindIcons[kind]}</span>
+                            <span>{kindLabels[kind]}</span>
+                            <span className="text-[#666]">({objs.length})</span>
+                          </button>
+                          {!collapsedGroups[kind] &&
+                            objs.map((obj) => (
+                              <NavLink
+                                key={obj.id}
+                                to={`${basePath}/${obj.id}`}
+                                className={({ isActive }) =>
+                                  `flex items-center gap-3 px-3 py-2 pl-6 text-sm transition-colors ${
+                                    isActive ? "bg-[#094771] text-white" : "hover:bg-[#2a2d2e]"
+                                  }`
+                                }
+                              >
+                                <span className="text-lg">{kindIcons[obj.kind] || "📦"}</span>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2">
+                                    <span className="truncate font-medium">{obj.name}</span>
+                                  </div>
+                                  <span className="text-xs text-[#858585] truncate block">{obj.key}</span>
+                                </div>
+                              </NavLink>
+                            ))}
+                        </div>
+                      );
+                    })
+                  )}
+                </>
+              )}
+
+              {/* Object 资源列表 */}
+              {showResources && (
+                <>
+                  {filterKind === "all" && (
+                    <div className="px-3 py-1.5 text-xs font-medium text-purple-400 border-b border-[#1e1e1e] mt-2">
+                      🎨 Object 资源 ({resourceList?.length || 0})
+                    </div>
+                  )}
+                  {(!resourceList || resourceList.length === 0) ? (
+                    <div className="px-4 py-2 text-sm text-[#858585]">暂无 Object 资源</div>
+                  ) : (
+                    resourceList.map((resource) => (
                       <NavLink
-                        key={obj.id}
-                        to={`${basePath}/${obj.id}`}
+                        key={resource.id}
+                        to={`${basePath}/resource/${resource.id}`}
                         className={({ isActive }) =>
-                          `flex items-center gap-3 px-3 py-2 pl-6 text-sm transition-colors ${
-                            isActive ? "bg-[#094771] text-white" : "hover:bg-[#2a2d2e]"
+                          `flex items-center gap-3 px-3 py-2 text-sm transition-colors ${
+                            isActive ? "bg-purple-600/50 text-white" : "hover:bg-[#2a2d2e]"
                           }`
                         }
                       >
-                        <span className="text-lg">{kindIcons[obj.kind] || "📦"}</span>
+                        <span className="text-lg">🎨</span>
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="truncate font-medium">{obj.name}</span>
-                          </div>
-                          <span className="text-xs text-[#858585] truncate block">{obj.key}</span>
+                          <span className="truncate font-medium block">{resource.name}</span>
+                          <span className="text-xs text-[#858585] truncate block">{resource.key}</span>
                         </div>
                       </NavLink>
-                    ))}
-                </div>
-              );
-            })
+                    ))
+                  )}
+                </>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -2925,8 +3166,18 @@ function ObjListPanel({ basePath }: { basePath: string }) {
       )}
 
       {/* 新建 Object 模态框 */}
-      {showCreateModal && (
+      {showCreateModal && createType === "obj" && (
         <CreateObjModal
+          onClose={() => setShowCreateModal(false)}
+          basePath={basePath}
+          gameId={gameId!}
+          onSuccess={() => refetch()}
+        />
+      )}
+
+      {/* 新建 Object 资源模态框 */}
+      {showCreateModal && createType === "resource" && (
+        <CreateObjResourceModal
           onClose={() => setShowCreateModal(false)}
           basePath={basePath}
           gameId={gameId!}
@@ -3317,6 +3568,98 @@ function CreateObjModal({
             onClick={handleCreate}
             disabled={!name.trim() || createMutation.isPending}
             className="px-4 py-2 text-sm bg-[#0e639c] hover:bg-[#1177bb] text-white rounded disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {createMutation.isPending ? "创建中..." : "创建"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// 新建 Object 资源弹窗
+function CreateObjResourceModal({
+  onClose,
+  basePath,
+  gameId,
+  onSuccess,
+}: {
+  onClose: () => void;
+  basePath: string;
+  gameId: string;
+  onSuccess: () => void;
+}) {
+  const navigate = useNavigate();
+  const [name, setName] = useState("");
+  const [key, setKey] = useState("");
+
+  const createMutation = trpc.objResource.create.useMutation({
+    onSuccess: (data) => {
+      onSuccess();
+      onClose();
+      navigate(`${basePath}/resource/${data.id}`);
+    },
+  });
+
+  const handleCreate = () => {
+    createMutation.mutate({
+      gameId,
+      key: key || `objres_${Date.now()}.ini`,
+      name,
+    });
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="bg-[#252526] rounded-lg border border-[#454545] w-96">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-[#454545]">
+          <h3 className="font-medium text-white">新建 Object 资源</h3>
+          <button type="button" onClick={onClose} className="text-[#858585] hover:text-white">
+            ✕
+          </button>
+        </div>
+        <div className="p-4 space-y-4">
+          <div className="text-xs text-[#858585] bg-[#1e1e1e] p-3 rounded">
+            <p>Object 资源用于定义物体的动画和音效。</p>
+            <p className="mt-1">多个 Object 可以共享同一个资源配置。</p>
+          </div>
+          <div>
+            <label className="block text-xs text-[#858585] mb-1">名称</label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="w-full px-3 py-2 bg-[#3c3c3c] border border-[#454545] rounded text-white text-sm focus:outline-none focus:border-[#007acc]"
+              placeholder="输入资源名称"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-[#858585] mb-1">标识符 (可选)</label>
+            <input
+              type="text"
+              value={key}
+              onChange={(e) => setKey(e.target.value)}
+              className="w-full px-3 py-2 bg-[#3c3c3c] border border-[#454545] rounded text-white text-sm focus:outline-none focus:border-[#007acc]"
+              placeholder="留空将自动生成 (建议以 .ini 结尾)"
+            />
+          </div>
+          {createMutation.error && (
+            <div className="text-red-400 text-sm">{createMutation.error.message}</div>
+          )}
+        </div>
+        <div className="flex justify-end gap-2 px-4 py-3 border-t border-[#454545]">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 text-sm text-[#cccccc] hover:bg-[#3c3c3c] rounded"
+          >
+            取消
+          </button>
+          <button
+            type="button"
+            onClick={handleCreate}
+            disabled={!name.trim() || createMutation.isPending}
+            className="px-4 py-2 text-sm bg-purple-600 hover:bg-purple-700 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {createMutation.isPending ? "创建中..." : "创建"}
           </button>

@@ -782,7 +782,12 @@ export abstract class Character extends CharacterCombat {
   }
 
   cleanupMagicSpritesInEffect(): void {
-    this._magicSpritesInEffect = this._magicSpritesInEffect.filter((s) => !s.isDestroyed);
+    // 原地删除已销毁的精灵，避免创建新数组减少 GC 压力
+    for (let i = this._magicSpritesInEffect.length - 1; i >= 0; i--) {
+      if (this._magicSpritesInEffect[i].isDestroyed) {
+        this._magicSpritesInEffect.splice(i, 1);
+      }
+    }
   }
 
   // =============================================

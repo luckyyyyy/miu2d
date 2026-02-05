@@ -149,9 +149,7 @@ export const ResourceDirs = {
   ini: {
     root: "ini",
     npc: "ini/npc",
-    npcres: "ini/npcres",
     obj: "ini/obj",
-    objres: "ini/objres",
     goods: "ini/goods",
     magic: "ini/magic",
     level: "ini/level",
@@ -270,17 +268,9 @@ export const ResourcePath = {
   npc(fileName: string): string {
     return buildPath(`${ResourceDirs.ini.npc}/${fileName}`);
   },
-  /** NPC 资源配置路径 */
-  npcRes(fileName: string): string {
-    return buildPath(`${ResourceDirs.ini.npcres}/${fileName}`);
-  },
   /** 物体配置文件路径 */
   obj(fileName: string): string {
     return buildPath(`${ResourceDirs.ini.obj}/${fileName}`);
-  },
-  /** 物体资源配置路径 */
-  objRes(fileName: string): string {
-    return buildPath(`${ResourceDirs.ini.objres}/${fileName}`);
   },
   /** 物品配置文件路径 */
   goods(fileName: string): string {

@@ -20,6 +20,8 @@ export {
   getResourceFileType,
   getBasePath,
   getResourceUrl,
+  buildCharacterResourcePaths,
+  CharacterAsfSearchPaths,
   ResourceBasePaths,
   type ResourceFileType,
 } from "./types";

@@ -14,7 +14,7 @@ import { FileSelectDialog } from "./FileSelectDialog";
 import { MiniAsfPreview } from "./AsfPreviewTooltip";
 import { MiniAudioPlayer } from "./MiniAudioPlayer";
 import { ScriptPreviewTooltip } from "./ScriptPreviewTooltip";
-import { buildResourcePath, buildScriptPreviewPath, buildIniPreviewPath, getResourceFileType } from "./types";
+import { buildResourcePath, buildScriptPreviewPath, buildIniPreviewPath, buildCharacterResourcePaths, getResourceFileType } from "./types";
 
 export interface ResourceFilePickerProps {
   /** 字段标签 */
@@ -49,6 +49,7 @@ export function ResourceFilePicker({
   const [isHovered, setIsHovered] = useState(false);
   const [showScriptPreview, setShowScriptPreview] = useState(false);
   const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number } | null>(null);
+  const [resolvedPath, setResolvedPath] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // 完整资源路径
@@ -65,8 +66,27 @@ export function ResourceFilePicker({
     return fullPath;
   })();
 
-  // 显示路径（统一显示完整预览路径，带 / 前缀）
-  const displayPath = previewPath ? `/${previewPath}` : "";
+  // ASF 预览路径（支持多路径尝试，用于 character 资源）
+  const asfPreviewPaths = value ? buildCharacterResourcePaths(fieldName, value) : [];
+
+  // 文件名（用于在路径未解析时显示）
+  const fileName = value?.replace(/\\/g, "/").split("/").pop() || "";
+
+  // 显示路径：
+  // - 如果有多个候选路径且未解析，只显示文件名
+  // - 如果已解析，显示完整路径
+  // - 如果只有单一路径，直接显示
+  const displayPath = (() => {
+    if (resolvedPath) return `/${resolvedPath}`;
+    if (asfPreviewPaths.length > 1) return fileName; // 多候选路径，显示文件名
+    if (previewPath) return `/${previewPath}`;
+    return "";
+  })();
+
+  // 当 value 变化时重置解析路径
+  useEffect(() => {
+    setResolvedPath(null);
+  }, [value]);
 
   // 打开选择器
   const handleOpenDialog = useCallback(() => {
@@ -96,9 +116,6 @@ export function ResourceFilePicker({
     onChange(null);
   }, [onChange]);
 
-  // 获取文件名
-  const fileName = fullPath.split("/").pop() || "";
-
   return (
     <div className="flex items-center gap-3 relative" ref={containerRef}>
       {/* 标签 */}
@@ -126,7 +143,12 @@ export function ResourceFilePicker({
           <div className="flex items-center gap-2 flex-1 min-w-0">
             {/* 预览图标 */}
             {fileType === "asf" && (
-              <MiniAsfPreview gameSlug={gameSlug} path={previewPath} size={24} />
+              <MiniAsfPreview
+                gameSlug={gameSlug}
+                path={asfPreviewPaths.length > 0 ? asfPreviewPaths : previewPath}
+                size={24}
+                onPathResolved={setResolvedPath}
+              />
             )}
             {fileType === "audio" && (
               <MiniAudioPlayer gameSlug={gameSlug} path={previewPath} />

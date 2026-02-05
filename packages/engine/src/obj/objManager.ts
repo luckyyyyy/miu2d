@@ -44,10 +44,12 @@ import type { Vector2 } from "../core/types";
 import { resourceLoader } from "../resource/resourceLoader";
 import { loadAsf } from "../resource/asf";
 import { parseIni } from "../utils";
-import { Obj, type ObjKind, type ObjResInfo, ObjState } from "./obj";
+import { Obj, type ObjKind, ObjState } from "./obj";
+import { getObjResFromCache, type ObjResInfo } from "./objConfigLoader";
 
 // Re-export types
-export { Obj, ObjKind, type ObjResInfo, ObjState } from "./obj";
+export { Obj, ObjKind, ObjState } from "./obj";
+export type { ObjResInfo } from "./objConfigLoader";
 
 /**
  * Saved state for an Obj (persists across map changes)
@@ -57,24 +59,6 @@ interface ObjSavedState {
   scriptFile: string; // Current script file (empty = no script)
   isRemoved: boolean; // Whether the object was removed
   currentFrameIndex: number; // Current animation frame (e.g., opened box)
-}
-
-/**
- * Parse ObjRes INI content to ObjResInfo
- */
-function parseObjResIni(content: string): ObjResInfo | null {
-  const sections = parseIni(content);
-
-  // Get the Common section (or first available state)
-  const commonSection = sections.Common || sections.Open || Object.values(sections)[0];
-  if (!commonSection) {
-    return null;
-  }
-
-  return {
-    imagePath: commonSection.Image || "",
-    soundPath: commonSection.Sound || "",
-  };
 }
 
 export class ObjManager {
@@ -265,9 +249,8 @@ export class ObjManager {
   private async loadObjResources(obj: Obj): Promise<void> {
     if (!obj.objFileName) return;
 
-    // 加载 objres 配置文件
-    const filePath = ResourcePath.objRes(obj.objFileName);
-    const resInfo = await resourceLoader.loadIni<ObjResInfo>(filePath, parseObjResIni, "objRes");
+    // 从 API 缓存加载 objres 配置
+    const resInfo = getObjResFromCache(obj.objFileName);
     if (!resInfo) return;
 
     obj.objFile.set(ObjState.Common, resInfo);

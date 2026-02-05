@@ -1,11 +1,16 @@
 /**
  * Good - 物品类
  *
- * 从 API 加载物品配置，缓存到内存中。
- * 游戏启动时调用 loadGoodsFromApi() 加载所有物品。
- * 之后通过 getGood(fileName) 同步获取物品实例。
+ * 从统一数据加载器获取物品配置，缓存到内存中。
+ * 启动时自动注册到 dataLoader，数据加载完成后自动构建缓存。
  */
 
+import {
+  getGoodsData,
+  isGameDataLoaded,
+  registerCacheBuilder,
+  type ApiGoodsData,
+} from "../../resource/resourceLoader";
 import { getResourceRoot } from "../../config/resourcePaths";
 import { logger } from "../../core/logger";
 
@@ -48,34 +53,8 @@ type ApiGoodsKind = "Consumable" | "Equipment" | "Quest";
 /** API 返回的装备部位 */
 type ApiGoodsPart = "Hand" | "Head" | "Body" | "Foot" | "Neck" | "Back" | "Wrist";
 
-/** API 返回的物品数据 */
-export interface ApiGoods {
-  id: string;
-  gameId: string;
-  key: string;
-  kind: ApiGoodsKind;
-  name: string;
-  intro?: string;
-  cost?: number | null;
-  image?: string | null;
-  icon?: string | null;
-  effect?: string | null;
-  // 消耗品字段
-  life?: number | null;
-  thew?: number | null;
-  mana?: number | null;
-  // 装备字段
-  part?: ApiGoodsPart | null;
-  lifeMax?: number | null;
-  thewMax?: number | null;
-  manaMax?: number | null;
-  attack?: number | null;
-  defend?: number | null;
-  evade?: number | null;
-  effectType?: number | null;
-  // 任务道具字段
-  script?: string | null;
-}
+/** API 返回的物品数据（复用 dataLoader 类型） */
+export type ApiGoods = ApiGoodsData;
 
 /** 物品种类映射 */
 const GoodsKindMap: Record<ApiGoodsKind, GoodKind> = {
@@ -99,12 +78,6 @@ const GoodsPartMap: Record<ApiGoodsPart, EquipPosition> = {
 
 /** 物品缓存 key -> Good */
 const goodsCache = new Map<string, Good>();
-
-/** API 是否已加载 */
-let isApiLoaded = false;
-
-/** 当前游戏 slug */
-let currentGameSlug = "";
 
 // ============= Good 类 =============
 
@@ -322,26 +295,16 @@ function normalizeKey(fileName: string): string {
   return key.toLowerCase();
 }
 
-// ============= 公共 API =============
+// ============= 内部函数 =============
 
 /**
- * 从 API 加载所有物品配置
+ * 从统一数据构建物品缓存（自动被 dataLoader 调用）
  */
-export async function loadGoodsFromApi(gameSlug: string, force = false): Promise<void> {
-  if (!force && isApiLoaded && currentGameSlug === gameSlug) {
-    logger.debug("[Good] Already loaded");
+function buildGoodsCache(): void {
+  const data = getGoodsData();
+  if (!data) {
     return;
   }
-
-  const url = `/game/${gameSlug}/api/goods?_t=${Date.now()}`;
-  logger.info(`[Good] Loading from ${url}`);
-
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status}`);
-  }
-
-  const data: ApiGoods[] = await response.json();
 
   goodsCache.clear();
   for (const api of data) {
@@ -350,10 +313,13 @@ export async function loadGoodsFromApi(gameSlug: string, force = false): Promise
     goodsCache.set(key, good);
   }
 
-  isApiLoaded = true;
-  currentGameSlug = gameSlug;
-  logger.info(`[Good] Loaded ${data.length} goods`);
+  logger.info(`[Good] Built cache: ${data.length} goods`);
 }
+
+// 注册到 dataLoader，数据加载完成后自动构建缓存
+registerCacheBuilder(buildGoodsCache);
+
+// ============= 公共 API =============
 
 /**
  * 获取物品（同步，从缓存读取）
@@ -368,10 +334,10 @@ export function getGood(fileName: string): Good | null {
 }
 
 /**
- * 检查 API 是否已加载
+ * 检查物品配置是否已加载
  */
 export function isGoodsLoaded(): boolean {
-  return isApiLoaded;
+  return isGameDataLoaded() && goodsCache.size > 0;
 }
 
 /**

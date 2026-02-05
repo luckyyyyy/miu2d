@@ -148,7 +148,7 @@ export const goods = pgTable("goods", {
 
 /**
  * NPC 表
- * 存储 NPC 配置（合并了 npc/*.ini 和 npcres/*.ini 的内容）
+ * 存储 NPC 配置（原 npc/*.ini，资源配置分离到 npc_resources 表）
  * 类型定义在 @miu2d/types 中，供引擎、前端、后端共用
  */
 export const npcs = pgTable("npcs", {
@@ -163,7 +163,9 @@ export const npcs = pgTable("npcs", {
   kind: text("kind", { enum: ["Normal", "Fighter", "Flyer", "GroundAnimal", "WaterAnimal", "Decoration", "Intangible"] }).notNull().default("Normal"),
   /** NPC 与玩家的关系（索引字段）: Friendly / Neutral / Hostile / Partner */
   relation: text("relation", { enum: ["Friendly", "Neutral", "Hostile", "Partner"] }).notNull().default("Friendly"),
-  /** 完整 NPC 配置（JSONB，存储所有属性和资源配置） */
+  /** 关联的资源配置 ID */
+  resourceId: uuid("resource_id"),
+  /** 完整 NPC 配置（JSONB，存储所有属性，不含资源配置） */
   data: jsonb("data").notNull(),
   /** 创建时间 */
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
@@ -174,8 +176,31 @@ export const npcs = pgTable("npcs", {
 ]);
 
 /**
+ * NPC 资源配置表（原 npcres/*.ini）
+ * 存储 NPC 各状态的动画和音效资源
+ * 类型定义在 @miu2d/types 中，供引擎、前端、后端共用
+ */
+export const npcResources = pgTable("npc_resources", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  /** 所属游戏（索引字段） */
+  gameId: uuid("game_id").references(() => games.id, { onDelete: "cascade" }).notNull(),
+  /** 唯一标识符（文件名，gameId + key 唯一） */
+  key: text("key").notNull(),
+  /** 资源名称（用于显示和搜索） */
+  name: text("name").notNull(),
+  /** 完整资源配置（JSONB，存储 NpcResource 类型的所有数据） */
+  data: jsonb("data").notNull(),
+  /** 创建时间 */
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  /** 更新时间 */
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow()
+}, (t) => [
+  unique("npc_resources_game_id_key_unique").on(t.gameId, t.key)
+]);
+
+/**
  * Object 表
- * 存储 Object 配置（合并了 obj/*.ini 和 objres/*.ini 的内容）
+ * 存储 Object 配置（原 obj/*.ini）
  * 类型定义在 @miu2d/types 中，供引擎、前端、后端共用
  */
 export const objs = pgTable("objs", {
@@ -188,7 +213,9 @@ export const objs = pgTable("objs", {
   name: text("name").notNull(),
   /** Object 类型（索引字段）: Dynamic / Static / Body / LoopingSound / RandSound / Door / Trap / Drop */
   kind: text("kind", { enum: ["Dynamic", "Static", "Body", "LoopingSound", "RandSound", "Door", "Trap", "Drop"] }).notNull().default("Static"),
-  /** 完整 Object 配置（JSONB，存储所有属性和资源配置） */
+  /** 关联的资源配置 ID */
+  resourceId: uuid("resource_id"),
+  /** 完整 Object 配置（JSONB，存储所有属性，不含资源配置） */
   data: jsonb("data").notNull(),
   /** 创建时间 */
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
@@ -198,3 +225,25 @@ export const objs = pgTable("objs", {
   unique("objs_game_id_key_unique").on(t.gameId, t.key)
 ]);
 
+/**
+ * Object 资源配置表（原 objres/*.ini）
+ * 存储 Object 各状态的动画和音效资源
+ * 类型定义在 @miu2d/types 中，供引擎、前端、后端共用
+ */
+export const objResources = pgTable("obj_resources", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  /** 所属游戏（索引字段） */
+  gameId: uuid("game_id").references(() => games.id, { onDelete: "cascade" }).notNull(),
+  /** 唯一标识符（文件名，gameId + key 唯一） */
+  key: text("key").notNull(),
+  /** 资源名称（用于显示和搜索） */
+  name: text("name").notNull(),
+  /** 完整资源配置（JSONB，存储 ObjResource 类型的所有数据） */
+  data: jsonb("data").notNull(),
+  /** 创建时间 */
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  /** 更新时间 */
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow()
+}, (t) => [
+  unique("obj_resources_game_id_key_unique").on(t.gameId, t.key)
+]);

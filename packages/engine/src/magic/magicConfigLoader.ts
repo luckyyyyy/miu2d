@@ -1,138 +1,32 @@
 /**
- * Magic Config Loader - 从 API 加载武功配置
+ * Magic Config Loader - 从统一数据加载器获取武功配置
  *
- * 游戏启动时从 `/game/{gameSlug}/api/magic` 获取所有武功配置，
- * 缓存到内存中，后续 loadMagic 直接从缓存读取。
+ * 在 dataLoader 加载完成后自动构建武功缓存。
  *
  * 路径处理规则：
  * - 绝对路径（以 `/` 开头）：转换为 `/game/{gameSlug}/resources/xxx`
  * - 相对路径：保持不变（由 magicLoader 处理）
  */
 
+import {
+  getMagicsData,
+  isGameDataLoaded,
+  registerCacheBuilder,
+  type ApiMagicData,
+} from "../resource/resourceLoader";
 import { getResourceRoot } from "../config/resourcePaths";
 import { logger } from "../core/logger";
 import { createDefaultMagicData, type MagicData, MagicMoveKind, MagicSpecialKind } from "./types";
 
-// ========== API 响应类型 ==========
+// ========== API 响应类型（从 dataLoader 复用） ==========
 
-/**
- * API 返回的武功等级数据
- */
-interface ApiMagicLevel {
-  level: number;
-  effect: number;
-  manaCost: number;
-  levelupExp: number | null;
-  speed?: number;
-  moveKind?: string;
-  lifeFrame?: number;
-}
+type ApiMagicLevel = ApiMagicData extends { levels: (infer L)[] | null } ? NonNullable<L> : never;
+type ApiAttackFile = ApiMagicData extends { attackFile: infer A } ? NonNullable<A> : never;
 
-/**
- * API 返回的攻击文件数据（嵌套武功）
- */
-interface ApiAttackFile {
-  name: string;
-  intro?: string;
-  speed: number;
-  bounce: boolean;
-  region: number;
-  moveKind: string;
-  attackAll: boolean;
-  flyingLum: number;
-  lifeFrame: number;
-  vanishLum: number;
-  waitFrame: number;
-  alphaBlend: boolean;
-  bounceHurt: number;
-  traceEnemy: boolean;
-  traceSpeed: number;
-  flyingImage: string | null;
-  flyingSound: string | null;
-  passThrough: boolean;
-  rangeRadius: number;
-  specialKind?: string;
-  vanishImage: string | null;
-  vanishSound: string | null;
-  passThroughWall: boolean;
-  vibratingScreen: boolean;
-  specialKindValue: number;
-  specialKindMilliSeconds: number;
-}
-
-/**
- * API 返回的单个武功数据
- */
-interface ApiMagicData {
-  id: string;
-  gameId: string;
-  key: string; // e.g., "player-magic-银钩铁划.ini"
-  userType: "player" | "npc";
-  name: string;
-  intro?: string;
-  icon: string | null;
-  image: string | null;
-  speed: number;
-  belong?: string;
-  bounce: boolean;
-  levels: ApiMagicLevel[] | null;
-  region: number;
-  npcFile: string | null;
-  flyMagic: string | null;
-  moveKind?: string;
-  attackAll: boolean;
-  flyingLum: number;
-  lifeFrame: number;
-  parasitic: boolean;
-  vanishLum: number;
-  waitFrame: number;
-  actionFile: string | null;
-  alphaBlend: boolean;
-  attackFile: ApiAttackFile | null;
-  bounceHurt: number;
-  traceEnemy: boolean;
-  traceSpeed: number;
-  beginAtUser: boolean;
-  flyInterval: number;
-  flyingImage: string | null;
-  flyingSound: string | null;
-  passThrough: boolean;
-  rangeRadius: number;
-  specialKind?: string;
-  vanishImage: string | null;
-  vanishSound: string | null;
-  beginAtMouse: boolean;
-  parasiticMagic: string | null;
-  superModeImage: string | null;
-  passThroughWall: boolean;
-  vibratingScreen: boolean;
-  coldMilliSeconds: number;
-  explodeMagicFile: string | null;
-  specialKindValue: number;
-  parasiticInterval: number;
-  specialKindMilliSeconds: number;
-  createdAt: string;
-  updatedAt: string;
-}
-
-/**
- * API 响应格式
- */
-interface ApiMagicResponse {
-  player: ApiMagicData[];
-  npc: ApiMagicData[];
-}
-
-// ========== 缓存和状态 ==========
+// ========== 缓存 ==========
 
 /** 已解析的武功配置缓存 (key -> MagicData) */
 const magicConfigCache = new Map<string, MagicData>();
-
-/** API 是否已加载 */
-let isApiLoaded = false;
-
-/** 当前 gameSlug */
-let currentGameSlug = "";
 
 // ========== MoveKind 字符串到枚举映射 ==========
 
@@ -443,62 +337,41 @@ function normalizeKeyForCache(fileName: string): string {
   return normalized.toLowerCase();
 }
 
-// ========== 公共 API ==========
-
 /**
- * 从 API 加载所有武功配置
- *
- * @param gameSlug 游戏标识（如 "william-chan"）
- * @param force 是否强制重新加载（跳过缓存检查）
+ * 从统一数据构建武功缓存（自动被 dataLoader 调用）
  */
-export async function loadMagicConfigFromApi(gameSlug: string, force = false): Promise<void> {
-  if (!force && isApiLoaded && currentGameSlug === gameSlug) {
-    logger.debug("[MagicConfigLoader] Already loaded for this game");
+function buildMagicCache(): void {
+  const data = getMagicsData();
+  if (!data) {
     return;
   }
 
-  // 添加时间戳参数防止浏览器缓存
-  const apiUrl = `/game/${gameSlug}/api/magic?_t=${Date.now()}`;
-  logger.info(`[MagicConfigLoader] Loading magic config from ${apiUrl}`);
+  // 清空旧缓存
+  magicConfigCache.clear();
 
-  try {
-    const response = await fetch(apiUrl);
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-    }
-
-    const data: ApiMagicResponse = await response.json();
-
-    // 清空旧缓存
-    magicConfigCache.clear();
-
-    // 处理玩家武功
-    for (const api of data.player) {
-      const magic = convertApiMagicToMagicData(api);
-      const cacheKey = normalizeKeyForCache(api.key);
-      magicConfigCache.set(cacheKey, magic);
-      // logger.debug(`[MagicConfigLoader] Cached player magic: ${api.name} -> ${cacheKey}`);
-    }
-
-    // 处理 NPC 武功
-    for (const api of data.npc) {
-      const magic = convertApiMagicToMagicData(api);
-      const cacheKey = normalizeKeyForCache(api.key);
-      magicConfigCache.set(cacheKey, magic);
-      // logger.debug(`[MagicConfigLoader] Cached npc magic: ${api.name} -> ${cacheKey}`);
-    }
-
-    isApiLoaded = true;
-    currentGameSlug = gameSlug;
-
-    logger.info(
-      `[MagicConfigLoader] Loaded ${data.player.length} player magics and ${data.npc.length} npc magics`
-    );
-  } catch (error) {
-    logger.error(`[MagicConfigLoader] Failed to load magic config:`, error);
-    throw error;
+  // 处理玩家武功
+  for (const api of data.player) {
+    const magic = convertApiMagicToMagicData(api);
+    const cacheKey = normalizeKeyForCache(api.key);
+    magicConfigCache.set(cacheKey, magic);
   }
+
+  // 处理 NPC 武功
+  for (const api of data.npc) {
+    const magic = convertApiMagicToMagicData(api);
+    const cacheKey = normalizeKeyForCache(api.key);
+    magicConfigCache.set(cacheKey, magic);
+  }
+
+  logger.info(
+    `[MagicConfigLoader] Built cache: ${data.player.length} player + ${data.npc.length} npc magics`
+  );
 }
+
+// 注册到 dataLoader，数据加载完成后自动构建缓存
+registerCacheBuilder(buildMagicCache);
+
+// ========== 公共 API ==========
 
 /**
  * 从缓存获取武功配置
@@ -519,43 +392,10 @@ export function getMagicFromApiCache(fileName: string): MagicData | null {
 }
 
 /**
- * 强制重新加载武功配置
- * 会清除所有相关缓存并重新加载：
- * - API 配置缓存（magicConfigCache）
- * - 所有 NPC 的武功缓存（清除并重新加载）
- * - 玩家的武功列表（更新 MagicData）
- *
- * @param gameSlug 游戏标识（如 "william-chan"）
- */
-export async function reloadMagicConfigFromApi(gameSlug: string): Promise<void> {
-  logger.info("[MagicConfigLoader] Force reloading magic config...");
-
-  // 1. 重新加载 API 配置（会自动清除旧缓存）
-  await loadMagicConfigFromApi(gameSlug, true);
-
-  // 2. 刷新游戏内缓存（如果引擎已初始化）
-  try {
-    const { getEngineContext } = await import("../core/engineContext");
-    const ctx = getEngineContext();
-    if (ctx) {
-      // 重新加载所有 NPC 的武功缓存
-      await (ctx.npcManager as { reloadAllMagicCaches?: () => Promise<void> }).reloadAllMagicCaches?.();
-      // 重新加载玩家的武功列表
-      const magicListManager = (ctx.player as { getMagicListManager?: () => { reloadAllMagics?: () => Promise<void> } }).getMagicListManager?.();
-      await magicListManager?.reloadAllMagics?.();
-    }
-  } catch {
-    // 引擎未初始化，忽略
-  }
-
-  logger.info("[MagicConfigLoader] Magic config reloaded successfully");
-}
-
-/**
- * 检查 API 配置是否已加载
+ * 检查武功配置是否已加载
  */
 export function isMagicApiLoaded(): boolean {
-  return isApiLoaded;
+  return isGameDataLoaded() && magicConfigCache.size > 0;
 }
 
 /**

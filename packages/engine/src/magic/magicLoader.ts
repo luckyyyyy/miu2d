@@ -7,7 +7,8 @@
  * 核心原则：战斗中禁止 async，所有资源必须预加载
  *
  * 初始化：
- * - 调用 loadMagicConfigFromApi() 从 API 加载所有武功配置
+ * - 调用 loadGameData() 从 API 加载所有游戏数据
+ * - dataLoader 会自动调用 registerCacheBuilder 注册的回调构建缓存
  *
  * 加载时机：
  * 1. NPC 出现时 → async 预加载 ASF
@@ -65,7 +66,7 @@ export function getMagicAtLevel(baseMagic: MagicData, level: number): MagicData 
  */
 export function getMagic(fileName: string): MagicData | null {
   if (!isMagicApiLoaded()) {
-    logger.error(`[MagicLoader] API not loaded! Call loadMagicConfigFromApi() first.`);
+    logger.error(`[MagicLoader] Game data not loaded! Call loadGameData() first.`);
     return null;
   }
   return getMagicFromApiCache(fileName);

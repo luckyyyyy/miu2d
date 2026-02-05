@@ -3,6 +3,7 @@ import { AppController } from "./app.controller";
 import { createContext } from "./trpc/context";
 import { TrpcModule } from "./trpc/trpc.module";
 import { AuthModule } from "./modules/auth";
+import { DataModule } from "./modules/data";
 import { FileModule } from "./modules/file";
 import { GameModule } from "./modules/game";
 import { GoodsModule } from "./modules/goods/goods.module";
@@ -18,6 +19,7 @@ import { UserModule } from "./modules/user";
       createContext
     }),
     AuthModule,
+    DataModule,
     FileModule,
     GameModule,
     GoodsModule,

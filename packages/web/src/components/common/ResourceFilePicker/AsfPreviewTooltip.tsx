@@ -200,13 +200,15 @@ export function AsfPreviewTooltip({ gameSlug, path, position, onClose }: AsfPrev
 interface MiniAsfPreviewProps {
   /** 游戏 slug */
   gameSlug: string;
-  /** ASF 文件路径 */
-  path: string;
+  /** ASF 文件路径（支持单路径或多路径数组，多路径时会依次尝试） */
+  path: string | string[];
   /** 预览尺寸 */
   size?: number;
+  /** 当找到正确路径时的回调 */
+  onPathResolved?: (resolvedPath: string) => void;
 }
 
-export function MiniAsfPreview({ gameSlug, path, size = 48 }: MiniAsfPreviewProps) {
+export function MiniAsfPreview({ gameSlug, path, size = 48, onPathResolved }: MiniAsfPreviewProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [asf, setAsf] = useState<AsfData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -215,7 +217,10 @@ export function MiniAsfPreview({ gameSlug, path, size = 48 }: MiniAsfPreviewProp
   const animationRef = useRef<number | null>(null);
   const lastTimeRef = useRef(0);
 
-  // 加载 ASF
+  // 路径数组（统一处理）
+  const paths = Array.isArray(path) ? path : [path];
+
+  // 加载 ASF（支持多路径尝试）
   useEffect(() => {
     let cancelled = false;
 
@@ -226,15 +231,42 @@ export function MiniAsfPreview({ gameSlug, path, size = 48 }: MiniAsfPreviewProp
 
         await initWasm();
 
-        const url = `/game/${gameSlug}/resources/${path.toLowerCase()}`;
-        const response = await fetch(url);
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        // 依次尝试每个路径
+        let lastError: Error | null = null;
+        for (const p of paths) {
+          if (cancelled) return;
 
-        const buffer = await response.arrayBuffer();
-        const asfData = decodeAsfWasm(buffer);
-        if (!asfData) throw new Error("解码失败");
+          const url = `/game/${gameSlug}/resources/${p.toLowerCase()}`;
+          try {
+            const response = await fetch(url);
+            if (!response.ok) {
+              lastError = new Error(`HTTP ${response.status}`);
+              continue; // 尝试下一个路径
+            }
 
-        if (!cancelled) setAsf(asfData);
+            const buffer = await response.arrayBuffer();
+            const asfData = decodeAsfWasm(buffer);
+            if (!asfData) {
+              lastError = new Error("解码失败");
+              continue;
+            }
+
+            if (!cancelled) {
+              setAsf(asfData);
+              // 通知父组件实际使用的路径
+              onPathResolved?.(p);
+            }
+            return; // 成功，退出
+          } catch (e) {
+            lastError = e as Error;
+            continue; // 尝试下一个路径
+          }
+        }
+
+        // 所有路径都失败
+        if (!cancelled && lastError) {
+          setError(lastError.message);
+        }
       } catch (e) {
         if (!cancelled) setError((e as Error).message);
       } finally {
@@ -242,12 +274,12 @@ export function MiniAsfPreview({ gameSlug, path, size = 48 }: MiniAsfPreviewProp
       }
     };
 
-    if (path) loadAsf();
+    if (paths.length > 0 && paths[0]) loadAsf();
 
     return () => {
       cancelled = true;
     };
-  }, [gameSlug, path]);
+  }, [gameSlug, paths.join(",")]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 动画循环
   useEffect(() => {

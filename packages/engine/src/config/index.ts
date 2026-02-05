@@ -24,3 +24,25 @@ export {
   resetResourcePaths,
   setResourcePaths,
 } from "./resourcePaths";
+
+// 统一数据加载器（从 resourceLoader 重导出）
+export {
+  clearGameDataCache,
+  getCurrentGameSlug,
+  getGoodsData,
+  getMagicsData,
+  getNpcsData,
+  getObjsData,
+  isGameDataLoaded,
+  loadGameData,
+  registerCacheBuilder,
+  reloadGameData,
+  type ApiDataResponse,
+  type ApiGoodsData,
+  type ApiMagicData,
+  type ApiMagicResponse,
+  type ApiNpcData,
+  type ApiNpcResponse,
+  type ApiObjData,
+  type ApiObjResponse,
+} from "../resource/resourceLoader";

@@ -222,8 +222,10 @@ export const NpcBaseSchema = z.object({
   /** 交互/对话脚本 */
   scriptFile: z.string().nullable().optional(),
 
-  // === 资源配置（合并自 npcres） ===
-  /** NPC 各状态的动画和音效资源 */
+  // === 资源配置（关联 npc_resources 表，向后兼容也可以内嵌） ===
+  /** 关联的资源配置 ID */
+  resourceId: z.string().uuid().nullable().optional(),
+  /** NPC 各状态的动画和音效资源（内嵌资源，优先使用 resourceId 关联） */
   resources: NpcResourceSchema.optional(),
 });
 
@@ -247,6 +249,53 @@ export const NpcSchema = NpcBaseSchema.extend({
 
 export type Npc = z.infer<typeof NpcSchema>;
 
+// ========== NPC 资源配置表 Schema ==========
+
+/**
+ * NPC 资源配置（原 npcres/*.ini）
+ * 独立的表，可被多个 NPC 引用
+ */
+export const NpcResSchema = z.object({
+  /** 数据库 ID */
+  id: z.string().uuid(),
+  /** 所属游戏 ID */
+  gameId: z.string().uuid(),
+  /** 唯一标识符（文件名） */
+  key: z.string(),
+  /** 资源名称 */
+  name: z.string(),
+  /** 各状态的动画和音效资源 */
+  resources: NpcResourceSchema,
+  /** 创建时间 */
+  createdAt: z.string().datetime(),
+  /** 更新时间 */
+  updatedAt: z.string().datetime(),
+});
+
+export type NpcRes = z.infer<typeof NpcResSchema>;
+
+// 兼容旧名称
+export const NpcAppearanceSchema = NpcResSchema;
+export type NpcAppearance = NpcRes;
+
+/**
+ * NPC 资源列表项（简化版，用于列表展示）
+ */
+export const NpcResListItemSchema = z.object({
+  id: z.string().uuid(),
+  key: z.string(),
+  name: z.string(),
+  /** 站立动画图标（用于列表展示） */
+  icon: z.string().nullable().optional(),
+  updatedAt: z.string().datetime(),
+});
+
+export type NpcResListItem = z.infer<typeof NpcResListItemSchema>;
+
+// 兼容旧名称
+export const NpcAppearanceListItemSchema = NpcResListItemSchema;
+export type NpcAppearanceListItem = NpcResListItem;
+
 /**
  * NPC 列表项（简化版，用于列表展示）
  */
@@ -257,6 +306,8 @@ export const NpcListItemSchema = z.object({
   kind: NpcKindEnum,
   relation: NpcRelationEnum,
   level: z.number().int().optional(),
+  /** 关联的资源配置 ID */
+  resourceId: z.string().uuid().nullable().optional(),
   /** 站立动画图标（用于列表展示） */
   icon: z.string().nullable().optional(),
   updatedAt: z.string().datetime(),
@@ -289,6 +340,7 @@ export const CreateNpcInputSchema = z.object({
   name: z.string(),
   kind: NpcKindEnum.optional(),
   relation: NpcRelationEnum.optional(),
+  resourceId: z.string().uuid().nullable().optional(),
 }).merge(NpcBaseSchema.partial());
 
 export type CreateNpcInput = z.infer<typeof CreateNpcInputSchema>;
@@ -307,15 +359,78 @@ export const DeleteNpcInputSchema = z.object({
 
 export type DeleteNpcInput = z.infer<typeof DeleteNpcInputSchema>;
 
+// ========== NPC 资源 API 输入 Schema ==========
+
+export const ListNpcResInputSchema = z.object({
+  gameId: z.string().uuid(),
+});
+
+export type ListNpcResInput = z.infer<typeof ListNpcResInputSchema>;
+
+// 兼容旧名称
+export const ListNpcAppearanceInputSchema = ListNpcResInputSchema;
+export type ListNpcAppearanceInput = ListNpcResInput;
+
+export const GetNpcResInputSchema = z.object({
+  gameId: z.string().uuid(),
+  id: z.string().uuid(),
+});
+
+export type GetNpcResInput = z.infer<typeof GetNpcResInputSchema>;
+
+// 兼容旧名称
+export const GetNpcAppearanceInputSchema = GetNpcResInputSchema;
+export type GetNpcAppearanceInput = GetNpcResInput;
+
+export const CreateNpcResInputSchema = z.object({
+  gameId: z.string().uuid(),
+  key: z.string(),
+  name: z.string(),
+  resources: NpcResourceSchema.optional(),
+});
+
+export type CreateNpcResInput = z.infer<typeof CreateNpcResInputSchema>;
+
+// 兼容旧名称
+export const CreateNpcAppearanceInputSchema = CreateNpcResInputSchema;
+export type CreateNpcAppearanceInput = CreateNpcResInput;
+
+export const UpdateNpcResInputSchema = z.object({
+  id: z.string().uuid(),
+  gameId: z.string().uuid(),
+  key: z.string().optional(),
+  name: z.string().optional(),
+  resources: NpcResourceSchema.optional(),
+});
+
+export type UpdateNpcResInput = z.infer<typeof UpdateNpcResInputSchema>;
+
+// 兼容旧名称
+export const UpdateNpcAppearanceInputSchema = UpdateNpcResInputSchema;
+export type UpdateNpcAppearanceInput = UpdateNpcResInput;
+
+export const DeleteNpcResInputSchema = z.object({
+  id: z.string().uuid(),
+  gameId: z.string().uuid(),
+});
+
+export type DeleteNpcResInput = z.infer<typeof DeleteNpcResInputSchema>;
+
+// 兼容旧名称
+export const DeleteNpcAppearanceInputSchema = DeleteNpcResInputSchema;
+export type DeleteNpcAppearanceInput = DeleteNpcResInput;
+
 /**
  * 单个 NPC 导入项（包含 npc 和 npcres 内容）
  */
 export const ImportNpcItemSchema = z.object({
   /** NPC 配置文件名 */
   fileName: z.string(),
-  /** NPC 配置内容（npc/*.ini） */
-  iniContent: z.string(),
-  /** NPC 资源配置内容（npcres/*.ini，可选，会自动关联） */
+  /** 导入类型：npc = NPC配置, resource = 独立资源配置 */
+  type: z.enum(["npc", "resource"]).default("npc"),
+  /** NPC 配置内容（npc/*.ini），type=npc 时必填 */
+  iniContent: z.string().optional(),
+  /** NPC 资源配置内容（npcres/*.ini，type=npc 时可选会自动关联，type=resource 时必填） */
   npcResContent: z.string().optional(),
 });
 
@@ -324,7 +439,8 @@ export type ImportNpcItem = z.infer<typeof ImportNpcItemSchema>;
 export const ImportNpcInputSchema = z.object({
   gameId: z.string().uuid(),
   fileName: z.string(),
-  iniContent: z.string(),
+  type: z.enum(["npc", "resource"]).default("npc"),
+  iniContent: z.string().optional(),
   npcResContent: z.string().optional(),
 });
 
@@ -342,6 +458,8 @@ export const BatchImportNpcResultSchema = z.object({
     fileName: z.string(),
     id: z.string().uuid(),
     name: z.string(),
+    /** npc 或 resource */
+    type: z.enum(["npc", "resource"]),
     hasResources: z.boolean(),
   })),
   failed: z.array(z.object({

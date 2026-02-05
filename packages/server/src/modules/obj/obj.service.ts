@@ -20,14 +20,13 @@ import {
 	ObjKindFromValue,
 	createDefaultObj,
 	createDefaultObjResource,
-	normalizeObjImagePath,
-	normalizeObjSoundPath,
 } from "@miu2d/types";
 import { and, eq, desc } from "drizzle-orm";
 import { db } from "../../db/client";
 import { gameMembers, games, objs } from "../../db/schema";
 import type { Language } from "../../i18n";
 import { getMessage } from "../../i18n";
+import { objResourceService } from "./objResource.service";
 
 export class ObjService {
 	/**
@@ -57,7 +56,7 @@ export class ObjService {
 	 * 将数据库记录转换为 Obj 类型
 	 */
 	private toObj(row: typeof objs.$inferSelect): Obj {
-		const data = row.data as Omit<Obj, "id" | "gameId" | "key" | "name" | "kind" | "createdAt" | "updatedAt">;
+		const data = row.data as Omit<Obj, "id" | "gameId" | "key" | "name" | "kind" | "resourceId" | "createdAt" | "updatedAt">;
 		return {
 			...data,
 			id: row.id,
@@ -65,6 +64,7 @@ export class ObjService {
 			key: row.key,
 			name: row.name,
 			kind: row.kind as Obj["kind"],
+			resourceId: row.resourceId ?? null,
 			createdAt: row.createdAt?.toISOString() ?? new Date().toISOString(),
 			updatedAt: row.updatedAt?.toISOString() ?? new Date().toISOString(),
 		};
@@ -145,6 +145,7 @@ export class ObjService {
 				key: row.key,
 				name: row.name,
 				kind: row.kind as ObjKind,
+				resourceId: row.resourceId ?? null,
 				icon: resources?.common?.image ?? null,
 				updatedAt: row.updatedAt?.toISOString() ?? new Date().toISOString(),
 			};
@@ -168,7 +169,7 @@ export class ObjService {
 		};
 
 		// 分离索引字段和 data 字段
-		const { gameId, key, name, kind, ...data } = fullObj;
+		const { gameId, key, name, kind, resourceId, ...data } = fullObj;
 
 		const [row] = await db
 			.insert(objs)
@@ -177,6 +178,7 @@ export class ObjService {
 				key,
 				name: name ?? "未命名物体",
 				kind: kind ?? "Static",
+				resourceId: resourceId ?? null,
 				data,
 			})
 			.returning();
@@ -214,6 +216,7 @@ export class ObjService {
 			key,
 			name,
 			kind,
+			resourceId,
 			createdAt: _createdAt,
 			updatedAt: _updatedAt,
 			...data
@@ -225,6 +228,7 @@ export class ObjService {
 				key,
 				name,
 				kind,
+				resourceId: resourceId ?? null,
 				data,
 				updatedAt: new Date(),
 			})
@@ -262,11 +266,30 @@ export class ObjService {
 	): Promise<Obj> {
 		await this.verifyGameAccess(input.gameId, userId, language);
 
-		const parsed = this.parseObjIni(input.iniContent);
+		if (!input.iniContent) {
+			throw new Error("Object 配置内容为空");
+		}
 
-		// 如果有资源配置 INI，解析并合并
+		const parsed = this.parseObjIni(input.iniContent);
+		let resourceId: string | null = null;
+
+		// 如果有资源配置 INI，创建资源数据并关联
 		if (input.objResContent) {
-			parsed.resources = this.parseObjResIni(input.objResContent);
+			const resources = this.parseObjResIni(input.objResContent);
+			// 从 Obj INI 中解析 ObjFile 字段作为资源的 key
+			const objFileField = this.parseObjFileField(input.iniContent);
+			const resourceKey = objFileField || input.fileName;
+			const resourceName = resourceKey.replace(/\.ini$/i, "");
+
+			const objRes = await objResourceService.upsert(
+				input.gameId,
+				resourceKey,
+				resourceName,
+				resources,
+				userId,
+				language
+			);
+			resourceId = objRes.id;
 		}
 
 		// 使用文件名作为 key
@@ -277,13 +300,16 @@ export class ObjService {
 			key,
 			name: parsed.name ?? key.replace(/\.ini$/i, ""),
 			kind: parsed.kind,
+			resourceId,
 			...parsed,
 		}, userId, language);
 	}
 
 	/**
-	 * 批量导入 Object
-	 * 支持自动关联 objres 配置
+	 * 批量导入 Object 和资源
+	 * 支持两种类型：
+	 * - type="obj": 导入 Object 配置（obj/*.ini），可选关联 objres
+	 * - type="resource": 导入独立资源配置（objres/*.ini）
 	 */
 	async batchImportFromIni(
 		input: BatchImportObjInput,
@@ -297,31 +323,84 @@ export class ObjService {
 
 		for (const item of input.items) {
 			try {
-				const parsed = this.parseObjIni(item.iniContent);
-				const hasResources = !!item.objResContent;
+				const itemType = item.type ?? "obj";
 
-				// 如果有资源配置 INI，解析并合并
-				if (item.objResContent) {
-					parsed.resources = this.parseObjResIni(item.objResContent);
+				if (itemType === "resource") {
+					// 导入独立资源配置
+					if (!item.objResContent) {
+						throw new Error("资源配置内容为空");
+					}
+
+					const resources = this.parseObjResIni(item.objResContent);
+					// key 保留 .ini 后缀，与 Obj 的 key 格式一致
+					const resourceKey = item.fileName;
+					const resourceName = item.fileName.replace(/\.ini$/i, "");
+
+					const objRes = await objResourceService.upsert(
+						input.gameId,
+						resourceKey,
+						resourceName,
+						resources,
+						userId,
+						language
+					);
+
+					success.push({
+						fileName: item.fileName,
+						id: objRes.id,
+						name: objRes.name,
+						type: "resource",
+						hasResources: true,
+					});
+				} else {
+					// 导入 Object 配置
+					if (!item.iniContent) {
+						throw new Error("Object 配置内容为空");
+					}
+
+					const parsed = this.parseObjIni(item.iniContent);
+					const hasResources = !!item.objResContent;
+					let resourceId: string | null = null;
+
+					// 如果有资源配置 INI，创建资源数据并关联
+					if (item.objResContent) {
+						const resources = this.parseObjResIni(item.objResContent);
+						// 从 Obj INI 中解析 ObjFile 字段作为资源的 key
+						const objFileField = this.parseObjFileField(item.iniContent);
+						const resourceKey = objFileField || item.fileName;
+						const resourceName = resourceKey.replace(/\.ini$/i, "");
+
+						const objRes = await objResourceService.upsert(
+							input.gameId,
+							resourceKey,
+							resourceName,
+							resources,
+							userId,
+							language
+						);
+						resourceId = objRes.id;
+					}
+
+					// 使用文件名作为 key
+					const key = item.fileName;
+
+					const obj = await this.create({
+						gameId: input.gameId,
+						key,
+						name: parsed.name ?? item.fileName.replace(/\.ini$/i, ""),
+						kind: parsed.kind,
+						resourceId,
+						...parsed,
+					}, userId, language);
+
+					success.push({
+						fileName: item.fileName,
+						id: obj.id,
+						name: obj.name,
+						type: "obj",
+						hasResources,
+					});
 				}
-
-				// 使用文件名作为 key
-				const key = item.fileName;
-
-				const obj = await this.create({
-					gameId: input.gameId,
-					key,
-					name: parsed.name ?? item.fileName.replace(/\.ini$/i, ""),
-					kind: parsed.kind,
-					...parsed,
-				}, userId, language);
-
-				success.push({
-					fileName: item.fileName,
-					id: obj.id,
-					name: obj.name,
-					hasResources,
-				});
 			} catch (error) {
 				failed.push({
 					fileName: item.fileName,
@@ -331,6 +410,14 @@ export class ObjService {
 		}
 
 		return { success, failed };
+	}
+
+	/**
+	 * 从 Obj INI 中解析 ObjFile 字段
+	 */
+	private parseObjFileField(content: string): string | null {
+		const match = content.match(/^\s*ObjFile\s*=\s*(.+?)\s*$/mi);
+		return match ? match[1].trim() : null;
 	}
 
 	/**
@@ -452,17 +539,18 @@ export class ObjService {
 			const value = kvMatch[2].trim();
 
 			// 根据 section 名称映射到资源字段
+			// 原封不动存储，路径规范化由前端/引擎处理
 			const stateKey = currentSection as keyof ObjResource;
 			if (stateKey in result) {
 				if (key === "Image") {
 					result[stateKey] = {
 						...result[stateKey],
-						image: normalizeObjImagePath(value),
+						image: value || null,
 					};
 				} else if (key === "Sound") {
 					result[stateKey] = {
 						...result[stateKey],
-						sound: normalizeObjSoundPath(value),
+						sound: value || null,
 					};
 				}
 			}

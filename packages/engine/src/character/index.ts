@@ -35,7 +35,4 @@ export {
   loadNpcRes,
   // NpcRes (state -> ASF mappings)
   type NpcResStateInfo,
-  // NPC config loading (re-exported from iniParser for backward compatibility)
-  parseNpcConfig,
-  parseNpcResIni,
 } from "./resFile";

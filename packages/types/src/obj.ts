@@ -2,7 +2,7 @@
  * Object 系统类型定义
  * 用于前后端共享的 Zod Schema
  *
- * Object 配置合并了两个 INI 文件：
+ * Object 配置分为两个部分：
  * - obj/*.ini - Object 实例配置（属性、行为、脚本）
  * - objres/*.ini - Object 资源配置（各状态的 ASF 动画和音效）
  */
@@ -55,18 +55,29 @@ export const ObjKindLabels: Record<ObjKind, string> = {
 };
 
 /**
- * Object 状态类型
- * 根据 C# Engine/ResFile.cs，Object 只支持 Common 一种状态
+ * Object 资源状态类型
+ * 参考 C# Engine/ResFile.cs
  */
-export const ObjStateEnum = z.enum([
-  "Common",  // 通用/默认状态（Object 唯一支持的状态）
+export const ObjResStateEnum = z.enum([
+  "Common",  // 通用/默认状态
+  "Open",    // 打开状态（门、宝箱）
+  "Opened",  // 已打开状态
+  "Closed",  // 关闭状态
 ]);
 
-export type ObjState = z.infer<typeof ObjStateEnum>;
+export type ObjResState = z.infer<typeof ObjResStateEnum>;
 
-export const ObjStateLabels: Record<ObjState, string> = {
-  Common: "通用动画",
+export const ObjResStateLabels: Record<ObjResState, string> = {
+  Common: "通用",
+  Open: "打开中",
+  Opened: "已打开",
+  Closed: "已关闭",
 };
+
+// 兼容别名 - 前端使用 ObjState
+export const ObjStateEnum = ObjResStateEnum;
+export type ObjState = ObjResState;
+export const ObjStateLabels = ObjResStateLabels;
 
 // ========== 资源配置 Schema ==========
 
@@ -84,13 +95,55 @@ export type ObjStateResource = z.infer<typeof ObjStateResourceSchema>;
 
 /**
  * Object 资源配置（原 objres/*.ini）
- * Object 只支持 Common 一种状态（与 NPC 多状态不同）
+ * Object 支持多种状态（Common、Open、Opened、Closed）
  */
 export const ObjResourceSchema = z.object({
   common: ObjStateResourceSchema.optional(),
+  open: ObjStateResourceSchema.optional(),
+  opened: ObjStateResourceSchema.optional(),
+  closed: ObjStateResourceSchema.optional(),
 });
 
 export type ObjResource = z.infer<typeof ObjResourceSchema>;
+
+// ========== Object 资源配置表 Schema ==========
+
+/**
+ * Object 资源配置（原 objres/*.ini）
+ * 独立的表，可被多个 Object 引用
+ */
+export const ObjResSchema = z.object({
+  /** 数据库 ID */
+  id: z.string().uuid(),
+  /** 所属游戏 ID */
+  gameId: z.string().uuid(),
+  /** 唯一标识符（文件名） */
+  key: z.string(),
+  /** 资源名称 */
+  name: z.string(),
+  /** 各状态的动画和音效资源 */
+  resources: ObjResourceSchema,
+  /** 创建时间 */
+  createdAt: z.string().datetime(),
+  /** 更新时间 */
+  updatedAt: z.string().datetime(),
+});
+
+export type ObjRes = z.infer<typeof ObjResSchema>;
+
+/**
+ * Object 资源列表项（简化版，用于列表展示）
+ */
+export const ObjResListItemSchema = z.object({
+  id: z.string().uuid(),
+  key: z.string(),
+  name: z.string(),
+  /** 通用状态动画图标（用于列表展示） */
+  icon: z.string().nullable().optional(),
+  updatedAt: z.string().datetime(),
+});
+
+export type ObjResListItem = z.infer<typeof ObjResListItemSchema>;
 
 // ========== Object 主配置 Schema ==========
 
@@ -105,6 +158,10 @@ export const ObjBaseSchema = z.object({
   // === 类型 ===
   /** Object 类型 */
   kind: ObjKindEnum.optional().default("Static"),
+
+  // === 关联资源 ===
+  /** 关联的资源配置 ID */
+  resourceId: z.string().uuid().nullable().optional(),
 
   // === 属性 ===
   /** 初始方向（0-7） */
@@ -177,6 +234,8 @@ export const ObjListItemSchema = z.object({
   key: z.string(),
   name: z.string(),
   kind: ObjKindEnum,
+  /** 关联的资源配置 ID */
+  resourceId: z.string().uuid().nullable().optional(),
   /** 通用状态动画图标（用于列表展示） */
   icon: z.string().nullable().optional(),
   updatedAt: z.string().datetime(),
@@ -224,15 +283,60 @@ export const DeleteObjInputSchema = z.object({
 
 export type DeleteObjInput = z.infer<typeof DeleteObjInputSchema>;
 
+// ========== Object 资源 API 输入 Schema ==========
+
+export const ListObjResInputSchema = z.object({
+  gameId: z.string().uuid(),
+});
+
+export type ListObjResInput = z.infer<typeof ListObjResInputSchema>;
+
+export const GetObjResInputSchema = z.object({
+  gameId: z.string().uuid(),
+  id: z.string().uuid(),
+});
+
+export type GetObjResInput = z.infer<typeof GetObjResInputSchema>;
+
+export const CreateObjResInputSchema = z.object({
+  gameId: z.string().uuid(),
+  key: z.string(),
+  name: z.string(),
+  resources: ObjResourceSchema.optional(),
+});
+
+export type CreateObjResInput = z.infer<typeof CreateObjResInputSchema>;
+
+export const UpdateObjResInputSchema = z.object({
+  id: z.string().uuid(),
+  gameId: z.string().uuid(),
+  key: z.string().optional(),
+  name: z.string().optional(),
+  resources: ObjResourceSchema.optional(),
+});
+
+export type UpdateObjResInput = z.infer<typeof UpdateObjResInputSchema>;
+
+export const DeleteObjResInputSchema = z.object({
+  id: z.string().uuid(),
+  gameId: z.string().uuid(),
+});
+
+export type DeleteObjResInput = z.infer<typeof DeleteObjResInputSchema>;
+
+// ========== 导入 Schema ==========
+
 /**
  * 单个 Object 导入项（包含 obj 和 objres 内容）
  */
 export const ImportObjItemSchema = z.object({
   /** Object 配置文件名 */
   fileName: z.string(),
-  /** Object 配置内容（obj/*.ini） */
-  iniContent: z.string(),
-  /** Object 资源配置内容（objres/*.ini，可选，会自动关联） */
+  /** 导入类型：obj = Object配置, resource = 独立资源配置 */
+  type: z.enum(["obj", "resource"]).default("obj"),
+  /** Object 配置内容（obj/*.ini），type=obj 时必填 */
+  iniContent: z.string().optional(),
+  /** Object 资源配置内容（objres/*.ini，type=obj 时可选会自动关联，type=resource 时必填） */
   objResContent: z.string().optional(),
 });
 
@@ -241,7 +345,8 @@ export type ImportObjItem = z.infer<typeof ImportObjItemSchema>;
 export const ImportObjInputSchema = z.object({
   gameId: z.string().uuid(),
   fileName: z.string(),
-  iniContent: z.string(),
+  type: z.enum(["obj", "resource"]).default("obj"),
+  iniContent: z.string().optional(),
   objResContent: z.string().optional(),
 });
 
@@ -259,6 +364,8 @@ export const BatchImportObjResultSchema = z.object({
     fileName: z.string(),
     id: z.string().uuid(),
     name: z.string(),
+    /** obj 或 resource */
+    type: z.enum(["obj", "resource"]),
     hasResources: z.boolean(),
   })),
   failed: z.array(z.object({
@@ -281,6 +388,7 @@ export function createDefaultObj(gameId?: string, key?: string): Partial<Obj> {
     key: key || `obj_${Date.now()}`,
     name: "新物体",
     kind: "Static",
+    resourceId: null,
     dir: 0,
     lum: 0,
     damage: 0,
@@ -292,9 +400,19 @@ export function createDefaultObj(gameId?: string, key?: string): Partial<Obj> {
     scriptFileJustTouch: 0,
     timerScriptInterval: 3000,
     millisecondsToRemove: 0,
-    resources: {
-      common: { image: null, sound: null },
-    },
+  };
+}
+
+/**
+ * 创建默认 ObjRes 配置
+ */
+export function createDefaultObjRes(gameId?: string, key?: string): Partial<ObjRes> {
+  return {
+    id: undefined,
+    gameId,
+    key: key || `objres_${Date.now()}`,
+    name: "新资源配置",
+    resources: createDefaultObjResource(),
   };
 }
 
@@ -304,6 +422,9 @@ export function createDefaultObj(gameId?: string, key?: string): Partial<Obj> {
 export function createDefaultObjResource(): ObjResource {
   return {
     common: { image: null, sound: null },
+    open: { image: null, sound: null },
+    opened: { image: null, sound: null },
+    closed: { image: null, sound: null },
   };
 }
 

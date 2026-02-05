@@ -11,6 +11,7 @@ import { resourceLoader } from "../resource/resourceLoader";
 import { type AsfData, getFrameCanvas, getFrameIndex, loadAsf } from "../resource/asf";
 import { Sprite } from "../sprite/sprite";
 import { parseIni } from "../utils";
+import { getObjResFromCache, type ObjResInfo } from "./objConfigLoader";
 
 /**
  * Object Kind enum matching Obj.ObjKind
@@ -34,14 +35,6 @@ export enum ObjState {
   Open = 1,
   Opened = 2,
   Closed = 3,
-}
-
-/**
- * Object resource info from objres file
- */
-export interface ObjResInfo {
-  imagePath: string;
-  soundPath: string;
 }
 
 /**
@@ -826,27 +819,17 @@ export class Obj extends Sprite {
       obj.id = id;
       obj.fileName = fileName;
 
-      // 加载 objres 资源
+      // 加载 objres 资源（从 API 缓存）
       if (obj.objFileName) {
-        const objResPath = ResourcePath.objRes(obj.objFileName);
-        const resContent = await resourceLoader.loadText(objResPath);
-        if (resContent) {
-          const resSections = parseIni(resContent);
-          const commonSection =
-            resSections.Common || resSections.Open || Object.values(resSections)[0];
-          if (commonSection) {
-            const resInfo: ObjResInfo = {
-              imagePath: commonSection.Image || "",
-              soundPath: commonSection.Sound || "",
-            };
-            obj.objFile.set(ObjState.Common, resInfo);
-            // 加载 ASF 纹理
-            if (resInfo.imagePath) {
-              const asfPath = ResourcePath.asfObject(resInfo.imagePath);
-              const asf = await loadAsf(asfPath);
-              if (asf) {
-                obj.setAsfTexture(asf);
-              }
+        const resInfo = getObjResFromCache(obj.objFileName);
+        if (resInfo) {
+          obj.objFile.set(ObjState.Common, resInfo);
+          // 加载 ASF 纹理
+          if (resInfo.imagePath) {
+            const asfPath = ResourcePath.asfObject(resInfo.imagePath);
+            const asf = await loadAsf(asfPath);
+            if (asf) {
+              obj.setAsfTexture(asf);
             }
           }
         }

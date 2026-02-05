@@ -22,14 +22,13 @@ import {
 	NpcRelationFromValue,
 	createDefaultNpc,
 	createDefaultNpcResource,
-	normalizeNpcImagePath,
-	normalizeNpcSoundPath,
 } from "@miu2d/types";
 import { and, eq, desc } from "drizzle-orm";
 import { db } from "../../db/client";
-import { gameMembers, games, npcs } from "../../db/schema";
+import { gameMembers, games, npcs, npcResources } from "../../db/schema";
 import type { Language } from "../../i18n";
 import { getMessage } from "../../i18n";
+import { npcResourceService } from "./npcResource.service";
 
 export class NpcService {
 	/**
@@ -59,7 +58,7 @@ export class NpcService {
 	 * 将数据库记录转换为 Npc 类型
 	 */
 	private toNpc(row: typeof npcs.$inferSelect): Npc {
-		const data = row.data as Omit<Npc, "id" | "gameId" | "key" | "name" | "kind" | "relation" | "createdAt" | "updatedAt">;
+		const data = row.data as Omit<Npc, "id" | "gameId" | "key" | "name" | "kind" | "relation" | "resourceId" | "createdAt" | "updatedAt">;
 		return {
 			...data,
 			id: row.id,
@@ -68,6 +67,7 @@ export class NpcService {
 			name: row.name,
 			kind: row.kind as Npc["kind"],
 			relation: row.relation as Npc["relation"],
+			resourceId: row.resourceId ?? null,
 			createdAt: row.createdAt?.toISOString() ?? new Date().toISOString(),
 			updatedAt: row.updatedAt?.toISOString() ?? new Date().toISOString(),
 		};
@@ -143,9 +143,31 @@ export class NpcService {
 			.where(and(...conditions))
 			.orderBy(desc(npcs.updatedAt));
 
+		// 获取关联的资源信息用于显示图标
+		const resourceIds = rows.map(r => r.resourceId).filter((id): id is string => !!id);
+		const resourceMap = new Map<string, { icon: string | null }>();
+
+		if (resourceIds.length > 0) {
+			const resources = await db
+				.select()
+				.from(npcResources)
+				.where(eq(npcResources.gameId, input.gameId));
+
+			for (const res of resources) {
+				if (resourceIds.includes(res.id)) {
+					const data = res.data as { resources?: NpcResource };
+					resourceMap.set(res.id, {
+						icon: data.resources?.stand?.image ?? null,
+					});
+				}
+			}
+		}
+
 		return rows.map(row => {
 			const data = row.data as Record<string, unknown>;
 			const resources = data.resources as NpcResource | undefined;
+			// 优先使用关联资源的图标，其次使用内嵌资源的图标
+			const resourceIcon = row.resourceId ? resourceMap.get(row.resourceId)?.icon : null;
 			return {
 				id: row.id,
 				key: row.key,
@@ -153,7 +175,8 @@ export class NpcService {
 				kind: row.kind as NpcKind,
 				relation: row.relation as NpcRelation,
 				level: (data.level as number) ?? 1,
-				icon: resources?.stand?.image ?? null,
+				resourceId: row.resourceId ?? null,
+				icon: resourceIcon ?? resources?.stand?.image ?? null,
 				updatedAt: row.updatedAt?.toISOString() ?? new Date().toISOString(),
 			};
 		});
@@ -176,7 +199,7 @@ export class NpcService {
 		};
 
 		// 分离索引字段和 data 字段
-		const { gameId, key, name, kind, relation, ...data } = fullNpc;
+		const { gameId, key, name, kind, relation, resourceId, ...data } = fullNpc;
 
 		const [row] = await db
 			.insert(npcs)
@@ -186,6 +209,7 @@ export class NpcService {
 				name: name ?? "未命名NPC",
 				kind: kind ?? "Normal",
 				relation: relation ?? "Friendly",
+				resourceId: resourceId ?? null,
 				data,
 			})
 			.returning();
@@ -224,6 +248,7 @@ export class NpcService {
 			name,
 			kind,
 			relation,
+			resourceId,
 			createdAt: _createdAt,
 			updatedAt: _updatedAt,
 			...data
@@ -236,6 +261,7 @@ export class NpcService {
 				name,
 				kind,
 				relation,
+				resourceId: resourceId ?? null,
 				data,
 				updatedAt: new Date(),
 			})
@@ -273,11 +299,30 @@ export class NpcService {
 	): Promise<Npc> {
 		await this.verifyGameAccess(input.gameId, userId, language);
 
-		const parsed = this.parseNpcIni(input.iniContent);
+		if (!input.iniContent) {
+			throw new Error("NPC 配置内容为空");
+		}
 
-		// 如果有资源配置 INI，解析并合并
+		const parsed = this.parseNpcIni(input.iniContent);
+		let resourceId: string | null = null;
+
+		// 如果有资源配置 INI，创建资源数据并关联
 		if (input.npcResContent) {
-			parsed.resources = this.parseNpcResIni(input.npcResContent);
+			const resources = this.parseNpcResIni(input.npcResContent);
+			// 从 NPC INI 中解析 NpcIni 字段作为资源的 key
+			const npcIniField = this.parseNpcIniField(input.iniContent);
+			const resourceKey = npcIniField || input.fileName;
+			const resourceName = resourceKey.replace(/\.ini$/i, "");
+
+			const npcRes = await npcResourceService.upsert(
+				input.gameId,
+				resourceKey,
+				resourceName,
+				resources,
+				userId,
+				language
+			);
+			resourceId = npcRes.id;
 		}
 
 		// 使用文件名作为 key
@@ -289,13 +334,16 @@ export class NpcService {
 			name: parsed.name ?? key.replace(/\.ini$/i, ""),
 			kind: parsed.kind,
 			relation: parsed.relation,
+			resourceId,
 			...parsed,
 		}, userId, language);
 	}
 
 	/**
-	 * 批量导入 NPC
-	 * 支持自动关联 npcres 配置
+	 * 批量导入 NPC 和资源
+	 * 支持两种类型：
+	 * - type="npc": 导入 NPC 配置（npc/*.ini），可选关联 npcres
+	 * - type="resource": 导入独立资源配置（npcres/*.ini）
 	 */
 	async batchImportFromIni(
 		input: BatchImportNpcInput,
@@ -309,32 +357,85 @@ export class NpcService {
 
 		for (const item of input.items) {
 			try {
-				const parsed = this.parseNpcIni(item.iniContent);
-				const hasResources = !!item.npcResContent;
+				const itemType = item.type ?? "npc";
 
-				// 如果有资源配置 INI，解析并合并
-				if (item.npcResContent) {
-					parsed.resources = this.parseNpcResIni(item.npcResContent);
+				if (itemType === "resource") {
+					// 导入独立资源配置
+					if (!item.npcResContent) {
+						throw new Error("资源配置内容为空");
+					}
+
+					const resources = this.parseNpcResIni(item.npcResContent);
+					// key 保留 .ini 后缀，与 NPC 的 key 格式一致
+					const resourceKey = item.fileName;
+					const resourceName = item.fileName.replace(/\.ini$/i, "");
+
+					const npcRes = await npcResourceService.upsert(
+						input.gameId,
+						resourceKey,
+						resourceName,
+						resources,
+						userId,
+						language
+					);
+
+					success.push({
+						fileName: item.fileName,
+						id: npcRes.id,
+						name: npcRes.name,
+						type: "resource",
+						hasResources: true,
+					});
+				} else {
+					// 导入 NPC 配置
+					if (!item.iniContent) {
+						throw new Error("NPC 配置内容为空");
+					}
+
+					const parsed = this.parseNpcIni(item.iniContent);
+					const hasResources = !!item.npcResContent;
+					let resourceId: string | null = null;
+
+					// 如果有资源配置 INI，创建资源数据并关联
+					if (item.npcResContent) {
+						const resources = this.parseNpcResIni(item.npcResContent);
+						// 从 NPC INI 中解析 NpcIni 字段作为资源的 key
+						const npcIniField = this.parseNpcIniField(item.iniContent);
+						const resourceKey = npcIniField || item.fileName;
+						const resourceName = resourceKey.replace(/\.ini$/i, "");
+
+						const npcRes = await npcResourceService.upsert(
+							input.gameId,
+							resourceKey,
+							resourceName,
+							resources,
+							userId,
+							language
+						);
+						resourceId = npcRes.id;
+					}
+
+					// 使用文件名作为 key
+					const key = item.fileName;
+
+					const npc = await this.create({
+						gameId: input.gameId,
+						key,
+						name: parsed.name ?? item.fileName.replace(/\.ini$/i, ""),
+						kind: parsed.kind,
+						relation: parsed.relation,
+						resourceId,
+						...parsed,
+					}, userId, language);
+
+					success.push({
+						fileName: item.fileName,
+						id: npc.id,
+						name: npc.name,
+						type: "npc",
+						hasResources,
+					});
 				}
-
-				// 使用文件名作为 key
-				const key = item.fileName;
-
-				const npc = await this.create({
-					gameId: input.gameId,
-					key,
-					name: parsed.name ?? item.fileName.replace(/\.ini$/i, ""),
-					kind: parsed.kind,
-					relation: parsed.relation,
-					...parsed,
-				}, userId, language);
-
-				success.push({
-					fileName: item.fileName,
-					id: npc.id,
-					name: npc.name,
-					hasResources,
-				});
 			} catch (error) {
 				failed.push({
 					fileName: item.fileName,
@@ -344,6 +445,14 @@ export class NpcService {
 		}
 
 		return { success, failed };
+	}
+
+	/**
+	 * 从 NPC INI 中解析 NpcIni 字段
+	 */
+	private parseNpcIniField(content: string): string | null {
+		const match = content.match(/^\s*NpcIni\s*=\s*(.+?)\s*$/mi);
+		return match ? match[1].trim() : null;
 	}
 
 	/**
@@ -492,16 +601,16 @@ export class NpcService {
 			const stateKey = currentSection as keyof NpcResource;
 			if (stateKey in result) {
 				if (key === "Image") {
-					// 规范化图像路径：相对路径添加 asf/character/ 前缀
+					// 原封不动存储，路径规范化由前端/引擎处理
 					result[stateKey] = {
 						...result[stateKey],
-						image: normalizeNpcImagePath(value),
+						image: value || null,
 					};
 				} else if (key === "Sound") {
-					// 规范化音效路径：相对路径添加 Content/sound/ 前缀，.wav -> .xnb
+					// 原封不动存储，路径规范化由前端/引擎处理
 					result[stateKey] = {
 						...result[stateKey],
-						sound: normalizeNpcSoundPath(value),
+						sound: value || null,
 					};
 				}
 			}

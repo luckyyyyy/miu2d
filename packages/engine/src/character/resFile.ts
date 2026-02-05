@@ -1,81 +1,28 @@
 /**
- * ResFile - NPC Resource File Parser
+ * ResFile - NPC Resource File Loader
  * Based on JxqyHD Engine/ResFile.cs
  *
- * Handles loading and parsing npcres INI files (state to ASF mappings).
- * NPC config parsing moved to iniParser.ts for better separation.
- *
- * Reference: Engine/ResFile.cs
+ * 加载 NPC 资源映射（state -> ASF/Sound）
  */
 
 import { ResourcePath } from "../config/resourcePaths";
 import { logger } from "../core/logger";
-import { CharacterState } from "../core/types";
 import { loadMpcWithShadow } from "../resource/mpc";
-import { resourceLoader } from "../resource/resourceLoader";
 import { type AsfData, loadAsf } from "../resource/asf";
-import { parseIni } from "../utils";
+import { getNpcResFromCache } from "../npc/npcConfigLoader";
 
 // Re-export from iniParser for backward compatibility
 export {
   loadCharacterConfig as loadNpcConfig,
-  parseCharacterIni as parseNpcConfig,
 } from "./iniParser";
 
 /**
- * NpcRes state info parsed from ini/npcres/*.ini
- *
+ * NpcRes state info（state -> ASF/Sound 映射）
  */
 export interface NpcResStateInfo {
   imagePath: string; // ASF or MPC file name
   shadePath: string; // SHD file name (for MPC only)
   soundPath: string; // WAV file name
-}
-
-/**
- * State name to CharacterState mapping
- * ()
- */
-const STATE_NAMES: Record<string, number> = {
-  Stand: CharacterState.Stand,
-  Stand1: CharacterState.Stand1,
-  Walk: CharacterState.Walk,
-  Run: CharacterState.Run,
-  Jump: CharacterState.Jump,
-  Attack: CharacterState.Attack,
-  Attack1: CharacterState.Attack1,
-  Attack2: CharacterState.Attack2,
-  Magic: CharacterState.Magic,
-  Sit: CharacterState.Sit,
-  Hurt: CharacterState.Hurt,
-  Death: CharacterState.Death,
-  FightStand: CharacterState.FightStand,
-  FightWalk: CharacterState.FightWalk,
-  FightRun: CharacterState.FightRun,
-  FightJump: CharacterState.FightJump,
-};
-
-/**
- * Parse npcres INI file content
- * ()
- */
-export function parseNpcResIni(content: string): Map<number, NpcResStateInfo> {
-  const stateMap = new Map<number, NpcResStateInfo>();
-  const sections = parseIni(content);
-
-  // Map sections to states
-  for (const [sectionName, keys] of Object.entries(sections)) {
-    const state = STATE_NAMES[sectionName];
-    if (state !== undefined && keys.Image) {
-      stateMap.set(state, {
-        imagePath: keys.Image,
-        shadePath: keys.Shade || "",
-        soundPath: keys.Sound || "",
-      });
-    }
-  }
-
-  return stateMap;
 }
 
 /**
@@ -168,20 +115,9 @@ function mpcToAsfData(mpc: import("../core/mapTypes").Mpc): AsfData {
 }
 
 /**
- * Load NpcRes INI file to get state -> ASF mappings
- * (@"ini\npcres\" + fileName, ResType.Npc)
- * Uses resourceLoader.loadIni to cache parsed result
+ * 获取 NpcRes 状态映射（state -> ASF/Sound）
+ * 从 API 缓存获取，替代原有的 INI 文件加载
  */
 export async function loadNpcRes(npcIni: string): Promise<Map<number, NpcResStateInfo> | null> {
-  // npcIni is the filename like "npc006.ini" or "z-杨影枫.ini"
-  const filePath = ResourcePath.npcRes(npcIni);
-
-  const stateMap = await resourceLoader.loadIni(filePath, parseNpcResIni, "npcRes");
-  if (!stateMap) {
-    logger.warn(`[ResFile] NpcRes not found or parse failed: ${filePath}`);
-    return null;
-  }
-
-  logger.debug(`[ResFile] Loaded NpcRes: ${npcIni} with ${stateMap.size} states`);
-  return stateMap;
+  return getNpcResFromCache(npcIni);
 }

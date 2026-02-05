@@ -176,6 +176,22 @@ export interface CharacterConfig {
 
   // === Drop Control ===
   noDropWhenDie?: number; // 死亡时不掉落物品
+
+  // === API Resources (从统一数据加载器获取的资源配置) ===
+  _apiResources?: {
+    stand?: { image: string | null; sound: string | null };
+    stand1?: { image: string | null; sound: string | null };
+    walk?: { image: string | null; sound: string | null };
+    run?: { image: string | null; sound: string | null };
+    attack?: { image: string | null; sound: string | null };
+    attack1?: { image: string | null; sound: string | null };
+    attack2?: { image: string | null; sound: string | null };
+    special1?: { image: string | null; sound: string | null };
+    special2?: { image: string | null; sound: string | null };
+    hurt?: { image: string | null; sound: string | null };
+    death?: { image: string | null; sound: string | null };
+    sit?: { image: string | null; sound: string | null };
+  };
 }
 
 // ============= Sprite Types (forward declaration) =============

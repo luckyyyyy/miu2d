@@ -15,6 +15,7 @@ import type {
   NpcRelation,
   NpcResource,
   NpcState,
+  NpcAppearance,
 } from "@miu2d/types";
 import {
   NpcKindLabels,
@@ -76,6 +77,18 @@ export function NpcDetailPage() {
   const { data: npc, isLoading } = trpc.npc.get.useQuery(
     { gameId: gameId!, id: npcId! },
     { enabled: !!gameId && !!npcId && !isNew }
+  );
+
+  // 查询资源列表（用于选择器）
+  const { data: resourceList } = trpc.npcResource.list.useQuery(
+    { gameId: gameId! },
+    { enabled: !!gameId }
+  );
+
+  // 查询当前关联的资源详情
+  const { data: linkedResource } = trpc.npcResource.get.useQuery(
+    { gameId: gameId!, id: npc?.resourceId ?? "" },
+    { enabled: !!gameId && !!npc?.resourceId }
   );
 
   // 表单状态 - 优先从缓存读取
@@ -176,22 +189,6 @@ export function NpcDetailPage() {
 
   const updateField = useCallback(<K extends keyof Npc>(key: K, value: Npc[K]) => {
     setFormData((prev) => ({ ...prev, [key]: value }));
-  }, []);
-
-  const updateResourceField = useCallback((state: keyof NpcResource, field: "image" | "sound", value: string | null) => {
-    setFormData((prev) => {
-      const resources = prev.resources || createDefaultNpcResource();
-      return {
-        ...prev,
-        resources: {
-          ...resources,
-          [state]: {
-            ...resources[state],
-            [field]: value,
-          },
-        },
-      };
-    });
   }, []);
 
   if (isLoading && !isNew) {
@@ -302,7 +299,9 @@ export function NpcDetailPage() {
             {activeTab === "resource" && (
               <ResourceSection
                 formData={formData}
-                updateResourceField={updateResourceField}
+                updateField={updateField}
+                linkedResource={linkedResource ?? null}
+                resourceList={resourceList ?? []}
                 gameId={gameId!}
                 gameSlug={gameSlug!}
               />
@@ -330,6 +329,7 @@ export function NpcDetailPage() {
                   <NpcPreview
                     gameSlug={gameSlug!}
                     npc={formData}
+                    resource={linkedResource ?? undefined}
                   />
                 </div>
               </div>
@@ -636,51 +636,97 @@ const RESOURCE_STATES: Array<{ key: keyof NpcResource; label: string }> = [
 
 function ResourceSection({
   formData,
-  updateResourceField,
+  updateField,
+  linkedResource,
+  resourceList,
   gameId,
   gameSlug,
 }: {
   formData: Partial<Npc>;
-  updateResourceField: (state: keyof NpcResource, field: "image" | "sound", value: string | null) => void;
+  updateField: <K extends keyof Npc>(key: K, value: Npc[K]) => void;
+  linkedResource: NpcAppearance | null;
+  resourceList: Array<{ id: string; key: string; name: string }>;
   gameId: string;
   gameSlug: string;
 }) {
-  const resources = formData.resources || createDefaultNpcResource();
+  // 使用关联资源的配置，如果没有则显示空
+  const resources = linkedResource?.resources || createDefaultNpcResource();
+  const hasLinkedResource = !!formData.resourceId && !!linkedResource;
 
   return (
-    <section className="bg-[#252526] border border-[#3c3c3c] rounded-xl overflow-hidden">
-      <div className="px-4 py-3 border-b border-[#3c3c3c]">
-        <h2 className="text-sm font-medium text-[#cccccc]">🎨 动画与音效资源</h2>
-      </div>
-      <div className="p-4">
-        <div className="grid grid-cols-2 gap-x-6 gap-y-2">
-          {RESOURCE_STATES.map(({ key, label }) => (
-            <div key={key} className="contents">
-              <ResourceFilePicker
-                label={`${label}动画`}
-                value={resources[key]?.image || null}
-                onChange={(v) => updateResourceField(key, "image", v)}
-                fieldName={`npc_${key}_image`}
-                gameId={gameId}
-                gameSlug={gameSlug}
-                extensions={[".asf"]}
-                placeholder="点击选择"
-              />
-              <ResourceFilePicker
-                label={`${label}音效`}
-                value={resources[key]?.sound || null}
-                onChange={(v) => updateResourceField(key, "sound", v)}
-                fieldName={`npc_${key}_sound`}
-                gameId={gameId}
-                gameSlug={gameSlug}
-                extensions={[".wav", ".ogg", ".xnb"]}
-                placeholder="点击选择"
-              />
-            </div>
-          ))}
+    <div className="space-y-5">
+      {/* 资源关联选择器 */}
+      <section className="bg-[#252526] border border-[#3c3c3c] rounded-xl overflow-hidden">
+        <div className="px-4 py-3 border-b border-[#3c3c3c]">
+          <h2 className="text-sm font-medium text-[#cccccc]">🔗 关联 NPC 资源</h2>
         </div>
-      </div>
-    </section>
+        <div className="p-4">
+          <select
+            value={formData.resourceId ?? ""}
+            onChange={(e) => updateField("resourceId", e.target.value || null)}
+            className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white focus:outline-none focus:border-[#0098ff]"
+          >
+            <option value="">未关联（无资源）</option>
+            {resourceList.map((res) => (
+              <option key={res.id} value={res.id}>
+                {res.name} ({res.key})
+              </option>
+            ))}
+          </select>
+          <p className="mt-2 text-xs text-[#858585]">
+            选择一个 NPC 资源配置来定义此 NPC 的动画和音效资源。
+            资源配置可以被多个 NPC 共享。
+          </p>
+        </div>
+      </section>
+
+      {/* 资源配置展示（只读） */}
+      {hasLinkedResource && (
+        <section className="bg-[#252526] border border-[#3c3c3c] rounded-xl overflow-hidden">
+          <div className="px-4 py-3 border-b border-[#3c3c3c] flex items-center justify-between">
+            <h2 className="text-sm font-medium text-[#cccccc]">🎨 动画与音效资源</h2>
+            <span className="text-xs text-[#858585] bg-[#3c3c3c] px-2 py-0.5 rounded">
+              只读 - 来自「{linkedResource.name}」
+            </span>
+          </div>
+          <div className="p-4">
+            <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+              {RESOURCE_STATES.map(({ key, label }) => (
+                <div key={key} className="contents">
+                  <div>
+                    <label className="block text-sm text-[#858585] mb-1">{label}动画</label>
+                    <div className="px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-[#858585] text-sm truncate">
+                      {resources[key]?.image || "（未设置）"}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm text-[#858585] mb-1">{label}音效</label>
+                    <div className="px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-[#858585] text-sm truncate">
+                      {resources[key]?.sound || "（未设置）"}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* 未关联资源时的提示 */}
+      {!hasLinkedResource && (
+        <section className="bg-[#252526] border border-[#3c3c3c] rounded-xl overflow-hidden">
+          <div className="p-8 text-center">
+            <div className="text-4xl mb-4">🎨</div>
+            <p className="text-[#858585] text-sm">
+              请选择一个 NPC 资源配置来查看资源
+            </p>
+            <p className="text-[#666] text-xs mt-2">
+              可以从侧边栏创建新的 NPC 资源，或导入 INI 文件时自动创建
+            </p>
+          </div>
+        </section>
+      )}
+    </div>
   );
 }
 
@@ -801,6 +847,241 @@ function BehaviorSection({
           </div>
         </section>
       )}
+    </div>
+  );
+}
+
+// ========== NPC 资源详情页 ==========
+
+export function NpcResourceDetailPage() {
+  const { gameId: gameSlug, resourceId } = useParams<{ gameId: string; resourceId: string }>();
+  const { currentGame, editCache } = useDashboard();
+  const gameId = currentGame?.id;
+  const navigate = useNavigate();
+  const utils = trpc.useUtils();
+  const basePath = `/dashboard/${gameSlug}/npcs`;
+  const { success: toastSuccess, error: toastError } = useToast();
+
+  // 缓存 key
+  const cacheKey = resourceId ? `npc-resource:${resourceId}` : null;
+
+  // 获取资源数据
+  const { data: npcRes, isLoading } = trpc.npcResource.get.useQuery(
+    { gameId: gameId!, id: resourceId! },
+    { enabled: !!gameId && !!resourceId }
+  );
+
+  // 初始化表单数据
+  const [formData, setFormData] = useState<Partial<NpcAppearance>>({
+    name: "",
+    resources: createDefaultNpcResource(),
+  });
+
+  // 从缓存或 API 加载数据
+  useEffect(() => {
+    if (cacheKey && editCache.has(cacheKey)) {
+      setFormData(editCache.get(cacheKey) as Partial<NpcAppearance>);
+    } else if (npcRes) {
+      setFormData(npcRes);
+      if (cacheKey) {
+        editCache.set(cacheKey, npcRes);
+      }
+    }
+  }, [npcRes, cacheKey, editCache]);
+
+  // 更新字段
+  const updateField = <K extends keyof NpcAppearance>(key: K, value: NpcAppearance[K]) => {
+    setFormData((prev) => {
+      const newData = { ...prev, [key]: value };
+      if (cacheKey) {
+        editCache.set(cacheKey, newData);
+      }
+      return newData;
+    });
+  };
+
+  // 更新资源字段
+  const updateResourceField = (
+    state: keyof NpcResource,
+    field: "image" | "sound",
+    value: string | null
+  ) => {
+    const currentResources = formData.resources ?? createDefaultNpcResource();
+    const newResources: NpcResource = {
+      ...currentResources,
+      [state]: {
+        ...currentResources[state],
+        [field]: value,
+      },
+    };
+    updateField("resources", newResources);
+  };
+
+  // 保存
+  const updateMutation = trpc.npcResource.update.useMutation({
+    onSuccess: () => {
+      utils.npcResource.list.invalidate({ gameId });
+      utils.npcResource.get.invalidate({ gameId, id: resourceId });
+      if (cacheKey) {
+        editCache.remove(cacheKey);
+      }
+      toastSuccess("保存成功");
+    },
+    onError: (error) => {
+      toastError(`保存失败: ${error.message}`);
+    },
+  });
+
+  const handleSave = () => {
+    if (!gameId || !resourceId) return;
+
+    updateMutation.mutate({
+      id: resourceId,
+      gameId,
+      name: formData.name,
+      resources: formData.resources,
+    });
+  };
+
+  // 删除
+  const deleteMutation = trpc.npcResource.delete.useMutation({
+    onSuccess: () => {
+      utils.npcResource.list.invalidate({ gameId });
+      if (cacheKey) {
+        editCache.remove(cacheKey);
+      }
+      toastSuccess("删除成功");
+      navigate(basePath);
+    },
+    onError: (error) => {
+      toastError(`删除失败: ${error.message}`);
+    },
+  });
+
+  const handleDelete = () => {
+    if (!gameId || !resourceId) return;
+    if (confirm("确定要删除这个 NPC 资源吗？使用它的 NPC 将失去关联。")) {
+      deleteMutation.mutate({ gameId, id: resourceId });
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-[#858585]">加载中...</div>
+      </div>
+    );
+  }
+
+  if (!npcRes) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center">
+          <div className="text-6xl mb-4">🔍</div>
+          <p className="text-[#858585]">未找到 NPC 资源</p>
+          <Link to={basePath} className="text-[#569cd6] hover:underline mt-2 block">
+            返回列表
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="h-full overflow-auto">
+      <div className="max-w-4xl mx-auto p-6">
+        {/* 页面标题 */}
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="text-4xl">🎨</div>
+            <div>
+              <h1 className="text-xl font-medium text-white">{formData.name || "未命名资源"}</h1>
+              <span className="text-xs text-[#858585]">{npcRes.key}</span>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleDelete}
+              disabled={deleteMutation.isPending}
+              className="px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 rounded transition-colors"
+            >
+              {deleteMutation.isPending ? "删除中..." : "删除"}
+            </button>
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={updateMutation.isPending}
+              className="px-4 py-2 text-sm bg-[#0e639c] hover:bg-[#1177bb] text-white rounded transition-colors disabled:opacity-50"
+            >
+              {updateMutation.isPending ? "保存中..." : "保存"}
+            </button>
+          </div>
+        </div>
+
+        {/* 基本信息 */}
+        <section className="bg-[#252526] border border-[#3c3c3c] rounded-xl overflow-hidden mb-6">
+          <div className="px-4 py-3 border-b border-[#3c3c3c]">
+            <h2 className="text-sm font-medium text-[#cccccc]">📝 基本信息</h2>
+          </div>
+          <div className="p-4">
+            <div>
+              <label className="block text-sm text-[#858585] mb-1">资源名称</label>
+              <input
+                type="text"
+                value={formData.name ?? ""}
+                onChange={(e) => updateField("name", e.target.value)}
+                className="w-full px-3 py-2 bg-[#3c3c3c] border border-[#454545] rounded text-white text-sm focus:outline-none focus:border-[#007acc]"
+                placeholder="输入资源名称"
+              />
+            </div>
+          </div>
+        </section>
+
+        {/* 资源配置 */}
+        <section className="bg-[#252526] border border-[#3c3c3c] rounded-xl overflow-hidden">
+          <div className="px-4 py-3 border-b border-[#3c3c3c]">
+            <h2 className="text-sm font-medium text-[#cccccc]">🎨 资源配置</h2>
+          </div>
+          <div className="p-4 space-y-6">
+            {(Object.keys(NpcStateLabels) as NpcState[]).map((state) => {
+              const stateKey = state.toLowerCase() as keyof NpcResource;
+              const resource = formData.resources?.[stateKey];
+
+              return (
+                <div key={state} className="border-b border-[#3c3c3c] pb-4 last:border-b-0 last:pb-0">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-sm font-medium text-white">{NpcStateLabels[state]}</span>
+                    <span className="text-xs text-[#858585]">({state})</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <ResourceFilePicker
+                      label="动画"
+                      value={resource?.image ?? null}
+                      onChange={(val) => updateResourceField(stateKey, "image", val)}
+                      fieldName={`npcResource_${stateKey}_image`}
+                      gameId={gameId!}
+                      gameSlug={gameSlug!}
+                      extensions={[".asf"]}
+                      placeholder="选择动画文件"
+                    />
+                    <ResourceFilePicker
+                      label="音效"
+                      value={resource?.sound ?? null}
+                      onChange={(val) => updateResourceField(stateKey, "sound", val)}
+                      fieldName={`npcResource_${stateKey}_sound`}
+                      gameId={gameId!}
+                      gameSlug={gameSlug!}
+                      extensions={[".wav", ".ogg"]}
+                      placeholder="选择音效文件"
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      </div>
     </div>
   );
 }

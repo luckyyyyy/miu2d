@@ -1,10 +1,9 @@
 import { Module } from "@nestjs/common";
-import { ObjController } from "./obj.controller";
 import { ObjRouter } from "./obj.router";
+import { ObjResourceRouter } from "./objResource.router";
 
 @Module({
-	controllers: [ObjController],
-	providers: [ObjRouter],
-	exports: [ObjRouter]
+	providers: [ObjRouter, ObjResourceRouter],
+	exports: [ObjRouter, ObjResourceRouter]
 })
 export class ObjModule {}

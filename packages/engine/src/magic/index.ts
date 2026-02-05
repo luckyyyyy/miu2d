@@ -28,8 +28,6 @@ export {
   getAllCachedMagicFileNames,
   getMagicFromApiCache,
   isMagicApiLoaded,
-  loadMagicConfigFromApi,
-  reloadMagicConfigFromApi,
 } from "./magicConfigLoader";
 // Magic Renderer
 export { MagicRenderer, magicRenderer } from "./magicRenderer";

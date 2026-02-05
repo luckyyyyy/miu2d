@@ -43,7 +43,7 @@ export interface ViewRect {
 export class NpcManager {
   // Internal storage uses Npc class instances
   private npcs: Map<string, Npc> = new Map();
-  // Note: NPC config caching is now handled by resourceLoader.loadIni
+  // Note: NPC config is loaded from API cache (npcConfigLoader)
   // Store loaded NPC file name
   private fileName: string = "";
 
@@ -318,7 +318,7 @@ export class NpcManager {
 
   /**
    * Add NPC from config file
-   * Config caching is handled by resourceLoader.loadIni
+   * Config is loaded from API cache (npcConfigLoader)
    */
   async addNpc(
     configPath: string,
@@ -326,7 +326,7 @@ export class NpcManager {
     tileY: number,
     direction: Direction = 4
   ): Promise<Npc | null> {
-    // loadNpcConfig uses resourceLoader.loadIni which caches parsed result
+    // loadNpcConfig 从 API 缓存获取配置
     const config = await loadNpcConfig(configPath);
 
     if (!config) {
