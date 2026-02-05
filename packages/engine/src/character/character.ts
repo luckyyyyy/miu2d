@@ -18,7 +18,7 @@ import { CharacterState, RUN_SPEED_FOLD, TILE_WIDTH } from "../core/types";
 import type { MagicSprite } from "../magic/magicSprite";
 import type { MagicData } from "../magic/types";
 import { Obj } from "../obj/obj";
-import type { AsfData } from "../sprite/asf";
+import type { AsfData } from "../resource/asf";
 import {
   createEmptySpriteSet,
   getAsfForState,

@@ -9,10 +9,10 @@
  * - 脚本文件编辑（使用自定义语法高亮和自动补全）
  * - 图片/音频预览
  */
-import type { AsfData } from "@miu2d/engine/sprite/asf";
-import { initAsfWasm } from "@miu2d/engine/sprite/asf";
+import type { AsfData } from "@miu2d/engine/resource/asf";
+import { initAsfWasm } from "@miu2d/engine/resource/asf";
 import type { JxqyMapData, Mpc } from "@miu2d/engine/core/mapTypes";
-import { parseMap } from "@miu2d/engine/map";
+import { parseMap } from "@miu2d/engine/resource/map";
 import { initMpcWasm } from "@miu2d/engine/resource/mpc";
 import { decodeAsfWasm } from "@miu2d/engine/wasm/wasmAsfDecoder";
 import { decodeMpcWasm } from "@miu2d/engine/wasm/wasmMpcDecoder";

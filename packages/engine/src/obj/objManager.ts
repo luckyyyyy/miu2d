@@ -42,7 +42,7 @@ import { getEngineContext } from "../core/engineContext";
 import { logger } from "../core/logger";
 import type { Vector2 } from "../core/types";
 import { resourceLoader } from "../resource/resourceLoader";
-import { loadAsf } from "../sprite/asf";
+import { loadAsf } from "../resource/asf";
 import { parseIni } from "../utils";
 import { Obj, type ObjKind, type ObjResInfo, ObjState } from "./obj";
 

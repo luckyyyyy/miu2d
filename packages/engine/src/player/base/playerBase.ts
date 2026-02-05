@@ -18,7 +18,7 @@ import { getMagic, getMagicAtLevel } from "../../magic/magicLoader";
 import type { MagicData, MagicItemInfo } from "../../magic/types";
 import { MagicAddonEffect } from "../../magic/types";
 import type { Npc, NpcManager } from "../../npc";
-import { type AsfData, getCachedAsf } from "../../sprite/asf";
+import { type AsfData, getCachedAsf } from "../../resource/asf";
 import { GoodsListManager } from "../goods/goodsListManager";
 import { MagicListManager } from "../magic/magicListManager";
 

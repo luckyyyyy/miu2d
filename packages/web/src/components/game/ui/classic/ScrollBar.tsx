@@ -6,7 +6,7 @@
  * Resources: asf/ui/option/slidebtn.asf (default slider button)
  */
 
-import { loadAsf } from "@miu2d/engine/sprite/asf";
+import { loadAsf } from "@miu2d/engine/resource/asf";
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AsfAnimatedSprite } from "./AsfAnimatedSprite";

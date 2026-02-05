@@ -13,7 +13,7 @@ import { logger } from "../core/logger";
 import { CharacterState } from "../core/types";
 import { loadMpcWithShadow } from "../resource/mpc";
 import { resourceLoader } from "../resource/resourceLoader";
-import { type AsfData, loadAsf } from "../sprite/asf";
+import { type AsfData, loadAsf } from "../resource/asf";
 import { parseIni } from "../utils";
 
 // Re-export from iniParser for backward compatibility
@@ -24,7 +24,7 @@ export {
 
 /**
  * NpcRes state info parsed from ini/npcres/*.ini
- * 
+ *
  */
 export interface NpcResStateInfo {
   imagePath: string; // ASF or MPC file name

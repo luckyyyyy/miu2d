@@ -10,7 +10,7 @@ import { logger } from "../../core/logger";
 import type { Vector2 } from "../../core/types";
 import { CharacterState } from "../../core/types";
 import { getEffectAmount } from "../../magic/effects/common";
-import { type AsfData, getCachedAsf, loadAsf } from "../../sprite/asf";
+import { type AsfData, getCachedAsf, loadAsf } from "../../resource/asf";
 import { tileToPixel } from "../../utils";
 import type { CharacterBase, MagicToUseInfoItem } from "./characterBase";
 import { CharacterMovement } from "./characterMovement";

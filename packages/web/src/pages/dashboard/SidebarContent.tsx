@@ -7,7 +7,7 @@ import { NavLink, useParams, useLocation, useNavigate } from "react-router-dom";
 import { useDashboard } from "./DashboardContext";
 import { DashboardIcons } from "./icons";
 import { trpc } from "../../lib/trpc";
-import { initAsfWasm, getFrameCanvas } from "@miu2d/engine/sprite/asf";
+import { initAsfWasm, getFrameCanvas } from "@miu2d/engine/resource/asf";
 import { decodeAsfWasm } from "@miu2d/engine/wasm/wasmAsfDecoder";
 
 interface TreeNode {

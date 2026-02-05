@@ -4,7 +4,7 @@
  */
 
 import { logger } from "../core/logger";
-import type { AsfData, AsfFrame } from "../sprite/asf";
+import type { AsfData, AsfFrame } from "../resource/asf";
 
 // WASM 模块类型定义
 interface WasmAsfHeader {

@@ -3,8 +3,8 @@
  * 显示 ASF 动画帧和播放控制
  */
 
-import type { AsfData } from "@miu2d/engine/sprite/asf";
-import { getFrameCanvas } from "@miu2d/engine/sprite/asf";
+import type { AsfData } from "@miu2d/engine/resource/asf";
+import { getFrameCanvas } from "@miu2d/engine/resource/asf";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 interface AsfViewerProps {

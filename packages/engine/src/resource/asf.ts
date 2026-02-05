@@ -1,12 +1,13 @@
 /**
- * ASF 加载器 - 游戏的精灵动画格式
+ * ASF file parser - 游戏的精灵动画格式
+ *
  * 格式: Header(16) + Metadata(64) + Palette(colors*4) + FrameOffsets(frames*8) + RLE压缩帧数据
  *
  * 使用 WASM 解码器，性能比 TypeScript 快 2x+
  */
 
-import { resourceLoader } from "../resource/resourceLoader";
 import { decodeAsfWasm, initWasmAsfDecoder } from "../wasm/wasmAsfDecoder";
+import { resourceLoader } from "./resourceLoader";
 
 export interface AsfFrame {
   width: number;

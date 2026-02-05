@@ -10,7 +10,7 @@ import type { Vector2 } from "../core/types";
 import { CharacterState } from "../core/types";
 import { getDirectionIndex, pixelToTile, tileToPixel } from "../utils";
 import { getOuterEdge } from "../utils/edgeDetection";
-import { type AsfData, type AsfFrame, getFrameCanvas, getFrameIndex, loadAsf } from "./asf";
+import { type AsfData, type AsfFrame, getFrameCanvas, getFrameIndex, loadAsf } from "../resource/asf";
 
 /** 角色状态对应的 ASF 动画集 */
 export interface SpriteSet {

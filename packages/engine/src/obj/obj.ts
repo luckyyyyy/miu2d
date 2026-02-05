@@ -8,7 +8,7 @@ import { ResourcePath } from "../config/resourcePaths";
 import { logger } from "../core/logger";
 import type { Vector2 } from "../core/types";
 import { resourceLoader } from "../resource/resourceLoader";
-import { type AsfData, getFrameCanvas, getFrameIndex, loadAsf } from "../sprite/asf";
+import { type AsfData, getFrameCanvas, getFrameIndex, loadAsf } from "../resource/asf";
 import { Sprite } from "../sprite/sprite";
 import { parseIni } from "../utils";
 

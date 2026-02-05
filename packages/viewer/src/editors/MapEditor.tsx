@@ -1,5 +1,5 @@
 import type { JxqyMapData } from "@miu2d/engine/core/mapTypes";
-import { parseMap } from "@miu2d/engine/map";
+import { parseMap } from "@miu2d/engine/resource/map";
 import { useCallback, useState } from "react";
 import { useParams } from "react-router-dom";
 import { MapViewer } from "../components/MapViewer";

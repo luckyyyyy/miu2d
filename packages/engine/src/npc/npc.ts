@@ -11,7 +11,7 @@ import type { CharacterConfig, Vector2 } from "../core/types";
 import { CharacterKind, CharacterState } from "../core/types";
 import type { MagicManager } from "../magic";
 import type { MagicData } from "../magic/types";
-import type { AsfData } from "../sprite/asf";
+import type { AsfData } from "../resource/asf";
 import { generateId, getDirectionFromVector, tileToPixel } from "../utils";
 import { NpcAI, NpcMagicCache } from "./modules";
 import type { NpcManager } from "./npcManager";

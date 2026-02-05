@@ -3,8 +3,8 @@
  * 鼠标悬停时显示 ASF 动画预览
  */
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { AsfData } from "@miu2d/engine/sprite/asf";
-import { initAsfWasm, getFrameCanvas } from "@miu2d/engine/sprite/asf";
+import type { AsfData } from "@miu2d/engine/resource/asf";
+import { initAsfWasm, getFrameCanvas } from "@miu2d/engine/resource/asf";
 import { decodeAsfWasm } from "@miu2d/engine/wasm/wasmAsfDecoder";
 
 interface AsfPreviewTooltipProps {

@@ -3,8 +3,8 @@
  * 左侧文件树 + 右侧 ASF 预览
  */
 
-import type { AsfData } from "@miu2d/engine/sprite/asf";
-import { initAsfWasm } from "@miu2d/engine/sprite/asf";
+import type { AsfData } from "@miu2d/engine/resource/asf";
+import { initAsfWasm } from "@miu2d/engine/resource/asf";
 import { decodeAsfWasm } from "@miu2d/engine/wasm/wasmAsfDecoder";
 import { useCallback, useEffect, useState } from "react";
 import { AsfViewer } from "../components/AsfViewer";

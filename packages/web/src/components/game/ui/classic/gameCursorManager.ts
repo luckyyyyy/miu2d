@@ -10,7 +10,7 @@
  */
 import { buildPath } from "@miu2d/engine/config";
 import { logger } from "@miu2d/engine/core/logger";
-import { type AsfData, getFrameCanvas, loadAsf } from "@miu2d/engine/sprite/asf";
+import { type AsfData, getFrameCanvas, loadAsf } from "@miu2d/engine/resource/asf";
 
 // UI 配置
 const MOUSE_CONFIG = {

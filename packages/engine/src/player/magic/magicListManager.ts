@@ -9,7 +9,7 @@ import { getMagic, getMagicAtLevel, preloadMagicAsf } from "../../magic/magicLoa
 import type { MagicData, MagicItemInfo } from "../../magic/types";
 import { createDefaultMagicItemInfo } from "../../magic/types";
 import { resourceLoader } from "../../resource/resourceLoader";
-import { loadAsf } from "../../sprite/asf";
+import { loadAsf } from "../../resource/asf";
 import { parseIni } from "../../utils";
 
 /**

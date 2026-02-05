@@ -1,12 +1,18 @@
 /**
- * JxqyMap parser - matches Engine/Map/JxqyMap.cs implementation
+ * MAP file parser - matches Engine/Map/JxqyMap.cs implementation
+ *
+ * .map 文件存储地图的静态数据：
+ * - 地图尺寸
+ * - MPC 资源列表
+ * - 3 层 Tile 数据（底层、中层、顶层）
+ * - Tile 属性（障碍类型、陷阱索引）
  */
 
 import { logger } from "../core/logger";
 import type { JxqyMapData, MapMpcIndex, MapTileInfo } from "../core/mapTypes";
-import { resourceLoader } from "../resource/resourceLoader";
 import { getLittleEndianInt, readNullTerminatedString } from "../utils/binaryUtils";
 import { getTextDecoder } from "../utils/encoding";
+import { resourceLoader } from "./resourceLoader";
 
 /**
  * Parse a .map file buffer into JxqyMapData
