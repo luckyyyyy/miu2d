@@ -1,8 +1,11 @@
 /**
  * 音频预览组件
- * 支持 WAV/OGG/MP3 播放
+ * 支持 WAV/OGG/MP3/XNB 播放
+ *
+ * XNB 文件使用自定义解析器解码
  */
 import { useCallback, useEffect, useRef, useState } from "react";
+import { parseXnbAudio, xnbToAudioBuffer } from "@miu2d/engine/resource/xnb";
 
 interface AudioPreviewProps {
   /** 游戏 slug */
@@ -15,13 +18,29 @@ interface AudioPreviewProps {
   autoPlay?: boolean;
 }
 
+// Web Audio API context（懒加载）
+let audioContextInstance: AudioContext | null = null;
+function getAudioContext(): AudioContext {
+  if (!audioContextInstance) {
+    audioContextInstance = new AudioContext();
+  }
+  return audioContextInstance;
+}
+
 export function AudioPreview({ gameSlug, path, compact, autoPlay }: AudioPreviewProps) {
   const audioRef = useRef<HTMLAudioElement>(null);
+  // Web Audio API 用于播放 XNB
+  const sourceNodeRef = useRef<AudioBufferSourceNode | null>(null);
+  const audioBufferRef = useRef<AudioBuffer | null>(null);
+  const startTimeRef = useRef(0);
+  const pausedAtRef = useRef(0);
+
   const [isPlaying, setIsPlaying] = useState(false);
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [isXnb, setIsXnb] = useState(false);
   // 追踪是否已尝试回退到原始格式
   const triedFallbackRef = useRef(false);
 
@@ -37,27 +56,84 @@ export function AudioPreview({ gameSlug, path, compact, autoPlay }: AudioPreview
 
   // 播放/暂停
   const togglePlay = useCallback(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    if (isPlaying) {
-      audio.pause();
+    if (isXnb) {
+      // XNB 使用 Web Audio API
+      const ctx = getAudioContext();
+      if (isPlaying) {
+        // 暂停
+        if (sourceNodeRef.current) {
+          sourceNodeRef.current.stop();
+          sourceNodeRef.current = null;
+          pausedAtRef.current = ctx.currentTime - startTimeRef.current;
+        }
+        setIsPlaying(false);
+      } else {
+        // 播放
+        if (audioBufferRef.current) {
+          const source = ctx.createBufferSource();
+          source.buffer = audioBufferRef.current;
+          source.connect(ctx.destination);
+          source.onended = () => {
+            setIsPlaying(false);
+            setCurrentTime(0);
+            pausedAtRef.current = 0;
+          };
+          source.start(0, pausedAtRef.current);
+          startTimeRef.current = ctx.currentTime - pausedAtRef.current;
+          sourceNodeRef.current = source;
+          setIsPlaying(true);
+        }
+      }
     } else {
-      audio.play().catch((e) => {
-        setError(`播放失败: ${e.message}`);
-      });
+      // 普通音频使用 HTML5 Audio
+      const audio = audioRef.current;
+      if (!audio) return;
+
+      if (isPlaying) {
+        audio.pause();
+      } else {
+        audio.play().catch((e) => {
+          setError(`播放失败: ${e.message}`);
+        });
+      }
     }
-  }, [isPlaying]);
+  }, [isPlaying, isXnb]);
 
   // 停止
   const stop = useCallback(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    audio.pause();
-    audio.currentTime = 0;
+    if (isXnb) {
+      if (sourceNodeRef.current) {
+        sourceNodeRef.current.stop();
+        sourceNodeRef.current = null;
+      }
+      pausedAtRef.current = 0;
+    } else {
+      const audio = audioRef.current;
+      if (!audio) return;
+      audio.pause();
+      audio.currentTime = 0;
+    }
     setCurrentTime(0);
     setIsPlaying(false);
-  }, []);
+  }, [isXnb]);
+
+  // 更新 XNB 播放进度
+  useEffect(() => {
+    if (!isXnb || !isPlaying) return;
+
+    const ctx = getAudioContext();
+    const interval = setInterval(() => {
+      const elapsed = ctx.currentTime - startTimeRef.current;
+      setCurrentTime(elapsed);
+      if (elapsed >= duration) {
+        setIsPlaying(false);
+        setCurrentTime(0);
+        pausedAtRef.current = 0;
+      }
+    }, 100);
+
+    return () => clearInterval(interval);
+  }, [isXnb, isPlaying, duration]);
 
   // 事件处理
   useEffect(() => {
@@ -107,20 +183,83 @@ export function AudioPreview({ gameSlug, path, compact, autoPlay }: AudioPreview
       audio.removeEventListener("loadedmetadata", handleLoadedMetadata);
       audio.removeEventListener("error", handleError);
     };
-  }, [autoPlay, gameSlug, path]);
+  }, [autoPlay, gameSlug, path, buildAudioUrl]);
 
   // 加载音频
   useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio || !path) return;
+    if (!path) return;
 
     setError(null);
     setIsLoaded(false);
     triedFallbackRef.current = false;
-    // 先尝试 OGG 格式（如果是 wav）
-    audio.src = buildAudioUrl(path, true);
-    audio.load();
-  }, [path, buildAudioUrl]);
+    pausedAtRef.current = 0;
+
+    // 停止之前的播放
+    if (sourceNodeRef.current) {
+      sourceNodeRef.current.stop();
+      sourceNodeRef.current = null;
+    }
+
+    const lowerPath = path.toLowerCase();
+
+    // 检查是否是 XNB 文件
+    if (lowerPath.endsWith(".xnb")) {
+      setIsXnb(true);
+
+      // 使用 XNB 解析器加载
+      const loadXnb = async () => {
+        try {
+          const url = `/game/${gameSlug}/resources/${lowerPath}`;
+          const response = await fetch(url);
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          const buffer = await response.arrayBuffer();
+
+          const xnbResult = parseXnbAudio(buffer);
+          if (!xnbResult.success || !xnbResult.data) {
+            throw new Error(xnbResult.error || "XNB 解析失败");
+          }
+
+          const ctx = getAudioContext();
+          const audioBuffer = xnbToAudioBuffer(xnbResult.data, ctx);
+          audioBufferRef.current = audioBuffer;
+          setDuration(audioBuffer.duration);
+          setIsLoaded(true);
+
+          if (autoPlay) {
+            // 自动播放
+            const source = ctx.createBufferSource();
+            source.buffer = audioBuffer;
+            source.connect(ctx.destination);
+            source.onended = () => {
+              setIsPlaying(false);
+              setCurrentTime(0);
+              pausedAtRef.current = 0;
+            };
+            source.start();
+            startTimeRef.current = ctx.currentTime;
+            sourceNodeRef.current = source;
+            setIsPlaying(true);
+          }
+        } catch (e) {
+          setError(`XNB 加载失败: ${e instanceof Error ? e.message : String(e)}`);
+          setIsLoaded(false);
+        }
+      };
+
+      loadXnb();
+    } else {
+      // 普通音频文件
+      setIsXnb(false);
+      audioBufferRef.current = null;
+
+      const audio = audioRef.current;
+      if (!audio) return;
+
+      // 先尝试 OGG 格式（如果是 wav）
+      audio.src = buildAudioUrl(path, true);
+      audio.load();
+    }
+  }, [path, buildAudioUrl, gameSlug, autoPlay]);
 
   // 格式化时间
   const formatTime = (time: number): string => {

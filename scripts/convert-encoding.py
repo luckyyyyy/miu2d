@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Convert text files from GBK/GB2312 to UTF-8.
+Convert text files from GBK to UTF-8 (无脑转换，不做判断).
 
 Usage:
     uv run scripts/convert-encoding.py [resources_dir]
@@ -8,45 +8,20 @@ Usage:
 Examples:
     uv run scripts/convert-encoding.py              # 转换 ./resources
     uv run scripts/convert-encoding.py ./canghai    # 转换 ./canghai
-
-This script uses charset-normalizer for accurate encoding detection.
 """
 
 # /// script
 # requires-python = ">=3.10"
-# dependencies = [
-#     "charset-normalizer>=3.0.0",
-# ]
+# dependencies = []
 # ///
 
 import sys
 from pathlib import Path
 
-from charset_normalizer import from_bytes
-
-
-def detect_encoding(content: bytes) -> str | None:
-    """Detect the encoding of byte content using charset-normalizer."""
-    result = from_bytes(content)
-    best = result.best()
-    if best is None:
-        return None
-    return best.encoding
-
-
-def is_ascii_only(content: bytes) -> bool:
-    """Check if content contains only ASCII characters."""
-    return all(b < 128 for b in content)
-
-
-def has_utf8_bom(content: bytes) -> bool:
-    """Check if content starts with UTF-8 BOM."""
-    return content.startswith(b"\xef\xbb\xbf")
-
 
 def convert_file(filepath: Path) -> tuple[str, str]:
     """
-    Convert a file to UTF-8 if needed.
+    Convert a file from GBK to UTF-8 unconditionally.
 
     Returns:
         tuple of (status, message)
@@ -61,85 +36,11 @@ def convert_file(filepath: Path) -> tuple[str, str]:
     if len(content) == 0:
         return "skipped", f"⏭️  跳过空文件: {filepath}"
 
-    # Skip ASCII-only files
-    if is_ascii_only(content):
-        return "skipped", f"⏭️  纯 ASCII: {filepath}"
-
-    # Check for UTF-8 BOM - already UTF-8
-    if has_utf8_bom(content):
-        return "skipped", f"⏭️  已是 UTF-8 (BOM): {filepath}"
-
-    # Detect encoding
-    detected = detect_encoding(content)
-
-    # If detection failed, try GBK as fallback (common for Chinese game resources)
-    if detected is None:
-        for enc in ("gbk", "gb18030", "gb2312"):
-            try:
-                # Use 'replace' to handle invalid bytes
-                text = content.decode(enc, errors="replace")
-                # Verify it contains Chinese characters after decoding
-                if any('\u4e00' <= c <= '\u9fff' for c in text):
-                    filepath.write_text(text, encoding="utf-8")
-                    return "converted", f"✅ 已转换 (强制): {filepath} ({enc} → UTF-8)"
-            except Exception:
-                continue
-        # Last resort: try with error replacement
-        try:
-            text = content.decode("gbk", errors="replace")
-            filepath.write_text(text, encoding="utf-8")
-            return "converted", f"✅ 已转换 (容错): {filepath} (gbk → UTF-8)"
-        except Exception:
-            pass
-        return "failed", f"❌ 无法检测编码: {filepath}"
-
-    detected_lower = detected.lower()
-
-    # Already UTF-8
-    if detected_lower in ("utf-8", "utf_8", "ascii"):
-        return "skipped", f"⏭️  已是 UTF-8: {filepath}"
-
-    # GBK family encodings
-    gbk_encodings = ("gb2312", "gbk", "gb18030", "hz", "iso-2022-cn", "big5", "cp936")
-
-    if detected_lower in gbk_encodings or detected_lower.startswith("gb"):
-        try:
-            # Try to decode with detected encoding
-            text = content.decode(detected)
-            # Write as UTF-8
-            filepath.write_text(text, encoding="utf-8")
-            return "converted", f"✅ 已转换: {filepath} ({detected} → UTF-8)"
-        except Exception as e:
-            # Fallback: try common Chinese encodings
-            for enc in ("gbk", "gb18030", "gb2312"):
-                try:
-                    text = content.decode(enc)
-                    filepath.write_text(text, encoding="utf-8")
-                    return "converted", f"✅ 已转换: {filepath} ({enc} → UTF-8)"
-                except Exception:
-                    continue
-            return "failed", f"❌ 转换失败: {filepath} ({e})"
-
-    # Windows code pages that might be misdetected GBK
-    windows_encodings = ("cp1250", "cp1251", "cp1252", "cp1253", "cp1254", "cp1255", "cp1256")
-    if detected_lower in windows_encodings:
-        # For Chinese game resources, try GBK first
-        for enc in ("gbk", "gb18030"):
-            try:
-                text = content.decode(enc)
-                # Check if result contains Chinese characters
-                if any('\u4e00' <= c <= '\u9fff' for c in text):
-                    filepath.write_text(text, encoding="utf-8")
-                    return "converted", f"✅ 已转换: {filepath} ({enc} → UTF-8)"
-            except Exception:
-                continue
-        # Fall through to use detected encoding
-
-    # Other encodings - try to convert
+    # 无脑用 GBK 解码，遇到错误用 replace 策略
     try:
-        text = content.decode(detected)
+        text = content.decode("gbk", errors="replace")
         filepath.write_text(text, encoding="utf-8")
-        return "converted", f"✅ 已转换: {filepath} ({detected} → UTF-8)"
+        return "converted", f"✅ 已转换: {filepath} (GBK → UTF-8)"
     except Exception as e:
         return "failed", f"❌ 转换失败: {filepath} ({e})"
 

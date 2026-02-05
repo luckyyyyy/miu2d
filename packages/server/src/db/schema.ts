@@ -146,3 +146,30 @@ export const goods = pgTable("goods", {
   unique("goods_game_id_key_unique").on(t.gameId, t.key)
 ]);
 
+/**
+ * NPC 表
+ * 存储 NPC 配置（合并了 npc/*.ini 和 npcres/*.ini 的内容）
+ * 类型定义在 @miu2d/types 中，供引擎、前端、后端共用
+ */
+export const npcs = pgTable("npcs", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  /** 所属游戏（索引字段） */
+  gameId: uuid("game_id").references(() => games.id, { onDelete: "cascade" }).notNull(),
+  /** 唯一标识符（文件名，gameId + key 唯一） */
+  key: text("key").notNull(),
+  /** NPC 名称（索引字段，便于搜索） */
+  name: text("name").notNull(),
+  /** NPC 类型（索引字段）: Normal / Fighter / Flyer / GroundAnimal / WaterAnimal / Decoration / Intangible */
+  kind: text("kind", { enum: ["Normal", "Fighter", "Flyer", "GroundAnimal", "WaterAnimal", "Decoration", "Intangible"] }).notNull().default("Normal"),
+  /** NPC 与玩家的关系（索引字段）: Friendly / Neutral / Hostile / Partner */
+  relation: text("relation", { enum: ["Friendly", "Neutral", "Hostile", "Partner"] }).notNull().default("Friendly"),
+  /** 完整 NPC 配置（JSONB，存储所有属性和资源配置） */
+  data: jsonb("data").notNull(),
+  /** 创建时间 */
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  /** 更新时间 */
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow()
+}, (t) => [
+  unique("npcs_game_id_key_unique").on(t.gameId, t.key)
+]);
+

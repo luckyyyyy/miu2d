@@ -8,6 +8,7 @@ import { GameModule } from "./modules/game";
 import { GoodsModule } from "./modules/goods/goods.module";
 import { LevelModule } from "./modules/level";
 import { MagicModule } from "./modules/magic";
+import { NpcModule } from "./modules/npc/npc.module";
 import { UserModule } from "./modules/user";
 
 @Module({
@@ -21,6 +22,7 @@ import { UserModule } from "./modules/user";
     GoodsModule,
     LevelModule,
     MagicModule,
+    NpcModule,
     UserModule
   ],
   controllers: [AppController]

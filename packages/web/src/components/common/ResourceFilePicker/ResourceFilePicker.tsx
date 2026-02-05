@@ -3,15 +3,18 @@
  *
  * 通用的游戏资源文件选择组件，支持：
  * - ASF 动画预览（内嵌）
- * - 音频播放（WAV/OGG）
+ * - 音频播放（WAV/OGG/XNB）
+ * - 脚本预览（TXT）
  * - 点击修改弹出文件选择器
  * - 每个字段占一行
  */
-import { useCallback, useState } from "react";
+import { useCallback, useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { FileSelectDialog } from "./FileSelectDialog";
 import { MiniAsfPreview } from "./AsfPreviewTooltip";
-import { AudioPreview } from "./AudioPreview";
-import { buildResourcePath, getResourceFileType } from "./types";
+import { MiniAudioPlayer } from "./MiniAudioPlayer";
+import { ScriptPreviewTooltip } from "./ScriptPreviewTooltip";
+import { buildResourcePath, buildScriptPreviewPath, buildIniPreviewPath, getResourceFileType } from "./types";
 
 export interface ResourceFilePickerProps {
   /** 字段标签 */
@@ -43,12 +46,27 @@ export function ResourceFilePicker({
   placeholder = "未选择",
 }: ResourceFilePickerProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+  const [showScriptPreview, setShowScriptPreview] = useState(false);
+  const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number } | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // 完整资源路径
   const fullPath = value ? buildResourcePath(fieldName, value) : "";
 
   // 文件类型
   const fileType = getResourceFileType(fieldName, value || "");
+
+  // 预览路径（脚本和 INI 需要特殊处理）
+  const previewPath = (() => {
+    if (!value) return "";
+    if (fileType === "script") return buildScriptPreviewPath(value);
+    if (fileType === "ini") return buildIniPreviewPath(value);
+    return fullPath;
+  })();
+
+  // 显示路径（统一显示完整预览路径，带 / 前缀）
+  const displayPath = previewPath ? `/${previewPath}` : "";
 
   // 打开选择器
   const handleOpenDialog = useCallback(() => {
@@ -58,69 +76,112 @@ export function ResourceFilePicker({
   // 选择文件
   const handleSelect = useCallback((path: string) => {
     // 后端返回的 path 以 / 开头，去掉开头的斜杠
-    const normalizedPath = path.startsWith("/") ? path.slice(1) : path;
+    let normalizedPath = path.startsWith("/") ? path.slice(1) : path;
+    normalizedPath = normalizedPath.replace(/\\/g, "/");
+
+    // 根据字段类型决定保存格式
+    const selectedFileType = getResourceFileType(fieldName, normalizedPath);
+    if (selectedFileType === "script" || selectedFileType === "ini") {
+      // 脚本和 INI 只保存文件名（引擎会动态查找完整路径）
+      normalizedPath = normalizedPath.split("/").pop() || normalizedPath;
+    }
+
     onChange(normalizedPath);
     setIsDialogOpen(false);
-  }, [onChange]);
+  }, [onChange, fieldName]);
 
   // 清除
-  const handleClear = useCallback(() => {
+  const handleClear = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
     onChange(null);
   }, [onChange]);
 
+  // 获取文件名
+  const fileName = fullPath.split("/").pop() || "";
+
   return (
-    <div className="flex items-center gap-4">
+    <div className="flex items-center gap-3 relative" ref={containerRef}>
       {/* 标签 */}
-      <label className="text-sm text-[#858585] w-24 flex-shrink-0">{label}</label>
+      <label className="text-xs text-[#858585] w-20 flex-shrink-0">{label}</label>
 
-      {/* 内容区 */}
-      <div className="flex-1 bg-[#2d2d2d] border border-[#454545] rounded-lg p-2 min-h-[48px] flex items-center">
+      {/* 内容区 - 固定高度，可点击 */}
+      <div
+        className="flex-1 bg-[#2d2d2d] border border-[#454545] rounded h-9 flex items-center px-2 cursor-pointer hover:border-[#0098ff] transition-colors group"
+        onClick={handleOpenDialog}
+        onMouseEnter={() => {
+          setIsHovered(true);
+          if ((fileType === "script" || fileType === "ini") && containerRef.current) {
+            const rect = containerRef.current.getBoundingClientRect();
+            setTooltipPos({ x: rect.left + 80, y: rect.bottom + 4 });
+            setShowScriptPreview(true);
+          }
+        }}
+        onMouseLeave={() => {
+          setIsHovered(false);
+          setShowScriptPreview(false);
+          setTooltipPos(null);
+        }}
+      >
         {value ? (
-          <div className="flex items-center gap-3 flex-1 min-w-0">
-            {/* 预览区 */}
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            {/* 预览图标 */}
             {fileType === "asf" && (
-              <MiniAsfPreview gameSlug={gameSlug} path={fullPath} size={36} />
+              <MiniAsfPreview gameSlug={gameSlug} path={previewPath} size={24} />
             )}
-
-            {/* 音频预览 */}
             {fileType === "audio" && (
-              <AudioPreview gameSlug={gameSlug} path={fullPath} />
+              <MiniAudioPlayer gameSlug={gameSlug} path={previewPath} />
+            )}
+            {fileType === "script" && (
+              <span className="text-sm flex-shrink-0">📄</span>
+            )}
+            {fileType === "ini" && (
+              <span className="text-sm flex-shrink-0">⚙️</span>
             )}
 
-            {/* 文件路径信息 */}
-            <div className="flex-1 min-w-0">
-              <div className="text-sm text-[#cccccc] truncate" title={fullPath}>
-                {fullPath.startsWith("/") ? fullPath : `/${fullPath}`}
-              </div>
+            {/* 文件路径 */}
+            <span className="text-xs text-[#cccccc] truncate flex-1" title={previewPath}>
+              {displayPath}
+            </span>
+
+            {/* 悬停时显示操作按钮 */}
+            <div className={`flex items-center gap-1 flex-shrink-0 transition-opacity ${isHovered ? "opacity-100" : "opacity-0"}`}>
+              <button
+                type="button"
+                onClick={handleClear}
+                className="w-5 h-5 flex items-center justify-center rounded hover:bg-[#3c3c3c] text-[#808080] hover:text-white"
+                title="清除"
+              >
+                <svg className="w-3 h-3" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <path d="M2 2l8 8M10 2l-8 8" />
+                </svg>
+              </button>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); handleOpenDialog(); }}
+                className="w-5 h-5 flex items-center justify-center rounded hover:bg-[#3c3c3c] text-[#808080] hover:text-white"
+                title="修改"
+              >
+                <svg className="w-3 h-3" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <path d="M8.5 1.5l2 2M1 11l.5-2L9 1.5l2 2L3.5 11 1 11z" />
+                </svg>
+              </button>
             </div>
           </div>
         ) : (
-          <div className="text-sm text-[#808080] flex-1">
-            {placeholder}
-          </div>
+          <span className="text-xs text-[#606060]">{placeholder}</span>
         )}
-
-        {/* 操作按钮 */}
-        <div className="flex items-center gap-1 flex-shrink-0 ml-2">
-          {value && (
-            <button
-              type="button"
-              onClick={handleClear}
-              className="px-2 py-1 text-xs rounded hover:bg-[#3c3c3c] text-[#808080] hover:text-white"
-              title="清除"
-            >
-              ✕
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={handleOpenDialog}
-            className="px-3 py-1 text-xs bg-[#3c3c3c] hover:bg-[#4c4c4c] text-[#cccccc] rounded border border-[#454545]"
-          >
-            {value ? "修改" : "选择"}
-          </button>
-        </div>
       </div>
+
+      {/* 脚本/INI 预览 Tooltip - 使用 Portal 渲染到 body 避免被截断 */}
+      {showScriptPreview && value && tooltipPos && (fileType === "script" || fileType === "ini") && createPortal(
+        <div
+          className="fixed z-[9999]"
+          style={{ left: tooltipPos.x, top: tooltipPos.y }}
+        >
+          <ScriptPreviewTooltip gameSlug={gameSlug} path={previewPath} />
+        </div>,
+        document.body
+      )}
 
       {/* 文件选择弹窗 */}
       <FileSelectDialog

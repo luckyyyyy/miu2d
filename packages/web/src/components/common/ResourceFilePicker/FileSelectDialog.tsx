@@ -9,7 +9,8 @@ import type { FileTreeNode, FlatFileTreeNode, ExpandedState } from "../../../pag
 import { fileNodesToTreeNodes, flattenFileTree, sortTreeNodes } from "../../../pages/dashboard/modules/fileTree/types";
 import { AsfPreviewTooltip } from "./AsfPreviewTooltip";
 import { AudioPreview } from "./AudioPreview";
-import { getResourceFileType, buildResourcePath } from "./types";
+import { ScriptPreviewTooltip } from "./ScriptPreviewTooltip";
+import { getResourceFileType, buildResourcePath, buildScriptPreviewPath, buildIniPreviewPath } from "./types";
 
 export interface FileSelectDialogProps {
   /** 是否显示 */
@@ -56,9 +57,18 @@ export function FileSelectDialog({
   // 文件树容器引用
   const treeContainerRef = useRef<HTMLDivElement>(null);
 
-  // 当前值的完整路径
+  // 当前值的完整路径（用于定位）
   const currentPath = useMemo(() => {
     if (!currentValue) return null;
+
+    // 根据文件类型决定定位路径
+    const fileType = getResourceFileType(fieldName, currentValue);
+    if (fileType === "script") {
+      return buildScriptPreviewPath(currentValue);
+    }
+    if (fileType === "ini") {
+      return buildIniPreviewPath(currentValue);
+    }
     return buildResourcePath(fieldName, currentValue);
   }, [currentValue, fieldName]);
 
@@ -485,6 +495,21 @@ export function FileSelectDialog({
                 path={hoverNode.node.path}
                 compact
                 autoPlay
+              />
+            </div>
+          )}
+          {(getResourceFileType(fieldName, hoverNode.node.name) === "script" ||
+            getResourceFileType(fieldName, hoverNode.node.name) === "ini") && (
+            <div
+              className="fixed z-[9999]"
+              style={{
+                left: hoverNode.position.x + 16,
+                top: hoverNode.position.y,
+              }}
+            >
+              <ScriptPreviewTooltip
+                gameSlug={gameSlug}
+                path={hoverNode.node.path.startsWith("/") ? hoverNode.node.path.slice(1) : hoverNode.node.path}
               />
             </div>
           )}

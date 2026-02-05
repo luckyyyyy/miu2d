@@ -28,7 +28,7 @@ export { ListEditorPage, DetailEditorPage } from "./modules/ListEditorPage";
 export { CharactersListPage, CharacterDetailPage } from "./modules/CharactersPages";
 
 // NPC 编辑
-export { NpcsListPage, NpcDetailPage } from "./modules/NpcsPages";
+export { NpcListPage, NpcDetailPage } from "./modules/npc";
 
 // 物品编辑
 export { GoodsListPage, GoodsDetailPage } from "./modules/goods/GoodsPages";

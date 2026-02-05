@@ -7,6 +7,9 @@ import { trpc } from "../../../../lib/trpc";
 import { useToast } from "../../../../contexts/ToastContext";
 import { DashboardIcons } from "../../icons";
 import { useDashboard } from "../../DashboardContext";
+import { buildGoodsImageUrl } from "../../utils";
+import { getFrameCanvas } from "@miu2d/engine/resource/asf";
+import { decodeAsfWasm, initWasm } from "@miu2d/engine/wasm";
 import type {
   Goods,
   GoodsKind,
@@ -21,6 +24,240 @@ import {
   getVisibleFieldsByKind,
   createDefaultGoods,
 } from "@miu2d/types";
+
+// ========== ASF 图像加载 Hook（Dashboard 专用）==========
+
+interface DashboardAsfImage {
+  dataUrl: string | null;
+  width: number;
+  height: number;
+  isLoading: boolean;
+}
+
+/**
+ * Dashboard 专用的 ASF 图像加载 Hook
+ * 直接使用 /game/{gameSlug}/resources/ 路径
+ */
+function useDashboardAsfImage(
+  gameSlug: string | undefined,
+  url: string | null
+): DashboardAsfImage {
+  const [state, setState] = useState<DashboardAsfImage>({
+    dataUrl: null,
+    width: 0,
+    height: 0,
+    isLoading: false,
+  });
+
+  useEffect(() => {
+    if (!gameSlug || !url) {
+      setState({ dataUrl: null, width: 0, height: 0, isLoading: false });
+      return;
+    }
+
+    let cancelled = false;
+    setState((prev) => ({ ...prev, isLoading: true }));
+
+    (async () => {
+      try {
+        await initWasm();
+        const response = await fetch(url);
+        if (!response.ok || cancelled) return;
+
+        const buffer = await response.arrayBuffer();
+        if (cancelled) return;
+
+        const asfData = decodeAsfWasm(buffer);
+        if (!asfData || asfData.frames.length === 0 || cancelled) return;
+
+        const canvas = getFrameCanvas(asfData.frames[0]);
+        const dataUrl = canvas.toDataURL();
+
+        if (!cancelled) {
+          setState({
+            dataUrl,
+            width: asfData.width,
+            height: asfData.height,
+            isLoading: false,
+          });
+        }
+      } catch {
+        if (!cancelled) {
+          setState((prev) => ({ ...prev, isLoading: false }));
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [gameSlug, url]);
+
+  return state;
+}
+
+// ========== 游戏风格物品预览组件 ==========
+
+interface GoodsPreviewProps {
+  goods: Partial<Goods>;
+  gameSlug: string | undefined;
+}
+
+/**
+ * 物品预览卡片 - 现代风格
+ */
+function GoodsPreview({ goods, gameSlug }: GoodsPreviewProps) {
+  // 构建资源 URL
+  const itemImageUrl = gameSlug ? buildGoodsImageUrl(gameSlug, goods.image) : null;
+
+  // 加载物品图片
+  const itemImage = useDashboardAsfImage(gameSlug, itemImageUrl);
+
+  // 计算属性效果列表
+  const attributes = useMemo(() => {
+    const attrs: Array<{ label: string; value: number; color: string }> = [];
+    if (goods.life) attrs.push({ label: "命", value: goods.life, color: "#ef4444" });
+    if (goods.thew) attrs.push({ label: "体", value: goods.thew, color: "#f59e0b" });
+    if (goods.mana) attrs.push({ label: "气", value: goods.mana, color: "#3b82f6" });
+    if (goods.attack) attrs.push({ label: "攻", value: goods.attack, color: "#ef4444" });
+    if (goods.defend) attrs.push({ label: "防", value: goods.defend, color: "#22c55e" });
+    if (goods.evade) attrs.push({ label: "捷", value: goods.evade, color: "#a855f7" });
+    if (goods.lifeMax) attrs.push({ label: "命上限", value: goods.lifeMax, color: "#ef4444" });
+    if (goods.thewMax) attrs.push({ label: "体上限", value: goods.thewMax, color: "#f59e0b" });
+    if (goods.manaMax) attrs.push({ label: "气上限", value: goods.manaMax, color: "#3b82f6" });
+    return attrs;
+  }, [goods]);
+
+  // 特效文本
+  const specialEffectText = useMemo(() => {
+    if (goods.effectType && goods.effectType > 0) {
+      const actualEffect = getActualEffectType(
+        goods.kind || "Consumable",
+        goods.part as GoodsPart,
+        goods.effectType
+      );
+      if (actualEffect !== "None") {
+        return GoodsEffectTypeLabels[actualEffect];
+      }
+    }
+    return null;
+  }, [goods.kind, goods.part, goods.effectType]);
+
+  // 类型样式
+  const kindStyle = useMemo(() => {
+    switch (goods.kind) {
+      case "Consumable":
+        return { bg: "bg-emerald-500/20", text: "text-emerald-400", border: "border-emerald-500/30" };
+      case "Equipment":
+        return { bg: "bg-blue-500/20", text: "text-blue-400", border: "border-blue-500/30" };
+      case "Quest":
+        return { bg: "bg-amber-500/20", text: "text-amber-400", border: "border-amber-500/30" };
+      default:
+        return { bg: "bg-gray-500/20", text: "text-gray-400", border: "border-gray-500/30" };
+    }
+  }, [goods.kind]);
+
+  return (
+    <div className="w-full">
+      <h3 className="text-sm font-medium text-[#888] mb-4 text-center">物品预览</h3>
+
+      {/* 卡片容器 */}
+      <div className="bg-[#1e1e1e] border border-[#333] rounded-lg overflow-hidden">
+        {/* 物品图片区域 */}
+        <div className="bg-gradient-to-b from-[#252525] to-[#1a1a1a] p-6 flex items-center justify-center min-h-[140px]">
+          {itemImage.dataUrl ? (
+            <img
+              src={itemImage.dataUrl}
+              alt={goods.name || "物品"}
+              className="max-w-[120px] max-h-[120px]"
+              style={{ imageRendering: "pixelated" }}
+            />
+          ) : (
+            <div className="text-4xl text-[#444]">
+              {itemImage.isLoading ? "⏳" : goods.image ? "❓" : "📦"}
+            </div>
+          )}
+        </div>
+
+        {/* 物品信息区域 */}
+        <div className="p-4 space-y-3">
+          {/* 名称和类型 */}
+          <div className="flex items-center justify-between gap-2">
+            <h4 className="text-lg font-bold text-white truncate">
+              {goods.name || "未命名物品"}
+            </h4>
+            <span className={`px-2 py-0.5 rounded text-xs ${kindStyle.bg} ${kindStyle.text}`}>
+              {GoodsKindLabels[goods.kind || "Consumable"]}
+            </span>
+          </div>
+
+          {/* 装备部位 */}
+          {goods.kind === "Equipment" && goods.part && (
+            <div className="flex items-center gap-2 text-sm text-[#888]">
+              <span className="text-[#666]">部位:</span>
+              <span className="px-2 py-0.5 rounded bg-purple-500/20 text-purple-400 text-xs">
+                {GoodsPartLabels[goods.part]}
+              </span>
+            </div>
+          )}
+
+          {/* 价格 */}
+          <div className="flex items-center gap-2 text-sm">
+            <span className="text-[#666]">价格:</span>
+            <span className="text-amber-400 font-mono">
+              {goods.cost ?? 0} 💰
+            </span>
+            {(goods.cost === null || goods.cost === undefined || goods.cost === 0) && (
+              <span className="text-[#555] text-xs">(不可交易)</span>
+            )}
+          </div>
+
+          {/* 属性加成 */}
+          {attributes.length > 0 && (
+            <div className="space-y-1.5">
+              <div className="text-xs text-[#666] mb-1">属性加成</div>
+              <div className="flex flex-wrap gap-2">
+                {attributes.map((attr, i) => (
+                  <span
+                    key={i}
+                    className="px-2 py-1 rounded bg-[#252525] text-xs font-mono"
+                    style={{ color: attr.color }}
+                  >
+                    {attr.label} +{attr.value}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 特殊效果 */}
+          {specialEffectText && (
+            <div className="flex items-center gap-2 text-sm">
+              <span className="text-[#666]">特效:</span>
+              <span className="text-green-400">✨ {specialEffectText}</span>
+            </div>
+          )}
+
+          {/* 物品介绍 */}
+          {goods.intro && (
+            <div className="pt-2 border-t border-[#333]">
+              <p className="text-sm text-[#aaa] leading-relaxed whitespace-pre-wrap">
+                {goods.intro}
+              </p>
+            </div>
+          )}
+
+          {/* 任务物品脚本 */}
+          {goods.kind === "Quest" && goods.script && (
+            <div className="text-xs text-[#555] pt-2 border-t border-[#333]">
+              📜 脚本: {goods.script}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // ========== 列表页（欢迎页面） ==========
 
@@ -227,7 +464,9 @@ export function GoodsDetailPage() {
 
       {/* 内容区 */}
       <div className="flex-1 overflow-auto p-6">
-        <div className="max-w-4xl space-y-5">
+        <div className="flex gap-6">
+          {/* 左侧表单 */}
+          <div className="flex-1 max-w-3xl space-y-5">
           {/* 基本信息 */}
           <section className="bg-[#252526] border border-[#3c3c3c] rounded-xl overflow-hidden">
             <div className="px-4 py-3 border-b border-[#3c3c3c]">
@@ -507,6 +746,14 @@ export function GoodsDetailPage() {
               </div>
             </section>
           )}
+          </div>
+
+          {/* 右侧预览面板 */}
+          <div className="flex-shrink-0 w-[420px]">
+            <div className="sticky top-0 bg-[#252526] border border-[#3c3c3c] rounded-xl p-6">
+              <GoodsPreview goods={formData} gameSlug={gameSlug} />
+            </div>
+          </div>
         </div>
       </div>
     </div>
