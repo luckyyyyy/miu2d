@@ -108,26 +108,36 @@ function convertMagicInfoToSlot(info: MagicItemInfo | null, index: number): UIMa
   };
 }
 
-// ============= UIBridge 依赖接口 =============
+// ============= UIBridge 依赖分组接口 =============
 
-export interface UIBridgeDeps {
-  events: EventEmitter;
+/** 状态获取器 - 用于获取游戏状态 */
+export interface UIStateGetters {
   getPlayer: () => Player | null;
-  getPlayerIndex?: () => number; // 用于切换角色后面板图像更新
+  getPlayerIndex?: () => number;
   getGoodsListManager: () => GoodsListManager | null;
   getMagicListManager: () => MagicListManager | null;
   getBuyManager: () => BuyManager | null;
   getMemoListManager: () => MemoListManager;
   getTimerManager: () => TimerManager;
-  // Panel toggles
-  togglePanel: (panel: UIPanelName) => void;
-  // Actions
+  getPanels: () => UIPanelVisibility;
+  getDialogState: () => UIDialogState;
+  getSelectionState: () => UISelectionState;
+  getMultiSelectionState: () => UIMultiSelectionState;
+  canSaveGame: () => boolean;
+}
+
+/** 物品操作 */
+export interface UIGoodsActions {
   useItem: (index: number) => void;
   equipItem: (fromIndex: number, toSlot: string) => void;
   unequipItem: (slot: string) => void;
   swapItems: (fromIndex: number, toIndex: number) => void;
   useBottomItem: (slotIndex: number) => void;
   swapEquipSlots: (fromSlot: string, toSlot: string) => void;
+}
+
+/** 武功操作 */
+export interface UIMagicActions {
   useMagic: (magicIndex: number) => Promise<void>;
   useMagicByBottom: (bottomSlot: number) => Promise<void>;
   setCurrentMagic: (magicIndex: number) => void;
@@ -135,27 +145,54 @@ export interface UIBridgeDeps {
   swapMagic: (fromIndex: number, toIndex: number) => void;
   assignMagicToBottom: (magicIndex: number, bottomSlot: number) => void;
   setXiuLianMagic: (magicIndex: number) => void;
+}
+
+/** 商店操作 */
+export interface UIShopActions {
   buyItem: (shopIndex: number) => Promise<boolean>;
   sellItem: (bagIndex: number) => void;
   closeShop: () => void;
+}
+
+/** 存档操作 */
+export interface UISaveActions {
   saveGame: (slotIndex: number) => Promise<boolean>;
   loadGame: (slotIndex: number) => Promise<boolean>;
   showSaveLoad: (visible: boolean) => void;
-  minimapClick: (worldX: number, worldY: number) => void;
+}
+
+/** 对话操作 */
+export interface UIDialogActions {
   dialogClick: () => void;
   dialogSelect: (selection: number) => void;
   selectionChoose: (index: number) => void;
   multiSelectionToggle: (index: number) => void;
+}
+
+/** 系统操作 */
+export interface UISystemActions {
+  togglePanel: (panel: UIPanelName) => void;
   showMessage: (text: string) => void;
   showSystem: (visible: boolean) => void;
+  minimapClick: (worldX: number, worldY: number) => void;
   onVideoEnd: () => void;
-  // Getters for snapshot
-  getPanels: () => UIPanelVisibility;
-  getDialogState: () => UIDialogState;
-  getSelectionState: () => UISelectionState;
-  getMultiSelectionState: () => UIMultiSelectionState;
-  canSaveGame: () => boolean;
 }
+
+// ============= UIBridge 依赖接口（分组版本）=============
+
+export interface UIBridgeDeps {
+  events: EventEmitter;
+  // 分组的依赖
+  state: UIStateGetters;
+  goods: UIGoodsActions;
+  magic: UIMagicActions;
+  shop: UIShopActions;
+  save: UISaveActions;
+  dialog: UIDialogActions;
+  system: UISystemActions;
+}
+
+
 
 // ============= UIBridge 实现 =============
 
@@ -342,11 +379,11 @@ export class UIBridge implements IUIBridge {
   // ============= 状态构建 =============
 
   private buildPlayerState(): UIPlayerState | null {
-    const player = this.deps.getPlayer();
+    const player = this.deps.state.getPlayer();
     if (!player) return null;
 
     // 获取当前角色索引用于面板图像切换
-    const playerIndex = this.deps.getPlayerIndex?.() ?? 0;
+    const playerIndex = this.deps.state.getPlayerIndex?.() ?? 0;
 
     return {
       playerIndex,
@@ -369,8 +406,8 @@ export class UIBridge implements IUIBridge {
   }
 
   private buildGoodsState(): UIGoodsState {
-    const goodsManager = this.deps.getGoodsListManager();
-    const player = this.deps.getPlayer();
+    const goodsManager = this.deps.state.getGoodsListManager();
+    const player = this.deps.state.getPlayer();
 
     if (!goodsManager) {
       return {
@@ -472,7 +509,7 @@ export class UIBridge implements IUIBridge {
   }
 
   private buildMagicState(): UIMagicState {
-    const magicManager = this.deps.getMagicListManager();
+    const magicManager = this.deps.state.getMagicListManager();
 
     if (!magicManager) {
       return {
@@ -508,7 +545,7 @@ export class UIBridge implements IUIBridge {
   }
 
   private buildShopState(): UIShopState {
-    const buyManager = this.deps.getBuyManager();
+    const buyManager = this.deps.state.getBuyManager();
 
     if (!buyManager || !buyManager.isOpen()) {
       return {
@@ -542,7 +579,7 @@ export class UIBridge implements IUIBridge {
   }
 
   private buildMemoState(): UIMemoState {
-    const memoManager = this.deps.getMemoListManager();
+    const memoManager = this.deps.state.getMemoListManager();
     const memos = memoManager.getAllMemos();
 
     return {
@@ -557,7 +594,7 @@ export class UIBridge implements IUIBridge {
   }
 
   private buildTimerState(): UITimerState {
-    const timerManager = this.deps.getTimerManager();
+    const timerManager = this.deps.state.getTimerManager();
     const state = timerManager.getState();
 
     return {
@@ -582,7 +619,7 @@ export class UIBridge implements IUIBridge {
     switch (action.type) {
       // 面板控制
       case "TOGGLE_PANEL":
-        this.deps.togglePanel(action.panel);
+        this.deps.system.togglePanel(action.panel);
         break;
       case "CLOSE_PANEL":
         // 注：togglePanel 已可实现面板开关，此 action 备用
@@ -595,101 +632,101 @@ export class UIBridge implements IUIBridge {
 
       // 对话
       case "DIALOG_CLICK":
-        this.deps.dialogClick();
+        this.deps.dialog.dialogClick();
         break;
       case "DIALOG_SELECT":
-        this.deps.dialogSelect(action.selection);
+        this.deps.dialog.dialogSelect(action.selection);
         break;
 
       // 选择
       case "SELECTION_CHOOSE":
-        this.deps.selectionChoose(action.index);
+        this.deps.dialog.selectionChoose(action.index);
         break;
       case "MULTI_SELECTION_TOGGLE":
-        this.deps.multiSelectionToggle(action.index);
+        this.deps.dialog.multiSelectionToggle(action.index);
         break;
 
       // 物品
       case "USE_ITEM":
-        this.deps.useItem(action.index);
+        this.deps.goods.useItem(action.index);
         break;
       case "EQUIP_ITEM":
-        this.deps.equipItem(action.fromIndex, action.toSlot);
+        this.deps.goods.equipItem(action.fromIndex, action.toSlot);
         break;
       case "UNEQUIP_ITEM":
-        this.deps.unequipItem(action.slot);
+        this.deps.goods.unequipItem(action.slot);
         break;
       case "SWAP_ITEMS":
-        this.deps.swapItems(action.fromIndex, action.toIndex);
+        this.deps.goods.swapItems(action.fromIndex, action.toIndex);
         break;
       case "USE_BOTTOM_ITEM":
-        this.deps.useBottomItem(action.slotIndex);
+        this.deps.goods.useBottomItem(action.slotIndex);
         break;
       case "SWAP_EQUIP_SLOTS":
-        this.deps.swapEquipSlots(action.fromSlot, action.toSlot);
+        this.deps.goods.swapEquipSlots(action.fromSlot, action.toSlot);
         break;
 
       // 武功
       case "USE_MAGIC":
-        this.deps.useMagic(action.magicIndex);
+        this.deps.magic.useMagic(action.magicIndex);
         break;
       case "USE_MAGIC_BY_BOTTOM":
-        this.deps.useMagicByBottom(action.bottomSlot);
+        this.deps.magic.useMagicByBottom(action.bottomSlot);
         break;
       case "SET_CURRENT_MAGIC":
-        this.deps.setCurrentMagic(action.magicIndex);
+        this.deps.magic.setCurrentMagic(action.magicIndex);
         break;
       case "SET_CURRENT_MAGIC_BY_BOTTOM":
-        this.deps.setCurrentMagicByBottom(action.bottomIndex);
+        this.deps.magic.setCurrentMagicByBottom(action.bottomIndex);
         break;
       case "SWAP_MAGIC":
-        this.deps.swapMagic(action.fromIndex, action.toIndex);
+        this.deps.magic.swapMagic(action.fromIndex, action.toIndex);
         break;
       case "ASSIGN_MAGIC_TO_BOTTOM":
-        this.deps.assignMagicToBottom(action.magicIndex, action.bottomSlot);
+        this.deps.magic.assignMagicToBottom(action.magicIndex, action.bottomSlot);
         break;
       case "SET_XIULIAN_MAGIC":
-        this.deps.setXiuLianMagic(action.magicIndex);
+        this.deps.magic.setXiuLianMagic(action.magicIndex);
         break;
 
       // 商店
       case "BUY_ITEM":
-        this.deps.buyItem(action.shopIndex);
+        this.deps.shop.buyItem(action.shopIndex);
         break;
       case "SELL_ITEM":
-        this.deps.sellItem(action.bagIndex);
+        this.deps.shop.sellItem(action.bagIndex);
         break;
       case "CLOSE_SHOP":
-        this.deps.closeShop();
+        this.deps.shop.closeShop();
         break;
 
       // 存档
       case "SAVE_GAME":
-        this.deps.saveGame(action.slotIndex);
+        this.deps.save.saveGame(action.slotIndex);
         break;
       case "LOAD_GAME":
-        this.deps.loadGame(action.slotIndex);
+        this.deps.save.loadGame(action.slotIndex);
         break;
       case "SHOW_SAVE_LOAD":
-        this.deps.showSaveLoad(action.visible);
+        this.deps.save.showSaveLoad(action.visible);
         break;
 
       // 小地图
       case "MINIMAP_CLICK":
-        this.deps.minimapClick(action.worldX, action.worldY);
+        this.deps.system.minimapClick(action.worldX, action.worldY);
         break;
 
       // 视频
       case "VIDEO_END":
-        this.deps.onVideoEnd();
+        this.deps.system.onVideoEnd();
         break;
 
       // 系统
       case "SHOW_MESSAGE":
-        this.deps.showMessage(action.text);
+        this.deps.system.showMessage(action.text);
         break;
       case "SHOW_SYSTEM":
-        this.deps.showSystem(action.visible);
+        this.deps.system.showSystem(action.visible);
         break;
       case "EXIT_GAME":
         // Web 应用无法真正退出，仅显示提示
@@ -704,10 +741,10 @@ export class UIBridge implements IUIBridge {
   getSnapshot(): UISnapshot {
     return {
       player: this.buildPlayerState(),
-      panels: this.deps.getPanels(),
-      dialog: this.deps.getDialogState(),
-      selection: this.deps.getSelectionState(),
-      multiSelection: this.deps.getMultiSelectionState(),
+      panels: this.deps.state.getPanels(),
+      dialog: this.deps.state.getDialogState(),
+      selection: this.deps.state.getSelectionState(),
+      multiSelection: this.deps.state.getMultiSelectionState(),
       message: { text: "", isVisible: false },
       goods: this.buildGoodsState(),
       magic: this.buildMagicState(),
@@ -729,7 +766,7 @@ export class UIBridge implements IUIBridge {
       video: { isPlaying: false, videoFile: null },
       saveLoad: {
         isVisible: false,
-        canSave: this.deps.canSaveGame(),
+        canSave: this.deps.state.canSaveGame(),
         slots: [],
       },
     };

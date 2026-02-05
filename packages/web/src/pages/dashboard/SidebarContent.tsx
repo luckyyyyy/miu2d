@@ -7,7 +7,8 @@ import { NavLink, useParams, useLocation, useNavigate } from "react-router-dom";
 import { useDashboard } from "./DashboardContext";
 import { DashboardIcons } from "./icons";
 import { trpc } from "../../lib/trpc";
-import { initAsfWasm, getFrameCanvas } from "@miu2d/engine/resource/asf";
+import { getFrameCanvas } from "@miu2d/engine/resource/asf";
+import { initWasm } from "@miu2d/engine/wasm/wasmManager";
 import { decodeAsfWasm } from "@miu2d/engine/wasm/wasmAsfDecoder";
 
 interface TreeNode {
@@ -232,7 +233,7 @@ let wasmInitPromise: Promise<void> | null = null;
 async function ensureWasmInit(): Promise<boolean> {
   if (wasmInitialized) return true;
   if (!wasmInitPromise) {
-    wasmInitPromise = initAsfWasm().then(() => {
+    wasmInitPromise = initWasm().then(() => {
       wasmInitialized = true;
     }).catch((err) => {
       console.error("Failed to init ASF WASM:", err);
@@ -1660,7 +1661,7 @@ function GoodsIcon({ iconPath, gameSlug, size = 32 }: { iconPath?: string | null
         const response = await fetch(url);
         if (!response.ok) return;
         const buffer = await response.arrayBuffer();
-        await initAsfWasm();
+        await initWasm();
         const asfData = decodeAsfWasm(buffer);
         if (asfData && asfData.frameCount > 0 && asfData.frames[0]) {
           const canvas = getFrameCanvas(asfData.frames[0]);

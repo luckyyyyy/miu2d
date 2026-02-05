@@ -168,15 +168,16 @@ const npcGotoDirCommand: CommandHandler = (params, _result, helpers) => {
 
 /**
  * SetNpcActionFile - Set NPC animation file for a state
+ * 等待 ASF 加载完成后再继续执行脚本
  */
-const setNpcActionFileCommand: CommandHandler = (params, _result, helpers) => {
+const setNpcActionFileCommand: CommandHandler = async (params, _result, helpers) => {
   const npcName = helpers.resolveString(params[0] || "");
   const stateType = helpers.resolveNumber(params[1] || "0");
   const asfFile = helpers.resolveString(params[2] || "");
   logger.log(
     `[ScriptExecutor] SetNpcActionFile: name="${npcName}", state=${stateType}, file="${asfFile}"`
   );
-  helpers.context.setNpcActionFile(npcName, stateType, asfFile);
+  await helpers.context.setNpcActionFile(npcName, stateType, asfFile);
   return true;
 };
 

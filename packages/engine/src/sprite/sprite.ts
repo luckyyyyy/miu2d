@@ -144,6 +144,32 @@ const STATE_ASF_FALLBACKS: Record<CharacterState, (keyof SpriteSet)[]> = {
   [CharacterState.Special]: ["special", "stand"],
 };
 
+/** CharacterState 到 SpriteSet key 的映射 */
+const STATE_TO_SPRITEKEY: Record<CharacterState, keyof SpriteSet> = {
+  [CharacterState.Stand]: "stand",
+  [CharacterState.Stand1]: "stand1",
+  [CharacterState.Walk]: "walk",
+  [CharacterState.Run]: "run",
+  [CharacterState.Jump]: "jump",
+  [CharacterState.Attack]: "attack",
+  [CharacterState.Attack1]: "attack1",
+  [CharacterState.Attack2]: "attack2",
+  [CharacterState.Magic]: "magic",
+  [CharacterState.Hurt]: "hurt",
+  [CharacterState.Death]: "death",
+  [CharacterState.Sit]: "sit",
+  [CharacterState.Special]: "special",
+  [CharacterState.FightStand]: "fightStand",
+  [CharacterState.FightWalk]: "fightWalk",
+  [CharacterState.FightRun]: "fightRun",
+  [CharacterState.FightJump]: "fightJump",
+};
+
+/** 获取状态对应的 SpriteSet key（无 fallback） */
+export function stateToSpriteSetKey(state: CharacterState): keyof SpriteSet {
+  return STATE_TO_SPRITEKEY[state] || "stand";
+}
+
 /** 获取状态对应的 ASF 动画（带 fallback） */
 export function getAsfForState(spriteSet: SpriteSet, state: CharacterState): AsfData | null {
   const fallbacks = STATE_ASF_FALLBACKS[state] || ["stand"];
@@ -177,8 +203,6 @@ export class Sprite {
   protected _basePath: string = "";
   protected _baseFileName: string = "";
   protected _spriteSet: SpriteSet = createEmptySpriteSet();
-  protected _customActionFiles: Map<number, string> = new Map();
-  protected _customAsfCache: Map<number, AsfData | null> = new Map();
 
   /** 获取引擎上下文，子类通过此访问引擎服务 */
   protected get engine(): IEngineContext {
@@ -558,21 +582,13 @@ export class Sprite {
 
   // ============= 自定义动作文件 =============
 
-  setCustomActionFile(state: number, asfFile: string): void {
-    this._customActionFiles.set(state, asfFile);
-    this._customAsfCache.delete(state);
-  }
-
-  getCustomActionFile(state: number): string | undefined {
-    return this._customActionFiles.get(state);
-  }
-
+  /** 加载自定义 ASF 文件 */
   async loadCustomAsf(asfFileName: string): Promise<AsfData | null> {
     const paths = [ResourcePath.asfCharacter(asfFileName), ResourcePath.asfInterlude(asfFileName)];
     for (const path of paths) {
       const asf = await loadAsf(path);
       if (asf) {
-        logger.log(`[Sprite] Loaded custom ASF: ${path}`);
+        logger.debug(`[Sprite] Loaded custom ASF: ${path}`);
         return asf;
       }
     }

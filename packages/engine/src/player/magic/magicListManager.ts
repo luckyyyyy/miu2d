@@ -204,12 +204,14 @@ export class MagicListManager {
   /**
    * 设置 NpcIniIndex（由 Player 在 setNpcIni 时调用）
    * 用于构建 SpecialAttackTexture 路径：{ActionFile}{NpcIniIndex}.asf
+   *
+   * @returns Promise 当预加载完成时 resolve
    */
-  setNpcIniIndex(index: number): void {
+  async setNpcIniIndex(index: number): Promise<void> {
     this._npcIniIndex = index;
     // 如果已有修炼武功，需要重新加载其 SpecialAttackTexture
     if (this.xiuLianMagic?.magic?.actionFile && this.xiuLianMagic.magic.attackFile) {
-      this._preloadSpecialAttackTexture(this.xiuLianMagic.magic);
+      await this._preloadSpecialAttackTexture(this.xiuLianMagic.magic);
     }
   }
 

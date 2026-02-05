@@ -396,7 +396,9 @@ export abstract class CharacterBase extends Sprite implements CharacterInstance 
   specialActionLastDirection: number = 4;
   specialActionFrame: number = 0;
   specialActionAsf: string | undefined = undefined;
-  customActionFiles: Map<number, string> = new Map();
+
+  // === 已自定义的状态（用于首次设置时刷新纹理）===
+  protected _customizedStates: Set<number> = new Set();
 
   // === BezierMove ===
   protected _bezierMover = new BezierMover<Character>();
@@ -964,35 +966,13 @@ export abstract class CharacterBase extends Sprite implements CharacterInstance 
     }
   }
 
+  /**
+   * 更新当前状态的贴图
+   * C# 参考: SetState() 直接从 NpcIni[state].Image 读取
+   * 我们直接从 _spriteSet 读取，因为 setNpcActionFile 已经直接修改了 _spriteSet
+   */
   protected _updateTextureForState(state: CharacterState): void {
-    if (this._customAsfCache.has(state)) {
-      const customAsf = this._customAsfCache.get(state);
-      if (customAsf) {
-        this._texture = customAsf;
-        // 通过 setter 重新设置方向，自动处理取模和帧范围计算
-        // Texture setter 调用 CurrentDirection = CurrentDirection; CurrentFrameIndex = _frameBegin;
-        this.currentDirection = this._currentDirection;
-        this._currentFrameIndex = this._frameBegin;
-        return;
-      }
-    }
-
-    if (this.customActionFiles.has(state)) {
-      const asfFile = this.customActionFiles.get(state)!;
-      this.loadCustomActionFile(state, asfFile)
-        .then(() => {
-          if (this._state === state && this._customAsfCache.has(state)) {
-            this._texture = this._customAsfCache.get(state) || null;
-            // 通过 setter 重新设置方向
-            this.currentDirection = this._currentDirection;
-            this._currentFrameIndex = this._frameBegin;
-          }
-        })
-        .catch((err: unknown) =>
-          logger.warn(`[CharacterBase] Failed to load custom ASF for state ${state}:`, err)
-        );
-    }
-
+    // 直接从 _spriteSet 读取（包含通过 setNpcActionFile 设置的自定义动作）
     this._texture = getAsfForState(this._spriteSet, state);
     if (this._texture) {
       // 通过 setter 重新设置方向，自动处理取模和帧范围计算
@@ -1031,16 +1011,6 @@ export abstract class CharacterBase extends Sprite implements CharacterInstance 
   /** 检查是否有动态障碍物 */
   hasObstacle(_tilePosition: Vector2): boolean {
     return false;
-  }
-
-  /** 加载自定义动作文件 */
-  protected async loadCustomActionFile(stateType: number, asfFile: string): Promise<void> {
-    const asf = await loadCharacterAsf(asfFile);
-    if (asf) {
-      this._customAsfCache.set(stateType, asf);
-    } else {
-      logger.warn(`[CharacterBase] Failed to load custom action file: ${asfFile}`);
-    }
   }
 
   /** 获取寻路类型 */

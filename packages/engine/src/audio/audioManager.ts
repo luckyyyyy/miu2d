@@ -211,12 +211,17 @@ export class AudioManager {
       // 如果同名音效正在播放，跳过（不顶掉）
       if (this.soundInstances.has(path)) return;
 
-      // 尝试加载原始路径，失败则尝试 .xnb
-      let buffer = await resourceLoader.loadAudio(path);
+      // 优先尝试 .xnb 格式，失败则尝试原始格式
       let actualPath = path;
-      if (!buffer && !path.toLowerCase().endsWith(".xnb")) {
-        actualPath = path.replace(/\.(wav|mp3|ogg)$/i, ".xnb");
-        buffer = await resourceLoader.loadAudio(actualPath);
+      let buffer: AudioBuffer | null = null;
+      if (!path.toLowerCase().endsWith(".xnb")) {
+        const xnbPath = path.replace(/\.(wav|mp3|ogg)$/i, ".xnb");
+        buffer = await resourceLoader.loadAudio(xnbPath);
+        if (buffer) actualPath = xnbPath;
+      }
+      if (!buffer) {
+        buffer = await resourceLoader.loadAudio(path);
+        actualPath = path;
       }
       if (!buffer) return;
 
@@ -287,11 +292,14 @@ export class AudioManager {
       const ctx = this.getAudioContext();
       if (ctx.state === "suspended") await ctx.resume();
 
-      // 尝试加载原始路径，失败则尝试 .xnb
-      let buffer = await resourceLoader.loadAudio(path);
-      if (!buffer && !path.toLowerCase().endsWith(".xnb")) {
+      // 优先尝试 .xnb 格式，失败则尝试原始格式
+      let buffer: AudioBuffer | null = null;
+      if (!path.toLowerCase().endsWith(".xnb")) {
         const xnbPath = path.replace(/\.(wav|mp3|ogg)$/i, ".xnb");
         buffer = await resourceLoader.loadAudio(xnbPath);
+      }
+      if (!buffer) {
+        buffer = await resourceLoader.loadAudio(path);
       }
       if (!buffer || this.loopingSoundFile !== baseName) return;
 
@@ -428,12 +436,17 @@ export class AudioManager {
       // 如果同名音效正在播放，跳过（不顶掉）
       if (this.sound3DOnceInstances.has(soundPath)) return;
 
-      // 尝试加载原始路径，失败则尝试 .xnb
-      let buffer = await resourceLoader.loadAudio(soundPath);
+      // 优先尝试 .xnb 格式，失败则尝试原始格式
       let actualPath = soundPath;
-      if (!buffer && !soundPath.toLowerCase().endsWith(".xnb")) {
-        actualPath = soundPath.replace(/\.(wav|mp3|ogg)$/i, ".xnb");
-        buffer = await resourceLoader.loadAudio(actualPath);
+      let buffer: AudioBuffer | null = null;
+      if (!soundPath.toLowerCase().endsWith(".xnb")) {
+        const xnbPath = soundPath.replace(/\.(wav|mp3|ogg)$/i, ".xnb");
+        buffer = await resourceLoader.loadAudio(xnbPath);
+        if (buffer) actualPath = xnbPath;
+      }
+      if (!buffer) {
+        buffer = await resourceLoader.loadAudio(soundPath);
+        actualPath = soundPath;
       }
       if (!buffer) return;
 
@@ -490,11 +503,14 @@ export class AudioManager {
       if (ctx.state === "suspended") await ctx.resume();
 
       const soundPath = `${this.soundBasePath}/${soundFile}`;
-      // 尝试加载原始路径，失败则尝试 .xnb
-      let buffer = await resourceLoader.loadAudio(soundPath);
-      if (!buffer && !soundPath.toLowerCase().endsWith(".xnb")) {
+      // 优先尝试 .xnb 格式，失败则尝试原始格式
+      let buffer: AudioBuffer | null = null;
+      if (!soundPath.toLowerCase().endsWith(".xnb")) {
         const xnbPath = soundPath.replace(/\.(wav|mp3|ogg)$/i, ".xnb");
         buffer = await resourceLoader.loadAudio(xnbPath);
+      }
+      if (!buffer) {
+        buffer = await resourceLoader.loadAudio(soundPath);
       }
       if (!buffer || this.sound3DInstances.has(id)) {
         this.sound3DLoading.delete(id);
@@ -596,11 +612,14 @@ export class AudioManager {
       if (ctx.state === "suspended") await ctx.resume();
 
       const soundPath = `${this.soundBasePath}/${soundFile}`;
-      // 尝试加载原始路径，失败则尝试 .xnb
-      let buffer = await resourceLoader.loadAudio(soundPath);
-      if (!buffer && !soundPath.toLowerCase().endsWith(".xnb")) {
+      // 优先尝试 .xnb 格式，失败则尝试原始格式
+      let buffer: AudioBuffer | null = null;
+      if (!soundPath.toLowerCase().endsWith(".xnb")) {
         const xnbPath = soundPath.replace(/\.(wav|mp3|ogg)$/i, ".xnb");
         buffer = await resourceLoader.loadAudio(xnbPath);
+      }
+      if (!buffer) {
+        buffer = await resourceLoader.loadAudio(soundPath);
       }
       if (!buffer) {
         this.sound3DRandomPlaying.delete(id);

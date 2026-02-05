@@ -1295,10 +1295,6 @@ export class Loader {
       logger.debug(`[Loader] Loading player...`);
       await this.loadPlayerFromJSON(data.player, player);
 
-      // 清除自定义动作文件（如脚本设置的跪地动作）
-      // loading creates a new Player object, effectively resetting custom actions
-      player.clearCustomActionFiles();
-
       // 设置加载中状态（-1），确保后面设置真正 state 时会触发纹理更新
       player.setLoadingState();
 

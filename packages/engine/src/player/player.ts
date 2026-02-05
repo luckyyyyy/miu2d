@@ -297,6 +297,33 @@ export class Player extends PlayerCombat {
   }
 
   // =============================================
+  // === Sprite Loading (SetNpcRes) ===
+  // =============================================
+
+  /**
+   * Override loadSpritesFromNpcIni to update NpcIniIndex and SpecialAttackTexture
+   * Reference: Player.SetNpcIni() - 当通过 SetNpcRes 脚本命令改变玩家资源时，
+   * 需要更新 NpcIniIndex 和刷新修炼武功的 SpecialAttackTexture
+   *
+   * C# 原版: Player.SetNpcIni(fileName) 调用 base.SetNpcIni 后执行：
+   *   NpcIniIndex = value;  // 从文件名提取数字
+   *   XiuLianMagic = XiuLianMagic;  // 触发 setter 刷新 SpecialAttackTexture
+   */
+  override async loadSpritesFromNpcIni(npcIni?: string): Promise<boolean> {
+    const result = await super.loadSpritesFromNpcIni(npcIni);
+
+    if (result && npcIni) {
+      // 调用 setNpcIni 来更新 _npcIniIndex 和刷新 SpecialAttackTexture
+      // 注意：super.loadSpritesFromNpcIni 已经设置了 this.npcIni = iniFile
+      // 这里调用 setNpcIni 会再次设置 npcIni，但主要目的是更新 _npcIniIndex
+      await this.setNpcIni(npcIni);
+      logger.log(`[Player] loadSpritesFromNpcIni: updated NpcIniIndex for ${npcIni}`);
+    }
+
+    return result;
+  }
+
+  // =============================================
   // === Partner Management ===
   // =============================================
 

@@ -15,7 +15,7 @@
 import type { Character } from "../character/character";
 import { getEngineContext } from "../core/engineContext";
 import { logger } from "../core/logger";
-import type { InputState, Vector2 } from "../core/types";
+import { CharacterState, type InputState, type Vector2 } from "../core/types";
 import type { Npc, NpcManager } from "../npc";
 import type { Obj } from "../obj/obj";
 import type { Player } from "../player/player";
@@ -469,8 +469,12 @@ export class InputHandler {
 
     // Alt+Left Click = jump
     if (button === "left" && altKey) {
-      // 跳跃会打断待处理的交互
+      // 跳跃会打断待处理的交互和自动攻击
+      // Reference: C# _autoAttackTarget = null; character.JumpTo(mouseTilePosition);
       this.cancelPendingInteraction();
+      player.cancelAutoAttack();
+      // 只打断攻击动画，不打断施法（Magic 状态不可打断）
+      this.interruptAttackIfNeeded(player);
       const clickedTile = pixelToTile(worldX, worldY);
       // 跳跃操作也转发到被控角色
       if (isControlling) {
@@ -484,8 +488,10 @@ export class InputHandler {
     // Ctrl+Left Click = attack at position
     // Note: This is an IMMEDIATE attack in place, NOT walk-then-attack
     if (button === "left" && ctrlKey) {
-      // 攻击会打断待处理的交互
+      // 攻击会打断待处理的交互和自动攻击
+      // Reference: C# _autoAttackTarget = null; character.PerformeAttack(...)
       this.cancelPendingInteraction();
+      player.cancelAutoAttack();
       // Perform attack immediately at clicked world position (no walking)
       activeCharacter.performeAttack({ x: worldX, y: worldY });
       return;
@@ -521,9 +527,13 @@ export class InputHandler {
       }
 
       // 没有悬停目标时，移动到点击位置
-      // 主动移动会打断任何待处理的交互
-      // Reference: 用户主动点击地面走路时，会覆盖 _interactiveTarget
+      // 主动移动会打断任何待处理的交互和自动攻击
+      // Reference: C# _autoAttackTarget = null; character.WalkTo/RunTo(mouseTilePosition);
       this.cancelPendingInteraction();
+      player.cancelAutoAttack();
+      // 只打断攻击动画，不打断施法（Magic 状态不可打断）
+      // 否则如果正在攻击动画中点击地面，walkTo 会因为 performActionOk() 返回 false 而失败
+      this.interruptAttackIfNeeded(player);
       const clickedTile = pixelToTile(worldX, worldY);
       if (isRun && !isControlling) {
         activeCharacter.runTo(clickedTile);
@@ -644,6 +654,9 @@ export class InputHandler {
   async interactWithNpc(npc: Npc, useRightScript: boolean = false): Promise<void> {
     const { guiManager, player } = this;
 
+    // Reference: C# _autoAttackTarget = null; character.InteractWith(...)
+    player.cancelAutoAttack();
+
     const scriptFile = useRightScript ? npc.scriptFileRight : npc.scriptFile;
     if (!scriptFile) {
       guiManager.showMessage("...");
@@ -707,6 +720,9 @@ export class InputHandler {
    */
   async interactWithObj(obj: Obj, useRightScript: boolean = false): Promise<void> {
     const player = this.player;
+
+    // Reference: C# _autoAttackTarget = null; character.InteractWith(...)
+    player.cancelAutoAttack();
 
     // Use Obj.canInteract() to check if interaction is possible
     if (!obj.canInteract(useRightScript)) {
@@ -962,6 +978,22 @@ export class InputHandler {
    */
   cancelPendingInteraction(): void {
     this.pendingInteraction = null;
+  }
+
+  /**
+   * Interrupt attack animation if player is in attack state
+   * Only interrupts Attack/Attack1/Attack2 states, NOT Magic state
+   * This allows clicking ground to cancel attack but not spell casting
+   */
+  private interruptAttackIfNeeded(player: Player): void {
+    const attackStates = [
+      CharacterState.Attack,
+      CharacterState.Attack1,
+      CharacterState.Attack2,
+    ];
+    if (attackStates.includes(player.state)) {
+      player.standingImmediately();
+    }
   }
 
   /**

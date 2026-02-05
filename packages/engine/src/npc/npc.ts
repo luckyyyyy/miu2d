@@ -724,11 +724,11 @@ export class Npc extends Character {
 
   /**
    * Set custom action file for a state
-   *
+   * 直接调用父类的 setNpcActionFile
    */
   setActionFile(stateType: number, asfFile: string): void {
-    this.setCustomActionFile(stateType, asfFile);
-    logger.log(`[Npc] SetActionFile: ${this.name}, state=${stateType}, file=${asfFile}`);
+    this.setNpcActionFile(stateType, asfFile);
+    logger.debug(`[Npc] SetActionFile: ${this.name}, state=${stateType}, file=${asfFile}`);
   }
 
   /**

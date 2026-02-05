@@ -4,7 +4,8 @@
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { AsfData } from "@miu2d/engine/resource/asf";
-import { initAsfWasm, getFrameCanvas } from "@miu2d/engine/resource/asf";
+import { getFrameCanvas } from "@miu2d/engine/resource/asf";
+import { initWasm } from "@miu2d/engine/wasm/wasmManager";
 import { decodeAsfWasm } from "@miu2d/engine/wasm/wasmAsfDecoder";
 
 interface AsfPreviewTooltipProps {
@@ -37,7 +38,7 @@ export function AsfPreviewTooltip({ gameSlug, path, position, onClose }: AsfPrev
         setError(null);
 
         // 初始化 WASM
-        await initAsfWasm();
+        await initWasm();
 
         // 加载文件（路径转小写）
         const url = `/game/${gameSlug}/resources/${path.toLowerCase()}`;
@@ -223,7 +224,7 @@ export function MiniAsfPreview({ gameSlug, path, size = 48 }: MiniAsfPreviewProp
         setIsLoading(true);
         setError(null);
 
-        await initAsfWasm();
+        await initWasm();
 
         const url = `/game/${gameSlug}/resources/${path.toLowerCase()}`;
         const response = await fetch(url);

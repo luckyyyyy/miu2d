@@ -200,7 +200,6 @@ export interface PlayerData {
   isMoving: boolean;
   targetPosition: Vector2 | null;
   sprite?: CharacterSpriteData;
-  customActionFiles?: Map<number, string>;
 
   // Player-specific fields
   money: number;

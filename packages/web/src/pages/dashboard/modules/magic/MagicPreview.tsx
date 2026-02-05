@@ -12,7 +12,8 @@
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { AsfData } from "@miu2d/engine/resource/asf";
-import { initAsfWasm, getFrameCanvas } from "@miu2d/engine/resource/asf";
+import { getFrameCanvas } from "@miu2d/engine/resource/asf";
+import { initWasm } from "@miu2d/engine/wasm/wasmManager";
 import {
   getDirection8,
   getDirection32List,
@@ -84,10 +85,10 @@ export function MagicPreview({ gameSlug, magic, level = 1 }: MagicPreviewProps) 
 
   // ========== 初始化 WASM ==========
   useEffect(() => {
-    initAsfWasm()
+    initWasm()
       .then(() => setWasmReady(true))
       .catch((err) => {
-        console.error("Failed to init ASF WASM:", err);
+        console.error("Failed to init WASM:", err);
       });
   }, []);
 

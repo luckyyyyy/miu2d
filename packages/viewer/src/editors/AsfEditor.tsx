@@ -4,7 +4,7 @@
  */
 
 import type { AsfData } from "@miu2d/engine/resource/asf";
-import { initAsfWasm } from "@miu2d/engine/resource/asf";
+import { initWasm } from "@miu2d/engine/wasm/wasmManager";
 import { decodeAsfWasm } from "@miu2d/engine/wasm/wasmAsfDecoder";
 import { useCallback, useEffect, useState } from "react";
 import { AsfViewer } from "../components/AsfViewer";
@@ -40,7 +40,7 @@ export function AsfEditor() {
 
   // 初始化 WASM
   useEffect(() => {
-    initAsfWasm()
+    initWasm()
       .then(() => setWasmReady(true))
       .catch((err) => {
         console.error("WASM 初始化失败:", err);

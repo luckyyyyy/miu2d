@@ -23,6 +23,7 @@ import {
   createEmptySpriteSet,
   getAsfForState,
   loadSpriteSet,
+  stateToSpriteSetKey,
   type SpriteSet,
 } from "../sprite/sprite";
 import { distance, getDirectionFromVector, pixelToTile, tileToPixel } from "../utils";
@@ -547,6 +548,12 @@ export abstract class Character extends CharacterCombat {
 
     this._spriteSet = spriteSet;
     this.npcIni = iniFile;
+
+    // 清除已自定义状态跟踪（因为加载了新的 NpcIni）
+    this._customizedStates.clear();
+
+    // 刷新贴图，使用新加载的 _spriteSet
+    // C# 参考: SetRes() 调用 SetState(State, true) 强制刷新
     this._updateTextureForState(this._state);
 
     if (this.bodyIni) {
@@ -604,9 +611,6 @@ export abstract class Character extends CharacterCombat {
     if (key && this._spriteSet[key]) {
       return true;
     }
-    if (this._customAsfCache.has(state) && this._customAsfCache.get(state)) {
-      return true;
-    }
     return false;
   }
 
@@ -661,13 +665,8 @@ export abstract class Character extends CharacterCombat {
   playStateOnce(stateToPlay?: CharacterState): boolean {
     const state = stateToPlay ?? this._state;
 
-    let asf: AsfData | null = null;
-    if (this._customAsfCache.has(state)) {
-      asf = this._customAsfCache.get(state) || null;
-    }
-    if (!asf) {
-      asf = getAsfForState(this._spriteSet, state);
-    }
+    // 直接从 _spriteSet 读取（包含通过 setNpcActionFile 设置的自定义动作）
+    const asf = getAsfForState(this._spriteSet, state);
 
     if (!asf) {
       logger.warn(`[Character] No ASF found for state ${state}`);
@@ -684,23 +683,39 @@ export abstract class Character extends CharacterCombat {
     return true;
   }
 
-  setNpcActionFile(stateType: number, asfFile: string): void {
-    this.customActionFiles.set(stateType, asfFile);
-    this._customAsfCache.delete(stateType);
-    logger.log(`[Character] Set action file for state ${stateType}: ${asfFile}`);
-  }
-
-  clearCustomActionFiles(): void {
-    this.customActionFiles.clear();
-    this._customAsfCache.clear();
-  }
-
-  async preloadCustomActionFile(stateType: number, asfFile: string): Promise<void> {
+  /**
+   * 设置 NPC 动作文件
+   * C# 参考: ResFile.SetNpcStateImage(NpcIni, state, fileName) 直接修改 NpcIni 字典
+   * 我们直接加载 ASF 并设置到 _spriteSet 对应槽位
+   *
+   * 刷新逻辑：
+   * - 首次设置某状态时：刷新纹理（应对只设置状态不播放动画的情况）
+   * - 后续设置同一状态时：不刷新（应对设置后紧接着播放过渡动画的情况）
+   *
+   * 例如：
+   *   SetNpcActionFile("杨影枫", 0, "mpc001_跪.asf");  // 首次设置 state 0，刷新成跪地
+   *   ...（角色跪着）...
+   *   SetNpcActionFile("杨影枫", 0, "npc006_st2.asf"); // 再次设置 state 0，不刷新
+   *   NpcSpecialAction("杨影枫", "mpc001.asf");        // 播放站起动画
+   */
+  async setNpcActionFile(stateType: number, asfFile: string): Promise<void> {
     const asf = await loadCharacterAsf(asfFile);
     if (asf) {
-      this._customAsfCache.set(stateType, asf);
+      const key = stateToSpriteSetKey(stateType as CharacterState);
+      this._spriteSet[key] = asf;
+
+      // 首次设置该状态时刷新纹理
+      const isFirstTimeSet = !this._customizedStates.has(stateType);
+      this._customizedStates.add(stateType);
+
+      logger.debug(`[Character] SetNpcActionFile: state=${stateType} -> ${asfFile}, firstTime=${isFirstTimeSet}`);
+
+      // 只有首次设置且当前状态匹配且不在特殊动作中才刷新
+      if (isFirstTimeSet && this._state === stateType && !this.isInSpecialAction) {
+        this._updateTextureForState(stateType as CharacterState);
+      }
     } else {
-      logger.warn(`[Character] Failed to preload custom action file: ${asfFile}`);
+      logger.warn(`[Character] Failed to load action file: ${asfFile}`);
     }
   }
 

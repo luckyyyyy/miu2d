@@ -42,7 +42,7 @@ export interface ScriptContext {
   isNpcGotoEnd: (name: string, destination: Vector2) => boolean;
   npcGotoDir: (name: string, direction: number, steps: number) => void;
   isNpcGotoDirEnd: (name: string) => boolean;
-  setNpcActionFile: (name: string, stateType: number, asfFile: string) => void;
+  setNpcActionFile: (name: string, stateType: number, asfFile: string) => Promise<void>;
   npcSpecialAction: (name: string, asfFile: string) => void;
   isNpcSpecialActionEnd: (name: string) => boolean;
   setNpcLevel: (name: string, level: number) => void;
@@ -166,7 +166,7 @@ export interface ScriptContext {
   // NPC extended commands
   setNpcKind: (name: string, kind: number) => void;
   setNpcMagicFile: (name: string, magicFile: string) => void;
-  setNpcRes: (name: string, resFile: string) => void;
+  setNpcRes: (name: string, resFile: string) => void | Promise<void>;
   setNpcAction: (name: string, action: number, x?: number, y?: number) => void;
   setNpcActionType: (name: string, actionType: number) => void;
   setAllNpcScript: (name: string, scriptFile: string) => void;

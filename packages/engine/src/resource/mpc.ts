@@ -6,35 +6,19 @@
  * and MPC color pixels are drawn on top.
  *
  * Uses WASM decoder for high performance.
+ * 注意：使用前需在应用启动时调用 await initWasm()
  */
 
 import { logger } from "../core/logger";
 import type { Mpc } from "../core/mapTypes";
-import { decodeMpcWasm, initWasmMpcDecoder } from "../wasm/wasmMpcDecoder";
+import { decodeMpcWasm } from "../wasm/wasmMpcDecoder";
 import { resourceLoader } from "./resourceLoader";
 import { loadShd, type Shd } from "./shd";
-
-// 保存初始化 Promise，确保所有调用都等待同一个 Promise
-let wasmInitPromise: Promise<boolean> | null = null;
-
-/**
- * 预初始化 WASM MPC 解码器（可选）
- * 游戏启动时调用可避免首次 MPC 加载延迟
- */
-export async function initMpcWasm(): Promise<boolean> {
-  if (!wasmInitPromise) {
-    wasmInitPromise = initWasmMpcDecoder();
-  }
-  return wasmInitPromise;
-}
 
 /**
  * Load an MPC file from a URL
  */
 export async function loadMpc(url: string): Promise<Mpc | null> {
-  // 确保 WASM 初始化完成
-  await initMpcWasm();
-
   return resourceLoader.loadParsedBinary<Mpc>(url, decodeMpcWasm, "mpc");
 }
 
@@ -49,9 +33,6 @@ export async function loadMpc(url: string): Promise<Mpc | null> {
  * @param shdUrl - Optional URL to the SHD shadow file
  */
 export async function loadMpcWithShadow(mpcUrl: string, shdUrl?: string): Promise<Mpc | null> {
-  // 确保 WASM 初始化完成
-  await initMpcWasm();
-
   // Load SHD first if provided
   let shd: Shd | null = null;
   if (shdUrl) {

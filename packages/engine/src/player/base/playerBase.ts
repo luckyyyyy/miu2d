@@ -208,8 +208,10 @@ export abstract class PlayerBase extends Character {
   /**
    * 设置 npcIni 并提取 NpcIniIndex
    * NpcIniIndex 用于构建 SpecialAttackTexture 路径
+   *
+   * @returns Promise 当预加载完成时 resolve
    */
-  setNpcIni(fileName: string): void {
+  async setNpcIni(fileName: string): Promise<void> {
     this.npcIni = fileName;
 
     // private static readonly Regex NpcIniIndexRegx = new Regex(@".*([0-9]+)\.ini");
@@ -226,8 +228,8 @@ export abstract class PlayerBase extends Character {
       this._npcIniIndex = 1;
     }
 
-    // 通知 MagicListManager 更新 npcIniIndex（用于预加载 SpecialAttackTexture）
-    this._magicListManager.setNpcIniIndex(this._npcIniIndex);
+    // 通知 MagicListManager 更新 npcIniIndex 并等待预加载完成
+    await this._magicListManager.setNpcIniIndex(this._npcIniIndex);
 
     // XiuLianMagic = XiuLianMagic; // Renew xiulian magic
     // 同步获取已预加载的资源

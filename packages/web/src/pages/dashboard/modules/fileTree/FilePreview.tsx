@@ -10,10 +10,9 @@
  * - 图片/音频预览
  */
 import type { AsfData } from "@miu2d/engine/resource/asf";
-import { initAsfWasm } from "@miu2d/engine/resource/asf";
 import type { JxqyMapData, Mpc } from "@miu2d/engine/core/mapTypes";
 import { parseMap } from "@miu2d/engine/resource/map";
-import { initMpcWasm } from "@miu2d/engine/resource/mpc";
+import { initWasm } from "@miu2d/engine/wasm/wasmManager";
 import { decodeAsfWasm } from "@miu2d/engine/wasm/wasmAsfDecoder";
 import { decodeMpcWasm } from "@miu2d/engine/wasm/wasmMpcDecoder";
 import { AsfViewer } from "@miu2d/viewer/components/AsfViewer";
@@ -125,16 +124,13 @@ export function FilePreview({ file }: FilePreviewProps) {
 
   // 初始化 WASM
   useEffect(() => {
-    initAsfWasm()
-      .then(() => setWasmReady(true))
+    initWasm()
+      .then(() => {
+        setWasmReady(true);
+        setMpcWasmReady(true);
+      })
       .catch((err) => {
-        console.error("ASF WASM 初始化失败:", err);
-      });
-
-    initMpcWasm()
-      .then(() => setMpcWasmReady(true))
-      .catch((err) => {
-        console.error("MPC WASM 初始化失败:", err);
+        console.error("WASM 初始化失败:", err);
       });
   }, []);
 

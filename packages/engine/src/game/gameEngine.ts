@@ -1619,256 +1619,267 @@ export class GameEngine implements IEngineContext {
 
     const deps: UIBridgeDeps = {
       events: this.events,
-      getPlayer: () => this._gameManager?.getPlayer() ?? null,
-      getPlayerIndex: () => this._gameManager?.getPlayer()?.playerIndex ?? 0, // 从 Player 实例获取
-      getGoodsListManager: () => this._gameManager?.getGoodsListManager() ?? null,
-      getMagicListManager: () => this._gameManager?.getMagicListManager() ?? null,
-      getBuyManager: () => this._gameManager?.getBuyManager() ?? null,
-      getMemoListManager: () => this.memoListManager,
-      getTimerManager: () => this.timerManager,
 
-      // Panel toggles
-      togglePanel: (panel: UIPanelName) =>
-        this.togglePanel(panel as keyof GuiManagerState["panels"]),
-
-      // Actions
-      useItem: (index: number) => {
-        const goodsManager = this._gameManager?.getGoodsListManager();
-        const entry = goodsManager?.getItemInfo(index);
-        const player = this._gameManager?.getPlayer();
-        const npcManager = this._gameManager?.getNpcManager();
-        if (entry?.good) {
-          if (entry.good.kind === GoodKind.Equipment) {
-            const equipIndex = getEquipSlotIndex(entry.good.part);
-            if (equipIndex > 0) {
-              goodsManager?.exchangeListItemAndEquiping(index, equipIndex);
+      // ===== 状态获取器 =====
+      state: {
+        getPlayer: () => this._gameManager?.getPlayer() ?? null,
+        getPlayerIndex: () => this._gameManager?.getPlayer()?.playerIndex ?? 0,
+        getGoodsListManager: () => this._gameManager?.getGoodsListManager() ?? null,
+        getMagicListManager: () => this._gameManager?.getMagicListManager() ?? null,
+        getBuyManager: () => this._gameManager?.getBuyManager() ?? null,
+        getMemoListManager: () => this.memoListManager,
+        getTimerManager: () => this.timerManager,
+        getPanels: () => {
+          const state = this._gameManager?.getGuiManager()?.getState();
+          return (
+            state?.panels ?? {
+              state: false,
+              equip: false,
+              xiulian: false,
+              goods: false,
+              magic: false,
+              memo: false,
+              system: false,
+              saveLoad: false,
+              buy: false,
+              npcEquip: false,
+              title: false,
+              timer: false,
+              littleMap: false,
             }
-          } else if (entry.good.kind === GoodKind.Drug) {
-            goodsManager?.usingGood(index);
-            // Apply drug effect to player
+          );
+        },
+        getDialogState: () => {
+          const state = this._gameManager?.getGuiManager()?.getState();
+          return (
+            state?.dialog ?? {
+              isVisible: false,
+              text: "",
+              portraitIndex: 0,
+              portraitSide: "left" as const,
+              nameText: "",
+              textProgress: 0,
+              isComplete: true,
+              isInSelecting: false,
+              selectA: "",
+              selectB: "",
+              selection: -1,
+            }
+          );
+        },
+        getSelectionState: () => {
+          const state = this._gameManager?.getGuiManager()?.getState();
+          return (
+            state?.selection ?? {
+              isVisible: false,
+              message: "",
+              options: [],
+              selectedIndex: 0,
+              hoveredIndex: -1,
+            }
+          );
+        },
+        getMultiSelectionState: () => {
+          const state = this._gameManager?.getGuiManager()?.getState();
+          return (
+            state?.multiSelection ?? {
+              isVisible: false,
+              message: "",
+              options: [],
+              columns: 1,
+              selectionCount: 1,
+              selectedIndices: [],
+            }
+          );
+        },
+        canSaveGame: () => this._gameManager?.isSaveEnabled() ?? false,
+      },
+
+      // ===== 物品操作 =====
+      goods: {
+        useItem: (index: number) => {
+          const goodsManager = this._gameManager?.getGoodsListManager();
+          const entry = goodsManager?.getItemInfo(index);
+          const player = this._gameManager?.getPlayer();
+          const npcManager = this._gameManager?.getNpcManager();
+          if (entry?.good) {
+            if (entry.good.kind === GoodKind.Equipment) {
+              const equipIndex = getEquipSlotIndex(entry.good.part);
+              if (equipIndex > 0) {
+                goodsManager?.exchangeListItemAndEquiping(index, equipIndex);
+              }
+            } else if (entry.good.kind === GoodKind.Drug) {
+              goodsManager?.usingGood(index);
+              player?.useDrug(entry.good);
+              if (entry.good.followPartnerHasDrugEffect > 0 && npcManager) {
+                npcManager.forEachPartner((partner) => {
+                  partner.useDrug(entry.good);
+                });
+              }
+            } else if (entry.good.kind === GoodKind.Event) {
+              goodsManager?.usingGood(index);
+            }
+          }
+        },
+        equipItem: (fromIndex: number, toSlot: string) => {
+          const slotIndex = slotNameToIndex(toSlot);
+          this._gameManager?.getGoodsListManager()?.exchangeListItemAndEquiping(fromIndex, slotIndex);
+        },
+        unequipItem: (slot: string) => {
+          const slotIndex = slotNameToIndex(slot);
+          this._gameManager?.getGoodsListManager()?.unEquipGood(slotIndex);
+        },
+        swapItems: (fromIndex: number, toIndex: number) => {
+          this._gameManager?.getGoodsListManager()?.exchangeListItem(fromIndex, toIndex);
+        },
+        useBottomItem: (slotIndex: number) => {
+          const actualIndex = 221 + slotIndex;
+          const goodsManager = this._gameManager?.getGoodsListManager();
+          const entry = goodsManager?.getItemInfo(actualIndex);
+          const player = this._gameManager?.getPlayer();
+          const npcManager = this._gameManager?.getNpcManager();
+          goodsManager?.usingGood(actualIndex, player?.level ?? 1);
+          if (entry?.good && entry.good.kind === GoodKind.Drug) {
             player?.useDrug(entry.good);
-            // line 834-840 - Partner drug effect
             if (entry.good.followPartnerHasDrugEffect > 0 && npcManager) {
               npcManager.forEachPartner((partner) => {
                 partner.useDrug(entry.good);
               });
             }
-          } else if (entry.good.kind === GoodKind.Event) {
-            // Event 类型物品：运行物品脚本
-            // C# 参考: GoodsListManager.cs line 801-805
-            goodsManager?.usingGood(index);
           }
-        }
-      },
-      equipItem: (fromIndex: number, toSlot: string) => {
-        const slotIndex = slotNameToIndex(toSlot);
-        this._gameManager?.getGoodsListManager()?.exchangeListItemAndEquiping(fromIndex, slotIndex);
-      },
-      unequipItem: (slot: string) => {
-        const slotIndex = slotNameToIndex(slot);
-        this._gameManager?.getGoodsListManager()?.unEquipGood(slotIndex);
-      },
-      swapItems: (fromIndex: number, toIndex: number) => {
-        this._gameManager?.getGoodsListManager()?.exchangeListItem(fromIndex, toIndex);
-      },
-      useBottomItem: (slotIndex: number) => {
-        const actualIndex = 221 + slotIndex;
-        const goodsManager = this._gameManager?.getGoodsListManager();
-        const entry = goodsManager?.getItemInfo(actualIndex);
-        const player = this._gameManager?.getPlayer();
-        const npcManager = this._gameManager?.getNpcManager();
-        goodsManager?.usingGood(actualIndex, player?.level ?? 1);
-        // Apply drug effect to player and partners
-        if (entry?.good && entry.good.kind === GoodKind.Drug) {
-          player?.useDrug(entry.good);
-          // line 834-840 - Partner drug effect
-          if (entry.good.followPartnerHasDrugEffect > 0 && npcManager) {
-            npcManager.forEachPartner((partner) => {
-              partner.useDrug(entry.good);
-            });
-          }
-        }
-      },
-      swapEquipSlots: (fromSlot: string, toSlot: string) => {
-        const fromIndex = slotNameToIndex(fromSlot);
-        const toIndex = slotNameToIndex(toSlot);
-        this._gameManager?.getGoodsListManager()?.exchangeListItem(fromIndex, toIndex);
-      },
-      useMagic: async (magicIndex: number) => {
-        // Use magic by right-clicking (assigns to bottom slot first)
-        this._gameManager?.handleMagicRightClick(magicIndex);
-      },
-      useMagicByBottom: async (bottomSlot: number) => {
-        await this._gameManager?.useMagicByBottomSlot(bottomSlot);
-      },
-      setCurrentMagic: (magicIndex: number) => {
-        // Convert store index to bottom index first
-        // Note: setCurrentMagicByBottomIndex expects a bottom slot index (0-4)
-        // This action is typically used when clicking a magic slot in the UI
-        // For now, we'll use handleMagicRightClick to move it to bottom slot
-        this._gameManager?.handleMagicRightClick(magicIndex);
-      },
-      setCurrentMagicByBottom: (bottomIndex: number) => {
-        this._gameManager?.getMagicListManager()?.setCurrentMagicByBottomIndex(bottomIndex);
-      },
-      swapMagic: (fromIndex: number, toIndex: number) => {
-        this._gameManager?.getMagicListManager()?.exchangeListItem(fromIndex, toIndex);
-      },
-      assignMagicToBottom: (magicIndex: number, bottomSlot: number) => {
-        this.handleMagicDrop(magicIndex, bottomSlot);
-      },
-      setXiuLianMagic: (magicIndex: number) => {
-        const xiuLianIndex = 49;
-        this._gameManager?.getMagicListManager()?.exchangeListItem(magicIndex, xiuLianIndex);
-      },
-      buyItem: async (shopIndex: number) => {
-        const buyManager = this._gameManager?.getBuyManager();
-        const player = this._gameManager?.getPlayer();
-        if (!buyManager || !player) return false;
-
-        return buyManager.buyGood(
-          shopIndex,
-          player.money,
-          (fileName) => {
-            const goodsManager = this._gameManager?.getGoodsListManager();
-            if (!goodsManager) return false;
-            const result = goodsManager.addGoodToList(fileName);
-            return result.success;
-          },
-          (amount) => {
-            player.money -= amount;
-          }
-        );
-      },
-      sellItem: (bagIndex: number) => {
-        const goodsManager = this._gameManager?.getGoodsListManager();
-        const buyManager = this._gameManager?.getBuyManager();
-        const player = this._gameManager?.getPlayer();
-        if (!goodsManager || !buyManager || !player) return;
-
-        const entry = goodsManager.getItemInfo(bagIndex);
-        if (entry?.good && entry.good.sellPrice > 0 && buyManager.getCanSellSelfGoods()) {
-          player.money += entry.good.sellPrice;
-          goodsManager.deleteGood(entry.good.fileName);
-          buyManager.addGood(entry.good);
-        }
-      },
-      closeShop: () => {
-        const buyManager = this._gameManager?.getBuyManager();
-        const guiManager = this._gameManager?.getGuiManager();
-        buyManager?.endBuy();
-        guiManager?.closeBuyGui();
-      },
-      saveGame: async (slotIndex: number) => {
-        return this.saveGameToSlot(slotIndex);
-      },
-      loadGame: async (slotIndex: number) => {
-        try {
-          await this.loadGameFromSlot(slotIndex);
-          return true;
-        } catch {
-          return false;
-        }
-      },
-      showSaveLoad: (visible: boolean) => {
-        this._gameManager?.getGuiManager()?.showSaveLoad(visible);
-      },
-      minimapClick: (worldX: number, worldY: number) => {
-        const player = this._gameManager?.getPlayer();
-        if (player) {
-          const tile = pixelToTile(worldX, worldY);
-          player.walkTo(tile);
-          this.togglePanel("littleMap");
-        }
-      },
-      dialogClick: () => {
-        this._gameManager?.getGuiManager()?.handleDialogClick();
-      },
-      dialogSelect: (selection: number) => {
-        this._gameManager?.getGuiManager()?.onDialogSelectionMade(selection);
-        this.onSelectionMade(selection);
-      },
-      selectionChoose: (index: number) => {
-        this._gameManager?.getGuiManager()?.selectByIndex(index);
-      },
-      multiSelectionToggle: (index: number) => {
-        this._gameManager?.getGuiManager()?.toggleMultiSelection(index);
-      },
-      showMessage: (text: string) => {
-        this._gameManager?.getGuiManager()?.showMessage(text);
-      },
-      showSystem: (visible: boolean) => {
-        this._gameManager?.getGuiManager()?.showSystem(visible);
-      },
-      onVideoEnd: () => {
-        this.events.emit(GameEvents.UI_VIDEO_END, {});
+        },
+        swapEquipSlots: (fromSlot: string, toSlot: string) => {
+          const fromIndex = slotNameToIndex(fromSlot);
+          const toIndex = slotNameToIndex(toSlot);
+          this._gameManager?.getGoodsListManager()?.exchangeListItem(fromIndex, toIndex);
+        },
       },
 
-      // Getters for snapshot
-      getPanels: () => {
-        const state = this._gameManager?.getGuiManager()?.getState();
-        return (
-          state?.panels ?? {
-            state: false,
-            equip: false,
-            xiulian: false,
-            goods: false,
-            magic: false,
-            memo: false,
-            system: false,
-            saveLoad: false,
-            buy: false,
-            npcEquip: false,
-            title: false,
-            timer: false,
-            littleMap: false,
-          }
-        );
+      // ===== 武功操作 =====
+      magic: {
+        useMagic: async (magicIndex: number) => {
+          this._gameManager?.handleMagicRightClick(magicIndex);
+        },
+        useMagicByBottom: async (bottomSlot: number) => {
+          await this._gameManager?.useMagicByBottomSlot(bottomSlot);
+        },
+        setCurrentMagic: (magicIndex: number) => {
+          this._gameManager?.handleMagicRightClick(magicIndex);
+        },
+        setCurrentMagicByBottom: (bottomIndex: number) => {
+          this._gameManager?.getMagicListManager()?.setCurrentMagicByBottomIndex(bottomIndex);
+        },
+        swapMagic: (fromIndex: number, toIndex: number) => {
+          this._gameManager?.getMagicListManager()?.exchangeListItem(fromIndex, toIndex);
+        },
+        assignMagicToBottom: (magicIndex: number, bottomSlot: number) => {
+          this.handleMagicDrop(magicIndex, bottomSlot);
+        },
+        setXiuLianMagic: (magicIndex: number) => {
+          const xiuLianIndex = 49;
+          this._gameManager?.getMagicListManager()?.exchangeListItem(magicIndex, xiuLianIndex);
+        },
       },
-      getDialogState: () => {
-        const state = this._gameManager?.getGuiManager()?.getState();
-        return (
-          state?.dialog ?? {
-            isVisible: false,
-            text: "",
-            portraitIndex: 0,
-            portraitSide: "left" as const,
-            nameText: "",
-            textProgress: 0,
-            isComplete: true,
-            isInSelecting: false,
-            selectA: "",
-            selectB: "",
-            selection: -1,
+
+      // ===== 商店操作 =====
+      shop: {
+        buyItem: async (shopIndex: number) => {
+          const buyManager = this._gameManager?.getBuyManager();
+          const player = this._gameManager?.getPlayer();
+          if (!buyManager || !player) return false;
+
+          return buyManager.buyGood(
+            shopIndex,
+            player.money,
+            (fileName) => {
+              const goodsManager = this._gameManager?.getGoodsListManager();
+              if (!goodsManager) return false;
+              const result = goodsManager.addGoodToList(fileName);
+              return result.success;
+            },
+            (amount) => {
+              player.money -= amount;
+            }
+          );
+        },
+        sellItem: (bagIndex: number) => {
+          const goodsManager = this._gameManager?.getGoodsListManager();
+          const buyManager = this._gameManager?.getBuyManager();
+          const player = this._gameManager?.getPlayer();
+          if (!goodsManager || !buyManager || !player) return;
+
+          const entry = goodsManager.getItemInfo(bagIndex);
+          if (entry?.good && entry.good.sellPrice > 0 && buyManager.getCanSellSelfGoods()) {
+            player.money += entry.good.sellPrice;
+            goodsManager.deleteGood(entry.good.fileName);
+            buyManager.addGood(entry.good);
           }
-        );
+        },
+        closeShop: () => {
+          const buyManager = this._gameManager?.getBuyManager();
+          const guiManager = this._gameManager?.getGuiManager();
+          buyManager?.endBuy();
+          guiManager?.closeBuyGui();
+        },
       },
-      getSelectionState: () => {
-        const state = this._gameManager?.getGuiManager()?.getState();
-        return (
-          state?.selection ?? {
-            isVisible: false,
-            message: "",
-            options: [],
-            selectedIndex: 0,
-            hoveredIndex: -1,
+
+      // ===== 存档操作 =====
+      save: {
+        saveGame: async (slotIndex: number) => {
+          return this.saveGameToSlot(slotIndex);
+        },
+        loadGame: async (slotIndex: number) => {
+          try {
+            await this.loadGameFromSlot(slotIndex);
+            return true;
+          } catch {
+            return false;
           }
-        );
+        },
+        showSaveLoad: (visible: boolean) => {
+          this._gameManager?.getGuiManager()?.showSaveLoad(visible);
+        },
       },
-      getMultiSelectionState: () => {
-        const state = this._gameManager?.getGuiManager()?.getState();
-        return (
-          state?.multiSelection ?? {
-            isVisible: false,
-            message: "",
-            options: [],
-            columns: 1,
-            selectionCount: 1,
-            selectedIndices: [],
+
+      // ===== 对话操作 =====
+      dialog: {
+        dialogClick: () => {
+          this._gameManager?.getGuiManager()?.handleDialogClick();
+        },
+        dialogSelect: (selection: number) => {
+          this._gameManager?.getGuiManager()?.onDialogSelectionMade(selection);
+          this.onSelectionMade(selection);
+        },
+        selectionChoose: (index: number) => {
+          this._gameManager?.getGuiManager()?.selectByIndex(index);
+        },
+        multiSelectionToggle: (index: number) => {
+          this._gameManager?.getGuiManager()?.toggleMultiSelection(index);
+        },
+      },
+
+      // ===== 系统操作 =====
+      system: {
+        togglePanel: (panel: UIPanelName) =>
+          this.togglePanel(panel as keyof GuiManagerState["panels"]),
+        showMessage: (text: string) => {
+          this._gameManager?.getGuiManager()?.showMessage(text);
+        },
+        showSystem: (visible: boolean) => {
+          this._gameManager?.getGuiManager()?.showSystem(visible);
+        },
+        minimapClick: (worldX: number, worldY: number) => {
+          const player = this._gameManager?.getPlayer();
+          if (player) {
+            const tile = pixelToTile(worldX, worldY);
+            player.walkTo(tile);
+            this.togglePanel("littleMap");
           }
-        );
+        },
+        onVideoEnd: () => {
+          this.events.emit(GameEvents.UI_VIDEO_END, {});
+        },
       },
-      canSaveGame: () => this._gameManager?.isSaveEnabled() ?? false,
     };
 
     return new UIBridge(deps);

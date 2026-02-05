@@ -1,82 +1,19 @@
 /**
  * WASM MPC 解码器
  * 使用 Rust 实现的高性能 RLE 解码，大文件约 1.5x 加速
+ *
+ * 使用前需要 await initWasm()
  */
 
-import { logger } from "../core/logger";
 import type { Mpc, MpcFrame, MpcHead } from "../core/mapTypes";
-
-// WASM 模块类型定义
-interface WasmMpcHeader {
-  frames_data_length_sum: number;
-  global_width: number;
-  global_height: number;
-  frame_count: number;
-  direction: number;
-  color_count: number;
-  interval: number;
-  bottom: number;
-  left: number;
-  total_pixel_bytes: number;
-}
-
-interface WasmModule {
-  parse_mpc_header(data: Uint8Array): WasmMpcHeader | undefined;
-  decode_mpc_frames(
-    data: Uint8Array,
-    pixelOutput: Uint8Array,
-    frameSizesOutput: Uint8Array,
-    frameOffsetsOutput: Uint8Array
-  ): number;
-}
-
-let wasmModule: WasmModule | null = null;
-let isInitialized = false;
-let initPromise: Promise<boolean> | null = null;
-
-/**
- * 初始化 WASM MPC 解码模块
- */
-export async function initWasmMpcDecoder(): Promise<boolean> {
-  if (isInitialized) {
-    return true;
-  }
-
-  if (initPromise) {
-    return initPromise;
-  }
-
-  initPromise = (async () => {
-    try {
-      const wasm = await import("@miu2d/engine-wasm");
-      await wasm.default();
-
-      wasmModule = wasm as unknown as WasmModule;
-      isInitialized = true;
-
-      logger.info("[WasmMpcDecoder] Initialized");
-      return true;
-    } catch (error) {
-      logger.warn("[WasmMpcDecoder] Failed to initialize", error);
-      return false;
-    }
-  })();
-
-  return initPromise;
-}
-
-/**
- * 检查 WASM 是否可用
- */
-export function isWasmMpcDecoderAvailable(): boolean {
-  return isInitialized && wasmModule !== null;
-}
+import { getWasmModule } from "./wasmManager";
 
 /**
  * 使用 WASM 解码 MPC 文件
  * 返回 null 如果 WASM 不可用或解码失败
  */
 export function decodeMpcWasm(buffer: ArrayBuffer): Mpc | null {
+  const wasmModule = getWasmModule();
   if (!wasmModule) {
     return null;
   }

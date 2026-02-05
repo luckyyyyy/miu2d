@@ -4,9 +4,10 @@
  * 格式: Header(16) + Metadata(64) + Palette(colors*4) + FrameOffsets(frames*8) + RLE压缩帧数据
  *
  * 使用 WASM 解码器，性能比 TypeScript 快 2x+
+ * 注意：使用前需在应用启动时调用 await initWasm()
  */
 
-import { decodeAsfWasm, initWasmAsfDecoder } from "../wasm/wasmAsfDecoder";
+import { decodeAsfWasm } from "../wasm/wasmAsfDecoder";
 import { resourceLoader } from "./resourceLoader";
 
 export interface AsfFrame {
@@ -30,20 +31,6 @@ export interface AsfData {
   isLoaded: boolean;
 }
 
-// 保存初始化 Promise，确保所有调用都等待同一个 Promise
-let wasmInitPromise: Promise<boolean> | null = null;
-
-/**
- * 预初始化 WASM（可选，异步加载）
- * 游戏启动时调用可避免首次 ASF 加载延迟
- */
-export async function initAsfWasm(): Promise<boolean> {
-  if (!wasmInitPromise) {
-    wasmInitPromise = initWasmAsfDecoder();
-  }
-  return wasmInitPromise;
-}
-
 export function clearAsfCache(): void {
   resourceLoader.clearCache("asf");
 }
@@ -57,9 +44,6 @@ export function getCachedAsf(url: string): AsfData | null {
 }
 
 export async function loadAsf(url: string): Promise<AsfData | null> {
-  // 确保 WASM 初始化完成（所有并发调用都等待同一个 Promise）
-  await initAsfWasm();
-
   return resourceLoader.loadParsedBinary<AsfData>(url, decodeAsfWasm, "asf");
 }
 

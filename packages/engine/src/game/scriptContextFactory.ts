@@ -431,41 +431,16 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
       if (!npc) return true;
       return npc.state === CharacterState.Stand || npc.state === CharacterState.Stand1;
     },
-    setNpcActionFile: (name, stateType, asfFile) => {
+    setNpcActionFile: async (name, stateType, asfFile) => {
       logger.log(
         `[ScriptContext] SetNpcActionFile: name="${name}", state=${stateType}, file="${asfFile}"`
       );
       if (player && player.name === name) {
-        // Check if this is the first time setting custom ASF for this state
-        const isFirstTimeSet =
-          !player.customActionFiles.has(stateType) ||
-          !(player as unknown as { _customAsfCache?: Map<unknown, unknown> })._customAsfCache?.has(
-            stateType
-          );
-
-        // Use Player's setNpcActionFile method
-        player.setNpcActionFile(stateType, asfFile);
-
-        // Preload the ASF file
-        player
-          .preloadCustomActionFile(stateType, asfFile)
-          .then(() => {
-            // Only update texture immediately if:
-            // 1. This is the first time setting custom ASF for this state
-            // 2. Current state matches the one we just loaded
-            // 3. Not in special action (avoid interrupting special action animation)
-            if (isFirstTimeSet && player.state === stateType && !player.isInSpecialAction) {
-              (
-                player as unknown as { _updateTextureForState: (state: CharacterState) => void }
-              )._updateTextureForState(stateType);
-            }
-          })
-          .catch((err: unknown) =>
-            logger.error(`Failed to preload player custom action file:`, err)
-          );
+        // 调用 Player 的 setNpcActionFile，等待 ASF 加载完成
+        await player.setNpcActionFile(stateType, asfFile);
         return;
       }
-      npcManager.setNpcActionFile(name, stateType, asfFile);
+      await npcManager.setNpcActionFile(name, stateType, asfFile);
     },
     npcSpecialAction: (name, asfFile) => {
       const isPlayer = player.name === name;
@@ -1254,20 +1229,20 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
       }
       logger.log(`[ScriptContext] SetNpcMagicFile: ${name} -> ${magicFile}`);
     },
-    setNpcRes: (name, resFile) => {
+    setNpcRes: async (name, resFile) => {
       // > SetNpcIni(fileName) -> refresh draw image
       const character = getCharacterByName(name);
       if (character) {
-        // 异步加载新资源文件
-        character.loadSpritesFromNpcIni(resFile).then((success) => {
-          if (success) {
-            logger.log(`[ScriptContext] SetNpcRes: ${name} -> ${resFile} (loaded)`);
-          } else {
-            logger.warn(`[ScriptContext] SetNpcRes: ${name} -> ${resFile} (failed)`);
-          }
-        });
+        // 等待资源加载完成（对于 Player 会同时更新 NpcIniIndex 和 SpecialAttackTexture）
+        const success = await character.loadSpritesFromNpcIni(resFile);
+        if (success) {
+          logger.log(`[ScriptContext] SetNpcRes: ${name} -> ${resFile} (loaded)`);
+        } else {
+          logger.warn(`[ScriptContext] SetNpcRes: ${name} -> ${resFile} (failed)`);
+        }
+      } else {
+        logger.log(`[ScriptContext] SetNpcRes: ${name} -> ${resFile} (character not found)`);
       }
-      logger.log(`[ScriptContext] SetNpcRes: ${name} -> ${resFile}`);
     },
     setNpcAction: (name, action, x, y) => {
       // 设置 NPC 执行指定动作

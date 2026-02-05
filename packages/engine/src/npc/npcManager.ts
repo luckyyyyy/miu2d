@@ -544,16 +544,58 @@ export class NpcManager {
     return closest;
   }
 
+  // =============================================
+  // === 通用瓦片查询方法 ===
+  // =============================================
+
+  /**
+   * 通用 NPC 查询：在指定瓦片查找满足条件的 NPC
+   * @param tile 瓦片坐标
+   * @param predicate 过滤条件
+   */
+  private findNpcAt(tile: Vector2, predicate?: (npc: Npc) => boolean): Npc | null {
+    for (const [, npc] of this.npcs) {
+      if (npc.mapX === tile.x && npc.mapY === tile.y) {
+        if (!predicate || predicate(npc)) {
+          return npc;
+        }
+      }
+    }
+    return null;
+  }
+
+  /**
+   * 通用角色查询：在指定瓦片查找满足条件的角色（包括玩家）
+   * @param tile 瓦片坐标
+   * @param predicate 过滤条件
+   * @param includePlayer 是否包含玩家检查
+   */
+  private findCharacterAt(
+    tile: Vector2,
+    predicate: (char: Character) => boolean,
+    includePlayer = true
+  ): Character | null {
+    // 先检查玩家
+    if (includePlayer && this._player) {
+      if (this._player.mapX === tile.x && this._player.mapY === tile.y) {
+        if (predicate(this._player)) {
+          return this._player;
+        }
+      }
+    }
+    // 再检查 NPC
+    return this.findNpcAt(tile, predicate as (npc: Npc) => boolean);
+  }
+
+  // =============================================
+  // === 具体瓦片查询方法 ===
+  // =============================================
+
   /**
    * Get NPC at tile position
    */
   getNpcAtTile(tileX: number, tileY: number): Npc | null {
-    for (const [, npc] of this.npcs) {
-      if (npc.mapX === tileX && npc.mapY === tileY) {
-        return npc;
-      }
-    }
-    return null;
+    return this.findNpcAt({ x: tileX, y: tileY });
   }
 
   /**
@@ -562,12 +604,7 @@ export class NpcManager {
    * Used for jump obstacle check - if there's an eventer at the tile, can't jump there
    */
   getEventer(tile: Vector2): Npc | null {
-    for (const [, npc] of this.npcs) {
-      if (npc.mapX === tile.x && npc.mapY === tile.y && npc.kind === CharacterKind.Eventer) {
-        return npc;
-      }
-    }
-    return null;
+    return this.findNpcAt(tile, (npc) => npc.kind === CharacterKind.Eventer);
   }
 
   /**
@@ -575,14 +612,10 @@ export class NpcManager {
    * tileX, int tileY, bool withNeutral)
    */
   getEnemy(tileX: number, tileY: number, withNeutral: boolean = false): Npc | null {
-    for (const [, npc] of this.npcs) {
-      if (npc.mapX === tileX && npc.mapY === tileY) {
-        if (npc.isEnemy || (withNeutral && npc.isNoneFighter)) {
-          return npc;
-        }
-      }
-    }
-    return null;
+    return this.findNpcAt(
+      { x: tileX, y: tileY },
+      (npc) => npc.isEnemy || (withNeutral && npc.isNoneFighter)
+    );
   }
 
   /**
@@ -607,21 +640,12 @@ export class NpcManager {
     tileY: number,
     withNeutral: boolean = false
   ): Character | null {
-    // Check player first
-    if (this._player) {
-      if (this._player.mapX === tileX && this._player.mapY === tileY) {
-        return this._player;
-      }
+    const tile = { x: tileX, y: tileY };
+    // 玩家始终是友方
+    if (this._player?.mapX === tileX && this._player?.mapY === tileY) {
+      return this._player;
     }
-    // Check NPCs
-    for (const [, npc] of this.npcs) {
-      if (npc.mapX === tileX && npc.mapY === tileY) {
-        if (npc.isFighterFriend || (withNeutral && npc.isNoneFighter)) {
-          return npc;
-        }
-      }
-    }
-    return null;
+    return this.findNpcAt(tile, (npc) => npc.isFighterFriend || (withNeutral && npc.isNoneFighter));
   }
 
   /**
@@ -629,14 +653,10 @@ export class NpcManager {
    * group, Vector2 tilePosition)
    */
   getOtherGroupEnemy(group: number, tileX: number, tileY: number): Character | null {
-    for (const [, npc] of this.npcs) {
-      if (npc.mapX === tileX && npc.mapY === tileY) {
-        if (npc.group !== group && npc.isEnemy) {
-          return npc;
-        }
-      }
-    }
-    return null;
+    return this.findNpcAt(
+      { x: tileX, y: tileY },
+      (npc) => npc.group !== group && npc.isEnemy
+    );
   }
 
   /**
@@ -644,22 +664,10 @@ export class NpcManager {
    * tilePosition)
    */
   getFighter(tileX: number, tileY: number): Character | null {
-    // Check player first
-    if (
-      this._player &&
-      this._player.kind === CharacterKind.Player &&
-      this._player.mapX === tileX &&
-      this._player.mapY === tileY
-    ) {
-      return this._player;
-    }
-    // Check NPCs
-    for (const [, npc] of this.npcs) {
-      if (npc.isFighter && npc.mapX === tileX && npc.mapY === tileY) {
-        return npc;
-      }
-    }
-    return null;
+    return this.findCharacterAt(
+      { x: tileX, y: tileY },
+      (char) => char.isPlayer || char.isFighter
+    );
   }
 
   /**
@@ -667,19 +675,10 @@ export class NpcManager {
    * tilePosition)
    */
   getNonneutralFighter(tileX: number, tileY: number): Character | null {
-    // Check player first
-    if (this._player && this._player.mapX === tileX && this._player.mapY === tileY) {
-      return this._player;
-    }
-    // Check NPCs (non-neutral fighters)
-    for (const [, npc] of this.npcs) {
-      if (npc.mapX === tileX && npc.mapY === tileY) {
-        if (npc.isFighter && !npc.isNoneFighter) {
-          return npc;
-        }
-      }
-    }
-    return null;
+    return this.findCharacterAt(
+      { x: tileX, y: tileY },
+      (char) => char.isPlayer || (char.isFighter && !char.isNoneFighter)
+    );
   }
 
   /**
@@ -687,14 +686,7 @@ export class NpcManager {
    * tilePosition)
    */
   getNeutralFighter(tileX: number, tileY: number): Character | null {
-    for (const [, npc] of this.npcs) {
-      if (npc.mapX === tileX && npc.mapY === tileY) {
-        if (npc.isNoneFighter) {
-          return npc;
-        }
-      }
-    }
-    return null;
+    return this.findNpcAt({ x: tileX, y: tileY }, (npc) => npc.isNoneFighter);
   }
 
   /**
@@ -756,12 +748,7 @@ export class NpcManager {
    * Check if tile is blocked by NPC
    */
   isObstacle(tileX: number, tileY: number): boolean {
-    for (const [, npc] of this.npcs) {
-      if (npc.mapX === tileX && npc.mapY === tileY) {
-        return true;
-      }
-    }
-    return false;
+    return this.findNpcAt({ x: tileX, y: tileY }) !== null;
   }
 
   /**
@@ -1058,51 +1045,19 @@ export class NpcManager {
 
   /**
    * Set NPC action file for a specific state
-   * Based on Character.SetNpcActionFile()
-   * This sets the ASF file for a specific character state
+   * C# 参考: ResFile.SetNpcStateImage(NpcIni, state, fileName) 直接修改 NpcIni 字典
+   * 我们的 setNpcActionFile 直接加载 ASF 并设置到 _spriteSet
    */
-  setNpcActionFile(name: string, stateType: number, asfFile: string): boolean {
+  async setNpcActionFile(name: string, stateType: number, asfFile: string): Promise<boolean> {
     const npc = this.getNpc(name);
     if (!npc) {
       logger.warn(`[NpcManager] NPC not found: ${name}`);
       return false;
     }
 
-    // Check if this is the first time setting custom ASF for this state
-    const isFirstTimeSet =
-      !npc.customActionFiles.has(stateType) ||
-      !(npc as unknown as { _customAsfCache?: Map<unknown, unknown> })._customAsfCache?.has(
-        stateType
-      );
-
-    // Use Npc class method directly
-    npc.setNpcActionFile(stateType, asfFile);
-
-    // Preload the ASF file
-    npc
-      .preloadCustomActionFile(stateType, asfFile)
-      .then(() => {
-        // Only update texture immediately if:
-        // 1. This is the first time setting custom ASF for this state
-        // 2. Current state matches the one we just loaded
-        if (isFirstTimeSet && npc.state === stateType) {
-          (
-            npc as unknown as { _updateTextureForState: (state: number) => void }
-          )._updateTextureForState(stateType);
-        }
-      })
-      .catch((err: unknown) => logger.error(`Failed to preload custom action file:`, err));
-
+    // 调用 NPC 的 setNpcActionFile，等待 ASF 加载完成
+    await npc.setNpcActionFile(stateType, asfFile);
     return true;
-  }
-
-  /**
-   * Get custom action file for NPC state
-   */
-  getNpcActionFile(name: string, stateType: number): string | null {
-    const npc = this.getNpc(name);
-    if (!npc) return null;
-    return npc.getCustomActionFile(stateType) || null;
   }
 
   /**
