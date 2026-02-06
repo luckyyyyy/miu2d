@@ -88,7 +88,7 @@ export async function preloadMagicAsf(magic: MagicData): Promise<void> {
   }
   if (promises.length > 0) {
     await Promise.all(promises);
-    logger.debug(`[MagicLoader] Preloaded ASF for ${magic.name}`);
+    // logger.debug(`[MagicLoader] Preloaded ASF for ${magic.name}`);
   }
 }
 

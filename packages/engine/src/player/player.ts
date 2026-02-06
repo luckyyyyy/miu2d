@@ -23,6 +23,7 @@ import { getEffectAmount } from "../magic/effects/common";
 import type { MagicSprite } from "../magic/magicSprite";
 import type { MagicData } from "../magic/types";
 import { MagicMoveKind, MagicSpecialKind } from "../magic/types";
+import type { IRenderer } from "../webgl/IRenderer";
 import { getTileTextureRegion } from "../map/renderer";
 import { resourceLoader } from "../resource/resourceLoader";
 import { isBoxCollide, pixelToTile } from "../utils";
@@ -957,7 +958,7 @@ export class Player extends PlayerCombat {
    * 注意：半透明遮挡效果在 gameEngine.ts 中绘制（在所有地图层之后）
    */
   override draw(
-    ctx: CanvasRenderingContext2D,
+    renderer: IRenderer,
     cameraX: number,
     cameraY: number,
     offX: number = 0,
@@ -979,7 +980,7 @@ export class Player extends PlayerCombat {
     }
 
     // 正常绘制玩家
-    this.drawWithColor(ctx, cameraX, cameraY, drawColor, offX, offY);
+    this.drawWithColor(renderer, cameraX, cameraY, drawColor, offX, offY);
     // 注意：半透明遮挡效果不在这里绘制，而是在 gameEngine.ts 中
     // 在所有地图层渲染完成后单独绘制半透明玩家叠加层
   }

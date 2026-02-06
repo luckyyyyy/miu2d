@@ -4,7 +4,7 @@
 
 ## 📖 关于本项目
 
-**Miu2D** 是一个使用 **TypeScript + React + Canvas** 技术构建的 2D RPG 游戏引擎，专为 Web 平台设计。
+**Miu2D** 是一个使用 **TypeScript + React + WebGL** 技术构建的 2D RPG 游戏引擎，专为 Web 平台设计。
 
 ### 🎮 Demo：月影传说 Web 复刻版
 
@@ -94,7 +94,7 @@
 
 - **语言**: TypeScript 5.9 (strict mode)
 - **框架**: React 19, Vite 7
-- **渲染**: HTML5 Canvas 2D
+- **渲染**: WebGL 高性能渲染（Canvas 2D 回退）
 - **样式**: Tailwind CSS 4
 - **音频**: Web Audio API (OGG Vorbis)
 - **代码质量**: Biome (lint + format)
@@ -515,7 +515,7 @@ game-jxqy/
 
 - **Node.js** 18+
 - **pnpm** 9+（必须）
-- 支持 Canvas API 和 Web Audio API 的现代浏览器
+- 支持 WebGL 和 Web Audio API 的现代浏览器
 
 ### 安装运行
 
@@ -717,7 +717,7 @@ python3 scripts/convert-sound.py
 
 - **原作游戏**：西山居 (Kingsoft) - 剑侠情缘外传：月影传说 (2001)
 - **C# 复刻项目**：[mapic91/JxqyHD](https://github.com/mapic91/JxqyHD)
-- **技术栈**：TypeScript, React 19, Vite 7, Canvas API, Web Audio API
+- **技术栈**：TypeScript, React 19, Vite 7, WebGL, Web Audio API
 
 ---
 

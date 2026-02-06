@@ -32,6 +32,14 @@ export interface PerformanceStatsData {
   // 帧数统计
   totalFrames: number; // 总帧数
   droppedFrames: number; // 丢帧数（帧时间 > 33ms，即低于 30fps）
+
+  // 渲染器信息
+  rendererType: "canvas2d" | "webgl" | "none"; // 渲染后端类型
+  drawCalls: number; // 绘制调用次数
+  spriteCount: number; // 绘制的精灵数量
+  rectCount: number; // 绘制的矩形数量
+  textureSwaps: number; // 纹理切换次数
+  textureCount: number; // 已上传纹理总数
 }
 
 /**
@@ -148,7 +156,14 @@ export class PerformanceStats {
   /**
    * 获取统计数据
    */
-  getStats(): PerformanceStatsData {
+  getStats(rendererInfo?: {
+    type: "canvas2d" | "webgl";
+    drawCalls: number;
+    spriteCount: number;
+    rectCount: number;
+    textureSwaps: number;
+    textureCount: number;
+  }): PerformanceStatsData {
     return {
       fps: this.currentFps,
       fpsMin: this.fpsSamples.length > 0 ? Math.min(...this.fpsSamples) : 0,
@@ -169,6 +184,13 @@ export class PerformanceStats {
 
       totalFrames: this.totalFrames,
       droppedFrames: this.droppedFrames,
+
+      rendererType: rendererInfo?.type ?? "none",
+      drawCalls: rendererInfo?.drawCalls ?? 0,
+      spriteCount: rendererInfo?.spriteCount ?? 0,
+      rectCount: rendererInfo?.rectCount ?? 0,
+      textureSwaps: rendererInfo?.textureSwaps ?? 0,
+      textureCount: rendererInfo?.textureCount ?? 0,
     };
   }
 

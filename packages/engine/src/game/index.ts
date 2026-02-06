@@ -20,7 +20,7 @@ export { SpecialActionHandler } from "./specialActionHandler";
 
 // SpecialActionHandler 不再需要 Dependencies 接口，通过 IEngineContext 获取依赖
 
-export type { CanvasRenderInfo, GameEngineConfig, GameEngineState } from "./gameEngine";
+export type { GameEngineConfig, GameEngineState } from "./gameEngine";
 // Game Engine (Singleton)
 export { GameEngine, getGameEngine } from "./gameEngine";
 export type {

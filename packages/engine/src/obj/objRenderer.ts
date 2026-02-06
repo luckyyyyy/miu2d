@@ -11,9 +11,10 @@
  */
 
 import type { Camera } from "../core/mapTypes";
-import { getFrameCanvas } from "../resource/asf";
+import { getFrameAtlasInfo, getFrameCanvas } from "../resource/asf";
 import { tileToPixel } from "../utils";
 import { getOuterEdge } from "../utils/edgeDetection";
+import type { IRenderer } from "../webgl/IRenderer";
 import type { Obj } from "./obj";
 
 export class ObjRenderer {
@@ -23,7 +24,7 @@ export class ObjRenderer {
    * @param highlightColor Edge color for highlight (used in separate draw call)
    */
   drawObj(
-    ctx: CanvasRenderingContext2D,
+    renderer: IRenderer,
     obj: Obj,
     cameraX: number,
     cameraY: number,
@@ -50,13 +51,14 @@ export class ObjRenderer {
     );
 
     if (frameIndex >= 0 && frameIndex < obj.texture.frames.length) {
-      const frame = obj.texture.frames[frameIndex];
-      const canvas = getFrameCanvas(frame);
-
-      // 注意：不在这里绘制高亮边缘
-      // 高亮边缘应该在所有内容渲染完后由 drawObjHighlight 单独绘制
-
-      ctx.drawImage(canvas, screenX, screenY);
+      // 使用 atlas 绘制（减少纹理切换）
+      const atlasInfo = getFrameAtlasInfo(obj.texture, frameIndex);
+      renderer.drawSourceEx(atlasInfo.canvas, screenX, screenY, {
+        srcX: atlasInfo.srcX,
+        srcY: atlasInfo.srcY,
+        srcWidth: atlasInfo.srcWidth,
+        srcHeight: atlasInfo.srcHeight,
+      });
     }
   }
 
@@ -66,7 +68,7 @@ export class ObjRenderer {
    * 边缘检测算法
    */
   drawObjHighlight(
-    ctx: CanvasRenderingContext2D,
+    renderer: IRenderer,
     obj: Obj,
     cameraX: number,
     cameraY: number,
@@ -98,14 +100,14 @@ export class ObjRenderer {
       const edgeCanvas = getOuterEdge(canvas, highlightColor);
 
       // 绘制边缘
-      ctx.drawImage(edgeCanvas, screenX, screenY);
+      renderer.drawSource(edgeCanvas, screenX, screenY);
     }
   }
 
   /**
    * Draw all objects in view
    */
-  drawAllObjs(ctx: CanvasRenderingContext2D, objs: Obj[], camera: Camera): void {
+  drawAllObjs(renderer: IRenderer, objs: Obj[], camera: Camera): void {
     // Sort by Y position for proper layering (objects lower on screen drawn last)
     const sorted = [...objs].sort((a, b) => {
       const aY = tileToPixel(a.tilePosition.x, a.tilePosition.y).y;
@@ -115,7 +117,7 @@ export class ObjRenderer {
 
     // Draw each object
     for (const obj of sorted) {
-      this.drawObj(ctx, obj, camera.x, camera.y);
+      this.drawObj(renderer, obj, camera.x, camera.y);
     }
   }
 

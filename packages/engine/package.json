@@ -43,7 +43,9 @@
     "./utils": "./src/utils/index.ts",
     "./weather": "./src/weather/index.ts",
     "./wasm": "./src/wasm/index.ts",
-    "./wasm/*": "./src/wasm/*.ts"
+    "./wasm/*": "./src/wasm/*.ts",
+    "./webgl": "./src/webgl/index.ts",
+    "./webgl/*": "./src/webgl/*.ts"
   },
   "scripts": {
     "tsc": "tsc -b",

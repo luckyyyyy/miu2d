@@ -67,16 +67,12 @@ import type { IUIBridge, UIPanelName } from "../ui/contract";
 import { UIBridge, type UIBridgeDeps } from "../ui/uiBridge";
 import { pixelToTile } from "../utils";
 import { WeatherManager } from "../weather";
+import type { IRenderer } from "../webgl/IRenderer";
+import { createRenderer, type RendererBackend } from "../webgl";
 import { GameManager } from "./gameManager";
 import { PerformanceStats, type PerformanceStatsData } from "./performanceStats";
 
 export interface GameEngineConfig {
-  width: number;
-  height: number;
-}
-
-export interface CanvasRenderInfo {
-  ctx: CanvasRenderingContext2D;
   width: number;
   height: number;
 }
@@ -160,8 +156,9 @@ export class GameEngine implements IEngineContext {
     joystickDirection: null,
   };
 
-  // 画布信息（由React组件设置）
-  private canvasInfo: CanvasRenderInfo | null = null;
+  // 渲染器抽象层（WebGL / Canvas2D）
+  private _renderer: IRenderer | null = null;
+  private rendererBackend: RendererBackend = "auto";
 
   // 状态
   private state: GameEngineState = "uninitialized";
@@ -208,14 +205,18 @@ export class GameEngine implements IEngineContext {
 
   /**
    * Draw character placeholder (fallback when sprites not loaded)
+   * 使用 getContext2D 回退绘制文字和形状
    */
   private drawCharacterPlaceholder(
-    ctx: CanvasRenderingContext2D,
+    renderer: IRenderer,
     character: Character,
     camera: { x: number; y: number },
     width: number,
     height: number
   ): void {
+    const ctx = renderer.getContext2D();
+    if (!ctx) return;
+
     const screenX = character.pixelPosition.x - camera.x;
     const screenY = character.pixelPosition.y - camera.y;
 
@@ -297,6 +298,8 @@ export class GameEngine implements IEngineContext {
   static destroy(): void {
     if (GameEngine.instance) {
       GameEngine.instance.stop();
+      GameEngine.instance._renderer?.dispose();
+      GameEngine.instance._renderer = null;
       GameEngine.instance.events.clear();
       GameEngine.instance = null;
       // 同时清除便捷函数的缓存
@@ -588,7 +591,7 @@ export class GameEngine implements IEngineContext {
    * 获取当前画布（用于截图）
    */
   getCanvas(): HTMLCanvasElement | null {
-    return this.canvasInfo?.ctx.canvas ?? null;
+    return this._renderer?.getCanvas() ?? null;
   }
 
   /**
@@ -1062,39 +1065,43 @@ export class GameEngine implements IEngineContext {
    * 渲染游戏画面
    */
   private render(): void {
-    if (!this.canvasInfo || !this.gameManager || !this.mapRenderer) return;
+    if (!this._renderer || !this.gameManager || !this.mapRenderer) return;
 
-    const { ctx, width, height } = this.canvasInfo;
+    const renderer = this._renderer;
+    const { width, height } = this.config;
 
-    // 禁用图像平滑（像素风格游戏）- 只需设置一次，Canvas 会保持这个状态
-    ctx.imageSmoothingEnabled = false;
-
-    // 清空画布
-    ctx.fillStyle = "#1a1a2e";
-    ctx.fillRect(0, 0, width, height);
+    // 开始渲染帧（重置统计、清屏）
+    renderer.beginFrame();
 
     // 渲染地图和角色（使用交错渲染）
-    this.renderMapInterleaved(ctx);
+    this.renderMapInterleaved(renderer);
 
     // 应用地图颜色叠加（ChangeMapColor 效果）
     // 使用 Color.Multiply 将颜色应用到地图和精灵
     const screenEffects = this.gameManager.getScreenEffects();
     if (screenEffects.isMapTinted()) {
       const tint = screenEffects.getMapTintColor();
-      ctx.save();
-      // 使用 multiply 混合模式来模拟颜色相乘效果
-      ctx.globalCompositeOperation = "multiply";
-      ctx.fillStyle = `rgb(${tint.r}, ${tint.g}, ${tint.b})`;
-      ctx.fillRect(0, 0, width, height);
-      ctx.restore();
+      renderer.save();
+      renderer.setBlendMode("multiply");
+      renderer.fillRect({
+        x: 0,
+        y: 0,
+        width,
+        height,
+        color: `rgb(${tint.r}, ${tint.g}, ${tint.b})`,
+      });
+      renderer.restore();
     }
 
     // 渲染天气效果（雨、雪）
     // Reference: WeatherManager.Draw(spriteBatch)
-    this.weatherManager.draw(ctx, this.mapRenderer.camera.x, this.mapRenderer.camera.y);
+    this.weatherManager.draw(renderer, this.mapRenderer.camera.x, this.mapRenderer.camera.y);
 
     // 渲染屏幕特效（淡入淡出、闪烁）
-    this.gameManager.drawScreenEffects(ctx, width, height);
+    this.gameManager.drawScreenEffects(renderer, width, height);
+
+    // 结束渲染帧（flush 批次、保存统计快照）
+    renderer.endFrame();
   }
 
   /**
@@ -1103,13 +1110,13 @@ export class GameEngine implements IEngineContext {
    *
    * 中高亮边缘在所有内容绘制完成后单独绘制
    */
-  private renderMapInterleaved(ctx: CanvasRenderingContext2D): void {
+  private renderMapInterleaved(r: IRenderer): void {
     if (!this.mapRenderer || !this.gameManager || !this.objRenderer) return;
 
-    const renderer = this.mapRenderer;
+    const mapR = this.mapRenderer;
     const { width, height } = this.config;
 
-    if (renderer.isLoading || !renderer.mapData) return;
+    if (mapR.isLoading || !mapR.mapData) return;
 
     // 获取玩家
     const player = this.gameManager.getPlayer();
@@ -1131,29 +1138,29 @@ export class GameEngine implements IEngineContext {
     const playerRow = player.tilePosition.y;
 
     // 交错渲染（不在这里绘制高亮边缘）
-    renderMapInterleaved(ctx, renderer, (row: number) => {
+    renderMapInterleaved(r, mapR, (row: number) => {
       // 渲染该行的 NPC（使用预计算的按行分组）
       const npcsAtRow = npcManager.getNpcsAtRow(row);
       for (const npc of npcsAtRow) {
         if (npc.isSpritesLoaded()) {
-          npc.draw(ctx, renderer.camera.x, renderer.camera.y);
+          npc.draw(r, mapR.camera.x, mapR.camera.y);
         } else {
-          this.drawCharacterPlaceholder(ctx, npc, renderer.camera, width, height);
+          this.drawCharacterPlaceholder(r, npc, mapR.camera, width, height);
         }
       }
 
       // 渲染该行的物体（使用预计算的按行分组）
       const objsAtRow = objManager.getObjsAtRow(row);
       for (const obj of objsAtRow) {
-        this.objRenderer?.drawObj(ctx, obj, renderer.camera.x, renderer.camera.y);
+        this.objRenderer?.drawObj(r, obj, mapR.camera.x, mapR.camera.y);
       }
 
       // 渲染玩家
       if (row === playerRow) {
         if (player.isSpritesLoaded()) {
-          player.draw(ctx, renderer.camera.x, renderer.camera.y);
+          player.draw(r, mapR.camera.x, mapR.camera.y);
         } else {
-          this.drawCharacterPlaceholder(ctx, player, renderer.camera, width, height);
+          this.drawCharacterPlaceholder(r, player, mapR.camera, width, height);
         }
       }
 
@@ -1161,13 +1168,13 @@ export class GameEngine implements IEngineContext {
       if (magicMgr) {
         const magicsAtRow = magicMgr.getMagicSpritesAtRow(row);
         for (const sprite of magicsAtRow) {
-          magicRenderer.render(ctx, sprite, renderer.camera.x, renderer.camera.y);
+          magicRenderer.render(r, sprite, mapR.camera.x, mapR.camera.y);
         }
 
         // 渲染特效精灵
         const effectsAtRow = magicMgr.getEffectSpritesAtRow(row);
         for (const sprite of effectsAtRow) {
-          magicRenderer.render(ctx, sprite, renderer.camera.x, renderer.camera.y);
+          magicRenderer.render(r, sprite, mapR.camera.x, mapR.camera.y);
         }
       }
     });
@@ -1177,10 +1184,10 @@ export class GameEngine implements IEngineContext {
     // 在所有地图层和角色绘制完成后，如果玩家被遮挡，再单独绘制一层半透明玩家
     // 注意：需要检查 isDraw，否则 ShowNpc("杨影枫", 0) 隐藏玩家时半透明层仍会显示
     if (player.isSpritesLoaded() && player.isOccluded && player.isDraw) {
-      ctx.save();
-      ctx.globalAlpha = 0.5;
-      player.drawWithColor(ctx, renderer.camera.x, renderer.camera.y, "white", 0, 0);
-      ctx.restore();
+      r.save();
+      r.setAlpha(0.5);
+      player.drawWithColor(r, mapR.camera.x, mapR.camera.y, "white", 0, 0);
+      r.restore();
     }
 
     // === SuperMode 精灵渲染（在所有内容之上） ===
@@ -1190,7 +1197,7 @@ export class GameEngine implements IEngineContext {
     if (superModeMagicMgr?.isInSuperMagicMode) {
       const superModeSprite = superModeMagicMgr.superModeMagicSprite;
       if (superModeSprite && !superModeSprite.isDestroyed) {
-        magicRenderer.render(ctx, superModeSprite, renderer.camera.x, renderer.camera.y);
+        magicRenderer.render(r, superModeSprite, mapR.camera.x, mapR.camera.y);
       }
     }
 
@@ -1199,11 +1206,11 @@ export class GameEngine implements IEngineContext {
     if (hoverTarget.type === "npc" && hoverTarget.npc) {
       const npc = hoverTarget.npc;
       if (npc.isSpritesLoaded() && npc.isVisible) {
-        npc.drawHighlight(ctx, renderer.camera.x, renderer.camera.y, edgeColor);
+        npc.drawHighlight(r, mapR.camera.x, mapR.camera.y, edgeColor);
       }
     } else if (hoverTarget.type === "obj" && hoverTarget.obj) {
       const obj = hoverTarget.obj;
-      this.objRenderer?.drawObjHighlight(ctx, obj, renderer.camera.x, renderer.camera.y, edgeColor);
+      this.objRenderer?.drawObjHighlight(r, obj, mapR.camera.x, mapR.camera.y, edgeColor);
     }
   }
 
@@ -1214,21 +1221,33 @@ export class GameEngine implements IEngineContext {
    */
   setCanvas(canvas: HTMLCanvasElement | null): void {
     if (!canvas) {
-      this.canvasInfo = null;
+      this._renderer?.dispose();
+      this._renderer = null;
       return;
     }
 
-    const ctx = canvas.getContext("2d");
-    if (!ctx) {
-      logger.error("[GameEngine] Failed to get 2D context");
-      return;
+    // 初始化渲染器抽象层
+    try {
+      this._renderer = createRenderer(canvas, this.rendererBackend);
+      logger.info(`[GameEngine] Renderer initialized: ${this._renderer.type}`);
+    } catch (e) {
+      logger.error("[GameEngine] Failed to initialize renderer", e);
     }
 
-    this.canvasInfo = {
-      ctx,
-      width: canvas.width,
-      height: canvas.height,
-    };
+  }
+
+  /**
+   * 获取渲染器抽象层
+   */
+  getRenderer(): IRenderer | null {
+    return this._renderer;
+  }
+
+  /**
+   * 设置渲染后端偏好（需要在 setCanvas 之前调用）
+   */
+  setRendererBackend(backend: RendererBackend): void {
+    this.rendererBackend = backend;
   }
 
   /**
@@ -1243,10 +1262,8 @@ export class GameEngine implements IEngineContext {
       this._mapRenderer.camera.height = height;
     }
 
-    if (this.canvasInfo) {
-      this.canvasInfo.width = width;
-      this.canvasInfo.height = height;
-    }
+    // 同步渲染器尺寸
+    this._renderer?.resize(width, height);
 
     // 重新居中镜头到玩家，确保尺寸变化时玩家始终保持在屏幕中心
     this.centerCameraOnPlayer();
@@ -2110,7 +2127,14 @@ export class GameEngine implements IEngineContext {
    * 获取性能统计数据
    */
   getPerformanceStats(): PerformanceStatsData {
-    return this.performanceStats.getStats();
+    const renderer = this._renderer;
+    const rendererInfo = renderer
+      ? {
+          type: renderer.type,
+          ...renderer.getStats(),
+        }
+      : undefined;
+    return this.performanceStats.getStats(rendererInfo);
   }
 }
 

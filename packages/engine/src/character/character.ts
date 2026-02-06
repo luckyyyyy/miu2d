@@ -13,6 +13,7 @@
 
 import { logger } from "../core/logger";
 import { canMoveInDirection, PathType } from "../core/pathFinder";
+import type { IRenderer } from "../webgl/IRenderer";
 import type { CharacterConfig, Vector2 } from "../core/types";
 import { CharacterState, RUN_SPEED_FOLD, TILE_WIDTH } from "../core/types";
 import type { MagicSprite } from "../magic/magicSprite";
@@ -724,7 +725,7 @@ export abstract class Character extends CharacterCombat {
   // =============================================
 
   override draw(
-    ctx: CanvasRenderingContext2D,
+    renderer: IRenderer,
     cameraX: number,
     cameraY: number,
     offX: number = 0,
@@ -744,17 +745,17 @@ export abstract class Character extends CharacterCombat {
       drawColor = "black";
     }
 
-    this.drawWithColor(ctx, cameraX, cameraY, drawColor, offX, offY);
+    this.drawWithColor(renderer, cameraX, cameraY, drawColor, offX, offY);
   }
 
   drawHighlight(
-    ctx: CanvasRenderingContext2D,
+    renderer: IRenderer,
     cameraX: number,
     cameraY: number,
     highlightColor: string = "rgba(255, 255, 0, 0.6)"
   ): void {
     if (!this.isDraw) return;
-    super.drawHighlight(ctx, cameraX, cameraY, highlightColor);
+    super.drawHighlight(renderer, cameraX, cameraY, highlightColor);
   }
 
   canInteractWith(other: Character): boolean {

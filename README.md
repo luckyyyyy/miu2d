@@ -6,7 +6,7 @@ A 2D RPG game engine built with modern Web technologies.
 
 ## 📖 About
 
-**Miu2D** is a 2D RPG game engine built with **TypeScript + React + Canvas**, designed for the Web platform.
+**Miu2D** is a 2D RPG game engine built with **TypeScript + React + WebGL**, designed for the Web platform.
 
 ### 🎮 Demo: Legend of Yue Ying (月影传说) Web Remake
 
@@ -82,7 +82,7 @@ The original game was developed in C++, later remade by fans using C# + XNA fram
 
 - **Language**: TypeScript 5.9 (strict mode)
 - **Framework**: React 19, Vite 7
-- **Rendering**: HTML5 Canvas 2D
+- **Rendering**: WebGL (with Canvas 2D fallback)
 - **Styling**: Tailwind CSS 4
 - **Audio**: Web Audio API (OGG Vorbis)
 - **Code Quality**: Biome (lint + format)
@@ -120,7 +120,7 @@ import { resourceLoader } from "@miu2d/engine/resource/resourceLoader";
 
 - **Node.js** 18+
 - **pnpm** 9+ (required)
-- Modern browser with Canvas API and Web Audio API support
+- Modern browser with WebGL and Web Audio API support
 
 ### Installation
 
@@ -209,7 +209,7 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 - **Original Game**: Kingsoft (西山居) - Legend of Yue Ying (2001)
 - **C# Remake**: [mapic91/JxqyHD](https://github.com/mapic91/JxqyHD)
-- **Tech Stack**: TypeScript, React 19, Vite 7, Canvas API, Web Audio API
+- **Tech Stack**: TypeScript, React 19, Vite 7, WebGL, Web Audio API
 
 ---
 

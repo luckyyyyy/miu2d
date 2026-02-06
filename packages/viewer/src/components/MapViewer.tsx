@@ -14,6 +14,7 @@ import {
   setCameraSize,
   updateCamera,
 } from "@miu2d/engine/map";
+import { Canvas2DRenderer } from "@miu2d/engine/webgl";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 interface MapViewerProps {
@@ -251,7 +252,9 @@ export function MapViewer({
     ctx.scale(zoom, zoom);
 
     // 获取视图范围
-    const { startX, startY, endX, endY } = getViewTileRange(renderer.camera, mapData);
+    const { startX, startY, endX, endY } = getViewTileRange(
+      renderer.camera, mapData, renderer.maxTileHeight, renderer.maxTileWidth
+    );
 
     // 绘制网格背景
     if (showGrid) {
@@ -276,14 +279,17 @@ export function MapViewer({
     }
 
     // 分别绘制各图层（根据开关控制）
+    // 使用 Canvas2DRenderer 适配 renderLayer 的 IRenderer 参数
+    const tileRenderer = new Canvas2DRenderer();
+    tileRenderer.init(canvas);
     if (showLayer1) {
-      renderLayer(ctx, renderer, "layer1");
+      renderLayer(tileRenderer, renderer, "layer1");
     }
     if (showLayer2) {
-      renderLayer(ctx, renderer, "layer2");
+      renderLayer(tileRenderer, renderer, "layer2");
     }
     if (showLayer3) {
-      renderLayer(ctx, renderer, "layer3");
+      renderLayer(tileRenderer, renderer, "layer3");
     }
 
     // 绘制障碍物层

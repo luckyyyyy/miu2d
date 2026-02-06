@@ -45,6 +45,7 @@ import { resourceLoader } from "../resource/resourceLoader";
 import { loadAsf } from "../resource/asf";
 import type { ObjSaveItem } from "../game/storage";
 import { parseIni } from "../utils";
+import type { IRenderer } from "../webgl/IRenderer";
 import { Obj, type ObjKind, ObjState } from "./obj";
 import { getObjConfigFromCache, getObjResFromCache, type ObjResInfo } from "./objConfigLoader";
 
@@ -69,11 +70,11 @@ export class ObjManager {
   private fileName: string = "";
 
   /**
-   * 内存中的 Obj 文件存储
+   * Obj 分组存储
    * 模拟 C# 原版的 save/game/{fileName} 文件系统
    * 脚本调用 SaveObj() 时将当前 Obj 列表序列化存入，LoadObj() 时优先从此读取
    */
-  private objFileStore: Map<string, ObjSaveItem[]> = new Map();
+  private objGroups: Map<string, ObjSaveItem[]> = new Map();
 
   // === 性能优化：预计算视野内物体 ===
   // ObjManager._objInView, UpdateObjsInView()
@@ -152,22 +153,22 @@ export class ObjManager {
 
   /**
    * Load objects from an .obj file
-   *  - tries memory store first (saved by SaveObj), then save/game/, then ini/save/
+   *  - tries groups store first (saved by SaveObj), then save/game/, then ini/save/
    */
   async load(fileName: string): Promise<boolean> {
     logger.log(`[ObjManager] Loading obj file: ${fileName}`);
     this.clearAll();
     this.fileName = fileName;
 
-    // 1. 优先从内存文件存储加载（模拟 C# 的 save/game/ 目录）
-    const storedData = this.objFileStore.get(fileName);
+    // 1. 优先从 Obj 分组存储加载（模拟 C# 的 save/game/ 目录）
+    const storedData = this.objGroups.get(fileName);
     if (storedData) {
-      logger.log(`[ObjManager] Loading ${storedData.length} Objs from memory store: ${fileName}`);
+      logger.log(`[ObjManager] Loading ${storedData.length} Objs from groups: ${fileName}`);
       for (const objData of storedData) {
         if (objData.isRemoved) continue;
         await this.createObjFromSaveData(objData);
       }
-      logger.log(`[ObjManager] Loaded ${this.objects.length} objects from memory store`);
+      logger.log(`[ObjManager] Loaded ${this.objects.length} objects from groups`);
       return true;
     }
 
@@ -760,20 +761,20 @@ export class ObjManager {
   /**
    * Draw a single object
    */
-  drawObj(ctx: CanvasRenderingContext2D, obj: Obj, cameraX: number, cameraY: number): void {
+  drawObj(renderer: IRenderer, obj: Obj, cameraX: number, cameraY: number): void {
     if (!obj.isShow || obj.isRemoved) return;
 
-    obj.draw(ctx, cameraX, cameraY);
+    obj.draw(renderer, cameraX, cameraY);
   }
 
   /**
    * Draw all objects in view
    * 使用预计算的 _objsInView 列表
    */
-  drawAllObjs(ctx: CanvasRenderingContext2D, cameraX: number, cameraY: number): void {
+  drawAllObjs(renderer: IRenderer, cameraX: number, cameraY: number): void {
     // 使用预计算的视野内物体列表（已在 updateViewCache 中排序）
     for (const obj of this._objsInView) {
-      this.drawObj(ctx, obj, cameraX, cameraY);
+      this.drawObj(renderer, obj, cameraX, cameraY);
     }
   }
 
@@ -793,17 +794,17 @@ export class ObjManager {
 
     this.fileName = saveFileName;
 
-    // 序列化当前所有 Obj 到内存存储
-    const items = this.collectObjSaveItems();
-    this.objFileStore.set(saveFileName, items);
+    // 序列化当前所有 Obj 到分组存储
+    const items = this.collectSnapshot();
+    this.objGroups.set(saveFileName, items);
 
-    logger.log(`[ObjManager] SaveObj: ${saveFileName} (${items.length} Objs saved to memory store)`);
+    logger.log(`[ObjManager] SaveObj: ${saveFileName} (${items.length} Objs saved to groups)`);
   }
 
   /**
-   * 收集当前 Obj 数据为 ObjSaveItem[]
+   * 收集当前 Obj 快照为 ObjSaveItem[]
    */
-  collectObjSaveItems(): ObjSaveItem[] {
+  collectSnapshot(): ObjSaveItem[] {
     const items: ObjSaveItem[] = [];
     for (const obj of this.objects) {
       if (obj.isRemoved) continue;
@@ -834,26 +835,26 @@ export class ObjManager {
   }
 
   /**
-   * 获取内存文件存储（用于 Loader 存档时持久化）
+   * 获取 Obj 分组存储（用于 Loader 存档时持久化）
    */
-  getObjFileStore(): Map<string, ObjSaveItem[]> {
-    return this.objFileStore;
+  getObjGroups(): Map<string, ObjSaveItem[]> {
+    return this.objGroups;
   }
 
   /**
-   * 设置内存文件存储（用于 Loader 读档时恢复）
+   * 设置 Obj 分组存储（用于 Loader 读档时恢复）
    */
-  setObjFileStore(store: Record<string, ObjSaveItem[]>): void {
-    this.objFileStore.clear();
+  setObjGroups(store: Record<string, ObjSaveItem[]>): void {
+    this.objGroups.clear();
     for (const [key, value] of Object.entries(store)) {
-      this.objFileStore.set(key, value);
+      this.objGroups.set(key, value);
     }
   }
 
   /**
-   * 清空内存文件存储
+   * 清空 Obj 分组存储
    */
-  clearObjFileStore(): void {
-    this.objFileStore.clear();
+  clearObjGroups(): void {
+    this.objGroups.clear();
   }
 }

@@ -3,6 +3,8 @@
  * 基于JxqyHD/Engine/Weather/RainDrop.cs
  */
 
+import type { IRenderer } from "../webgl/IRenderer";
+
 export class RainDrop {
   /** 是否显示 */
   isShow: boolean = false;
@@ -64,10 +66,15 @@ export class RainDrop {
   /**
    * 绘制雨滴（使用预缓存的颜色字符串）
    */
-  draw(ctx: CanvasRenderingContext2D): void {
+  draw(renderer: IRenderer): void {
     if (!this.isShow) return;
 
-    ctx.fillStyle = this.fillStyle;
-    ctx.fillRect(this.position.x, this.position.y, this.width, this.length);
+    renderer.fillRect({
+      x: this.position.x,
+      y: this.position.y,
+      width: this.width,
+      height: this.length,
+      color: this.fillStyle,
+    });
   }
 }

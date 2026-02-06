@@ -5,6 +5,8 @@
  * 雪花是带有速度和方向的精灵，随风飘落
  */
 
+import type { IRenderer } from "../webgl/IRenderer";
+
 /** 雪花形状类型（对应4 种纹理） */
 export type SnowFlakeType = 0 | 1 | 2 | 3;
 
@@ -57,44 +59,37 @@ export class SnowFlake {
   }
 
   /**
-   * 绘制雪花（调用方应统一设置 fillStyle）
+   * 绘制雪花（调用方应统一设置颜色）
    * 使用 4 种不同的雪花纹理
-   * 性能优化：移除 ctx.save()/restore()，由调用方批量设置 fillStyle
+   * 性能优化：由调用方批量设置颜色
    */
-  draw(ctx: CanvasRenderingContext2D, cameraX: number, cameraY: number): void {
+  draw(renderer: IRenderer, cameraX: number, cameraY: number, color: string): void {
     const screenX = this.positionInWorld.x - cameraX;
     const screenY = this.positionInWorld.y - cameraY;
 
     switch (this.type) {
       case 0:
         // 3x3 十字形
-        // t w t
-        // w w w
-        // t w t
-        ctx.fillRect(screenX + 1, screenY, 1, 1);
-        ctx.fillRect(screenX, screenY + 1, 3, 1);
-        ctx.fillRect(screenX + 1, screenY + 2, 1, 1);
+        renderer.fillRect({ x: screenX + 1, y: screenY, width: 1, height: 1, color });
+        renderer.fillRect({ x: screenX, y: screenY + 1, width: 3, height: 1, color });
+        renderer.fillRect({ x: screenX + 1, y: screenY + 2, width: 1, height: 1, color });
         break;
 
       case 1:
         // 2x2 对角线（左上-右下）
-        // t w
-        // w t
-        ctx.fillRect(screenX + 1, screenY, 1, 1);
-        ctx.fillRect(screenX, screenY + 1, 1, 1);
+        renderer.fillRect({ x: screenX + 1, y: screenY, width: 1, height: 1, color });
+        renderer.fillRect({ x: screenX, y: screenY + 1, width: 1, height: 1, color });
         break;
 
       case 2:
         // 2x2 对角线（右上-左下）
-        // w t
-        // t w
-        ctx.fillRect(screenX, screenY, 1, 1);
-        ctx.fillRect(screenX + 1, screenY + 1, 1, 1);
+        renderer.fillRect({ x: screenX, y: screenY, width: 1, height: 1, color });
+        renderer.fillRect({ x: screenX + 1, y: screenY + 1, width: 1, height: 1, color });
         break;
 
       case 3:
         // 1x1 单点
-        ctx.fillRect(screenX, screenY, 1, 1);
+        renderer.fillRect({ x: screenX, y: screenY, width: 1, height: 1, color });
         break;
     }
   }

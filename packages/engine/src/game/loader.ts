@@ -48,7 +48,7 @@ import {
   SAVE_VERSION,
   type SaveData,
   StorageManager,
-  type TrapData,
+  type TrapGroupValue,
 } from "./storage";
 
 /**
@@ -262,9 +262,9 @@ export class Loader {
     // 清空多角色内存存储（新游戏从资源文件加载初始数据）
     this.clearCharacterMemory();
 
-    // 清空内存文件存储（新游戏无历史 SaveNpc/SaveObj 数据）
-    this.deps.npcManager.clearNpcFileStore();
-    this.deps.objManager.clearObjFileStore();
+    // 清空分组存储（新游戏无历史 SaveNpc/SaveObj 数据）
+    this.deps.npcManager.clearNpcGroups();
+    this.deps.objManager.clearObjGroups();
 
     // 以黑屏开始（用于淡入淡出特效）
     screenEffects.setFadeTransparency(1);
@@ -541,6 +541,20 @@ export class Loader {
         }
       }
 
+      // Step 2.5: 预读玩家 npcIni 以设置 NpcIniIndex
+      // 必须在加载武功列表之前设置，否则 SpecialAttackTexture 预加载会使用错误的索引
+      // 例如 z-杨影枫2.ini -> NpcIniIndex=2 -> 云生结海攻击2.asf（而非默认的1）
+      const playerPath = `${basePath}/Player${chrIndex}.ini`;
+      try {
+        const playerConfig = await loadCharacterConfig(playerPath);
+        if (playerConfig?.npcIni) {
+          await player.setNpcIni(playerConfig.npcIni);
+          logger.debug(`[Loader] Pre-set NpcIni: ${playerConfig.npcIni} (index=${player.npcIniIndex})`);
+        }
+      } catch (e) {
+        logger.debug(`[Loader] Could not pre-read player config for NpcIniIndex`, e);
+      }
+
       // Step 3: 加载 Magic、Goods、Memo (72-78%)
       // 先停止替换并清理替换列表
       this.reportProgress(72, "加载武功...");
@@ -563,7 +577,7 @@ export class Loader {
 
       // Step 4: 加载玩家 (78-88%)
       this.reportProgress(78, "加载玩家...");
-      const playerPath = `${basePath}/Player${chrIndex}.ini`;
+      // playerPath 已在 Step 2.5 定义
       logger.debug(`[Loader] Loading player from: ${playerPath}`);
       await player.loadFromFile(playerPath);
 
@@ -1151,8 +1165,19 @@ export class Loader {
    * 在切换角色后调用
    */
   async loadPlayerDataFromMemory(): Promise<void> {
-    const index = this.deps.player.playerIndex;
+    const { player } = this.deps;
+    const index = player.playerIndex;
     logger.log(`[Loader] Loading player (index ${index}) data from memory...`);
+
+    // 预设 NpcIniIndex（从内存或资源文件中提取 npcIni）
+    // 必须在加载武功列表之前设置，否则 SpecialAttackTexture 预加载会使用错误的索引
+    const memoryData = this.characterMemory.get(index);
+    const npcIni = memoryData?.player?.npcIni;
+    if (npcIni) {
+      await player.setNpcIni(npcIni);
+      logger.debug(`[Loader] Pre-set NpcIni from memory: ${npcIni} (index=${player.npcIniIndex})`);
+    }
+
     // 加载新角色的武功/物品
     await this.loadMagicGoodListFromMemory();
     // 加载新角色
@@ -1216,8 +1241,8 @@ export class Loader {
       this.clearCharacterMemory();
 
       // 清空内存文件存储（避免跨存档污染，后面会从存档恢复）
-      npcManager.clearNpcFileStore();
-      objManager.clearObjFileStore();
+      npcManager.clearNpcGroups();
+      objManager.clearObjGroups();
 
       // 清除运行时保存的陷阱数据（避免跨存档污染）
       // Reference: 读档时会从存档复制 Traps.ini 到 save/game/
@@ -1266,6 +1291,13 @@ export class Loader {
       if (data.variables && setVariables) {
         logger.debug(`[Loader] Restoring variables: ${Object.keys(data.variables).length} keys`);
         setVariables(data.variables);
+      }
+
+      // Step 5.5: 预设 NpcIniIndex（从存档数据中提取 npcIni）
+      // 必须在加载武功列表之前设置，否则 SpecialAttackTexture 预加载会使用错误的索引
+      if (data.player?.npcIni) {
+        await player.setNpcIni(data.player.npcIni);
+        logger.debug(`[Loader] Pre-set NpcIni from save: ${data.player.npcIni} (index=${player.npcIniIndex})`);
       }
 
       // Step 6: 加载武功列表 (72-75%)
@@ -1327,68 +1359,51 @@ export class Loader {
       player.loadMagicEffect();
 
       // Step 10: 加载陷阱 (88-90%)
-      // Reference: MapBase.loadTrap() + loadTrapIndexIgnoreList()
-      //
-      // 流程：
-      // 1. CopyGameToSave - 把存档槽的完整 Traps.ini 复制到 save/game/
-      // 2. LoadTrap - 从 save/game/Traps.ini 加载完整配置（替换 _traps）
-      // 3. LoadTrapIgnoreList - 加载忽略列表
-      //
-      // Web 版本：
-      // - 新存档有 mapTraps 字段，包含完整配置，直接使用
-      // - 旧存档没有 mapTraps，需要从初始 Traps.ini 加载基础配置
       this.reportProgress(88, "加载陷阱...");
-      if (data.traps?.mapTraps) {
-        // 新存档格式：存档包含完整的 mapTraps 配置
-        logger.debug(`[Loader] Loading traps from JSON save data...`);
-        this.loadTrapsFromJSON(data.traps);
+      if (data.groups?.trap) {
+        logger.debug(`[Loader] Loading traps from save data...`);
+        this.loadTrapsFromSave(data.snapshot.trap, data.groups.trap);
       } else {
-        // 旧存档格式：从初始存档的 Traps.ini 加载基础配置
-        logger.debug(`[Loader] Loading traps from initial Traps.ini (old save format)...`);
+        logger.debug(`[Loader] Loading traps from initial Traps.ini...`);
         const trapBasePath = ResourcePath.saveBase(0);
         await MapBase.Instance.loadTrap(`${trapBasePath}/Traps.ini`);
-        // 恢复 ignoreList
-        if (data.traps) {
-          this.loadTrapsFromJSON(data.traps);
+        if (data.snapshot?.trap) {
+          this.loadTrapsFromSave(data.snapshot.trap, undefined);
         }
       }
 
-      // Step 11: 从 JSON 恢复 NPC (90-93%)
-      // 清空并从 JSON 存档数据重新创建所有 NPC（而不是从 .npc 文件加载）
-      // Reference: NpcManager.Load() - clears and creates from save file
+      // Step 11: 从快照恢复 NPC (90-93%)
       this.reportProgress(90, "加载 NPC...");
       logger.debug(`[Loader] Loading NPCs...`);
       npcManager.clearAllNpc();
-      if (data.npcData?.npcs && data.npcData.npcs.length > 0) {
-        await this.loadNpcsFromJSON(data.npcData.npcs, npcManager);
+      if (data.snapshot.npc?.length > 0) {
+        await this.loadNpcsFromJSON(data.snapshot.npc, npcManager);
       }
 
-      // Step 11.5: 从 JSON 恢复伙伴 (93-95%)
-      // Reference: Loader.LoadPartner() -> NpcManager.LoadPartner(StorageBase.PartnerFilePath)
+      // Step 11.5: 从快照恢复伙伴 (93-95%)
       this.reportProgress(93, "加载伙伴...");
       logger.debug(`[Loader] Loading partners...`);
-      if (data.partnerData?.npcs && data.partnerData.npcs.length > 0) {
-        await this.loadNpcsFromJSON(data.partnerData.npcs, npcManager);
-        logger.debug(`[Loader] Loaded ${data.partnerData.npcs.length} partners`);
+      if (data.snapshot.partner?.length > 0) {
+        await this.loadNpcsFromJSON(data.snapshot.partner, npcManager);
+        logger.debug(`[Loader] Loaded ${data.snapshot.partner.length} partners`);
       }
 
-      // Step 12: 从 JSON 恢复 Obj (95-98%)
-      // 清空并从 JSON 存档数据重新创建所有 Obj（而不是从 .obj 文件加载）
+      // Step 12: 从快照恢复 Obj (95-98%)
       this.reportProgress(95, "加载物体...");
       logger.debug(`[Loader] Loading Objs...`);
       objManager.clearAll();
-      if (data.objData?.objs && data.objData.objs.length > 0) {
-        await this.loadObjsFromJSON(data.objData.objs, objManager);
+      if (data.snapshot.obj?.length > 0) {
+        await this.loadObjsFromJSON(data.snapshot.obj, objManager);
       }
 
-      // Step 12.5: 恢复内存中的 NPC/Obj 文件存储
-      if (data.npcFileStore) {
-        npcManager.setNpcFileStore(data.npcFileStore);
-        logger.debug(`[Loader] Restored NPC file store (${Object.keys(data.npcFileStore).length} files)`);
+      // Step 12.5: 恢复分组存储
+      if (data.groups?.npc) {
+        npcManager.setNpcGroups(data.groups.npc);
+        logger.debug(`[Loader] Restored NPC groups (${Object.keys(data.groups.npc).length} files)`);
       }
-      if (data.objFileStore) {
-        objManager.setObjFileStore(data.objFileStore);
-        logger.debug(`[Loader] Restored Obj file store (${Object.keys(data.objFileStore).length} files)`);
+      if (data.groups?.obj) {
+        objManager.setObjGroups(data.groups.obj);
+        logger.debug(`[Loader] Restored Obj groups (${Object.keys(data.groups.obj).length} files)`);
       }
 
       // Step 13: 加载选项设置
@@ -1626,30 +1641,23 @@ export class Loader {
         items: memoListManager.getItems(),
       },
 
-      // 陷阱
-      traps: this.collectTrapsData(),
-
-      // NPC 数据 (不包含伙伴) - 委托给 NpcManager.collectNpcSaveItems
-      npcData: {
-        npcs: npcManager.collectNpcSaveItems(false),
+      // 快照 - 存档瞬间各实体的当前状态
+      snapshot: {
+        npc: npcManager.collectSnapshot(false),
+        partner: npcManager.collectSnapshot(true),
+        obj: objManager.collectSnapshot(),
+        trap: this.collectTrapSnapshot(),
       },
 
-      // 伙伴数据
-      partnerData: {
-        npcs: npcManager.collectNpcSaveItems(true),
-      },
-
-      // 物体数据 - 委托给 ObjManager.collectObjSaveItems
-      objData: {
-        objs: objManager.collectObjSaveItems(),
+      // 分组 - 脚本按 key 缓存的中间数据
+      groups: {
+        npc: this.serializeGroups(npcManager.getNpcGroups()),
+        obj: this.serializeGroups(objManager.getObjGroups()),
+        trap: this.collectTrapGroups(),
       },
 
       // 多角色数据 (PlayerChange 切换过的角色)
       otherCharacters: this.collectOtherCharactersData(),
-
-      // 内存中的 NPC/Obj 文件存储（脚本 SaveNpc/SaveObj 写入的数据）
-      npcFileStore: this.collectFileStore(npcManager.getNpcFileStore()),
-      objFileStore: this.collectFileStore(objManager.getObjFileStore()),
     };
 
     return saveData;
@@ -1685,7 +1693,7 @@ export class Loader {
   /**
    * 将 Map<string, T[]> 转换为 Record<string, T[]> 用于存档序列化
    */
-  private collectFileStore<T>(store: Map<string, T[]>): Record<string, T[]> | undefined {
+  private serializeGroups<T>(store: Map<string, T[]>): Record<string, T[]> | undefined {
     if (store.size === 0) return undefined;
     const result: Record<string, T[]> = {};
     for (const [key, value] of store) {
@@ -1920,15 +1928,14 @@ export class Loader {
     return items;
   }
 
-  /**
-   * 收集陷阱数据
-   * 使用 MapBase 的方法
-   */
-  private collectTrapsData(): {
-    ignoreList: number[];
-    mapTraps: Record<string, Record<number, string>>;
-  } {
-    return MapBase.Instance.collectTrapDataForSave();
+  /** 收集陷阱快照（已触发的陷阱索引列表） */
+  private collectTrapSnapshot(): number[] {
+    return MapBase.Instance.collectTrapDataForSave().ignoreList;
+  }
+
+  /** 收集陷阱分组（按地图名存储的陷阱配置） */
+  private collectTrapGroups(): Record<string, TrapGroupValue> {
+    return MapBase.Instance.collectTrapDataForSave().mapTraps;
   }
 
 
@@ -2031,17 +2038,14 @@ export class Loader {
   }
 
   /**
-   * 从 JSON 加载陷阱数据
-   * 使用 MapBase 的方法
-   *
-   * 注意：恢复两部分数据：
-   * 1. mapTraps - 动态陷阱配置（通过 SetMapTrap 添加的）
-   * 2. ignoreList - 已触发（被忽略）的陷阱索引列表
+   * 从存档数据恢复陷阱快照和分组
    * 陷阱基础配置应该在此之前通过 LoadTrap() 从 Traps.ini 加载
    */
-  private loadTrapsFromJSON(trapsData: TrapData): void {
-    // 传递完整的 TrapData（包含 ignoreList 和 mapTraps）
-    MapBase.Instance.loadTrapsFromSave(trapsData.mapTraps, trapsData.ignoreList);
+  private loadTrapsFromSave(
+    snapshot: number[],
+    groups: Record<string, TrapGroupValue> | undefined
+  ): void {
+    MapBase.Instance.loadTrapsFromSave(groups, snapshot);
   }
 
   /**

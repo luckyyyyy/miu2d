@@ -257,22 +257,11 @@ export interface ParallelScriptItem {
 }
 
 /**
- * 陷阱数据
- * 参考MapBase.SaveTrap() 和 MapBase.SaveTrapIndexIgnoreList()
- *
- * 存档时需要保存两部分：
- * 1. mapTraps - 动态修改的陷阱配置（通过 SetMapTrap 命令添加/修改的）
- * 2. ignoreList - 已触发（被忽略）的陷阱索引列表
+ * 陷阱分组数据的值类型
+ * 地图名 -> { trapIndex -> scriptFile }
+ * 通过 SetMapTrap 命令添加/修改的陷阱会覆盖 Traps.ini 中的配置
  */
-export interface TrapData {
-  /** 已触发（被忽略）的陷阱索引列表 */
-  ignoreList: number[];
-  /**
-   * 动态陷阱配置（地图名 -> { trapIndex -> scriptFile }）
-   * 通过 SetMapTrap 命令添加/修改的陷阱会覆盖 Traps.ini 中的配置
-   */
-  mapTraps?: Record<string, Record<number, string>>;
-}
+export type TrapGroupValue = Record<number, string>;
 
 /**
  * NPC 保存数据 ()
@@ -415,12 +404,7 @@ export interface NpcSaveItem {
   levelIniFile?: string;
 }
 
-/**
- * NPC 数据
- */
-export interface NpcSaveData {
-  npcs: NpcSaveItem[];
-}
+// NpcSaveData wrapper removed - use NpcSaveItem[] directly in SaveData
 
 /**
  * 物体保存数据 ()
@@ -458,12 +442,7 @@ export interface ObjSaveItem {
   isRemoved: boolean;
 }
 
-/**
- * 物体数据
- */
-export interface ObjSaveData {
-  objs: ObjSaveItem[];
-}
+// ObjSaveData wrapper removed - use ObjSaveItem[] directly in SaveData
 
 /**
  * 多角色存档数据
@@ -518,14 +497,10 @@ export interface SaveData {
   replaceMagicLists?: object;
   /** 备忘录 */
   memo: MemoData;
-  /** 陷阱 */
-  traps: TrapData;
-  /** NPC 数据 (不包含伙伴) */
-  npcData: NpcSaveData;
-  /** 伙伴数据 */
-  partnerData: NpcSaveData;
-  /** 物体数据 */
-  objData: ObjSaveData;
+  /** 快照 - 存档瞬间各实体的当前状态 */
+  snapshot: SaveSnapshot;
+  /** 分组 - 脚本 SaveNpc/SaveObj/SetMapTrap 按 key 缓存的数据 */
+  groups: SaveGroups;
   /** 截图预览 (base64) */
   screenshot?: string;
   /**
@@ -534,18 +509,28 @@ export interface SaveData {
    * 保存在 PlayerChange 切换过程中保存到内存的角色数据
    */
   otherCharacters?: Record<number, CharacterSaveSlot>;
+}
 
-  /**
-   * 内存中的 NPC 文件存储（脚本 SaveNpc 写入的数据）
-   * key: 文件名 (如 "map033.npc"), value: NPC 数据数组
-   */
-  npcFileStore?: Record<string, NpcSaveItem[]>;
+/** 快照 - 存档瞬间各实体的当前状态 */
+export interface SaveSnapshot {
+  /** 当前地图上活跃的 NPC（不含伙伴） */
+  npc: NpcSaveItem[];
+  /** 当前跟随的伙伴 */
+  partner: NpcSaveItem[];
+  /** 当前地图上的物体 */
+  obj: ObjSaveItem[];
+  /** 已触发（被忽略）的陷阱索引列表 */
+  trap: number[];
+}
 
-  /**
-   * 内存中的 Obj 文件存储（脚本 SaveObj 写入的数据）
-   * key: 文件名 (如 "map033_obj.obj"), value: Obj 数据数组
-   */
-  objFileStore?: Record<string, ObjSaveItem[]>;
+/** 分组 - 脚本按 key 缓存的中间数据 */
+export interface SaveGroups {
+  /** SaveNpc() 按文件名存储 (如 "map033.npc" → NPC[]) */
+  npc?: Record<string, NpcSaveItem[]>;
+  /** SaveObj() 按文件名存储 (如 "map033_obj.obj" → Obj[]) */
+  obj?: Record<string, ObjSaveItem[]>;
+  /** SetMapTrap() 按地图名存储 (如 "m01" → { index → script }) */
+  trap?: Record<string, TrapGroupValue>;
 }
 
 /**

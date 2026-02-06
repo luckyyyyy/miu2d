@@ -49,12 +49,12 @@ export class NpcManager {
   private fileName: string = "";
 
   /**
-   * 内存中的 NPC 文件存储
+   * NPC 分组存储
    * 模拟 C# 原版的 save/game/{fileName} 文件系统
    * 脚本调用 SaveNpc() 时将当前 NPC 列表序列化存入，LoadNpc() 时优先从此读取
    * 存档时持久化到 localStorage，读档时恢复
    */
-  private npcFileStore: Map<string, NpcSaveItem[]> = new Map();
+  private npcGroups: Map<string, NpcSaveItem[]> = new Map();
 
   // List of dead NPCs
   private _deadNpcs: Npc[] = [];
@@ -1006,18 +1006,18 @@ export class NpcManager {
     this.fileName = saveFileName;
 
     // 序列化当前所有非伙伴 NPC 到内存存储
-    const items = this.collectNpcSaveItems(false);
-    this.npcFileStore.set(saveFileName, items);
+    const items = this.collectSnapshot(false);
+    this.npcGroups.set(saveFileName, items);
 
-    logger.log(`[NpcManager] SaveNpc: ${saveFileName} (${items.length} NPCs saved to memory store)`);
+    logger.log(`[NpcManager] SaveNpc: ${saveFileName} (${items.length} NPCs saved to groups)`);
   }
 
   /**
-   * 收集当前 NPC 数据为 NpcSaveItem[]
+   * 收集当前 NPC 快照为 NpcSaveItem[]
    * 从 Loader.collectNpcData 提取的核心逻辑
    * @param partnersOnly 是否只收集伙伴
    */
-  collectNpcSaveItems(partnersOnly: boolean): NpcSaveItem[] {
+  collectSnapshot(partnersOnly: boolean): NpcSaveItem[] {
     const items: NpcSaveItem[] = [];
 
     for (const [, npc] of this.npcs) {
@@ -1134,27 +1134,27 @@ export class NpcManager {
   }
 
   /**
-   * 获取内存文件存储（用于 Loader 存档时持久化）
+   * 获取 NPC 分组存储（用于 Loader 存档时持久化）
    */
-  getNpcFileStore(): Map<string, NpcSaveItem[]> {
-    return this.npcFileStore;
+  getNpcGroups(): Map<string, NpcSaveItem[]> {
+    return this.npcGroups;
   }
 
   /**
-   * 设置内存文件存储（用于 Loader 读档时恢复）
+   * 设置 NPC 分组存储（用于 Loader 读档时恢复）
    */
-  setNpcFileStore(store: Record<string, NpcSaveItem[]>): void {
-    this.npcFileStore.clear();
+  setNpcGroups(store: Record<string, NpcSaveItem[]>): void {
+    this.npcGroups.clear();
     for (const [key, value] of Object.entries(store)) {
-      this.npcFileStore.set(key, value);
+      this.npcGroups.set(key, value);
     }
   }
 
   /**
-   * 清空内存文件存储（新游戏时调用）
+   * 清空 NPC 分组存储（新游戏时调用）
    */
-  clearNpcFileStore(): void {
-    this.npcFileStore.clear();
+  clearNpcGroups(): void {
+    this.npcGroups.clear();
   }
 
   /**
@@ -1187,10 +1187,10 @@ export class NpcManager {
     }
 
     // 序列化当前所有伙伴 NPC 到内存存储
-    const items = this.collectNpcSaveItems(true);
-    this.npcFileStore.set(fileName, items);
+    const items = this.collectSnapshot(true);
+    this.npcGroups.set(fileName, items);
 
-    logger.log(`[NpcManager] SavePartner: ${fileName} (${items.length} partners saved to memory store)`);
+    logger.log(`[NpcManager] SavePartner: ${fileName} (${items.length} partners saved to groups)`);
   }
 
   /**
@@ -1344,20 +1344,20 @@ export class NpcManager {
   private async loadNpcFileInternal(fileName: string, clearCurrentNpcs: boolean): Promise<boolean> {
     logger.log(`[NpcManager] Loading NPC file: ${fileName} (clear=${clearCurrentNpcs})`);
 
-    // 1. 优先从内存文件存储加载（模拟 C# 的 save/game/ 目录）
-    const storedData = this.npcFileStore.get(fileName);
+    // 1. 优先从 NPC 分组存储加载（模拟 C# 的 save/game/ 目录）
+    const storedData = this.npcGroups.get(fileName);
     if (storedData) {
       if (clearCurrentNpcs) {
         this.clearAllNpcAndKeepPartner();
       }
 
-      logger.log(`[NpcManager] Loading ${storedData.length} NPCs from memory store: ${fileName}`);
+      logger.log(`[NpcManager] Loading ${storedData.length} NPCs from groups: ${fileName}`);
       for (const npcData of storedData) {
         if (npcData.isDeath && npcData.isDeathInvoked) continue;
         await this.createNpcFromData(npcData as unknown as Record<string, unknown>);
       }
       this.fileName = fileName;
-      logger.log(`[NpcManager] Loaded ${this.npcs.size} NPCs from memory store: ${fileName}`);
+      logger.log(`[NpcManager] Loaded ${this.npcs.size} NPCs from groups: ${fileName}`);
       return true;
     }
 

@@ -6,6 +6,7 @@ import {
   renderMap,
   setCameraSize,
   updateCamera,
+  Canvas2DRenderer,
 } from "@miu2d/engine";
 import { logger } from "@miu2d/engine/core/logger";
 import { useEffect, useRef, useState } from "react";
@@ -184,8 +185,8 @@ export function MapViewer({ mapPath, onMapLoaded, width = 1440, height = 900 }: 
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+    const tileRenderer = new Canvas2DRenderer();
+    if (!tileRenderer.init(canvas)) return;
 
     let lastTime = performance.now();
     const cameraSpeed = 500; // pixels per second
@@ -218,7 +219,7 @@ export function MapViewer({ mapPath, onMapLoaded, width = 1440, height = 900 }: 
         }
 
         // Render
-        renderMap(ctx, renderer);
+        renderMap(tileRenderer, renderer);
       }
 
       animationFrameRef.current = requestAnimationFrame(gameLoop);

@@ -17,6 +17,13 @@ export interface AsfFrame {
   canvas: HTMLCanvasElement | null;
 }
 
+/** ASF 帧图集：所有帧打包到一张 canvas 中，减少纹理切换 */
+export interface AsfAtlas {
+  canvas: HTMLCanvasElement;
+  /** 每帧在 atlas 中的源矩形 */
+  rects: { x: number; y: number; w: number; h: number }[];
+}
+
 export interface AsfData {
   width: number;
   height: number;
@@ -29,6 +36,8 @@ export interface AsfData {
   framesPerDirection: number;
   frames: AsfFrame[];
   isLoaded: boolean;
+  /** 帧图集（延迟创建） */
+  atlas?: AsfAtlas;
 }
 
 export function clearAsfCache(): void {
@@ -47,7 +56,7 @@ export async function loadAsf(url: string): Promise<AsfData | null> {
   return resourceLoader.loadParsedBinary<AsfData>(url, decodeAsfWasm, "asf");
 }
 
-/** 获取帧的 canvas（延迟创建） */
+/** 获取帧的 canvas（延迟创建）— 用于 UI 预览等非批量渲染场景 */
 export function getFrameCanvas(frame: AsfFrame): HTMLCanvasElement {
   if (frame.canvas) return frame.canvas;
 
@@ -60,33 +69,78 @@ export function getFrameCanvas(frame: AsfFrame): HTMLCanvasElement {
   return canvas;
 }
 
+/** 构建 ASF 帧图集：将所有帧打包到一张 canvas（网格排列） */
+function buildAsfAtlas(asf: AsfData): AsfAtlas {
+  const frames = asf.frames;
+  if (frames.length === 0) {
+    const c = document.createElement("canvas");
+    c.width = 1;
+    c.height = 1;
+    return { canvas: c, rects: [] };
+  }
+
+  // ASF 所有帧尺寸相同（来自 header 的 width/height）
+  const fw = asf.width;
+  const fh = asf.height;
+
+  // 网格排列：每行最多 16 帧
+  const cols = Math.min(frames.length, 16);
+  const rows = Math.ceil(frames.length / cols);
+
+  const atlasW = cols * fw;
+  const atlasH = rows * fh;
+
+  const canvas = document.createElement("canvas");
+  canvas.width = atlasW;
+  canvas.height = atlasH;
+  const ctx = canvas.getContext("2d");
+
+  const rects: { x: number; y: number; w: number; h: number }[] = [];
+
+  if (ctx) {
+    for (let i = 0; i < frames.length; i++) {
+      const col = i % cols;
+      const row = Math.floor(i / cols);
+      const x = col * fw;
+      const y = row * fh;
+      ctx.putImageData(frames[i].imageData, x, y);
+      rects.push({ x, y, w: frames[i].width, h: frames[i].height });
+    }
+  }
+
+  return { canvas, rects };
+}
+
+/** 获取 ASF 的帧图集（延迟创建并缓存） */
+export function getAsfAtlas(asf: AsfData): AsfAtlas {
+  if (asf.atlas) return asf.atlas;
+  asf.atlas = buildAsfAtlas(asf);
+  return asf.atlas;
+}
+
+/**
+ * 获取帧的图集绘制信息（用于批量渲染的热路径）
+ * 返回共享的 atlas canvas + 帧在 atlas 中的源区域
+ */
+export function getFrameAtlasInfo(
+  asf: AsfData,
+  frameIdx: number
+): { canvas: HTMLCanvasElement; srcX: number; srcY: number; srcWidth: number; srcHeight: number } {
+  const atlas = getAsfAtlas(asf);
+  const rect = atlas.rects[frameIdx];
+  return {
+    canvas: atlas.canvas,
+    srcX: rect.x,
+    srcY: rect.y,
+    srcWidth: rect.w,
+    srcHeight: rect.h,
+  };
+}
+
 /** 获取帧索引 */
 export function getFrameIndex(asf: AsfData, direction: number, animFrame: number): number {
   if (!asf || asf.frameCount === 0) return 0;
   const dir = Math.min(direction, Math.max(0, asf.directions - 1));
   const framesPerDir = asf.framesPerDirection || 1;
   return Math.min(dir * framesPerDir + (animFrame % framesPerDir), asf.frames.length - 1);
-}
-
-/** 绘制 ASF 帧 */
-export function drawAsfFrame(
-  ctx: CanvasRenderingContext2D,
-  asf: AsfData,
-  frameIndex: number,
-  x: number,
-  y: number,
-  flipX: boolean = false
-): void {
-  if (!asf || frameIndex < 0 || frameIndex >= asf.frames.length) return;
-
-  const canvas = getFrameCanvas(asf.frames[frameIndex]);
-  ctx.save();
-  if (flipX) {
-    ctx.translate(x + asf.width, y);
-    ctx.scale(-1, 1);
-    ctx.drawImage(canvas, 0, 0);
-  } else {
-    ctx.drawImage(canvas, x, y);
-  }
-  ctx.restore();
 }

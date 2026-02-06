@@ -10,7 +10,9 @@ import type { Vector2 } from "../core/types";
 import { CharacterState } from "../core/types";
 import { getDirectionIndex, pixelToTile, tileToPixel } from "../utils";
 import { getOuterEdge } from "../utils/edgeDetection";
-import { type AsfData, type AsfFrame, getFrameCanvas, getFrameIndex, loadAsf } from "../resource/asf";
+import type { IRenderer } from "../webgl/IRenderer";
+import type { ColorFilter } from "../webgl/types";
+import { type AsfData, type AsfFrame, getFrameAtlasInfo, getFrameCanvas, getFrameIndex, loadAsf } from "../resource/asf";
 
 /** 角色状态对应的 ASF 动画集 */
 export interface SpriteSet {
@@ -58,11 +60,11 @@ export function createEmptySpriteSet(): SpriteSet {
 
 const spriteCache = new Map<string, SpriteSet>();
 
-/** 颜色效果对应的 CSS 滤镜（提取为常量避免每帧创建对象） */
-const COLOR_FILTERS: Readonly<Record<string, string>> = {
-  black: "grayscale(100%)",
-  frozen: "sepia(100%) saturate(300%) hue-rotate(180deg)",
-  poison: "sepia(100%) saturate(300%) hue-rotate(60deg)",
+/** 颜色名称 → IRenderer ColorFilter 映射 */
+const COLOR_FILTER_MAP: Readonly<Record<string, ColorFilter>> = {
+  black: "grayscale",
+  frozen: "frozen",
+  poison: "poison",
 } as const;
 
 /** 尝试加载 ASF 文件，支持后缀回退 */
@@ -512,18 +514,18 @@ export class Sprite {
 
   /** 绘制精灵 */
   draw(
-    ctx: CanvasRenderingContext2D,
+    renderer: IRenderer,
     cameraX: number,
     cameraY: number,
     offX: number = 0,
     offY: number = 0
   ): void {
-    this.drawWithColor(ctx, cameraX, cameraY, Sprite.drawColor, offX, offY);
+    this.drawWithColor(renderer, cameraX, cameraY, Sprite.drawColor, offX, offY);
   }
 
   /** 带颜色效果绘制（"black"灰度/"frozen"冰冻/"poison"中毒） */
   drawWithColor(
-    ctx: CanvasRenderingContext2D,
+    renderer: IRenderer,
     cameraX: number,
     cameraY: number,
     color: string = "white",
@@ -539,27 +541,25 @@ export class Sprite {
     const frameIdx = getFrameIndex(this._texture, dir, this._currentFrameIndex);
 
     if (frameIdx >= 0 && frameIdx < this._texture.frames.length) {
-      const frame = this._texture.frames[frameIdx];
-      const canvas = getFrameCanvas(frame);
       const drawX = screenX - this._texture.left + offX;
       const drawY = screenY - this._texture.bottom + offY;
 
-      // 使用模块级常量避免每帧创建对象
-      const filter = COLOR_FILTERS[color];
-      if (filter) {
-        ctx.save();
-        ctx.filter = filter;
-        ctx.drawImage(canvas, drawX, drawY);
-        ctx.restore();
-      } else {
-        ctx.drawImage(canvas, drawX, drawY);
-      }
+      // 使用 atlas 绘制（同一 ASF 的所有帧共享一张纹理，减少纹理切换）
+      const { canvas, srcX, srcY, srcWidth, srcHeight } = getFrameAtlasInfo(this._texture, frameIdx);
+      const filter = COLOR_FILTER_MAP[color];
+      renderer.drawSourceEx(canvas, drawX, drawY, {
+        srcX,
+        srcY,
+        srcWidth,
+        srcHeight,
+        filter,
+      });
     }
   }
 
   /** 绘制高亮边缘 */
   drawHighlight(
-    ctx: CanvasRenderingContext2D,
+    renderer: IRenderer,
     cameraX: number,
     cameraY: number,
     highlightColor: string = "rgba(255, 255, 0, 0.6)"
@@ -576,7 +576,8 @@ export class Sprite {
       const canvas = getFrameCanvas(frame);
       const drawX = screenX - this._texture.left;
       const drawY = screenY - this._texture.bottom;
-      ctx.drawImage(getOuterEdge(canvas, highlightColor), drawX, drawY);
+      // 高亮边缘仍用 per-frame canvas（需要像素操作）
+      renderer.drawSource(getOuterEdge(canvas, highlightColor), drawX, drawY);
     }
   }
 

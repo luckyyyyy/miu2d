@@ -57,3 +57,7 @@ export * from "./ui";
 export * from "./utils";
 // Weather system
 export * from "./weather";
+// WebGL / Renderer abstraction
+export { createRenderer, isWebGLAvailable, Canvas2DRenderer, type RendererBackend } from "./webgl";
+export type { IRenderer } from "./webgl/IRenderer";
+export type { TextureInfo, RenderStats, BlendMode, ColorFilter } from "./webgl/types";

@@ -88,7 +88,7 @@
   },
   "features": {
     "title": "强大的引擎能力",
-    "subtitle": "TypeScript + React + Canvas 打造的现代化 2D RPG 引擎"
+    "subtitle": "TypeScript + React + WebGL 打造的现代化 2D RPG 引擎"
   },
   "feature": {
     "map": {

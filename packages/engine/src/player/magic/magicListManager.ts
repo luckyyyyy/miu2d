@@ -302,7 +302,7 @@ export class MagicListManager {
     for (const path of paths) {
       const asf = await loadAsf(path);
       if (asf) {
-        logger.debug(`[MagicListManager] Preloaded SpecialAttackTexture: ${path}`);
+        // logger.debug(`[MagicListManager] Preloaded SpecialAttackTexture: ${path}`);
         return;
       }
     }

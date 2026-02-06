@@ -267,7 +267,7 @@ export abstract class PlayerBase extends Character {
         const asf = getCachedAsf(path);
         if (asf) {
           this._specialAttackTexture = asf;
-          logger.debug(`[Player] Got cached SpecialAttackTexture: ${path}`);
+          // logger.debug(`[Player] Got cached SpecialAttackTexture: ${path}`);
           break;
         }
       }
@@ -277,7 +277,7 @@ export abstract class PlayerBase extends Character {
       const baseMagic = getMagic(xiuLianMagic.magic.attackFile);
       if (baseMagic) {
         this._xiuLianAttackMagic = baseMagic;
-        logger.debug(`[Player] Got cached XiuLianAttackMagic: ${baseMagic.name}`);
+        // logger.debug(`[Player] Got cached XiuLianAttackMagic: ${baseMagic.name}`);
       } else {
         logger.warn(`[Player] XiuLianAttackMagic not in cache: ${xiuLianMagic.magic.attackFile}`);
         this._xiuLianAttackMagic = null;

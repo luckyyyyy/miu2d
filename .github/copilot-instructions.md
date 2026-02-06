@@ -4,12 +4,12 @@
 
 **Miu2D Engine** - 基于 Web 技术的 2D RPG 游戏引擎，复刻《剑侠情缘外传：月影传说》。
 
-- **本项目**：TypeScript + React 19 + Canvas API
+- **本项目**：TypeScript + React 19 + WebGL
 
 ### 技术栈
 - TypeScript 5.9 (strict mode)
 - React 19, Vite 7 (rolldown-vite)
-- HTML5 Canvas 2D
+- WebGL 高性能渲染（Canvas 2D 回退）
 - Tailwind CSS 4
 - Web Audio API (OGG Vorbis)
 - Biome (lint + format)

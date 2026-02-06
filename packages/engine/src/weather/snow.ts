@@ -7,6 +7,7 @@
  * - 雪花带有随机方向和速度
  * - 屏幕边界循环（雪花飘出边界时从另一侧进入）
  */
+import type { IRenderer } from "../webgl/IRenderer";
 import { SnowFlake, type SnowFlakeType } from "./snowflake";
 
 // 雪花生成间隔（毫秒）
@@ -136,16 +137,15 @@ export class Snow {
 
   /**
    * 绘制雪效果
-   * 性能优化：批量设置 fillStyle，避免每个雪花都调用 save()/restore()
+   * 性能优化：批量使用白色绘制
    */
-  draw(ctx: CanvasRenderingContext2D, cameraX: number, cameraY: number): void {
+  draw(renderer: IRenderer, cameraX: number, cameraY: number): void {
     if (!this._isSnowing || this.snowFlakes.length === 0) return;
 
-    // 批量设置填充样式，所有雪花共用白色
-    ctx.fillStyle = "white";
+    const color = "white";
 
     for (const snowFlake of this.snowFlakes) {
-      snowFlake.draw(ctx, cameraX, cameraY);
+      snowFlake.draw(renderer, cameraX, cameraY, color);
     }
   }
 

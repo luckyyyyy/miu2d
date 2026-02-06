@@ -999,16 +999,18 @@ export class MapBase {
 
   /**
    * 从存档数据恢复陷阱状态
+   * @param groups 陷阱分组（地图名 → { trapIndex → scriptFile }）
+   * @param snapshot 陷阱快照（已触发的陷阱索引列表）
    */
   loadTrapsFromSave(
-    mapTraps: Record<string, Record<number, string>> | undefined,
-    ignoreList: number[]
+    groups: Record<string, Record<number, string>> | undefined,
+    snapshot: number[]
   ): void {
-    // 恢复陷阱配置
-    if (mapTraps) {
+    // 恢复陷阱分组配置
+    if (groups) {
       this._traps.clear();
-      for (const mapName in mapTraps) {
-        const trapObj = mapTraps[mapName];
+      for (const mapName in groups) {
+        const trapObj = groups[mapName];
         const traps = new Map<number, string>();
         for (const trapIndexStr in trapObj) {
           const trapIndex = parseInt(trapIndexStr, 10);
@@ -1021,23 +1023,24 @@ export class MapBase {
           this._traps.set(mapName, traps);
         }
       }
-      logger.debug(`[MapBase] Restored trap config for ${this._traps.size} maps`);
+      logger.debug(`[MapBase] Restored trap groups for ${this._traps.size} maps`);
     }
 
-    // 恢复已忽略的陷阱索引
+    // 恢复陷阱快照（已触发的陷阱索引）
     this._ignoredTrapsIndex.clear();
-    for (const index of ignoreList) {
+    for (const index of snapshot) {
       this._ignoredTrapsIndex.add(index);
     }
-    logger.debug(`[MapBase] Restored ${ignoreList.length} ignored trap indices`);
+    logger.debug(`[MapBase] Restored ${snapshot.length} ignored trap indices`);
   }
 
   /**
    * 收集陷阱数据用于存档
+   * @returns snapshot: 已触发的陷阱索引, groups: 按地图名分组的陷阱配置
    */
   collectTrapDataForSave(): {
-    mapTraps: Record<string, Record<number, string>>;
     ignoreList: number[];
+    mapTraps: Record<string, Record<number, string>>;
   } {
     const mapTraps: Record<string, Record<number, string>> = {};
     for (const [mapName, traps] of this._traps) {

@@ -62,7 +62,7 @@
   },
   "features": {
     "title": "強力なエンジン機能",
-    "subtitle": "TypeScript + React + Canvasで構築されたモダンな2D RPGエンジン"
+    "subtitle": "TypeScript + React + WebGLで構築されたモダンな2D RPGエンジン"
   },
   "feature": {
     "map": {
@@ -103,7 +103,7 @@
     }
   },
   "techStack": {
-    "canvas": "Canvas描画",
+    "canvas": "WebGL描画",
     "react": "React駆動",
     "typescript": "TypeScript",
     "ai": "AI支援"

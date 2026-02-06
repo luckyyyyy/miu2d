@@ -12,6 +12,7 @@
 import type { AudioManager } from "../audio";
 import { ResourcePath } from "../config/resourcePaths";
 import { logger } from "../core/logger";
+import type { IRenderer } from "../webgl/IRenderer";
 import { RainDrop } from "./raindrop";
 
 // 下雨时的地图/精灵颜色（灰色）
@@ -186,13 +187,13 @@ export class Rain {
 
   /**
    * 绘制雨效果
-   * @param ctx Canvas 上下文
+   * @param renderer IRenderer 实例
    */
-  draw(ctx: CanvasRenderingContext2D): void {
+  draw(renderer: IRenderer): void {
     if (!this._isRaining) return;
 
     for (const drop of this.rainDrops) {
-      drop.draw(ctx);
+      drop.draw(renderer);
     }
   }
 

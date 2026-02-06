@@ -7,8 +7,9 @@
 import { ResourcePath } from "../config/resourcePaths";
 import { logger } from "../core/logger";
 import type { AsfData } from "../resource/asf";
-import { getFrameCanvas, loadAsf } from "../resource/asf";
+import { getFrameAtlasInfo, getFrameCanvas, loadAsf } from "../resource/asf";
 import { getDirectionIndex } from "../utils/direction";
+import type { IRenderer } from "../webgl/IRenderer";
 import type { MagicSprite } from "./magicSprite";
 
 /**
@@ -101,7 +102,7 @@ export class MagicRenderer {
       for (const path of possiblePaths) {
         asfData = await loadAsf(path);
         if (asfData) {
-          logger.debug(`[MagicRenderer] Loaded ASF from: ${path}`);
+          // logger.debug(`[MagicRenderer] Loaded ASF from: ${path}`);
           break;
         }
       }
@@ -131,7 +132,7 @@ export class MagicRenderer {
    * 渲染武功精灵
    */
   render(
-    ctx: CanvasRenderingContext2D,
+    renderer: IRenderer,
     sprite: MagicSprite,
     cameraX: number,
     cameraY: number
@@ -146,24 +147,24 @@ export class MagicRenderer {
     if (sprite.isSuperMode && sprite.isInDestroy) {
       // SuperMode 销毁状态：渲染所有特效精灵
       for (const effectSprite of sprite.superModeDestroySprites) {
-        this.renderSingleSprite(ctx, effectSprite, cameraX, cameraY);
+        this.renderSingleSprite(renderer, effectSprite, cameraX, cameraY);
       }
       // 调用完 superModeDestroySprites 后也调用 base.Draw
       // 但因为 flyingAsfPath 已被清除（Texture = null），base.Draw 实际不会绘制任何东西
       // 这里为了完全一致，我们也尝试渲染主精灵（会因为 asfPath 为空而跳过）
-      this.renderSingleSprite(ctx, sprite, cameraX, cameraY);
+      this.renderSingleSprite(renderer, sprite, cameraX, cameraY);
       return;
     }
 
     // 普通渲染
-    this.renderSingleSprite(ctx, sprite, cameraX, cameraY);
+    this.renderSingleSprite(renderer, sprite, cameraX, cameraY);
   }
 
   /**
    * 渲染单个精灵（内部方法）
    */
   private renderSingleSprite(
-    ctx: CanvasRenderingContext2D,
+    renderer: IRenderer,
     sprite: MagicSprite,
     cameraX: number,
     cameraY: number
@@ -177,9 +178,9 @@ export class MagicRenderer {
     // 屏幕外裁剪
     if (
       screenX < -100 ||
-      screenX > ctx.canvas.width + 100 ||
+      screenX > renderer.width + 100 ||
       screenY < -100 ||
-      screenY > ctx.canvas.height + 100
+      screenY > renderer.height + 100
     ) {
       return;
     }
@@ -200,7 +201,7 @@ export class MagicRenderer {
 
     if (cached === null) {
       // 还没加载完成或加载失败，绘制占位符
-      this.renderPlaceholder(ctx, screenX, screenY, sprite);
+      this.renderPlaceholder(renderer, screenX, screenY, sprite);
       return;
     }
 
@@ -275,35 +276,37 @@ export class MagicRenderer {
     // 获取帧图像
     const frame = cached.asf.frames[frameIndex];
     if (!frame) {
-      this.renderPlaceholder(ctx, screenX, screenY, sprite);
+      this.renderPlaceholder(renderer, screenX, screenY, sprite);
       return;
     }
 
-    // 获取帧的 canvas（会缓存）
-    const frameCanvas = getFrameCanvas(frame);
-
     // 计算绘制位置
-    // Rectangle des = Globals.TheCarmera.ToViewRegion(new Rectangle(
-    //   (int)PositionInWorld.X - Texture.Left + offX,
-    //   (int)PositionInWorld.Y - Texture.Bottom + offY,
-    //   texture.Width, texture.Height));
-    // 注意：ASF 的 left 和 bottom 是锚点偏移量
     const drawX = screenX - cached.asf.left;
     const drawY = screenY - cached.asf.bottom;
 
-    // 绘制帧
-    ctx.drawImage(frameCanvas, drawX, drawY);
+    // 使用 atlas 绘制（减少纹理切换）
+    const atlasInfo = getFrameAtlasInfo(cached.asf, frameIndex);
+    renderer.drawSourceEx(atlasInfo.canvas, drawX, drawY, {
+      srcX: atlasInfo.srcX,
+      srcY: atlasInfo.srcY,
+      srcWidth: atlasInfo.srcWidth,
+      srcHeight: atlasInfo.srcHeight,
+    });
   }
 
   /**
    * 渲染占位符（当 ASF 未加载或不存在时）
+   * 占位符使用 Canvas2D API（text, arc 等），通过 getContext2D 回退
    */
   private renderPlaceholder(
-    ctx: CanvasRenderingContext2D,
+    renderer: IRenderer,
     screenX: number,
     screenY: number,
     sprite: MagicSprite
   ): void {
+    const ctx = renderer.getContext2D();
+    if (!ctx) return;
+
     const size = 32;
 
     // 根据武功类型选择颜色
@@ -356,7 +359,7 @@ export class MagicRenderer {
    * 渲染所有武功精灵（供 Game 组件调用）
    */
   renderAll(
-    ctx: CanvasRenderingContext2D,
+    renderer: IRenderer,
     sprites: Map<number, MagicSprite>,
     effectSprites: Map<number, MagicSprite>,
     cameraX: number,
@@ -364,12 +367,12 @@ export class MagicRenderer {
   ): void {
     // 先渲染飞行中的武功
     for (const sprite of sprites.values()) {
-      this.render(ctx, sprite, cameraX, cameraY);
+      this.render(renderer, sprite, cameraX, cameraY);
     }
 
     // 再渲染特效（消失动画）
     for (const sprite of effectSprites.values()) {
-      this.render(ctx, sprite, cameraX, cameraY);
+      this.render(renderer, sprite, cameraX, cameraY);
     }
   }
 

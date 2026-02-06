@@ -88,7 +88,7 @@
   },
   "features": {
     "title": "Powerful Engine Features",
-    "subtitle": "Modern 2D RPG Engine built with TypeScript + React + Canvas"
+    "subtitle": "Modern 2D RPG Engine built with TypeScript + React + WebGL"
   },
   "feature": {
     "map": {

@@ -3,6 +3,8 @@
  * Handles fade in/out, color tinting, and other screen effects
  */
 
+import type { IRenderer } from "../webgl/IRenderer";
+
 export interface Color {
   r: number;
   g: number;
@@ -189,27 +191,33 @@ export class ScreenEffects {
    * Draw fade overlay on canvas
    * Based on ScriptExecuter.DrawFade()
    */
-  drawFade(ctx: CanvasRenderingContext2D, width: number, height: number): void {
+  drawFade(renderer: IRenderer, width: number, height: number): void {
     if (this.state.fadeTransparency > 0) {
-      ctx.save();
-      ctx.fillStyle = `rgba(0, 0, 0, ${this.state.fadeTransparency})`;
-      ctx.fillRect(0, 0, width, height);
-      ctx.restore();
+      renderer.fillRect({
+        x: 0,
+        y: 0,
+        width,
+        height,
+        color: `rgba(0, 0, 0, ${this.state.fadeTransparency})`,
+      });
     }
   }
 
   /**
    * Draw flash overlay on canvas
    */
-  drawFlash(ctx: CanvasRenderingContext2D, width: number, height: number): void {
+  drawFlash(renderer: IRenderer, width: number, height: number): void {
     if (this.state.isFlashing) {
       const progress = this.state.flashElapsed / this.state.flashDuration;
       const alpha = (Math.max(0, 1 - progress) * (this.state.flashColor.a ?? 255)) / 255;
 
-      ctx.save();
-      ctx.fillStyle = `rgba(${this.state.flashColor.r}, ${this.state.flashColor.g}, ${this.state.flashColor.b}, ${alpha})`;
-      ctx.fillRect(0, 0, width, height);
-      ctx.restore();
+      renderer.fillRect({
+        x: 0,
+        y: 0,
+        width,
+        height,
+        color: `rgba(${this.state.flashColor.r}, ${this.state.flashColor.g}, ${this.state.flashColor.b}, ${alpha})`,
+      });
     }
   }
 

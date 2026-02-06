@@ -40,6 +40,7 @@ import type { JxqyMapData } from "../core/mapTypes";
 import type { GameVariables, InputState, Vector2 } from "../core/types";
 import type { DebugManager } from "../debug";
 import type { ScreenEffects } from "../effects";
+import type { IRenderer } from "../webgl/IRenderer";
 import { BuyManager } from "../gui/buyManager";
 import { GuiManager } from "../gui/guiManager";
 import type { MemoListManager, TalkTextListManager } from "../listManager";
@@ -1044,9 +1045,9 @@ export class GameManager {
     return this.screenEffects;
   }
 
-  drawScreenEffects(ctx: CanvasRenderingContext2D, width: number, height: number): void {
-    this.screenEffects.drawFade(ctx, width, height);
-    this.screenEffects.drawFlash(ctx, width, height);
+  drawScreenEffects(renderer: IRenderer, width: number, height: number): void {
+    this.screenEffects.drawFade(renderer, width, height);
+    this.screenEffects.drawFlash(renderer, width, height);
   }
 
   isFading(): boolean {
@@ -1146,12 +1147,13 @@ export class GameManager {
    * Web 版实现：保存到 localStorage（按存档槽位区分），在 loadGame 时会读取并合并。
    */
   saveMapTrap(): void {
-    const trapData = MapBase.Instance.collectTrapDataForSave();
+    const { ignoreList, mapTraps } = MapBase.Instance.collectTrapDataForSave();
     try {
       const key = this.getRuntimeTrapsKey();
+      const trapData = { snapshot: ignoreList, groups: mapTraps };
       localStorage.setItem(key, JSON.stringify(trapData));
       logger.log(
-        `[GameManager] SaveMapTrap: saved ${trapData.ignoreList.length} ignored indices, ${Object.keys(trapData.mapTraps || {}).length} map configs to ${key}`
+        `[GameManager] SaveMapTrap: saved ${ignoreList.length} snapshot indices, ${Object.keys(mapTraps).length} groups to ${key}`
       );
     } catch (e) {
       logger.error("[GameManager] SaveMapTrap failed:", e);
@@ -1179,12 +1181,11 @@ export class GameManager {
       if (!json) return false;
 
       const trapData = JSON.parse(json) as {
-        ignoreList: number[];
-        mapTraps?: Record<string, Record<number, string>>;
+        snapshot: number[];
+        groups?: Record<string, Record<number, string>>;
       };
 
-      // 使用 MapBase 的方法恢复陷阱数据
-      MapBase.Instance.loadTrapsFromSave(trapData.mapTraps, trapData.ignoreList || []);
+      MapBase.Instance.loadTrapsFromSave(trapData.groups, trapData.snapshot || []);
 
       logger.log(`[GameManager] LoadRuntimeTraps: merged runtime trap data from ${key}`);
       return true;
