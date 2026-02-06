@@ -2,11 +2,12 @@
  * 物品编辑页面 - 完整实现
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { NumberInput } from "@/components/common";
 import { trpc } from "../../../../lib/trpc";
 import { useToast } from "../../../../contexts/ToastContext";
-import { DashboardIcons } from "../../icons";
+import { DetailPageLayout } from "../../components/DetailPageLayout";
+import { EditorEmptyState } from "../../components/EditorEmptyState";
 import { useDashboard } from "../../DashboardContext";
 import { buildGoodsImageUrl } from "../../utils";
 import { getFrameCanvas } from "@miu2d/engine/resource/asf";
@@ -264,17 +265,11 @@ function GoodsPreview({ goods, gameSlug }: GoodsPreviewProps) {
 
 export function GoodsListPage() {
   return (
-    <div className="h-full flex items-center justify-center">
-      <div className="text-center max-w-md">
-        <div className="text-6xl mb-6">📦</div>
-        <h2 className="text-xl font-medium text-white mb-3">物品编辑</h2>
-        <p className="text-[#858585] text-sm leading-relaxed">
-          从左侧列表选择一个物品进行编辑，
-          <br />
-          或使用上方按钮创建新物品、导入 INI 文件。
-        </p>
-      </div>
-    </div>
+    <EditorEmptyState
+      icon="📦"
+      title="物品编辑"
+      description={<>从左侧列表选择一个物品进行编辑，<br />或使用上方按钮创建新物品、导入 INI 文件。</>}
+    />
   );
 }
 
@@ -419,55 +414,28 @@ export function GoodsDetailPage() {
   }
 
   return (
-    <div className="h-full flex flex-col overflow-hidden">
-      {/* 头部 */}
-      <div className="flex-shrink-0 bg-[#1e1e1e] border-b border-[#3c3c3c]">
-        <div className="flex items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-4">
-            <Link
-              to={basePath}
-              className="p-2 rounded-lg hover:bg-[#3c3c3c] text-[#858585] hover:text-white transition-colors"
-            >
-              {DashboardIcons.back}
-            </Link>
-            <div>
-              <h1 className="text-lg font-semibold text-white">
-                {isNew ? "新建物品" : formData.name || "物品详情"}
-              </h1>
-              <p className="text-xs text-[#858585]">
-                {GoodsKindLabels[formData.kind || "Consumable"]}
-                {formData.key && <span className="ml-2 text-[#666]">({formData.key})</span>}
-              </p>
-            </div>
-          </div>
-          <div className="flex gap-2">
-            {!isNew && (
-              <button
-                type="button"
-                onClick={handleDelete}
-                disabled={deleteMutation.isPending}
-                className="px-3 py-1.5 text-sm bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 rounded-lg transition-colors"
-              >
-                删除
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={handleSave}
-              disabled={createMutation.isPending || updateMutation.isPending}
-              className="px-4 py-1.5 text-sm bg-[#0e639c] hover:bg-[#1177bb] text-white rounded-lg transition-colors disabled:opacity-50"
-            >
-              {createMutation.isPending || updateMutation.isPending ? "保存中..." : "保存"}
-            </button>
+    <DetailPageLayout
+      backPath={basePath}
+      title={isNew ? "新建物品" : formData.name || "物品详情"}
+      subtitle={
+        <>
+          {GoodsKindLabels[formData.kind || "Consumable"]}
+          {formData.key && <span className="ml-2 text-[#666]">({formData.key})</span>}
+        </>
+      }
+      onSave={handleSave}
+      isSaving={createMutation.isPending || updateMutation.isPending}
+      onDelete={!isNew ? handleDelete : undefined}
+      isDeleting={deleteMutation.isPending}
+      contentMaxWidth="max-w-3xl"
+      sidePanel={
+        <div className="flex-shrink-0 w-[420px]">
+          <div className="sticky top-0 bg-[#252526] border border-[#3c3c3c] rounded-xl p-6">
+            <GoodsPreview goods={formData} gameSlug={gameSlug} />
           </div>
         </div>
-      </div>
-
-      {/* 内容区 */}
-      <div className="flex-1 overflow-auto p-6">
-        <div className="flex gap-6">
-          {/* 左侧表单 */}
-          <div className="flex-1 max-w-3xl space-y-5">
+      }
+    >
           {/* 基本信息 */}
           <section className="bg-[#252526] border border-[#3c3c3c] rounded-xl overflow-hidden">
             <div className="px-4 py-3 border-b border-[#3c3c3c]">
@@ -747,16 +715,6 @@ export function GoodsDetailPage() {
               </div>
             </section>
           )}
-          </div>
-
-          {/* 右侧预览面板 */}
-          <div className="flex-shrink-0 w-[420px]">
-            <div className="sticky top-0 bg-[#252526] border border-[#3c3c3c] rounded-xl p-6">
-              <GoodsPreview goods={formData} gameSlug={gameSlug} />
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+    </DetailPageLayout>
   );
 }

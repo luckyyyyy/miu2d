@@ -2,6 +2,10 @@
  * Common components - 通用组件（非游戏专属）
  */
 
+// Lazy ASF Icon - 懒加载 ASF 精灵图标
+export { LazyAsfIcon } from "./LazyAsfIcon";
+export type { LazyAsfIconProps } from "./LazyAsfIcon";
+
 // Number Input - 自定义数字输入框
 export { NumberInput } from "./NumberInput";
 export type { NumberInputProps } from "./NumberInput";

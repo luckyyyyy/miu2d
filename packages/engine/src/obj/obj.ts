@@ -7,11 +7,9 @@
 import { ResourcePath } from "../config/resourcePaths";
 import { logger } from "../core/logger";
 import type { Vector2 } from "../core/types";
-import { resourceLoader } from "../resource/resourceLoader";
 import { type AsfData, getFrameCanvas, getFrameIndex, loadAsf } from "../resource/asf";
 import { Sprite } from "../sprite/sprite";
-import { parseIni } from "../utils";
-import { getObjResFromCache, type ObjResInfo } from "./objConfigLoader";
+import { getObjConfigFromCache, getObjResFromCache, type ObjConfig, type ObjResInfo } from "./objConfigLoader";
 
 /**
  * Object Kind enum matching Obj.ObjKind
@@ -782,6 +780,36 @@ export class Obj extends Sprite {
   }
 
   /**
+   * 从 API 缓存的 ObjConfig 加载属性（代替读取本地 INI 文件）
+   */
+  loadFromConfig(config: ObjConfig): void {
+    this._objName = config.name;
+    this._kind = config.kind as ObjKind;
+    this._dir = config.dir;
+    this._currentDirection = this._dir;
+    this._frame = config.frame;
+    this._currentFrameIndex = this._frame;
+    this._offX = config.offX;
+    this._offY = config.offY;
+    this._damage = config.damage;
+    this._lum = config.lum;
+    this._height = config.height;
+    this._scriptFile = config.script;
+    this._scriptFileRight = config.scriptRight;
+    this._wavFileName = config.wavFile;
+    this._timerScriptFile = config.timerScriptFile;
+    this._timerScriptInterval = config.timerScriptInterval;
+    this._canInteractDirectly = config.canInteractDirectly;
+    this._scriptFileJustTouch = config.scriptFileJustTouch;
+    this._reviveNpcIni = config.reviveNpcIni;
+
+    // Sound objects (LoopingSound=3, RandSound=4) are invisible
+    if (this._kind === ObjKind.LoopingSound || this._kind === ObjKind.RandSound) {
+      this.isShow = false;
+    }
+  }
+
+  /**
    * Set texture from loaded ASF
    */
   setAsfTexture(asf: AsfData): void {
@@ -796,43 +824,40 @@ export class Obj extends Sprite {
   }
 
   /**
-   * 从 ini/obj/ 文件创建 Obj 实例
-   * 对应new Obj(@"ini\obj\" + fileName) 构造函数
+   * 从 API 缓存创建 Obj 实例
+   * 对应 new Obj(@"ini\obj\" + fileName) 构造函数
    * 用于 BodyIni 等场景
    */
   static async createFromFile(fileName: string): Promise<Obj | null> {
     try {
-      const filePath = ResourcePath.obj(fileName);
-      const content = await resourceLoader.loadText(filePath);
-      if (!content) return null;
-
-      const sections = parseIni(content);
-
-      // 使用 INIT section 作为对象定义
-      const initSection = sections.INIT || sections.Init || Object.values(sections)[0];
-      if (!initSection) return null;
+      const config = getObjConfigFromCache(fileName);
+      if (!config) {
+        logger.warn(`[Obj] createFromFile: config not found in cache for ${fileName}`);
+        return null;
+      }
 
       const obj = new Obj();
-      obj.loadFromSection(initSection);
+      obj.loadFromConfig(config);
 
       const id = `body_${fileName}_${Date.now()}`;
       obj.id = id;
       obj.fileName = fileName;
 
-      // 加载 objres 资源（从 API 缓存）
-      if (obj.objFileName) {
-        const resInfo = getObjResFromCache(obj.objFileName);
-        if (resInfo) {
-          obj.objFile.set(ObjState.Common, resInfo);
-          // 加载 ASF 纹理
-          if (resInfo.imagePath) {
-            const asfPath = ResourcePath.asfObject(resInfo.imagePath);
-            const asf = await loadAsf(asfPath);
-            if (asf) {
-              obj.setAsfTexture(asf);
-            }
-          }
+      // 从 config 中直接加载 ASF 纹理（API 缓存已合并 objres 资源）
+      if (config.image) {
+        const resInfo: ObjResInfo = { imagePath: config.image, soundPath: config.sound };
+        obj.objFile.set(ObjState.Common, resInfo);
+
+        const asfPath = ResourcePath.asfObject(config.image);
+        const asf = await loadAsf(asfPath);
+        if (asf) {
+          obj.setAsfTexture(asf);
         }
+      }
+
+      // 设置音效
+      if (config.sound && !obj.wavFile) {
+        obj.wavFile = config.sound;
       }
 
       return obj;

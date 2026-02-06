@@ -510,7 +510,12 @@ export const ClassicGameUI: React.FC<ClassicGameUIProps> = ({ logic, width, heig
       {panels?.buy && buyData.items.length > 0 && (
         <BuyGui
           isVisible={true}
-          items={buyData.items}
+          items={buyData.items.map((item) => {
+            if (!item) return null;
+            const basePrice = item.price > 0 ? item.price : item.good.cost;
+            const effectivePrice = Math.floor((basePrice * buyData.buyPercent) / 100);
+            return { good: item.good, count: item.count, price: effectivePrice };
+          })}
           screenWidth={width}
           buyPercent={buyData.buyPercent}
           numberValid={buyData.numberValid}
@@ -584,7 +589,7 @@ export const ClassicGameUI: React.FC<ClassicGameUIProps> = ({ logic, width, heig
       />
 
       {/* Item Tooltip */}
-      <ItemTooltip isVisible={tooltip.isVisible} good={tooltip.good} position={tooltip.position} />
+      <ItemTooltip isVisible={tooltip.isVisible} good={tooltip.good} shopPrice={tooltip.shopPrice} position={tooltip.position} />
 
       {/* Magic Tooltip */}
       <MagicTooltip

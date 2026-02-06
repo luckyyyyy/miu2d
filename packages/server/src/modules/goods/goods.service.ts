@@ -141,6 +141,17 @@ export class GoodsService {
 				kind: row.kind as GoodsKind,
 				part: (data.part as GoodsListItem["part"]) ?? null,
 				icon: (data.icon as string) ?? null,
+				cost: (data.cost as number) ?? null,
+				life: (data.life as number) ?? null,
+				thew: (data.thew as number) ?? null,
+				mana: (data.mana as number) ?? null,
+				lifeMax: (data.lifeMax as number) ?? null,
+				thewMax: (data.thewMax as number) ?? null,
+				manaMax: (data.manaMax as number) ?? null,
+				attack: (data.attack as number) ?? null,
+				defend: (data.defend as number) ?? null,
+				evade: (data.evade as number) ?? null,
+				effectType: (data.effectType as number) ?? null,
 				updatedAt: row.updatedAt?.toISOString() ?? new Date().toISOString(),
 			};
 		});

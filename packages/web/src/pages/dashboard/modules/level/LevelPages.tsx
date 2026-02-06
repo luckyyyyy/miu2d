@@ -8,6 +8,7 @@ import { NumberInput } from "@/components/common";
 import { trpc } from "../../../../lib/trpc";
 import { useToast } from "../../../../contexts/ToastContext";
 import { useDashboard } from "../../DashboardContext";
+import { EditorEmptyState } from "../../components/EditorEmptyState";
 import type {
   LevelConfig,
   LevelDetail,
@@ -19,17 +20,11 @@ import { createDefaultLevelConfigLevels, createDefaultLevelDetail } from "@miu2d
 
 export function LevelListPage() {
   return (
-    <div className="h-full flex items-center justify-center">
-      <div className="text-center max-w-md">
-        <div className="text-6xl mb-6">📊</div>
-        <h2 className="text-xl font-medium text-white mb-3">等级配置</h2>
-        <p className="text-[#858585] text-sm leading-relaxed">
-          从左侧列表选择一个等级配置进行编辑，
-          <br />
-          或点击 + 按钮创建新配置。
-        </p>
-      </div>
-    </div>
+    <EditorEmptyState
+      icon="📊"
+      title="等级配置"
+      description={<>从左侧列表选择一个等级配置进行编辑，<br />或点击 + 按钮创建新配置。</>}
+    />
   );
 }
 
@@ -666,14 +661,10 @@ export function LevelDetailPage() {
 // 旧的 StrengthConfigPage 保持兼容
 export function StrengthConfigPage() {
   return (
-    <div className="h-full flex items-center justify-center">
-      <div className="text-center max-w-md">
-        <div className="text-6xl mb-6">📊</div>
-        <h2 className="text-xl font-medium text-white mb-3">强度配置</h2>
-        <p className="text-[#858585] text-sm leading-relaxed">
-          强度配置功能正在开发中...
-        </p>
-      </div>
-    </div>
+    <EditorEmptyState
+      icon="📊"
+      title="强度配置"
+      description="强度配置功能正在开发中..."
+    />
   );
 }

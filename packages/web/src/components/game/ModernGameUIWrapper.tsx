@@ -577,9 +577,12 @@ export const ModernGameUIWrapper: React.FC<ModernGameUIWrapperProps> = ({
       {panels?.buy && buyData.items.length > 0 && (
         <BuyPanel
           isVisible={true}
-          items={buyData.items.map((item) =>
-            item ? { good: item.good as Good, count: item.count } : null
-          )}
+          items={buyData.items.map((item) => {
+            if (!item) return null;
+            const basePrice = item.price > 0 ? item.price : item.good.cost;
+            const effectivePrice = Math.floor((basePrice * buyData.buyPercent) / 100);
+            return { good: item.good as Good, count: item.count, price: effectivePrice };
+          })}
           screenWidth={width}
           buyPercent={buyData.buyPercent}
           numberValid={buyData.numberValid}
@@ -638,6 +641,7 @@ export const ModernGameUIWrapper: React.FC<ModernGameUIWrapperProps> = ({
       <ItemTooltip
         isVisible={tooltip.isVisible}
         good={tooltip.good}
+        shopPrice={tooltip.shopPrice}
         position={tooltip.position}
         screenWidth={width}
         screenHeight={height}

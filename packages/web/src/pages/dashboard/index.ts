@@ -16,10 +16,10 @@ export * from "./types";
 
 // 游戏编辑模块
 export {
-  GameConfigPage,
   NewGameScriptPage,
   PlayerConfigPage,
 } from "./modules/GameSettingsPages";
+export { GameGlobalConfigPage } from "./modules/gameConfig";
 
 // 通用编辑器
 export { ListEditorPage, DetailEditorPage } from "./modules/ListEditorPage";

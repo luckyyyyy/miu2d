@@ -45,6 +45,7 @@ export interface TooltipState {
   isVisible: boolean;
   good: Good | null;
   isRecycle: boolean;
+  shopPrice?: number; // 商店自定义价格（已含 buyPercent），用于覆盖 good.cost 显示
   position: { x: number; y: number };
 }
 
@@ -755,6 +756,7 @@ export function useGameUILogic({ engine }: UseGameUILogicOptions) {
           isVisible: true,
           good,
           isRecycle: false,
+          shopPrice: undefined,
           position: { x: rect.right + 10, y: rect.top },
         });
       }
@@ -798,15 +800,21 @@ export function useGameUILogic({ engine }: UseGameUILogicOptions) {
   const handleShopItemMouseEnter = useCallback(
     (_index: number, good: Good | null, rect: DOMRect) => {
       if (good) {
+        // 查找当前商店物品的自定义价格
+        const shopItem = buyData.items[_index];
+        const rawPrice = shopItem?.price ?? 0;
+        const basePrice = rawPrice > 0 ? rawPrice : good.cost;
+        const effectivePrice = Math.floor((basePrice * buyData.buyPercent) / 100);
         setTooltip({
           isVisible: true,
           good,
           isRecycle: false,
+          shopPrice: effectivePrice,
           position: { x: rect.right + 10, y: rect.top },
         });
       }
     },
-    []
+    [buyData]
   );
 
   const handleShopItemRightClick = useCallback(

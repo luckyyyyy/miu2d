@@ -1,7 +1,7 @@
 /**
  * Dashboard 路由配置
  */
-import { Route, Routes, Navigate } from "react-router-dom";
+import { Route, Routes, Navigate, useParams } from "react-router-dom";
 import { GameGuard } from "./GameGuard";
 import { GameListPage } from "./GameListPage";
 import { DashboardLayout } from "./DashboardLayout";
@@ -9,10 +9,10 @@ import { DashboardHome } from "./DashboardHome";
 
 // 游戏编辑
 import {
-  GameConfigPage,
   NewGameScriptPage,
   PlayerConfigPage,
 } from "./modules/GameSettingsPages";
+import { GameGlobalConfigPage } from "./modules/gameConfig";
 
 // 角色编辑
 import { CharactersListPage, CharacterDetailPage } from "./modules/CharactersPages";
@@ -28,6 +28,12 @@ import { GoodsListPage, GoodsDetailPage } from "./modules/goods/GoodsPages";
 
 // 商店编辑
 import { ShopsListPage, ShopDetailPage } from "./modules/ShopsPages";
+
+/** 商店详情页 key wrapper —— shopId 变化时完全重新挂载 */
+function ShopDetailPageKeyed() {
+  const { shopId } = useParams();
+  return <ShopDetailPage key={shopId} />;
+}
 
 // 武功编辑
 import { MagicListPage, MagicDetailPage } from "./modules/magic";
@@ -96,7 +102,7 @@ export function DashboardApp() {
         {/* 游戏编辑 */}
         <Route path="game">
           <Route index element={<Navigate to="config" replace />} />
-          <Route path="config" element={<GameConfigPage />} />
+          <Route path="config" element={<GameGlobalConfigPage />} />
           <Route path="newgame" element={<NewGameScriptPage />} />
           <Route path="player" element={<PlayerConfigPage />} />
         </Route>
@@ -123,6 +129,9 @@ export function DashboardApp() {
           <Route path=":objId/:tab" element={<ObjDetailPage />} />
         </Route>
 
+        {/* 游戏模块入口 - 默认跳转到NPC编辑 */}
+        <Route path="game-modules" element={<Navigate to="../npcs" replace />} />
+
         {/* 物品编辑 */}
         <Route path="goods">
           <Route index element={<GoodsListPage />} />
@@ -132,7 +141,7 @@ export function DashboardApp() {
         {/* 商店编辑 */}
         <Route path="shops">
           <Route index element={<ShopsListPage />} />
-          <Route path=":shopId" element={<ShopDetailPage />} />
+          <Route path=":shopId" element={<ShopDetailPageKeyed />} />
         </Route>
 
         {/* 等级与强度 */}

@@ -51,6 +51,7 @@ function calculateTooltipPosition(
 interface ItemTooltipProps {
   isVisible: boolean;
   good: UIGoodData | null;
+  shopPrice?: number; // 商店自定义价格（已含 buyPercent），覆盖 good.cost
   position: { x: number; y: number };
   screenWidth: number;
   screenHeight: number;
@@ -59,6 +60,7 @@ interface ItemTooltipProps {
 export const ItemTooltip: React.FC<ItemTooltipProps> = ({
   isVisible,
   good,
+  shopPrice,
   position,
   screenWidth,
   screenHeight,
@@ -188,7 +190,7 @@ export const ItemTooltip: React.FC<ItemTooltipProps> = ({
       )}
 
       {/* 价格 */}
-      {good.cost > 0 && (
+      {(shopPrice != null ? shopPrice > 0 : good.cost > 0) && (
         <div
           style={{
             marginTop: spacing.sm,
@@ -197,7 +199,7 @@ export const ItemTooltip: React.FC<ItemTooltipProps> = ({
             textAlign: "right",
           }}
         >
-          💰 {good.cost}
+          💰 {shopPrice != null ? shopPrice : good.cost}
         </div>
       )}
     </div>

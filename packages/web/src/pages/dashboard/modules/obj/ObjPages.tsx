@@ -5,9 +5,14 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { trpc } from "../../../../lib/trpc";
 import { useToast } from "../../../../contexts/ToastContext";
-import { DashboardIcons } from "../../icons";
+import { DetailPageLayout } from "../../components/DetailPageLayout";
+import type { DetailTab } from "../../components/DetailPageLayout";
+import { EditorEmptyState } from "../../components/EditorEmptyState";
 import { useDashboard } from "../../DashboardContext";
 import { NumberInput, ResourceFilePicker } from "../../../../components/common";
+import { ResourceListPicker } from "../../../../components/common/pickers";
+import { ResourceConfigSection } from "../../components/ResourceConfigSection";
+import type { StateItem } from "../../components/ResourceConfigSection";
 import type {
   Obj,
   ObjKind,
@@ -24,21 +29,22 @@ import {
 } from "@miu2d/types";
 import { ObjPreview } from "./ObjPreview";
 
+/** Obj 状态列表（供 ResourceConfigSection 使用） */
+const objStates: StateItem[] = (Object.keys(ObjStateLabels) as ObjState[]).map((state) => ({
+  label: ObjStateLabels[state],
+  stateName: state,
+  stateKey: state.toLowerCase(),
+}));
+
 // ========== 列表页（欢迎页面） ==========
 
 export function ObjListPage() {
   return (
-    <div className="h-full flex items-center justify-center">
-      <div className="text-center max-w-md">
-        <div className="text-6xl mb-6">📦</div>
-        <h2 className="text-xl font-medium text-white mb-3">物体编辑</h2>
-        <p className="text-[#858585] text-sm leading-relaxed">
-          从左侧列表选择一个物体进行编辑，
-          <br />
-          或使用上方按钮创建新物体、导入 INI 文件。
-        </p>
-      </div>
-    </div>
+    <EditorEmptyState
+      icon="📦"
+      title="物体编辑"
+      description={<>从左侧列表选择一个物体进行编辑，<br />或使用上方按钮创建新物体、导入 INI 文件。</>}
+    />
   );
 }
 
@@ -82,12 +88,6 @@ export function ObjDetailPage() {
     { enabled: !!gameId }
   );
 
-  // 查询当前关联的资源详情
-  const { data: linkedResource } = trpc.objResource.get.useQuery(
-    { gameId: gameId!, id: obj?.resourceId ?? "" },
-    { enabled: !!gameId && !!obj?.resourceId }
-  );
-
   // 表单状态 - 优先从缓存读取
   const [formData, setFormData] = useState<Partial<Obj>>(() => {
     if (cacheKey && editCache.has(cacheKey)) {
@@ -116,6 +116,13 @@ export function ObjDetailPage() {
       setFormData(obj);
     }
   }, [obj, cacheKey, editCache]);
+
+  // 查询当前关联的资源详情（使用 formData.resourceId 以便切换后立即更新）
+  const currentResourceId = formData.resourceId ?? obj?.resourceId;
+  const { data: linkedResource } = trpc.objResource.get.useQuery(
+    { gameId: gameId!, id: currentResourceId ?? "" },
+    { enabled: !!gameId && !!currentResourceId }
+  );
 
   const toast = useToast();
 
@@ -196,84 +203,48 @@ export function ObjDetailPage() {
   }
 
   // Tab 配置
-  const tabs = [
-    { key: "basic" as const, label: "基础信息", icon: "📝" },
-    { key: "resource" as const, label: "资源配置", icon: "🎨" },
-    { key: "behavior" as const, label: "行为脚本", icon: "📜" },
+  const tabs: DetailTab[] = [
+    { key: "basic", label: "基础信息", icon: "📝" },
+    { key: "resource", label: "资源配置", icon: "🎨" },
+    { key: "behavior", label: "行为脚本", icon: "📜" },
   ];
 
   return (
-    <div className="h-full flex flex-col overflow-hidden">
-      {/* 头部 */}
-      <div className="flex-shrink-0 bg-[#1e1e1e] border-b border-[#3c3c3c]">
-        <div className="flex items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-4">
-            <Link
-              to={basePath}
-              className="p-2 rounded-lg hover:bg-[#3c3c3c] text-[#858585] hover:text-white transition-colors"
-            >
-              {DashboardIcons.back}
-            </Link>
-            <div>
-              <h1 className="text-lg font-semibold text-white">
-                {isNew ? "新建物体" : formData.name || "物体详情"}
-              </h1>
-              <p className="text-xs text-[#858585]">
-                {ObjKindLabels[formData.kind || "Static"]}
-                {formData.key && <span className="ml-2 text-[#666]">({formData.key})</span>}
-              </p>
+    <DetailPageLayout
+      backPath={basePath}
+      title={isNew ? "新建物体" : formData.name || "物体详情"}
+      subtitle={
+        <>
+          {ObjKindLabels[formData.kind || "Static"]}
+          {formData.key && <span className="ml-2 text-[#666]">({formData.key})</span>}
+        </>
+      }
+      tabs={tabs}
+      activeTab={activeTab}
+      onTabChange={(key) => setActiveTab(key as TabType)}
+      onSave={handleSave}
+      isSaving={createMutation.isPending || updateMutation.isPending}
+      onDelete={!isNew ? handleDelete : undefined}
+      isDeleting={deleteMutation.isPending}
+      sidePanel={
+        <div className="w-80 flex-shrink-0">
+          <div className="sticky top-6">
+            <div className="bg-[#252526] border border-[#3c3c3c] rounded-xl overflow-hidden">
+              <div className="px-4 py-3 border-b border-[#3c3c3c]">
+                <h3 className="text-sm font-medium text-[#cccccc]">📦 物体预览</h3>
+              </div>
+              <div className="p-4">
+                <ObjPreview
+                  gameSlug={gameSlug!}
+                  obj={formData}
+                  resource={linkedResource ?? undefined}
+                />
+              </div>
             </div>
           </div>
-          <div className="flex gap-2">
-            {!isNew && (
-              <button
-                type="button"
-                onClick={handleDelete}
-                disabled={deleteMutation.isPending}
-                className="px-3 py-1.5 text-sm bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 rounded-lg transition-colors"
-              >
-                删除
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={handleSave}
-              disabled={createMutation.isPending || updateMutation.isPending}
-              className="px-4 py-1.5 text-sm bg-[#0e639c] hover:bg-[#1177bb] text-white rounded-lg transition-colors disabled:opacity-50"
-            >
-              {createMutation.isPending || updateMutation.isPending ? "保存中..." : "保存"}
-            </button>
-          </div>
         </div>
-
-        {/* Tab 栏 */}
-        <div className="flex px-6 gap-1">
-          {tabs.map((tab) => (
-            <button
-              key={tab.key}
-              type="button"
-              onClick={() => setActiveTab(tab.key)}
-              className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-all relative ${
-                activeTab === tab.key
-                  ? "text-white"
-                  : "text-[#858585] hover:text-white"
-              }`}
-            >
-              <span className="text-base">{tab.icon}</span>
-              <span>{tab.label}</span>
-              {activeTab === tab.key && (
-                <span className="absolute bottom-0 left-2 right-2 h-0.5 bg-[#0098ff] rounded-full" />
-              )}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* 内容区 */}
-      <div className="flex-1 overflow-auto">
-        <div className="flex gap-6 p-6 min-h-full">
-          {/* 左侧表单 */}
-          <div className="flex-1 min-w-0 space-y-5">
+      }
+    >
             {activeTab === "basic" && (
               <BasicInfoSection
                 formData={formData}
@@ -302,27 +273,7 @@ export function ObjDetailPage() {
                 gameSlug={gameSlug!}
               />
             )}
-          </div>
-
-          {/* 右侧预览 - 固定宽度 */}
-          <div className="w-80 flex-shrink-0">
-            <div className="sticky top-6">
-              <div className="bg-[#252526] border border-[#3c3c3c] rounded-xl overflow-hidden">
-                <div className="px-4 py-3 border-b border-[#3c3c3c]">
-                  <h3 className="text-sm font-medium text-[#cccccc]">📦 物体预览</h3>
-                </div>
-                <div className="p-4">
-                  <ObjPreview
-                    gameSlug={gameSlug!}
-                    obj={formData}
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+    </DetailPageLayout>
   );
 }
 
@@ -481,14 +432,6 @@ function BasicInfoSection({
 
 // ========== 资源配置区 ==========
 
-// Object 支持多种状态
-const RESOURCE_STATES: Array<{ key: keyof ObjResource; label: string }> = [
-  { key: "common", label: "通用" },
-  { key: "open", label: "打开中" },
-  { key: "opened", label: "已打开" },
-  { key: "closed", label: "已关闭" },
-];
-
 function ResourceSection({
   formData,
   updateField,
@@ -510,64 +453,44 @@ function ResourceSection({
 
   return (
     <div className="space-y-5">
-      {/* 资源关联选择器 */}
+      {/* 资源关联选择器（弹窗式） */}
       <section className="bg-[#252526] border border-[#3c3c3c] rounded-xl overflow-hidden">
         <div className="px-4 py-3 border-b border-[#3c3c3c]">
           <h2 className="text-sm font-medium text-[#cccccc]">🔗 关联 Object 资源</h2>
         </div>
         <div className="p-4">
-          <select
-            value={formData.resourceId ?? ""}
-            onChange={(e) => updateField("resourceId", e.target.value || null)}
-            className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white focus:outline-none focus:border-[#0098ff]"
-          >
-            <option value="">未关联（无资源）</option>
-            {resourceList.map((res) => (
-              <option key={res.id} value={res.id}>
-                {res.name} ({res.key})
-              </option>
-            ))}
-          </select>
-          <p className="mt-2 text-xs text-[#858585]">
-            选择一个 Object 资源配置来定义此物体的动画和音效资源。
-            资源配置可以被多个 Object 共享。
-          </p>
+          <ResourceListPicker
+            label="Obj 资源"
+            value={formData.resourceId ?? null}
+            onChange={(val) => updateField("resourceId", val)}
+            items={resourceList}
+            placeholder="点击选择 Object 资源"
+            dialogTitle="选择 Object 资源"
+            emptyText="暂无 Object 资源"
+            hint="选择一个 Object 资源配置来定义此物体的动画和音效资源。资源配置可以被多个 Object 共享。"
+          />
         </div>
       </section>
 
-      {/* 资源配置展示（只读） */}
+      {/* 资源配置展示（只读，使用 ResourceConfigSection） */}
       {hasLinkedResource && (
-        <section className="bg-[#252526] border border-[#3c3c3c] rounded-xl overflow-hidden">
-          <div className="px-4 py-3 border-b border-[#3c3c3c] flex items-center justify-between">
-            <h2 className="text-sm font-medium text-[#cccccc]">🎨 动画与音效资源</h2>
+        <ResourceConfigSection
+          readonly
+          title="🎨 动画与音效资源"
+          titleExtra={
             <Link
               to={`/dashboard/${gameSlug}/objs/resource/${formData.resourceId}`}
               className="text-xs text-[#569cd6] hover:underline bg-[#3c3c3c] px-2 py-0.5 rounded"
             >
               编辑「{linkedResource.name}」→
             </Link>
-          </div>
-          <div className="p-4">
-            <div className="grid grid-cols-2 gap-x-6 gap-y-2">
-              {RESOURCE_STATES.map(({ key, label }) => (
-                <div key={key} className="contents">
-                  <div>
-                    <label className="block text-sm text-[#858585] mb-1">{label}动画</label>
-                    <div className="px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-[#858585] text-sm truncate">
-                      {resources[key]?.image || "（未设置）"}
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm text-[#858585] mb-1">{label}音效</label>
-                    <div className="px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-[#858585] text-sm truncate">
-                      {resources[key]?.sound || "（未设置）"}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
+          }
+          states={objStates}
+          getResource={(stateKey) => resources[stateKey as keyof ObjResource]}
+          fieldPrefix="objResource"
+          gameId={gameId}
+          gameSlug={gameSlug}
+        />
       )}
 
       {/* 未关联资源时的提示 */}
@@ -869,7 +792,7 @@ export function ObjResourceDetailPage() {
 
   return (
     <div className="h-full overflow-auto">
-      <div className="max-w-4xl mx-auto p-6">
+      <div className="max-w-6xl mx-auto p-6">
         {/* 页面标题 */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
@@ -919,48 +842,14 @@ export function ObjResourceDetailPage() {
         </section>
 
         {/* 资源配置 */}
-        <section className="bg-[#252526] border border-[#3c3c3c] rounded-xl overflow-hidden">
-          <div className="px-4 py-3 border-b border-[#3c3c3c]">
-            <h2 className="text-sm font-medium text-[#cccccc]">🎨 资源配置</h2>
-          </div>
-          <div className="p-4 space-y-6">
-            {(Object.keys(ObjStateLabels) as ObjState[]).map((state) => {
-              const stateKey = state.toLowerCase() as keyof ObjResource;
-              const resource = formData.resources?.[stateKey];
-
-              return (
-                <div key={state} className="border-b border-[#3c3c3c] pb-4 last:border-b-0 last:pb-0">
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="text-sm font-medium text-white">{ObjStateLabels[state]}</span>
-                    <span className="text-xs text-[#858585]">({state})</span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <ResourceFilePicker
-                      label="动画"
-                      value={resource?.image ?? null}
-                      onChange={(val) => updateResourceField(stateKey, "image", val)}
-                      fieldName={`objResource_${stateKey}_image`}
-                      gameId={gameId!}
-                      gameSlug={gameSlug!}
-                      extensions={[".asf"]}
-                      placeholder="选择动画文件"
-                    />
-                    <ResourceFilePicker
-                      label="音效"
-                      value={resource?.sound ?? null}
-                      onChange={(val) => updateResourceField(stateKey, "sound", val)}
-                      fieldName={`objResource_${stateKey}_sound`}
-                      gameId={gameId!}
-                      gameSlug={gameSlug!}
-                      extensions={[".wav", ".ogg"]}
-                      placeholder="选择音效文件"
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </section>
+        <ResourceConfigSection
+          states={objStates}
+          getResource={(key) => formData.resources?.[key as keyof ObjResource]}
+          onResourceChange={(key, field, val) => updateResourceField(key as keyof ObjResource, field, val)}
+          fieldPrefix="objResource"
+          gameId={gameId!}
+          gameSlug={gameSlug!}
+        />
       </div>
     </div>
   );

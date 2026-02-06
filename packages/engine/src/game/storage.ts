@@ -534,6 +534,18 @@ export interface SaveData {
    * 保存在 PlayerChange 切换过程中保存到内存的角色数据
    */
   otherCharacters?: Record<number, CharacterSaveSlot>;
+
+  /**
+   * 内存中的 NPC 文件存储（脚本 SaveNpc 写入的数据）
+   * key: 文件名 (如 "map033.npc"), value: NPC 数据数组
+   */
+  npcFileStore?: Record<string, NpcSaveItem[]>;
+
+  /**
+   * 内存中的 Obj 文件存储（脚本 SaveObj 写入的数据）
+   * key: 文件名 (如 "map033_obj.obj"), value: Obj 数据数组
+   */
+  objFileStore?: Record<string, ObjSaveItem[]>;
 }
 
 /**

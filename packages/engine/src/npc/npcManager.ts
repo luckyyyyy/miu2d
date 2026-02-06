@@ -14,6 +14,7 @@ import { CharacterKind, type CharacterState, type Direction, RelationType } from
 import { type DropCharacter, getDropObj } from "../drop/goodDrop";
 import type { ObjManager } from "../obj/objManager";
 import { resourceLoader } from "../resource/resourceLoader";
+import type { NpcSaveItem } from "../game/storage";
 import { distance, getNeighbors, getViewTileDistance, parseIni } from "../utils";
 import { Npc } from "./npc";
 
@@ -46,6 +47,14 @@ export class NpcManager {
   // Note: NPC config is loaded from API cache (npcConfigLoader)
   // Store loaded NPC file name
   private fileName: string = "";
+
+  /**
+   * 内存中的 NPC 文件存储
+   * 模拟 C# 原版的 save/game/{fileName} 文件系统
+   * 脚本调用 SaveNpc() 时将当前 NPC 列表序列化存入，LoadNpc() 时优先从此读取
+   * 存档时持久化到 localStorage，读档时恢复
+   */
+  private npcFileStore: Map<string, NpcSaveItem[]> = new Map();
 
   // List of dead NPCs
   private _deadNpcs: Npc[] = [];
@@ -339,18 +348,20 @@ export class NpcManager {
 
     // NPC 通过 IEngineContext 获取 NpcManager、Player、MagicManager、AudioManager
 
-    // Log NPC creation for debugging
-    // logger.log(
-    //   `[NpcManager] Created NPC: ${config.name} at (${tileX}, ${tileY}), id=${npc.id}, npcIni=${config.npcIni || "none"}`
-    // );
+    logger.log(
+      `[NpcManager] Created NPC: ${config.name} at (${tileX}, ${tileY}), dir=${direction}, npcIni=${config.npcIni || "none"}`
+    );
 
-    // Auto-load sprites using Npc's own method
+    // Auto-load sprites using Npc's own method (must await so appearance is ready)
     if (config.npcIni) {
-      npc
-        .loadSpritesFromNpcIni(config.npcIni)
-        .catch((err: unknown) =>
-          logger.warn(`[NpcManager] Failed to load sprites for NPC ${config?.name}:`, err)
-        );
+      try {
+        await npc.loadSpritesFromNpcIni(config.npcIni);
+        logger.log(`[NpcManager] Sprites loaded for NPC ${config.name} from ${config.npcIni}`);
+      } catch (err: unknown) {
+        logger.warn(`[NpcManager] Failed to load sprites for NPC ${config?.name}:`, err);
+      }
+    } else {
+      logger.warn(`[NpcManager] NPC ${config.name} has no npcIni, sprites not loaded`);
     }
 
     // Preload NPC magics (async, non-blocking)
@@ -366,12 +377,12 @@ export class NpcManager {
   /**
    * Add NPC with existing config
    */
-  addNpcWithConfig(
+  async addNpcWithConfig(
     config: CharacterConfig,
     tileX: number,
     tileY: number,
     direction: Direction = 4
-  ): Npc {
+  ): Promise<Npc> {
     const npc = Npc.fromConfig(config, tileX, tileY, direction);
     this.npcs.set(npc.id, npc);
 
@@ -382,13 +393,13 @@ export class NpcManager {
     //   `[NpcManager] Created NPC (with config): ${config.name} at (${tileX}, ${tileY}), id=${npc.id}, npcIni=${config.npcIni || "none"}`
     // );
 
-    // Auto-load sprites using Npc's own method
+    // Auto-load sprites using Npc's own method (must await so appearance is ready)
     if (config.npcIni) {
-      npc
-        .loadSpritesFromNpcIni(config.npcIni)
-        .catch((err: unknown) =>
-          logger.warn(`[NpcManager] Failed to load sprites for NPC ${config.name}:`, err)
-        );
+      try {
+        await npc.loadSpritesFromNpcIni(config.npcIni);
+      } catch (err: unknown) {
+        logger.warn(`[NpcManager] Failed to load sprites for NPC ${config.name}:`, err);
+      }
     }
 
     // Preload NPC magics (async, non-blocking)
@@ -977,12 +988,10 @@ export class NpcManager {
 
   /**
    * Save NPC state
-   * saves current NPCs (excluding partners) to save file
+   * 将当前非伙伴 NPC 序列化到内存文件存储中
+   * 对应 C# 原版: NpcManager.Save(fileName) -> File.WriteAllText("save/game/" + fileName)
    *
-   * Web 版本说明：
-   * - 原版将 NPC 数据保存到 save\game\{fileName} 文件
-   * - Web 版本在调用 saveGame() 时会通过 collectNpcData() 收集 NPC 数据
-   * - 这里只更新 fileName 记录，实际数据保存在 Loader.saveGame() 中统一处理
+   * 脚本流程: SaveNpc() -> LoadMap() -> LoadNpc(同文件名) -> 读到刚存的数据
    *
    * @param fileName 文件名（可选，默认使用当前加载的文件名）
    */
@@ -993,16 +1002,159 @@ export class NpcManager {
       return;
     }
 
-    // 更新 fileName 记录
-    // if (!isSavePartner) { _fileName = fileName; }
+    // 更新 fileName 记录（C#: if (!isSavePartner) { _fileName = fileName; }）
     this.fileName = saveFileName;
 
-    logger.log(`[NpcManager] SaveNpc: ${saveFileName} (NPC data will be saved with next saveGame)`);
+    // 序列化当前所有非伙伴 NPC 到内存存储
+    const items = this.collectNpcSaveItems(false);
+    this.npcFileStore.set(saveFileName, items);
 
-    // Web 版本注意事项：
-    // - NPC 数据在 Loader.collectSaveData() -> collectNpcData(npcManager, false) 中收集
-    // - Partner 数据在 Loader.collectSaveData() -> collectNpcData(npcManager, true) 中收集
-    // - 调用 saveGame(index) 时会将数据保存到 localStorage
+    logger.log(`[NpcManager] SaveNpc: ${saveFileName} (${items.length} NPCs saved to memory store)`);
+  }
+
+  /**
+   * 收集当前 NPC 数据为 NpcSaveItem[]
+   * 从 Loader.collectNpcData 提取的核心逻辑
+   * @param partnersOnly 是否只收集伙伴
+   */
+  collectNpcSaveItems(partnersOnly: boolean): NpcSaveItem[] {
+    const items: NpcSaveItem[] = [];
+
+    for (const [, npc] of this.npcs) {
+      // 根据 partnersOnly 参数过滤
+      if (partnersOnly !== npc.isPartner) continue;
+      // 跳过被魔法召唤的 NPC
+      if (npc.summonedByMagicSprite !== null) continue;
+
+      const item: NpcSaveItem = {
+        name: npc.name,
+        npcIni: npc.npcIni,
+        kind: npc.kind,
+        relation: npc.relation,
+        pathFinder: npc.pathFinder,
+        state: npc.state,
+        mapX: npc.mapX,
+        mapY: npc.mapY,
+        dir: npc.currentDirection,
+        visionRadius: npc.visionRadius,
+        dialogRadius: npc.dialogRadius,
+        attackRadius: npc.attackRadius,
+        level: npc.level,
+        exp: npc.exp,
+        levelUpExp: npc.levelUpExp,
+        life: npc.life,
+        lifeMax: npc.lifeMax,
+        thew: npc.thew,
+        thewMax: npc.thewMax,
+        mana: npc.mana,
+        manaMax: npc.manaMax,
+        attack: npc.attack,
+        attack2: npc.attack2,
+        attack3: npc.attack3,
+        attackLevel: npc.attackLevel,
+        defend: npc.defend,
+        defend2: npc.defend2,
+        defend3: npc.defend3,
+        evade: npc.evade,
+        lum: npc.lum,
+        action: npc.actionType,
+        walkSpeed: npc.walkSpeed,
+        addMoveSpeedPercent: npc.addMoveSpeedPercent,
+        expBonus: npc.expBonus,
+        canLevelUp: npc.canLevelUp,
+        fixedPos: npc.fixedPos,
+        currentFixedPosIndex: npc.currentFixedPosIndex,
+        destinationMapPosX: npc.destinationMoveTilePosition.x,
+        destinationMapPosY: npc.destinationMoveTilePosition.y,
+        idle: npc.idle,
+        group: npc.group,
+        noAutoAttackPlayer: npc.noAutoAttackPlayer,
+        invincible: npc.invincible,
+        poisonSeconds: npc.poisonSeconds,
+        poisonByCharacterName: npc.poisonByCharacterName,
+        petrifiedSeconds: npc.petrifiedSeconds,
+        frozenSeconds: npc.frozenSeconds,
+        isPoisonVisualEffect: npc.isPoisonVisualEffect,
+        isPetrifiedVisualEffect: npc.isPetrifiedVisualEffect,
+        isFrozenVisualEffect: npc.isFrozenVisualEffect,
+        isDeath: npc.isDeath,
+        isDeathInvoked: npc.isDeathInvoked,
+        reviveMilliseconds: npc.reviveMilliseconds,
+        leftMillisecondsToRevive: npc.leftMillisecondsToRevive,
+        bodyIni: npc.bodyIni || undefined,
+        flyIni: npc.flyIni || undefined,
+        flyIni2: npc.flyIni2 || undefined,
+        flyInis: npc.flyInis || undefined,
+        isBodyIniAdded: npc.isBodyIniAdded,
+        scriptFile: npc.scriptFile || undefined,
+        scriptFileRight: npc.scriptFileRight || undefined,
+        deathScript: npc.deathScript || undefined,
+        timerScriptFile: npc.timerScript || undefined,
+        timerScriptInterval: npc.timerInterval,
+        magicToUseWhenLifeLow: npc.magicToUseWhenLifeLow || undefined,
+        lifeLowPercent: npc.lifeLowPercent,
+        keepRadiusWhenLifeLow: npc.keepRadiusWhenLifeLow,
+        keepRadiusWhenFriendDeath: npc.keepRadiusWhenFriendDeath,
+        magicToUseWhenBeAttacked: npc.magicToUseWhenBeAttacked || undefined,
+        magicDirectionWhenBeAttacked: npc.magicDirectionWhenBeAttacked,
+        magicToUseWhenDeath: npc.magicToUseWhenDeath || undefined,
+        magicDirectionWhenDeath: npc.magicDirectionWhenDeath,
+        buyIniFile: npc.buyIniFile || undefined,
+        buyIniString: npc.buyIniString || undefined,
+        visibleVariableName: npc.visibleVariableName || undefined,
+        visibleVariableValue: npc.visibleVariableValue,
+        dropIni: npc.dropIni || undefined,
+        canEquip: npc.canEquip,
+        headEquip: npc.headEquip || undefined,
+        neckEquip: npc.neckEquip || undefined,
+        bodyEquip: npc.bodyEquip || undefined,
+        backEquip: npc.backEquip || undefined,
+        handEquip: npc.handEquip || undefined,
+        wristEquip: npc.wristEquip || undefined,
+        footEquip: npc.footEquip || undefined,
+        backgroundTextureEquip: npc.backgroundTextureEquip || undefined,
+        keepAttackX: npc.keepAttackX,
+        keepAttackY: npc.keepAttackY,
+        hurtPlayerInterval: npc.hurtPlayerInterval,
+        hurtPlayerLife: npc.hurtPlayerLife,
+        hurtPlayerRadius: npc.hurtPlayerRadius,
+        isHide: npc.isHide,
+        isAIDisabled: npc.isAIDisabled,
+        actionPathTilePositions:
+          npc.actionPathTilePositions?.length > 0
+            ? npc.actionPathTilePositions.map((p) => ({ x: p.x, y: p.y }))
+            : undefined,
+        levelIniFile: npc.levelIniFile || undefined,
+      };
+
+      items.push(item);
+    }
+
+    return items;
+  }
+
+  /**
+   * 获取内存文件存储（用于 Loader 存档时持久化）
+   */
+  getNpcFileStore(): Map<string, NpcSaveItem[]> {
+    return this.npcFileStore;
+  }
+
+  /**
+   * 设置内存文件存储（用于 Loader 读档时恢复）
+   */
+  setNpcFileStore(store: Record<string, NpcSaveItem[]>): void {
+    this.npcFileStore.clear();
+    for (const [key, value] of Object.entries(store)) {
+      this.npcFileStore.set(key, value);
+    }
+  }
+
+  /**
+   * 清空内存文件存储（新游戏时调用）
+   */
+  clearNpcFileStore(): void {
+    this.npcFileStore.clear();
   }
 
   /**
@@ -1023,8 +1175,8 @@ export class NpcManager {
    * Save Partner state
    * saves partner NPCs to save file
    *
-   * Web 版本说明：
-   * - 与 saveNpc 类似，Partner 数据在 saveGame() 时统一保存
+   * 将当前伙伴 NPC 序列化到内存文件存储中
+   * 对应 C# 原版: NpcManager.Save(fileName, isSaveParter=true)
    *
    * @param fileName 文件名
    */
@@ -1034,13 +1186,11 @@ export class NpcManager {
       return;
     }
 
-    logger.log(
-      `[NpcManager] SavePartner: ${fileName} (Partner data will be saved with next saveGame)`
-    );
+    // 序列化当前所有伙伴 NPC 到内存存储
+    const items = this.collectNpcSaveItems(true);
+    this.npcFileStore.set(fileName, items);
 
-    // Web 版本注意事项：
-    // - Partner 数据在 Loader.collectSaveData() -> collectNpcData(npcManager, true) 中收集
-    // - 与 NPC 数据分开存储在 SaveData.partnerData 中
+    logger.log(`[NpcManager] SavePartner: ${fileName} (${items.length} partners saved to memory store)`);
   }
 
   /**
@@ -1194,7 +1344,24 @@ export class NpcManager {
   private async loadNpcFileInternal(fileName: string, clearCurrentNpcs: boolean): Promise<boolean> {
     logger.log(`[NpcManager] Loading NPC file: ${fileName} (clear=${clearCurrentNpcs})`);
 
-    // Try multiple paths
+    // 1. 优先从内存文件存储加载（模拟 C# 的 save/game/ 目录）
+    const storedData = this.npcFileStore.get(fileName);
+    if (storedData) {
+      if (clearCurrentNpcs) {
+        this.clearAllNpcAndKeepPartner();
+      }
+
+      logger.log(`[NpcManager] Loading ${storedData.length} NPCs from memory store: ${fileName}`);
+      for (const npcData of storedData) {
+        if (npcData.isDeath && npcData.isDeathInvoked) continue;
+        await this.createNpcFromData(npcData as unknown as Record<string, unknown>);
+      }
+      this.fileName = fileName;
+      logger.log(`[NpcManager] Loaded ${this.npcs.size} NPCs from memory store: ${fileName}`);
+      return true;
+    }
+
+    // 2. Fallback: 从文件系统加载（ini/save/ 静态资源）
     const paths = [ResourcePath.saveGame(fileName), ResourcePath.iniSave(fileName)];
 
     for (const filePath of paths) {
@@ -1679,7 +1846,7 @@ export class NpcManager {
     }
 
     // Create NPC with config
-    const npc = this.addNpcWithConfig(config, mapX, mapY, dir as Direction);
+    const npc = await this.addNpcWithConfig(config, mapX, mapY, dir as Direction);
 
     // === 基本状态 ===
     npc.actionType = extraState.action;

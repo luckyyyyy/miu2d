@@ -1143,6 +1143,11 @@ export interface ApiNpcResources {
   stand1?: ApiNpcResource;
   walk?: ApiNpcResource;
   run?: ApiNpcResource;
+  jump?: ApiNpcResource;
+  fightStand?: ApiNpcResource;
+  fightWalk?: ApiNpcResource;
+  fightRun?: ApiNpcResource;
+  fightJump?: ApiNpcResource;
   sit?: ApiNpcResource;
   hurt?: ApiNpcResource;
   death?: ApiNpcResource;
@@ -1184,6 +1189,7 @@ export interface ApiNpcData {
   scriptFile?: string | null;
   deathScript?: string | null;
   resources?: ApiNpcResources | null;
+  resourceId?: string | null;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -1219,11 +1225,24 @@ export interface ApiObjData {
   /** 内联的资源配置 */
   resources?: ApiObjResources | null;
   scriptFile?: string | null;
+  scriptFileRight?: string | null;
   switchSound?: string | null;
   triggerRadius?: number | null;
   interval?: number | null;
   level?: number | null;
   height?: number | null;
+  dir?: number | null;
+  frame?: number | null;
+  offX?: number | null;
+  offY?: number | null;
+  damage?: number | null;
+  lum?: number | null;
+  canInteractDirectly?: number | null;
+  scriptFileJustTouch?: number | null;
+  timerScriptFile?: string | null;
+  timerScriptInterval?: number | null;
+  reviveNpcIni?: string | null;
+  wavFile?: string | null;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -1265,9 +1284,33 @@ export interface ApiObjResponse {
   resources: ApiObjResData[];
 }
 
+/**
+ * API 返回的商店商品项
+ */
+export interface ApiShopItemData {
+  goodsKey: string;
+  count: number;
+  price: number;
+}
+
+/**
+ * API 返回的商店数据
+ */
+export interface ApiShopData {
+  id: string;
+  gameId: string;
+  key: string;
+  name: string;
+  numberValid: boolean;
+  buyPercent: number;
+  recyclePercent: number;
+  items: ApiShopItemData[];
+}
+
 export interface ApiDataResponse {
   magics: ApiMagicResponse;
   goods: ApiGoodsData[];
+  shops: ApiShopData[];
   npcs: ApiNpcResponse;
   objs: ApiObjResponse;
 }
@@ -1321,13 +1364,14 @@ export async function loadGameData(gameSlug: string, force = false): Promise<voi
 
       const magicCount = (cachedGameData?.magics.player.length ?? 0) + (cachedGameData?.magics.npc.length ?? 0);
       const goodsCount = cachedGameData?.goods.length ?? 0;
+      const shopCount = cachedGameData?.shops.length ?? 0;
       const npcCount = cachedGameData?.npcs.npcs.length ?? 0;
       const npcResCount = cachedGameData?.npcs.resources.length ?? 0;
       const objCount = cachedGameData?.objs.objs.length ?? 0;
       const objResCount = cachedGameData?.objs.resources.length ?? 0;
 
       logger.info(
-        `[ResourceLoader] Loaded: ${magicCount} magics, ${goodsCount} goods, ${npcCount} npcs, ${npcResCount} npcres, ${objCount} objs, ${objResCount} objres`
+        `[ResourceLoader] Loaded: ${magicCount} magics, ${goodsCount} goods, ${shopCount} shops, ${npcCount} npcs, ${npcResCount} npcres, ${objCount} objs, ${objResCount} objres`
       );
     } catch (error) {
       logger.error(`[ResourceLoader] Failed to load game data:`, error);
@@ -1366,6 +1410,10 @@ export function getNpcsData(): ApiNpcResponse | null {
 
 export function getObjsData(): ApiObjResponse | null {
   return cachedGameData?.objs ?? null;
+}
+
+export function getShopsData(): ApiShopData[] | null {
+  return cachedGameData?.shops ?? null;
 }
 
 export function clearGameDataCache(): void {

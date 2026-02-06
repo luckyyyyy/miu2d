@@ -560,8 +560,9 @@ export class UIBridge implements IUIBridge {
     const shopItems = buyManager.getGoodsArray();
     const items: (UIShopItem | null)[] = shopItems.map((item: ShopItemInfo | null) => {
       if (!item?.good) return null;
-      // ShopItemInfo has good and count, price is calculated from good.cost * buyPercent
-      const price = Math.floor((item.good.cost * buyManager.getBuyPercent()) / 100);
+      // Use item.price override if set, otherwise fall back to good.cost
+      const basePrice = item.price > 0 ? item.price : item.good.cost;
+      const price = Math.floor((basePrice * buyManager.getBuyPercent()) / 100);
       return {
         good: convertGoodToUIGoodData(item.good),
         price,

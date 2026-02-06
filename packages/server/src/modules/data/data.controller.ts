@@ -8,6 +8,7 @@ import { Controller, Get, Param, Res, Logger, HttpStatus } from "@nestjs/common"
 import type { Response } from "express";
 import { magicService } from "../magic/magic.service";
 import { goodsService } from "../goods/goods.service";
+import { shopService } from "../shop/shop.service";
 import { npcService, npcResourceService } from "../npc";
 import { objService, objResourceService } from "../obj";
 
@@ -23,6 +24,7 @@ export class DataController {
 	 * 返回该游戏下所有配置数据，包括：
 	 * - magics: 武功配置（按 userType 分组）
 	 * - goods: 物品配置（扁平数组）
+	 * - shops: 商店配置（扁平数组）
 	 * - npcs: NPC 配置（包含 npcs 数组和 resources 数组）
 	 * - objs: 物体配置（包含 objs 数组和 resources 数组）
 	 *
@@ -37,9 +39,10 @@ export class DataController {
 			this.logger.debug(`[getData] gameSlug=${gameSlug}`);
 
 			// 并行加载所有数据
-			const [magics, goods, npcs, npcResources, objs, objResources] = await Promise.all([
+			const [magics, goods, shops, npcs, npcResources, objs, objResources] = await Promise.all([
 				magicService.listPublicBySlug(gameSlug),
 				goodsService.listPublicBySlug(gameSlug),
+				shopService.listPublicBySlug(gameSlug),
 				npcService.listPublicBySlug(gameSlug),
 				npcResourceService.listPublicBySlug(gameSlug),
 				objService.listPublicBySlug(gameSlug),
@@ -67,6 +70,8 @@ export class DataController {
 				},
 				// 物品扁平数组
 				goods,
+				// 商店扁平数组
+				shops,
 				// NPC: 包含 npcs 数组和 resources 数组
 				npcs: {
 					npcs: npcs,

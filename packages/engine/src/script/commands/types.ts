@@ -34,7 +34,7 @@ export interface ScriptContext {
   isPlayerRunToEnd: (destination: Vector2) => boolean;
 
   // NPC functions
-  addNpc: (npcFile: string, x: number, y: number, direction?: number) => void;
+  addNpc: (npcFile: string, x: number, y: number, direction?: number) => Promise<void>;
   deleteNpc: (name: string) => void;
   getNpcPosition: (name: string) => Vector2 | null;
   setNpcPosition: (name: string, x: number, y: number) => void;

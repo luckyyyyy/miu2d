@@ -262,6 +262,10 @@ export class Loader {
     // 清空多角色内存存储（新游戏从资源文件加载初始数据）
     this.clearCharacterMemory();
 
+    // 清空内存文件存储（新游戏无历史 SaveNpc/SaveObj 数据）
+    this.deps.npcManager.clearNpcFileStore();
+    this.deps.objManager.clearObjFileStore();
+
     // 以黑屏开始（用于淡入淡出特效）
     screenEffects.setFadeTransparency(1);
 
@@ -1211,6 +1215,10 @@ export class Loader {
       // 清空多角色内存存储（避免跨存档污染）
       this.clearCharacterMemory();
 
+      // 清空内存文件存储（避免跨存档污染，后面会从存档恢复）
+      npcManager.clearNpcFileStore();
+      objManager.clearObjFileStore();
+
       // 清除运行时保存的陷阱数据（避免跨存档污染）
       // Reference: 读档时会从存档复制 Traps.ini 到 save/game/
       localStorage.removeItem("jxqy_traps_runtime");
@@ -1371,6 +1379,16 @@ export class Loader {
       objManager.clearAll();
       if (data.objData?.objs && data.objData.objs.length > 0) {
         await this.loadObjsFromJSON(data.objData.objs, objManager);
+      }
+
+      // Step 12.5: 恢复内存中的 NPC/Obj 文件存储
+      if (data.npcFileStore) {
+        npcManager.setNpcFileStore(data.npcFileStore);
+        logger.debug(`[Loader] Restored NPC file store (${Object.keys(data.npcFileStore).length} files)`);
+      }
+      if (data.objFileStore) {
+        objManager.setObjFileStore(data.objFileStore);
+        logger.debug(`[Loader] Restored Obj file store (${Object.keys(data.objFileStore).length} files)`);
       }
 
       // Step 13: 加载选项设置
@@ -1611,23 +1629,27 @@ export class Loader {
       // 陷阱
       traps: this.collectTrapsData(),
 
-      // NPC 数据 (不包含伙伴)
+      // NPC 数据 (不包含伙伴) - 委托给 NpcManager.collectNpcSaveItems
       npcData: {
-        npcs: this.collectNpcData(npcManager, false),
+        npcs: npcManager.collectNpcSaveItems(false),
       },
 
       // 伙伴数据
       partnerData: {
-        npcs: this.collectNpcData(npcManager, true),
+        npcs: npcManager.collectNpcSaveItems(true),
       },
 
-      // 物体数据
+      // 物体数据 - 委托给 ObjManager.collectObjSaveItems
       objData: {
-        objs: this.collectObjData(objManager),
+        objs: objManager.collectObjSaveItems(),
       },
 
       // 多角色数据 (PlayerChange 切换过的角色)
       otherCharacters: this.collectOtherCharactersData(),
+
+      // 内存中的 NPC/Obj 文件存储（脚本 SaveNpc/SaveObj 写入的数据）
+      npcFileStore: this.collectFileStore(npcManager.getNpcFileStore()),
+      objFileStore: this.collectFileStore(objManager.getObjFileStore()),
     };
 
     return saveData;
@@ -1657,6 +1679,18 @@ export class Loader {
     }
 
     logger.debug(`[Loader] Collected ${Object.keys(result).length} other characters for save`);
+    return result;
+  }
+
+  /**
+   * 将 Map<string, T[]> 转换为 Record<string, T[]> 用于存档序列化
+   */
+  private collectFileStore<T>(store: Map<string, T[]>): Record<string, T[]> | undefined {
+    if (store.size === 0) return undefined;
+    const result: Record<string, T[]> = {};
+    for (const [key, value] of store) {
+      result[key] = value;
+    }
     return result;
   }
 
@@ -1897,227 +1931,7 @@ export class Loader {
     return MapBase.Instance.collectTrapDataForSave();
   }
 
-  /**
-   * 收集 NPC 数据
-   * + Character.Save()
-   * 完整对应所有存档字段
-   * @param npcManager NPC 管理器
-   * @param partnersOnly 是否只收集伙伴 (true=伙伴, false=非伙伴)
-   */
-  private collectNpcData(npcManager: NpcManager, partnersOnly: boolean): NpcSaveItem[] {
-    const items: NpcSaveItem[] = [];
-    const allNpcs = npcManager.getAllNpcs();
 
-    for (const [, npc] of allNpcs) {
-      // 根据 partnersOnly 参数过滤
-      // Reference: NpcManager.Save(fileName, isSaveParter)
-      // if ((isSaveParter && !npc.IsPartner) || (!isSaveParter && npc.IsPartner)) continue;
-      if (partnersOnly !== npc.isPartner) {
-        continue;
-      }
-
-      // 跳过被召唤的 NPC（由魔法召唤的）
-      // if (npc.SummonedByMagicSprite != null) continue;
-      if (npc.summonedByMagicSprite !== null) {
-        continue;
-      }
-
-      const item: NpcSaveItem = {
-        // === 基本信息 ===
-        name: npc.name,
-        npcIni: npc.npcIni,
-        kind: npc.kind,
-        relation: npc.relation,
-        pathFinder: npc.pathFinder,
-        state: npc.state,
-
-        // === 位置 ===
-        mapX: npc.mapX,
-        mapY: npc.mapY,
-        dir: npc.currentDirection,
-
-        // === 范围 ===
-        visionRadius: npc.visionRadius,
-        dialogRadius: npc.dialogRadius,
-        attackRadius: npc.attackRadius,
-
-        // === 属性 ===
-        level: npc.level,
-        exp: npc.exp,
-        levelUpExp: npc.levelUpExp,
-        life: npc.life,
-        lifeMax: npc.lifeMax,
-        thew: npc.thew,
-        thewMax: npc.thewMax,
-        mana: npc.mana,
-        manaMax: npc.manaMax,
-        attack: npc.attack,
-        attack2: npc.attack2,
-        attack3: npc.attack3,
-        attackLevel: npc.attackLevel,
-        defend: npc.defend,
-        defend2: npc.defend2,
-        defend3: npc.defend3,
-        evade: npc.evade,
-        lum: npc.lum,
-        action: npc.actionType,
-        walkSpeed: npc.walkSpeed,
-        addMoveSpeedPercent: npc.addMoveSpeedPercent,
-        expBonus: npc.expBonus,
-        canLevelUp: npc.canLevelUp,
-
-        // === 位置相关 ===
-        fixedPos: npc.fixedPos,
-        currentFixedPosIndex: npc.currentFixedPosIndex,
-        destinationMapPosX: npc.destinationMoveTilePosition.x,
-        destinationMapPosY: npc.destinationMoveTilePosition.y,
-
-        // === AI/行为 ===
-        idle: npc.idle,
-        group: npc.group,
-        noAutoAttackPlayer: npc.noAutoAttackPlayer,
-        invincible: npc.invincible,
-
-        // === 状态效果 ===
-        poisonSeconds: npc.poisonSeconds,
-        poisonByCharacterName: npc.poisonByCharacterName,
-        petrifiedSeconds: npc.petrifiedSeconds,
-        frozenSeconds: npc.frozenSeconds,
-        isPoisonVisualEffect: npc.isPoisonVisualEffect,
-        isPetrifiedVisualEffect: npc.isPetrifiedVisualEffect,
-        isFrozenVisualEffect: npc.isFrozenVisualEffect,
-
-        // === 死亡/复活 ===
-        isDeath: npc.isDeath,
-        isDeathInvoked: npc.isDeathInvoked,
-        reviveMilliseconds: npc.reviveMilliseconds,
-        leftMillisecondsToRevive: npc.leftMillisecondsToRevive,
-
-        // === INI 文件 ===
-        bodyIni: npc.bodyIni || undefined,
-        flyIni: npc.flyIni || undefined,
-        flyIni2: npc.flyIni2 || undefined,
-        flyInis: npc.flyInis || undefined,
-        isBodyIniAdded: npc.isBodyIniAdded,
-
-        // === 脚本相关 ===
-        scriptFile: npc.scriptFile || undefined,
-        scriptFileRight: npc.scriptFileRight || undefined,
-        deathScript: npc.deathScript || undefined,
-        timerScriptFile: npc.timerScript || undefined,
-        timerScriptInterval: npc.timerInterval,
-
-        // === 技能相关 ===
-        magicToUseWhenLifeLow: npc.magicToUseWhenLifeLow || undefined,
-        lifeLowPercent: npc.lifeLowPercent,
-        keepRadiusWhenLifeLow: npc.keepRadiusWhenLifeLow,
-        keepRadiusWhenFriendDeath: npc.keepRadiusWhenFriendDeath,
-        magicToUseWhenBeAttacked: npc.magicToUseWhenBeAttacked || undefined,
-        magicDirectionWhenBeAttacked: npc.magicDirectionWhenBeAttacked,
-        magicToUseWhenDeath: npc.magicToUseWhenDeath || undefined,
-        magicDirectionWhenDeath: npc.magicDirectionWhenDeath,
-
-        // === 商店/可见性 ===
-        buyIniFile: npc.buyIniFile || undefined,
-        buyIniString: npc.buyIniString || undefined,
-        visibleVariableName: npc.visibleVariableName || undefined,
-        visibleVariableValue: npc.visibleVariableValue,
-
-        // === 掉落 ===
-        dropIni: npc.dropIni || undefined,
-
-        // === 装备 ===
-        canEquip: npc.canEquip,
-        headEquip: npc.headEquip || undefined,
-        neckEquip: npc.neckEquip || undefined,
-        bodyEquip: npc.bodyEquip || undefined,
-        backEquip: npc.backEquip || undefined,
-        handEquip: npc.handEquip || undefined,
-        wristEquip: npc.wristEquip || undefined,
-        footEquip: npc.footEquip || undefined,
-        backgroundTextureEquip: npc.backgroundTextureEquip || undefined,
-
-        // === 保持攻击位置 ===
-        keepAttackX: npc.keepAttackX,
-        keepAttackY: npc.keepAttackY,
-
-        // === 伤害玩家 ===
-        hurtPlayerInterval: npc.hurtPlayerInterval,
-        hurtPlayerLife: npc.hurtPlayerLife,
-        hurtPlayerRadius: npc.hurtPlayerRadius,
-
-        // === NPC 特有 ===
-        // IsHide is script-controlled hiding, IsVisible is computed from magic time
-        isHide: npc.isHide,
-        isAIDisabled: npc.isAIDisabled,
-
-        // === 巡逻路径 ===
-        actionPathTilePositions:
-          npc.actionPathTilePositions?.length > 0
-            ? npc.actionPathTilePositions.map((p) => ({ x: p.x, y: p.y }))
-            : undefined,
-
-        // === 等级配置文件 ===
-        levelIniFile: npc.levelIniFile || undefined,
-      };
-
-      items.push(item);
-    }
-
-    logger.log(`[Loader] Collected ${items.length} NPCs`);
-    return items;
-  }
-
-  /**
-   * 收集物体数据
-   * 参考ObjManager.Save() 和 Obj.Save()
-   */
-  private collectObjData(objManager: ObjManager): ObjSaveItem[] {
-    const items: ObjSaveItem[] = [];
-    const allObjs = objManager.getAllObjs();
-
-    for (const obj of allObjs) {
-      // 跳过已被移除的物体
-      if (obj.isRemoved) continue;
-
-      const item: ObjSaveItem = {
-        // 基本信息
-        objName: obj.objName,
-        kind: obj.kind,
-        dir: obj.dir,
-
-        // 位置
-        mapX: obj.mapX,
-        mapY: obj.mapY,
-
-        // 属性
-        damage: obj.damage,
-        frame: obj.currentFrameIndex,
-        height: obj.height,
-        lum: obj.lum,
-        objFile: obj.objFileName,
-        offX: obj.offX,
-        offY: obj.offY,
-
-        // 脚本
-        scriptFile: obj.scriptFile || undefined,
-        scriptFileRight: obj.scriptFileRight || undefined,
-        timerScriptFile: obj.timerScriptFile || undefined,
-        timerScriptInterval: obj.timerScriptInterval,
-        scriptFileJustTouch: obj.scriptFileJustTouch,
-
-        // 其他
-        wavFile: obj.wavFile || undefined,
-        millisecondsToRemove: obj.millisecondsToRemove,
-        isRemoved: obj.isRemoved,
-      };
-
-      items.push(item);
-    }
-
-    logger.log(`[Loader] Collected ${items.length} Objs`);
-    return items;
-  }
 
   // ============= 数据加载方法 =============
 

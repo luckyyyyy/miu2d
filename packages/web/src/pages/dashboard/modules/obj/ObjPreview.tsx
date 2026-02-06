@@ -9,7 +9,7 @@ import type { AsfData } from "@miu2d/engine/resource/asf";
 import { getFrameCanvas } from "@miu2d/engine/resource/asf";
 import { initWasm } from "@miu2d/engine/wasm/wasmManager";
 import { decodeAsfWasm } from "@miu2d/engine/wasm/wasmAsfDecoder";
-import type { Obj, ObjState, ObjResource } from "@miu2d/types";
+import type { Obj, ObjState, ObjResource, ObjRes } from "@miu2d/types";
 import { ObjStateLabels, ObjKindLabels } from "@miu2d/types";
 
 // ========== 类型定义 ==========
@@ -17,6 +17,8 @@ import { ObjStateLabels, ObjKindLabels } from "@miu2d/types";
 interface ObjPreviewProps {
   gameSlug: string;
   obj: Partial<Obj> | null;
+  /** 关联的 Obj 资源（用于获取资源） */
+  resource?: ObjRes;
 }
 
 /** 可预览的状态列表 - Object 只支持 Common 状态 */
@@ -24,12 +26,15 @@ const PREVIEW_STATES: ObjState[] = ["Common"];
 
 // ========== 主组件 ==========
 
-export function ObjPreview({ gameSlug, obj }: ObjPreviewProps) {
+export function ObjPreview({ gameSlug, obj, resource }: ObjPreviewProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number | null>(null);
 
   // WASM 状态
   const [wasmReady, setWasmReady] = useState(false);
+
+  // 获取实际使用的资源配置（优先使用关联的资源，否则使用 Obj 自身的资源）
+  const resources = resource?.resources ?? obj?.resources;
 
   // 当前选中的状态（Object 只有 Common）
   const [selectedState] = useState<ObjState>("Common");
@@ -87,14 +92,14 @@ export function ObjPreview({ gameSlug, obj }: ObjPreviewProps) {
 
   // ========== 获取当前状态的资源路径 ==========
   const getResourcePath = useCallback((state: ObjState): string | null => {
-    if (!obj?.resources) return null;
+    if (!resources) return null;
 
     const stateKey = state.toLowerCase() as keyof ObjResource;
-    const resource = obj.resources[stateKey];
+    const stateRes = resources[stateKey];
 
     // 规范化路径（兼容旧数据）
-    return normalizeImagePath(resource?.image);
-  }, [obj?.resources, normalizeImagePath]);
+    return normalizeImagePath(stateRes?.image);
+  }, [resources, normalizeImagePath]);
 
   // ========== 加载 ASF 文件 ==========
   const loadAsf = useCallback(
@@ -251,7 +256,7 @@ export function ObjPreview({ gameSlug, obj }: ObjPreviewProps) {
   // 判断是否有任何资源配置
   const hasAnyResource = PREVIEW_STATES.some((state) => {
     const stateKey = state.toLowerCase() as keyof ObjResource;
-    const image = obj?.resources?.[stateKey]?.image;
+    const image = resources?.[stateKey]?.image;
     return image && image.trim() !== "";
   });
 

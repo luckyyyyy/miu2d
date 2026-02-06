@@ -270,6 +270,18 @@ export const GoodsListItemSchema = z.object({
   kind: GoodsKindEnum,
   part: GoodsPartEnum.nullable().optional(),
   icon: z.string().nullable().optional(),
+  // 价格相关字段（用于商店编辑器显示价格）
+  cost: z.number().int().nullable().optional(),
+  life: z.number().int().nullable().optional(),
+  thew: z.number().int().nullable().optional(),
+  mana: z.number().int().nullable().optional(),
+  lifeMax: z.number().int().nullable().optional(),
+  thewMax: z.number().int().nullable().optional(),
+  manaMax: z.number().int().nullable().optional(),
+  attack: z.number().int().nullable().optional(),
+  defend: z.number().int().nullable().optional(),
+  evade: z.number().int().nullable().optional(),
+  effectType: z.number().int().nullable().optional(),
   updatedAt: z.string(),
 });
 

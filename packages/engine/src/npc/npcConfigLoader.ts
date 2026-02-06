@@ -151,6 +151,11 @@ const API_RES_KEY_TO_STATE: Record<string, number> = {
   stand1: CharacterState.Stand1,
   walk: CharacterState.Walk,
   run: CharacterState.Run,
+  jump: CharacterState.Jump,
+  fightStand: CharacterState.FightStand,
+  fightWalk: CharacterState.FightWalk,
+  fightRun: CharacterState.FightRun,
+  fightJump: CharacterState.FightJump,
   sit: CharacterState.Sit,
   hurt: CharacterState.Hurt,
   death: CharacterState.Death,
@@ -191,10 +196,25 @@ function buildNpcConfigCache(): void {
   npcConfigCache.clear();
   npcResCache.clear();
 
+  // 0. 构建 resourceId -> resource key 映射
+  const resourceIdToKey = new Map<string, string>();
+  for (const resData of data.resources) {
+    resourceIdToKey.set(resData.id, resData.key);
+  }
+
   // 1. 构建 NPC 配置缓存（从 npcs 数组）
   for (const api of data.npcs) {
     const config = convertApiNpcToConfig(api);
     const cacheKey = normalizeKey(api.key);
+
+    // 通过 resourceId 找到关联的 NpcRes key，设置为 npcIni
+    if (api.resourceId) {
+      const resKey = resourceIdToKey.get(api.resourceId);
+      if (resKey) {
+        config.npcIni = resKey;
+      }
+    }
+
     npcConfigCache.set(cacheKey, config);
 
     // NPC 自身也可能有 resources（inline）

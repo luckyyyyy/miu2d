@@ -9,12 +9,12 @@ import type { CommandHandler, CommandRegistry } from "./types";
  * AddNpc - Add NPC to map
  * direction is required
  */
-const addNpcCommand: CommandHandler = (params, _result, helpers) => {
+const addNpcCommand: CommandHandler = async (params, _result, helpers) => {
   const npcFile = helpers.resolveString(params[0] || "");
   const x = helpers.resolveNumber(params[1] || "0");
   const y = helpers.resolveNumber(params[2] || "0");
   const direction = params.length >= 4 ? helpers.resolveNumber(params[3] || "4") : undefined;
-  helpers.context.addNpc(npcFile, x, y, direction);
+  await helpers.context.addNpc(npcFile, x, y, direction);
   return true;
 };
 
@@ -31,11 +31,11 @@ const loadNpcCommand: CommandHandler = async (params, _result, helpers) => {
 /**
  * LoadOneNpc - Load single NPC at position
  */
-const loadOneNpcCommand: CommandHandler = (params, _result, helpers) => {
+const loadOneNpcCommand: CommandHandler = async (params, _result, helpers) => {
   const npcFile = helpers.resolveString(params[0] || "");
   const x = helpers.resolveNumber(params[1] || "0");
   const y = helpers.resolveNumber(params[2] || "0");
-  helpers.context.addNpc(npcFile, x, y);
+  await helpers.context.addNpc(npcFile, x, y);
   return true;
 };
 

@@ -41,12 +41,25 @@ export interface ObjConfig {
   image: string;
   shadow: string;
   script: string;
+  scriptRight: string;
   sound: string;
   switchSound: string;
   triggerRadius: number;
   interval: number;
   level: number;
   height: number;
+  dir: number;
+  frame: number;
+  offX: number;
+  offY: number;
+  damage: number;
+  lum: number;
+  canInteractDirectly: number;
+  scriptFileJustTouch: number;
+  timerScriptFile: string;
+  timerScriptInterval: number;
+  reviveNpcIni: string;
+  wavFile: string;
 }
 
 // ========== 缓存 ==========
@@ -76,12 +89,25 @@ function convertApiObjToConfig(api: ApiObjData): ObjConfig {
     image: api.resources?.common?.image ?? "",
     shadow: "",
     script: api.scriptFile ?? "",
+    scriptRight: api.scriptFileRight ?? "",
     sound: api.resources?.common?.sound ?? "",
     switchSound: api.switchSound ?? "",
     triggerRadius: api.triggerRadius ?? 0,
     interval: api.interval ?? 0,
     level: api.level ?? 0,
     height: api.height ?? 0,
+    dir: api.dir ?? 0,
+    frame: api.frame ?? 0,
+    offX: api.offX ?? 0,
+    offY: api.offY ?? 0,
+    damage: api.damage ?? 0,
+    lum: api.lum ?? 0,
+    canInteractDirectly: api.canInteractDirectly ?? 0,
+    scriptFileJustTouch: api.scriptFileJustTouch ?? 0,
+    timerScriptFile: api.timerScriptFile ?? "",
+    timerScriptInterval: api.timerScriptInterval ?? 3000,
+    reviveNpcIni: api.reviveNpcIni ?? "",
+    wavFile: api.wavFile ?? "",
   };
 }
 

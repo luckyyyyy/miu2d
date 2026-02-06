@@ -86,18 +86,23 @@ export const NpcRelationLabels: Record<NpcRelation, string> = {
  * 用于资源配置（npcres）
  */
 export const NpcStateEnum = z.enum([
-  "Stand",    // 站立
-  "Stand1",   // 待机动画
-  "Walk",     // 行走
-  "Run",      // 奔跑
-  "Attack",   // 攻击
-  "Attack1",  // 攻击2
-  "Attack2",  // 攻击3
-  "Hurt",     // 受伤
-  "Death",    // 死亡
-  "Sit",      // 坐下
-  "Special1", // 特殊动作1
-  "Special2", // 特殊动作2
+  "Stand",      // 站立
+  "Stand1",     // 待机动画
+  "Walk",       // 行走
+  "Run",        // 奔跑
+  "Jump",       // 跳跃（轻功）
+  "FightStand", // 战斗站立
+  "FightWalk",  // 战斗行走
+  "FightRun",   // 战斗奔跑
+  "FightJump",  // 战斗跳跃
+  "Attack",     // 攻击
+  "Attack1",    // 攻击2
+  "Attack2",    // 攻击3
+  "Hurt",       // 受伤
+  "Death",      // 死亡
+  "Sit",        // 坐下
+  "Special1",   // 特殊动作1（原 Magic）
+  "Special2",   // 特殊动作2（原 Special）
 ]);
 
 export type NpcState = z.infer<typeof NpcStateEnum>;
@@ -107,6 +112,11 @@ export const NpcStateLabels: Record<NpcState, string> = {
   Stand1: "待机",
   Walk: "行走",
   Run: "奔跑",
+  Jump: "跳跃",
+  FightStand: "战斗站立",
+  FightWalk: "战斗行走",
+  FightRun: "战斗奔跑",
+  FightJump: "战斗跳跃",
   Attack: "攻击",
   Attack1: "攻击2",
   Attack2: "攻击3",
@@ -140,6 +150,11 @@ export const NpcResourceSchema = z.object({
   stand1: NpcStateResourceSchema.optional(),
   walk: NpcStateResourceSchema.optional(),
   run: NpcStateResourceSchema.optional(),
+  jump: NpcStateResourceSchema.optional(),
+  fightStand: NpcStateResourceSchema.optional(),
+  fightWalk: NpcStateResourceSchema.optional(),
+  fightRun: NpcStateResourceSchema.optional(),
+  fightJump: NpcStateResourceSchema.optional(),
   attack: NpcStateResourceSchema.optional(),
   attack1: NpcStateResourceSchema.optional(),
   attack2: NpcStateResourceSchema.optional(),
@@ -517,6 +532,11 @@ export function createDefaultNpcResource(): NpcResource {
     stand1: { image: null, sound: null },
     walk: { image: null, sound: null },
     run: { image: null, sound: null },
+    jump: { image: null, sound: null },
+    fightStand: { image: null, sound: null },
+    fightWalk: { image: null, sound: null },
+    fightRun: { image: null, sound: null },
+    fightJump: { image: null, sound: null },
     attack: { image: null, sound: null },
     attack1: { image: null, sound: null },
     attack2: { image: null, sound: null },
@@ -664,4 +684,12 @@ export function getVisibleFieldsByNpcKind(kind: NpcKind): string[] {
         "thew", "thewMax", "mana", "manaMax",
       ];
   }
+}
+
+/**
+ * NpcState（PascalCase）→ NpcResource key（camelCase）转换
+ * 例: "FightStand" → "fightStand", "Stand" → "stand"
+ */
+export function npcStateToResourceKey(state: NpcState): keyof NpcResource {
+  return (state[0].toLowerCase() + state.slice(1)) as keyof NpcResource;
 }

@@ -15,15 +15,14 @@
  */
 
 import type { Character } from "../character";
-import { ResourcePath } from "../config/resourcePaths";
 import { logger } from "../core/logger";
 import { type Good, getGood } from "../player/goods";
-import { resourceLoader } from "../resource/resourceLoader";
-import { parseIni } from "../utils";
+import { getShopsData, type ApiShopData } from "../resource/resourceLoader";
 
 export interface ShopItemInfo {
   good: Good;
   count: number; // -1 表示无限数量
+  price: number; // 自定义价格，0 表示使用物品自身价格
 }
 
 export interface BuyManagerState {
@@ -118,47 +117,26 @@ export class BuyManager {
     this.state.canSellSelfGoods = canSellSelfGoods;
 
     try {
-      // Load shop configuration
-      // 先尝试从存档目录加载，再尝试 ini/buy/ 目录
-      let content: string | null = null;
-      const savePath = ResourcePath.saveGame(listFileName);
-      const iniPath = ResourcePath.buy(listFileName);
-
-      content = await resourceLoader.loadText(savePath);
-      if (!content) {
-        content = await resourceLoader.loadText(iniPath);
-      }
-
-      if (!content) {
-        logger.error(`[BuyManager] Failed to load shop file: ${listFileName}`);
+      // 从 API 缓存数据中查找商店
+      const shop = this.findShop(listFileName);
+      if (!shop) {
+        logger.error(`[BuyManager] Shop not found in API data: ${listFileName}`);
         return false;
       }
 
-      // Parse INI content
-      const data = parseIni(content);
-
-      // Parse header
-      const header = data.Header || data.header || {};
-      this.state.goodTypeCountAtStart = parseInt(header.Count || "0", 10);
+      // 使用 API 数据填充商店状态
+      this.state.goodTypeCountAtStart = shop.items.length;
       this.state.goodTypeCount = this.state.goodTypeCountAtStart;
-      this.state.numberValid = header.NumberValid === "1";
-      this.state.buyPercent = parseInt(header.BuyPercent || "100", 10);
-      this.state.recyclePercent = parseInt(header.RecyclePercent || "100", 10);
+      this.state.numberValid = shop.numberValid;
+      this.state.buyPercent = shop.buyPercent;
+      this.state.recyclePercent = shop.recyclePercent;
 
-      // Load goods
-      for (let i = 1; i <= this.state.goodTypeCountAtStart; i++) {
-        const section = data[i.toString()] || {};
-        const iniFile = section.IniFile || section.inifile || "";
-        if (!iniFile) continue;
-
-        let count = -1; // -1 表示无限
-        if (this.state.numberValid) {
-          count = parseInt(section.Number || "0", 10);
-        }
-
-        const good = getGood(iniFile);
+      // Load goods from items
+      for (let i = 0; i < shop.items.length; i++) {
+        const item = shop.items[i];
+        const good = getGood(item.goodsKey);
         if (good) {
-          this.state.goods.set(i, { good, count });
+          this.state.goods.set(i + 1, { good, count: item.count, price: item.price ?? 0 });
         }
       }
 
@@ -172,6 +150,18 @@ export class BuyManager {
       logger.error(`[BuyManager] Error loading shop: ${listFileName}`, error);
       return false;
     }
+  }
+
+  /**
+   * 从 API 缓存数据中查找商店
+   * key 匹配规则：文件名忽略大小写，支持带/不带 .ini 后缀
+   */
+  private findShop(listFileName: string): ApiShopData | null {
+    const shops = getShopsData();
+    if (!shops) return null;
+
+    const normalized = listFileName.toLowerCase().replace(/\.ini$/, "");
+    return shops.find(s => s.key.toLowerCase().replace(/\.ini$/, "") === normalized) ?? null;
   }
 
   /**
@@ -207,8 +197,9 @@ export class BuyManager {
       return false;
     }
 
-    // Calculate price with buy percent
-    const cost = Math.floor((itemInfo.good.cost * this.state.buyPercent) / 100);
+    // Calculate price: use item override if set, otherwise use good's cost
+    const basePrice = itemInfo.price > 0 ? itemInfo.price : itemInfo.good.cost;
+    const cost = Math.floor((basePrice * this.state.buyPercent) / 100);
 
     // Check if player has enough money
     if (playerMoney < cost) {
@@ -255,7 +246,7 @@ export class BuyManager {
 
     // Add as new item
     this.state.goodTypeCount++;
-    this.state.goods.set(this.state.goodTypeCount, { good, count: 1 });
+    this.state.goods.set(this.state.goodTypeCount, { good, count: 1, price: 0 });
     this.onUpdateView?.();
   }
 

@@ -183,6 +183,11 @@ export interface CharacterConfig {
     stand1?: { image: string | null; sound: string | null };
     walk?: { image: string | null; sound: string | null };
     run?: { image: string | null; sound: string | null };
+    jump?: { image: string | null; sound: string | null };
+    fightStand?: { image: string | null; sound: string | null };
+    fightWalk?: { image: string | null; sound: string | null };
+    fightRun?: { image: string | null; sound: string | null };
+    fightJump?: { image: string | null; sound: string | null };
     attack?: { image: string | null; sound: string | null };
     attack1?: { image: string | null; sound: string | null };
     attack2?: { image: string | null; sound: string | null };

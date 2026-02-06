@@ -579,6 +579,31 @@ export class NpcService {
 		const lines = content.split(/\r?\n/);
 		let currentSection = "";
 
+		// INI section 名称（小写）→ NpcResource key 映射
+		// INI 使用 CharacterState 名称（如 [FightStand], [Magic]）
+		// NpcResource 使用 camelCase key（如 fightStand, special1）
+		const sectionToKey: Record<string, keyof NpcResource> = {
+			stand: "stand",
+			stand1: "stand1",
+			walk: "walk",
+			run: "run",
+			jump: "jump",
+			fightstand: "fightStand",
+			fightwalk: "fightWalk",
+			fightrun: "fightRun",
+			fightjump: "fightJump",
+			attack: "attack",
+			attack1: "attack1",
+			attack2: "attack2",
+			magic: "special1",    // INI [Magic] → API special1
+			hurt: "hurt",
+			death: "death",
+			sit: "sit",
+			special: "special2",  // INI [Special] → API special2
+			special1: "special1",
+			special2: "special2",
+		};
+
 		for (const line of lines) {
 			const trimmed = line.trim();
 			if (!trimmed || trimmed.startsWith("//") || trimmed.startsWith(";")) {
@@ -598,8 +623,8 @@ export class NpcService {
 			const value = kvMatch[2].trim();
 
 			// 根据 section 名称映射到资源字段
-			const stateKey = currentSection as keyof NpcResource;
-			if (stateKey in result) {
+			const stateKey = sectionToKey[currentSection];
+			if (stateKey && stateKey in result) {
 				if (key === "Image") {
 					// 原封不动存储，路径规范化由前端/引擎处理
 					result[stateKey] = {

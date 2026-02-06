@@ -329,9 +329,9 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
     },
 
     // NPC
-    addNpc: (npcFile, x, y, direction?) => {
+    addNpc: async (npcFile, x, y, direction?) => {
       // direction defaults to 4 (south)
-      npcManager.addNpc(ResourcePath.npc(npcFile), x, y, direction ?? 4);
+      await npcManager.addNpc(ResourcePath.npc(npcFile), x, y, direction ?? 4);
     },
     deleteNpc: (name) => {
       npcManager.deleteNpc(name);

@@ -91,6 +91,12 @@ export const DASHBOARD_MODULES = {
     icon: "folder",
     basePath: "resources",
   },
+  gameModules: {
+    id: "game-modules",
+    label: "游戏模块",
+    icon: "gameModules",
+    basePath: "game-modules",
+  },
   statistics: {
     id: "statistics",
     label: "数据统计",

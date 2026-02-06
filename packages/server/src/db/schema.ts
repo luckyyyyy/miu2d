@@ -72,6 +72,23 @@ export const files = pgTable("files", {
 });
 
 /**
+ * 游戏全局配置表
+ * 每个游戏有且仅有一条配置记录
+ * data 字段存储 GameConfigData 类型的完整 JSON
+ */
+export const gameConfigs = pgTable("game_configs", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  /** 所属游戏（唯一，每个游戏只有一条配置） */
+  gameId: uuid("game_id").references(() => games.id, { onDelete: "cascade" }).notNull().unique(),
+  /** 完整配置数据（JSONB） */
+  data: jsonb("data").notNull(),
+  /** 创建时间 */
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  /** 更新时间 */
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow()
+});
+
+/**
  * 武功表
  * 使用简化设计：只存储索引字段 + 完整的 JSON 数据
  * 类型定义在 @miu2d/types 中，供引擎、前端、后端共用
@@ -144,6 +161,30 @@ export const goods = pgTable("goods", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow()
 }, (t) => [
   unique("goods_game_id_key_unique").on(t.gameId, t.key)
+]);
+
+/**
+ * 商店表
+ * 存储商店配置（原 ini/buy/*.ini）
+ * key = 文件名，data = 商品列表及配置
+ * 类型定义在 @miu2d/types 中，供引擎、前端、后端共用
+ */
+export const shops = pgTable("shops", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  /** 所属游戏（索引字段） */
+  gameId: uuid("game_id").references(() => games.id, { onDelete: "cascade" }).notNull(),
+  /** 唯一标识符（文件名，gameId + key 唯一） */
+  key: text("key").notNull(),
+  /** 商店名称（索引字段，便于搜索） */
+  name: text("name").notNull(),
+  /** 完整商店配置（JSONB，存储 Shop 类型的所有数据） */
+  data: jsonb("data").notNull(),
+  /** 创建时间 */
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  /** 更新时间 */
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow()
+}, (t) => [
+  unique("shops_game_id_key_unique").on(t.gameId, t.key)
 ]);
 
 /**

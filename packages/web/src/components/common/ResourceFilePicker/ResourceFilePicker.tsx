@@ -33,6 +33,10 @@ export interface ResourceFilePickerProps {
   extensions?: string[];
   /** 占位文本 */
   placeholder?: string;
+  /** 只读模式：禁止编辑但保留预览和试听 */
+  readonly?: boolean;
+  /** label 显示为输入框内的 tag 徽章（而非外部文本） */
+  inlineLabel?: boolean;
 }
 
 export function ResourceFilePicker({
@@ -44,6 +48,8 @@ export function ResourceFilePicker({
   gameSlug,
   extensions,
   placeholder = "未选择",
+  readonly: isReadonly = false,
+  inlineLabel = false,
 }: ResourceFilePickerProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
@@ -90,8 +96,9 @@ export function ResourceFilePicker({
 
   // 打开选择器
   const handleOpenDialog = useCallback(() => {
+    if (isReadonly) return;
     setIsDialogOpen(true);
-  }, []);
+  }, [isReadonly]);
 
   // 选择文件
   const handleSelect = useCallback((path: string) => {
@@ -117,13 +124,13 @@ export function ResourceFilePicker({
   }, [onChange]);
 
   return (
-    <div className="flex items-center gap-3 relative" ref={containerRef}>
-      {/* 标签 */}
-      <label className="text-xs text-[#858585] w-20 flex-shrink-0">{label}</label>
+    <div className={`${inlineLabel ? '' : 'flex items-center gap-3'} relative`} ref={containerRef}>
+      {/* 外部标签（非 inlineLabel 时） */}
+      {!inlineLabel && <label className="text-xs text-[#858585] w-20 flex-shrink-0">{label}</label>}
 
       {/* 内容区 - 固定高度，可点击 */}
       <div
-        className="flex-1 bg-[#2d2d2d] border border-[#454545] rounded h-9 flex items-center px-2 cursor-pointer hover:border-[#0098ff] transition-colors group"
+        className={`${inlineLabel ? '' : 'flex-1'} bg-[#2d2d2d] border border-[#454545] rounded h-9 flex items-center px-2 transition-colors group ${isReadonly ? 'cursor-default opacity-80' : 'cursor-pointer hover:border-[#0098ff]'}`}
         onClick={handleOpenDialog}
         onMouseEnter={() => {
           setIsHovered(true);
@@ -141,6 +148,12 @@ export function ResourceFilePicker({
       >
         {value ? (
           <div className="flex items-center gap-2 flex-1 min-w-0">
+            {/* 行内标签 tag */}
+            {inlineLabel && (
+              <span className="text-[10px] font-medium text-[#8a8a8a] bg-[#3c3c3c] px-1.5 py-0.5 rounded flex-shrink-0">
+                {label}
+              </span>
+            )}
             {/* 预览图标 */}
             {fileType === "asf" && (
               <MiniAsfPreview
@@ -165,8 +178,8 @@ export function ResourceFilePicker({
               {displayPath}
             </span>
 
-            {/* 悬停时显示操作按钮 */}
-            <div className={`flex items-center gap-1 flex-shrink-0 transition-opacity ${isHovered ? "opacity-100" : "opacity-0"}`}>
+            {/* 悬停时显示操作按钮（只读模式隐藏） */}
+            {!isReadonly && <div className={`flex items-center gap-1 flex-shrink-0 transition-opacity ${isHovered ? "opacity-100" : "opacity-0"}`}>
               <button
                 type="button"
                 onClick={handleClear}
@@ -187,10 +200,17 @@ export function ResourceFilePicker({
                   <path d="M8.5 1.5l2 2M1 11l.5-2L9 1.5l2 2L3.5 11 1 11z" />
                 </svg>
               </button>
-            </div>
+            </div>}
           </div>
         ) : (
-          <span className="text-xs text-[#606060]">{placeholder}</span>
+          <div className="flex items-center gap-2">
+            {inlineLabel && (
+              <span className="text-[10px] font-medium text-[#8a8a8a] bg-[#3c3c3c] px-1.5 py-0.5 rounded flex-shrink-0">
+                {label}
+              </span>
+            )}
+            <span className="text-xs text-[#606060]">{placeholder}</span>
+          </div>
         )}
       </div>
 

@@ -15,7 +15,7 @@ import { getFrameCanvas } from "@miu2d/engine/resource/asf";
 import { initWasm } from "@miu2d/engine/wasm/wasmManager";
 import { decodeAsfWasm } from "@miu2d/engine/wasm/wasmAsfDecoder";
 import type { Npc, NpcState, NpcResource, NpcAppearance } from "@miu2d/types";
-import { NpcStateLabels } from "@miu2d/types";
+import { NpcStateLabels, npcStateToResourceKey } from "@miu2d/types";
 
 // ========== 类型定义 ==========
 
@@ -27,7 +27,12 @@ interface NpcPreviewProps {
 }
 
 /** 可预览的状态列表 */
-const PREVIEW_STATES: NpcState[] = ["Stand", "Stand1", "Walk", "Attack", "Hurt", "Death"];
+const PREVIEW_STATES: NpcState[] = [
+  "Stand", "Stand1", "Walk", "Run", "Jump",
+  "FightStand", "FightWalk", "FightRun", "FightJump",
+  "Attack", "Attack1", "Attack2", "Hurt", "Death", "Sit",
+  "Special1", "Special2",
+];
 
 // ========== 主组件 ==========
 
@@ -99,7 +104,7 @@ export function NpcPreview({ gameSlug, npc, resource }: NpcPreviewProps) {
   const getResourcePath = useCallback((state: NpcState): string | null => {
     if (!resources) return null;
 
-    const stateKey = state.toLowerCase() as keyof NpcResource;
+    const stateKey = npcStateToResourceKey(state);
     const resource = resources[stateKey];
 
     // 规范化路径（兼容旧数据）
@@ -239,7 +244,7 @@ export function NpcPreview({ gameSlug, npc, resource }: NpcPreviewProps) {
 
   // ========== 获取可用的状态列表 ==========
   const availableStates = PREVIEW_STATES.filter((state) => {
-    const stateKey = state.toLowerCase() as keyof NpcResource;
+    const stateKey = npcStateToResourceKey(state);
     return npc?.resources?.[stateKey]?.image;
   });
 

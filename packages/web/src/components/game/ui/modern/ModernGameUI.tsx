@@ -537,7 +537,7 @@ export const ModernGameUI: React.FC<ModernGameUIProps> = ({
         isVisible={shopState?.isOpen ?? false}
         items={
           shopState?.items?.map((item) =>
-            item ? { good: item.good as unknown as Good, count: item.count } : null
+            item ? { good: item.good as unknown as Good, count: item.count, price: item.price } : null
           ) ?? []
         }
         screenWidth={screenWidth}

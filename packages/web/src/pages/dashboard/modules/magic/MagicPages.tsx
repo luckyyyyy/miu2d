@@ -2,10 +2,12 @@
  * 武功编辑页面 - 完整实现
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { trpc } from "../../../../lib/trpc";
 import { useToast } from "../../../../contexts/ToastContext";
-import { DashboardIcons } from "../../icons";
+import { DetailPageLayout } from "../../components/DetailPageLayout";
+import type { DetailTab } from "../../components/DetailPageLayout";
+import { EditorEmptyState } from "../../components/EditorEmptyState";
 import { useDashboard } from "../../DashboardContext";
 import { ResourceFieldGroup } from "../../../../components/common/ResourceFilePicker";
 import { NumberInput } from "@/components/common";
@@ -36,17 +38,11 @@ import { MagicPreview } from "./MagicPreview";
 
 export function MagicListPage() {
   return (
-    <div className="h-full flex items-center justify-center">
-      <div className="text-center max-w-md">
-        <div className="text-6xl mb-6">⚔️</div>
-        <h2 className="text-xl font-medium text-white mb-3">武功编辑</h2>
-        <p className="text-[#858585] text-sm leading-relaxed">
-          从左侧列表选择一个武功进行编辑，
-          <br />
-          或使用上方按钮创建新武功、导入 INI 文件。
-        </p>
-      </div>
-    </div>
+    <EditorEmptyState
+      icon="⚔️"
+      title="武功编辑"
+      description={<>从左侧列表选择一个武功进行编辑，<br />或使用上方按钮创建新武功、导入 INI 文件。</>}
+    />
   );
 }
 
@@ -237,85 +233,107 @@ export function MagicDetailPage() {
   const currentLevelData = formData.levels?.[previewLevel - 1];
 
   // Tab 配置
-  const tabs = [
-    { key: "basic" as const, label: "基础设置", icon: "⚙️" },
-    { key: "resource" as const, label: "资源文件", icon: "🎨" },
-    ...(isPlayerMagic ? [{ key: "levels" as const, label: "等级配置", icon: "📊" }] : []),
-    { key: "attack" as const, label: "攻击配置", icon: "⚔️" },
+  const tabs: DetailTab[] = [
+    { key: "basic", label: "基础设置", icon: "⚙️" },
+    { key: "resource", label: "资源文件", icon: "🎨" },
+    ...(isPlayerMagic ? [{ key: "levels", label: "等级配置", icon: "📊" }] : []),
+    { key: "attack", label: "攻击配置", icon: "⚔️" },
   ];
 
   return (
-    <div className="h-full flex flex-col overflow-hidden">
-      {/* 头部 */}
-      <div className="flex-shrink-0 bg-[#1e1e1e] border-b border-[#3c3c3c]">
-        <div className="flex items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-4">
-            <Link
-              to={basePath}
-              className="p-2 rounded-lg hover:bg-[#3c3c3c] text-[#858585] hover:text-white transition-colors"
-            >
-              {DashboardIcons.back}
-            </Link>
-            <div>
-              <h1 className="text-lg font-semibold text-white">
-                {isNew ? "新建武功" : formData.name || "武功详情"}
-              </h1>
-              <p className="text-xs text-[#858585]">
-                {isPlayerMagic ? "玩家武功" : "NPC 武功"}
-                {formData.key && <span className="ml-2 text-[#666]">({formData.key})</span>}
-              </p>
+    <DetailPageLayout
+      backPath={basePath}
+      title={isNew ? "新建武功" : formData.name || "武功详情"}
+      subtitle={
+        <>
+          {isPlayerMagic ? "玩家武功" : "NPC 武功"}
+          {formData.key && <span className="ml-2 text-[#666]">({formData.key})</span>}
+        </>
+      }
+      tabs={tabs}
+      activeTab={activeTab}
+      onTabChange={(key) => setActiveTab(key as TabType)}
+      onSave={handleSave}
+      isSaving={createMutation.isPending || updateMutation.isPending}
+      onDelete={!isNew ? handleDelete : undefined}
+      isDeleting={deleteMutation.isPending}
+      sidePanel={
+        <div className="w-96 flex-shrink-0 space-y-4">
+          <div className="sticky top-6">
+            <div className="bg-[#252526] border border-[#3c3c3c] rounded-xl overflow-hidden">
+              <div className="px-4 py-3 border-b border-[#3c3c3c] flex items-center justify-between">
+                <h3 className="text-sm font-medium text-[#cccccc]">⚡ 武功预览</h3>
+              </div>
+              <div className="p-4">
+                <MagicPreview
+                  gameSlug={gameSlug!}
+                  magic={formData as Magic}
+                  level={previewLevel}
+                />
+              </div>
             </div>
-          </div>
-          <div className="flex gap-2">
-            {!isNew && (
-              <button
-                type="button"
-                onClick={handleDelete}
-                disabled={deleteMutation.isPending}
-                className="px-3 py-1.5 text-sm bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 rounded-lg transition-colors"
-              >
-                删除
-              </button>
+
+            {/* 等级数据预览 */}
+            {isPlayerMagic && currentLevelData && (
+              <div className="bg-[#252526] border border-[#3c3c3c] rounded-xl overflow-hidden mt-4">
+                <div className="px-4 py-3 border-b border-[#3c3c3c] flex items-center justify-between">
+                  <h3 className="text-sm font-medium text-[#cccccc]">
+                    📊 等级 {previewLevel}
+                  </h3>
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setPreviewLevel((l) => Math.max(1, l - 1))}
+                      disabled={previewLevel <= 1}
+                      className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-[#3c3c3c] disabled:opacity-30 text-[#858585]"
+                    >
+                      ◀
+                    </button>
+                    <span className="text-sm text-[#cccccc] w-6 text-center font-medium">{previewLevel}</span>
+                    <button
+                      type="button"
+                      onClick={() => setPreviewLevel((l) => Math.min(10, l + 1))}
+                      disabled={previewLevel >= 10}
+                      className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-[#3c3c3c] disabled:opacity-30 text-[#858585]"
+                    >
+                      ▶
+                    </button>
+                  </div>
+                </div>
+                <div className="p-4 space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-[#858585]">效果值</span>
+                    <span className="text-[#cccccc] font-medium">{currentLevelData.effect}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-[#858585]">内力消耗</span>
+                    <span className="text-[#cccccc] font-medium">{currentLevelData.manaCost}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-[#858585]">升级经验</span>
+                    <span className="text-[#cccccc] font-medium">{currentLevelData.levelupExp ?? "-"}</span>
+                  </div>
+                  {currentLevelData.speed !== undefined && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-[#858585]">速度</span>
+                      <span className="text-[#cccccc] font-medium">{currentLevelData.speed}</span>
+                    </div>
+                  )}
+                  {currentLevelData.moveKind && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-[#858585]">移动类型</span>
+                      <span className="text-[#cccccc] font-medium">
+                        {MagicMoveKindLabels[currentLevelData.moveKind]}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
             )}
-            <button
-              type="button"
-              onClick={handleSave}
-              disabled={createMutation.isPending || updateMutation.isPending}
-              className="px-4 py-1.5 text-sm bg-[#0e639c] hover:bg-[#1177bb] text-white rounded-lg transition-colors disabled:opacity-50"
-            >
-              {createMutation.isPending || updateMutation.isPending ? "保存中..." : "保存"}
-            </button>
           </div>
         </div>
-
-        {/* Tab 栏 */}
-        <div className="flex px-6 gap-1">
-          {tabs.map((tab) => (
-            <button
-              key={tab.key}
-              type="button"
-              onClick={() => setActiveTab(tab.key)}
-              className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-all relative ${
-                activeTab === tab.key
-                  ? "text-white"
-                  : "text-[#858585] hover:text-white"
-              }`}
-            >
-              <span className="text-base">{tab.icon}</span>
-              <span>{tab.label}</span>
-              {activeTab === tab.key && (
-                <span className="absolute bottom-0 left-2 right-2 h-0.5 bg-[#0098ff] rounded-full" />
-              )}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* 内容区 */}
-      <div className="flex-1 overflow-auto">
-        <div className="flex gap-6 p-6 min-h-full">
-          {/* 左侧表单 */}
-          <div className="flex-1 min-w-0 space-y-5">
+      }
+    >
             {activeTab === "basic" && (
               <BasicInfoSection
                 formData={formData}
@@ -349,86 +367,7 @@ export function MagicDetailPage() {
                 updateField={updateField}
               />
             )}
-          </div>
-
-          {/* 右侧预览 - 固定宽度 */}
-          <div className="w-96 flex-shrink-0 space-y-4">
-            <div className="sticky top-6">
-              <div className="bg-[#252526] border border-[#3c3c3c] rounded-xl overflow-hidden">
-                <div className="px-4 py-3 border-b border-[#3c3c3c] flex items-center justify-between">
-                  <h3 className="text-sm font-medium text-[#cccccc]">⚡ 武功预览</h3>
-                </div>
-                <div className="p-4">
-                  <MagicPreview
-                    gameSlug={gameSlug!}
-                    magic={formData as Magic}
-                    level={previewLevel}
-                  />
-                </div>
-              </div>
-
-              {/* 等级数据预览 */}
-              {isPlayerMagic && currentLevelData && (
-                <div className="bg-[#252526] border border-[#3c3c3c] rounded-xl overflow-hidden mt-4">
-                  <div className="px-4 py-3 border-b border-[#3c3c3c] flex items-center justify-between">
-                    <h3 className="text-sm font-medium text-[#cccccc]">
-                      📊 等级 {previewLevel}
-                    </h3>
-                    <div className="flex items-center gap-1">
-                      <button
-                        type="button"
-                        onClick={() => setPreviewLevel((l) => Math.max(1, l - 1))}
-                        disabled={previewLevel <= 1}
-                        className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-[#3c3c3c] disabled:opacity-30 text-[#858585]"
-                      >
-                        ◀
-                      </button>
-                      <span className="text-sm text-[#cccccc] w-6 text-center font-medium">{previewLevel}</span>
-                      <button
-                        type="button"
-                        onClick={() => setPreviewLevel((l) => Math.min(10, l + 1))}
-                        disabled={previewLevel >= 10}
-                        className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-[#3c3c3c] disabled:opacity-30 text-[#858585]"
-                      >
-                        ▶
-                      </button>
-                    </div>
-                  </div>
-                  <div className="p-4 space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-[#858585]">效果值</span>
-                      <span className="text-[#cccccc] font-medium">{currentLevelData.effect}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-[#858585]">内力消耗</span>
-                      <span className="text-[#cccccc] font-medium">{currentLevelData.manaCost}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-[#858585]">升级经验</span>
-                      <span className="text-[#cccccc] font-medium">{currentLevelData.levelupExp ?? "-"}</span>
-                    </div>
-                    {currentLevelData.speed !== undefined && (
-                      <div className="flex justify-between text-sm">
-                        <span className="text-[#858585]">速度</span>
-                        <span className="text-[#cccccc] font-medium">{currentLevelData.speed}</span>
-                      </div>
-                    )}
-                    {currentLevelData.moveKind && (
-                      <div className="flex justify-between text-sm">
-                        <span className="text-[#858585]">移动类型</span>
-                        <span className="text-[#cccccc] font-medium">
-                          {MagicMoveKindLabels[currentLevelData.moveKind]}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+    </DetailPageLayout>
   );
 }
 

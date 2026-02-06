@@ -197,6 +197,78 @@ export type {
   BatchImportGoodsResult,
 } from "./goods.js";
 
+// 游戏全局配置类型
+export {
+  MoneyDropTierSchema,
+  DrugDropTierSchema,
+  DropProbabilitySchema,
+  BossLevelBonusSchema,
+  EquipDropTierSchema,
+  DropConfigSchema,
+  PlayerInitialStatsSchema,
+  PlayerThewCostSchema,
+  PlayerRestoreSchema,
+  PlayerSpeedSchema,
+  PlayerCombatSchema,
+  PlayerConfigSchema,
+  GameConfigDataSchema,
+  GameConfigSchema,
+  GetGameConfigInputSchema,
+  UpdateGameConfigInputSchema,
+  createDefaultDropConfig,
+  createDefaultPlayerConfig,
+  createDefaultGameConfig,
+} from "./gameConfig.js";
+export type {
+  MoneyDropTier,
+  DrugDropTier,
+  DropProbability,
+  BossLevelBonus,
+  EquipDropTier,
+  DropConfig,
+  PlayerInitialStats,
+  PlayerThewCost,
+  PlayerRestore,
+  PlayerSpeed,
+  PlayerCombat,
+  PlayerConfig,
+  GameConfigData,
+  GameConfig,
+  GetGameConfigInput,
+  UpdateGameConfigInput,
+} from "./gameConfig.js";
+
+// 商店类型
+export {
+  ShopItemSchema,
+  ShopSchema,
+  ShopListItemSchema,
+  ListShopInputSchema,
+  GetShopInputSchema,
+  CreateShopInputSchema,
+  UpdateShopInputSchema,
+  DeleteShopInputSchema,
+  ImportShopInputSchema,
+  BatchImportShopItemSchema,
+  BatchImportShopInputSchema,
+  BatchImportShopResultSchema,
+  createDefaultShop,
+} from "./shop.js";
+export type {
+  ShopItem,
+  Shop,
+  ShopListItem,
+  ListShopInput,
+  GetShopInput,
+  CreateShopInput,
+  UpdateShopInput,
+  DeleteShopInput,
+  ImportShopInput,
+  BatchImportShopItem,
+  BatchImportShopInput,
+  BatchImportShopResult,
+} from "./shop.js";
+
 // NPC 类型
 export {
   NpcKindEnum,
@@ -240,6 +312,7 @@ export {
   createDefaultNpc,
   createDefaultNpcResource,
   getVisibleFieldsByNpcKind,
+  npcStateToResourceKey,
   // 资源路径规范化
   NpcResourcePaths,
   normalizeNpcImagePath,
