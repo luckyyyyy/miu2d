@@ -8,6 +8,10 @@ A 2D RPG game engine built with modern Web technologies.
 
 **Miu2D** is a 2D RPG game engine built with **TypeScript + React + WebGL**, designed for the Web platform.
 
+> 🔧 **Zero Engine Dependencies, Pure Native Implementation** — No Unity, no Godot, no Phaser, no PixiJS. The entire rendering pipeline is built from scratch with **raw WebGL API**, delivering native-level performance directly in the browser.
+
+> ⚡ **WebGL High-Performance Rendering** — Custom WebGL renderer with sprite batching, texture atlasing, and GPU-accelerated compositing. Canvas 2D fallback for maximum compatibility.
+
 ### 🎮 Demo: Legend of Yue Ying (月影传说) Web Remake
 
 🌐 **Live Demo**: [https://miu2d.com](https://miu2d.com)

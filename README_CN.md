@@ -6,6 +6,10 @@
 
 **Miu2D** 是一个使用 **TypeScript + React + WebGL** 技术构建的 2D RPG 游戏引擎，专为 Web 平台设计。
 
+> 🔧 **零依赖、完全原生实现** — 不依赖 Unity、Godot、Phaser、PixiJS 等任何游戏引擎或渲染库。整个渲染管线基于 **原生 WebGL API** 从零构建，在浏览器中实现原生级性能。
+
+> ⚡ **WebGL 高性能渲染** — 自研 WebGL 渲染器，支持精灵批量渲染、纹理图集、GPU 加速合成，Canvas 2D 回退确保最大兼容性。
+
 ### 🎮 Demo：月影传说 Web 复刻版
 
 🌐 **在线演示**：[https://miu2d.com](https://miu2d.com)

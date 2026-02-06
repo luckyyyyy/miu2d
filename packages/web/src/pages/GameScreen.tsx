@@ -128,21 +128,15 @@ export default function GameScreen() {
   // 标记是否已经处理过 URL 参数（防止从游戏返回标题后再次自动进入）
   const urlLoadHandledRef = useRef(false);
 
-  // 【关键】同步设置资源路径和等级配置 gameSlug（必须在 render 阶段执行）
-  // 因为子组件 Game 的 useEffect 会比父组件更早触发，
-  // 如果放在 useEffect 里，引擎初始化时 gameSlug 还未设置，
-  // 导致脚本 SetLevelFile 无法从 API 加载等级配置
-  const prevSlugRef = useRef("");
-  if (gameSlug && gameSlug !== prevSlugRef.current) {
-    setResourcePaths({ root: `/game/${gameSlug}/resources` });
-    setLevelConfigGameSlug(gameSlug);
-    prevSlugRef.current = gameSlug;
-    logger.info(`[GameScreen] Resource root set to /game/${gameSlug}/resources`);
-  }
-
-  // 异步加载游戏数据（NPC 等级、武功、物品等）
+  // 设置资源路径（基于 gameSlug）并加载游戏数据，设置等级配置 gameSlug
   useEffect(() => {
     if (gameSlug) {
+      setResourcePaths({ root: `/game/${gameSlug}/resources` });
+      logger.info(`[GameScreen] Resource root set to /game/${gameSlug}/resources`);
+
+      // 设置等级配置的 gameSlug（按需加载时使用）
+      setLevelConfigGameSlug(gameSlug);
+
       // 初始化 NPC 等级配置（从 API 按需加载）
       initNpcLevelConfig().catch((error) => {
         logger.warn(`[GameScreen] Failed to load NPC level config:`, error);

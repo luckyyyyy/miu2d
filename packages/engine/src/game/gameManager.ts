@@ -57,6 +57,7 @@ import type { MagicListManager } from "../player/magic/magicListManager";
 import { Player } from "../player/player";
 import { clearAsfCache } from "../resource/asf";
 import { clearMpcCache } from "../resource/mpc";
+import { clearMpcAtlasCache } from "../map/renderer";
 import { type ScriptContext, ScriptExecutor } from "../script/executor";
 import type { TimerManager } from "../timer";
 import { parseIni } from "../utils";
@@ -296,6 +297,8 @@ export class GameManager {
         clearAsfCache();
         // 清理 MPC 解析缓存（从 resourceLoader.iniCache 删除 mpc: 前缀条目）
         clearMpcCache();
+        // 清理 MPC atlas canvas 缓存
+        clearMpcAtlasCache();
         // 清理武功效果 ASF 缓存
         magicRenderer.clearCache();
         logger.debug("[GameManager] Resource caches cleared (sprite, asf, mpc, magic)");

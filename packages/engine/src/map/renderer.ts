@@ -16,7 +16,6 @@ export interface MpcAtlas {
 export interface MapRenderer {
   mapData: JxqyMapData;
   mpcs: (Mpc | null)[];
-  mpcCanvases: (HTMLCanvasElement[][] | null)[];
   /** MPC 图集（每个 MPC 文件一张 atlas） */
   mpcAtlases: (MpcAtlas | null)[];
   camera: Camera;
@@ -34,7 +33,6 @@ export function createMapRenderer(): MapRenderer {
   return {
     mapData: null as unknown as JxqyMapData,
     mpcs: [],
-    mpcCanvases: [],
     mpcAtlases: [],
     camera: { x: 0, y: 0, width: 800, height: 600 },
     isLoading: true,
@@ -45,16 +43,23 @@ export function createMapRenderer(): MapRenderer {
   };
 }
 
-/** 预渲染 MPC 帧到 canvas（保留用于兼容） */
-function createMpcCanvases(mpc: Mpc): HTMLCanvasElement[] {
-  return mpc.frames.map((frame) => {
-    const canvas = document.createElement("canvas");
-    canvas.width = frame.width;
-    canvas.height = frame.height;
-    const ctx = canvas.getContext("2d");
-    if (ctx) ctx.putImageData(frame.imageData, 0, 0);
-    return canvas;
-  });
+// ============= MPC Atlas 缓存 =============
+
+/** MPC atlas 缓存：按 URL 缓存构建好的 atlas canvas，切换地图时复用 */
+const mpcAtlasCache = new Map<string, MpcAtlas>();
+
+/** 清除 MPC atlas 缓存（在 clearMpcCache 时一并调用） */
+export function clearMpcAtlasCache(): void {
+  mpcAtlasCache.clear();
+}
+
+/** 获取或创建 MPC atlas（优先从缓存读取） */
+function getOrCreateMpcAtlas(url: string, mpc: Mpc): MpcAtlas {
+  const cached = mpcAtlasCache.get(url);
+  if (cached) return cached;
+  const atlas = createMpcAtlas(mpc);
+  mpcAtlasCache.set(url, atlas);
+  return atlas;
 }
 
 /** 将 MPC 所有帧打包到一张 atlas canvas 中，减少纹理切换 */
@@ -107,25 +112,15 @@ function createMpcAtlas(mpc: Mpc): MpcAtlas {
 /**
  * 释放地图渲染器当前持有的所有 MPC 纹理资源
  *
- * 在切换地图前调用：遍历当前 mpcAtlases 和 mpcCanvases，
+ * 在切换地图前调用：遍历当前 mpcAtlases，
  * 通过 IRenderer.releaseSourceTexture 释放对应的 GPU 纹理，
  * 避免切换地图后旧纹理在 WebGLRenderer.textures Map 中泄漏。
+ * 注意：atlas canvas 本身保留在 mpcAtlasCache 中，下次加载同一地图时复用。
  */
 export function releaseMapTextures(mapRenderer: MapRenderer, renderer: IRenderer): void {
-  // 释放 atlas canvas 纹理（主要路径：每个 MPC 一张合并 atlas）
   for (const atlas of mapRenderer.mpcAtlases) {
     if (atlas) {
       renderer.releaseSourceTexture(atlas.canvas);
-    }
-  }
-
-  // 释放回退的 per-frame canvas 纹理
-  for (const canvasGroup of mapRenderer.mpcCanvases) {
-    if (!canvasGroup) continue;
-    for (const canvases of canvasGroup) {
-      for (const canvas of canvases) {
-        renderer.releaseSourceTexture(canvas);
-      }
     }
   }
 }
@@ -145,7 +140,6 @@ export async function loadMapMpcs(
   // 重置状态（旧纹理已在外部通过 releaseMapTextures 释放）
   renderer.mapData = null as unknown as JxqyMapData;
   renderer.mpcs = [];
-  renderer.mpcCanvases = [];
   renderer.mpcAtlases = [];
   renderer.isLoading = true;
   renderer.loadProgress = 0;
@@ -169,70 +163,67 @@ export async function loadMapMpcs(
     }
   }
 
-  const totalMpcs = mapData.mpcFileNames.filter((n) => n !== null).length;
-  let loadedCount = 0;
+  // 收集需要加载的 MPC 任务
+  interface MpcLoadTask {
+    slotIndex: number;
+    url: string;
+  }
+  const tasks: MpcLoadTask[] = [];
+  const totalSlots = mapData.mpcFileNames.length;
 
-  // Temporary arrays to hold loaded data
-  const tempMpcs: (Mpc | null)[] = [];
-  const tempMpcCanvases: (HTMLCanvasElement[][] | null)[] = [];
-  const tempMpcAtlases: (MpcAtlas | null)[] = [];
-  let maxTileHeight = 0;
-  let maxTileWidth = 0;
+  // 预填充 null 占位
+  const resultMpcs: (Mpc | null)[] = new Array<Mpc | null>(totalSlots).fill(null);
+  const resultAtlases: (MpcAtlas | null)[] = new Array<MpcAtlas | null>(totalSlots).fill(null);
 
-  for (let i = 0; i < mapData.mpcFileNames.length; i++) {
-    // Check if this load has been superseded
-    if (renderer.loadVersion !== currentLoadVersion) {
-      logger.log("Load cancelled due to newer load request");
-      return false;
-    }
-
+  for (let i = 0; i < totalSlots; i++) {
     const mpcFileName = mapData.mpcFileNames[i];
-    if (mpcFileName === null) {
-      tempMpcs.push(null);
-      tempMpcCanvases.push(null);
-      tempMpcAtlases.push(null);
-      continue;
+    if (mpcFileName !== null) {
+      tasks.push({ slotIndex: i, url: `${mpcBasePath}/${mpcFileName}` });
     }
-
-    const mpcUrl = `${mpcBasePath}/${mpcFileName}`;
-    try {
-      const mpc = await loadMpc(mpcUrl);
-      tempMpcs.push(mpc);
-      if (mpc) {
-        tempMpcCanvases.push([createMpcCanvases(mpc)]);
-        tempMpcAtlases.push(createMpcAtlas(mpc));
-        // 跟踪最大瓦片尺寸（用于视图 padding 计算）
-        for (const frame of mpc.frames) {
-          if (frame.height > maxTileHeight) maxTileHeight = frame.height;
-          if (frame.width > maxTileWidth) maxTileWidth = frame.width;
-        }
-      } else {
-        tempMpcCanvases.push(null);
-        tempMpcAtlases.push(null);
-      }
-    } catch (error) {
-      logger.warn(`Failed to load MPC: ${mpcUrl}`, error);
-      tempMpcs.push(null);
-      tempMpcCanvases.push(null);
-      tempMpcAtlases.push(null);
-    }
-
-    loadedCount++;
-    renderer.loadProgress = loadedCount / totalMpcs;
-    onProgress?.(renderer.loadProgress);
   }
 
-  // Final check before committing data
+  const totalMpcs = tasks.length;
+  let loadedCount = 0;
+
+  // 并行加载所有 MPC 文件（resourceLoader 内部有请求去重和缓存）
+  await Promise.all(
+    tasks.map(async (task) => {
+      try {
+        const mpc = await loadMpc(task.url);
+        if (mpc) {
+          resultMpcs[task.slotIndex] = mpc;
+          resultAtlases[task.slotIndex] = getOrCreateMpcAtlas(task.url, mpc);
+        }
+      } catch (error) {
+        logger.warn(`Failed to load MPC: ${task.url}`, error);
+      }
+      loadedCount++;
+      renderer.loadProgress = totalMpcs > 0 ? loadedCount / totalMpcs : 1;
+      onProgress?.(renderer.loadProgress);
+    })
+  );
+
+  // 加载完成后检查是否已被新请求取消
   if (renderer.loadVersion !== currentLoadVersion) {
     logger.log("Load cancelled due to newer load request");
     return false;
   }
 
-  // Commit all data atomically
+  // 计算最大瓦片尺寸（从 atlas rects 获取）
+  let maxTileHeight = 0;
+  let maxTileWidth = 0;
+  for (const atlas of resultAtlases) {
+    if (!atlas) continue;
+    for (const rect of atlas.rects) {
+      if (rect.h > maxTileHeight) maxTileHeight = rect.h;
+      if (rect.w > maxTileWidth) maxTileWidth = rect.w;
+    }
+  }
+
+  // 原子性提交所有数据
   renderer.mapData = mapData;
-  renderer.mpcs = tempMpcs;
-  renderer.mpcCanvases = tempMpcCanvases;
-  renderer.mpcAtlases = tempMpcAtlases;
+  renderer.mpcs = resultMpcs;
+  renderer.mpcAtlases = resultAtlases;
   renderer.maxTileHeight = maxTileHeight;
   renderer.maxTileWidth = maxTileWidth;
   renderer.isLoading = false;
@@ -284,50 +275,25 @@ function drawTileLayer(
 
   const mpcIndex = tileData.mpcIndex - 1;
 
-  // 优先使用 atlas（单纹理，减少纹理切换）
   const atlas = mapRenderer.mpcAtlases[mpcIndex];
-  if (atlas && tileData.frame < atlas.rects.length) {
-    const rect = atlas.rects[tileData.frame];
-    const pixelPos = MapBase.ToPixelPosition(col, row);
-    const drawX = Math.floor(pixelPos.x - rect.w / 2 - mapRenderer.camera.x);
-    const drawY = Math.floor(pixelPos.y - (rect.h - 16) - mapRenderer.camera.y);
+  if (!atlas || tileData.frame >= atlas.rects.length) return;
 
-    renderer.drawSourceEx(
-      atlas.canvas,
-      drawX,
-      drawY,
-      {
-        srcX: rect.x,
-        srcY: rect.y,
-        srcWidth: rect.w,
-        srcHeight: rect.h,
-        dstWidth: rect.w + 1,
-        dstHeight: rect.h + 1,
-      }
-    );
-    return;
-  }
-
-  // 回退到旧的 per-frame canvas 方式
-  const mpcCanvases = mapRenderer.mpcCanvases[mpcIndex];
-  if (!mpcCanvases?.[0]) return;
-
-  const frameCanvas = mpcCanvases[0][tileData.frame];
-  if (!frameCanvas || !mapRenderer.mpcs[mpcIndex]) return;
-
+  const rect = atlas.rects[tileData.frame];
   const pixelPos = MapBase.ToPixelPosition(col, row);
-  const drawX = Math.floor(pixelPos.x - frameCanvas.width / 2 - mapRenderer.camera.x);
-  const drawY = Math.floor(pixelPos.y - (frameCanvas.height - 16) - mapRenderer.camera.y);
+  const drawX = Math.floor(pixelPos.x - rect.w / 2 - mapRenderer.camera.x);
+  const drawY = Math.floor(pixelPos.y - (rect.h - 16) - mapRenderer.camera.y);
 
   renderer.drawSourceEx(
-    frameCanvas,
+    atlas.canvas,
     drawX,
     drawY,
     {
-      srcWidth: frameCanvas.width,
-      srcHeight: frameCanvas.height,
-      dstWidth: frameCanvas.width + 1,
-      dstHeight: frameCanvas.height + 1,
+      srcX: rect.x,
+      srcY: rect.y,
+      srcWidth: rect.w,
+      srcHeight: rect.h,
+      dstWidth: rect.w + 1,
+      dstHeight: rect.h + 1,
     }
   );
 }
@@ -379,18 +345,16 @@ export function getTileTextureRegion(
   const tileData = mapData[layer][tileIndex];
   if (tileData.mpcIndex === 0) return null;
 
-  const mpcCanvases = renderer.mpcCanvases[tileData.mpcIndex - 1];
-  if (!mpcCanvases?.[0]) return null;
+  const atlas = renderer.mpcAtlases[tileData.mpcIndex - 1];
+  if (!atlas || tileData.frame >= atlas.rects.length) return null;
 
-  const frameCanvas = mpcCanvases[0][tileData.frame];
-  if (!frameCanvas) return null;
-
+  const rect = atlas.rects[tileData.frame];
   const pixelPos = MapBase.ToPixelPosition(col, row);
   return {
-    x: pixelPos.x - frameCanvas.width / 2,
-    y: pixelPos.y - (frameCanvas.height - 16),
-    width: frameCanvas.width,
-    height: frameCanvas.height,
+    x: pixelPos.x - rect.w / 2,
+    y: pixelPos.y - (rect.h - 16),
+    width: rect.w,
+    height: rect.h,
   };
 }
 

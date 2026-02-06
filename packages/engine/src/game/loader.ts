@@ -1341,10 +1341,6 @@ export class Loader {
       logger.debug(`[Loader] Loading player...`);
       await this.loadPlayerFromJSON(data.player, player);
 
-      // 存档修复：校验玩家属性是否与等级配置一致
-      // 旧版存档可能因为等级配置未加载（gameSlug 时序问题）导致属性偏低
-      this.repairPlayerStatsFromLevelConfig(player, goodsListManager);
-
       // 设置加载中状态（-1），确保后面设置真正 state 时会触发纹理更新
       player.setLoadingState();
 
@@ -1946,71 +1942,6 @@ export class Loader {
   /** 收集陷阱分组（按地图名存储的陷阱配置） */
   private collectTrapGroups(): Record<string, TrapGroupValue> {
     return MapBase.Instance.collectTrapDataForSave().mapTraps;
-  }
-
-
-
-  // ============= 存档修复 =============
-
-  /**
-   * 校验并修复玩家属性与等级配置的一致性
-   *
-   * 旧版存档可能因为等级配置未加载（gameSlug 设置时序问题）导致：
-   * - 玩家等级正确提升了，但属性（lifeMax/attack/defend等）没有同步增长
-   * - 存档中保存了偏低的属性值
-   *
-   * 修复方案：用等级配置的基础值 + 装备加成 重新计算正确属性
-   */
-  private repairPlayerStatsFromLevelConfig(
-    player: Player,
-    goodsListManager: GoodsListManager
-  ): void {
-    const levelConfig = player.levelManager.getLevelConfig();
-    if (!levelConfig) return;
-
-    const detail = levelConfig.get(player.level);
-    if (!detail) return;
-
-    // 计算装备提供的属性加成
-    const equipBonus = goodsListManager.getEquipmentStatBonuses();
-
-    // 期望值 = 等级配置基础值 + 装备加成
-    const expectedLifeMax = detail.lifeMax + equipBonus.lifeMax;
-    const expectedThewMax = detail.thewMax + equipBonus.thewMax;
-    const expectedManaMax = detail.manaMax + equipBonus.manaMax;
-    const expectedAttack = detail.attack + equipBonus.attack;
-    const expectedDefend = detail.defend + equipBonus.defend;
-    const expectedEvade = detail.evade + equipBonus.evade;
-
-    // 只有当存档属性明显偏低时才修复（避免误修正正常存档）
-    // 使用 lifeMax 作为主要判断依据：如果比期望值低 10% 以上则视为异常
-    const threshold = expectedLifeMax * 0.9;
-    if (player.lifeMax >= threshold) return;
-
-    logger.warn(
-      `[Loader] Repairing player stats from level config (level=${player.level}): ` +
-      `lifeMax ${player.lifeMax} -> ${expectedLifeMax}, ` +
-      `attack ${player.attack} -> ${expectedAttack}, ` +
-      `defend ${player.defend} -> ${expectedDefend}`
-    );
-
-    // 修复最大值属性
-    player.lifeMax = expectedLifeMax;
-    player.thewMax = expectedThewMax;
-    player.manaMax = expectedManaMax;
-    player.attack = expectedAttack;
-    player.attack2 = detail.attack2 + equipBonus.attack2;
-    player.attack3 = detail.attack3 + equipBonus.attack3;
-    player.defend = expectedDefend;
-    player.defend2 = detail.defend2 + equipBonus.defend2;
-    player.defend3 = detail.defend3 + equipBonus.defend3;
-    player.evade = expectedEvade;
-    player.levelUpExp = detail.levelUpExp;
-
-    // 恢复当前值到满值（存档损坏时无法准确恢复当前值）
-    player.life = player.lifeMax;
-    player.thew = player.thewMax;
-    player.mana = player.manaMax;
   }
 
   // ============= 数据加载方法 =============

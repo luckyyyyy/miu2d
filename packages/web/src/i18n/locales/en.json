@@ -50,6 +50,8 @@
   "hero": {
     "title": "Miu2D Engine",
     "slogan": "AI-Powered, Build Your Web RPG in 5 Minutes, Share with the World",
+    "webglBadge": "⚡ WebGL High-Performance Rendering",
+    "nativeBadge": "🔧 Zero Dependencies · Pure Native Implementation",
     "mobileBadge": "📱 Native Mobile Support · Play Anywhere",
     "cta": {
       "start": "Get Started",

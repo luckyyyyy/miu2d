@@ -25,6 +25,8 @@
   "hero": {
     "title": "Miu2D Engine",
     "slogan": "AI駆動、5分でWeb RPGゲームを作成し、世界中と共有",
+    "webglBadge": "⚡ WebGL 高性能レンダリング",
+    "nativeBadge": "🔧 ゼロ依存 · 完全ネイティブ実装",
     "mobileBadge": "📱 モバイルネイティブ対応 · どこでもプレイ",
     "cta": {
       "start": "始める",
