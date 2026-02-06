@@ -49,17 +49,35 @@ export class DataController {
 				objResourceService.listPublicBySlug(gameSlug),
 			]);
 
-			// 构建 objResources 的 id -> resources 映射
+			// 构建 objResources 的 id -> { resources, key } 映射
 			const objResourceMap = new Map(
-				objResources.map(r => [r.id, r.resources])
+				objResources.map(r => [r.id, { resources: r.resources, key: r.key }])
 			);
 
-			// 为每个 obj 合并 resources 数据
-			const objsWithResources = objs.map(obj => ({
-				...obj,
-				// 根据 resourceId 查找并合并 resources，没有则为空对象
-				resources: obj.resourceId ? objResourceMap.get(obj.resourceId) ?? {} : {},
-			}));
+			// 为每个 obj 合并 resources 数据，并附带 resourceKey（objres 文件名）
+			const objsWithResources = objs.map(obj => {
+				const resEntry = obj.resourceId ? objResourceMap.get(obj.resourceId) : null;
+				return {
+					...obj,
+					resources: resEntry?.resources ?? {},
+					resourceKey: resEntry?.key ?? null,
+				};
+			});
+
+			// 构建 npcResources 的 id -> { resources, key } 映射
+			const npcResourceMap = new Map(
+				npcResources.map(r => [r.id, { resources: r.resources, key: r.key }])
+			);
+
+			// 为每个 npc 合并 resources 数据，并附带 resourceKey（npcres 文件名）
+			const npcsWithResources = npcs.map(npc => {
+				const resEntry = npc.resourceId ? npcResourceMap.get(npc.resourceId) : null;
+				return {
+					...npc,
+					resources: npc.resources ?? resEntry?.resources ?? {},
+					resourceKey: resEntry?.key ?? null,
+				};
+			});
 
 			// 构建响应
 			const result = {
@@ -72,9 +90,9 @@ export class DataController {
 				goods,
 				// 商店扁平数组
 				shops,
-				// NPC: 包含 npcs 数组和 resources 数组
+				// NPC: 包含 npcs 数组（已合并 resources）和 resources 数组
 				npcs: {
-					npcs: npcs,
+					npcs: npcsWithResources,
 					resources: npcResources,
 				},
 				// 物体: 包含 objs 数组（已合并 resources）和 resources 数组

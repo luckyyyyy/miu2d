@@ -502,8 +502,11 @@ export class MagicService {
 
 		result.userType = userType;
 
-		if (userType === "player" && levels.length > 0) {
-			result.levels = levels.sort((a, b) => a.level - b.level);
+		if (userType === "player") {
+			// 如果 INI 有 [Level] 段，使用解析的等级数据
+			// 如果没有，显式设置 levels=null 以覆盖 createDefaultMagic 的默认值
+			// （默认值的 effect=100,200... 会导致引擎不使用 realAttack）
+			result.levels = levels.length > 0 ? levels.sort((a, b) => a.level - b.level) : null;
 		}
 
 		return result;

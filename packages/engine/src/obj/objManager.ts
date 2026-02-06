@@ -671,6 +671,10 @@ export class ObjManager {
     obj.objFileName = objData.objFile;
 
     await this.loadObjResources(obj);
+
+    // 纹理加载后再设置帧号，避免 setter 的边界检查在 _frameEnd=0 时将帧号重置为 0
+    obj.currentFrameIndex = objData.frame;
+
     this.objects.push(obj);
     // logger.log(
     //   `[ObjManager] Created obj from save: ${objData.objName} at (${objData.mapX}, ${objData.mapY})`

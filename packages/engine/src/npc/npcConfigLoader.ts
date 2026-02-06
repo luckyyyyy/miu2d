@@ -196,23 +196,14 @@ function buildNpcConfigCache(): void {
   npcConfigCache.clear();
   npcResCache.clear();
 
-  // 0. 构建 resourceId -> resource key 映射
-  const resourceIdToKey = new Map<string, string>();
-  for (const resData of data.resources) {
-    resourceIdToKey.set(resData.id, resData.key);
-  }
-
   // 1. 构建 NPC 配置缓存（从 npcs 数组）
   for (const api of data.npcs) {
     const config = convertApiNpcToConfig(api);
     const cacheKey = normalizeKey(api.key);
 
-    // 通过 resourceId 找到关联的 NpcRes key，设置为 npcIni
-    if (api.resourceId) {
-      const resKey = resourceIdToKey.get(api.resourceId);
-      if (resKey) {
-        config.npcIni = resKey;
-      }
+    // 通过 API 返回的 resourceKey 直接设置 npcIni（npcres 文件名）
+    if (api.resourceKey) {
+      config.npcIni = api.resourceKey;
     }
 
     npcConfigCache.set(cacheKey, config);

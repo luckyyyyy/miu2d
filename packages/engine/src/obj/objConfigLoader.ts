@@ -60,6 +60,8 @@ export interface ObjConfig {
   timerScriptInterval: number;
   reviveNpcIni: string;
   wavFile: string;
+  /** objres 文件名（如 body-卓非凡.ini），用于存档保存/加载时查找纹理 */
+  objFile: string;
 }
 
 // ========== 缓存 ==========
@@ -85,6 +87,7 @@ function convertApiObjToConfig(api: ApiObjData): ObjConfig {
   return {
     name: api.name ?? "",
     kind: KIND_MAP[api.kind] ?? ObjKindLocal.Dynamic,
+    objFile: api.resourceKey ?? "",
     // 从 resources.common 读取资源
     image: api.resources?.common?.image ?? "",
     shadow: "",

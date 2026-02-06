@@ -7,7 +7,7 @@
 import { ResourcePath } from "../config/resourcePaths";
 import { logger } from "../core/logger";
 import type { Vector2 } from "../core/types";
-import { type AsfData, getFrameAtlasInfo, getFrameCanvas, getFrameIndex, loadAsf } from "../resource/asf";
+import { type AsfData, getFrameCanvas, getFrameIndex, loadAsf } from "../resource/asf";
 import { Sprite } from "../sprite/sprite";
 import type { IRenderer } from "../webgl/IRenderer";
 import { getObjConfigFromCache, getObjResFromCache, type ObjConfig, type ObjResInfo } from "./objConfigLoader";
@@ -736,14 +736,8 @@ export class Obj extends Sprite {
     if (frameIdx >= 0 && frameIdx < this._texture.frames.length) {
       const frame = this._texture.frames[frameIdx];
       if (frame && frame.width > 0 && frame.height > 0) {
-        // 使用 atlas 绘制（减少纹理切换）
-        const atlasInfo = getFrameAtlasInfo(this._texture, frameIdx);
-        renderer.drawSourceEx(atlasInfo.canvas, screenX, screenY, {
-          srcX: atlasInfo.srcX,
-          srcY: atlasInfo.srcY,
-          srcWidth: atlasInfo.srcWidth,
-          srcHeight: atlasInfo.srcHeight,
-        });
+        const canvas = getFrameCanvas(frame);
+        renderer.drawSource(canvas, screenX, screenY);
       }
     }
   }
@@ -809,6 +803,11 @@ export class Obj extends Sprite {
     this._canInteractDirectly = config.canInteractDirectly;
     this._scriptFileJustTouch = config.scriptFileJustTouch;
     this._reviveNpcIni = config.reviveNpcIni;
+
+    // 设置 objres 文件名引用（用于存档保存/加载时查找纹理资源）
+    if (config.objFile) {
+      this._objFileName = config.objFile;
+    }
 
     // Sound objects (LoopingSound=3, RandSound=4) are invisible
     if (this._kind === ObjKind.LoopingSound || this._kind === ObjKind.RandSound) {

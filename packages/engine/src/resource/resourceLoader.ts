@@ -1190,6 +1190,8 @@ export interface ApiNpcData {
   deathScript?: string | null;
   resources?: ApiNpcResources | null;
   resourceId?: string | null;
+  /** 关联的 npcres 文件名 */
+  resourceKey?: string | null;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -1222,6 +1224,8 @@ export interface ApiObjData {
   name?: string;
   /** 关联的资源 ID */
   resourceId?: string | null;
+  /** 关联的 objres 文件名（如 body-卓非凡.ini） */
+  resourceKey?: string | null;
   /** 内联的资源配置 */
   resources?: ApiObjResources | null;
   scriptFile?: string | null;
