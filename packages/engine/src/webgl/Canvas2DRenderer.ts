@@ -62,6 +62,10 @@ export class Canvas2DRenderer implements IRenderer {
     filter: "none",
   };
 
+  // 临时 canvas 复用（用于 ImageData 转换，避免每次 createElement）
+  private tmpCanvas: HTMLCanvasElement | null = null;
+  private tmpCtx: CanvasRenderingContext2D | null = null;
+
   // 统计
   private stats: RenderStats = {
     drawCalls: 0,
@@ -127,13 +131,11 @@ export class Canvas2DRenderer implements IRenderer {
   // ============= 帧控制 =============
 
   beginFrame(): void {
-    this.stats = {
-      drawCalls: 0,
-      spriteCount: 0,
-      rectCount: 0,
-      textureSwaps: 0,
-      textureCount: this.textures.size,
-    };
+    this.stats.drawCalls = 0;
+    this.stats.spriteCount = 0;
+    this.stats.rectCount = 0;
+    this.stats.textureSwaps = 0;
+    this.stats.textureCount = this.textures.size;
 
     // 重置状态
     this.currentState = { alpha: 1, blendMode: "normal", filter: "none" };
@@ -189,6 +191,10 @@ export class Canvas2DRenderer implements IRenderer {
 
   deleteTexture(texture: TextureInfo): void {
     this.textures.delete(texture.id);
+  }
+
+  releaseSourceTexture(_source: TextureSource): void {
+    // Canvas2D 后端的 drawSource/drawSourceEx 不缓存纹理，无需释放
   }
 
   getTexture(id: TextureId): TextureInfo | null {
@@ -301,14 +307,16 @@ export class Canvas2DRenderer implements IRenderer {
   ): void {
     if (!this.ctx) return;
     if (source instanceof ImageData) {
-      // ImageData 不支持 9 参数 drawImage，需要通过临时 canvas
-      const tmpCanvas = document.createElement("canvas");
-      tmpCanvas.width = source.width;
-      tmpCanvas.height = source.height;
-      const tmpCtx = tmpCanvas.getContext("2d");
-      if (tmpCtx) {
-        tmpCtx.putImageData(source, 0, 0);
-        this.ctx.drawImage(tmpCanvas, sx, sy, sw, sh, dx, dy, dw, dh);
+      // ImageData 不支持 9 参数 drawImage，需要通过临时 canvas（复用）
+      if (!this.tmpCanvas) {
+        this.tmpCanvas = document.createElement("canvas");
+        this.tmpCtx = this.tmpCanvas.getContext("2d");
+      }
+      if (this.tmpCanvas.width !== source.width) this.tmpCanvas.width = source.width;
+      if (this.tmpCanvas.height !== source.height) this.tmpCanvas.height = source.height;
+      if (this.tmpCtx) {
+        this.tmpCtx.putImageData(source, 0, 0);
+        this.ctx.drawImage(this.tmpCanvas, sx, sy, sw, sh, dx, dy, dw, dh);
       }
     } else {
       this.ctx.drawImage(source as CanvasImageSource, sx, sy, sw, sh, dx, dy, dw, dh);
@@ -424,14 +432,16 @@ export class Canvas2DRenderer implements IRenderer {
     const dstH = options.dstHeight ?? srcH;
 
     if (source instanceof ImageData) {
-      // ImageData: 先转换为临时 canvas
-      const tmp = document.createElement("canvas");
-      tmp.width = source.width;
-      tmp.height = source.height;
-      const tmpCtx = tmp.getContext("2d");
-      if (tmpCtx) {
-        tmpCtx.putImageData(source, 0, 0);
-        this.drawCanvasSource(ctx, tmp, x, y, options, hasSrcRect, srcW, srcH, dstW, dstH);
+      // ImageData: 通过复用 tmpCanvas 转换
+      if (!this.tmpCanvas) {
+        this.tmpCanvas = document.createElement("canvas");
+        this.tmpCtx = this.tmpCanvas.getContext("2d");
+      }
+      if (this.tmpCanvas.width !== source.width) this.tmpCanvas.width = source.width;
+      if (this.tmpCanvas.height !== source.height) this.tmpCanvas.height = source.height;
+      if (this.tmpCtx) {
+        this.tmpCtx.putImageData(source, 0, 0);
+        this.drawCanvasSource(ctx, this.tmpCanvas, x, y, options, hasSrcRect, srcW, srcH, dstW, dstH);
       }
     } else {
       this.drawCanvasSource(ctx, source as CanvasImageSource, x, y, options, hasSrcRect, srcW, srcH, dstW, dstH);

@@ -65,8 +65,28 @@ export class WebGLRenderer implements IRenderer {
   /** ImageData 纹理缓存（通过 width+height+data hash 识别，避免每次重建） */
   private imageDataTextureCache = new Map<ImageData, TextureInfo>();
 
+  /**
+   * FinalizationRegistry: 当 drawSource 缓存的源对象被 GC 时，
+   * 自动从 textures Map 中删除对应的 GPU 纹理，防止孤立泄漏。
+   *
+   * 典型场景：NPC ASF atlas canvas 失去所有强引用后，
+   * sourceTextureCache (WeakMap) 的条目自动消失，
+   * 但 textures Map 中的 WebGLTextureEntry 仍在——
+   * FinalizationRegistry 回调会清理它。
+   */
+  private sourceTextureRegistry = new FinalizationRegistry<TextureId>((textureId) => {
+    const entry = this.textures.get(textureId);
+    if (entry) {
+      this.gl?.deleteTexture(entry.glTexture);
+      this.textures.delete(textureId);
+    }
+  });
+
   /** CSS 颜色字符串解析缓存（避免天气粒子每帧重复解析） */
   private colorCache = new Map<string, RGBAColor>();
+
+  /** 上一次实际应用到 GL 的混合模式（脏标记，避免每帧数千次无意义 gl.blendFunc） */
+  private lastAppliedBlendMode: BlendMode = "normal";
 
   // 状态栈
   private stateStack: RenderState[] = [];
@@ -184,6 +204,7 @@ export class WebGLRenderer implements IRenderer {
     // 清理缓存
     this.imageDataTextureCache.clear();
     this.colorCache.clear();
+    // FinalizationRegistry 无需手动清理，所有注册的 source 已随纹理释放
 
     // 释放 programs
     if (this.spriteProgram) gl.deleteProgram(this.spriteProgram.program);
@@ -233,9 +254,11 @@ export class WebGLRenderer implements IRenderer {
     this.stats.textureSwaps = 0;
     this.stats.textureCount = this.textures.size;
 
-    // 重置状态
-    this.currentState = { alpha: 1, blendMode: "normal", filter: "none" };
-    this.stateStack = [];
+    // 重置状态（复用对象，避免 GC）
+    this.currentState.alpha = 1;
+    this.currentState.blendMode = "normal";
+    this.currentState.filter = "none";
+    this.stateStack.length = 0;
 
     // 清屏 (#1a1a2e → RGB)
     gl.clearColor(0x1a / 255, 0x1a / 255, 0x2e / 255, 1);
@@ -243,6 +266,7 @@ export class WebGLRenderer implements IRenderer {
 
     // 重置混合模式
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+    this.lastAppliedBlendMode = "normal";
   }
 
   endFrame(): void {
@@ -262,8 +286,12 @@ export class WebGLRenderer implements IRenderer {
     }
     this.stats.textureCount = this.textures.size;
 
-    // 保存完整帧统计快照
-    this.lastFrameStats = { ...this.stats };
+    // 保存完整帧统计快照（复用对象，避免 GC）
+    this.lastFrameStats.drawCalls = this.stats.drawCalls;
+    this.lastFrameStats.spriteCount = this.stats.spriteCount;
+    this.lastFrameStats.rectCount = this.stats.rectCount;
+    this.lastFrameStats.textureSwaps = this.stats.textureSwaps;
+    this.lastFrameStats.textureCount = this.stats.textureCount;
   }
 
   // ============= 纹理管理 =============
@@ -326,6 +354,26 @@ export class WebGLRenderer implements IRenderer {
     if (entry) {
       gl.deleteTexture(entry.glTexture);
       this.textures.delete(texture.id);
+    }
+  }
+
+  releaseSourceTexture(source: TextureSource): void {
+    // ImageData 走独立缓存
+    if (source instanceof ImageData) {
+      const tex = this.imageDataTextureCache.get(source);
+      if (tex) {
+        this.deleteTexture(tex);
+        this.imageDataTextureCache.delete(source);
+      }
+      return;
+    }
+    // Canvas / HTMLImageElement / OffscreenCanvas 走 WeakMap 缓存
+    const tex = this.sourceTextureCache.get(source);
+    if (tex) {
+      this.deleteTexture(tex);
+      this.sourceTextureCache.delete(source);
+      // 取消 FinalizationRegistry 注册（已手动释放，无需 GC 回调）
+      this.sourceTextureRegistry.unregister(source);
     }
   }
 
@@ -418,8 +466,7 @@ export class WebGLRenderer implements IRenderer {
     }
 
     this.applyBlendMode();
-    this.rectBatcher.globalAlpha = this.currentState.alpha;
-    this.rectBatcher.draw(params.x, params.y, params.width, params.height, color);
+    this.rectBatcher.draw(params.x, params.y, params.width, params.height, color, this.currentState.alpha);
   }
 
   // ============= 状态管理 =============
@@ -501,25 +548,27 @@ export class WebGLRenderer implements IRenderer {
     }
   }
 
-  /** 应用当前混合模式到 WebGL 状态 */
+  /** 应用当前混合模式到 WebGL 状态（带脏标记，仅在实际变化时调用 gl.blendFunc） */
   private applyBlendMode(): void {
+    const mode = this.currentState.blendMode;
+    if (mode === this.lastAppliedBlendMode) return;
+
     const gl = this.gl;
     if (!gl) return;
 
-    switch (this.currentState.blendMode) {
+    this.lastAppliedBlendMode = mode;
+
+    switch (mode) {
       case "normal":
         gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
         break;
       case "multiply":
-        // multiply 混合：result = src * dst
         gl.blendFunc(gl.DST_COLOR, gl.ZERO);
         break;
       case "additive":
-        // additive: result = src + dst
         gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
         break;
       case "screen":
-        // screen: result = 1 - (1-src) * (1-dst)
         gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_COLOR);
         break;
     }
@@ -542,6 +591,9 @@ export class WebGLRenderer implements IRenderer {
     if (!tex) {
       tex = this.createTexture(source);
       this.sourceTextureCache.set(source, tex);
+      // 注册 GC 回调：当 source 被回收时自动释放 GPU 纹理
+      // 第三参数为 unregisterToken，用于 releaseSourceTexture 时取消注册
+      this.sourceTextureRegistry.register(source, tex.id, source);
     }
     return tex;
   }

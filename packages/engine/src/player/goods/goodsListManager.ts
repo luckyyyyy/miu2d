@@ -251,6 +251,68 @@ export class GoodsListManager {
   }
 
   /**
+   * 计算所有已装备物品的属性加成总和
+   * 用于存档恢复时校验玩家属性是否正确
+   */
+  getEquipmentStatBonuses(): {
+    lifeMax: number;
+    thewMax: number;
+    manaMax: number;
+    attack: number;
+    attack2: number;
+    attack3: number;
+    defend: number;
+    defend2: number;
+    defend3: number;
+    evade: number;
+  } {
+    const bonuses = {
+      lifeMax: 0, thewMax: 0, manaMax: 0,
+      attack: 0, attack2: 0, attack3: 0,
+      defend: 0, defend2: 0, defend3: 0,
+      evade: 0,
+    };
+
+    // 装备栏
+    for (let i = EQUIP_INDEX_BEGIN; i <= EQUIP_INDEX_END; i++) {
+      const good = this.get(i);
+      if (good) {
+        bonuses.lifeMax += good.lifeMax;
+        bonuses.thewMax += good.thewMax;
+        bonuses.manaMax += good.manaMax;
+        bonuses.attack += good.attack;
+        bonuses.attack2 += good.attack2;
+        bonuses.attack3 += good.attack3;
+        bonuses.defend += good.defend;
+        bonuses.defend2 += good.defend2;
+        bonuses.defend3 += good.defend3;
+        bonuses.evade += good.evade;
+      }
+    }
+
+    // 免装备物品
+    for (let i = LIST_INDEX_BEGIN; i <= LIST_INDEX_END; i++) {
+      const info = this.goodsList[i];
+      if (info && info.good.kind === GoodKind.Equipment && info.good.noNeedToEquip > 0) {
+        for (let c = 0; c < info.count; c++) {
+          bonuses.lifeMax += info.good.lifeMax;
+          bonuses.thewMax += info.good.thewMax;
+          bonuses.manaMax += info.good.manaMax;
+          bonuses.attack += info.good.attack;
+          bonuses.attack2 += info.good.attack2;
+          bonuses.attack3 += info.good.attack3;
+          bonuses.defend += info.good.defend;
+          bonuses.defend2 += info.good.defend2;
+          bonuses.defend3 += info.good.defend3;
+          bonuses.evade += info.good.evade;
+        }
+      }
+    }
+
+    return bonuses;
+  }
+
+  /**
    * Get good at index
    */
   get(index: number): Good | null {

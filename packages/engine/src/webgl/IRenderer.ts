@@ -103,6 +103,15 @@ export interface IRenderer {
   deleteTexture(texture: TextureInfo): void;
 
   /**
+   * 释放通过 drawSource/drawSourceEx 自动缓存的纹理
+   *
+   * 当外部持有的源对象（如 MPC atlas canvas）即将被丢弃时调用，
+   * 确保对应的 GPU 纹理一并释放，避免内存泄漏。
+   * 对于没有自动缓存纹理的后端（如 Canvas2D），此方法为空操作。
+   */
+  releaseSourceTexture(source: TextureSource): void;
+
+  /**
    * 根据 ID 获取纹理
    */
   getTexture(id: TextureId): TextureInfo | null;

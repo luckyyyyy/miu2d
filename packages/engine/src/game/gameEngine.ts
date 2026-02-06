@@ -54,6 +54,7 @@ import { loadMap, MapBase } from "../map";
 import {
   createMapRenderer,
   loadMapMpcs,
+  releaseMapTextures,
   type MapRenderer,
   renderMapInterleaved,
 } from "../map/renderer";
@@ -674,6 +675,11 @@ export class GameEngine implements IEngineContext {
 
         // 更新地图渲染器
         this.mapRenderer.mapData = mapData;
+
+        // 释放旧地图的 GPU 纹理，防止切换地图后泄漏
+        if (this._renderer) {
+          releaseMapTextures(this.mapRenderer, this._renderer);
+        }
 
         // 加载地图MPC资源
         // 进度：MPC 加载进度 (0-1)

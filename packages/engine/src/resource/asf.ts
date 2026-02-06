@@ -118,23 +118,34 @@ export function getAsfAtlas(asf: AsfData): AsfAtlas {
   return asf.atlas;
 }
 
+/** 帧图集绘制信息（复用对象，避免热路径每帧数百次 GC 分配） */
+export interface FrameAtlasInfo {
+  canvas: HTMLCanvasElement;
+  srcX: number;
+  srcY: number;
+  srcWidth: number;
+  srcHeight: number;
+}
+
+/** 预分配的复用对象（热路径优化：每帧调用数百次，不再每次 new 对象） */
+const _reusableAtlasInfo: FrameAtlasInfo = { canvas: null!, srcX: 0, srcY: 0, srcWidth: 0, srcHeight: 0 };
+
 /**
  * 获取帧的图集绘制信息（用于批量渲染的热路径）
- * 返回共享的 atlas canvas + 帧在 atlas 中的源区域
+ * 返回共享的复用对象 — 调用方必须在下一次调用前使用完毕，不要持有引用！
  */
 export function getFrameAtlasInfo(
   asf: AsfData,
   frameIdx: number
-): { canvas: HTMLCanvasElement; srcX: number; srcY: number; srcWidth: number; srcHeight: number } {
+): FrameAtlasInfo {
   const atlas = getAsfAtlas(asf);
   const rect = atlas.rects[frameIdx];
-  return {
-    canvas: atlas.canvas,
-    srcX: rect.x,
-    srcY: rect.y,
-    srcWidth: rect.w,
-    srcHeight: rect.h,
-  };
+  _reusableAtlasInfo.canvas = atlas.canvas;
+  _reusableAtlasInfo.srcX = rect.x;
+  _reusableAtlasInfo.srcY = rect.y;
+  _reusableAtlasInfo.srcWidth = rect.w;
+  _reusableAtlasInfo.srcHeight = rect.h;
+  return _reusableAtlasInfo;
 }
 
 /** 获取帧索引 */

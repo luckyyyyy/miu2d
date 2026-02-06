@@ -46,6 +46,7 @@ import { GuiManager } from "../gui/guiManager";
 import type { MemoListManager, TalkTextListManager } from "../listManager";
 import type { MagicItemInfo } from "../magic";
 import { MagicManager } from "../magic";
+import { magicRenderer } from "../magic/magicRenderer";
 import { MapBase } from "../map/mapBase";
 import type { Npc } from "../npc";
 import { NpcManager } from "../npc";
@@ -54,6 +55,8 @@ import type { Good, GoodsListManager } from "../player/goods";
 import type { GoodsItemInfo } from "../player/goods/goodsListManager";
 import type { MagicListManager } from "../player/magic/magicListManager";
 import { Player } from "../player/player";
+import { clearAsfCache } from "../resource/asf";
+import { clearMpcCache } from "../resource/mpc";
 import { type ScriptContext, ScriptExecutor } from "../script/executor";
 import type { TimerManager } from "../timer";
 import { parseIni } from "../utils";
@@ -63,6 +66,7 @@ import { InputHandler } from "./inputHandler";
 import { InteractionManager } from "./interactionManager";
 import { Loader } from "./loader";
 import { MagicHandler } from "./magicHandler";
+import { Sprite } from "../sprite/sprite";
 // Import refactored modules
 import { createScriptContext } from "./scriptContextFactory";
 import { SpecialActionHandler } from "./specialActionHandler";
@@ -193,11 +197,11 @@ export class GameManager {
 
     // Set up goods manager callbacks
     this.goodsListManager.setCallbacks({
-      onEquiping: (good: Good | null, currentEquip: Good | null) => {
-        if (good) this.player.equiping(good, currentEquip);
+      onEquiping: (good: Good | null, currentEquip: Good | null, justEffectType?: boolean) => {
+        if (good) this.player.equiping(good, currentEquip, justEffectType);
       },
-      onUnEquiping: (good: Good | null) => {
-        if (good) this.player.unEquiping(good);
+      onUnEquiping: (good: Good | null, justEffectType?: boolean) => {
+        if (good) this.player.unEquiping(good, justEffectType);
       },
       onUpdateView: () => {
         this.goodsVersion++;
@@ -285,6 +289,17 @@ export class GameManager {
       loadMap: (mapPath) => this.loadMap(mapPath),
       parseIni: parseIni,
       clearScriptCache: () => this.scriptExecutor?.clearCache(),
+      clearResourceCaches: () => {
+        // 清理精灵缓存（SpriteSet 持有 AsfData 和 atlas canvas）
+        Sprite.clearCache();
+        // 清理 ASF 解析缓存（从 resourceLoader.iniCache 删除 asf: 前缀条目）
+        clearAsfCache();
+        // 清理 MPC 解析缓存（从 resourceLoader.iniCache 删除 mpc: 前缀条目）
+        clearMpcCache();
+        // 清理武功效果 ASF 缓存
+        magicRenderer.clearCache();
+        logger.debug("[GameManager] Resource caches cleared (sprite, asf, mpc, magic)");
+      },
       clearVariables: () => {
         this.variables = { Event: 0 };
         logger.debug(`[GameManager] Variables cleared`);

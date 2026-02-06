@@ -104,6 +104,32 @@ function createMpcAtlas(mpc: Mpc): MpcAtlas {
   return { canvas, rects };
 }
 
+/**
+ * 释放地图渲染器当前持有的所有 MPC 纹理资源
+ *
+ * 在切换地图前调用：遍历当前 mpcAtlases 和 mpcCanvases，
+ * 通过 IRenderer.releaseSourceTexture 释放对应的 GPU 纹理，
+ * 避免切换地图后旧纹理在 WebGLRenderer.textures Map 中泄漏。
+ */
+export function releaseMapTextures(mapRenderer: MapRenderer, renderer: IRenderer): void {
+  // 释放 atlas canvas 纹理（主要路径：每个 MPC 一张合并 atlas）
+  for (const atlas of mapRenderer.mpcAtlases) {
+    if (atlas) {
+      renderer.releaseSourceTexture(atlas.canvas);
+    }
+  }
+
+  // 释放回退的 per-frame canvas 纹理
+  for (const canvasGroup of mapRenderer.mpcCanvases) {
+    if (!canvasGroup) continue;
+    for (const canvases of canvasGroup) {
+      for (const canvas of canvases) {
+        renderer.releaseSourceTexture(canvas);
+      }
+    }
+  }
+}
+
 /** 加载地图的所有 MPC 文件 */
 export async function loadMapMpcs(
   renderer: MapRenderer,
@@ -116,6 +142,7 @@ export async function loadMapMpcs(
   renderer.loadVersion++;
   const currentLoadVersion = renderer.loadVersion;
 
+  // 重置状态（旧纹理已在外部通过 releaseMapTextures 释放）
   renderer.mapData = null as unknown as JxqyMapData;
   renderer.mpcs = [];
   renderer.mpcCanvases = [];

@@ -45,6 +45,7 @@ export class SpriteBatcher {
 
   // GPU buffers
   private vbo: WebGLBuffer;
+  private vao: WebGLVertexArrayObject | null = null;
   private vertexData: Float32Array;
 
   // 批次状态
@@ -68,6 +69,26 @@ export class SpriteBatcher {
     // 设置缓冲区
     gl.bindBuffer(gl.ARRAY_BUFFER, this.vbo);
     gl.bufferData(gl.ARRAY_BUFFER, this.vertexData.byteLength, gl.DYNAMIC_DRAW);
+
+    // 创建 VAO（WebGL2 原生支持），将顶点属性指针绑定到 VAO 避免每次 flush 重复设置
+    const gl2 = gl as WebGL2RenderingContext;
+    this.vao = gl2.createVertexArray();
+    if (this.vao) {
+      gl2.bindVertexArray(this.vao);
+      gl.bindBuffer(gl.ARRAY_BUFFER, this.vbo);
+
+      const stride = FLOATS_PER_VERTEX * 4;
+      gl.enableVertexAttribArray(program.a_position);
+      gl.vertexAttribPointer(program.a_position, 2, gl.FLOAT, false, stride, 0);
+      gl.enableVertexAttribArray(program.a_texcoord);
+      gl.vertexAttribPointer(program.a_texcoord, 2, gl.FLOAT, false, stride, 8);
+      gl.enableVertexAttribArray(program.a_alpha);
+      gl.vertexAttribPointer(program.a_alpha, 1, gl.FLOAT, false, stride, 16);
+      gl.enableVertexAttribArray(program.a_filterType);
+      gl.vertexAttribPointer(program.a_filterType, 1, gl.FLOAT, false, stride, 20);
+
+      gl2.bindVertexArray(null);
+    }
 
     logger.info(
       `[SpriteBatcher] Initialized: maxSprites=${MAX_SPRITES_PER_BATCH}, ` +
@@ -223,31 +244,21 @@ export class SpriteBatcher {
     gl.uniform1i(prog.u_texture, 0);
 
     // 上传顶点数据（只上传实际使用的部分）
-    const usedBytes = this.spriteCount * FLOATS_PER_SPRITE * 4;
     gl.bindBuffer(gl.ARRAY_BUFFER, this.vbo);
     gl.bufferSubData(gl.ARRAY_BUFFER, 0, this.vertexData.subarray(0, this.spriteCount * FLOATS_PER_SPRITE));
 
-    // 设置 vertex attribute 指针
-    const stride = FLOATS_PER_VERTEX * 4; // 每个顶点的字节数
-
-    // a_position: vec2 at offset 0
-    gl.enableVertexAttribArray(prog.a_position);
-    gl.vertexAttribPointer(prog.a_position, 2, gl.FLOAT, false, stride, 0);
-
-    // a_texcoord: vec2 at offset 8
-    gl.enableVertexAttribArray(prog.a_texcoord);
-    gl.vertexAttribPointer(prog.a_texcoord, 2, gl.FLOAT, false, stride, 8);
-
-    // a_alpha: float at offset 16
-    gl.enableVertexAttribArray(prog.a_alpha);
-    gl.vertexAttribPointer(prog.a_alpha, 1, gl.FLOAT, false, stride, 16);
-
-    // a_filterType: float at offset 20
-    gl.enableVertexAttribArray(prog.a_filterType);
-    gl.vertexAttribPointer(prog.a_filterType, 1, gl.FLOAT, false, stride, 20);
+    // 绑定 VAO（已预设顶点属性指针）
+    const gl2 = gl as WebGL2RenderingContext;
+    if (this.vao) {
+      gl2.bindVertexArray(this.vao);
+    }
 
     // 绘制
     gl.drawArrays(gl.TRIANGLES, 0, this.spriteCount * VERTICES_PER_SPRITE);
+
+    if (this.vao) {
+      gl2.bindVertexArray(null);
+    }
 
     this._drawCalls++;
     this.spriteCount = 0;
@@ -257,6 +268,11 @@ export class SpriteBatcher {
    * 释放 GPU 资源
    */
   dispose(): void {
+    const gl2 = this.gl as WebGL2RenderingContext;
+    if (this.vao) {
+      gl2.deleteVertexArray(this.vao);
+      this.vao = null;
+    }
     this.gl.deleteBuffer(this.vbo);
   }
 }

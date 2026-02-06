@@ -95,26 +95,30 @@ export const SPRITE_FRAGMENT_SHADER = `
   }
 `;
 
-/** 矩形填充顶点着色器 */
+/** 矩形填充顶点着色器（per-vertex color，所有颜色矩形可在一个 draw call 中完成） */
 export const RECT_VERTEX_SHADER = `
   attribute vec2 a_position;
+  attribute vec4 a_color;
 
   uniform vec2 u_resolution;
+
+  varying vec4 v_color;
 
   void main() {
     vec2 clipSpace = (a_position / u_resolution) * 2.0 - 1.0;
     gl_Position = vec4(clipSpace.x, -clipSpace.y, 0.0, 1.0);
+    v_color = a_color;
   }
 `;
 
-/** 矩形填充片段着色器 */
+/** 矩形填充片段着色器（per-vertex color） */
 export const RECT_FRAGMENT_SHADER = `
   precision mediump float;
 
-  uniform vec4 u_color;
+  varying vec4 v_color;
 
   void main() {
-    gl_FragColor = u_color;
+    gl_FragColor = v_color;
   }
 `;
 
@@ -206,12 +210,12 @@ export interface SpriteProgram {
   u_texture: WebGLUniformLocation;
 }
 
-/** 矩形着色器程序 */
+/** 矩形着色器程序（per-vertex color） */
 export interface RectProgram {
   program: WebGLProgram;
   a_position: number;
+  a_color: number;
   u_resolution: WebGLUniformLocation;
-  u_color: WebGLUniformLocation;
 }
 
 /**
@@ -242,7 +246,7 @@ export function createRectProgram(gl: WebGLRenderingContext): RectProgram | null
   return {
     program,
     a_position: gl.getAttribLocation(program, "a_position"),
+    a_color: gl.getAttribLocation(program, "a_color"),
     u_resolution: gl.getUniformLocation(program, "u_resolution")!,
-    u_color: gl.getUniformLocation(program, "u_color")!,
   };
 }
