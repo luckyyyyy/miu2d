@@ -6,7 +6,7 @@
 import { logger } from "../core/logger";
 import { resourceLoader } from "../resource/resourceLoader";
 
-class PartnerListManager {
+export class PartnerListManager {
   private list: Map<number, string> = new Map();
   private isInitialized = false;
 
@@ -95,5 +95,3 @@ class PartnerListManager {
     return this.list.get(index) || "";
   }
 }
-
-export const partnerList = new PartnerListManager();

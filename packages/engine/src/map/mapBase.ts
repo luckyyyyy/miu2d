@@ -52,12 +52,9 @@ export const LAYER_INDEX = {
  * 地图基类 - 单例模式
  *
  *
- * 所有状态都在实例上，通过 MapBase.Instance 或 engine.map 访问
+ * 所有状态都在实例上，通过 engine.map 访问
  */
 export class MapBase {
-  /** 单例实例 () */
-  private static _instance: MapBase | null = null;
-
   // ============= 地图数据 =============
   private _mapData: JxqyMapData | null = null;
   private _isOk: boolean = false;
@@ -87,23 +84,6 @@ export class MapBase {
 
   // ============= 构造函数 =============
   constructor() {}
-
-  /**
-   * @deprecated 使用引擎注入的 map 实例代替。将在后续版本移除。
-   */
-  static get Instance(): MapBase {
-    if (!MapBase._instance) {
-      MapBase._instance = new MapBase();
-    }
-    return MapBase._instance;
-  }
-
-  /**
-   * @internal 设置全局单例引用（仅由 GameEngine 在初始化时调用）
-   */
-  static setInstance(instance: MapBase): void {
-    MapBase._instance = instance;
-  }
 
   /**
    * 设置地图数据（由外部加载后设置）

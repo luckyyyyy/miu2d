@@ -16,7 +16,7 @@ import type { ScreenEffects } from "../effects";
 import type { BuyManager } from "../gui/buyManager";
 import type { GuiManager } from "../gui/guiManager";
 import type { MemoListManager, TalkTextListManager } from "../listManager";
-import { partnerList } from "../listManager/partnerList";
+import type { PartnerListManager } from "../listManager/partnerList";
 import type { Npc, NpcManager } from "../npc";
 import type { ObjManager } from "../obj";
 import type { Good } from "../player/goods";
@@ -44,6 +44,7 @@ export interface ScriptContextDependencies {
   weatherManager: WeatherManager;
   timerManager: TimerManager;
   buyManager: BuyManager;
+  partnerList: PartnerListManager;
 
   // State accessors
   getVariables: () => Record<string, number>;
@@ -115,6 +116,7 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
     weatherManager,
     timerManager,
     buyManager,
+    partnerList,
     getVariables,
     setVariable,
     getCurrentMapName,

@@ -377,6 +377,3 @@ export class MagicRenderer {
     this.loadingPromises.clear();
   }
 }
-
-// 单例
-export const magicRenderer = new MagicRenderer();

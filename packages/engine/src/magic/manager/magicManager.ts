@@ -25,8 +25,9 @@ import {
   getEffect,
   getEffectAmount,
 } from "../effects";
-import { getMagic, getMagicAtLevel } from "../magicLoader";
+import { getMagic, getMagicAtLevel, initMagicLoader } from "../magicLoader";
 import { type MagicSprite, resetMagicSpriteIdCounter } from "../magicSprite";
+import type { MagicRenderer } from "../magicRenderer";
 import type { MagicData, UseMagicParams } from "../types";
 import { MagicMoveKind } from "../types";
 import { CharacterHelper } from "./characterHelper";
@@ -58,6 +59,7 @@ export class MagicManager {
   private screenEffects: ScreenEffects;
   private audioManager: AudioManager;
   private magicListManager: MagicListManager;
+  private magicRenderer: MagicRenderer;
   private vibrateScreenCallback?: (intensity: number) => void;
 
   // 精灵销毁事件监听器
@@ -70,7 +72,11 @@ export class MagicManager {
     this.screenEffects = deps.screenEffects;
     this.audioManager = deps.audioManager;
     this.magicListManager = deps.magicListManager;
+    this.magicRenderer = deps.magicRenderer;
     this.vibrateScreenCallback = deps.vibrateScreen;
+
+    // 初始化 magicLoader 模块渲染器引用
+    initMagicLoader(deps.magicRenderer);
 
     // 初始化共享状态
     this.state = {

@@ -47,9 +47,9 @@ import { CharacterState, type Direction } from "../core/types";
 import { DebugManager, type PlayerStatsInfo } from "../debug";
 import { ScreenEffects } from "../effects";
 import type { GuiManagerState } from "../gui/types";
-import { MemoListManager, partnerList, TalkTextListManager } from "../listManager";
+import { MemoListManager, PartnerListManager, TalkTextListManager } from "../listManager";
 import type { MagicItemInfo } from "../magic";
-import { magicRenderer } from "../magic/magicRenderer";
+import { MagicRenderer } from "../magic/magicRenderer";
 import { loadMap, MapBase } from "../map";
 import {
   createMapRenderer,
@@ -93,6 +93,8 @@ export class GameEngine implements IEngineContext {
 
   // ============= 全局资源 =============
   readonly talkTextList: TalkTextListManager;
+  readonly partnerList: PartnerListManager;
+  readonly magicRenderer: MagicRenderer;
 
   // ============= 核心子系统（公开只读）=============
   readonly events: EventEmitter;
@@ -191,12 +193,12 @@ export class GameEngine implements IEngineContext {
     // 设置全局引擎上下文（让 Sprite 及其子类能访问引擎服务）
     setEngineContext(this);
 
-    // 创建地图实例并设置为全局单例（后向兼容 MapBase.Instance）
     this._map = new MapBase();
-    MapBase.setInstance(this._map);
 
     // 创建全局资源
     this.talkTextList = new TalkTextListManager();
+    this.partnerList = new PartnerListManager();
+    this.magicRenderer = new MagicRenderer();
 
     // 创建所有子系统
     this.events = new EventEmitter();
@@ -344,7 +346,7 @@ export class GameEngine implements IEngineContext {
       // 注：LevelManager 由 Player 持有，MagicExpConfig 由 MagicListManager 持有
       this.emitLoadProgress(10, "加载全局资源...");
       await this.talkTextList.initialize();
-      await partnerList.initialize();
+      await this.partnerList.initialize();
 
       // ========== 阶段2：创建渲染器 ==========
       this.emitLoadProgress(20, "创建渲染器...");
@@ -371,6 +373,8 @@ export class GameEngine implements IEngineContext {
           weatherManager: this.weatherManager,
           timerManager: this.timerManager,
           map: this._map,
+          magicRenderer: this.magicRenderer,
+          partnerList: this.partnerList,
           clearMouseInput: () => this.clearMouseInput(),
         },
         {
@@ -1216,13 +1220,13 @@ export class GameEngine implements IEngineContext {
       if (magicMgr) {
         const magicsAtRow = magicMgr.getMagicSpritesAtRow(row);
         for (const sprite of magicsAtRow) {
-          magicRenderer.render(r, sprite, mapR.camera.x, mapR.camera.y);
+          this.magicRenderer.render(r, sprite, mapR.camera.x, mapR.camera.y);
         }
 
         // 渲染特效精灵
         const effectsAtRow = magicMgr.getEffectSpritesAtRow(row);
         for (const sprite of effectsAtRow) {
-          magicRenderer.render(r, sprite, mapR.camera.x, mapR.camera.y);
+          this.magicRenderer.render(r, sprite, mapR.camera.x, mapR.camera.y);
         }
       }
     });
@@ -1245,7 +1249,7 @@ export class GameEngine implements IEngineContext {
     if (superModeMagicMgr?.isInSuperMagicMode) {
       const superModeSprite = superModeMagicMgr.superModeMagicSprite;
       if (superModeSprite && !superModeSprite.isDestroyed) {
-        magicRenderer.render(r, superModeSprite, mapR.camera.x, mapR.camera.y);
+        this.magicRenderer.render(r, superModeSprite, mapR.camera.x, mapR.camera.y);
       }
     }
 

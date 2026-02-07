@@ -30,7 +30,7 @@ export {
   isMagicApiLoaded,
 } from "./magicConfigLoader";
 // Magic Renderer
-export { MagicRenderer, magicRenderer } from "./magicRenderer";
+export { MagicRenderer } from "./magicRenderer";
 // MagicSprite class (inherits from Sprite)
 // 武功精灵类
 export { MagicSprite, type WorkItem } from "./magicSprite";

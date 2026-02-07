@@ -11,6 +11,7 @@ import type { Npc, NpcManager } from "../../npc";
 import type { MagicListManager } from "../../player/magic/magicListManager";
 import type { Player } from "../../player/player";
 import type { CharacterRef } from "../effects";
+import type { MagicRenderer } from "../magicRenderer";
 import type { MagicSprite, WorkItem } from "../magicSprite";
 import type { Kind19MagicInfo, MagicData } from "../types";
 
@@ -24,6 +25,7 @@ export interface MagicManagerDeps {
   screenEffects: ScreenEffects;
   audioManager: AudioManager;
   magicListManager: MagicListManager;
+  magicRenderer: MagicRenderer;
   /** 震屏回调 */
   vibrateScreen?: (intensity: number) => void;
 }

@@ -29,8 +29,25 @@
 
 import { logger } from "../core/logger";
 import { getMagicFromApiCache, isMagicApiLoaded } from "./magicConfigLoader";
-import { magicRenderer } from "./magicRenderer";
+import type { MagicRenderer } from "./magicRenderer";
 import type { MagicData } from "./types";
+
+// 模块级渲染器引用，由 MagicManager 构造时设置
+let _magicRenderer: MagicRenderer | null = null;
+
+/**
+ * 初始化 magicLoader 模块（由 MagicManager 构造时调用）
+ */
+export function initMagicLoader(renderer: MagicRenderer): void {
+  _magicRenderer = renderer;
+}
+
+function getRenderer(): MagicRenderer {
+  if (!_magicRenderer) {
+    throw new Error("[MagicLoader] MagicRenderer not initialized. Call initMagicLoader() first.");
+  }
+  return _magicRenderer;
+}
 
 /**
  * 获取指定等级的武功数据
@@ -78,13 +95,13 @@ export function getMagic(fileName: string): MagicData | null {
 export async function preloadMagicAsf(magic: MagicData): Promise<void> {
   const promises: Promise<unknown>[] = [];
   if (magic.flyingImage) {
-    promises.push(magicRenderer.getAsf(magic.flyingImage));
+    promises.push(getRenderer().getAsf(magic.flyingImage));
   }
   if (magic.vanishImage) {
-    promises.push(magicRenderer.getAsf(magic.vanishImage));
+    promises.push(getRenderer().getAsf(magic.vanishImage));
   }
   if (magic.superModeImage) {
-    promises.push(magicRenderer.getAsf(magic.superModeImage));
+    promises.push(getRenderer().getAsf(magic.superModeImage));
   }
   if (promises.length > 0) {
     await Promise.all(promises);

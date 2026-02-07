@@ -21,7 +21,7 @@ import {
 } from "../../utils/direction";
 import { getSpeedRatio, normalizeVector } from "../../utils/math";
 import type { CharacterRef } from "../effects";
-import { magicRenderer } from "../magicRenderer";
+import type { MagicRenderer } from "../magicRenderer";
 import { MagicSprite } from "../magicSprite";
 import type { Kind19MagicInfo, MagicData } from "../types";
 import { MagicMoveKind } from "../types";
@@ -33,6 +33,7 @@ import type { ICharacterHelper, ISpriteFactoryCallbacks, MagicManagerDeps } from
 export class SpriteFactory {
   private player: Player;
   private npcManager: NpcManager;
+  private magicRenderer: MagicRenderer;
   private charHelper: ICharacterHelper;
   private callbacks: ISpriteFactoryCallbacks;
 
@@ -48,6 +49,7 @@ export class SpriteFactory {
   ) {
     this.player = deps.player;
     this.npcManager = deps.npcManager;
+    this.magicRenderer = deps.magicRenderer;
     this.charHelper = charHelper;
     this.callbacks = callbacks;
   }
@@ -677,7 +679,7 @@ export class SpriteFactory {
     if (magic.superModeImage) {
       sprite.flyingAsfPath = magic.superModeImage;
 
-      const cached = magicRenderer.getCachedAsf(magic.superModeImage);
+      const cached = this.magicRenderer.getCachedAsf(magic.superModeImage);
       if (cached) {
         sprite.frameCountsPerDirection = cached.framesPerDirection;
         sprite.frameInterval = cached.interval;

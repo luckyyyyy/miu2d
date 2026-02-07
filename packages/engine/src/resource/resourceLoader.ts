@@ -979,15 +979,6 @@ class ResourceLoaderImpl {
  */
 export const resourceLoader = new ResourceLoaderImpl();
 
-/**
- * 导出便捷函数
- */
-export const loadText = resourceLoader.loadText.bind(resourceLoader);
-export const loadBinary = resourceLoader.loadBinary.bind(resourceLoader);
-export const loadAudio = resourceLoader.loadAudio.bind(resourceLoader);
-export const loadIni = resourceLoader.loadIni.bind(resourceLoader);
-export const getResourceStats = resourceLoader.getStats.bind(resourceLoader);
-export const getResourceDebugSummary = resourceLoader.getDebugSummary.bind(resourceLoader);
 
 // ==================== 游戏数据加载器 ====================
 

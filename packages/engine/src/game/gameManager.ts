@@ -43,9 +43,10 @@ import type { IRenderer } from "../webgl/iRenderer";
 import { BuyManager } from "../gui/buyManager";
 import { GuiManager } from "../gui/guiManager";
 import type { MemoListManager, TalkTextListManager } from "../listManager";
+import type { PartnerListManager } from "../listManager/partnerList";
 import type { MagicItemInfo } from "../magic";
 import { MagicManager } from "../magic";
-import { magicRenderer } from "../magic/magicRenderer";
+import { MagicRenderer } from "../magic/magicRenderer";
 import { MapBase } from "../map/mapBase";
 import type { Npc } from "../npc";
 import { NpcManager } from "../npc";
@@ -93,6 +94,8 @@ export interface GameManagerDeps {
   weatherManager: WeatherManager;
   timerManager: TimerManager;
   map: MapBase;
+  magicRenderer: MagicRenderer;
+  partnerList: PartnerListManager;
   clearMouseInput?: () => void; // 清除鼠标按住状态（对话框弹出时调用）
 }
 
@@ -101,6 +104,8 @@ export class GameManager {
   private events: EventEmitter;
   private talkTextList: TalkTextListManager;
   private memoListManager: MemoListManager;
+  private readonly magicRenderer: MagicRenderer;
+  private readonly partnerList: PartnerListManager;
 
   // Core systems
   private player: Player;
@@ -179,6 +184,8 @@ export class GameManager {
     this.timerManager = deps.timerManager;
     this.clearMouseInput = deps.clearMouseInput;
     this.map = deps.map;
+    this.magicRenderer = deps.magicRenderer;
+    this.partnerList = deps.partnerList;
 
     // Initialize systems
     this.player = new Player();
@@ -230,6 +237,7 @@ export class GameManager {
       screenEffects: this.screenEffects,
       audioManager: this.audioManager,
       magicListManager: this.magicListManager,
+      magicRenderer: this.magicRenderer,
       vibrateScreen: (intensity) => this.cameraController.vibrateScreen(intensity),
     });
 
@@ -299,7 +307,7 @@ export class GameManager {
         // 清理 MPC atlas canvas 缓存
         clearMpcAtlasCache();
         // 清理武功效果 ASF 缓存
-        magicRenderer.clearCache();
+        this.magicRenderer.clearCache();
         logger.debug("[GameManager] Resource caches cleared (sprite, asf, mpc, magic)");
       },
       clearVariables: () => {
@@ -472,6 +480,7 @@ export class GameManager {
       weatherManager: this.weatherManager,
       timerManager: this.timerManager,
       buyManager: this.buyManager,
+      partnerList: this.partnerList,
       getVariables: () => this.variables,
       setVariable: (name, value) => {
         this.variables[name] = value;
