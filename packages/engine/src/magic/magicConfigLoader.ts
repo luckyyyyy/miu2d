@@ -14,7 +14,7 @@ import {
   registerCacheBuilder,
   type ApiMagicData,
 } from "../resource/resourceLoader";
-import { getResourceRoot } from "../config/resourcePaths";
+import { getResourceRoot, normalizeCacheKey } from "../config/resourcePaths";
 import { logger } from "../core/logger";
 import { createDefaultMagicData, type MagicData, MagicMoveKind, MagicSpecialKind } from "./types";
 
@@ -24,6 +24,8 @@ type ApiMagicLevel = ApiMagicData extends { levels: (infer L)[] | null } ? NonNu
 type ApiAttackFile = ApiMagicData extends { attackFile: infer A } ? NonNullable<A> : never;
 
 // ========== 缓存 ==========
+
+const MAGIC_KEY_PREFIXES = ["ini/magic/"] as const;
 
 /** 已解析的武功配置缓存 (key -> MagicData) */
 const magicConfigCache = new Map<string, MagicData>();
@@ -199,7 +201,7 @@ function convertApiMagicToMagicData(api: ApiMagicData): MagicData {
 
     // 同时将 attackFile 数据转换并缓存
     const attackMagic = convertAttackFileToMagicData(api.attackFile, attackFileName);
-    magicConfigCache.set(normalizeKeyForCache(attackFileName), attackMagic);
+    magicConfigCache.set(normalizeCacheKey(attackFileName, MAGIC_KEY_PREFIXES), attackMagic);
   }
 
   // 关联武功
@@ -306,36 +308,7 @@ function convertAttackFileToMagicData(attack: ApiAttackFile, fileName: string): 
   return magic;
 }
 
-// ========== 缓存键规范化 ==========
 
-/**
- * 规范化缓存键（与 magicLoader 中的 normalizeMagicPath 对应）
- * 支持多种输入格式：
- * - "player-magic-银钩铁划.ini"
- * - "ini/magic/player-magic-银钩铁划.ini"
- * - "/resources/ini/magic/player-magic-银钩铁划.ini"
- */
-function normalizeKeyForCache(fileName: string): string {
-  let normalized = fileName.replace(/\\/g, "/");
-
-  // 移除资源根目录前缀（如 /game/xxx/resources/）
-  const resourceRoot = getResourceRoot();
-  if (normalized.startsWith(resourceRoot)) {
-    normalized = normalized.slice(resourceRoot.length);
-  }
-
-  // 移除开头的 /
-  if (normalized.startsWith("/")) {
-    normalized = normalized.slice(1);
-  }
-
-  // 移除 ini/magic/ 前缀
-  if (normalized.startsWith("ini/magic/")) {
-    normalized = normalized.slice("ini/magic/".length);
-  }
-
-  return normalized.toLowerCase();
-}
 
 /**
  * 从统一数据构建武功缓存（自动被 dataLoader 调用）
@@ -352,14 +325,14 @@ function buildMagicCache(): void {
   // 处理玩家武功
   for (const api of data.player) {
     const magic = convertApiMagicToMagicData(api);
-    const cacheKey = normalizeKeyForCache(api.key);
+    const cacheKey = normalizeCacheKey(api.key, MAGIC_KEY_PREFIXES);
     magicConfigCache.set(cacheKey, magic);
   }
 
   // 处理 NPC 武功
   for (const api of data.npc) {
     const magic = convertApiMagicToMagicData(api);
-    const cacheKey = normalizeKeyForCache(api.key);
+    const cacheKey = normalizeCacheKey(api.key, MAGIC_KEY_PREFIXES);
     magicConfigCache.set(cacheKey, magic);
   }
 
@@ -380,7 +353,7 @@ registerCacheBuilder(buildMagicCache);
  * @returns MagicData 或 null
  */
 export function getMagicFromApiCache(fileName: string): MagicData | null {
-  const cacheKey = normalizeKeyForCache(fileName);
+  const cacheKey = normalizeCacheKey(fileName, MAGIC_KEY_PREFIXES);
   const cached = magicConfigCache.get(cacheKey);
 
   if (cached) {

@@ -11,7 +11,7 @@ import {
   registerCacheBuilder,
   type ApiGoodsData,
 } from "../../resource/resourceLoader";
-import { getResourceRoot } from "../../config/resourcePaths";
+import { normalizeCacheKey } from "../../config/resourcePaths";
 import { logger } from "../../core/logger";
 
 // ============= Enums =============
@@ -77,6 +77,8 @@ const GoodsPartMap: Record<ApiGoodsPart, EquipPosition> = {
 // ============= 缓存 =============
 
 /** 物品缓存 key -> Good */
+const GOODS_KEY_PREFIXES = ["ini/goods/"] as const;
+
 const goodsCache = new Map<string, Good>();
 
 // ============= Good 类 =============
@@ -271,29 +273,7 @@ export class Good {
   }
 }
 
-// ============= 缓存键规范化 =============
 
-function normalizeKey(fileName: string): string {
-  let key = fileName.replace(/\\/g, "/");
-
-  // 移除资源根目录前缀
-  const root = getResourceRoot();
-  if (key.startsWith(root)) {
-    key = key.slice(root.length);
-  }
-
-  // 移除开头的 /
-  if (key.startsWith("/")) {
-    key = key.slice(1);
-  }
-
-  // 移除 ini/goods/ 前缀
-  if (key.startsWith("ini/goods/")) {
-    key = key.slice("ini/goods/".length);
-  }
-
-  return key.toLowerCase();
-}
 
 // ============= 内部函数 =============
 
@@ -309,7 +289,7 @@ function buildGoodsCache(): void {
   goodsCache.clear();
   for (const api of data) {
     const good = new Good(api);
-    const key = normalizeKey(api.key);
+    const key = normalizeCacheKey(api.key, GOODS_KEY_PREFIXES);
     goodsCache.set(key, good);
   }
 
@@ -325,7 +305,7 @@ registerCacheBuilder(buildGoodsCache);
  * 获取物品（同步，从缓存读取）
  */
 export function getGood(fileName: string): Good | null {
-  const key = normalizeKey(fileName);
+  const key = normalizeCacheKey(fileName, GOODS_KEY_PREFIXES);
   const good = goodsCache.get(key);
   if (!good) {
     logger.warn(`[Good] Not found: ${fileName} (key=${key})`);

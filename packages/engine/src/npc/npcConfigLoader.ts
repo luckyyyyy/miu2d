@@ -12,13 +12,15 @@ import {
   type ApiNpcResources,
   type ApiNpcResData,
 } from "../resource/resourceLoader";
-import { getResourceRoot } from "../config/resourcePaths";
+import { normalizeCacheKey } from "../config/resourcePaths";
 import type { CharacterConfig, CharacterStats } from "../core/types";
 import { CharacterState } from "../core/types";
 import { logger } from "../core/logger";
 import type { NpcResStateInfo } from "../character/resFile";
 
 // ========== 缓存 ==========
+
+const NPC_KEY_PREFIXES = ["ini/npc/", "ini/partner/"] as const;
 
 const npcConfigCache = new Map<string, CharacterConfig>();
 const npcResCache = new Map<string, Map<number, NpcResStateInfo>>();
@@ -123,26 +125,7 @@ function convertApiNpcToConfig(api: ApiNpcData): CharacterConfig {
   };
 }
 
-// ========== 缓存键规范化 ==========
 
-function normalizeKey(fileName: string): string {
-  let key = fileName.replace(/\\/g, "/");
-
-  const root = getResourceRoot();
-  if (key.startsWith(root)) {
-    key = key.slice(root.length);
-  }
-  if (key.startsWith("/")) {
-    key = key.slice(1);
-  }
-  if (key.startsWith("ini/npc/")) {
-    key = key.slice("ini/npc/".length);
-  } else if (key.startsWith("ini/partner/")) {
-    key = key.slice("ini/partner/".length);
-  }
-
-  return key.toLowerCase();
-}
 
 // ========== API Resources -> NpcResStateInfo 转换 ==========
 
@@ -200,7 +183,7 @@ function buildNpcConfigCache(): void {
   // 1. 构建 NPC 配置缓存（从 npcs 数组）
   for (const api of data.npcs) {
     const config = convertApiNpcToConfig(api);
-    const cacheKey = normalizeKey(api.key);
+    const cacheKey = normalizeCacheKey(api.key, NPC_KEY_PREFIXES);
 
     // 通过 API 返回的 resourceKey 直接设置 npcIni（npcres 文件名）
     if (api.resourceKey) {
@@ -218,7 +201,7 @@ function buildNpcConfigCache(): void {
 
   // 2. 构建 NpcRes 资源缓存（从 resources 数组）
   for (const resData of data.resources) {
-    const cacheKey = normalizeKey(resData.key);
+    const cacheKey = normalizeCacheKey(resData.key, NPC_KEY_PREFIXES);
     const resMap = convertApiResourcesToStateMap(resData.resources);
     if (resMap) {
       npcResCache.set(cacheKey, resMap);
@@ -233,7 +216,7 @@ registerCacheBuilder(buildNpcConfigCache);
 // ========== 公共 API ==========
 
 export function getNpcConfigFromCache(fileName: string): CharacterConfig | null {
-  return npcConfigCache.get(normalizeKey(fileName)) ?? null;
+  return npcConfigCache.get(normalizeCacheKey(fileName, NPC_KEY_PREFIXES)) ?? null;
 }
 
 /**
@@ -241,7 +224,7 @@ export function getNpcConfigFromCache(fileName: string): CharacterConfig | null 
  * 替代原有的 loadNpcRes INI 加载
  */
 export function getNpcResFromCache(npcIni: string): Map<number, NpcResStateInfo> | null {
-  return npcResCache.get(normalizeKey(npcIni)) ?? null;
+  return npcResCache.get(normalizeCacheKey(npcIni, NPC_KEY_PREFIXES)) ?? null;
 }
 
 export function isNpcConfigLoaded(): boolean {

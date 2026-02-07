@@ -16,6 +16,8 @@ export {
   getResourceUrl,
   // 工具函数
   isResourcePath,
+  // 缓存键规范化
+  normalizeCacheKey,
   // 目录结构
   ResourceDirs,
   ResourcePath,

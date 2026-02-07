@@ -462,3 +462,42 @@ export function resolveScriptPath(basePath: string, scriptFile: string): string 
   }
   return `${basePath}/${scriptFile}`;
 }
+
+// =============================================================================
+// 缓存键规范化（统一所有 ConfigLoader 的 normalizeKey 模式）
+// =============================================================================
+
+/**
+ * 规范化缓存键 - 统一的配置文件路径规范化
+ *
+ * 所有 ConfigLoader（npc, obj, magic, goods, level）共用此函数，
+ * 替代各 Loader 内部的 normalizeKey / normalizeKeyForCache。
+ *
+ * 处理步骤：
+ * 1. 反斜杠 → 正斜杠
+ * 2. 移除资源根目录前缀（如 /game/xxx/resources/）
+ * 3. 移除开头的 /
+ * 4. 移除匹配的 ini 子目录前缀（如 ini/npc/、ini/magic/）
+ * 5. 转小写
+ *
+ * @param fileName 原始文件名或路径
+ * @param prefixes 需要剥离的 ini 子目录前缀列表（如 ["ini/npc/", "ini/partner/"]）
+ */
+export function normalizeCacheKey(fileName: string, prefixes: readonly string[]): string {
+  let key = fileName.replace(/\\/g, "/");
+
+  const root = getResourceRoot();
+  if (key.startsWith(root)) {
+    key = key.slice(root.length);
+  }
+  if (key.startsWith("/")) {
+    key = key.slice(1);
+  }
+  for (const prefix of prefixes) {
+    if (key.startsWith(prefix)) {
+      key = key.slice(prefix.length);
+      break;
+    }
+  }
+  return key.toLowerCase();
+}

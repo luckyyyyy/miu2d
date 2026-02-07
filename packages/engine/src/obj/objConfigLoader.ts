@@ -10,7 +10,7 @@ import {
   registerCacheBuilder,
   type ApiObjData,
 } from "../resource/resourceLoader";
-import { getResourceRoot } from "../config/resourcePaths";
+import { normalizeCacheKey } from "../config/resourcePaths";
 import { logger } from "../core/logger";
 
 // ========== 类型定义 ==========
@@ -66,6 +66,8 @@ export interface ObjConfig {
 
 // ========== 缓存 ==========
 
+const OBJ_KEY_PREFIXES = ["ini/obj/", "ini/objres/"] as const;
+
 const objConfigCache = new Map<string, ObjConfig>();
 
 // ========== Kind 映射 ==========
@@ -114,26 +116,7 @@ function convertApiObjToConfig(api: ApiObjData): ObjConfig {
   };
 }
 
-// ========== 缓存键规范化 ==========
 
-function normalizeKey(fileName: string): string {
-  let key = fileName.replace(/\\/g, "/");
-
-  const root = getResourceRoot();
-  if (key.startsWith(root)) {
-    key = key.slice(root.length);
-  }
-  if (key.startsWith("/")) {
-    key = key.slice(1);
-  }
-  if (key.startsWith("ini/obj/")) {
-    key = key.slice("ini/obj/".length);
-  } else if (key.startsWith("ini/objres/")) {
-    key = key.slice("ini/objres/".length);
-  }
-
-  return key.toLowerCase();
-}
 
 // ========== ObjRes 缓存 ==========
 
@@ -151,13 +134,13 @@ function buildObjConfigCache(): void {
   // 1. 构建 Obj 配置缓存
   for (const api of data.objs) {
     const config = convertApiObjToConfig(api);
-    const cacheKey = normalizeKey(api.key);
+    const cacheKey = normalizeCacheKey(api.key, OBJ_KEY_PREFIXES);
     objConfigCache.set(cacheKey, config);
   }
 
   // 2. 构建 ObjRes 资源缓存（用 objres 文件名作为 key）
   for (const resData of data.resources) {
-    const cacheKey = normalizeKey(resData.key);
+    const cacheKey = normalizeCacheKey(resData.key, OBJ_KEY_PREFIXES);
     const resInfo: ObjResInfo = {
       imagePath: resData.resources?.common?.image ?? "",
       soundPath: resData.resources?.common?.sound ?? "",
@@ -173,7 +156,7 @@ registerCacheBuilder(buildObjConfigCache);
 // ========== 公共 API ==========
 
 export function getObjConfigFromCache(fileName: string): ObjConfig | null {
-  return objConfigCache.get(normalizeKey(fileName)) ?? null;
+  return objConfigCache.get(normalizeCacheKey(fileName, OBJ_KEY_PREFIXES)) ?? null;
 }
 
 /**
@@ -181,7 +164,7 @@ export function getObjConfigFromCache(fileName: string): ObjConfig | null {
  * fileName 是 objres 文件名（如 obj-宝箱1.ini）
  */
 export function getObjResFromCache(fileName: string): ObjResInfo | null {
-  return objResCache.get(normalizeKey(fileName)) ?? null;
+  return objResCache.get(normalizeCacheKey(fileName, OBJ_KEY_PREFIXES)) ?? null;
 }
 
 export function isObjConfigLoaded(): boolean {
