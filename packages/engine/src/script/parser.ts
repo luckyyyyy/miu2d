@@ -127,7 +127,12 @@ function parseParameters(paramsStr: string): string[] {
     } else if (!inQuotes && char === ")") {
       parenDepth--;
       current += char;
-    } else if (!inQuotes && parenDepth === 0 && char === ",") {
+    } else if (
+      !inQuotes &&
+      parenDepth === 0 &&
+      (char === "," || char === "\uFF0C")
+    ) {
+      // Support both regular comma and full-width comma (，)
       params.push(current.trim());
       current = "";
     } else {

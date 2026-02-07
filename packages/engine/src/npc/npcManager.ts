@@ -434,9 +434,12 @@ export class NpcManager {
 
   /**
    * Clear all NPCs
-   *
+   * 参考 C#: NpcManager.ClearAllNpc(keepPartner) — 始终清空 _fileName
    */
   clearAllNpc(keepPartner: boolean = false): void {
+    // C# 原版: _fileName = string.Empty; 始终清空
+    this.fileName = "";
+
     if (keepPartner) {
       const toDelete: string[] = [];
       for (const [id, npc] of this.npcs) {

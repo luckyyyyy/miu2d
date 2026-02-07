@@ -505,6 +505,8 @@ export class GameManager {
       disableSave: () => this.disableSave(),
       enableDrop: () => this.enableDrop(),
       disableDrop: () => this.disableDrop(),
+      // Map obstacle check
+      isMapObstacleForCharacter: (x, y) => MapBase.Instance.isObstacleForCharacter(x, y),
       // Show map pos flag
       setScriptShowMapPos: (show) => this.setScriptShowMapPos(show),
       // Map time

@@ -349,6 +349,8 @@ export class Loader {
         // Globals.IsInputDisabled = false
         // Globals.IsSaveDisabled = false
         this.deps.setSaveEnabled?.(true);
+        // 重置绘制颜色为白色（参考 C#: LoadGameFile() 总是显式设置颜色）
+        this.deps.screenEffects.resetColors();
         // 启用 NPC AI
       }
 
@@ -454,6 +456,7 @@ export class Loader {
         // MpcStyle - 地图绘制颜色
         // MapBase.DrawColor = StorageBase.GetColorFromString(option["MpcStyle"])
         // 格式: BBGGRR00
+        // 参考 C#: 总是显式设置颜色（有值则解析，无值则重置为白色）
         if (optionSection.MpcStyle && optionSection.MpcStyle !== "FFFFFF00") {
           const hex = optionSection.MpcStyle;
           // 格式是 BBGGRR00，需要转换
@@ -462,6 +465,8 @@ export class Loader {
           const r = parseInt(hex.substring(4, 6), 16) || 255;
           this.deps.screenEffects.setMapColor(r, g, b);
           logger.debug(`[Loader] MpcStyle: R=${r} G=${g} B=${b}`);
+        } else {
+          this.deps.screenEffects.setMapColor(255, 255, 255);
         }
 
         // AsfStyle - 精灵绘制颜色
@@ -472,6 +477,8 @@ export class Loader {
           const r = parseInt(hex.substring(4, 6), 16) || 255;
           this.deps.screenEffects.setSpriteColor(r, g, b);
           logger.debug(`[Loader] AsfStyle: R=${r} G=${g} B=${b}`);
+        } else {
+          this.deps.screenEffects.setSpriteColor(255, 255, 255);
         }
 
         // SaveDisabled - 禁止存档
@@ -1218,6 +1225,9 @@ export class Loader {
       // Step 0: 立即设置屏幕全黑，防止在加载过程中看到摄像机移动
       // Reference: 存档加载时画面保持黑色直到 FadeIn
       screenEffects.setFadeTransparency(1);
+      // 重置绘制颜色为白色（避免前一次游戏的颜色残留）
+      // 后面 Step 13 会从存档恢复正确的颜色
+      screenEffects.resetColors();
 
       // Step 1: 停止所有正在运行的脚本 (0-5%)
       // Reference: ScriptManager.Clear()
@@ -1382,6 +1392,11 @@ export class Loader {
       this.reportProgress(90, "加载 NPC...");
       logger.debug(`[Loader] Loading NPCs...`);
       npcManager.clearAllNpc();
+      // clearAllNpc 会清空 fileName（与 C# 行为一致），需要重新设置
+      // 否则脚本调用 SaveNpc() 时找不到文件名
+      if (state.npc) {
+        npcManager.setFileName(state.npc);
+      }
       if (data.snapshot.npc?.length > 0) {
         await this.loadNpcsFromJSON(data.snapshot.npc, npcManager);
       }
@@ -1398,6 +1413,11 @@ export class Loader {
       this.reportProgress(95, "加载物体...");
       logger.debug(`[Loader] Loading Objs...`);
       objManager.clearAll();
+      // clearAll 会清空 fileName，需要重新设置
+      // 否则脚本调用 SaveObj() 时找不到文件名
+      if (state.obj) {
+        objManager.setFileName(state.obj);
+      }
       if (data.snapshot.obj?.length > 0) {
         await this.loadObjsFromJSON(data.snapshot.obj, objManager);
       }
@@ -1436,6 +1456,7 @@ export class Loader {
         }
         // draw colors (mpcStyle = map, asfStyle = sprite)
         // 格式: RRGGBB 十六进制字符串
+        // 参考 C#: 总是显式设置颜色（有值则解析，无值则重置为白色）
         const hexToRgb = (hex: string) => {
           const r = parseInt(hex.substring(0, 2), 16) || 255;
           const g = parseInt(hex.substring(2, 4), 16) || 255;
@@ -1446,11 +1467,17 @@ export class Loader {
           const c = hexToRgb(data.option.mpcStyle);
           screenEffects.setMapColor(c.r, c.g, c.b);
           logger.debug(`[Loader] Restored map color: #${data.option.mpcStyle}`);
+        } else {
+          screenEffects.setMapColor(255, 255, 255);
+          logger.debug(`[Loader] Reset map color to white (default)`);
         }
         if (data.option.asfStyle && data.option.asfStyle !== "FFFFFF") {
           const c = hexToRgb(data.option.asfStyle);
           screenEffects.setSpriteColor(c.r, c.g, c.b);
           logger.debug(`[Loader] Restored sprite color: #${data.option.asfStyle}`);
+        } else {
+          screenEffects.setSpriteColor(255, 255, 255);
+          logger.debug(`[Loader] Reset sprite color to white (default)`);
         }
       }
 

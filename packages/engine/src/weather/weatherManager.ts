@@ -80,8 +80,8 @@ export class WeatherManager {
    * @param cameraY 相机 Y 位置
    */
   update(deltaTime: number, cameraX: number, cameraY: number): void {
-    // 更新雨效果
-    const rainResult = this.rain.update(deltaTime);
+    // 更新雨效果（传入摄像机坐标用于视差）
+    const rainResult = this.rain.update(deltaTime, cameraX, cameraY);
     this._isFlashing = rainResult.isFlashing;
 
     // 更新雪效果

@@ -1,80 +1,117 @@
 /**
- * RainDrop - 雨滴粒子
- * 基于JxqyHD/Engine/Weather/RainDrop.cs
+ * RainDrop - 雨滴粒子（改进版）
+ * 基于JxqyHD/Engine/Weather/RainDrop.cs，增加了真实的下落运动
+ *
+ * 改进点：
+ * - 雨滴从屏幕顶部落下，而非固定位置闪烁
+ * - 带有风向偏移角度（微斜）
+ * - 不同层次的雨滴（近处大快、远处小慢）模拟纵深
+ * - 落到屏幕底部后重生在顶部
  */
 
 import type { IRenderer } from "../webgl/IRenderer";
 
+/** 雨滴层级：近/中/远，模拟纵深效果 */
+export const enum RainLayer {
+  /** 远景雨滴：小、慢、暗 */
+  Far = 0,
+  /** 中景雨滴 */
+  Mid = 1,
+  /** 近景雨滴：大、快、亮 */
+  Near = 2,
+}
+
+/** 各层级参数配置 */
+const LAYER_CONFIG = [
+  // Far
+  { speedMin: 600, speedMax: 800, lengthMin: 8, lengthMax: 14, width: 1, alphaMin: 0.12, alphaMax: 0.22 },
+  // Mid
+  { speedMin: 900, speedMax: 1200, lengthMin: 14, lengthMax: 22, width: 1, alphaMin: 0.2, alphaMax: 0.35 },
+  // Near
+  { speedMin: 1300, speedMax: 1700, lengthMin: 20, lengthMax: 32, width: 2, alphaMin: 0.3, alphaMax: 0.5 },
+] as const;
+
+/** 风向角度（弧度），轻微向右偏 ≈ 5° */
+const WIND_ANGLE = 0.087;
+const WIND_COS = Math.cos(WIND_ANGLE);
+const WIND_SIN = Math.sin(WIND_ANGLE);
+
 export class RainDrop {
-  /** 是否显示 */
-  isShow: boolean = false;
+  /** 屏幕坐标 */
+  x: number;
+  y: number;
 
-  /** 在窗口中的位置 */
-  position: { x: number; y: number };
+  /** 下落速度（像素/秒） */
+  readonly speed: number;
 
-  /** 显示状态剩余帧数 */
-  private showFrames: number = 0;
-
-  /** 隐藏状态剩余帧数 */
-  private hideFrames: number = 0;
-
-  /** 雨滴长度（随机） */
+  /** 雨滴长度 */
   readonly length: number;
 
-  /** 雨滴宽度（随机） */
+  /** 雨滴宽度 */
   readonly width: number;
 
-  /** 预缓存的颜色字符串（避免每帧构造字符串） */
+  /** 层级 */
+  readonly layer: RainLayer;
+
+  /** 预缓存的颜色字符串 */
   readonly fillStyle: string;
 
-  constructor(x: number, y: number) {
-    this.position = { x, y };
-    // 随机大小：长度 12-28px，宽度 1-2px
-    this.length = Math.floor(Math.random() * 16) + 12;
-    this.width = Math.random() < 0.7 ? 1 : 2;
-    // 随机透明度 0.3-0.6，预缓存颜色字符串
-    const alpha = Math.random() * 0.3 + 0.3;
-    this.fillStyle = `rgba(255,255,255,${alpha.toFixed(2)})`;
-    // 初始化时随机设置隐藏状态
-    this.hideFrames = Math.floor(Math.random() * 60) + 30;
+  /** 风向引起的 X 方向速度分量 */
+  readonly windSpeedX: number;
+
+  /** 风向引起的 Y 方向速度分量 */
+  readonly windSpeedY: number;
+
+  constructor(x: number, y: number, layer: RainLayer) {
+    this.x = x;
+    this.y = y;
+    this.layer = layer;
+
+    const cfg = LAYER_CONFIG[layer];
+    this.speed = cfg.speedMin + Math.random() * (cfg.speedMax - cfg.speedMin);
+    this.length = cfg.lengthMin + Math.random() * (cfg.lengthMax - cfg.lengthMin);
+    this.width = cfg.width;
+
+    // 风向分解
+    this.windSpeedX = this.speed * WIND_SIN;
+    this.windSpeedY = this.speed * WIND_COS;
+
+    // 随机透明度，颜色偏冷色调
+    const alpha = cfg.alphaMin + Math.random() * (cfg.alphaMax - cfg.alphaMin);
+    this.fillStyle = `rgba(200,210,225,${alpha.toFixed(2)})`;
   }
 
   /**
-   * 更新雨滴状态
-   * 改进版：雨滴显示/隐藏有持续时间，避免每帧闪烁
+   * 更新雨滴位置
    */
-  update(): void {
-    if (this.isShow) {
-      // 正在显示，减少显示帧数
-      this.showFrames--;
-      if (this.showFrames <= 0) {
-        this.isShow = false;
-        // 设置隐藏持续时间（40-100帧，约0.7-1.7秒）
-        this.hideFrames = Math.floor(Math.random() * 60) + 40;
-      }
-    } else {
-      // 正在隐藏，减少隐藏帧数
-      this.hideFrames--;
-      if (this.hideFrames <= 0) {
-        this.isShow = true;
-        // 设置显示持续时间（5-12帧，约0.08-0.2秒，模拟雨滴划过）
-        this.showFrames = Math.floor(Math.random() * 7) + 5;
-      }
-    }
+  update(deltaTime: number): void {
+    this.x += this.windSpeedX * deltaTime;
+    this.y += this.windSpeedY * deltaTime;
   }
 
   /**
-   * 绘制雨滴（使用预缓存的颜色字符串）
+   * 绘制雨滴：一条带风向倾斜的细线段
    */
   draw(renderer: IRenderer): void {
-    if (!this.isShow) return;
+    const dy = this.length * WIND_COS;
 
     renderer.fillRect({
-      x: this.position.x,
-      y: this.position.y,
+      x: this.x,
+      y: this.y,
       width: this.width,
-      height: this.length,
+      height: dy,
       color: this.fillStyle,
     });
+
+    // 近景雨滴加一小段更亮的头部（模拟水滴反光）
+    if (this.layer === RainLayer.Near) {
+      renderer.fillRect({
+        x: this.x,
+        y: this.y + dy * 0.85,
+        width: this.width,
+        height: Math.min(4, dy * 0.15),
+        color: "rgba(230,235,245,0.45)",
+      });
+    }
   }
 }

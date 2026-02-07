@@ -197,6 +197,10 @@ export class Canvas2DRenderer implements IRenderer {
     // Canvas2D 后端的 drawSource/drawSourceEx 不缓存纹理，无需释放
   }
 
+  updateSourceTexture(_source: TextureSource): void {
+    // Canvas2D 后端直接 drawImage 读源，无需手动更新
+  }
+
   getTexture(id: TextureId): TextureInfo | null {
     return this.textures.get(id) ?? null;
   }

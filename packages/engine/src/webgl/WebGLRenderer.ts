@@ -377,6 +377,14 @@ export class WebGLRenderer implements IRenderer {
     }
   }
 
+  updateSourceTexture(source: TextureSource): void {
+    if (source instanceof ImageData) return;
+    const tex = this.sourceTextureCache.get(source);
+    if (tex) {
+      this.updateTexture(tex, source);
+    }
+  }
+
   getTexture(id: TextureId): TextureInfo | null {
     return this.textures.get(id) ?? null;
   }

@@ -88,6 +88,9 @@ export interface ScriptContextDependencies {
   // Input control (optional)
   clearMouseInput?: () => void;
 
+  // Map obstacle check (injected to avoid global MapBase.Instance)
+  isMapObstacleForCharacter: (x: number, y: number) => boolean;
+
   // Return to title
   returnToTitle: () => void;
 
@@ -130,6 +133,7 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
     disableSave,
     enableDrop,
     disableDrop,
+    isMapObstacleForCharacter,
   } = deps;
 
   // 从 player 获取 levelManager 和 goodsListManager
@@ -270,55 +274,95 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
       player.walkToTile(x, y);
     },
     isPlayerGotoEnd: (destination) => {
+      // Reference: C# IsCharacterMoveEndAndStanding(character, destinationTilePosition, isRun=false)
       if (!player) return true;
 
       const pos = player.tilePosition;
       const atDestination = pos.x === destination.x && pos.y === destination.y;
 
-      // IsStanding() includes Stand, Stand1, and FightStand
-      const isStanding = player.isStanding();
+      let isEnd = true;
 
-      if (atDestination && isStanding) {
-        return true;
-      }
+      if (!atDestination) {
+        // If standing, try to walk to destination
+        if (player.isStanding()) {
+          player.walkToTile(destination.x, destination.y);
+        }
 
-      if (!atDestination && isStanding) {
-        if (!player.path || player.path.length === 0) {
-          const success = player.walkToTile(destination.x, destination.y);
-          if (!success || !player.path || player.path.length === 0) {
-            return true;
-          }
+        // Check moveable (C# pattern)
+        const path = player.path;
+        if (!path || path.length === 0) {
+          // No path found, give up
+          player.standingImmediately();
+        } else if (
+          path.length === 1 &&
+          (pos.x !== path[0].x || pos.y !== path[0].y) &&
+          player.hasObstacle(path[0])
+        ) {
+          // Only 1 step and it's blocked by dynamic obstacle (NPC/Obj) → give up
+          player.standingImmediately();
+        } else if (isMapObstacleForCharacter(pos.x, pos.y)) {
+          // Player is stuck on a map obstacle tile (abnormal state) → give up
+          // This prevents infinite retries when findPathInDirection creates
+          // short direction paths that can never reach the real destination
+          logger.warn(
+            `[isPlayerGotoEnd] Player stuck on map obstacle at (${pos.x}, ${pos.y}), giving up PlayerGoto to (${destination.x}, ${destination.y})`
+          );
+          player.standingImmediately();
+        } else {
+          isEnd = false;
+        }
+      } else {
+        // At destination tile but still moving - keep waiting
+        if (!player.isStanding()) {
+          isEnd = false;
         }
       }
 
-      return false;
+      return isEnd;
     },
     playerRunTo: (x, y) => {
       player.runToTile(x, y);
     },
     isPlayerRunToEnd: (destination) => {
+      // Reference: C# IsCharacterMoveEndAndStanding(character, destinationTilePosition, isRun=true)
       if (!player) return true;
 
       const pos = player.tilePosition;
       const atDestination = pos.x === destination.x && pos.y === destination.y;
 
-      // IsStanding() includes Stand, Stand1, and FightStand
-      const isStanding = player.isStanding();
+      let isEnd = true;
 
-      if (atDestination && isStanding) {
-        return true;
-      }
+      if (!atDestination) {
+        // If standing, try to run to destination
+        if (player.isStanding()) {
+          player.runToTile(destination.x, destination.y);
+        }
 
-      if (!atDestination && isStanding) {
-        if (!player.path || player.path.length === 0) {
-          const success = player.runToTile(destination.x, destination.y);
-          if (!success || !player.path || player.path.length === 0) {
-            return true;
-          }
+        // Check moveable (C# pattern)
+        const path = player.path;
+        if (!path || path.length === 0) {
+          player.standingImmediately();
+        } else if (
+          path.length === 1 &&
+          (pos.x !== path[0].x || pos.y !== path[0].y) &&
+          player.hasObstacle(path[0])
+        ) {
+          player.standingImmediately();
+        } else if (isMapObstacleForCharacter(pos.x, pos.y)) {
+          logger.warn(
+            `[isPlayerRunToEnd] Player stuck on map obstacle at (${pos.x}, ${pos.y}), giving up PlayerRunTo to (${destination.x}, ${destination.y})`
+          );
+          player.standingImmediately();
+        } else {
+          isEnd = false;
+        }
+      } else {
+        if (!player.isStanding()) {
+          isEnd = false;
         }
       }
 
-      return false;
+      return isEnd;
     },
     playerGotoDir: (direction, steps) => {
       player.walkToDirection(direction, steps);
@@ -390,20 +434,21 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
         if (path.length === 0) {
           // Path is null/empty - can't move, end immediately
           character.standingImmediately();
-        } else if (path.length >= 1) {
-          // path[0] is the next tile (since path.slice(1) is stored)
-          const nextTile = path[0];
-          // Path.Count == 2 意味着只剩一步要走
-          // 检查下一步是否有障碍物
-          if (
-            path.length === 1 &&
-            (tilePos.x !== nextTile.x || tilePos.y !== nextTile.y) &&
-            character.hasObstacle(nextTile)
-          ) {
-            character.standingImmediately();
-          } else {
-            isEnd = false;
-          }
+        } else if (
+          path.length === 1 &&
+          (tilePos.x !== path[0].x || tilePos.y !== path[0].y) &&
+          character.hasObstacle(path[0])
+        ) {
+          // Only 1 step and it's blocked by dynamic obstacle → give up
+          character.standingImmediately();
+        } else if (isMapObstacleForCharacter(tilePos.x, tilePos.y)) {
+          // Character stuck on map obstacle tile → give up
+          logger.warn(
+            `[isNpcGotoEnd] ${name} stuck on map obstacle at (${tilePos.x}, ${tilePos.y}), giving up NpcGoto to (${destination.x}, ${destination.y})`
+          );
+          character.standingImmediately();
+        } else {
+          isEnd = false;
         }
       } else {
         // else if (character.TilePosition == destinationTilePosition && !character.IsStanding())

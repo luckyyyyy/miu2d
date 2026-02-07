@@ -112,6 +112,14 @@ export interface IRenderer {
   releaseSourceTexture(source: TextureSource): void;
 
   /**
+   * 更新已缓存的 source 纹理数据（重新上传像素到 GPU）
+   *
+   * 用于每帧内容变化的动态 source（如 OffscreenCanvas 合成）。
+   * 对于没有自动缓存纹理的后端（如 Canvas2D），此方法为空操作。
+   */
+  updateSourceTexture(source: TextureSource): void;
+
+  /**
    * 根据 ID 获取纹理
    */
   getTexture(id: TextureId): TextureInfo | null;
