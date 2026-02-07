@@ -63,6 +63,7 @@ import { ObjRenderer } from "../obj/objRenderer";
 import { GoodKind, type GoodsListManager, getEquipSlotIndex } from "../player/goods";
 import type { GoodsItemInfo } from "../player/goods/goodsListManager";
 import type { Player } from "../player/player";
+import { Sprite } from "../sprite/sprite";
 import { TimerManager } from "../timer";
 import type { IUIBridge, UIPanelName } from "../ui/contract";
 import { UIBridge, type UIBridgeDeps } from "../ui/uiBridge";
@@ -946,6 +947,15 @@ export class GameEngine implements IEngineContext {
         this.screenEffects.setSpriteColor(color.r, color.g, color.b);
       }
     }
+
+    // 同步 Sprite.drawColor（ChangeAsfColor 效果）
+    // C#: Color.Black (0,0,0) 触发灰度着色器, 其他颜色为乘法着色
+    // TS: "black" → grayscale filter via COLOR_FILTER_MAP
+    if (this.screenEffects.isSpriteGrayscale()) {
+      Sprite.drawColor = "black";
+    } else {
+      Sprite.drawColor = "white";
+    }
   }
 
   /**
@@ -1093,12 +1103,24 @@ export class GameEngine implements IEngineContext {
     // 开始渲染帧（重置统计、清屏）
     renderer.beginFrame();
 
+    // 应用地图颜色效果（ChangeMapColor）
+    // C#: Color.Black (0,0,0) 是特殊值，触发灰度着色器而非乘以黑色
+    const screenEffects = this.gameManager.getScreenEffects();
+    const mapGrayscale = screenEffects.isMapGrayscale();
+    if (mapGrayscale) {
+      renderer.save();
+      renderer.setFilter("grayscale");
+    }
+
     // 渲染地图和角色（使用交错渲染）
     this.renderMapInterleaved(renderer);
 
-    // 应用地图颜色叠加（ChangeMapColor 效果）
+    if (mapGrayscale) {
+      renderer.restore();
+    }
+
+    // 应用地图颜色叠加（非黑色的 ChangeMapColor 效果）
     // 使用 Color.Multiply 将颜色应用到地图和精灵
-    const screenEffects = this.gameManager.getScreenEffects();
     if (screenEffects.isMapTinted()) {
       const tint = screenEffects.getMapTintColor();
       renderer.save();

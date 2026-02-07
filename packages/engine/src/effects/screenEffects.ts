@@ -237,18 +237,39 @@ export class ScreenEffects {
   }
 
   /**
-   * Check if map should be tinted
+   * Check if map color is black (0,0,0) → should use grayscale shader
+   * In C#: when DrawColor == Color.Black, switches to GrayScaleEffect shader
+   */
+  isMapGrayscale(): boolean {
+    const c = this.state.mapDrawColor;
+    return c.r === 0 && c.g === 0 && c.b === 0;
+  }
+
+  /**
+   * Check if sprite color is black (0,0,0) → should use grayscale shader
+   */
+  isSpriteGrayscale(): boolean {
+    const c = this.state.spriteDrawColor;
+    return c.r === 0 && c.g === 0 && c.b === 0;
+  }
+
+  /**
+   * Check if map should be tinted (non-white, non-black)
+   * Black (0,0,0) is handled separately as grayscale
    */
   isMapTinted(): boolean {
     const c = this.state.mapDrawColor;
+    if (c.r === 0 && c.g === 0 && c.b === 0) return false; // grayscale, not tint
     return c.r !== 255 || c.g !== 255 || c.b !== 255;
   }
 
   /**
-   * Check if sprites should be tinted
+   * Check if sprites should be tinted (non-white, non-black)
+   * Black (0,0,0) is handled separately as grayscale
    */
   isSpriteTinted(): boolean {
     const c = this.state.spriteDrawColor;
+    if (c.r === 0 && c.g === 0 && c.b === 0) return false; // grayscale, not tint
     return c.r !== 255 || c.g !== 255 || c.b !== 255;
   }
 
