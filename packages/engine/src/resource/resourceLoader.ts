@@ -1129,7 +1129,7 @@ export interface ApiGoodsData {
 type ApiNpcKind = "Normal" | "Fighter" | "Flyer" | "GroundAnimal" | "WaterAnimal" | "Decoration" | "Intangible";
 
 /** NPC 关系 */
-type ApiNpcRelation = "Enemy" | "Friend" | "Partner" | "Hostile";
+type ApiNpcRelation = "Friendly" | "Neutral" | "Hostile" | "Partner";
 
 /** NPC 资源（动画/音效）*/
 interface ApiNpcResource {
@@ -1190,7 +1190,6 @@ export interface ApiNpcData {
   deathScript?: string | null;
   resources?: ApiNpcResources | null;
   resourceId?: string | null;
-  /** 关联的 npcres 文件名 */
   resourceKey?: string | null;
   createdAt?: string;
   updatedAt?: string;

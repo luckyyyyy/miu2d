@@ -130,6 +130,11 @@ export class GameEngine implements IEngineContext {
   private lastTime: number = 0;
   private isRunning: boolean = false;
 
+  /** 游戏循环是否正在运行 */
+  getIsRunning(): boolean {
+    return this.isRunning;
+  }
+
   // 帧率控制 - 锁定 60 FPS（与 XNA 版本一致）
   private static readonly TARGET_FPS = 60;
   private static readonly FRAME_INTERVAL = 1000 / GameEngine.TARGET_FPS; // ~16.67ms
@@ -527,6 +532,9 @@ export class GameEngine implements IEngineContext {
       throw new Error("Engine not initialized. Call initialize() first.");
     }
 
+    // 记录加载前是否已有游戏循环在运行（mid-game reload vs initial load）
+    const wasAlreadyRunning = this.isRunning;
+
     this.state = "loading";
     this.emitLoadProgress(0, `读取存档 ${index}...`);
 
@@ -550,16 +558,22 @@ export class GameEngine implements IEngineContext {
         throw new Error(`存档 ${index} 不存在`);
       }
 
-      this.emitLoadProgress(100, "存档加载完成");
+      // 先恢复 running 状态，再发送 100% 进度，让进度处理器能正确检测到完成
       this.state = "running";
+      this.emitLoadProgress(100, "存档加载完成");
 
-      // 发送初始化完成事件（让 UI 层知道加载完成）
-      this.events.emit(GameEvents.GAME_INITIALIZED, { success: true });
+      // 仅在初次加载时发送 GAME_INITIALIZED 事件（触发 UI 层启动游戏循环）
+      // mid-game reload 时游戏循环已在运行，不需要再次触发 start()
+      if (!wasAlreadyRunning) {
+        this.events.emit(GameEvents.GAME_INITIALIZED, { success: true });
+      }
 
       logger.log(`[GameEngine] Game loaded from slot ${index}`);
     } catch (error) {
       logger.error(`[GameEngine] Failed to load game from slot ${index}:`, error);
-      this.events.emit(GameEvents.GAME_INITIALIZED, { success: false });
+      if (!wasAlreadyRunning) {
+        this.events.emit(GameEvents.GAME_INITIALIZED, { success: false });
+      }
       throw error;
     } finally {
       // 清除进度回调

@@ -550,9 +550,6 @@ export abstract class Character extends CharacterCombat {
     this._spriteSet = spriteSet;
     this.npcIni = iniFile;
 
-    // 清除已自定义状态跟踪（因为加载了新的 NpcIni）
-    this._customizedStates.clear();
-
     // 刷新贴图，使用新加载的 _spriteSet
     // C# 参考: SetRes() 调用 SetState(State, true) 强制刷新
     this._updateTextureForState(this._state);
@@ -687,17 +684,8 @@ export abstract class Character extends CharacterCombat {
   /**
    * 设置 NPC 动作文件
    * C# 参考: ResFile.SetNpcStateImage(NpcIni, state, fileName) 直接修改 NpcIni 字典
-   * 我们直接加载 ASF 并设置到 _spriteSet 对应槽位
-   *
-   * 刷新逻辑：
-   * - 首次设置某状态时：刷新纹理（应对只设置状态不播放动画的情况）
-   * - 后续设置同一状态时：不刷新（应对设置后紧接着播放过渡动画的情况）
-   *
-   * 例如：
-   *   SetNpcActionFile("杨影枫", 0, "mpc001_跪.asf");  // 首次设置 state 0，刷新成跪地
-   *   ...（角色跪着）...
-   *   SetNpcActionFile("杨影枫", 0, "npc006_st2.asf"); // 再次设置 state 0，不刷新
-   *   NpcSpecialAction("杨影枫", "mpc001.asf");        // 播放站起动画
+   *          然后调用 SetState((CharacterState)State, true) 强制刷新当前状态的贴图
+   * 我们直接加载 ASF 并设置到 _spriteSet 对应槽位，然后刷新当前状态贴图
    */
   async setNpcActionFile(stateType: number, asfFile: string): Promise<void> {
     const asf = await loadCharacterAsf(asfFile);
@@ -705,15 +693,11 @@ export abstract class Character extends CharacterCombat {
       const key = stateToSpriteSetKey(stateType as CharacterState);
       this._spriteSet[key] = asf;
 
-      // 首次设置该状态时刷新纹理
-      const isFirstTimeSet = !this._customizedStates.has(stateType);
-      this._customizedStates.add(stateType);
+      logger.debug(`[Character] SetNpcActionFile: state=${stateType} -> ${asfFile}`);
 
-      logger.debug(`[Character] SetNpcActionFile: state=${stateType} -> ${asfFile}, firstTime=${isFirstTimeSet}`);
-
-      // 只有首次设置且当前状态匹配且不在特殊动作中才刷新
-      if (isFirstTimeSet && this._state === stateType && !this.isInSpecialAction) {
-        this._updateTextureForState(stateType as CharacterState);
+      // C# 参考: SetState((CharacterState)State, true) 总是强制刷新当前状态的贴图
+      if (!this.isInSpecialAction) {
+        this._updateTextureForState(this._state);
       }
     } else {
       logger.warn(`[Character] Failed to load action file: ${asfFile}`);

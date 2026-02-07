@@ -26,20 +26,21 @@ const npcResCache = new Map<string, Map<number, NpcResStateInfo>>();
 // ========== Kind/Relation 映射 ==========
 
 const KIND_MAP: Record<string, number> = {
-  Normal: 0,
-  Fighter: 1,
-  Eventer: 2,
-  Flyer: 3,
-  GroundAnimal: 4,
-  WaterAnimal: 5,
-  Intangible: 6,
+  Normal: 0,        // CharacterKind.Normal
+  Fighter: 1,       // CharacterKind.Fighter
+  GroundAnimal: 4,  // CharacterKind.GroundAnimal
+  Eventer: 5,       // CharacterKind.Eventer
+  Flyer: 7,         // CharacterKind.Flyer
+  WaterAnimal: 4,   // 映射到 GroundAnimal
+  Decoration: 5,    // 映射到 Eventer
+  Intangible: 6,    // CharacterKind.AfraidPlayerAnimal
 };
 
 const RELATION_MAP: Record<string, number> = {
-  Enemy: 0,
-  Friend: 1,
-  Partner: 2,
-  Hostile: 3,
+  Friendly: 0,  // RelationType.Friend
+  Hostile: 1,   // RelationType.Enemy
+  Neutral: 2,   // RelationType.Neutral
+  Partner: 3,   // RelationType.None
 };
 
 // ========== API -> CharacterConfig 转换 ==========

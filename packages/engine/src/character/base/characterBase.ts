@@ -397,9 +397,6 @@ export abstract class CharacterBase extends Sprite implements CharacterInstance 
   specialActionFrame: number = 0;
   specialActionAsf: string | undefined = undefined;
 
-  // === 已自定义的状态（用于首次设置时刷新纹理）===
-  protected _customizedStates: Set<number> = new Set();
-
   // === BezierMove ===
   protected _bezierMover = new BezierMover<Character>();
 

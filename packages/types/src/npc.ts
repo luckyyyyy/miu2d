@@ -15,25 +15,25 @@ import { z } from "zod";
  * 决定 NPC 的行为模式和 AI
  */
 export const NpcKindEnum = z.enum([
-  "Normal",       // 0 - 普通 NPC（可对话）
-  "Fighter",      // 1 - 战斗型 NPC
-  "Flyer",        // 2 - 飞行类（如蝙蝠、蜜蜂）
-  "GroundAnimal", // 3 - 地面动物（如狼、蛙）
-  "WaterAnimal",  // 4 - 水中动物（如鱼）
-  "Decoration",   // 5 - 装饰性 NPC（不可交互）
-  "Intangible",   // 6 - 无形体（仅视觉效果）
+  "Normal",       // C# Normal=0 - 普通 NPC（可对话）
+  "Fighter",      // C# Fighter=1 - 战斗型 NPC
+  "Flyer",        // C# Flyer=7 - 飞行类（如蝙蝠、蜜蜂）
+  "GroundAnimal", // C# GroundAnimal=4 - 地面动物（如狼、蛙）
+  "WaterAnimal",  // 无 C# 对应 - 水中动物（如鱼）
+  "Decoration",   // C# Eventer=5 - 事件/装饰性 NPC
+  "Intangible",   // C# AfraidPlayerAnimal=6 - 怕玩家的动物
 ]);
 
 export type NpcKind = z.infer<typeof NpcKindEnum>;
 
 export const NpcKindValues: Record<NpcKind, number> = {
-  Normal: 0,
-  Fighter: 1,
-  Flyer: 2,
-  GroundAnimal: 3,
-  WaterAnimal: 4,
-  Decoration: 5,
-  Intangible: 6,
+  Normal: 0,        // C# Normal=0
+  Fighter: 1,       // C# Fighter=1
+  GroundAnimal: 4,  // C# GroundAnimal=4
+  Decoration: 5,    // C# Eventer=5
+  Intangible: 6,    // C# AfraidPlayerAnimal=6
+  Flyer: 7,         // C# Flyer=7
+  WaterAnimal: 8,   // 无 C# 对应（.ini 中不会出现）
 };
 
 export const NpcKindFromValue: Record<number, NpcKind> = Object.fromEntries(
@@ -55,19 +55,19 @@ export const NpcKindLabels: Record<NpcKind, string> = {
  * 决定 NPC 与玩家的交互方式
  */
 export const NpcRelationEnum = z.enum([
-  "Friendly",   // 0 - 友好（可对话、不可攻击）
-  "Neutral",    // 1 - 中立（不主动攻击）
-  "Hostile",    // 2 - 敌对（主动攻击玩家）
-  "Partner",    // 3 - 伙伴（跟随玩家）
+  "Friendly",   // C# Friend=0 - 友好（可对话、不可攻击）
+  "Hostile",    // C# Enemy=1 - 敌对（主动攻击玩家）
+  "Neutral",    // C# Neutral=2 - 中立（不主动攻击）
+  "Partner",    // C# None=3 - 攻击所有非同阵营
 ]);
 
 export type NpcRelation = z.infer<typeof NpcRelationEnum>;
 
 export const NpcRelationValues: Record<NpcRelation, number> = {
-  Friendly: 0,
-  Neutral: 1,
-  Hostile: 2,
-  Partner: 3,
+  Friendly: 0,  // C# Friend=0
+  Hostile: 1,   // C# Enemy=1
+  Neutral: 2,   // C# Neutral=2
+  Partner: 3,   // C# None=3 (攻击所有非同阵营)
 };
 
 export const NpcRelationFromValue: Record<number, NpcRelation> = Object.fromEntries(

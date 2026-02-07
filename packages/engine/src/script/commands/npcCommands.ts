@@ -168,16 +168,20 @@ const npcGotoDirCommand: CommandHandler = (params, _result, helpers) => {
 
 /**
  * SetNpcActionFile - Set NPC animation file for a state
- * 等待 ASF 加载完成后再继续执行脚本
+ * 不等待 ASF 加载完成，立即继续执行脚本（匹配 C# 同步行为）
+ * 这样后续的 NpcSpecialAction 等命令能在同一帧内执行，
+ * 避免因异步加载导致中间帧闪烁
  */
-const setNpcActionFileCommand: CommandHandler = async (params, _result, helpers) => {
+const setNpcActionFileCommand: CommandHandler = (params, _result, helpers) => {
   const npcName = helpers.resolveString(params[0] || "");
   const stateType = helpers.resolveNumber(params[1] || "0");
   const asfFile = helpers.resolveString(params[2] || "");
   logger.log(
     `[ScriptExecutor] SetNpcActionFile: name="${npcName}", state=${stateType}, file="${asfFile}"`
   );
-  await helpers.context.setNpcActionFile(npcName, stateType, asfFile);
+  // Fire and forget: ASF 在后台加载，加载完成后自动刷新贴图
+  // 如果此时已有 NpcSpecialAction 设置了 isInSpecialAction，则跳过刷新
+  helpers.context.setNpcActionFile(npcName, stateType, asfFile);
   return true;
 };
 

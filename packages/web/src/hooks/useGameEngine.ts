@@ -92,7 +92,7 @@ export function useGameEngine(options: UseGameEngineOptions): UseGameEngineResul
       });
     unsubscribersRef.current.push(unsubProgress);
 
-    // 订阅初始化完成事件
+    // 订阅初始化完成事件（仅在初次加载时触发，mid-game reload 不会触发）
     const unsubInit = engine
       .getEvents()
       .on(GameEvents.GAME_INITIALIZED, (data: GameInitializedEvent) => {
@@ -100,8 +100,8 @@ export function useGameEngine(options: UseGameEngineOptions): UseGameEngineResul
           setState("running");
           setIsReady(true);
 
-          // 自动启动游戏循环
-          if (autoStart) {
+          // 自动启动游戏循环（仅在未运行时启动）
+          if (autoStart && !engine.getIsRunning()) {
             engine.start();
           }
         }
