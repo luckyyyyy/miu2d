@@ -805,10 +805,7 @@ export class SpriteFactory {
     destination: Vector2,
     destroyOnEnd: boolean
   ): void {
-    let count = 3;
-    if (magic.effectLevel > 3) {
-      count += Math.floor((magic.effectLevel - 1) / 3) * 2;
-    }
+    const count = this.getRegionCount(magic.effectLevel);
     const offsetRow = { x: 32, y: 16 };
     const offsetColumn = { x: 32, y: -16 };
     const halfCount = Math.floor(count / 2);
@@ -836,10 +833,7 @@ export class SpriteFactory {
     origin: Vector2,
     destroyOnEnd: boolean
   ): void {
-    let count = 3;
-    if (magic.effectLevel > 3) {
-      count += Math.floor((magic.effectLevel - 1) / 3) * 2;
-    }
+    const count = this.getRegionCount(magic.effectLevel);
     const magicDelayMs = 60;
     const crossOffsets = [
       { x: 32, y: 16 },
@@ -874,10 +868,7 @@ export class SpriteFactory {
     const direction = { x: destination.x - origin.x, y: destination.y - origin.y };
     const directionIndex = getDirectionIndex(direction, 8);
     const columnCount = 5;
-    let count = 3;
-    if (magic.effectLevel > 3) {
-      count += Math.floor((magic.effectLevel - 1) / 3) * 2;
-    }
+    const count = this.getRegionCount(magic.effectLevel);
     const magicDelayMs = 60;
 
     switch (directionIndex) {
@@ -913,7 +904,7 @@ export class SpriteFactory {
             x: beginPosition.x + offsetRow.x,
             y: beginPosition.y + offsetRow.y,
           };
-          this.addFixedWallAtPositionWithDelay(
+          this.addFixedWallAtPosition(
             userId,
             magic,
             beginPosition,
@@ -956,7 +947,7 @@ export class SpriteFactory {
           } else {
             beginPosition = { x: beginPosition.x - 32, y: beginPosition.y + 16 };
           }
-          this.addFixedWallAtPositionWithDelay(
+          this.addFixedWallAtPosition(
             userId,
             magic,
             beginPosition,
@@ -978,7 +969,7 @@ export class SpriteFactory {
           } else {
             beginPosition = { x: beginPosition.x + 32, y: beginPosition.y - 16 };
           }
-          this.addFixedWallAtPositionWithDelay(
+          this.addFixedWallAtPosition(
             userId,
             magic,
             beginPosition,
@@ -1070,10 +1061,7 @@ export class SpriteFactory {
     const rowOffset = rowOffsets[directionIndex];
     const columnOffset = columnOffsets[directionIndex];
 
-    let count = 3;
-    if (magic.effectLevel > 3) {
-      count += Math.floor((magic.effectLevel - 1) / 3) * 2;
-    }
+    const count = this.getRegionCount(magic.effectLevel);
     const magicDelayMs = 60;
 
     let beginPos = { ...origin };
@@ -1082,7 +1070,7 @@ export class SpriteFactory {
         x: beginPos.x + rowOffset.x,
         y: beginPos.y + rowOffset.y,
       };
-      this.addFixedWallAtPositionWithDelay(
+      this.addFixedWallAtPosition(
         userId,
         magic,
         beginPos,
@@ -1107,10 +1095,7 @@ export class SpriteFactory {
     const direction = { x: destination.x - origin.x, y: destination.y - origin.y };
     const directionIndex = getDirectionIndex(direction, 8);
 
-    let count = 3;
-    if (magic.effectLevel > 3) {
-      count += Math.floor((magic.effectLevel - 1) / 3) * 2;
-    }
+    const count = this.getRegionCount(magic.effectLevel);
     const magicDelayMs = 60;
 
     const originTile = pixelToTile(origin.x, origin.y);
@@ -1152,8 +1137,17 @@ export class SpriteFactory {
     this.addFixedPositionMagicSprite(userId, magic, destination, destroyOnEnd);
   }
 
+  /** 根据 effectLevel 计算区域武功数量 */
+  private getRegionCount(effectLevel: number): number {
+    let count = 3;
+    if (effectLevel > 3) {
+      count += Math.floor((effectLevel - 1) / 3) * 2;
+    }
+    return count;
+  }
+
   /**
-   * 在指定位置添加固定墙
+   * 在指定位置添加固定墙（支持可选延迟）
    */
   private addFixedWallAtPosition(
     userId: string,
@@ -1161,41 +1155,19 @@ export class SpriteFactory {
     center: Vector2,
     offset: Vector2,
     count: number,
-    destroyOnEnd: boolean
-  ): void {
-    const halfCount = Math.floor((count - 1) / 2);
-    const sprite = MagicSprite.createFixed(userId, magic, center, destroyOnEnd);
-    this.callbacks.addMagicSprite(sprite);
-
-    for (let i = 1; i <= halfCount; i++) {
-      const pos1 = { x: center.x + offset.x * i, y: center.y + offset.y * i };
-      const pos2 = { x: center.x - offset.x * i, y: center.y - offset.y * i };
-      this.callbacks.addMagicSprite(MagicSprite.createFixed(userId, magic, pos1, destroyOnEnd));
-      this.callbacks.addMagicSprite(MagicSprite.createFixed(userId, magic, pos2, destroyOnEnd));
-    }
-  }
-
-  /**
-   * 在指定位置添加固定墙（带延迟）
-   */
-  private addFixedWallAtPositionWithDelay(
-    userId: string,
-    magic: MagicData,
-    center: Vector2,
-    offset: Vector2,
-    count: number,
     destroyOnEnd: boolean,
-    delay: number
+    delay?: number
   ): void {
+    const add = (s: MagicSprite) =>
+      delay != null ? this.callbacks.addWorkItem(delay, s) : this.callbacks.addMagicSprite(s);
     const halfCount = Math.floor((count - 1) / 2);
-    const sprite = MagicSprite.createFixed(userId, magic, center, destroyOnEnd);
-    this.callbacks.addWorkItem(delay, sprite);
+    add(MagicSprite.createFixed(userId, magic, center, destroyOnEnd));
 
     for (let i = 1; i <= halfCount; i++) {
       const pos1 = { x: center.x + offset.x * i, y: center.y + offset.y * i };
       const pos2 = { x: center.x - offset.x * i, y: center.y - offset.y * i };
-      this.callbacks.addWorkItem(delay, MagicSprite.createFixed(userId, magic, pos1, destroyOnEnd));
-      this.callbacks.addWorkItem(delay, MagicSprite.createFixed(userId, magic, pos2, destroyOnEnd));
+      add(MagicSprite.createFixed(userId, magic, pos1, destroyOnEnd));
+      add(MagicSprite.createFixed(userId, magic, pos2, destroyOnEnd));
     }
   }
 
