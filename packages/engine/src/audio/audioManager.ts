@@ -145,6 +145,32 @@ export class AudioManager {
     return this.audioContext;
   }
 
+  // ==================== 内部工具方法 ====================
+
+  /** 安全停止 AudioBufferSourceNode（可能已停止或被回收） */
+  private safeStopSource(source: AudioBufferSourceNode): void {
+    try {
+      source.stop();
+    } catch { // source already stopped
+    }
+  }
+
+  /** 规范化音频文件名：保留原始扩展名，无扩展名时默认 .xnb */
+  private resolveFileName(fileName: string): string {
+    const hasExt = /\.(wav|mp3|ogg|xnb)$/i.test(fileName);
+    return hasExt ? fileName.toLowerCase() : `${fileName.toLowerCase()}.xnb`;
+  }
+
+  /** 加载音频 buffer，优先 .xnb 格式，失败回退原始格式 */
+  private async loadAudioBuffer(soundPath: string): Promise<AudioBuffer | null> {
+    if (!soundPath.toLowerCase().endsWith(".xnb")) {
+      const xnbPath = soundPath.replace(/\.(wav|mp3|ogg)$/i, ".xnb");
+      const buffer = await resourceLoader.loadAudio(xnbPath);
+      if (buffer) return buffer;
+    }
+    return resourceLoader.loadAudio(soundPath);
+  }
+
   // ==================== 背景音乐 ====================
 
   playMusic(fileName: string): void {
@@ -259,10 +285,7 @@ export class AudioManager {
 
   playSound(fileName: string): void {
     if (!fileName) return;
-    // 保留原始扩展名，无扩展名时默认 .xnb
-    const hasExt = /\.(wav|mp3|ogg|xnb)$/i.test(fileName);
-    const soundFile = hasExt ? fileName.toLowerCase() : `${fileName.toLowerCase()}.xnb`;
-    const soundPath = `${this.soundBasePath}/${soundFile}`;
+    const soundPath = `${this.soundBasePath}/${this.resolveFileName(fileName)}`;
     this.playAudioFile(soundPath, this.masterVolume * this.soundVolume);
   }
 
@@ -271,25 +294,13 @@ export class AudioManager {
       const ctx = this.getAudioContext();
       if (ctx.state === "suspended") await ctx.resume();
 
-      // 如果同名音效正在播放，跳过（不顶掉）
       if (this.soundInstances.has(path)) return;
 
-      // 优先尝试 .xnb 格式，失败则尝试原始格式
-      let actualPath = path;
-      let buffer: AudioBuffer | null = null;
-      if (!path.toLowerCase().endsWith(".xnb")) {
-        const xnbPath = path.replace(/\.(wav|mp3|ogg)$/i, ".xnb");
-        buffer = await resourceLoader.loadAudio(xnbPath);
-        if (buffer) actualPath = xnbPath;
-      }
-      if (!buffer) {
-        buffer = await resourceLoader.loadAudio(path);
-        actualPath = path;
-      }
+      const buffer = await this.loadAudioBuffer(path);
       if (!buffer) return;
 
       // 再次检查（异步加载期间可能已经有了）
-      if (this.soundInstances.has(actualPath)) return;
+      if (this.soundInstances.has(path)) return;
 
       const source = ctx.createBufferSource();
       source.buffer = buffer;
@@ -300,11 +311,10 @@ export class AudioManager {
       source.connect(gain);
       gain.connect(ctx.destination);
 
-      // 缓存实例
-      this.soundInstances.set(actualPath, { source, gain });
+      this.soundInstances.set(path, { source, gain });
       source.onended = () => {
-        if (this.soundInstances.get(actualPath)?.source === source) {
-          this.soundInstances.delete(actualPath);
+        if (this.soundInstances.get(path)?.source === source) {
+          this.soundInstances.delete(path);
         }
       };
 
@@ -315,13 +325,8 @@ export class AudioManager {
   }
 
   stopAllSounds(): void {
-    // 停止所有音效实例
     for (const [, instance] of this.soundInstances) {
-      try {
-        instance.source.stop();
-      } catch { // instance invalidated
-  // source already stopped
-      }
+      this.safeStopSource(instance.source);
       instance.source.disconnect();
       instance.gain.disconnect();
     }
@@ -333,79 +338,18 @@ export class AudioManager {
   // ==================== 循环音效（脚步声） ====================
 
   playLoopingSound(fileName: string): void {
-    if (!fileName) {
-      this.stopLoopingSound();
-      return;
-    }
-
-    // 保留原始扩展名，无扩展名时默认 .xnb
-    const hasExt = /\.(wav|mp3|ogg|xnb)$/i.test(fileName);
-    const soundFile = hasExt ? fileName.toLowerCase() : `${fileName.toLowerCase()}.xnb`;
-
+    if (!fileName) { this.stopLoopingSound(); return; }
+    const soundFile = this.resolveFileName(fileName);
     if (this.loopingSoundFile === soundFile && this.loopingSourceNode) return;
-
     this.stopLoopingSound();
     this.loopingSoundFile = soundFile;
-
-    const soundPath = `${this.soundBasePath}/${soundFile}`;
-    this.startLoopingSound(soundPath, soundFile);
-  }
-
-  private async startLoopingSound(path: string, baseName: string): Promise<void> {
-    try {
-      const ctx = this.getAudioContext();
-      if (ctx.state === "suspended") await ctx.resume();
-
-      // 优先尝试 .xnb 格式，失败则尝试原始格式
-      let buffer: AudioBuffer | null = null;
-      if (!path.toLowerCase().endsWith(".xnb")) {
-        const xnbPath = path.replace(/\.(wav|mp3|ogg)$/i, ".xnb");
-        buffer = await resourceLoader.loadAudio(xnbPath);
-      }
-      if (!buffer) {
-        buffer = await resourceLoader.loadAudio(path);
-      }
-      if (!buffer || this.loopingSoundFile !== baseName) return;
-
-      this.stopLoopingSoundInternal();
-
-      const source = ctx.createBufferSource();
-      source.buffer = buffer;
-      source.loop = true;
-
-      const gain = ctx.createGain();
-      gain.gain.value = this.masterVolume * this.soundVolume * 2.5;
-
-      source.connect(gain);
-      gain.connect(ctx.destination);
-      source.start(0);
-
-      this.loopingSourceNode = source;
-      this.loopingGainNode = gain;
-    } catch (e) {
-      logger.warn(`[AudioManager] startLoopingSound error: ${e}`);
-      this.loopingSoundFile = "";
-    }
-  }
-
-  private stopLoopingSoundInternal(): void {
-    if (this.loopingSourceNode) {
-      try {
-        this.loopingSourceNode.stop();
-      } catch { // instance invalidated
-  // source already stopped
-      }
-      this.loopingSourceNode.disconnect();
-      this.loopingSourceNode = null;
-    }
-    if (this.loopingGainNode) {
-      this.loopingGainNode.disconnect();
-      this.loopingGainNode = null;
-    }
+    this.startLoop("looping", soundFile, this.masterVolume * this.soundVolume * 2.5);
   }
 
   stopLoopingSound(): void {
-    this.stopLoopingSoundInternal();
+    this.stopLoopNodes(this.loopingSourceNode, this.loopingGainNode);
+    this.loopingSourceNode = null;
+    this.loopingGainNode = null;
     this.loopingSoundFile = "";
   }
 
@@ -416,78 +360,77 @@ export class AudioManager {
   // ==================== 环境循环音效（雨声等） ====================
 
   playAmbientLoop(fileName: string): void {
-    if (!fileName) {
-      this.stopAmbientLoop();
-      return;
-    }
-
-    const hasExt = /\.(wav|mp3|ogg|xnb)$/i.test(fileName);
-    const soundFile = hasExt ? fileName.toLowerCase() : `${fileName.toLowerCase()}.xnb`;
-
+    if (!fileName) { this.stopAmbientLoop(); return; }
+    const soundFile = this.resolveFileName(fileName);
     if (this.ambientLoopFile === soundFile && this.ambientLoopSource) return;
-
     this.stopAmbientLoop();
     this.ambientLoopFile = soundFile;
-
-    const soundPath = `${this.soundBasePath}/${soundFile}`;
-    this.startAmbientLoop(soundPath, soundFile);
+    this.startLoop("ambient", soundFile, this.masterVolume * this.soundVolume);
   }
 
-  private async startAmbientLoop(path: string, baseName: string): Promise<void> {
+  stopAmbientLoop(): void {
+    this.stopLoopNodes(this.ambientLoopSource, this.ambientLoopGain);
+    this.ambientLoopSource = null;
+    this.ambientLoopGain = null;
+    this.ambientLoopFile = "";
+  }
+
+  /** 通用循环音效启动（脚步声/环境音共用） */
+  private async startLoop(
+    channel: "looping" | "ambient",
+    baseName: string,
+    volume: number
+  ): Promise<void> {
+    const soundPath = `${this.soundBasePath}/${baseName}`;
+    const fileRef = channel === "looping" ? "loopingSoundFile" : "ambientLoopFile";
     try {
       const ctx = this.getAudioContext();
       if (ctx.state === "suspended") await ctx.resume();
 
-      let buffer: AudioBuffer | null = null;
-      if (!path.toLowerCase().endsWith(".xnb")) {
-        const xnbPath = path.replace(/\.(wav|mp3|ogg)$/i, ".xnb");
-        buffer = await resourceLoader.loadAudio(xnbPath);
-      }
-      if (!buffer) {
-        buffer = await resourceLoader.loadAudio(path);
-      }
-      if (!buffer || this.ambientLoopFile !== baseName) return;
+      const buffer = await this.loadAudioBuffer(soundPath);
+      if (!buffer || this[fileRef] !== baseName) return;
 
-      this.stopAmbientLoopInternal();
+      // 先停止当前通道的旧实例
+      if (channel === "looping") {
+        this.stopLoopNodes(this.loopingSourceNode, this.loopingGainNode);
+      } else {
+        this.stopLoopNodes(this.ambientLoopSource, this.ambientLoopGain);
+      }
 
       const source = ctx.createBufferSource();
       source.buffer = buffer;
       source.loop = true;
 
       const gain = ctx.createGain();
-      gain.gain.value = this.masterVolume * this.soundVolume;
+      gain.gain.value = volume;
 
       source.connect(gain);
       gain.connect(ctx.destination);
       source.start(0);
 
-      this.ambientLoopSource = source;
-      this.ambientLoopGain = gain;
-    } catch (e) {
-      logger.warn(`[AudioManager] startAmbientLoop error: ${e}`);
-      this.ambientLoopFile = "";
-    }
-  }
-
-  private stopAmbientLoopInternal(): void {
-    if (this.ambientLoopSource) {
-      try {
-        this.ambientLoopSource.stop();
-      } catch { // instance invalidated
-  // source already stopped
+      if (channel === "looping") {
+        this.loopingSourceNode = source;
+        this.loopingGainNode = gain;
+      } else {
+        this.ambientLoopSource = source;
+        this.ambientLoopGain = gain;
       }
-      this.ambientLoopSource.disconnect();
-      this.ambientLoopSource = null;
-    }
-    if (this.ambientLoopGain) {
-      this.ambientLoopGain.disconnect();
-      this.ambientLoopGain = null;
+    } catch (e) {
+      logger.warn(`[AudioManager] startLoop(${channel}) error: ${e}`);
+      this[fileRef] = "";
     }
   }
 
-  stopAmbientLoop(): void {
-    this.stopAmbientLoopInternal();
-    this.ambientLoopFile = "";
+  /** 安全停止并断开循环音频节点 */
+  private stopLoopNodes(
+    source: AudioBufferSourceNode | null,
+    gain: GainNode | null
+  ): void {
+    if (source) {
+      this.safeStopSource(source);
+      source.disconnect();
+    }
+    if (gain) gain.disconnect();
   }
 
   // ==================== 音量控制 ====================
@@ -566,39 +509,20 @@ export class AudioManager {
   async play3DSoundOnce(fileName: string, emitterPosition: Vector2): Promise<void> {
     if (!fileName || this.isAmbientDisabled) return;
 
-    // 保留原始扩展名，无扩展名时默认 .xnb
-    const hasExt = /\.(wav|mp3|ogg|xnb)$/i.test(fileName);
-    const soundFile = hasExt ? fileName.toLowerCase() : `${fileName.toLowerCase()}.xnb`;
+    const soundFile = this.resolveFileName(fileName);
     const direction = this.getDirection(emitterPosition);
-    const distance = Math.hypot(direction.x, direction.y);
-
-    if (distance > SOUND_MAX_DISTANCE) return;
+    if (Math.hypot(direction.x, direction.y) > SOUND_MAX_DISTANCE) return;
 
     try {
       const ctx = this.getAudioContext();
       if (ctx.state === "suspended") await ctx.resume();
 
       const soundPath = `${this.soundBasePath}/${soundFile}`;
-
-      // 如果同名音效正在播放，跳过（不顶掉）
       if (this.sound3DOnceInstances.has(soundPath)) return;
 
-      // 优先尝试 .xnb 格式，失败则尝试原始格式
-      let actualPath = soundPath;
-      let buffer: AudioBuffer | null = null;
-      if (!soundPath.toLowerCase().endsWith(".xnb")) {
-        const xnbPath = soundPath.replace(/\.(wav|mp3|ogg)$/i, ".xnb");
-        buffer = await resourceLoader.loadAudio(xnbPath);
-        if (buffer) actualPath = xnbPath;
-      }
-      if (!buffer) {
-        buffer = await resourceLoader.loadAudio(soundPath);
-        actualPath = soundPath;
-      }
+      const buffer = await this.loadAudioBuffer(soundPath);
       if (!buffer) return;
-
-      // 再次检查（异步加载期间可能已经有了）
-      if (this.sound3DOnceInstances.has(actualPath)) return;
+      if (this.sound3DOnceInstances.has(soundPath)) return;
 
       const source = ctx.createBufferSource();
       source.buffer = buffer;
@@ -611,11 +535,10 @@ export class AudioManager {
       panner.connect(gain);
       gain.connect(ctx.destination);
 
-      // 缓存实例
-      this.sound3DOnceInstances.set(actualPath, { source, panner, gain });
+      this.sound3DOnceInstances.set(soundPath, { source, panner, gain });
       source.onended = () => {
-        if (this.sound3DOnceInstances.get(actualPath)?.source === source) {
-          this.sound3DOnceInstances.delete(actualPath);
+        if (this.sound3DOnceInstances.get(soundPath)?.source === source) {
+          this.sound3DOnceInstances.delete(soundPath);
         }
       };
 
@@ -629,43 +552,30 @@ export class AudioManager {
   async play3DSoundLoop(id: string, fileName: string, emitterPosition: Vector2): Promise<void> {
     if (!fileName || this.isAmbientDisabled) return;
 
-    // 已存在则更新位置
     if (this.sound3DInstances.has(id)) {
       this.update3DSoundPosition(id, emitterPosition);
       return;
     }
-
     if (this.sound3DLoading.has(id) || this.sound3DStopping.has(id)) return;
 
     const direction = this.getDirection(emitterPosition);
     if (Math.hypot(direction.x, direction.y) > SOUND_MAX_DISTANCE) return;
 
     this.sound3DLoading.add(id);
-    // 保留原始扩展名，无扩展名时默认 .xnb
-    const hasExt = /\.(wav|mp3|ogg|xnb)$/i.test(fileName);
-    const soundFile = hasExt ? fileName.toLowerCase() : `${fileName.toLowerCase()}.xnb`;
+    const soundFile = this.resolveFileName(fileName);
 
     try {
       const ctx = this.getAudioContext();
       if (ctx.state === "suspended") await ctx.resume();
 
       const soundPath = `${this.soundBasePath}/${soundFile}`;
-      // 优先尝试 .xnb 格式，失败则尝试原始格式
-      let buffer: AudioBuffer | null = null;
-      if (!soundPath.toLowerCase().endsWith(".xnb")) {
-        const xnbPath = soundPath.replace(/\.(wav|mp3|ogg)$/i, ".xnb");
-        buffer = await resourceLoader.loadAudio(xnbPath);
-      }
-      if (!buffer) {
-        buffer = await resourceLoader.loadAudio(soundPath);
-      }
+      const buffer = await this.loadAudioBuffer(soundPath);
       if (!buffer || this.sound3DInstances.has(id)) {
         this.sound3DLoading.delete(id);
         return;
       }
 
       const currentDirection = this.getDirection(emitterPosition);
-
       const source = ctx.createBufferSource();
       source.buffer = buffer;
       source.loop = true;
@@ -700,36 +610,28 @@ export class AudioManager {
   stop3DSound(id: string): void {
     const instance = this.sound3DInstances.get(id);
     if (!instance || this.sound3DStopping.has(id)) return;
-
     this.sound3DStopping.add(id);
     this.sound3DInstances.delete(id);
-
-    try {
-      instance.source.stop();
-    } catch { // source already stopped
-  // source already stopped
-    }
-    instance.source.disconnect();
-    instance.gainNode.disconnect();
-
+    this.disconnect3DInstance(instance);
     setTimeout(() => this.sound3DStopping.delete(id), 100);
   }
 
   /** 停止所有 3D 音效 */
   stopAll3DSounds(): void {
     for (const [id, instance] of this.sound3DInstances) {
-      try {
-        instance.source.stop();
-      } catch { // instance invalidated
-  // source already stopped
-      }
-      instance.source.disconnect();
-      instance.gainNode.disconnect();
+      this.disconnect3DInstance(instance);
       this.sound3DStopping.add(id);
       setTimeout(() => this.sound3DStopping.delete(id), 100);
     }
     this.sound3DInstances.clear();
     this.sound3DRandomPlaying.clear();
+  }
+
+  /** 安全停止并断开 3D 音效实例 */
+  private disconnect3DInstance(instance: Sound3DInstance): void {
+    this.safeStopSource(instance.source);
+    instance.source.disconnect();
+    instance.gainNode.disconnect();
   }
 
   // 随机音效播放状态
@@ -750,24 +652,14 @@ export class AudioManager {
     if (Math.hypot(direction.x, direction.y) > SOUND_MAX_DISTANCE) return;
 
     this.sound3DRandomPlaying.add(id);
-    // 保留原始扩展名，无扩展名时默认 .xnb
-    const hasExt = /\.(wav|mp3|ogg|xnb)$/i.test(fileName);
-    const soundFile = hasExt ? fileName.toLowerCase() : `${fileName.toLowerCase()}.xnb`;
+    const soundFile = this.resolveFileName(fileName);
 
     try {
       const ctx = this.getAudioContext();
       if (ctx.state === "suspended") await ctx.resume();
 
       const soundPath = `${this.soundBasePath}/${soundFile}`;
-      // 优先尝试 .xnb 格式，失败则尝试原始格式
-      let buffer: AudioBuffer | null = null;
-      if (!soundPath.toLowerCase().endsWith(".xnb")) {
-        const xnbPath = soundPath.replace(/\.(wav|mp3|ogg)$/i, ".xnb");
-        buffer = await resourceLoader.loadAudio(xnbPath);
-      }
-      if (!buffer) {
-        buffer = await resourceLoader.loadAudio(soundPath);
-      }
+      const buffer = await this.loadAudioBuffer(soundPath);
       if (!buffer) {
         this.sound3DRandomPlaying.delete(id);
         return;
