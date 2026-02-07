@@ -22,7 +22,7 @@ export { SpecialActionHandler } from "./specialActionHandler";
 
 export type { GameEngineConfig, GameEngineState } from "./gameEngine";
 // Game Engine (Singleton)
-export { GameEngine, getGameEngine } from "./gameEngine";
+export { GameEngine } from "./gameEngine";
 export type {
   InteractionTarget,
   InteractionTargetType,

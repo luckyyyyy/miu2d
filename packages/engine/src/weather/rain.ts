@@ -13,7 +13,7 @@
 
 import type { AudioManager } from "../audio";
 import { logger } from "../core/logger";
-import type { IRenderer } from "../webgl/IRenderer";
+import type { IRenderer } from "../webgl/iRenderer";
 import { RainDrop, RainLayer } from "./raindrop";
 import { ScreenDroplet, clearDropletTextureCache } from "./screenDroplet";
 

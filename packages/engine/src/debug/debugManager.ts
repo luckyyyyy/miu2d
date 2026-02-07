@@ -71,36 +71,25 @@ export class DebugManager {
   private getTriggeredTraps: (() => number[]) | null = null;
   private config: DebugManagerConfig;
 
-  /**
-   * 获取 Player（通过 IEngineContext）
-   */
+  // 统一通过 IEngineContext 获取所有引擎服务
+  private get ctx() {
+    return getEngineContext();
+  }
+
   private get player(): Player {
-    const ctx = getEngineContext();
-    return ctx.player as Player;
+    return this.ctx.player as Player;
   }
 
-  /**
-   * 获取 NpcManager（通过 IEngineContext）
-   */
   private get npcManager(): NpcManager {
-    const ctx = getEngineContext();
-    return ctx.npcManager as NpcManager;
+    return this.ctx.npcManager as NpcManager;
   }
 
-  /**
-   * 获取 ObjManager（通过 IEngineContext）
-   */
   private get objManager(): ObjManager {
-    const ctx = getEngineContext();
-    return ctx.getManager("obj") as ObjManager;
+    return this.ctx.getManager("obj") as ObjManager;
   }
 
-  /**
-   * 获取 GuiManager（通过 IEngineContext）
-   */
   private get guiManager(): GuiManager {
-    const ctx = getEngineContext();
-    return ctx.getManager("gui") as GuiManager;
+    return this.ctx.getManager("gui") as GuiManager;
   }
 
   // 脚本执行历史（包含完整内容，最多20条）

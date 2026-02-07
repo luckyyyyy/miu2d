@@ -10,7 +10,7 @@ import type { Vector2 } from "../core/types";
 import { CharacterState } from "../core/types";
 import { getDirectionIndex, pixelToTile, tileToPixel } from "../utils";
 import { getOuterEdge } from "../utils/edgeDetection";
-import type { IRenderer } from "../webgl/IRenderer";
+import type { IRenderer } from "../webgl/iRenderer";
 import type { ColorFilter } from "../webgl/types";
 import { type AsfData, type AsfFrame, getFrameAtlasInfo, getFrameCanvas, getFrameIndex, loadAsf } from "../resource/asf";
 

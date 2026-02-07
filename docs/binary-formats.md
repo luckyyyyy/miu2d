@@ -86,8 +86,8 @@ ASF (Animation Sprite File) 是角色、NPC、特效等精灵动画的存储格�
 
 | 偏移 | 大小 | 类型 | 字段名 | 说明 |
 |------|------|------|--------|------|
-| 0x10 | 4 | int32 | `globleWidth` | 全局帧宽度（像素） |
-| 0x14 | 4 | int32 | `globleHeight` | 全局帧高度（像素） |
+| 0x10 | 4 | int32 | `globalWidth` | 全局帧宽度（像素） |
+| 0x14 | 4 | int32 | `globalHeight` | 全局帧高度（像素） |
 | 0x18 | 4 | int32 | `frameCounts` | 总帧数 |
 | 0x1C | 4 | int32 | `direction` | 方向数量（通常 1/4/8） |
 | 0x20 | 4 | int32 | `colourCounts` | 调色板颜色数（通常 256） |
@@ -213,8 +213,8 @@ MPC (Map Picture Container) 存储地图瓦片图片，每个 MPC 文件包含�
 | 偏移 | 大小 | 类型 | 字段名 | 说明 |
 |------|------|------|--------|------|
 | 0x40 | 4 | int32 | `framesDataLengthSum` | 所有帧数据总长度 |
-| 0x44 | 4 | int32 | `globleWidth` | 全局帧宽度 |
-| 0x48 | 4 | int32 | `globleHeight` | 全局帧高度 |
+| 0x44 | 4 | int32 | `globalWidth` | 全局帧宽度 |
+| 0x48 | 4 | int32 | `globalHeight` | 全局帧高度 |
 | 0x4C | 4 | int32 | `frameCounts` | 帧数量 |
 | 0x50 | 4 | int32 | `direction` | 方向数（MPC 通常为 1） |
 | 0x54 | 4 | int32 | `colourCounts` | 调色板颜色数 |
@@ -226,12 +226,12 @@ MPC (Map Picture Container) 存储地图瓦片图片，每个 MPC 文件包含�
 MPC 的 `left` 和 `bottom` 需要转换为 ASF 兼容格式：
 
 ```typescript
-head.left = Math.floor(head.globleWidth / 2);
+head.left = Math.floor(head.globalWidth / 2);
 
-if (head.globleHeight >= 16) {
-  head.bottom = head.globleHeight - 16 - head.bottom;
+if (head.globalHeight >= 16) {
+  head.bottom = head.globalHeight - 16 - head.bottom;
 } else {
-  head.bottom = 16 - head.globleHeight - head.bottom;
+  head.bottom = 16 - head.globalHeight - head.bottom;
 }
 ```
 

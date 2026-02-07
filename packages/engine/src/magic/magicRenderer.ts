@@ -9,7 +9,7 @@ import { logger } from "../core/logger";
 import type { AsfData } from "../resource/asf";
 import { getFrameAtlasInfo, getFrameCanvas, loadAsf } from "../resource/asf";
 import { getDirectionIndex } from "../utils/direction";
-import type { IRenderer } from "../webgl/IRenderer";
+import type { IRenderer } from "../webgl/iRenderer";
 import type { MagicSprite } from "./magicSprite";
 
 /**

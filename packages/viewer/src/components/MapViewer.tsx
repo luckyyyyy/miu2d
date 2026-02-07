@@ -262,7 +262,7 @@ export function MapViewer({
       ctx.lineWidth = 1 / zoom;
       for (let row = startY; row < endY; row++) {
         for (let col = startX; col < endX; col++) {
-          const pixelPos = MapBase.ToPixelPosition(col, row);
+          const pixelPos = MapBase.toPixelPosition(col, row);
           const screenX = pixelPos.x - renderer.camera.x;
           const screenY = pixelPos.y - renderer.camera.y;
 
@@ -301,7 +301,7 @@ export function MapViewer({
           if (!tileInfo || tileInfo.barrierType === 0) continue;
 
           const color = BARRIER_COLORS[tileInfo.barrierType] || "rgba(128, 128, 128, 0.5)";
-          const pixelPos = MapBase.ToPixelPosition(col, row);
+          const pixelPos = MapBase.toPixelPosition(col, row);
           const screenX = pixelPos.x - renderer.camera.x;
           const screenY = pixelPos.y - renderer.camera.y;
 
@@ -326,7 +326,7 @@ export function MapViewer({
           const tileInfo = mapData.tileInfos[tileIndex];
           if (!tileInfo || tileInfo.trapIndex === 0) continue;
 
-          const pixelPos = MapBase.ToPixelPosition(col, row);
+          const pixelPos = MapBase.toPixelPosition(col, row);
           const screenX = pixelPos.x - renderer.camera.x;
           const screenY = pixelPos.y - renderer.camera.y;
 
@@ -356,7 +356,7 @@ export function MapViewer({
       tilePos.x < mapData.mapColumnCounts &&
       tilePos.y < mapData.mapRowCounts
     ) {
-      const pixelPos = MapBase.ToPixelPosition(tilePos.x, tilePos.y);
+      const pixelPos = MapBase.toPixelPosition(tilePos.x, tilePos.y);
       const screenX = pixelPos.x - renderer.camera.x;
       const screenY = pixelPos.y - renderer.camera.y;
 
@@ -433,7 +433,7 @@ export function MapViewer({
       setMousePos({ x: Math.floor(worldX), y: Math.floor(worldY) });
 
       // 更新瓦片位置
-      const tile = MapBase.ToTilePosition(worldX, worldY);
+      const tile = MapBase.toTilePosition(worldX, worldY);
       setTilePos({ x: tile.x, y: tile.y });
 
       // 拖拽移动（考虑缩放）

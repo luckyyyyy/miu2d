@@ -45,7 +45,7 @@ import { resourceLoader } from "../resource/resourceLoader";
 import { loadAsf } from "../resource/asf";
 import type { ObjSaveItem } from "../game/storage";
 import { parseIni } from "../utils";
-import type { IRenderer } from "../webgl/IRenderer";
+import type { IRenderer } from "../webgl/iRenderer";
 import { Obj, type ObjKind, ObjState } from "./obj";
 import { getObjConfigFromCache, getObjResFromCache, type ObjResInfo } from "./objConfigLoader";
 

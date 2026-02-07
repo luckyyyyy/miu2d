@@ -6,7 +6,7 @@
  * 功能上与当前行为完全一致，不引入任何变化。
  */
 
-import type { IRenderer } from "./IRenderer";
+import type { IRenderer } from "./iRenderer";
 import { parseColor } from "./colorUtils";
 import type {
   BlendMode,

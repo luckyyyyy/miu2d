@@ -368,7 +368,7 @@ export function MpcViewer({ mpc, fileName, isLoading, error }: MpcViewerProps) {
             <div className="shrink-0 border-t border-[#3c3c3c] bg-[#252526] px-4 py-2 text-xs text-[#808080]">
               <span>
                 {mpc.head.frameCounts} 帧 | {actualColumns} × {Math.ceil(mpc.frames.length / actualColumns)} |
-                单帧尺寸: {mpc.head.globleWidth} × {mpc.head.globleHeight} |
+                单帧尺寸: {mpc.head.globalWidth} × {mpc.head.globalHeight} |
                 方向数: {mpc.head.direction} |
                 间隔: {mpc.head.interval}ms
               </span>
@@ -467,7 +467,7 @@ export function MpcViewer({ mpc, fileName, isLoading, error }: MpcViewerProps) {
                   <div className="flex justify-between">
                     <span>全局尺寸:</span>
                     <span className="text-[#cccccc]">
-                      {mpc.head.globleWidth} × {mpc.head.globleHeight}
+                      {mpc.head.globalWidth} × {mpc.head.globalHeight}
                     </span>
                   </div>
                   <div className="flex justify-between">

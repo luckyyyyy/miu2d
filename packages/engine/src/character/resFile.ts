@@ -95,8 +95,8 @@ function mpcToAsfData(mpc: import("../core/mapTypes").Mpc): AsfData {
   const framesPerDirection = directions > 0 ? Math.floor(frameCount / directions) : frameCount;
 
   return {
-    width: mpc.head.globleWidth,
-    height: mpc.head.globleHeight,
+    width: mpc.head.globalWidth,
+    height: mpc.head.globalHeight,
     frameCount: frameCount,
     directions: directions,
     colorCount: mpc.head.colourCounts,

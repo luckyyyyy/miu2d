@@ -11,8 +11,8 @@ export interface MapTileInfo {
 
 export interface MpcHead {
   framesDataLengthSum: number;
-  globleWidth: number;
-  globleHeight: number;
+  globalWidth: number;
+  globalHeight: number;
   frameCounts: number;
   direction: number;
   colourCounts: number;

@@ -16,7 +16,7 @@
  */
 
 // 类型导出
-export type { IRenderer } from "./IRenderer";
+export type { IRenderer } from "./iRenderer";
 export type {
   BlendMode,
   ColorFilter,
@@ -30,10 +30,10 @@ export type {
 } from "./types";
 
 // 实现导出
-export { Canvas2DRenderer } from "./Canvas2DRenderer";
-export { WebGLRenderer } from "./WebGLRenderer";
-export { SpriteBatcher } from "./SpriteBatcher";
-export { RectBatcher } from "./RectBatcher";
+export { Canvas2DRenderer } from "./canvas2DRenderer";
+export { WebGLRenderer } from "./webGLRenderer";
+export { SpriteBatcher } from "./spriteBatcher";
+export { RectBatcher } from "./rectBatcher";
 export { parseColor, type RGBAColor } from "./colorUtils";
 export {
   createSpriteProgram,
@@ -43,9 +43,9 @@ export {
 } from "./shaders";
 
 // 导入实现类
-import type { IRenderer } from "./IRenderer";
-import { Canvas2DRenderer } from "./Canvas2DRenderer";
-import { WebGLRenderer } from "./WebGLRenderer";
+import type { IRenderer } from "./iRenderer";
+import { Canvas2DRenderer } from "./canvas2DRenderer";
+import { WebGLRenderer } from "./webGLRenderer";
 import { logger } from "../core/logger";
 
 /** 渲染器后端偏好 */

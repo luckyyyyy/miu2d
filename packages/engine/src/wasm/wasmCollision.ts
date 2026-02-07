@@ -1,11 +1,14 @@
 /**
  * WASM 碰撞检测桥接层
  * 提供空间哈希网格的高性能碰撞检测
+ *
+ * WASM 初始化统一由 wasmManager 管理，本模块不再独立初始化
  */
 
 import { logger } from "../core/logger";
+import { ensureWasmReady, getWasmModule, isWasmReady } from "./wasmManager";
 
-// WASM 模块类型定义
+// WASM 模块类型定义（碰撞检测相关接口）
 interface WasmSpatialHash {
   clear(): void;
   upsert(id: number, x: number, y: number, radius: number, group: number): void;
@@ -20,7 +23,7 @@ interface WasmSpatialHash {
   count(): number;
 }
 
-interface WasmModule {
+interface WasmCollisionModule {
   SpatialHash: new (cellSize: number) => WasmSpatialHash;
   check_aabb_collision(
     x1: number,
@@ -44,46 +47,32 @@ interface WasmModule {
   point_in_circle(px: number, py: number, cx: number, cy: number, radius: number): boolean;
 }
 
-let wasmModule: WasmModule | null = null;
-let isInitialized = false;
-let initPromise: Promise<boolean> | null = null;
+/**
+ * 获取碰撞检测 WASM 模块（类型收窄）
+ */
+function getCollisionModule(): WasmCollisionModule | null {
+  return getWasmModule() as unknown as WasmCollisionModule | null;
+}
 
 /**
  * 初始化 WASM 碰撞检测模块
+ * 委托给 wasmManager 统一初始化
  */
 export async function initWasmCollision(): Promise<boolean> {
-  if (isInitialized) {
+  const module = await ensureWasmReady();
+  if (module) {
+    logger.info("[WasmCollision] Ready (via wasmManager)");
     return true;
   }
-
-  if (initPromise) {
-    return initPromise;
-  }
-
-  initPromise = (async () => {
-    try {
-      const wasm = await import("@miu2d/engine-wasm");
-      await wasm.default();
-
-      wasmModule = wasm as unknown as WasmModule;
-      isInitialized = true;
-
-      logger.info("[WasmCollision] Initialized");
-      return true;
-    } catch (error) {
-      logger.warn("[WasmCollision] Failed to initialize", error);
-      return false;
-    }
-  })();
-
-  return initPromise;
+  logger.warn("[WasmCollision] WASM not available");
+  return false;
 }
 
 /**
  * 检查 WASM 是否可用
  */
 export function isWasmCollisionAvailable(): boolean {
-  return isInitialized && wasmModule !== null;
+  return isWasmReady();
 }
 
 /**
@@ -95,8 +84,9 @@ export class WasmSpatialHashWrapper {
 
   constructor(cellSize: number = 64) {
     this.cellSize = cellSize;
-    if (wasmModule) {
-      this.hash = new wasmModule.SpatialHash(cellSize);
+    const mod = getCollisionModule();
+    if (mod) {
+      this.hash = new mod.SpatialHash(cellSize);
     }
   }
 
@@ -107,8 +97,9 @@ export class WasmSpatialHashWrapper {
     if (this.hash) return true;
 
     const ready = await initWasmCollision();
-    if (ready && wasmModule) {
-      this.hash = new wasmModule.SpatialHash(this.cellSize);
+    const mod = getCollisionModule();
+    if (ready && mod) {
+      this.hash = new mod.SpatialHash(this.cellSize);
       return true;
     }
     return false;
@@ -229,8 +220,9 @@ export function checkAabbCollision(
   w2: number,
   h2: number
 ): boolean {
-  if (wasmModule) {
-    return wasmModule.check_aabb_collision(x1, y1, w1, h1, x2, y2, w2, h2);
+  const mod = getCollisionModule();
+  if (mod) {
+    return mod.check_aabb_collision(x1, y1, w1, h1, x2, y2, w2, h2);
   }
   // JS 回退
   return x1 < x2 + w2 && x1 + w1 > x2 && y1 < y2 + h2 && y1 + h1 > y2;
@@ -247,8 +239,9 @@ export function checkCircleCollision(
   y2: number,
   r2: number
 ): boolean {
-  if (wasmModule) {
-    return wasmModule.check_circle_collision(x1, y1, r1, x2, y2, r2);
+  const mod = getCollisionModule();
+  if (mod) {
+    return mod.check_circle_collision(x1, y1, r1, x2, y2, r2);
   }
   // JS 回退
   const dx = x2 - x1;
@@ -269,8 +262,9 @@ export function pointInRect(
   rw: number,
   rh: number
 ): boolean {
-  if (wasmModule) {
-    return wasmModule.point_in_rect(px, py, rx, ry, rw, rh);
+  const mod = getCollisionModule();
+  if (mod) {
+    return mod.point_in_rect(px, py, rx, ry, rw, rh);
   }
   return px >= rx && px <= rx + rw && py >= ry && py <= ry + rh;
 }
@@ -285,8 +279,9 @@ export function pointInCircle(
   cy: number,
   radius: number
 ): boolean {
-  if (wasmModule) {
-    return wasmModule.point_in_circle(px, py, cx, cy, radius);
+  const mod = getCollisionModule();
+  if (mod) {
+    return mod.point_in_circle(px, py, cx, cy, radius);
   }
   const dx = px - cx;
   const dy = py - cy;

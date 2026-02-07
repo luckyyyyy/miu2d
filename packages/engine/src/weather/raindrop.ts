@@ -9,7 +9,7 @@
  * - 落到屏幕底部后重生在顶部
  */
 
-import type { IRenderer } from "../webgl/IRenderer";
+import type { IRenderer } from "../webgl/iRenderer";
 
 /** 雨滴层级：近/中/远，模拟纵深效果 */
 export enum RainLayer {

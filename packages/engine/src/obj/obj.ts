@@ -9,7 +9,7 @@ import { logger } from "../core/logger";
 import type { Vector2 } from "../core/types";
 import { type AsfData, getFrameCanvas, getFrameIndex, loadAsf } from "../resource/asf";
 import { Sprite } from "../sprite/sprite";
-import type { IRenderer } from "../webgl/IRenderer";
+import type { IRenderer } from "../webgl/iRenderer";
 import { getObjConfigFromCache, getObjResFromCache, type ObjConfig, type ObjResInfo } from "./objConfigLoader";
 
 /**

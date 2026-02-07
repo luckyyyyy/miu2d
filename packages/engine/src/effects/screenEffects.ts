@@ -3,7 +3,7 @@
  * Handles fade in/out, color tinting, and other screen effects
  */
 
-import type { IRenderer } from "../webgl/IRenderer";
+import type { IRenderer } from "../webgl/iRenderer";
 
 export interface Color {
   r: number;

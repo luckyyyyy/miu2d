@@ -13,7 +13,7 @@
 
 import { logger } from "../core/logger";
 import { canMoveInDirection, PathType } from "../core/pathFinder";
-import type { IRenderer } from "../webgl/IRenderer";
+import type { IRenderer } from "../webgl/iRenderer";
 import type { CharacterConfig, Vector2 } from "../core/types";
 import { CharacterState, RUN_SPEED_FOLD, TILE_WIDTH } from "../core/types";
 import type { MagicSprite } from "../magic/magicSprite";

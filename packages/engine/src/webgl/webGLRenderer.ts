@@ -15,9 +15,9 @@
  */
 
 import { logger } from "../core/logger";
-import type { IRenderer } from "./IRenderer";
-import { RectBatcher } from "./RectBatcher";
-import { SpriteBatcher } from "./SpriteBatcher";
+import type { IRenderer } from "./iRenderer";
+import { RectBatcher } from "./rectBatcher";
+import { SpriteBatcher } from "./spriteBatcher";
 import { parseColor, type RGBAColor } from "./colorUtils";
 import { createRectProgram, createSpriteProgram, type RectProgram, type SpriteProgram } from "./shaders";
 import type {

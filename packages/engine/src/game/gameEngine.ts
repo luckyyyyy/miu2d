@@ -69,7 +69,7 @@ import type { IUIBridge, UIPanelName } from "../ui/contract";
 import { UIBridge, type UIBridgeDeps } from "../ui/uiBridge";
 import { pixelToTile } from "../utils";
 import { WeatherManager } from "../weather";
-import type { IRenderer } from "../webgl/IRenderer";
+import type { IRenderer } from "../webgl/iRenderer";
 import { createRenderer, type RendererBackend } from "../webgl";
 import { GameManager } from "./gameManager";
 import { PerformanceStats, type PerformanceStatsData } from "./performanceStats";
@@ -96,7 +96,7 @@ export class GameEngine implements IEngineContext {
 
   // ============= 核心子系统（公开只读）=============
   readonly events: EventEmitter;
-  readonly audioManager: AudioManager;
+  readonly audio: AudioManager;
   readonly screenEffects: ScreenEffects;
   readonly objManager: ObjManager;
   readonly debugManager: DebugManager;
@@ -193,12 +193,12 @@ export class GameEngine implements IEngineContext {
 
     // 创建所有子系统
     this.events = new EventEmitter();
-    this.audioManager = new AudioManager();
+    this.audio = new AudioManager();
     this.screenEffects = new ScreenEffects();
     this.objManager = new ObjManager();
     this.debugManager = new DebugManager();
     this.memoListManager = new MemoListManager(this.talkTextList);
-    this.weatherManager = new WeatherManager(this.audioManager);
+    this.weatherManager = new WeatherManager(this.audio);
     this.timerManager = new TimerManager();
 
     // 设置天气系统窗口尺寸
@@ -309,8 +309,6 @@ export class GameEngine implements IEngineContext {
       GameEngine.instance._renderer = null;
       GameEngine.instance.events.clear();
       GameEngine.instance = null;
-      // 同时清除便捷函数的缓存
-      engineInstance = null;
     }
   }
 
@@ -357,7 +355,7 @@ export class GameEngine implements IEngineContext {
       this._gameManager = new GameManager(
         {
           events: this.events,
-          audioManager: this.audioManager,
+          audioManager: this.audio,
           screenEffects: this.screenEffects,
           objManager: this.objManager,
           talkTextList: this.talkTextList,
@@ -614,7 +612,7 @@ export class GameEngine implements IEngineContext {
    * 获取音频管理器
    */
   getAudioManager(): AudioManager {
-    return this.audioManager;
+    return this.audio;
   }
 
   /**
@@ -627,13 +625,13 @@ export class GameEngine implements IEngineContext {
       const ambientVolume = localStorage.getItem("jxqy_ambient_volume");
 
       if (musicVolume !== null) {
-        this.audioManager.setMusicVolume(parseFloat(musicVolume));
+        this.audio.setMusicVolume(parseFloat(musicVolume));
       }
       if (soundVolume !== null) {
-        this.audioManager.setSoundVolume(parseFloat(soundVolume));
+        this.audio.setSoundVolume(parseFloat(soundVolume));
       }
       if (ambientVolume !== null) {
-        this.audioManager.setAmbientVolume(parseFloat(ambientVolume));
+        this.audio.setAmbientVolume(parseFloat(ambientVolume));
       }
 
       logger.log("[GameEngine] Audio settings loaded from localStorage");
@@ -912,7 +910,7 @@ export class GameEngine implements IEngineContext {
     // Globals.ListenerPosition = ThePlayer.PositionInWorld
     const player = this.gameManager.getPlayer();
     if (player) {
-      this.audioManager.setListenerPosition(player.pixelPosition);
+      this.audio.setListenerPosition(player.pixelPosition);
       // 更新玩家遮挡状态（用于半透明效果）
       player.updateOcclusionState();
     }
@@ -1527,14 +1525,6 @@ export class GameEngine implements IEngineContext {
    */
   get map(): MapBase {
     return MapBase.Instance;
-  }
-
-  /**
-   * 核心服务：音频服务
-   * 直接返回 AudioManager 实例，支持完整的音频功能
-   */
-  get audio(): AudioManager {
-    return this.audioManager;
   }
 
   /**
@@ -2181,22 +2171,4 @@ export class GameEngine implements IEngineContext {
       : undefined;
     return this.performanceStats.getStats(rendererInfo);
   }
-}
-
-// 便捷函数 - 获取游戏引擎实例
-let engineInstance: GameEngine | null = null;
-
-export function getGameEngine(config?: GameEngineConfig): GameEngine {
-  if (!engineInstance) {
-    engineInstance = GameEngine.getInstance(config);
-  }
-  return engineInstance;
-}
-
-/**
- * 清除便捷函数的引擎实例缓存
- * 在 GameEngine.destroy() 后调用
- */
-export function clearEngineInstance(): void {
-  engineInstance = null;
 }

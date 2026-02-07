@@ -58,45 +58,49 @@ export class InputHandler {
   private lastLeftButtonDown: boolean = false;
   private lastRightButtonDown: boolean = false;
 
-  // 通过 IEngineContext 获取的管理器
+  // 统一通过 IEngineContext 获取所有引擎服务
+  private get ctx() {
+    return getEngineContext();
+  }
+
   private get player(): Player {
-    return getEngineContext().player as Player;
+    return this.ctx.player as Player;
   }
 
   private get guiManager() {
-    return getEngineContext().getManager("gui");
+    return this.ctx.getManager("gui");
   }
 
   private get interactionManager() {
-    return getEngineContext().getManager("interaction");
+    return this.ctx.getManager("interaction");
   }
 
   private get scriptExecutor(): ScriptExecutor {
-    return getEngineContext().getManager("script") as ScriptExecutor;
+    return this.ctx.getManager("script") as ScriptExecutor;
   }
 
   private get debugManager() {
-    return getEngineContext().getManager("debug");
+    return this.ctx.getManager("debug");
   }
 
   private get magicHandler() {
-    return getEngineContext().getManager("magicHandler");
+    return this.ctx.getManager("magicHandler");
   }
 
   private get npcManager(): NpcManager {
-    return getEngineContext().npcManager as NpcManager;
+    return this.ctx.npcManager as NpcManager;
   }
 
   private get objManager() {
-    return getEngineContext().getManager("obj");
+    return this.ctx.getManager("obj");
   }
 
   private get audioManager() {
-    return getEngineContext().audio;
+    return this.ctx.audio;
   }
 
   private getScriptBasePath(): string {
-    return getEngineContext().getScriptBasePath();
+    return this.ctx.getScriptBasePath();
   }
 
   constructor(deps: InputHandlerDependencies) {

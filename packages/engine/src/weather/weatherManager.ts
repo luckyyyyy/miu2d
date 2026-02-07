@@ -6,7 +6,7 @@
  */
 
 import type { AudioManager } from "../audio";
-import type { IRenderer } from "../webgl/IRenderer";
+import type { IRenderer } from "../webgl/iRenderer";
 import { RAIN_COLOR, Rain } from "./rain";
 import { Snow } from "./snow";
 

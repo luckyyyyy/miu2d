@@ -79,8 +79,8 @@ export function decodeMpcWasm(buffer: ArrayBuffer): Mpc | null {
 
   const head: MpcHead = {
     framesDataLengthSum: header.frames_data_length_sum,
-    globleWidth: header.global_width,
-    globleHeight: header.global_height,
+    globalWidth: header.global_width,
+    globalHeight: header.global_height,
     frameCounts: header.frame_count,
     direction: header.direction,
     colourCounts: header.color_count,

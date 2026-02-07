@@ -12,7 +12,7 @@
  * 核心实现：每帧从游戏画布采样水滴位置像素，**翻转+放大**后裁切画回
  */
 
-import type { IRenderer } from "../webgl/IRenderer";
+import type { IRenderer } from "../webgl/iRenderer";
 
 /** 覆盖层纹理缓存（边缘环+高光，按 rx_ry 缓存） */
 const overlayCache = new Map<string, OffscreenCanvas>();

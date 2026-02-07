@@ -4,7 +4,7 @@ import { ResourcePath } from "../config/resourcePaths";
 import { logger } from "../core/logger";
 import type { Camera, JxqyMapData, Mpc } from "../core/mapTypes";
 import { loadMpc } from "../resource/mpc";
-import type { IRenderer } from "../webgl/IRenderer";
+import type { IRenderer } from "../webgl/iRenderer";
 import { MapBase } from "./mapBase";
 
 /** 单个 MPC 图集：一张 atlas canvas + 每帧的源矩形 */
@@ -239,8 +239,8 @@ export function getViewTileRange(
   maxTileHeight = 320,
   maxTileWidth = 320
 ): { startX: number; startY: number; endX: number; endY: number } {
-  const start = MapBase.ToTilePosition(camera.x, camera.y);
-  const end = MapBase.ToTilePosition(camera.x + camera.width, camera.y + camera.height);
+  const start = MapBase.toTilePosition(camera.x, camera.y);
+  const end = MapBase.toTilePosition(camera.x + camera.width, camera.y + camera.height);
 
   // 瓦片从锚点向上延伸 (height - 16) 像素，行间距 16px
   // 所以视图下方需要更多 padding 才能看到向上延伸的高大瓦片
@@ -279,7 +279,7 @@ function drawTileLayer(
   if (!atlas || tileData.frame >= atlas.rects.length) return;
 
   const rect = atlas.rects[tileData.frame];
-  const pixelPos = MapBase.ToPixelPosition(col, row);
+  const pixelPos = MapBase.toPixelPosition(col, row);
   const drawX = Math.floor(pixelPos.x - rect.w / 2 - mapRenderer.camera.x);
   const drawY = Math.floor(pixelPos.y - (rect.h - 16) - mapRenderer.camera.y);
 
@@ -349,7 +349,7 @@ export function getTileTextureRegion(
   if (!atlas || tileData.frame >= atlas.rects.length) return null;
 
   const rect = atlas.rects[tileData.frame];
-  const pixelPos = MapBase.ToPixelPosition(col, row);
+  const pixelPos = MapBase.toPixelPosition(col, row);
   return {
     x: pixelPos.x - rect.w / 2,
     y: pixelPos.y - (rect.h - 16),

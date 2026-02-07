@@ -40,7 +40,7 @@ import type { JxqyMapData } from "../core/mapTypes";
 import type { GameVariables, InputState, Vector2 } from "../core/types";
 import type { DebugManager } from "../debug";
 import type { ScreenEffects } from "../effects";
-import type { IRenderer } from "../webgl/IRenderer";
+import type { IRenderer } from "../webgl/iRenderer";
 import { BuyManager } from "../gui/buyManager";
 import { GuiManager } from "../gui/guiManager";
 import type { MemoListManager, TalkTextListManager } from "../listManager";

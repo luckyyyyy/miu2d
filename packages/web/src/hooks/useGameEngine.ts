@@ -20,9 +20,8 @@ import {
 } from "@miu2d/engine/core/gameEvents";
 import { logger } from "@miu2d/engine/core/logger";
 import {
-  type GameEngine,
+  GameEngine,
   type GameEngineState,
-  getGameEngine,
 } from "@miu2d/engine/game/gameEngine";
 import { useEffect, useRef, useState } from "react";
 
@@ -63,7 +62,7 @@ export function useGameEngine(options: UseGameEngineOptions): UseGameEngineResul
   // 初始化引擎
   useEffect(() => {
     // 获取或创建引擎实例
-    const engine = getGameEngine({ width, height });
+    const engine = GameEngine.getInstance({ width, height });
     engineRef.current = engine;
 
     // 清理之前的订阅（如果有）
