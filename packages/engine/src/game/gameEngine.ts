@@ -1892,7 +1892,7 @@ export class GameEngine implements IEngineContext {
           try {
             await this.loadGameFromSlot(slotIndex);
             return true;
-          } catch {
+          } catch { // load failed
             return false;
           }
         },

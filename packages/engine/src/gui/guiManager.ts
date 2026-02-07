@@ -717,7 +717,7 @@ export class GuiManager {
   private isScriptRunning(): boolean {
     try {
       return this.engine.getManager("script").isRunning();
-    } catch {
+    } catch { // script manager not ready
       return false;
     }
   }

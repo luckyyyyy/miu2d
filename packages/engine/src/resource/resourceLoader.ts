@@ -165,7 +165,7 @@ class ResourceLoaderImpl {
       try {
         const url = new URL(normalized);
         normalized = url.pathname;
-      } catch {
+      } catch { // URL parse failed
         // 解析失败，保持原样
       }
     }

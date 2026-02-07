@@ -635,7 +635,7 @@ export class Loader {
         if (trapIgnoreContent) {
           this.loadTrapIndexIgnoreList(trapIgnoreContent, parseIni);
         }
-      } catch {
+      } catch { // file may not exist
         // 忽略加载失败（文件可能不存在）
       }
 

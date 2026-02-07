@@ -756,7 +756,7 @@ export class Npc extends Character {
         path.push({ x, y });
       }
       return path.length >= 2 ? path : null;
-    } catch {
+    } catch { // parse failed
       return null;
     }
   }

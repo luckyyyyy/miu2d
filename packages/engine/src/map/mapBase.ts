@@ -457,7 +457,7 @@ export class MapBase {
       if (objManager.isObstacle(tile.x, tile.y)) {
         return false;
       }
-    } catch {
+    } catch { // engine not initialized
       // 引擎未初始化，只检查地图障碍
     }
 

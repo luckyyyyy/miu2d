@@ -104,7 +104,7 @@ export function isWebGLAvailable(): boolean {
   try {
     const testCanvas = document.createElement("canvas");
     return testCanvas.getContext("webgl2") !== null;
-  } catch {
+  } catch { // WebGL not available
     return false;
   }
 }

@@ -14,6 +14,8 @@
  *   - 加权列表: "a[2],b[1],c[3]" → 按权重随机（a=2/6, b=1/6, c=3/6）
  */
 
+import { logger } from "./logger";
+
 /**
  * 随机数生成器
  */
@@ -292,7 +294,7 @@ export class AttrString {
    */
   getValue(): string {
     if (this.isRandom) {
-      console.warn(`[AttrString] Accessing random attribute as fixed value: ${this.getString()}`);
+      logger.warn(`[AttrString] Accessing random attribute as fixed value: ${this.getString()}`);
     }
     return this.value;
   }

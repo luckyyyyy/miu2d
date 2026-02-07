@@ -528,5 +528,5 @@ export function getDefaultUiSettings(): UiSettings {
  * 颜色转CSS
  */
 export function colorToCSS(color: UiColorRGBA): string {
-  return `rgba(${color.r}, ${color.g}, ${color.b}, ${color.a / 255})`;
+  return `rgba(${color.r},${color.g},${color.b},${color.a / 255})`;
 }

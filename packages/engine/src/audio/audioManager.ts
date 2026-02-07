@@ -106,7 +106,7 @@ export class AudioManager {
         if (!instance.source.buffer) {
           this.soundInstances.delete(path);
         }
-      } catch {
+      } catch { // instance invalidated
         // 如果访问失败，说明实例已失效
         this.soundInstances.delete(path);
       }
@@ -118,7 +118,7 @@ export class AudioManager {
         if (!instance.source.buffer) {
           this.sound3DOnceInstances.delete(path);
         }
-      } catch {
+      } catch { // instance invalidated
         this.sound3DOnceInstances.delete(path);
       }
     }
@@ -319,8 +319,8 @@ export class AudioManager {
     for (const [, instance] of this.soundInstances) {
       try {
         instance.source.stop();
-      } catch {
-        /* ignore */
+      } catch { // instance invalidated
+  // source already stopped
       }
       instance.source.disconnect();
       instance.gain.disconnect();
@@ -392,8 +392,8 @@ export class AudioManager {
     if (this.loopingSourceNode) {
       try {
         this.loopingSourceNode.stop();
-      } catch {
-        /* ignore */
+      } catch { // instance invalidated
+  // source already stopped
       }
       this.loopingSourceNode.disconnect();
       this.loopingSourceNode = null;
@@ -473,8 +473,8 @@ export class AudioManager {
     if (this.ambientLoopSource) {
       try {
         this.ambientLoopSource.stop();
-      } catch {
-        /* ignore */
+      } catch { // instance invalidated
+  // source already stopped
       }
       this.ambientLoopSource.disconnect();
       this.ambientLoopSource = null;
@@ -706,8 +706,8 @@ export class AudioManager {
 
     try {
       instance.source.stop();
-    } catch {
-      /* ignore */
+    } catch { // source already stopped
+  // source already stopped
     }
     instance.source.disconnect();
     instance.gainNode.disconnect();
@@ -720,8 +720,8 @@ export class AudioManager {
     for (const [id, instance] of this.sound3DInstances) {
       try {
         instance.source.stop();
-      } catch {
-        /* ignore */
+      } catch { // instance invalidated
+  // source already stopped
       }
       instance.source.disconnect();
       instance.gainNode.disconnect();
