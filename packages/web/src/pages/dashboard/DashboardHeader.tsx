@@ -4,11 +4,9 @@
 import { useState } from "react";
 import { DashboardIcons } from "./icons";
 import { GameSelectorWithData } from "./GameSelector";
-import { useDashboard } from "./DashboardContext";
 import { useAuth } from "../../contexts";
 
 export function DashboardHeader() {
-  const { toggleSidebar, sidebarCollapsed } = useDashboard();
   const { user, logout } = useAuth();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -16,16 +14,6 @@ export function DashboardHeader() {
   return (
     <header className="flex h-10 items-center justify-between border-b border-[#1e1e1e] bg-[#3c3c3c] px-2">
       <div className="flex items-center gap-2">
-        {/* 侧边栏折叠按钮 */}
-        <button
-          type="button"
-          onClick={toggleSidebar}
-          className="p-1.5 rounded hover:bg-[#4a4a4a] text-[#858585] hover:text-white transition-colors"
-          title={sidebarCollapsed ? "展开侧边栏" : "折叠侧边栏"}
-        >
-          {DashboardIcons.menu}
-        </button>
-
         {/* 游戏空间选择器 */}
         <GameSelectorWithData
           onCreateGame={() => setShowCreateModal(true)}

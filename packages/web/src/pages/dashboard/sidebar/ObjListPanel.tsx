@@ -10,7 +10,7 @@ import { trpc } from "../../../lib/trpc";
 import { LazyAsfIcon } from "../../../components/common/LazyAsfIcon";
 
 export function ObjListPanel({ basePath }: { basePath: string }) {
-  const { currentGame, sidebarCollapsed } = useDashboard();
+  const { currentGame } = useDashboard();
   const navigate = useNavigate();
   const gameId = currentGame?.id;
   const [showImportModal, setShowImportModal] = useState(false);
@@ -74,10 +74,6 @@ export function ObjListPanel({ basePath }: { basePath: string }) {
   const toggleGroup = (key: string) => {
     setCollapsedGroups((prev) => ({ ...prev, [key]: !prev[key] }));
   };
-
-  if (sidebarCollapsed) {
-    return null;
-  }
 
   const kindLabels: Record<string, string> = {
     Static: "静态物体",

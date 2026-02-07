@@ -430,7 +430,7 @@ export function FilePreview({ file }: FilePreviewProps) {
             language={getMonacoLanguage(ext, file.path)}
             value={textContent}
             onChange={handleTextChange}
-            theme="vs-dark"
+            theme="jxqy-script-theme"
             options={{
               minimap: { enabled: true },
               fontSize: 14,

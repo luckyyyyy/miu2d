@@ -31,11 +31,11 @@ export const DASHBOARD_MODULES = {
     icon: "game",
     basePath: "game",
   },
-  characters: {
-    id: "characters",
-    label: "角色编辑",
+  player: {
+    id: "player",
+    label: "玩家角色",
     icon: "character",
-    basePath: "characters",
+    basePath: "player",
   },
   npcs: {
     id: "npcs",
@@ -72,12 +72,6 @@ export const DASHBOARD_MODULES = {
     label: "武功编辑",
     icon: "magic",
     basePath: "magic",
-  },
-  scripts: {
-    id: "scripts",
-    label: "通用脚本编辑",
-    icon: "script",
-    basePath: "scripts",
   },
   scenes: {
     id: "scenes",

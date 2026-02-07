@@ -209,7 +209,7 @@ function CreateLevelConfigModal({
 
 // ========== 等级配置列表面板 ==========
 export function LevelListPanel({ basePath }: { basePath: string }) {
-  const { currentGame, sidebarCollapsed } = useDashboard();
+  const { currentGame } = useDashboard();
   const navigate = useNavigate();
   const gameId = currentGame?.id;
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -218,10 +218,6 @@ export function LevelListPanel({ basePath }: { basePath: string }) {
     { gameId: gameId! },
     { enabled: !!gameId }
   );
-
-  if (sidebarCollapsed) {
-    return null;
-  }
 
   return (
     <div

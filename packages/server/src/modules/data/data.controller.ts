@@ -11,6 +11,8 @@ import { goodsService } from "../goods/goods.service";
 import { shopService } from "../shop/shop.service";
 import { npcService, npcResourceService } from "../npc";
 import { objService, objResourceService } from "../obj";
+import { playerService } from "../player";
+import { portraitService } from "../portrait";
 
 @Controller("game")
 export class DataController {
@@ -39,7 +41,7 @@ export class DataController {
 			this.logger.debug(`[getData] gameSlug=${gameSlug}`);
 
 			// 并行加载所有数据
-			const [magics, goods, shops, npcs, npcResources, objs, objResources] = await Promise.all([
+			const [magics, goods, shops, npcs, npcResources, objs, objResources, playersList, portraitEntries] = await Promise.all([
 				magicService.listPublicBySlug(gameSlug),
 				goodsService.listPublicBySlug(gameSlug),
 				shopService.listPublicBySlug(gameSlug),
@@ -47,6 +49,8 @@ export class DataController {
 				npcResourceService.listPublicBySlug(gameSlug),
 				objService.listPublicBySlug(gameSlug),
 				objResourceService.listPublicBySlug(gameSlug),
+				playerService.listPublicBySlug(gameSlug),
+				portraitService.getPublicBySlug(gameSlug),
 			]);
 
 			// 构建 objResources 的 id -> { resources, key } 映射
@@ -100,6 +104,10 @@ export class DataController {
 					objs: objsWithResources,
 					resources: objResources,
 				},
+				// 玩家角色列表
+				players: playersList,
+				// 对话头像映射
+				portraits: portraitEntries,
 			};
 
 			// 设置缓存头（5 分钟）

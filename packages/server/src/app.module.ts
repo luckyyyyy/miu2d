@@ -12,6 +12,8 @@ import { LevelModule } from "./modules/level";
 import { MagicModule } from "./modules/magic";
 import { NpcModule } from "./modules/npc/npc.module";
 import { ObjModule } from "./modules/obj/obj.module";
+import { PlayerModule } from "./modules/player/player.module";
+import { PortraitModule } from "./modules/portrait/portrait.module";
 import { ShopModule } from "./modules/shop/shop.module";
 import { UserModule } from "./modules/user";
 
@@ -30,6 +32,8 @@ import { UserModule } from "./modules/user";
     MagicModule,
     NpcModule,
     ObjModule,
+    PlayerModule,
+    PortraitModule,
     ShopModule,
     UserModule
   ],

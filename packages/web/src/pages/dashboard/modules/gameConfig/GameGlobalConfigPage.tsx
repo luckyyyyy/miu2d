@@ -1,9 +1,13 @@
 /**
  * 游戏全局配置页面
- * 左侧分类导航 + 右侧配置编辑 + 右上角固定保存按钮
+ * 根据路由参数 :configTab 渲染对应的配置面板
+ * 侧边栏导航由 SidebarContent 提供
  */
 import { useState, useEffect, useCallback, useRef } from "react";
-import { NumberInput } from "@/components/common";
+import { useParams } from "react-router-dom";
+import { NumberInput, ResourceFilePicker, ScriptEditor } from "@/components/common";
+import { MiniAsfPreview } from "@/components/common/ResourceFilePicker/AsfPreviewTooltip";
+import { buildResourcePath } from "@/components/common/ResourceFilePicker/types";
 import { trpc } from "../../../../lib/trpc";
 import { useDashboard } from "../../DashboardContext";
 import { useToast } from "../../../../contexts/ToastContext";
@@ -12,21 +16,20 @@ import type {
   MoneyDropTier,
   DrugDropTier,
   BossLevelBonus,
-  PlayerInitialStats,
   PlayerThewCost,
   PlayerRestore,
   PlayerSpeed,
   PlayerCombat,
+  PortraitEntry,
 } from "@miu2d/types";
-import { createDefaultGameConfig } from "@miu2d/types";
+import { createDefaultGameConfig, exportPortraitIni } from "@miu2d/types";
 
-// ========== 分类定义 ==========
+// ========== 配置分类 ==========
 
 type ConfigCategory =
   | "basic"
   | "newgame"
-  | "player-identity"
-  | "player-stats"
+  | "portrait"
   | "player-speed"
   | "player-thew"
   | "player-restore"
@@ -36,42 +39,6 @@ type ConfigCategory =
   | "drop-money"
   | "drop-drug"
   | "drop-boss";
-
-interface NavSection {
-  label: string;
-  items: { id: ConfigCategory; label: string }[];
-}
-
-const NAV_SECTIONS: NavSection[] = [
-  {
-    label: "游戏",
-    items: [
-      { id: "basic", label: "基础信息" },
-      { id: "newgame", label: "新游戏脚本" },
-    ],
-  },
-  {
-    label: "主角配置",
-    items: [
-      { id: "player-identity", label: "角色身份" },
-      { id: "player-stats", label: "初始属性" },
-      { id: "player-speed", label: "移动速度" },
-      { id: "player-thew", label: "体力消耗" },
-      { id: "player-restore", label: "自然恢复" },
-      { id: "player-combat", label: "战斗参数" },
-    ],
-  },
-  {
-    label: "掉落系统",
-    items: [
-      { id: "drop-probability", label: "掉落概率" },
-      { id: "drop-equip", label: "装备等级映射" },
-      { id: "drop-money", label: "金钱掉落" },
-      { id: "drop-drug", label: "药品掉落" },
-      { id: "drop-boss", label: "Boss 加成" },
-    ],
-  },
-];
 
 // ========== 通用组件 ==========
 
@@ -95,7 +62,6 @@ function Field({ label, desc, children }: { label: string; desc?: string; childr
 }
 
 const inputCls = "w-full px-3 py-2 bg-[#3c3c3c] border border-[#454545] rounded text-white focus:outline-none focus:border-[#0098ff]";
-const monoInputCls = `${inputCls} font-mono text-sm`;
 
 // ========== 掉落子组件 ==========
 
@@ -230,7 +196,17 @@ function BossLevelBonusEditor({ bonuses, onChange }: { bonuses: BossLevelBonus[]
 
 // ========== 各分类面板 ==========
 
-function BasicInfoPanel({ config, updateConfig }: { config: GameConfigData; updateConfig: <K extends keyof GameConfigData>(k: K, v: GameConfigData[K]) => void }) {
+function BasicInfoPanel({ config, updateConfig, gameId }: {
+  config: GameConfigData;
+  updateConfig: <K extends keyof GameConfigData>(k: K, v: GameConfigData[K]) => void;
+  gameId: string;
+}) {
+  // 从 players 表获取主角候选列表
+  const { data: players } = trpc.player.list.useQuery(
+    { gameId },
+    { enabled: !!gameId },
+  );
+
   return (
     <div className="space-y-4">
       <SectionTitle>基础信息</SectionTitle>
@@ -243,6 +219,20 @@ function BasicInfoPanel({ config, updateConfig }: { config: GameConfigData; upda
       <Field label="游戏描述">
         <textarea rows={3} value={config.gameDescription} onChange={(e) => updateConfig("gameDescription", e.target.value)} className={`${inputCls} resize-none`} />
       </Field>
+      <Field label="游戏主角" desc="新游戏时使用的主角角色">
+        <select
+          value={config.playerKey}
+          onChange={(e) => updateConfig("playerKey", e.target.value)}
+          className={inputCls}
+        >
+          <option value="">-- 请选择主角 --</option>
+          {players?.map((p) => (
+            <option key={p.id} value={p.key}>
+              {p.name}（{p.key}）
+            </option>
+          ))}
+        </select>
+      </Field>
     </div>
   );
 }
@@ -250,48 +240,13 @@ function BasicInfoPanel({ config, updateConfig }: { config: GameConfigData; upda
 function NewGameScriptPanel({ config, updateConfig }: { config: GameConfigData; updateConfig: <K extends keyof GameConfigData>(k: K, v: GameConfigData[K]) => void }) {
   return (
     <div className="space-y-4">
-      <SectionTitle desc="新游戏开始时执行的脚本文件路径">新游戏脚本</SectionTitle>
-      <Field label="脚本路径">
-        <input type="text" value={config.newGameScript} onChange={(e) => updateConfig("newGameScript", e.target.value)} className={monoInputCls} placeholder="script/common/newgame.txt" />
-      </Field>
-    </div>
-  );
-}
-
-function PlayerIdentityPanel({ config, updatePlayer }: {
-  config: GameConfigData;
-  updatePlayer: <K extends keyof GameConfigData["player"]>(k: K, v: GameConfigData["player"][K]) => void;
-}) {
-  return (
-    <div className="space-y-4">
-      <SectionTitle desc="主角的默认名称和外观配置">角色身份</SectionTitle>
-      <Field label="角色名称">
-        <input type="text" value={config.player.name} onChange={(e) => updatePlayer("name", e.target.value)} className={inputCls} />
-      </Field>
-      <Field label="外观配置文件" desc="NPC INI 文件名">
-        <input type="text" value={config.player.npcIni} onChange={(e) => updatePlayer("npcIni", e.target.value)} className={monoInputCls} />
-      </Field>
-    </div>
-  );
-}
-
-function PlayerStatsPanel({ stats, onChange }: { stats: PlayerInitialStats; onChange: (s: PlayerInitialStats) => void }) {
-  const up = (field: keyof PlayerInitialStats, v: number | null) => onChange({ ...stats, [field]: v ?? 0 });
-  return (
-    <div className="space-y-4">
-      <SectionTitle desc="开始新游戏时主角的初始数值">初始属性</SectionTitle>
-      <div className="grid grid-cols-2 gap-4">
-        <Field label="初始生命值"><NumberInput value={stats.life} onChange={(v) => up("life", v)} min={1} className="w-full" /></Field>
-        <Field label="最大生命值"><NumberInput value={stats.lifeMax} onChange={(v) => up("lifeMax", v)} min={1} className="w-full" /></Field>
-        <Field label="初始内力值"><NumberInput value={stats.mana} onChange={(v) => up("mana", v)} min={0} className="w-full" /></Field>
-        <Field label="最大内力值"><NumberInput value={stats.manaMax} onChange={(v) => up("manaMax", v)} min={0} className="w-full" /></Field>
-        <Field label="初始体力值"><NumberInput value={stats.thew} onChange={(v) => up("thew", v)} min={0} className="w-full" /></Field>
-        <Field label="最大体力值"><NumberInput value={stats.thewMax} onChange={(v) => up("thewMax", v)} min={0} className="w-full" /></Field>
-        <Field label="攻击力"><NumberInput value={stats.attack} onChange={(v) => up("attack", v)} min={0} className="w-full" /></Field>
-        <Field label="防御力"><NumberInput value={stats.defend} onChange={(v) => up("defend", v)} min={0} className="w-full" /></Field>
-        <Field label="闪避"><NumberInput value={stats.evade} onChange={(v) => up("evade", v)} min={0} className="w-full" /></Field>
-        <Field label="初始等级"><NumberInput value={stats.level} onChange={(v) => up("level", v)} min={1} className="w-full" /></Field>
-        <Field label="升级所需经验"><NumberInput value={stats.levelUpExp} onChange={(v) => up("levelUpExp", v)} min={0} className="w-full" /></Field>
+      <SectionTitle desc="新游戏开始时执行的脚本内容（JXQY 脚本语法）">新游戏脚本</SectionTitle>
+      <div className="border border-[#454545] rounded overflow-hidden">
+        <ScriptEditor
+          value={config.newGameScript}
+          onChange={(v) => updateConfig("newGameScript", v)}
+          height="400px"
+        />
       </div>
     </div>
   );
@@ -456,16 +411,271 @@ function DropBossPanel({ config, updateDrop }: {
   );
 }
 
+// ========== 对话头像面板 ==========
+
+function PortraitMappingPanel({ gameId }: { gameId: string }) {
+  const toast = useToast();
+  const utils = trpc.useUtils();
+  const [isDragging, setIsDragging] = useState(false);
+  const { currentGame } = useDashboard();
+  const gameSlug = currentGame?.slug ?? "";
+
+  // 查询
+  const { data: portraitData, isLoading } = trpc.portrait.get.useQuery(
+    { gameId },
+    { enabled: !!gameId }
+  );
+
+  const [entries, setEntries] = useState<PortraitEntry[]>([]);
+  const [isDirty, setIsDirty] = useState(false);
+
+  useEffect(() => {
+    if (portraitData?.entries) {
+      setEntries(portraitData.entries);
+      setIsDirty(false);
+    }
+  }, [portraitData]);
+
+  // 保存
+  const updateMutation = trpc.portrait.update.useMutation({
+    onSuccess: () => {
+      toast.success("对话头像配置已保存");
+      setIsDirty(false);
+      utils.portrait.get.invalidate({ gameId });
+    },
+    onError: (err) => toast.error(`保存失败: ${err.message}`),
+  });
+
+  // 从 INI 导入
+  const importMutation = trpc.portrait.importFromIni.useMutation({
+    onSuccess: (result) => {
+      setEntries(result.entries);
+      setIsDirty(false);
+      toast.success(`成功导入 ${result.entries.length} 个头像映射`);
+      utils.portrait.get.invalidate({ gameId });
+    },
+    onError: (err) => toast.error(`导入失败: ${err.message}`),
+  });
+
+  const handleSave = () => {
+    updateMutation.mutate({ gameId, entries });
+  };
+
+  const handleAdd = () => {
+    const maxIdx = entries.reduce((max, e) => Math.max(max, e.idx), -1);
+    setEntries([...entries, { idx: maxIdx + 1, file: "" }]);
+    setIsDirty(true);
+  };
+
+  const handleRemove = (index: number) => {
+    setEntries(entries.filter((_, i) => i !== index));
+    setIsDirty(true);
+  };
+
+  const handleUpdate = (index: number, field: "idx" | "file", value: string | number) => {
+    const updated = [...entries];
+    if (field === "idx") {
+      updated[index] = { ...updated[index], idx: value as number };
+    } else {
+      updated[index] = { ...updated[index], file: value as string };
+    }
+    setEntries(updated);
+    setIsDirty(true);
+  };
+
+  const handleImportIni = async () => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".ini";
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+      const content = await file.text();
+      importMutation.mutate({ gameId, iniContent: content });
+    };
+    input.click();
+  };
+
+  const handleExportIni = () => {
+    const content = exportPortraitIni(entries);
+    const blob = new Blob([content], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "HeadFile.ini";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.dataTransfer.types.includes("Files")) {
+      setIsDragging(true);
+    }
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const files = Array.from(e.dataTransfer.files);
+    const iniFile = files.find((f) => f.name.toLowerCase().endsWith(".ini"));
+    if (!iniFile) {
+      toast.error("请拖入 .ini 文件");
+      return;
+    }
+    const content = await iniFile.text();
+    importMutation.mutate({ gameId, iniContent: content });
+  };
+
+  if (isLoading) {
+    return <div className="text-[#858585]">加载中...</div>;
+  }
+
+  return (
+    <div
+      className="space-y-4 relative"
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
+      {/* 拖拽覆盖层 */}
+      {isDragging && (
+        <div className="absolute inset-0 z-10 bg-[#0098ff]/10 border-2 border-dashed border-[#0098ff] rounded-lg flex items-center justify-center pointer-events-none">
+          <div className="text-[#0098ff] text-sm font-medium bg-[#252526] px-4 py-2 rounded-lg shadow-lg">
+            释放 .ini 文件以导入头像映射
+          </div>
+        </div>
+      )}
+      <SectionTitle desc="Talk 脚本命令使用的角色头像索引映射（对应 HeadFile.ini）">对话头像</SectionTitle>
+
+      {/* 操作按钮 */}
+      <div className="flex gap-2 flex-wrap">
+        <button
+          type="button"
+          onClick={handleImportIni}
+          disabled={importMutation.isPending}
+          className="px-3 py-1.5 text-xs bg-[#3c3c3c] hover:bg-[#4c4c4c] rounded text-[#cccccc] transition-colors disabled:opacity-50"
+        >
+          {importMutation.isPending ? "导入中..." : "从 INI 导入"}
+        </button>
+        <button
+          type="button"
+          onClick={handleExportIni}
+          disabled={entries.length === 0}
+          className="px-3 py-1.5 text-xs bg-[#3c3c3c] hover:bg-[#4c4c4c] rounded text-[#cccccc] transition-colors disabled:opacity-50"
+        >
+          导出 INI
+        </button>
+        <button
+          type="button"
+          onClick={handleAdd}
+          className="px-3 py-1.5 text-xs bg-[#0e639c] hover:bg-[#1177bb] rounded text-white transition-colors"
+        >
+          + 添加
+        </button>
+        {isDirty && (
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={updateMutation.isPending}
+            className="px-3 py-1.5 text-xs bg-green-600 hover:bg-green-700 rounded text-white transition-colors disabled:opacity-50"
+          >
+            {updateMutation.isPending ? "保存中..." : "保存更改"}
+          </button>
+        )}
+      </div>
+
+      {/* 映射表 */}
+      {entries.length === 0 ? (
+        <div className="text-sm text-[#858585] bg-[#1e1e1e] p-6 rounded-lg text-center">
+          暂无头像映射。拖入 HeadFile.ini 文件、点击「从 INI 导入」、或手动添加映射。
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {entries.map((entry, index) => (
+            <div key={`${entry.idx}-${index}`} className="flex items-center gap-3 px-4 py-3 bg-[#2a2d2e] rounded-lg group hover:bg-[#2f3233] transition-colors">
+              {/* 预览 */}
+              <div className="w-12 h-12 flex-shrink-0 rounded bg-[#1e1e1e] border border-[#333] flex items-center justify-center overflow-hidden">
+                {entry.file ? (
+                  <MiniAsfPreview
+                    gameSlug={gameSlug}
+                    path={buildResourcePath("portrait_image", entry.file)}
+                    size={48}
+                  />
+                ) : (
+                  <span className="text-[#555] text-lg">🖼</span>
+                )}
+              </div>
+
+              {/* 索引 */}
+              <div className="flex flex-col gap-0.5 flex-shrink-0">
+                <span className="text-[10px] text-[#858585]">索引</span>
+                <NumberInput
+                  min={0}
+                  value={entry.idx}
+                  onChange={(val) => handleUpdate(index, "idx", val ?? 0)}
+                  className="w-16"
+                />
+              </div>
+
+              {/* 文件选择器 */}
+              <div className="flex-1 min-w-0">
+                <ResourceFilePicker
+                  label="文件"
+                  value={entry.file || null}
+                  onChange={(val) => handleUpdate(index, "file", val ?? "")}
+                  fieldName="portrait_image"
+                  gameId={gameId}
+                  gameSlug={gameSlug}
+                  extensions={[".asf"]}
+                  placeholder="选择头像文件..."
+                />
+              </div>
+
+              {/* 删除 */}
+              <button
+                type="button"
+                onClick={() => handleRemove(index)}
+                className="w-7 h-7 flex items-center justify-center rounded opacity-0 group-hover:opacity-100 hover:bg-[#3c3c3c] text-[#808080] hover:text-red-400 transition-all flex-shrink-0"
+                title="删除"
+              >
+                <svg className="w-4 h-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <path d="M4 4l8 8M12 4l-8 8" />
+                </svg>
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="text-xs text-[#666] bg-[#1e1e1e] p-3 rounded">
+        <p>头像文件位于 <code className="text-[#ce9178]">asf/portrait/</code> 目录下。</p>
+        <p className="mt-1">脚本中使用 <code className="text-[#ce9178]">Talk</code> 命令指定头像索引来显示角色头像。</p>
+      </div>
+    </div>
+  );
+}
+
 // ========== 主页面 ==========
 
 export function GameGlobalConfigPage() {
   const { currentGame } = useDashboard();
+  const { configTab } = useParams();
   const toast = useToast();
   const gameId = currentGame?.id ?? "";
 
   const [config, setConfig] = useState<GameConfigData>(createDefaultGameConfig());
   const [isDirty, setIsDirty] = useState(false);
-  const [activeCategory, setActiveCategory] = useState<ConfigCategory>("basic");
+  const activeCategory = (configTab || "basic") as ConfigCategory;
   const contentRef = useRef<HTMLDivElement>(null);
 
   // 获取配置
@@ -485,6 +695,11 @@ export function GameGlobalConfigPage() {
       setIsDirty(false);
     }
   }, [data]);
+
+  // 切换 tab 时滚动到顶部
+  useEffect(() => {
+    contentRef.current?.scrollTo({ top: 0 });
+  }, [activeCategory]);
 
   const updateConfig = useCallback(<K extends keyof GameConfigData>(field: K, value: GameConfigData[K]) => {
     setConfig((prev) => ({ ...prev, [field]: value }));
@@ -536,12 +751,6 @@ export function GameGlobalConfigPage() {
     setIsDirty(true);
   };
 
-  // 切换分类时滚动到顶部
-  const handleCategoryChange = (cat: ConfigCategory) => {
-    setActiveCategory(cat);
-    contentRef.current?.scrollTo({ top: 0 });
-  };
-
   if (isLoading) {
     return (
       <div className="h-full flex items-center justify-center">
@@ -557,18 +766,11 @@ export function GameGlobalConfigPage() {
   function renderPanel() {
     switch (activeCategory) {
       case "basic":
-        return <BasicInfoPanel config={config} updateConfig={updateConfig} />;
+        return <BasicInfoPanel config={config} updateConfig={updateConfig} gameId={gameId} />;
       case "newgame":
         return <NewGameScriptPanel config={config} updateConfig={updateConfig} />;
-      case "player-identity":
-        return <PlayerIdentityPanel config={config} updatePlayer={updatePlayer} />;
-      case "player-stats":
-        return (
-          <PlayerStatsPanel
-            stats={config.player.initialStats}
-            onChange={(s) => updatePlayer("initialStats", s)}
-          />
-        );
+      case "portrait":
+        return <PortraitMappingPanel gameId={gameId} />;
       case "player-speed":
         return (
           <PlayerSpeedPanel
@@ -613,7 +815,7 @@ export function GameGlobalConfigPage() {
   return (
     <div className="h-full flex flex-col relative">
       {/* 固定保存按钮 - 右上角 */}
-      <div className="fixed top-3 right-6 z-50 flex items-center gap-3">
+      <div className="absolute top-3 right-6 z-20 flex items-center gap-3">
         {isDirty && <span className="text-xs text-yellow-500">有未保存的更改</span>}
         <button
           type="button"
@@ -633,37 +835,9 @@ export function GameGlobalConfigPage() {
       </div>
 
       {/* 内容区域 */}
-      <div className="flex flex-1 min-h-0">
-        {/* 左侧分类导航 */}
-        <nav className="w-48 shrink-0 border-r border-[#333] overflow-y-auto py-4 px-2">
-          {NAV_SECTIONS.map((section) => (
-            <div key={section.label} className="mb-4">
-              <div className="text-[10px] font-semibold uppercase tracking-wider text-[#666] px-2 mb-1.5">
-                {section.label}
-              </div>
-              {section.items.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => handleCategoryChange(item.id)}
-                  className={`w-full text-left px-2 py-1.5 rounded text-sm transition-colors ${
-                    activeCategory === item.id
-                      ? "bg-[#37373d] text-white"
-                      : "text-[#cccccc] hover:bg-[#2a2d2e]"
-                  }`}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
-          ))}
-        </nav>
-
-        {/* 右侧内容区 */}
-        <div ref={contentRef} className="flex-1 overflow-y-auto p-6">
-          <div className="max-w-2xl">
-            {renderPanel()}
-          </div>
+      <div ref={contentRef} className="flex-1 overflow-y-auto p-6">
+        <div className="max-w-2xl">
+          {renderPanel()}
         </div>
       </div>
     </div>

@@ -353,6 +353,60 @@ export type {
   BatchImportNpcResult,
 } from "./npc.js";
 
+// 玩家角色类型
+export {
+  PlayerInitialMagicSchema,
+  PlayerInitialGoodsSchema,
+  PlayerBaseSchema,
+  PlayerSchema,
+  PlayerListItemSchema,
+  ListPlayerInputSchema,
+  GetPlayerInputSchema,
+  CreatePlayerInputSchema,
+  UpdatePlayerInputSchema,
+  DeletePlayerInputSchema,
+  ImportPlayerInputSchema,
+  BatchImportPlayerItemSchema,
+  BatchImportPlayerInputSchema,
+  BatchImportPlayerResultSchema,
+  createDefaultPlayer,
+} from "./player.js";
+export type {
+  PlayerInitialMagic,
+  PlayerInitialGoods,
+  PlayerBase,
+  Player,
+  PlayerListItem,
+  ListPlayerInput,
+  GetPlayerInput,
+  CreatePlayerInput,
+  UpdatePlayerInput,
+  DeletePlayerInput,
+  ImportPlayerInput,
+  BatchImportPlayerInput,
+  BatchImportPlayerResult,
+} from "./player.js";
+
+// 对话头像映射类型
+export {
+  PortraitEntrySchema,
+  PortraitMapSchema,
+  PortraitMapResultSchema,
+  GetPortraitMapInputSchema,
+  UpdatePortraitMapInputSchema,
+  ImportPortraitMapInputSchema,
+  parsePortraitIni,
+  exportPortraitIni,
+} from "./portrait.js";
+export type {
+  PortraitEntry,
+  PortraitMap,
+  PortraitMapResult,
+  GetPortraitMapInput,
+  UpdatePortraitMapInput,
+  ImportPortraitMapInput,
+} from "./portrait.js";
+
 // Object 类型
 export {
   ObjKindEnum,

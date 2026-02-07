@@ -14,13 +14,6 @@ export interface TreeNode {
   children?: TreeNode[];
 }
 
-// 游戏编辑模块的子菜单
-export const gameSettingsTree: TreeNode[] = [
-  { id: "config", label: "基础配置", path: "config", icon: "settings" },
-  { id: "newgame", label: "新游戏触发脚本", path: "newgame", icon: "script" },
-  { id: "player", label: "游戏主角", path: "player", icon: "character" },
-];
-
 // 场景编辑模块的子菜单
 export const scenesTree: TreeNode[] = [
   {
@@ -70,12 +63,6 @@ interface SidebarPanelProps {
 }
 
 export function SidebarPanel({ title, children }: SidebarPanelProps) {
-  const { sidebarCollapsed } = useDashboard();
-
-  if (sidebarCollapsed) {
-    return null;
-  }
-
   return (
     <div className="flex h-full w-60 flex-col bg-[#252526] border-r border-[#1e1e1e]">
       <div className="flex h-9 items-center px-4 text-xs font-medium uppercase tracking-wide text-[#bbbbbb] border-b border-[#1e1e1e]">
@@ -173,12 +160,6 @@ interface ListPanelProps {
 }
 
 export function ListPanel({ title, basePath, items, isLoading, onAdd }: ListPanelProps) {
-  const { sidebarCollapsed } = useDashboard();
-
-  if (sidebarCollapsed) {
-    return null;
-  }
-
   return (
     <div className="flex h-full w-60 flex-col bg-[#252526] border-r border-[#1e1e1e]">
       <div className="flex h-9 items-center justify-between px-4 border-b border-[#1e1e1e]">

@@ -1,32 +1,25 @@
 /**
- * 商店列表侧边栏面板
- * ShopListPanel + ImportShopModal
+ * 玩家角色列表侧边栏面板
+ * PlayerListPanel + ImportPlayerModal
  */
-import { useState, useRef } from "react";
+import { useState, useMemo } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useDashboard } from "../DashboardContext";
 import { DashboardIcons } from "../icons";
 import { trpc } from "../../../lib/trpc";
 
-export function ShopListPanel({ basePath }: { basePath: string }) {
+export function PlayerListPanel({ basePath }: { basePath: string }) {
   const { currentGame } = useDashboard();
   const navigate = useNavigate();
   const gameId = currentGame?.id;
   const [showImportModal, setShowImportModal] = useState(false);
 
-  const { data: shopList, isLoading, refetch } = trpc.shop.list.useQuery(
+  const { data: playerList, isLoading, refetch } = trpc.player.list.useQuery(
     { gameId: gameId! },
     { enabled: !!gameId }
   );
 
-  const createMutation = trpc.shop.create.useMutation({
-    onSuccess: (data) => {
-      refetch();
-      navigate(`${basePath}/${data.id}`);
-    },
-  });
-
-  const batchImportMutation = trpc.shop.batchImportFromIni.useMutation({
+  const batchImportMutation = trpc.player.batchImportFromIni.useMutation({
     onSuccess: (result) => {
       refetch();
       setShowImportModal(false);
@@ -36,14 +29,11 @@ export function ShopListPanel({ basePath }: { basePath: string }) {
     },
   });
 
-  const handleCreate = () => {
-    if (!gameId) return;
-    createMutation.mutate({
-      gameId,
-      key: `shop_${Date.now()}.ini`,
-      name: "新商店",
-    });
-  };
+  // 按 index 排序
+  const sortedPlayers = useMemo(() => {
+    if (!playerList) return [];
+    return [...playerList].sort((a, b) => a.index - b.index);
+  }, [playerList]);
 
   return (
     <>
@@ -51,7 +41,7 @@ export function ShopListPanel({ basePath }: { basePath: string }) {
         {/* 标题栏 */}
         <div className="flex h-9 items-center justify-between px-4 border-b border-[#1e1e1e]">
           <span className="text-xs font-medium uppercase tracking-wide text-[#bbbbbb]">
-            商店列表
+            角色列表
           </span>
         </div>
 
@@ -67,99 +57,91 @@ export function ShopListPanel({ basePath }: { basePath: string }) {
           </button>
           <button
             type="button"
-            onClick={handleCreate}
-            disabled={createMutation.isPending}
+            onClick={() => navigate(`${basePath}/new/basic`)}
             className="flex items-center gap-2 px-2 py-1.5 text-xs text-[#cccccc] hover:bg-[#3c3c3c] rounded transition-colors"
           >
             {DashboardIcons.add}
-            <span>新建商店</span>
+            <span>新建角色</span>
           </button>
         </div>
 
-        {/* 商店列表 */}
+        {/* 列表内容 */}
         <div className="flex-1 overflow-y-auto py-1">
           {isLoading ? (
             <div className="px-4 py-2 text-sm text-[#858585]">加载中...</div>
-          ) : !shopList || shopList.length === 0 ? (
-            <div className="px-4 py-2 text-sm text-[#858585]">暂无商店</div>
+          ) : !sortedPlayers.length ? (
+            <div className="px-4 py-2 text-sm text-[#858585]">暂无角色</div>
           ) : (
-            shopList.map((shop) => (
+            sortedPlayers.map((player) => (
               <NavLink
-                key={shop.id}
-                to={`${basePath}/${shop.id}`}
+                key={player.id}
+                to={`${basePath}/${player.id}`}
                 className={({ isActive }) =>
                   `flex items-center gap-3 px-3 py-2 text-sm transition-colors ${
                     isActive ? "bg-[#094771] text-white" : "hover:bg-[#2a2d2e]"
                   }`
                 }
               >
-                <span className="text-lg">🏪</span>
+                <span className="text-lg">🎮</span>
                 <div className="flex-1 min-w-0">
-                  <span className="truncate block">{shop.name}</span>
-                  <span className="text-xs text-[#858585] truncate block">{shop.key}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="truncate font-medium">
+                      {player.name || `Player${player.index}`}
+                    </span>
+                    <span className="text-xs text-green-400">
+                      Lv.{player.level ?? 1}
+                    </span>
+                  </div>
+                  <span className="text-xs text-[#858585] truncate block">
+                    Player{player.index} · {player.key}
+                  </span>
                 </div>
-                <span className="shrink-0 text-xs px-1.5 py-0.5 rounded-full bg-[#3c3c3c] text-[#0098ff] font-mono">
-                  {shop.itemCount}
-                </span>
               </NavLink>
             ))
           )}
         </div>
       </div>
 
-      {/* INI 导入弹窗 */}
-      {showImportModal && gameId && (
-        <ImportShopModal
-          gameId={gameId}
+      {/* INI 导入模态框 */}
+      {showImportModal && (
+        <ImportPlayerModal
           onClose={() => setShowImportModal(false)}
           onBatchImport={(items) => {
             batchImportMutation.mutate({ gameId: gameId!, items });
           }}
           isLoading={batchImportMutation.isPending}
-          batchResult={batchImportMutation.data}
+          batchResult={batchImportMutation.data ?? null}
         />
       )}
     </>
   );
 }
 
-// ========== 商店 INI 导入弹窗 ==========
-function ImportShopModal({
-  gameId,
+// ========== 导入模态框 ==========
+
+function ImportPlayerModal({
   onClose,
   onBatchImport,
   isLoading,
   batchResult,
 }: {
-  gameId: string;
   onClose: () => void;
   onBatchImport: (items: Array<{ fileName: string; iniContent: string }>) => void;
   isLoading: boolean;
-  batchResult?: { success: Array<{ fileName: string; id: string; name: string; itemCount: number }>; failed: Array<{ fileName: string; error: string }> } | null;
+  batchResult: {
+    success: Array<{ fileName: string; id: string; name: string; index: number }>;
+    failed: Array<{ fileName: string; error: string }>;
+  } | null;
 }) {
   const [batchItems, setBatchItems] = useState<Array<{ fileName: string; iniContent: string }>>([]);
   const [isDragging, setIsDragging] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleFiles = async (files: FileList | File[]) => {
-    const items: Array<{ fileName: string; iniContent: string }> = [];
-    for (const file of Array.from(files)) {
-      if (file.name.toLowerCase().endsWith(".ini")) {
-        const content = await file.text();
-        items.push({ fileName: file.name, iniContent: content });
-      }
-    }
-    if (items.length > 0) {
-      setBatchItems(prev => [...prev, ...items]);
-    }
-  };
 
   const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
 
     const items: Array<{ fileName: string; iniContent: string }> = [];
-    const fileItems = e.dataTransfer.items;
+    const files = e.dataTransfer.items;
 
     const processEntry = async (entry: FileSystemEntry) => {
       if (entry.isFile) {
@@ -167,132 +149,121 @@ function ImportShopModal({
         const file = await new Promise<File>((resolve, reject) => {
           fileEntry.file(resolve, reject);
         });
-        if (file.name.toLowerCase().endsWith(".ini")) {
+
+        if (/^player\d*\.ini$/i.test(file.name)) {
           const content = await file.text();
           items.push({ fileName: file.name, iniContent: content });
         }
       } else if (entry.isDirectory) {
         const dirEntry = entry as FileSystemDirectoryEntry;
         const reader = dirEntry.createReader();
-        const entries = await new Promise<FileSystemEntry[]>((resolve, reject) => {
-          reader.readEntries(resolve, reject);
-        });
-        for (const subEntry of entries) {
+        const allEntries: FileSystemEntry[] = [];
+        const readBatch = async (): Promise<void> => {
+          const batch = await new Promise<FileSystemEntry[]>((resolve, reject) => {
+            reader.readEntries(resolve, reject);
+          });
+          if (batch.length > 0) {
+            allEntries.push(...batch);
+            await readBatch();
+          }
+        };
+        await readBatch();
+        for (const subEntry of allEntries) {
           await processEntry(subEntry);
         }
       }
     };
 
-    for (let i = 0; i < fileItems.length; i++) {
-      const entry = fileItems[i].webkitGetAsEntry();
-      if (entry) {
-        await processEntry(entry);
+    for (let i = 0; i < files.length; i++) {
+      const entry = files[i].webkitGetAsEntry();
+      if (entry) await processEntry(entry);
+    }
+
+    // 也处理直接拖入的文件（非条目形式）
+    if (items.length === 0) {
+      for (let i = 0; i < e.dataTransfer.files.length; i++) {
+        const file = e.dataTransfer.files[i];
+        if (/^player\d*\.ini$/i.test(file.name)) {
+          const content = await file.text();
+          items.push({ fileName: file.name, iniContent: content });
+        }
       }
     }
 
     if (items.length > 0) {
-      setBatchItems(prev => [...prev, ...items]);
+      setBatchItems((prev) => {
+        const existing = new Set(prev.map((p) => p.fileName.toLowerCase()));
+        const newItems = items.filter((it) => !existing.has(it.fileName.toLowerCase()));
+        return [...prev, ...newItems];
+      });
     }
   };
 
   const removeBatchItem = (index: number) => {
-    setBatchItems(prev => prev.filter((_, i) => i !== index));
+    setBatchItems((prev) => prev.filter((_, i) => i !== index));
   };
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-[#252526] rounded-lg border border-[#454545] w-[550px] max-h-[80vh] overflow-auto">
+      <div className="bg-[#252526] rounded-lg border border-[#454545] w-[500px] max-h-[85vh] overflow-auto">
         <div className="flex items-center justify-between px-4 py-3 border-b border-[#454545]">
-          <h3 className="font-medium text-white">从 INI 导入商店</h3>
-          <button type="button" onClick={onClose} className="text-[#858585] hover:text-white">
-            ✕
-          </button>
+          <h3 className="font-medium text-white">从 INI 导入角色</h3>
+          <button type="button" onClick={onClose} className="text-[#858585] hover:text-white">✕</button>
         </div>
         <div className="p-4 space-y-4">
-          {/* 拖放区域 */}
+          <div className="text-xs text-[#858585] bg-[#1e1e1e] p-3 rounded">
+            <p className="mb-1">支持拖入以下文件：</p>
+            <ul className="list-disc list-inside space-y-0.5">
+              <li><code className="text-[#ce9178]">Player0.ini</code> - 主角</li>
+              <li><code className="text-[#ce9178]">Player1.ini</code> - 伙伴角色</li>
+            </ul>
+            <p className="mt-2">可从 <code className="text-[#ce9178]">save/game/</code> 目录拖入整个文件夹</p>
+          </div>
+
           <div
-            className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors cursor-pointer ${
-              isDragging
-                ? "border-[#0098ff] bg-[#0098ff]/10"
-                : batchItems.length > 0
-                ? "border-green-500/50 bg-green-500/5"
-                : "border-[#454545] hover:border-[#0098ff]"
+            className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+              isDragging ? "border-[#0098ff] bg-[#0098ff]/10" : "border-[#454545] hover:border-[#666]"
             }`}
             onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
             onDragLeave={() => setIsDragging(false)}
             onDrop={handleDrop}
           >
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".ini"
-              multiple
-              className="hidden"
-              onChange={(e) => {
-                if (e.target.files) handleFiles(e.target.files);
-                e.target.value = "";
-              }}
-            />
-            {batchItems.length === 0 ? (
-              <div className="text-[#858585]">
-                <p className="mb-2 text-lg">📁 拖放 INI 文件或 buy 目录到这里</p>
-                <p className="text-xs">支持拖放整个 ini/buy 目录，批量导入所有商店配置</p>
-              </div>
-            ) : (
-              <div className="text-green-400">
-                ✓ 已选择 {batchItems.length} 个商店文件
-              </div>
-            )}
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="mt-2 px-3 py-1 bg-[#3c3c3c] hover:bg-[#4a4a4a] rounded text-sm"
-            >
-              选择文件
-            </button>
+            <div className="text-4xl mb-3">🎮</div>
+            <p className="text-[#cccccc] text-sm">拖放 PlayerX.ini 文件或文件夹到此处</p>
+            <p className="text-[#858585] text-xs mt-1">支持批量导入</p>
           </div>
 
-          {/* 文件列表 */}
           {batchItems.length > 0 && (
             <div className="max-h-48 overflow-y-auto border border-[#454545] rounded">
               {batchItems.map((item, index) => (
-                <div
-                  key={`${item.fileName}-${index}`}
-                  className="flex items-center justify-between px-3 py-2 border-b border-[#454545] last:border-b-0 hover:bg-[#2a2d2e]"
-                >
-                  <span className="text-sm text-white">{item.fileName}</span>
-                  <button
-                    type="button"
-                    onClick={() => removeBatchItem(index)}
-                    className="text-[#858585] hover:text-red-400 text-sm"
-                  >
-                    ✕
-                  </button>
+                <div key={item.fileName} className="flex items-center justify-between px-3 py-2 border-b border-[#454545] last:border-b-0 hover:bg-[#2a2d2e]">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400">角色</span>
+                    <span className="text-sm text-white">{item.fileName}</span>
+                  </div>
+                  <button type="button" onClick={() => removeBatchItem(index)} className="text-[#858585] hover:text-red-400 text-sm">✕</button>
                 </div>
               ))}
             </div>
           )}
 
-          {/* 导入结果 */}
           {batchResult && (
             <div className="space-y-2">
               {batchResult.success.length > 0 && (
                 <div className="p-3 bg-green-500/10 border border-green-500/30 rounded">
                   <p className="text-green-400 text-sm font-medium mb-1">
-                    ✓ 成功导入 {batchResult.success.length} 个商店
+                    ✓ 成功导入 {batchResult.success.length} 个角色
                   </p>
                   <div className="text-xs text-green-400/80 max-h-24 overflow-y-auto">
                     {batchResult.success.map((s) => (
-                      <div key={s.id}>{s.name} ({s.itemCount} 件商品)</div>
+                      <div key={s.id}>Player{s.index} - {s.name || s.fileName}</div>
                     ))}
                   </div>
                 </div>
               )}
               {batchResult.failed.length > 0 && (
                 <div className="p-3 bg-red-500/10 border border-red-500/30 rounded">
-                  <p className="text-red-400 text-sm font-medium mb-1">
-                    ✗ 失败 {batchResult.failed.length} 个
-                  </p>
+                  <p className="text-red-400 text-sm font-medium mb-1">✗ 失败 {batchResult.failed.length} 个</p>
                   <div className="text-xs text-red-400/80 max-h-24 overflow-y-auto">
                     {batchResult.failed.map((f) => (
                       <div key={f.fileName}>{f.fileName}: {f.error}</div>
@@ -304,11 +275,7 @@ function ImportShopModal({
           )}
         </div>
         <div className="flex justify-end gap-2 px-4 py-3 border-t border-[#454545]">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 text-sm text-[#cccccc] hover:bg-[#3c3c3c] rounded"
-          >
+          <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-[#cccccc] hover:bg-[#3c3c3c] rounded">
             {batchResult ? "关闭" : "取消"}
           </button>
           <button

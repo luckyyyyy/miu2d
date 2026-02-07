@@ -111,6 +111,9 @@ export const ResourceBasePaths: Record<string, string> = {
   obj_open_sound: "Content/sound",
   obj_opened_sound: "Content/sound",
   obj_closed_sound: "Content/sound",
+
+  // 头像资源（asf/portrait/）
+  portrait_image: "asf/portrait",
   // ObjResource 页面使用的字段名（objResource_xxx_sound）
   objResource_common_sound: "Content/sound",
   objResource_open_sound: "Content/sound",

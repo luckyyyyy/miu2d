@@ -288,3 +288,46 @@ export const objResources = pgTable("obj_resources", {
 }, (t) => [
   unique("obj_resources_game_id_key_unique").on(t.gameId, t.key)
 ]);
+
+/**
+ * 玩家角色表
+ * 存储玩家角色配置（原 save/game/PlayerX.ini）
+ * 包括主角（Player0）和队伍同伴（Player1 等）
+ * 类型定义在 @miu2d/types 中，供引擎、前端、后端共用
+ */
+export const players = pgTable("players", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  /** 所属游戏（索引字段） */
+  gameId: uuid("game_id").references(() => games.id, { onDelete: "cascade" }).notNull(),
+  /** 唯一标识符（文件名如 Player0.ini，gameId + key 唯一） */
+  key: text("key").notNull(),
+  /** 角色名称（索引字段，便于搜索） */
+  name: text("name").notNull(),
+  /** 角色索引（Player0=0, Player1=1 ...） */
+  index: integer("index").notNull().default(0),
+  /** 完整角色配置（JSONB，存储 PlayerBase 类型的所有数据） */
+  data: jsonb("data").notNull(),
+  /** 创建时间 */
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  /** 更新时间 */
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow()
+}, (t) => [
+  unique("players_game_id_key_unique").on(t.gameId, t.key)
+]);
+
+/**
+ * 对话头像映射表
+ * 存储 HeadFile.ini 中的 idx -> ASF 文件名映射
+ * 每个游戏一条记录，data 字段存 PortraitEntry[] 数组
+ */
+export const portraits = pgTable("portraits", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  /** 所属游戏（唯一，每个游戏只有一条记录） */
+  gameId: uuid("game_id").references(() => games.id, { onDelete: "cascade" }).notNull().unique(),
+  /** 头像映射数据（JSONB，存储 PortraitEntry[] 数组） */
+  data: jsonb("data").notNull(),
+  /** 创建时间 */
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  /** 更新时间 */
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow()
+});

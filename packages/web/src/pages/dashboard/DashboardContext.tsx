@@ -34,11 +34,6 @@ interface DashboardContextType {
   currentGame: Game | null;
   setCurrentGame: (game: Game | null) => void;
 
-  // 侧边栏状态
-  sidebarCollapsed: boolean;
-  toggleSidebar: () => void;
-  setSidebarCollapsed: (collapsed: boolean) => void;
-
   // 展开的菜单节点
   expandedNodes: Set<string>;
   toggleNode: (nodeId: string) => void;
@@ -67,7 +62,6 @@ export function DashboardProvider({
   initialGame = null,
 }: DashboardProviderProps) {
   const [currentGame, setCurrentGame] = useState<Game | null>(initialGame);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
   const [activeModule, setActiveModule] = useState<string | null>("game-settings");
 
@@ -87,10 +81,6 @@ export function DashboardProvider({
       editCacheRef.current.clear();
     },
   };
-
-  const toggleSidebar = useCallback(() => {
-    setSidebarCollapsed((prev) => !prev);
-  }, []);
 
   const toggleNode = useCallback((nodeId: string) => {
     setExpandedNodes((prev) => {
@@ -119,9 +109,6 @@ export function DashboardProvider({
   const value: DashboardContextType = {
     currentGame,
     setCurrentGame,
-    sidebarCollapsed,
-    toggleSidebar,
-    setSidebarCollapsed,
     expandedNodes,
     toggleNode,
     expandNode,

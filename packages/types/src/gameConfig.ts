@@ -190,12 +190,6 @@ export type PlayerCombat = z.infer<typeof PlayerCombatSchema>;
  * 主角完整配置
  */
 export const PlayerConfigSchema = z.object({
-  /** 默认主角名称 */
-  name: z.string().default("杨影枫"),
-  /** 默认主角外观配置文件 */
-  npcIni: z.string().default("z-杨影枫.ini"),
-  /** 初始属性 */
-  initialStats: PlayerInitialStatsSchema,
   /** 体力消耗 */
   thewCost: PlayerThewCostSchema,
   /** 自然恢复 */
@@ -220,9 +214,11 @@ export const GameConfigDataSchema = z.object({
   gameVersion: z.string().default("1.0.0"),
   /** 游戏描述 */
   gameDescription: z.string().default(""),
-  /** 新游戏触发脚本路径 */
-  newGameScript: z.string().default("script/common/newgame.txt"),
-  /** 主角配置 */
+  /** 游戏主角（players 表中的 key，如 Player0.ini） */
+  playerKey: z.string().default(""),
+  /** 新游戏触发脚本内容 */
+  newGameScript: z.string().default(""),
+  /** 游戏设置 */
   player: PlayerConfigSchema,
   /** 掉落系统配置 */
   drop: DropConfigSchema,
@@ -303,21 +299,6 @@ export function createDefaultDropConfig(): DropConfig {
  */
 export function createDefaultPlayerConfig(): PlayerConfig {
   return {
-    name: "杨影枫",
-    npcIni: "z-杨影枫.ini",
-    initialStats: {
-      life: 1000,
-      lifeMax: 1000,
-      mana: 1000,
-      manaMax: 1000,
-      thew: 1000,
-      thewMax: 1000,
-      attack: 100,
-      defend: 10,
-      evade: 10,
-      level: 1,
-      levelUpExp: 100,
-    },
     thewCost: {
       runCost: 1,
       attackCost: 5,
@@ -348,7 +329,8 @@ export function createDefaultGameConfig(): GameConfigData {
     gameName: "月影传说",
     gameVersion: "1.0.0",
     gameDescription: "",
-    newGameScript: "script/common/newgame.txt",
+    playerKey: "",
+    newGameScript: "",
     player: createDefaultPlayerConfig(),
     drop: createDefaultDropConfig(),
   };

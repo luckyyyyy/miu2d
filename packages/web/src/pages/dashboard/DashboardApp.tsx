@@ -8,14 +8,10 @@ import { DashboardLayout } from "./DashboardLayout";
 import { DashboardHome } from "./DashboardHome";
 
 // 游戏编辑
-import {
-  NewGameScriptPage,
-  PlayerConfigPage,
-} from "./modules/GameSettingsPages";
 import { GameGlobalConfigPage } from "./modules/gameConfig";
 
-// 角色编辑
-import { CharactersListPage, CharacterDetailPage } from "./modules/CharactersPages";
+// 玩家角色编辑
+import { PlayerListPage, PlayerDetailPage } from "./modules/player";
 
 // NPC 编辑
 import { NpcListPage, NpcDetailPage, NpcResourceDetailPage } from "./modules/npc";
@@ -41,8 +37,7 @@ import { MagicListPage, MagicDetailPage } from "./modules/magic";
 // 等级与强度
 import { LevelListPage, LevelDetailPage, StrengthConfigPage } from "./modules/level";
 
-// 脚本编辑
-import { ScriptsPage } from "./modules/ScriptsPages";
+
 
 // 场景编辑
 import {
@@ -101,16 +96,17 @@ export function DashboardApp() {
 
         {/* 游戏编辑 */}
         <Route path="game">
-          <Route index element={<Navigate to="config" replace />} />
-          <Route path="config" element={<GameGlobalConfigPage />} />
-          <Route path="newgame" element={<NewGameScriptPage />} />
-          <Route path="player" element={<PlayerConfigPage />} />
+          <Route index element={<Navigate to="basic" replace />} />
+          <Route path=":configTab" element={<GameGlobalConfigPage />} />
         </Route>
 
         {/* 角色编辑 */}
-        <Route path="characters">
-          <Route index element={<CharactersListPage />} />
-          <Route path=":characterId" element={<CharacterDetailPage />} />
+        <Route path="player">
+          <Route index element={<PlayerListPage />} />
+          <Route path="new" element={<Navigate to="basic" replace />} />
+          <Route path="new/:tab" element={<PlayerDetailPage />} />
+          <Route path=":playerId" element={<Navigate to="basic" replace />} />
+          <Route path=":playerId/:tab" element={<PlayerDetailPage />} />
         </Route>
 
         {/* NPC 编辑 */}
@@ -157,9 +153,6 @@ export function DashboardApp() {
           <Route path=":magicId" element={<Navigate to="basic" replace />} />
           <Route path=":magicId/:tab" element={<MagicDetailPage />} />
         </Route>
-
-        {/* 通用脚本编辑 */}
-        <Route path="scripts/*" element={<ScriptsPage />} />
 
         {/* 场景编辑 */}
         <Route path="scenes">

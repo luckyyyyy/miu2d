@@ -246,6 +246,20 @@ export const SCRIPT_COMMANDS: Array<{
 export const COMMAND_NAMES = SCRIPT_COMMANDS.map(cmd => cmd.name);
 
 /**
+ * 控制流关键字（蓝色高亮）
+ * If/Goto/Return 等属于控制流，其余命令作为函数（黄色高亮）
+ */
+const CONTROL_FLOW_KEYWORDS = new Set([
+  "If", "Goto", "Return", "Assign", "Add", "Sub",
+]);
+
+/** 控制流关键字名称列表 */
+export const KEYWORD_NAMES = COMMAND_NAMES.filter(n => CONTROL_FLOW_KEYWORDS.has(n));
+
+/** 函数命令名称列表（非控制流） */
+export const FUNCTION_NAMES = COMMAND_NAMES.filter(n => !CONTROL_FLOW_KEYWORDS.has(n));
+
+/**
  * 内置变量
  */
 export const BUILTIN_VARIABLES = [
@@ -354,8 +368,10 @@ export function registerJxqyScriptLanguage(monaco: MonacoType): void {
 
   // 设置语法高亮 (Monarch tokenizer)
   monaco.languages.setMonarchTokensProvider(JXQY_SCRIPT_LANGUAGE_ID, {
-    // 命令名称（不区分大小写）
-    commands: COMMAND_NAMES,
+    // 控制流关键字（蓝色）
+    keywords: KEYWORD_NAMES,
+    // 函数命令（黄色）
+    functions: FUNCTION_NAMES,
 
     tokenizer: {
       root: [
@@ -371,12 +387,13 @@ export function registerJxqyScriptLanguage(monaco: MonacoType): void {
         // 变量 $VarName
         [/\$[a-zA-Z_][a-zA-Z0-9_]*/, "variable"],
 
-        // 命令名称
+        // 关键字 & 函数命令
         [
           /[a-zA-Z_][a-zA-Z0-9_]*/,
           {
             cases: {
-              "@commands": "keyword",
+              "@keywords": "keyword",
+              "@functions": "function",
               "@default": "identifier",
             },
           },
@@ -575,10 +592,11 @@ export function defineJxqyScriptTheme(monaco: MonacoType): void {
     inherit: true,
     rules: [
       { token: "comment", foreground: "6A9955", fontStyle: "italic" },
-      { token: "keyword", foreground: "569CD6", fontStyle: "bold" },
+      { token: "keyword", foreground: "C586C0" },
+      { token: "function", foreground: "DCDCAA" },
       { token: "type.identifier", foreground: "4EC9B0" },
       { token: "type", foreground: "4EC9B0" },
-      { token: "variable", foreground: "C586C0" },
+      { token: "variable", foreground: "9CDCFE" },
       { token: "string", foreground: "CE9178" },
       { token: "number", foreground: "B5CEA8" },
       { token: "operator", foreground: "D4D4D4" },

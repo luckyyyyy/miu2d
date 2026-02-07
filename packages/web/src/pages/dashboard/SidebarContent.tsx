@@ -10,11 +10,47 @@
  * - GoodsListPanel: 物品列表面板
  * - NpcListPanel: NPC 列表面板
  * - ObjListPanel: Object 列表面板
- * - GameModulesPanel: 游戏模块聚合面板（含二级 tab 导航）
+ * - ModuleNav: 共享的分组导航组件（游戏编辑 + 游戏模块共用）
  */
 import { useParams, useLocation } from "react-router-dom";
-import { SidebarPanel, TreeView, ListPanel, gameSettingsTree, scenesTree, statisticsTree } from "./sidebar/SidebarShared";
+import { SidebarPanel, TreeView, ListPanel, scenesTree, statisticsTree } from "./sidebar/SidebarShared";
+import { SectionedModuleNav, type ModuleNavSection } from "./sidebar/ModuleNav";
 import { GameModulesPanel } from "./sidebar/GameModulesPanel";
+import { PlayerListPanel } from "./sidebar/PlayerListPanel";
+
+/** 游戏编辑分组导航 */
+const gameEditSections: ModuleNavSection[] = [
+  {
+    label: "基础信息",
+    accent: "amber",
+    items: [
+      { id: "basic", label: "基础信息", path: "basic" },
+      { id: "newgame", label: "新游戏脚本", path: "newgame" },
+      { id: "portrait", label: "对话头像", path: "portrait" },
+    ],
+  },
+  {
+    label: "游戏设置",
+    accent: "blue",
+    items: [
+      { id: "player-speed", label: "移动速度", path: "player-speed" },
+      { id: "player-thew", label: "体力消耗", path: "player-thew" },
+      { id: "player-restore", label: "自然恢复", path: "player-restore" },
+      { id: "player-combat", label: "战斗参数", path: "player-combat" },
+    ],
+  },
+  {
+    label: "掉落系统",
+    accent: "emerald",
+    items: [
+      { id: "drop-probability", label: "掉落概率", path: "drop-probability" },
+      { id: "drop-equip", label: "装备等级映射", path: "drop-equip" },
+      { id: "drop-money", label: "金钱掉落", path: "drop-money" },
+      { id: "drop-drug", label: "药品掉落", path: "drop-drug" },
+      { id: "drop-boss", label: "Boss 加成", path: "drop-boss" },
+    ],
+  },
+];
 
 export function SidebarContent() {
   const { gameId } = useParams();
@@ -30,23 +66,12 @@ export function SidebarContent() {
     case "game":
       return (
         <SidebarPanel title="游戏编辑">
-          <TreeView nodes={gameSettingsTree} basePath={`${basePath}/game`} />
+          <SectionedModuleNav sections={gameEditSections} basePath={`${basePath}/game`} />
         </SidebarPanel>
       );
 
-    case "characters":
-      return (
-        <ListPanel
-          title="角色列表"
-          basePath={`${basePath}/characters`}
-          items={[
-            { id: "player", name: "主角" },
-            { id: "partner1", name: "仙儿" },
-            { id: "partner2", name: "月儿" },
-          ]}
-          onAdd={() => console.log("添加角色")}
-        />
-      );
+    case "player":
+      return <PlayerListPanel basePath={`${basePath}/player`} />;
 
     case "game-modules":
     case "npcs":
@@ -56,27 +81,6 @@ export function SidebarContent() {
     case "shops":
     case "levels":
       return <GameModulesPanel basePath={basePath} />;
-
-    case "scripts":
-      return (
-        <SidebarPanel title="通用脚本">
-          <TreeView
-            nodes={[
-              {
-                id: "common-scripts",
-                label: "common",
-                icon: "folder",
-                children: [
-                  { id: "init", label: "init.txt", path: "common/init" },
-                  { id: "utils", label: "utils.txt", path: "common/utils" },
-                ],
-              },
-              { id: "newgame", label: "newgame.txt", path: "newgame", icon: "file" },
-            ]}
-            basePath={`${basePath}/scripts`}
-          />
-        </SidebarPanel>
-      );
 
     case "scenes":
       return (

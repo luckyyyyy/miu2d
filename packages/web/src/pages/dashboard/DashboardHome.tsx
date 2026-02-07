@@ -13,7 +13,7 @@ export function DashboardHome() {
 
   const quickLinks = [
     { icon: "game", label: "游戏配置", path: `${basePath}/game/config`, color: "#0098ff" },
-    { icon: "character", label: "角色编辑", path: `${basePath}/characters`, color: "#4ec9b0" },
+    { icon: "character", label: "玩家角色", path: `${basePath}/player`, color: "#4ec9b0" },
     { icon: "npc", label: "NPC编辑", path: `${basePath}/npcs`, color: "#dcdcaa" },
     { icon: "map", label: "场景编辑", path: `${basePath}/scenes`, color: "#ce9178" },
     { icon: "magic", label: "武功编辑", path: `${basePath}/magic`, color: "#c586c0" },

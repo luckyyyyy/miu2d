@@ -10,6 +10,10 @@ export type { LazyAsfIconProps } from "./LazyAsfIcon";
 export { NumberInput } from "./NumberInput";
 export type { NumberInputProps } from "./NumberInput";
 
+// Script Editor - Monaco 脚本编辑器
+export { ScriptEditor } from "./ScriptEditor";
+export type { ScriptEditorProps } from "./ScriptEditor";
+
 // Debug Panel - 开发调试面板
 export { DebugPanel } from "./DebugPanel/index";
 export type {

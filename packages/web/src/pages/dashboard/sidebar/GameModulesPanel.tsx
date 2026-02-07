@@ -1,9 +1,8 @@
 /**
- * 游戏模块面板 - 上方显示子模块切换 tab，下方显示对应子模块面板
+ * 游戏模块面板 - 左侧分组导航（与游戏编辑共用 SectionedModuleNav）+ 右侧子模块列表面板
  */
-import { NavLink, useLocation } from "react-router-dom";
-import { useDashboard } from "../DashboardContext";
-import { DashboardIcons } from "../icons";
+import { useLocation } from "react-router-dom";
+import { SectionedModuleNav, type ModuleNavSection } from "./ModuleNav";
 import { NpcListPanel } from "./NpcListPanel";
 import { MagicListPanel } from "./MagicListPanel";
 import { GoodsListPanel } from "./GoodsListPanel";
@@ -11,56 +10,42 @@ import { ObjListPanel } from "./ObjListPanel";
 import { ShopListPanel } from "./ShopListPanel";
 import { LevelListPanel } from "./LevelListPanel";
 
-// 游戏模块二级导航项
-const gameModuleNavItems = [
-  { id: "npcs", label: "NPC", path: "npcs", icon: "npc" as const },
-  { id: "magic", label: "武功", path: "magic", icon: "magic" as const },
-  { id: "goods", label: "物品", path: "goods", icon: "goods" as const },
-  { id: "objs", label: "物件", path: "objs", icon: "obj" as const },
-  { id: "shops", label: "商店", path: "shops", icon: "shop" as const },
-  { id: "levels", label: "等级", path: "levels", icon: "level" as const },
+/** 游戏模块分组导航（与游戏编辑共用 SectionedModuleNav 组件） */
+const gameModuleSections: ModuleNavSection[] = [
+  {
+    label: "战斗实体",
+    accent: "blue",
+    items: [
+      { id: "npcs", label: "NPC 管理", path: "npcs" },
+      { id: "magic", label: "武功管理", path: "magic" },
+    ],
+  },
+  {
+    label: "物品系统",
+    accent: "emerald",
+    items: [
+      { id: "goods", label: "物品管理", path: "goods" },
+      { id: "objs", label: "物件管理", path: "objs" },
+      { id: "shops", label: "商店管理", path: "shops" },
+    ],
+  },
+  {
+    label: "成长系统",
+    accent: "rose",
+    items: [
+      { id: "levels", label: "等级配置", path: "levels" },
+    ],
+  },
 ];
 
-/** 游戏模块二级导航 tab 栏 */
-function GameModulesTabs({ basePath }: { basePath: string }) {
-  const location = useLocation();
-  const pathParts = location.pathname.split("/").filter(Boolean);
-  const currentModule = pathParts[2];
-
-  return (
-    <div className="flex flex-wrap gap-1 p-2 border-b border-[#1e1e1e] bg-[#252526]">
-      {gameModuleNavItems.map((item) => {
-        const isActive = currentModule === item.id;
-        return (
-          <NavLink
-            key={item.id}
-            to={`${basePath}/${item.path}`}
-            className={`flex items-center gap-1 rounded px-2 py-1 text-xs transition-colors ${
-              isActive
-                ? "bg-[#094771] text-white"
-                : "text-[#cccccc] hover:bg-[#3c3c3c]"
-            }`}
-          >
-            <span className="scale-75">{DashboardIcons[item.icon]}</span>
-            <span>{item.label}</span>
-          </NavLink>
-        );
-      })}
-    </div>
-  );
-}
-
-/** 游戏模块面板 - 上方显示子模块切换 tab，下方显示对应子模块面板 */
+/** 游戏模块面板 - 左侧分组导航 + 右侧子模块列表面板 */
 export function GameModulesPanel({ basePath }: { basePath: string }) {
-  const { sidebarCollapsed } = useDashboard();
   const location = useLocation();
-
-  if (sidebarCollapsed) return null;
 
   const pathParts = location.pathname.split("/").filter(Boolean);
   const currentModule = pathParts[2]; // dashboard/gameId/module
 
-  // 渲染当前子模块的面板内容（不含外壳）
+  // 渲染当前子模块的面板内容
   const renderSubPanel = () => {
     switch (currentModule) {
       case "npcs":
@@ -81,14 +66,19 @@ export function GameModulesPanel({ basePath }: { basePath: string }) {
   };
 
   return (
-    <div className="flex h-full flex-col">
-      {/* 二级导航 tab - 固定在顶部 */}
-      <div className="w-60 shrink-0 bg-[#252526] border-r border-[#1e1e1e]">
-        <GameModulesTabs basePath={basePath} />
+    <div className="flex h-full flex-row">
+      {/* 左侧：分组导航（与游戏编辑同组件，宽度统一 w-60） */}
+      <div className="w-60 shrink-0 flex flex-col bg-[#252526] border-r border-[#1e1e1e]">
+        <div className="flex h-9 items-center px-4 text-xs font-medium uppercase tracking-wide text-[#bbbbbb] border-b border-[#1e1e1e]">
+          游戏模块
+        </div>
+        <div className="flex-1 overflow-y-auto">
+          <SectionedModuleNav sections={gameModuleSections} basePath={basePath} />
+        </div>
       </div>
 
-      {/* 子模块面板 */}
-      <div className="flex-1 min-h-0">
+      {/* 右侧：子模块列表面板 */}
+      <div className="flex-1 min-w-0">
         {renderSubPanel()}
       </div>
     </div>

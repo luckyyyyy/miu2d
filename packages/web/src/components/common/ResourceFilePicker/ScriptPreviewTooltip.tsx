@@ -124,7 +124,7 @@ export function ScriptPreviewTooltip({ gameSlug, path }: ScriptPreviewTooltipPro
           height="100%"
           language={language}
           value={content || ""}
-          theme="vs-dark"
+          theme="jxqy-script-theme"
           options={{
             readOnly: true,
             minimap: { enabled: false },

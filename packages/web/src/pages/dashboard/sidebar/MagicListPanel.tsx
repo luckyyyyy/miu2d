@@ -10,7 +10,7 @@ import { trpc } from "../../../lib/trpc";
 import { LazyAsfIcon } from "../../../components/common/LazyAsfIcon";
 
 export function MagicListPanel({ basePath }: { basePath: string }) {
-  const { currentGame, sidebarCollapsed } = useDashboard();
+  const { currentGame } = useDashboard();
   const navigate = useNavigate();
   const gameId = currentGame?.id;
   const [showImportModal, setShowImportModal] = useState(false);
@@ -45,10 +45,6 @@ export function MagicListPanel({ basePath }: { basePath: string }) {
       }
     },
   });
-
-  if (sidebarCollapsed) {
-    return null;
-  }
 
   return (
     <>
