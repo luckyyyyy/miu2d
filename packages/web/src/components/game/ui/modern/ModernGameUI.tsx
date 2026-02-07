@@ -17,7 +17,7 @@ import type {
   UISelectionState,
   UIShopState,
   UITimerState,
-} from "@miu2d/engine/ui/contract";
+} from "@miu2d/engine/gui/contract";
 import type React from "react";
 import { useCallback, useMemo, useState } from "react";
 import type { DragData, EquipSlotType, GoodItemData } from "../classic";

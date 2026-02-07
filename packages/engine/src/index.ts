@@ -53,7 +53,7 @@ export * from "./script";
 // Sprite system (new class-based)
 export * from "./sprite";
 // UI Bridge (for multi-UI support)
-export * from "./ui";
+export * from "./gui";
 export * from "./utils";
 // Weather system
 export * from "./weather";

@@ -21,7 +21,7 @@ import type { Good } from "@miu2d/engine/player/goods";
 import { GoodKind } from "@miu2d/engine/player/goods";
 import { resourceLoader } from "@miu2d/engine/resource/resourceLoader";
 import type { TimerState } from "@miu2d/engine/timer";
-import type { UIEquipSlotName } from "@miu2d/engine/ui/contract";
+import type { UIEquipSlotName } from "@miu2d/engine/gui/contract";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useUIBridge } from "../adapters";
 import type { DragData, EquipSlotType } from "../ui/classic";

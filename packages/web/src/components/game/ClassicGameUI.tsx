@@ -7,7 +7,7 @@
 
 import { logger } from "@miu2d/engine/core/logger";
 import { GoodKind } from "@miu2d/engine/player/goods";
-import type { UIEquipSlotName } from "@miu2d/engine/ui/contract";
+import type { UIEquipSlotName } from "@miu2d/engine/gui/contract";
 import type React from "react";
 import { useCallback } from "react";
 import type { TouchDragData } from "@/contexts";

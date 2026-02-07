@@ -22,7 +22,7 @@ import {
   type UIVideoPlayEvent,
 } from "../core/gameEvents";
 import { logger } from "../core/logger";
-import type { BuyManager, ShopItemInfo } from "../gui/buyManager";
+import type { BuyManager, ShopItemInfo } from "./buyManager";
 import type { MemoListManager } from "../listManager/memoListManager";
 import type { MagicItemInfo } from "../magic/types";
 import type { Good } from "../player/goods/good";

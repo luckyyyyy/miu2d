@@ -27,7 +27,7 @@ import type {
   UIShopState,
   UITimerState,
   UIVideoState,
-} from "@miu2d/engine/ui/contract";
+} from "@miu2d/engine/gui/contract";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 // ============= 返回类型 =============
@@ -381,7 +381,7 @@ export function useUIShop(result: UseUIBridgeResult | null): UIShopState | null 
  */
 export function useUIMemos(
   result: UseUIBridgeResult | null
-): readonly import("@miu2d/engine/ui/contract").UIMemoEntry[] | null {
+): readonly import("@miu2d/engine/gui/contract").UIMemoEntry[] | null {
   return result?.memo?.memos ?? null;
 }
 

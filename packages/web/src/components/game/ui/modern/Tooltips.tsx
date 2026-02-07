@@ -3,7 +3,7 @@
  * 智能定位，避免遮挡
  */
 
-import type { UIGoodData, UIMagicData } from "@miu2d/engine/ui/contract";
+import type { UIGoodData, UIMagicData } from "@miu2d/engine/gui/contract";
 import type React from "react";
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useAsfImage } from "../classic/hooks";
