@@ -1285,6 +1285,9 @@ export class GameEngine implements IEngineContext {
     // 同步渲染器尺寸
     this._renderer?.resize(width, height);
 
+    // 同步天气系统尺寸
+    this.weatherManager.setWindowSize(width, height);
+
     // 重新居中镜头到玩家，确保尺寸变化时玩家始终保持在屏幕中心
     this.centerCameraOnPlayer();
 

@@ -12,7 +12,7 @@
 import type { IRenderer } from "../webgl/IRenderer";
 
 /** 雨滴层级：近/中/远，模拟纵深效果 */
-export const enum RainLayer {
+export enum RainLayer {
   /** 远景雨滴：小、慢、暗 */
   Far = 0,
   /** 中景雨滴 */
@@ -21,14 +21,14 @@ export const enum RainLayer {
   Near = 2,
 }
 
-/** 各层级参数配置 */
+/** 各层级参数配置（降低透明度，增加尺寸随机） */
 const LAYER_CONFIG = [
-  // Far
-  { speedMin: 600, speedMax: 800, lengthMin: 8, lengthMax: 14, width: 1, alphaMin: 0.12, alphaMax: 0.22 },
-  // Mid
-  { speedMin: 900, speedMax: 1200, lengthMin: 14, lengthMax: 22, width: 1, alphaMin: 0.2, alphaMax: 0.35 },
-  // Near
-  { speedMin: 1300, speedMax: 1700, lengthMin: 20, lengthMax: 32, width: 2, alphaMin: 0.3, alphaMax: 0.5 },
+  // Far — 远景极淡
+  { speedMin: 500, speedMax: 900, lengthMin: 5, lengthMax: 16, widthMin: 0.5, widthMax: 1, alphaMin: 0.06, alphaMax: 0.14 },
+  // Mid — 中景半透明
+  { speedMin: 800, speedMax: 1300, lengthMin: 10, lengthMax: 26, widthMin: 0.8, widthMax: 1.5, alphaMin: 0.1, alphaMax: 0.22 },
+  // Near — 近景也不要太亮
+  { speedMin: 1200, speedMax: 1800, lengthMin: 16, lengthMax: 36, widthMin: 1, widthMax: 2, alphaMin: 0.15, alphaMax: 0.32 },
 ] as const;
 
 /** 风向角度（弧度），轻微向右偏 ≈ 5° */
@@ -70,15 +70,19 @@ export class RainDrop {
     const cfg = LAYER_CONFIG[layer];
     this.speed = cfg.speedMin + Math.random() * (cfg.speedMax - cfg.speedMin);
     this.length = cfg.lengthMin + Math.random() * (cfg.lengthMax - cfg.lengthMin);
-    this.width = cfg.width;
+    this.width = cfg.widthMin + Math.random() * (cfg.widthMax - cfg.widthMin);
 
     // 风向分解
     this.windSpeedX = this.speed * WIND_SIN;
     this.windSpeedY = this.speed * WIND_COS;
 
-    // 随机透明度，颜色偏冷色调
+    // 随机透明度，颜色偏冷色调，更通透
     const alpha = cfg.alphaMin + Math.random() * (cfg.alphaMax - cfg.alphaMin);
-    this.fillStyle = `rgba(200,210,225,${alpha.toFixed(2)})`;
+    // 色值也加点随机：180-210, 200-220, 220-240
+    const r = 180 + Math.floor(Math.random() * 30);
+    const g = 200 + Math.floor(Math.random() * 20);
+    const b = 220 + Math.floor(Math.random() * 20);
+    this.fillStyle = `rgba(${r},${g},${b},${alpha.toFixed(2)})`;
   }
 
   /**
@@ -103,14 +107,14 @@ export class RainDrop {
       color: this.fillStyle,
     });
 
-    // 近景雨滴加一小段更亮的头部（模拟水滴反光）
+    // 近景雨滴加一小段更亮的头部（模拟水滴反光，降低亮度）
     if (this.layer === RainLayer.Near) {
       renderer.fillRect({
         x: this.x,
         y: this.y + dy * 0.85,
         width: this.width,
         height: Math.min(4, dy * 0.15),
-        color: "rgba(230,235,245,0.45)",
+        color: "rgba(220,228,240,0.25)",
       });
     }
   }

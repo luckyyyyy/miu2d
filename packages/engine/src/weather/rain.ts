@@ -12,7 +12,6 @@
  */
 
 import type { AudioManager } from "../audio";
-import { ResourcePath } from "../config/resourcePaths";
 import { logger } from "../core/logger";
 import type { IRenderer } from "../webgl/IRenderer";
 import { RainDrop, RainLayer } from "./raindrop";
@@ -21,13 +20,16 @@ import { ScreenDroplet, clearDropletTextureCache } from "./screenDroplet";
 // 下雨时的地图/精灵颜色（灰色）
 export const RAIN_COLOR = { r: 128, g: 128, b: 128 };
 
-// 闪电持续时间（毫秒）
-const FLASH_MILLISECONDS = 100;
+// 闪电/雷声参数
+const THUNDER_INTERVAL_MIN = 5; // 两次雷暴最小间隔（秒）
+const THUNDER_INTERVAL_MAX = 14; // 两次雷暴最大间隔（秒）
+const THUNDER_FIRST_MIN = 2; // 开始下雨后首次雷暴最小延迟
+const THUNDER_FIRST_MAX = 7; // 开始下雨后首次雷暴最大延迟
 
-// 各层雨滴数量
-const DROP_COUNT_FAR = 80;
-const DROP_COUNT_MID = 60;
-const DROP_COUNT_NEAR = 35;
+// 各层雨滴数量（远景多一些增加密度感，近景少一些避免太密）
+const DROP_COUNT_FAR = 90;
+const DROP_COUNT_MID = 55;
+const DROP_COUNT_NEAR = 28;
 
 // 摄像机视差系数：摄像机移动时不同层的偏移比例
 const PARALLAX_FAR = 0.05;
@@ -46,9 +48,10 @@ interface Splash {
   radius: number;
 }
 
-// 屏幕水滴参数
-const MAX_SCREEN_DROPLETS = 18;
-const DROPLET_SPAWN_INTERVAL = 0.4; // 秒
+// 屏幕水滴参数（数量更多，间隔随机化）
+const MAX_SCREEN_DROPLETS = 22;
+const DROPLET_SPAWN_INTERVAL_MIN = 0.2; // 秒
+const DROPLET_SPAWN_INTERVAL_MAX = 0.7; // 秒
 
 export class Rain {
   /** 各层雨滴 */
@@ -66,17 +69,19 @@ export class Rain {
   /** 是否正在下雨 */
   private _isRaining: boolean = false;
 
-  /** 累计时间（用于闪电效果） */
-  private elapsedMilliSeconds: number = 0;
-
-  /** 是否正在闪电 */
+  /** 是否正在闪电（当前帧） */
   private isInFlash: boolean = false;
 
-  /** 音频管理器 */
-  private audioManager: AudioManager | null = null;
+  // 闪电爆发系统：2-4下快速闪电 → 间隔 → 雷声
+  private thunderCooldown = 0; // 下次雷暴倒计时（秒）
+  private flashSchedule: { onAt: number; offAt: number }[] = [];
+  private thunderPlayAt = -1;
+  private sequenceTimer = 0;
+  private sequenceActive = false;
+  private thunderPlayed = false;
 
-  /** 雨声 HTML Audio 元素 */
-  private rainSoundElement: HTMLAudioElement | null = null;
+  /** 音频管理器 */
+  private audioManager: AudioManager;
 
   /** 屏幕尺寸 */
   private windowWidth: number = 800;
@@ -91,7 +96,7 @@ export class Rain {
     return this._isRaining;
   }
 
-  constructor(audioManager: AudioManager | null = null) {
+  constructor(audioManager: AudioManager) {
     this.audioManager = audioManager;
   }
 
@@ -105,14 +110,15 @@ export class Rain {
 
   /**
    * 创建一个雨滴，随机分布在屏幕范围上方
+   * 增加了更大的水平随机范围和垂直分散
    */
   private createDrop(layer: RainLayer, spreadVertically: boolean): RainDrop {
-    // 水平位置：略超出屏幕边界（风向补偿）
-    const x = Math.random() * (this.windowWidth + 60) - 30;
-    // 垂直位置：初始化时分散在整个屏幕，之后只在顶部生成
+    // 水平位置：超出屏幕边界更多（保证边缘也有雨滴）
+    const x = Math.random() * (this.windowWidth + 120) - 60;
+    // 垂直位置：初始化时分散在整个屏幕+上方区域，之后只在顶部生成
     const y = spreadVertically
-      ? Math.random() * this.windowHeight - this.windowHeight * 0.1
-      : -(Math.random() * this.windowHeight * 0.3);
+      ? Math.random() * (this.windowHeight * 1.2) - this.windowHeight * 0.3
+      : -(Math.random() * this.windowHeight * 0.4 + 10);
     return new RainDrop(x, y, layer);
   }
 
@@ -137,42 +143,17 @@ export class Rain {
   }
 
   /**
-   * 播放雨声（循环）
+   * 播放雨声（通过 AudioManager 循环播放）
    */
-  private async playRainSound(): Promise<void> {
-    if (this.rainSoundElement) return;
-
-    const formats = [".ogg", ".mp3", ".wav"];
-    const basePath = ResourcePath.sound("背-下雨");
-
-    for (const format of formats) {
-      try {
-        const audio = new Audio(basePath + format);
-        audio.loop = true;
-        audio.volume = 0.5;
-
-        await audio.play();
-        this.rainSoundElement = audio;
-        logger.log(`[Rain] Rain sound started: ${basePath}${format}`);
-        return;
-      } catch (_e) {
-        // 尝试下一个格式
-      }
-    }
-
-    logger.warn("[Rain] Could not play rain sound");
+  private playRainSound(): void {
+    this.audioManager.playAmbientLoop("背-下雨");
   }
 
   /**
    * 停止雨声
    */
   private stopRainSound(): void {
-    if (this.rainSoundElement) {
-      this.rainSoundElement.pause();
-      this.rainSoundElement.currentTime = 0;
-      this.rainSoundElement = null;
-      logger.log("[Rain] Rain sound stopped");
-    }
+    this.audioManager.stopAmbientLoop();
   }
 
   /**
@@ -185,6 +166,10 @@ export class Rain {
     if (isRain) {
       this.generateRainDrops();
       this.playRainSound();
+      // 首次雷暴延迟
+      this.thunderCooldown = THUNDER_FIRST_MIN + Math.random() * (THUNDER_FIRST_MAX - THUNDER_FIRST_MIN);
+      this.sequenceActive = false;
+      this.isInFlash = false;
     } else {
       this.farDrops = [];
       this.midDrops = [];
@@ -276,13 +261,15 @@ export class Rain {
       }
     }
 
-    // 更新屏幕水滴
+    // 更新屏幕水滴（随机间隔，位置分布更广）
     this.dropletSpawnTimer += deltaTime;
-    if (this.dropletSpawnTimer >= DROPLET_SPAWN_INTERVAL && this.screenDroplets.length < MAX_SCREEN_DROPLETS) {
+    const spawnInterval = DROPLET_SPAWN_INTERVAL_MIN + Math.random() * (DROPLET_SPAWN_INTERVAL_MAX - DROPLET_SPAWN_INTERVAL_MIN);
+    if (this.dropletSpawnTimer >= spawnInterval && this.screenDroplets.length < MAX_SCREEN_DROPLETS) {
       this.dropletSpawnTimer = 0;
-      // 在屏幕上半部随机位置生成水滴
+      // 整个屏幕范围内随机生成，但上半部概率更高
       const dx = Math.random() * this.windowWidth;
-      const dy = Math.random() * this.windowHeight * 0.6;
+      // 用平方分布让上半部更密集
+      const dy = Math.pow(Math.random(), 0.7) * this.windowHeight * 0.85;
       this.screenDroplets.push(new ScreenDroplet(dx, dy));
     }
 
@@ -293,26 +280,75 @@ export class Rain {
       }
     }
 
-    // 闪电效果：1/300 概率触发
-    if (Math.random() < 1 / 300) {
-      this.isInFlash = true;
-      this.elapsedMilliSeconds = 0;
-
-      if (this.audioManager) {
-        this.audioManager.playSound("背-打雷.wav");
-      }
-    }
-
-    // 处理闪电持续时间
-    if (this.isInFlash) {
-      this.elapsedMilliSeconds += deltaTime * 1000;
-      if (this.elapsedMilliSeconds >= FLASH_MILLISECONDS) {
-        this.elapsedMilliSeconds = 0;
-        this.isInFlash = false;
-      }
-    }
+    // 闪电/雷声爆发系统
+    this.updateLightning(deltaTime);
 
     return { isFlashing: this.isInFlash };
+  }
+
+  /**
+   * 生成一次闪电序列：2-4 下快闪 + 间隔 + 雷声
+   */
+  private generateLightningSequence(): void {
+    const flashCount = 2 + Math.floor(Math.random() * 3); // 2-4 下闪电
+    this.flashSchedule = [];
+    let t = 0;
+
+    for (let i = 0; i < flashCount; i++) {
+      // 每下闪电持续 50-130ms
+      const flashDur = 0.05 + Math.random() * 0.08;
+      this.flashSchedule.push({ onAt: t, offAt: t + flashDur });
+      t += flashDur;
+
+      // 闪电之间的暗间隔 40-120ms（最后一下后不加）
+      if (i < flashCount - 1) {
+        t += 0.04 + Math.random() * 0.08;
+      }
+    }
+
+    // 雷声在最后一下闪电结束后 0.15-0.4s 响起（模拟光速>音速）
+    this.thunderPlayAt = t + 0.15 + Math.random() * 0.25;
+    this.sequenceTimer = 0;
+    this.sequenceActive = true;
+    this.thunderPlayed = false;
+  }
+
+  /**
+   * 更新闪电/雷声状态
+   */
+  private updateLightning(deltaTime: number): void {
+    if (this.sequenceActive) {
+      this.sequenceTimer += deltaTime;
+
+      // 检查当前帧是否处于任一闪光区间
+      this.isInFlash = false;
+      for (const flash of this.flashSchedule) {
+        if (this.sequenceTimer >= flash.onAt && this.sequenceTimer < flash.offAt) {
+          this.isInFlash = true;
+          break;
+        }
+      }
+
+      // 到达雷声时间点，播放雷声
+      if (!this.thunderPlayed && this.sequenceTimer >= this.thunderPlayAt) {
+        this.audioManager.playSound("背-打雷");
+        this.thunderPlayed = true;
+      }
+
+      // 序列结束（雷声后 0.5s 缓冲）
+      if (this.sequenceTimer > this.thunderPlayAt + 0.5) {
+        this.sequenceActive = false;
+        this.isInFlash = false;
+        this.thunderCooldown =
+          THUNDER_INTERVAL_MIN + Math.random() * (THUNDER_INTERVAL_MAX - THUNDER_INTERVAL_MIN);
+      }
+    } else {
+      // 倒计时到下一次雷暴
+      this.thunderCooldown -= deltaTime;
+      if (this.thunderCooldown <= 0) {
+        this.generateLightningSequence();
+      }
+    }
   }
 
   /**
@@ -326,9 +362,9 @@ export class Rain {
     for (const drop of this.midDrops) drop.draw(renderer);
     for (const drop of this.nearDrops) drop.draw(renderer);
 
-    // 绘制溅射粒子
+    // 绘制溅射粒子（更透明）
     for (const splash of this.splashes) {
-      const alpha = (splash.life / splash.maxLife) * 0.4;
+      const alpha = (splash.life / splash.maxLife) * 0.25;
       const r = splash.radius * (1 - splash.life / splash.maxLife);
       renderer.fillRect({
         x: splash.x - r,

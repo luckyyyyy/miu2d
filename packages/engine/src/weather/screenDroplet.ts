@@ -58,28 +58,28 @@ function getOverlayTexture(rx: number, ry: number): OffscreenCanvas {
   ctx.fillRect(0, 0, w, h);
   ctx.restore();
 
-  // 2. 菲涅尔亮边（上亮下暗）
+  // 2. 菲涅尔亮边（更淡，更通透）
   ctx.save();
   ctx.beginPath();
   ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
-  ctx.lineWidth = Math.max(0.6, Math.min(rx, ry) * 0.06);
+  ctx.lineWidth = Math.max(0.5, Math.min(rx, ry) * 0.05);
   const rimGrad = ctx.createLinearGradient(cx, cy - ry, cx, cy + ry);
-  rimGrad.addColorStop(0, "rgba(255,255,255,0.3)");
-  rimGrad.addColorStop(0.35, "rgba(255,255,255,0.15)");
-  rimGrad.addColorStop(0.7, "rgba(255,255,255,0.05)");
-  rimGrad.addColorStop(1, "rgba(255,255,255,0.02)");
+  rimGrad.addColorStop(0, "rgba(255,255,255,0.2)");
+  rimGrad.addColorStop(0.35, "rgba(255,255,255,0.1)");
+  rimGrad.addColorStop(0.7, "rgba(255,255,255,0.03)");
+  rimGrad.addColorStop(1, "rgba(255,255,255,0.01)");
   ctx.strokeStyle = rimGrad;
   ctx.stroke();
   ctx.restore();
 
-  // 3. 镜面高光点（偏左上）
+  // 3. 镜面高光点（更小更淡）
   ctx.save();
   const hlX = cx - rx * 0.28;
   const hlY = cy - ry * 0.32;
-  const hlR = Math.max(1, Math.min(rx, ry) * 0.12);
+  const hlR = Math.max(0.8, Math.min(rx, ry) * 0.1);
   const hlGrad = ctx.createRadialGradient(hlX, hlY, 0, hlX, hlY, hlR);
-  hlGrad.addColorStop(0, "rgba(255,255,255,0.65)");
-  hlGrad.addColorStop(0.35, "rgba(255,255,255,0.2)");
+  hlGrad.addColorStop(0, "rgba(255,255,255,0.45)");
+  hlGrad.addColorStop(0.35, "rgba(255,255,255,0.12)");
   hlGrad.addColorStop(1, "rgba(255,255,255,0)");
   ctx.beginPath();
   ctx.arc(hlX, hlY, hlR, 0, Math.PI * 2);
@@ -146,11 +146,11 @@ export class ScreenDroplet {
   /** 初始垂直半径 */
   readonly baseRy: number;
 
-  /** 当前动态半径（受重力拉伸影响） */
+  /** 当前动态半径（受重力拉伸 + 着陆动画影响） */
   currentRx: number;
   currentRy: number;
 
-  /** 旋转角度（弧度），让每颗水滴朝向不同 */
+  /** 旋转角度（弧度） */
   rotation: number;
 
   /** 全局透明度（用于淡出） */
@@ -163,20 +163,20 @@ export class ScreenDroplet {
   /** 下滑速度（像素/秒），受重力加速 */
   slideSpeed: number;
 
-  /** 重力加速度（像素/秒²） */
+  /** 重力加速度（像素/秒²），每颗水滴不同 */
   private readonly gravity: number;
 
-  /** 累计滑动距离（用于计算形变程度） */
+  /** 累计滑动距离 */
   private slideDistance: number = 0;
 
-  /** 折射放大倍率 1.06 - 1.15 */
+  /** 折射放大倍率 */
   readonly magnification: number;
 
   /** 水痕轨迹 */
   private trail: TrailSegment[] = [];
   private trailAccum: number = 0;
 
-  /** 覆盖层纹理（按 rx,ry 缓存） */
+  /** 覆盖层纹理 */
   private readonly overlay: OffscreenCanvas;
   /** 暗角纹理 */
   private readonly vignette: OffscreenCanvas;
@@ -189,56 +189,88 @@ export class ScreenDroplet {
   /** 稳定期（初始不滑动） */
   private settledTime: number;
 
+  // ===== 着陆动画（splash-in） =====
+  /** 着陆动画进度：0(刚生成) → 1(动画结束)，-1 表示已完成 */
+  private impactProgress: number = 0;
+  /** 着陆动画总时长（秒） */
+  private readonly impactDuration: number;
+
   constructor(x: number, y: number) {
     this.x = x;
     this.y = y;
 
-    // ===== 形状多样性 =====
-    // 基础半径 4-20
-    const baseR = 4 + Math.random() * 16;
+    // ===== 形状多样性（更大的尺寸范围） =====
+    // 大部分小水滴(2-10)，少量中等(10-18)，极少大水滴(18-28)
+    const sizeRand = Math.random();
+    const baseR = sizeRand < 0.5 ? 2 + Math.random() * 8
+      : sizeRand < 0.85 ? 8 + Math.random() * 10
+      : 16 + Math.random() * 12;
 
-    // 随机形状：圆形、竖椭圆、扁椭圆、长条形
     const shapeRand = Math.random();
     let rx: number;
     let ry: number;
-    if (shapeRand < 0.25) {
-      // 近似圆形
+    if (shapeRand < 0.3) {
+      // 近似圆形（小水滴常见）
       rx = baseR;
-      ry = baseR * (0.95 + Math.random() * 0.1);
-    } else if (shapeRand < 0.55) {
-      // 竖椭圆（较常见，雨滴下落方向）
+      ry = baseR * (0.9 + Math.random() * 0.2);
+    } else if (shapeRand < 0.6) {
+      // 竖椭圆
       rx = baseR;
-      ry = baseR * (1.1 + Math.random() * 0.35);
+      ry = baseR * (1.1 + Math.random() * 0.4);
     } else if (shapeRand < 0.8) {
       // 扁椭圆
-      rx = baseR * (1.1 + Math.random() * 0.25);
+      rx = baseR * (1.1 + Math.random() * 0.3);
       ry = baseR;
     } else {
-      // 长条形（少量大水滴）
-      rx = baseR * 0.7;
-      ry = baseR * (1.4 + Math.random() * 0.4);
+      // 长条形
+      rx = baseR * (0.5 + Math.random() * 0.3);
+      ry = baseR * (1.5 + Math.random() * 0.5);
     }
     this.baseRx = rx;
     this.baseRy = ry;
-    this.currentRx = rx;
-    this.currentRy = ry;
+    // 着陆动画开始时从极小开始
+    this.currentRx = rx * 0.15;
+    this.currentRy = ry * 0.15;
 
-    // 随机旋转角 ±18°
     this.rotation = (Math.random() - 0.5) * 0.63;
 
     this.alpha = 1.0;
-    this.maxLife = 4 + Math.random() * 7;
+
+    // ===== 差异化的生命周期 =====
+    // 小水滴消失快（2-5秒），大水滴持久（6-14秒）
+    const sizeRatio = baseR / 20; // 0-1
+    this.maxLife = 2 + sizeRatio * 5 + Math.random() * 7;
     this.life = this.maxLife;
-    this.slideSpeed = 3 + Math.random() * 10;
-    this.gravity = 8 + Math.random() * 20; // 加速度
-    this.settledTime = 0.8 + Math.random() * 2.5;
+
+    // ===== 差异化的滑动参数 =====
+    // 30% 概率几乎不动（表面张力粘住），70% 正常滑动
+    const stickRand = Math.random();
+    if (stickRand < 0.3) {
+      // 粘住型：极慢滑动
+      this.slideSpeed = 0.5 + Math.random() * 2;
+      this.gravity = 1 + Math.random() * 3;
+      this.settledTime = 2 + Math.random() * 5; // 长稳定期
+    } else if (stickRand < 0.7) {
+      // 正常型
+      this.slideSpeed = 3 + Math.random() * 8;
+      this.gravity = 8 + Math.random() * 15;
+      this.settledTime = 0.5 + Math.random() * 2;
+    } else {
+      // 快速型（大水滴，重力大）
+      this.slideSpeed = 8 + Math.random() * 15;
+      this.gravity = 18 + Math.random() * 30;
+      this.settledTime = 0.2 + Math.random() * 0.8;
+    }
+
     this.magnification = 1.06 + Math.random() * 0.09;
+
+    // 着陆动画时长：0.06-0.12 秒
+    this.impactDuration = 0.06 + Math.random() * 0.06;
 
     this.overlay = getOverlayTexture(this.baseRx, this.baseRy);
     this.vignette = getVignetteTexture(this.baseRx, this.baseRy);
 
-    // 预分配合成 canvas（足够容纳拉伸后的椭圆）
-    const maxR = Math.max(this.baseRx, this.baseRy) * 2.5; // 留足拉伸空间
+    const maxR = Math.max(this.baseRx, this.baseRy) * 2.5;
     this.compSize = Math.ceil(maxR * 2 + 6);
     const comp = createCompositeCanvas(this.compSize, this.compSize);
     if (comp) {
@@ -254,14 +286,37 @@ export class ScreenDroplet {
     this.life -= deltaTime;
     if (this.life <= 0) return false;
 
-    if (this.settledTime > 0) {
-      this.settledTime -= deltaTime;
-      // 稳定期：形状不变，完全不透明
-      this.alpha = 1.0;
+    // ===== 着陆动画阶段 =====
+    if (this.impactProgress >= 0 && this.impactProgress < 1) {
+      this.impactProgress += deltaTime / this.impactDuration;
+      if (this.impactProgress >= 1) {
+        // 动画结束
+        this.impactProgress = -1;
+        this.currentRx = this.baseRx;
+        this.currentRy = this.baseRy;
+      } else {
+        // easeOutBack: 快速膨胀 + 轻微过冲弹跳
+        const t = this.impactProgress;
+        const overshoot = 1.4;
+        const ease = 1 + (overshoot + 1) * Math.pow(t - 1, 3) + overshoot * Math.pow(t - 1, 2);
+        this.currentRx = this.baseRx * ease;
+        this.currentRy = this.baseRy * ease;
+        // 着陆期间透明度从 0 快速到 1
+        this.alpha = Math.min(1, t * 3);
+      }
       return true;
     }
 
-    // === 重力加速 ===
+    // ===== 稳定期 =====
+    if (this.settledTime > 0) {
+      this.settledTime -= deltaTime;
+      this.alpha = 1.0;
+      this.currentRx = this.baseRx;
+      this.currentRy = this.baseRy;
+      return true;
+    }
+
+    // ===== 重力加速 =====
     this.slideSpeed += this.gravity * deltaTime;
 
     const slide = this.slideSpeed * deltaTime;
@@ -269,31 +324,25 @@ export class ScreenDroplet {
     this.x += Math.sin(this.y * 0.03) * 0.12;
     this.slideDistance += slide;
 
-    // === 形状形变：滑动越远越细长 ===
-    // deformFactor: 0 → 1+，表示形变程度
-    // 基于滑动距离，而非时间，这样快速滑动的水滴变形更快
-    const deformThreshold = this.baseRy * 3; // 滑动超过自身3倍高度开始明显变形
+    // ===== 形状形变：滑动越远越细长 =====
+    const deformThreshold = this.baseRy * 3;
     const deformFactor = Math.min(this.slideDistance / deformThreshold, 1.0);
 
-    // 水平方向：越滑越窄（最小到原始的 30%）
     this.currentRx = this.baseRx * (1.0 - deformFactor * 0.7);
-    // 垂直方向：越滑越长（最大到原始的 200%）
     this.currentRy = this.baseRy * (1.0 + deformFactor * 1.0);
 
-    // 旋转逐渐趋向垂直（重力拉直水滴）
+    // 旋转逐渐趋向垂直
     this.rotation *= 1.0 - deltaTime * 1.5;
 
-    // === 透明度：滑动时逐渐变淡 ===
-    // 两阶段：滑动越远越淡 + 生命末期淡出
-    const slideAlpha = 1.0 - deformFactor * 0.6; // 形变到最大时还剩 40% 透明度
+    // ===== 透明度 =====
+    const slideAlpha = 1.0 - deformFactor * 0.6;
     const lifeRatio = this.life / this.maxLife;
     const lifeAlpha = lifeRatio < 0.15 ? lifeRatio / 0.15 : 1.0;
     this.alpha = slideAlpha * lifeAlpha;
 
-    // 水滴变得非常细时直接消亡
     if (this.currentRx < 1.5) return false;
 
-    // 水痕（宽度随水滴变窄而变窄）
+    // 水痕
     this.trailAccum += slide;
     if (this.trailAccum >= 4) {
       this.trailAccum = 0;

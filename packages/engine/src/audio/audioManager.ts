@@ -53,6 +53,11 @@ export class AudioManager {
   private loopingSourceNode: AudioBufferSourceNode | null = null;
   private loopingGainNode: GainNode | null = null;
 
+  // 环境循环音效（雨声等，独立于脚步声通道）
+  private ambientLoopFile = "";
+  private ambientLoopSource: AudioBufferSourceNode | null = null;
+  private ambientLoopGain: GainNode | null = null;
+
   // Web Audio
   private audioContext: AudioContext | null = null;
 
@@ -322,6 +327,7 @@ export class AudioManager {
     }
     this.soundInstances.clear();
     this.stopLoopingSound();
+    this.stopAmbientLoop();
   }
 
   // ==================== 循环音效（脚步声） ====================
@@ -407,12 +413,92 @@ export class AudioManager {
     return this.loopingSourceNode !== null;
   }
 
+  // ==================== 环境循环音效（雨声等） ====================
+
+  playAmbientLoop(fileName: string): void {
+    if (!fileName) {
+      this.stopAmbientLoop();
+      return;
+    }
+
+    const hasExt = /\.(wav|mp3|ogg|xnb)$/i.test(fileName);
+    const soundFile = hasExt ? fileName.toLowerCase() : `${fileName.toLowerCase()}.xnb`;
+
+    if (this.ambientLoopFile === soundFile && this.ambientLoopSource) return;
+
+    this.stopAmbientLoop();
+    this.ambientLoopFile = soundFile;
+
+    const soundPath = `${this.soundBasePath}/${soundFile}`;
+    this.startAmbientLoop(soundPath, soundFile);
+  }
+
+  private async startAmbientLoop(path: string, baseName: string): Promise<void> {
+    try {
+      const ctx = this.getAudioContext();
+      if (ctx.state === "suspended") await ctx.resume();
+
+      let buffer: AudioBuffer | null = null;
+      if (!path.toLowerCase().endsWith(".xnb")) {
+        const xnbPath = path.replace(/\.(wav|mp3|ogg)$/i, ".xnb");
+        buffer = await resourceLoader.loadAudio(xnbPath);
+      }
+      if (!buffer) {
+        buffer = await resourceLoader.loadAudio(path);
+      }
+      if (!buffer || this.ambientLoopFile !== baseName) return;
+
+      this.stopAmbientLoopInternal();
+
+      const source = ctx.createBufferSource();
+      source.buffer = buffer;
+      source.loop = true;
+
+      const gain = ctx.createGain();
+      gain.gain.value = this.masterVolume * this.soundVolume;
+
+      source.connect(gain);
+      gain.connect(ctx.destination);
+      source.start(0);
+
+      this.ambientLoopSource = source;
+      this.ambientLoopGain = gain;
+    } catch (e) {
+      logger.warn(`[AudioManager] startAmbientLoop error: ${e}`);
+      this.ambientLoopFile = "";
+    }
+  }
+
+  private stopAmbientLoopInternal(): void {
+    if (this.ambientLoopSource) {
+      try {
+        this.ambientLoopSource.stop();
+      } catch {
+        /* ignore */
+      }
+      this.ambientLoopSource.disconnect();
+      this.ambientLoopSource = null;
+    }
+    if (this.ambientLoopGain) {
+      this.ambientLoopGain.disconnect();
+      this.ambientLoopGain = null;
+    }
+  }
+
+  stopAmbientLoop(): void {
+    this.stopAmbientLoopInternal();
+    this.ambientLoopFile = "";
+  }
+
   // ==================== 音量控制 ====================
 
   setSoundVolume(volume: number): void {
     this.soundVolume = Math.max(0, Math.min(1, volume));
     if (this.loopingGainNode) {
       this.loopingGainNode.gain.value = this.masterVolume * this.soundVolume * 2.5;
+    }
+    if (this.ambientLoopGain) {
+      this.ambientLoopGain.gain.value = this.masterVolume * this.soundVolume;
     }
   }
 
@@ -447,6 +533,9 @@ export class AudioManager {
     }
     if (this.loopingGainNode) {
       this.loopingGainNode.gain.value = this.masterVolume * this.soundVolume * 2.5;
+    }
+    if (this.ambientLoopGain) {
+      this.ambientLoopGain.gain.value = this.masterVolume * this.soundVolume;
     }
     for (const instance of this.sound3DInstances.values()) {
       instance.gainNode.gain.value = this.masterVolume * this.ambientVolume;
@@ -754,6 +843,7 @@ export class AudioManager {
 
     this.stopMusic();
     this.stopLoopingSound();
+    this.stopAmbientLoop();
     this.stopAll3DSounds();
     this.stopAllSounds();
 

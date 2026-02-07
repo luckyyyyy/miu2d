@@ -35,7 +35,7 @@ export class WeatherManager {
     return this._isFlashing;
   }
 
-  constructor(audioManager: AudioManager | null = null) {
+  constructor(audioManager: AudioManager) {
     this.rain = new Rain(audioManager);
     this.snow = new Snow();
   }
