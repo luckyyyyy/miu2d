@@ -35,6 +35,10 @@
 
 // 子系统
 import { AudioManager } from "../audio";
+
+// 帧率控制常量
+const TARGET_FPS = 60;
+const FRAME_INTERVAL = 1000 / TARGET_FPS; // ~16.67ms
 import type { Character } from "../character/character";
 import { ResourcePath, resolveScriptPath } from "../config/resourcePaths";
 import { type IEngineContext, setEngineContext } from "../core/engineContext";
@@ -139,8 +143,6 @@ export class GameEngine implements IEngineContext {
   }
 
   // 帧率控制 - 锁定 60 FPS（与 XNA 版本一致）
-  private static readonly TARGET_FPS = 60;
-  private static readonly FRAME_INTERVAL = 1000 / GameEngine.TARGET_FPS; // ~16.67ms
   private nextFrameTime: number = 0;
 
   // 性能统计
@@ -836,17 +838,17 @@ export class GameEngine implements IEngineContext {
 
     // 更新下一帧目标时间
     // 使用累加方式保持稳定帧率，避免漂移
-    this.nextFrameTime += GameEngine.FRAME_INTERVAL;
+    this.nextFrameTime += FRAME_INTERVAL;
     // 防止掉帧后追帧：如果落后太多，重置到当前时间
-    if (timestamp - this.nextFrameTime > GameEngine.FRAME_INTERVAL * 2) {
-      this.nextFrameTime = timestamp + GameEngine.FRAME_INTERVAL;
+    if (timestamp - this.nextFrameTime > FRAME_INTERVAL * 2) {
+      this.nextFrameTime = timestamp + FRAME_INTERVAL;
     }
 
     // 标记帧开始
     this.performanceStats.beginFrame();
 
     // 固定 deltaTime = 1/60 秒（与 XNA IsFixedTimeStep 一致）
-    const fixedDeltaTime = 1 / GameEngine.TARGET_FPS;
+    const fixedDeltaTime = 1 / TARGET_FPS;
 
     // 更新游戏逻辑
     this.performanceStats.beginUpdate();

@@ -61,8 +61,6 @@ export class Npc extends Character {
     });
   }
 
-
-
   // === Manager 访问（通过 IEngineContext）===
 
   /**
@@ -645,10 +643,6 @@ export class Npc extends Character {
     // 其他受伤反应可以在这里处理
     // MagicToUseWhenBeAttacked 由 MagicManager.characterHited 处理
   }
-
-  // clearFollowTarget() - inherited from Character
-  // setRelation() - inherited from Character (handles follow target clearing)
-  // partnerMoveTo() - inherited from Character
 
   // === Obstacle Check ===
 

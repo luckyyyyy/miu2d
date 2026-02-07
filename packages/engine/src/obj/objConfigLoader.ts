@@ -111,8 +111,6 @@ function convertApiObjToConfig(api: ApiObjData): ObjConfig {
   };
 }
 
-
-
 // ========== 缓存（使用通用 CacheRegistry） ==========
 
 type ObjApiData = NonNullable<ReturnType<typeof getObjsData>>;
@@ -151,12 +149,4 @@ export function getObjConfigFromCache(fileName: string): ObjConfig | null {
 /** 获取 ObjRes 资源映射 */
 export function getObjResFromCache(fileName: string): ObjResInfo | null {
   return objResCacheStore.get(fileName);
-}
-
-export function isObjConfigLoaded(): boolean {
-  return objConfigCacheStore.isLoaded();
-}
-
-export function getAllObjConfigKeys(): string[] {
-  return objConfigCacheStore.allKeys();
 }

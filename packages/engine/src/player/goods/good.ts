@@ -269,8 +269,6 @@ export class Good {
   }
 }
 
-
-
 // ============= 缓存（使用通用 CacheRegistry） =============
 
 type GoodsApiData = NonNullable<ReturnType<typeof getGoodsData>>;
@@ -295,14 +293,6 @@ export function getGood(fileName: string): Good | null {
     logger.warn(`[Good] Not found: ${fileName}`);
   }
   return good;
-}
-
-export function isGoodsLoaded(): boolean {
-  return goodsCacheStore.isLoaded();
-}
-
-export function getAllGoodsKeys(): string[] {
-  return goodsCacheStore.allKeys();
 }
 
 /** 获取所有物品列表（用于调试面板） */

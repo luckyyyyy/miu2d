@@ -9,17 +9,9 @@
  * - neighbors: neighbor tile utilities (邻居瓦片)
  * - math: general math functions (数学工具)
  * - collision: collision detection (碰撞检测)
- * - bezier: Bezier curve calculation (贝塞尔曲线)
  * - iniParser: INI file parsing (INI解析)
- * - encoding: text encoding (文本编码)
- * - edgeDetection: edge detection for sprites (边缘检测)
  * - id: ID generation (ID生成)
  */
-
-// Bezier curve
-export { bezier2D } from "../character/modules/bezier";
-// Binary utilities
-export { getLittleEndianInt, readNullTerminatedString } from "../resource/binaryUtils";
 export type { Rect } from "./collision";
 // Collision detection
 export { isBoxCollide } from "./collision";
@@ -42,10 +34,6 @@ export {
 } from "./direction";
 // Distance calculation
 export { distance, getViewTileDistance } from "./distance";
-// Edge detection
-export { getOuterEdge } from "../sprite/edgeDetection";
-// Encoding
-export { getTextDecoder } from "../resource/encoding";
 // ID generation
 export { generateId } from "./id";
 // INI parser

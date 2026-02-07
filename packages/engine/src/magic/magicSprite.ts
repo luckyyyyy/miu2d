@@ -1,6 +1,6 @@
 /**
  * MagicSprite - 武功精灵类
- * 
+ *
  * 继承自 Sprite，用于表示游戏中的武功特效
  *
  * 架构：
@@ -16,6 +16,9 @@ import { getDirectionIndex } from "../utils/direction";
 import { normalizeVector } from "../utils/math";
 import { MAGIC_BASE_SPEED, type MagicData, MagicMoveKind } from "./types";
 
+/** 最低伤害值 */
+export const MINIMAL_DAMAGE = 5;
+
 // 全局精灵ID计数器
 let globalSpriteIdCounter = 0;
 
@@ -24,13 +27,6 @@ let globalSpriteIdCounter = 0;
  */
 export function resetMagicSpriteIdCounter(): void {
   globalSpriteIdCounter = 0;
-}
-
-/**
- * 获取下一个精灵ID
- */
-export function nextSpriteId(): number {
-  return globalSpriteIdCounter++;
 }
 
 /**
@@ -63,20 +59,19 @@ export class MagicSprite extends Sprite {
 
   /** 使用ID引用 */
   belongCharacterId: string = "";
-  
+
   private _magic: MagicData;
   /** normalized or zero */
   private _moveDirection: Vector2 = { x: 0, y: 0 };
-  
+
   private _destination: Vector2 = { x: 0, y: 0 };
-  
+
   private _isDestroyed: boolean = false;
-  
+
   private _isInDestroy: boolean = false;
-  
+
   destroyOnEnd: boolean = false;
 
-  
   private _waitMilliseconds: number = 0;
 
   /** _currentEffect, _currentEffect2, _currentEffect3, _currentEffectMana */
@@ -128,9 +123,6 @@ export class MagicSprite extends Sprite {
 
   /** 调试标记 */
   _debugRendered: boolean = false;
-
-  // ============= Constants =============
-  static readonly MinimalDamage = 5;
 
   // ============= Constructor =============
 
@@ -318,7 +310,6 @@ export class MagicSprite extends Sprite {
     }
   }
 
-  
   get destination(): Vector2 {
     return this._destination;
   }
@@ -326,7 +317,6 @@ export class MagicSprite extends Sprite {
     this._destination = { ...value };
   }
 
-  
   get isDestroyed(): boolean {
     return this._isDestroyed;
   }
@@ -342,7 +332,6 @@ export class MagicSprite extends Sprite {
     this._isInDestroy = value;
   }
 
-  
   get waitMilliseconds(): number {
     return this._waitMilliseconds;
   }
@@ -523,7 +512,6 @@ export class MagicSprite extends Sprite {
 
   // ============= 粘附角色 (Sticky) =============
 
-  
   get stickedCharacterId(): string | null {
     return this._stickedCharacterId;
   }
@@ -532,7 +520,6 @@ export class MagicSprite extends Sprite {
     this._stickedCharacterId = value;
   }
 
-  
   get isInMoveBack(): boolean {
     return this._isInMoveBack;
   }
@@ -551,7 +538,6 @@ export class MagicSprite extends Sprite {
 
   // ============= 寄生角色 (Parasitic) =============
 
-  
   get parasitiferCharacterId(): string | null {
     return this._parasitiferCharacterId;
   }
@@ -560,7 +546,6 @@ export class MagicSprite extends Sprite {
     this._parasitiferCharacterId = value;
   }
 
-  
   get parasiticTime(): number {
     return this._parasiticTime;
   }
@@ -569,7 +554,6 @@ export class MagicSprite extends Sprite {
     this._parasiticTime = value;
   }
 
-  
   get totalParasiticEffect(): number {
     return this._totalParasiticEffect;
   }

@@ -68,7 +68,7 @@ export abstract class Character extends CharacterCombat {
     }
 
     // 状态效果更新
-    const statusResult = this._statusEffects.update(deltaTime, this.isDeathInvoked);
+    const statusResult = this.statusEffects.update(deltaTime, this.isDeathInvoked);
 
     // 处理变身效果结束
     if (statusResult.changeCharacterExpired && statusResult.changeCharacterExpiredMagic) {
@@ -291,8 +291,8 @@ export abstract class Character extends CharacterCombat {
   protected updateAttacking(deltaTime: number): void {
     super.update(deltaTime);
     if (this.isPlayCurrentDirOnceEnd()) {
-      if (this.isVisibleWhenAttack) {
-        this.invisibleByMagicTime = 0;
+      if (this.statusEffects.isVisibleWhenAttack) {
+        this.statusEffects.invisibleByMagicTime = 0;
       }
       this.playStateSound(this._state);
       this.useMagicWhenAttack();
@@ -313,8 +313,8 @@ export abstract class Character extends CharacterCombat {
   protected updateMagic(deltaTime: number): void {
     super.update(deltaTime);
     if (this.isPlayCurrentDirOnceEnd()) {
-      if (this.isVisibleWhenAttack) {
-        this.invisibleByMagicTime = 0;
+      if (this.statusEffects.isVisibleWhenAttack) {
+        this.statusEffects.invisibleByMagicTime = 0;
       }
       this.onMagicCast();
       this.standingImmediately();
@@ -399,8 +399,8 @@ export abstract class Character extends CharacterCombat {
 
     if (magicData && magicData.lifeFullToUse > 0 && !this.isFullLife) {
       const isControledByPlayer =
-        this._controledMagicSprite !== null &&
-        this._controledMagicSprite.belongCharacterId === "player";
+        this.statusEffects.controledMagicSprite !== null &&
+        this.statusEffects.controledMagicSprite.belongCharacterId === "player";
       if (this.isPlayer || isControledByPlayer) {
         this.showMessage("满血才能使用");
       }
@@ -793,8 +793,8 @@ export abstract class Character extends CharacterCombat {
     this.clearFrozen();
     this.clearPoison();
     this.clearPetrifaction();
-    this.disableMoveMilliseconds = 0;
-    this.disableSkillMilliseconds = 0;
+    this.statusEffects.disableMoveMilliseconds = 0;
+    this.statusEffects.disableSkillMilliseconds = 0;
   }
 
   clearFrozen(): void {
@@ -858,32 +858,32 @@ export abstract class Character extends CharacterCombat {
   // =============================================
 
   changeCharacterBy(magicSprite: MagicSprite): void {
-    this._changeCharacterByMagicSprite = magicSprite;
-    this._changeCharacterByMagicSpriteTime = magicSprite.magic.effect ?? 0;
+    this.statusEffects.changeCharacterByMagicSprite = magicSprite;
+    this.statusEffects.changeCharacterByMagicSpriteTime = magicSprite.magic.effect ?? 0;
     this.onReplaceMagicList(magicSprite.magic, magicSprite.magic.replaceMagic ?? "");
     this.standImmediately();
   }
 
   morphBy(magicSprite: MagicSprite): void {
-    this._changeCharacterByMagicSprite = magicSprite;
-    this._changeCharacterByMagicSpriteTime = magicSprite.magic.morphMilliseconds ?? 0;
+    this.statusEffects.changeCharacterByMagicSprite = magicSprite;
+    this.statusEffects.changeCharacterByMagicSpriteTime = magicSprite.magic.morphMilliseconds ?? 0;
     this.onReplaceMagicList(magicSprite.magic, magicSprite.magic.replaceMagic ?? "");
     this.standImmediately();
   }
 
   weakBy(magicSprite: MagicSprite): void {
-    this._weakByMagicSprite = magicSprite;
-    this._weakByMagicSpriteTime = magicSprite.magic.weakMilliseconds ?? 0;
+    this.statusEffects.weakByMagicSprite = magicSprite;
+    this.statusEffects.weakByMagicSpriteTime = magicSprite.magic.weakMilliseconds ?? 0;
   }
 
   changeToOpposite(milliseconds: number): void {
     if (this.isPlayer) return;
-    this._changeToOppositeMilliseconds = this._changeToOppositeMilliseconds > 0 ? 0 : milliseconds;
+    this.statusEffects.changeToOppositeMilliseconds = this.statusEffects.changeToOppositeMilliseconds > 0 ? 0 : milliseconds;
   }
 
   flyIniChangeBy(magicSprite: MagicSprite): void {
     this.removeFlyIniChangeBy();
-    this._changeFlyIniByMagicSprite = magicSprite;
+    this.statusEffects.changeFlyIniByMagicSprite = magicSprite;
     const replaceFlyIni = magicSprite.magic.specialKind9ReplaceFlyIni;
     if (replaceFlyIni) this.addFlyIniReplace(replaceFlyIni);
     const replaceFlyIni2 = magicSprite.magic.specialKind9ReplaceFlyIni2;
@@ -891,12 +891,12 @@ export abstract class Character extends CharacterCombat {
   }
 
   private removeFlyIniChangeBy(): void {
-    if (this._changeFlyIniByMagicSprite !== null) {
-      const replaceFlyIni = this._changeFlyIniByMagicSprite.magic.specialKind9ReplaceFlyIni;
+    if (this.statusEffects.changeFlyIniByMagicSprite !== null) {
+      const replaceFlyIni = this.statusEffects.changeFlyIniByMagicSprite.magic.specialKind9ReplaceFlyIni;
       if (replaceFlyIni) this.removeFlyIniReplace(replaceFlyIni);
-      const replaceFlyIni2 = this._changeFlyIniByMagicSprite.magic.specialKind9ReplaceFlyIni2;
+      const replaceFlyIni2 = this.statusEffects.changeFlyIniByMagicSprite.magic.specialKind9ReplaceFlyIni2;
       if (replaceFlyIni2) this.removeFlyIniReplace(replaceFlyIni2);
-      this._changeFlyIniByMagicSprite = null;
+      this.statusEffects.changeFlyIniByMagicSprite = null;
     }
   }
 

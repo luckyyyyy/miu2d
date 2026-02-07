@@ -822,10 +822,6 @@ export class GameManager {
     this.gameTime += deltaTime;
 
     // ========== SuperMode 优先处理 ==========
-    // if (Globals.IsInSuperMagicMode) {
-    //     Globals.SuperModeMagicSprite.Update(gameTime);
-    //     return; // Just update super magic
-    // }
     // 在 SuperMode 时，只更新 MagicManager（它内部只更新 SuperMode 精灵）
     // 其他系统（Player、NPC、ObjManager 等）都暂停
     if (this.magicManager.isInSuperMagicMode) {

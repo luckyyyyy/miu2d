@@ -979,7 +979,6 @@ class ResourceLoaderImpl {
  */
 export const resourceLoader = new ResourceLoaderImpl();
 
-
 // ==================== 游戏数据加载器 ====================
 
 /**
@@ -1386,10 +1385,6 @@ export function isGameDataLoaded(): boolean {
   return isGameDataLoadedFlag;
 }
 
-export function getCurrentGameSlug(): string {
-  return currentGameSlug;
-}
-
 export function getMagicsData(): ApiMagicResponse | null {
   return cachedGameData?.magics ?? null;
 }
@@ -1408,11 +1403,4 @@ export function getObjsData(): ApiObjResponse | null {
 
 export function getShopsData(): ApiShopData[] | null {
   return cachedGameData?.shops ?? null;
-}
-
-export function clearGameDataCache(): void {
-  cachedGameData = null;
-  isGameDataLoadedFlag = false;
-  currentGameSlug = "";
-  loadingPromise = null;
 }

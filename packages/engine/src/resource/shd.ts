@@ -178,21 +178,3 @@ export function parseShdBuffer(buffer: ArrayBuffer): Shd | null {
 export async function loadShd(url: string): Promise<Shd | null> {
   return resourceLoader.loadParsedBinary<Shd>(url, parseShdBuffer, "shd");
 }
-
-/**
- * Get frame data from parsed SHD
- * ()
- */
-export function getShdFrameData(shd: Shd, index: number): Uint8ClampedArray | null {
-  if (index >= 0 && index < shd.frames.length) {
-    return shd.frames[index].data;
-  }
-  return null;
-}
-
-/**
- * Clear the SHD cache
- */
-export function clearShdCache(): void {
-  resourceLoader.clearCache("shd");
-}

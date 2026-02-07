@@ -43,20 +43,6 @@ export function getEquipSlotIndex(position: EquipPosition): number {
   }
 }
 
-export function getEquipPositionFromIndex(index: number): EquipPosition {
-  if (index < EQUIP_INDEX_BEGIN || index > EQUIP_INDEX_END) return EquipPosition.None;
-  const positions = [
-    EquipPosition.Head,
-    EquipPosition.Neck,
-    EquipPosition.Body,
-    EquipPosition.Back,
-    EquipPosition.Hand,
-    EquipPosition.Wrist,
-    EquipPosition.Foot,
-  ];
-  return positions[index - EQUIP_INDEX_BEGIN];
-}
-
 // ============= Types =============
 export interface GoodsItemInfo {
   good: Good;

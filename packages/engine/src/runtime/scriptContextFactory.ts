@@ -1,24 +1,29 @@
 /**
- * Script Context Factory - Creates ScriptContext for script execution
- * Extracted from GameManager to reduce complexity
+ * Script Context Factory - Creates ScriptContext and GameAPI for script execution
  *
- *  context bindings
+ * This module provides two APIs:
+ * - createGameAPIAndScriptContext(): structured GameAPI + flat ScriptContext adapter
+ * - createScriptContext(): flat ScriptContext (backwards-compatible, delegates to GameAPI)
+ *
+ * New script engines (JS, Lua) should use GameAPI directly.
+ * The custom script engine uses ScriptContext (adapted from GameAPI).
  */
 
 import type { AudioManager } from "../audio";
-import { ResourcePath } from "../config/resourcePaths";
+import type { GameAPI } from "../core/gameAPI";
 import type { Vector2 } from "../core/types";
 import type { ScreenEffects } from "../effects";
 import type { BuyManager } from "../gui/buyManager";
 import type { GuiManager } from "../gui/guiManager";
 import type { MemoListManager, TalkTextListManager } from "../listManager";
 import type { PartnerListManager } from "../listManager/partnerList";
-import type { Npc, NpcManager } from "../npc";
+import type { NpcManager } from "../npc";
 import type { ObjManager } from "../obj";
 import type { Player } from "../player/player";
 import type { ScriptContext } from "../script/executor";
 import type { TimerManager } from "../timer";
 import type { WeatherManager } from "../weather";
+import { createGameAPIImpl, gameAPIToScriptContext } from "./gameAPI";
 
 /**
  * Dependencies needed to create a script context
@@ -93,111 +98,41 @@ export interface ScriptContextDependencies {
 }
 
 /**
- * Create ScriptContext for script execution
- * This is the bridge between script commands and game systems
+ * Create both GameAPI (structured) and ScriptContext (flat adapter).
+ *
+ * Use this when you need access to both APIs:
+ * - GameAPI for new JS/Lua script engines
+ * - ScriptContext for the existing custom script engine
  */
-import {
-  createPlayerCommands,
-  createNpcCommands,
-  createItemCommands,
-  createWorldCommands,
-  createSystemCommands,
-} from "./scriptContext";
+export function createGameAPIAndScriptContext(deps: ScriptContextDependencies): {
+  gameAPI: GameAPI;
+  scriptContext: ScriptContext;
+  /** Set runParallelScript callback (must be called after ScriptExecutor is created) */
+  setRunParallelScript: (fn: (scriptFile: string, delayMs: number) => void) => void;
+} {
+  const { api, ctx } = createGameAPIImpl(deps);
 
-export function createScriptContext(deps: ScriptContextDependencies): ScriptContext {
-  const {
-    player,
-    npcManager,
-    guiManager,
-    objManager,
-    audioManager,
-    screenEffects,
-    talkTextList,
-    memoListManager,
-    weatherManager,
-    timerManager,
-    buyManager,
-    partnerList,
-    getVariables,
-    setVariable,
-    getCurrentMapName,
-    loadMap,
-    loadNpcFile,
-    loadGameSave,
-    setMapTrap,
-    checkTrap,
-    cameraMoveTo,
-    cameraMoveToPosition,
-    isCameraMoving,
-    isCameraMoveToPositionEnd,
-    setCameraPosition,
-    centerCameraOnPlayer,
-    runScript,
-    enableSave,
-    disableSave,
-    enableDrop,
-    disableDrop,
-    isMapObstacleForCharacter,
-  } = deps;
-
-  // Derived from player
-  const levelManager = player.levelManager;
-  const goodsListManager = player.getGoodsListManager();
-
-  // Character lookup utilities
-  const getCharacterByName = (name: string): Npc | Player | null => {
-    if (player && player.name === name) return player;
-    return npcManager.getNpc(name);
-  };
-
-  const getCharactersByName = (name: string): (Npc | Player)[] => {
-    const result: (Npc | Player)[] = [];
-    if (player && player.name === name) result.push(player);
-    result.push(...npcManager.getAllNpcsByName(name));
-    return result;
-  };
-
-  const getScriptBasePath = (): string => {
-    const mapName = getCurrentMapName();
-    return mapName
-      ? ResourcePath.scriptMap(mapName)
-      : ResourcePath.scriptCommon("").replace(/\/$/, "");
-  };
-
-  // Build shared context for sub-command files
-  const ctx = {
-    player, npcManager, guiManager, objManager, audioManager,
-    screenEffects, talkTextList, memoListManager, weatherManager,
-    timerManager, buyManager, partnerList,
-    levelManager, goodsListManager,
-    getCharacterByName, getCharactersByName, getScriptBasePath,
-    getVariables, setVariable, getCurrentMapName,
-    loadMap, loadNpcFile, loadGameSave,
-    setMapTrap, checkTrap,
-    cameraMoveTo, cameraMoveToPosition, isCameraMoving, isCameraMoveToPositionEnd,
-    setCameraPosition, centerCameraOnPlayer,
-    runScript, enableSave, disableSave, enableDrop, disableDrop,
-    isMapObstacleForCharacter,
-    setScriptShowMapPos: deps.setScriptShowMapPos,
-    setMapTime: deps.setMapTime,
-    saveMapTrap: deps.saveMapTrap,
-    changePlayer: deps.changePlayer,
-    clearMouseInput: deps.clearMouseInput,
-    returnToTitle: deps.returnToTitle,
-    runParallelScript: deps.runParallelScript,
-  };
-
-  return {
-    // System access
-    talkTextList,
-    scriptBasePath: getScriptBasePath(),
-    ...createPlayerCommands(ctx),
-    ...createNpcCommands(ctx),
-    ...createItemCommands(ctx),
-    ...createWorldCommands(ctx),
-    ...createSystemCommands(ctx),
-    // Debug hooks
+  const scriptContext = gameAPIToScriptContext(api, {
+    scriptBasePath: ctx.getScriptBasePath(),
     onScriptStart: deps.onScriptStart,
     onLineExecuted: deps.onLineExecuted,
-  } as ScriptContext;
+  });
+
+  return {
+    gameAPI: api,
+    scriptContext,
+    setRunParallelScript: (fn) => {
+      ctx.runParallelScript = fn;
+    },
+  };
+}
+
+/**
+ * Create ScriptContext for script execution (backwards-compatible entry point).
+ *
+ * @deprecated Prefer createGameAPIAndScriptContext() to get both APIs.
+ */
+export function createScriptContext(deps: ScriptContextDependencies): ScriptContext {
+  const { scriptContext } = createGameAPIAndScriptContext(deps);
+  return scriptContext;
 }

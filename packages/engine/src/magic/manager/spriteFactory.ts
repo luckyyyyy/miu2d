@@ -627,13 +627,13 @@ export class SpriteFactory {
           }
           break;
         case 4:
-          effectTarget.invisibleByMagicTime = effectAmount;
-          effectTarget.isVisibleWhenAttack = false;
+          effectTarget.statusEffects.invisibleByMagicTime = effectAmount;
+          effectTarget.statusEffects.isVisibleWhenAttack = false;
           this.callbacks.addMagicSprite(sprite);
           break;
         case 5:
-          effectTarget.invisibleByMagicTime = effectAmount;
-          effectTarget.isVisibleWhenAttack = true;
+          effectTarget.statusEffects.invisibleByMagicTime = effectAmount;
+          effectTarget.statusEffects.isVisibleWhenAttack = true;
           this.callbacks.addMagicSprite(sprite);
           break;
         case 7:
@@ -1274,7 +1274,7 @@ export class SpriteFactory {
 
     const sprite = this.addFixedPositionMagicSprite(userId, magic, origin, destroyOnEnd);
     if (sprite && this.player.controledCharacter) {
-      this.player.controledCharacter.controledMagicSprite = sprite;
+      this.player.controledCharacter.statusEffects.controledMagicSprite = sprite;
     }
   }
 

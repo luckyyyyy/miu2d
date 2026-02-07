@@ -436,19 +436,19 @@ export abstract class CharacterCombat extends CharacterMovement {
     }
 
     // InvisibleByMagicTime = 0
-    this.invisibleByMagicTime = 0;
+    this.statusEffects.invisibleByMagicTime = 0;
 
     // SppedUpByMagicSprite = null (取消加速效果)
-    this.speedUpByMagicSprite = null;
+    this.statusEffects.speedUpByMagicSprite = null;
 
     // if (ControledMagicSprite != null) - 处理被控制状态
     // 原版代码: var player = ControledMagicSprite.BelongCharacter as Player; player.EndControlCharacter();
-    if (this._controledMagicSprite !== null) {
+    if (this.statusEffects.controledMagicSprite !== null) {
       // TypeScript 中通过 belongCharacterId 判断是否是玩家控制
-      if (this._controledMagicSprite.belongCharacterId === "player") {
+      if (this.statusEffects.controledMagicSprite.belongCharacterId === "player") {
         this.engine.player.endControlCharacter();
       }
-      this._controledMagicSprite = null;
+      this.statusEffects.controledMagicSprite = null;
     }
 
     // if (SummonedByMagicSprite != null) - 召唤物死亡处理
@@ -492,7 +492,7 @@ export abstract class CharacterCombat extends CharacterMovement {
       }
 
       // 清除冰冻、中毒、石化状态
-      this._statusEffects.toNormalState();
+      this.statusEffects.toNormalState();
       this.playCurrentDirOnce();
     } else {
       this.isDeath = true;

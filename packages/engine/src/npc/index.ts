@@ -18,4 +18,4 @@ export { NpcMagicCache, type SpecialMagicType } from "./modules";
 // NPC class
 export { Npc } from "./npc";
 // NPC manager
-export { DeathInfo, NpcManager, type ViewRect } from "./npcManager";
+export { DeathInfo, isEnemy, NpcManager, type ViewRect } from "./npcManager";

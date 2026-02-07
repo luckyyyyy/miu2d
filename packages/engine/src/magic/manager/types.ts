@@ -7,7 +7,7 @@ import type { Character } from "../../character/character";
 import type { Vector2 } from "../../core/types";
 import type { ScreenEffects } from "../../effects";
 import type { GuiManager } from "../../gui/guiManager";
-import type { Npc, NpcManager } from "../../npc";
+import type { NpcManager } from "../../npc";
 import type { MagicListManager } from "../../player/magic/magicListManager";
 import type { Player } from "../../player/player";
 import type { CharacterRef } from "../effects";
@@ -108,11 +108,4 @@ export interface ISpriteFactoryCallbacks {
   setTimeStopperSprite(sprite: MagicSprite | null): void;
   getKind19Magics(): Kind19MagicInfo[];
   addKind19Magic(info: Kind19MagicInfo): void;
-}
-
-/**
- * 获取 Character ID 的辅助函数
- */
-export function getCharacterId(character: Character): string {
-  return character.isPlayer ? "player" : (character as Npc).id;
 }

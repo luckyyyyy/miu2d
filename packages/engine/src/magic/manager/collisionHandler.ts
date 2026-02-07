@@ -17,8 +17,8 @@ import {
   findNeighborInDirection,
 } from "../../core/pathFinder";
 import type { Vector2 } from "../../core/types";
-import type { Npc } from "../../npc";
-import { NpcManager } from "../../npc";
+import type { Npc, NpcManager } from "../../npc";
+import { isEnemy } from "../../npc/npcManager";
 import type { MagicListManager } from "../../player/magic/magicListManager";
 import type { Player } from "../../player/player";
 import { getDirectionFromVector, getNeighbors } from "../../utils";
@@ -94,11 +94,6 @@ export class CollisionHandler {
     if (!isObstacle) return false;
 
     // Ball > 0 时撞墙弹跳
-    // if (destroy && BelongMagic.Ball > 0) {
-    //   MoveDirection = PathFinder.BouncingAtWall(RealMoveDirection, PositionInWorld, TilePosition);
-    //   TilePosition = PathFinder.FindNeighborInDirection(TilePosition, RealMoveDirection);
-    //   return false;
-    // }
     if (sprite.magic.ball > 0) {
       const isMapObstacleChecker = (t: Vector2) => collisionChecker.isObstacleForMagic(t.x, t.y);
       const newDirection = bouncingAtWall(
@@ -253,12 +248,12 @@ export class CollisionHandler {
 
     // 禁止移动
     if (magic.disableMoveMilliseconds > 0) {
-      character.disableMoveMilliseconds = magic.disableMoveMilliseconds;
+      character.statusEffects.disableMoveMilliseconds = magic.disableMoveMilliseconds;
     }
 
     // 禁止技能
     if (magic.disableSkillMilliseconds > 0) {
-      character.disableSkillMilliseconds = magic.disableSkillMilliseconds;
+      character.statusEffects.disableSkillMilliseconds = magic.disableSkillMilliseconds;
     }
 
     // 弹飞效果
@@ -501,7 +496,7 @@ export class CollisionHandler {
             magic.specialKindMilliSeconds > 0
               ? magic.specialKindMilliSeconds / 1000
               : magic.effectLevel + 1;
-          character.setFrozenSeconds(seconds, magic.noSpecialKindEffect === 0);
+          character.statusEffects.setFrozenSeconds(seconds, magic.noSpecialKindEffect === 0);
         }
         break;
       case 2: // 中毒
@@ -510,7 +505,7 @@ export class CollisionHandler {
             magic.specialKindMilliSeconds > 0
               ? magic.specialKindMilliSeconds / 1000
               : magic.effectLevel + 1;
-          character.setPoisonSeconds(seconds, magic.noSpecialKindEffect === 0);
+          character.statusEffects.setPoisonSeconds(seconds, magic.noSpecialKindEffect === 0);
           if (belongCharacter && (belongCharacter.isPlayer || belongCharacter.isPartner)) {
             character.poisonByCharacterName = belongCharacter.name;
           }
@@ -522,7 +517,7 @@ export class CollisionHandler {
             magic.specialKindMilliSeconds > 0
               ? magic.specialKindMilliSeconds / 1000
               : magic.effectLevel + 1;
-          character.setPetrifySeconds(seconds, magic.noSpecialKindEffect === 0);
+          character.statusEffects.setPetrifySeconds(seconds, magic.noSpecialKindEffect === 0);
         }
         break;
     }
@@ -532,13 +527,13 @@ export class CollisionHandler {
       case 1:
         if (!character.isFrozen) {
           const seconds = (belongCharacter?.level ?? 1) / 10 + 1;
-          character.setFrozenSeconds(seconds, magic.noSpecialKindEffect === 0);
+          character.statusEffects.setFrozenSeconds(seconds, magic.noSpecialKindEffect === 0);
         }
         break;
       case 2:
         if (!character.isPoisoned) {
           const seconds = (belongCharacter?.level ?? 1) / 10 + 1;
-          character.setPoisonSeconds(seconds, magic.noSpecialKindEffect === 0);
+          character.statusEffects.setPoisonSeconds(seconds, magic.noSpecialKindEffect === 0);
           if (belongCharacter && (belongCharacter.isPlayer || belongCharacter.isPartner)) {
             character.poisonByCharacterName = belongCharacter.name;
           }
@@ -547,7 +542,7 @@ export class CollisionHandler {
       case 3:
         if (!character.isPetrified) {
           const seconds = (belongCharacter?.level ?? 1) / 10 + 1;
-          character.setPetrifySeconds(seconds, magic.noSpecialKindEffect === 0);
+          character.statusEffects.setPetrifySeconds(seconds, magic.noSpecialKindEffect === 0);
         }
         break;
     }
@@ -580,8 +575,8 @@ export class CollisionHandler {
     }
 
     const isControledByPlayer =
-      belongCharacter.controledMagicSprite !== null &&
-      belongCharacter.controledMagicSprite.belongCharacterId === "player";
+      belongCharacter.statusEffects.controledMagicSprite !== null &&
+      belongCharacter.statusEffects.controledMagicSprite.belongCharacterId === "player";
 
     const isKill = wasAliveBeforeHit && (target.isDeathInvoked || target.isDeath);
 
@@ -930,7 +925,7 @@ export class CollisionHandler {
         fighter &&
         fighter !== character &&
         belongCharacter &&
-        NpcManager.isEnemy(fighter, belongCharacter)
+        isEnemy(fighter, belongCharacter)
       ) {
         const touchEndTile = findDistanceTileInDirection(
           fighter.tilePosition,

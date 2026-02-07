@@ -13,6 +13,22 @@ import type { CharacterConfig, Vector2 } from "../core/types";
 import { CharacterKind, type CharacterState, type Direction, RelationType } from "../core/types";
 import { type DropCharacter, getDropObj } from "../drop/goodDrop";
 import type { ObjManager } from "../obj/objManager";
+
+/**
+ * Check if two characters are enemies (pure function)
+ */
+export function isEnemy(a: CharacterBase, b: CharacterBase): boolean {
+  // 非战斗者不是敌人
+  if ((!a.isPlayer && !a.isFighter) || (!b.isPlayer && !b.isFighter)) return false;
+  // 玩家或友方 vs 非玩家、非伙伴、非友方
+  if ((a.isPlayer || a.isFighterFriend) && !b.isPlayer && !b.isPartner && !b.isFighterFriend)
+    return true;
+  // 反过来
+  if ((b.isPlayer || b.isFighterFriend) && !a.isPlayer && !a.isPartner && !a.isFighterFriend)
+    return true;
+  // 不同组
+  return a.group !== b.group;
+}
 import { resourceLoader } from "../resource/resourceLoader";
 import type { NpcSaveItem } from "../runtime/storage";
 import { distance, getNeighbors, getViewTileDistance, parseIni } from "../utils";
@@ -742,23 +758,6 @@ export class NpcManager {
       }
     }
     return list;
-  }
-
-  /**
-   * Check if two characters are enemies
-   * a, Character b)
-   */
-  static isEnemy(a: CharacterBase, b: CharacterBase): boolean {
-    // 非战斗者不是敌人
-    if ((!a.isPlayer && !a.isFighter) || (!b.isPlayer && !b.isFighter)) return false;
-    // 玩家或友方 vs 非玩家、非伙伴、非友方
-    if ((a.isPlayer || a.isFighterFriend) && !b.isPlayer && !b.isPartner && !b.isFighterFriend)
-      return true;
-    // 反过来
-    if ((b.isPlayer || b.isFighterFriend) && !a.isPlayer && !a.isPartner && !a.isFighterFriend)
-      return true;
-    // 不同组
-    return a.group !== b.group;
   }
 
   /**

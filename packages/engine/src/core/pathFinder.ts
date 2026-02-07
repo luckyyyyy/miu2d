@@ -613,26 +613,6 @@ export function findDistanceTileInDirection(
   return neighbor;
 }
 
-/**
- * Check if there are map obstacles in a tile position list
- */
-export function hasMapObstacleInTilePositionList(
-  tilePositionList: Vector2[],
-  isMapObstacle: (tile: Vector2) => boolean
-): boolean {
-  if (!tilePositionList || tilePositionList.length === 0) {
-    return true;
-  }
-
-  for (const tilePosition of tilePositionList) {
-    if (isMapObstacle(tilePosition)) {
-      return true;
-    }
-  }
-
-  return false;
-}
-
 // ============= Ball 弹跳计算 =============
 
 /**
@@ -725,9 +705,6 @@ export function bouncingAtWall(
     return bouncingAtPoint(direction, worldPosition, targetPixel);
   }
 
-  // var normal = MapBase.ToPixelPosition(targetTilePosition) - MapBase.ToPixelPosition(neighbors[get]);
-  //     normal = Vector2.Normalize(new Vector2(-normal.Y, normal.X));
-  //     return Vector2.Reflect(direction, normal);
   const targetPixel = tileToPixel(targetTilePosition.x, targetTilePosition.y);
   const neighborPixel = tileToPixel(neighbors[foundIndex].x, neighbors[foundIndex].y);
 
@@ -752,46 +729,6 @@ export function bouncingAtWall(
     x: direction.x - 2 * dot * nx,
     y: direction.y - 2 * dot * ny,
   };
-}
-
-/**
- * Find the farthest walkable tile in the direction from start to target.
- * Used when pathfinding fails - we try to move towards that direction as far as possible.
- *
- * **New Strategy (for better mouse-hold experience):**
- * Walk FROM the player's position TOWARDS the target direction, step by step.
- * When the main direction is blocked, try adjacent directions (±1, ±2).
- * Return the farthest reachable point in that general direction.
- *
- * This ensures that when clicking on an obstacle, the character walks as far
- * as possible toward that direction instead of not moving at all.
- *
- * @param startTile Starting tile position (player's position)
- * @param targetTile Target tile position (clicked position, used to calculate direction)
- * @param isMapObstacle Function to check if a tile is a map obstacle
- * @param isHardObstacle Function to check if a tile is a hard obstacle (for diagonal blocking)
- * @param maxSteps Maximum steps to search (default 50)
- * @returns The farthest walkable tile in that direction, or null if can't move at all
- */
-export function findNearestWalkableTileInDirection(
-  startTile: Vector2,
-  targetTile: Vector2,
-  isMapObstacle: (tile: Vector2) => boolean,
-  isHardObstacle: (tile: Vector2) => boolean,
-  maxSteps: number = 50
-): Vector2 | null {
-  const result = findPathInDirection(
-    startTile,
-    targetTile,
-    isMapObstacle,
-    isHardObstacle,
-    maxSteps
-  );
-  // 如果找到了路径（长度大于1，不只是起点），返回终点
-  if (result.path.length > 1) {
-    return result.destination;
-  }
-  return null;
 }
 
 /**

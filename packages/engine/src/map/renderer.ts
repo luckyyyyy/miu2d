@@ -14,7 +14,7 @@ export interface MpcAtlas {
 }
 
 export interface MapRenderer {
-  mapData: JxqyMapData;
+  mapData: JxqyMapData | null;
   mpcs: (Mpc | null)[];
   /** MPC 图集（每个 MPC 文件一张 atlas） */
   mpcAtlases: (MpcAtlas | null)[];
@@ -31,7 +31,7 @@ export interface MapRenderer {
 
 export function createMapRenderer(): MapRenderer {
   return {
-    mapData: null as unknown as JxqyMapData,
+    mapData: null,
     mpcs: [],
     mpcAtlases: [],
     camera: { x: 0, y: 0, width: 800, height: 600 },
@@ -138,7 +138,7 @@ export async function loadMapMpcs(
   const currentLoadVersion = renderer.loadVersion;
 
   // 重置状态（旧纹理已在外部通过 releaseMapTextures 释放）
-  renderer.mapData = null as unknown as JxqyMapData;
+  renderer.mapData = null;
   renderer.mpcs = [];
   renderer.mpcAtlases = [];
   renderer.isLoading = true;
@@ -266,6 +266,7 @@ function drawTileLayer(
   row: number
 ): void {
   const mapData = mapRenderer.mapData;
+  if (!mapData) return;
   const tileIndex = col + row * mapData.mapColumnCounts;
 
   if (tileIndex < 0 || tileIndex >= mapData[layer].length) return;
@@ -318,17 +319,6 @@ export function renderLayer(
   }
 }
 
-/** 在指定位置绘制 layer2 瓦片（用于交错渲染） */
-export function drawLayer1TileAt(
-  renderer: IRenderer,
-  mapRenderer: MapRenderer,
-  col: number,
-  row: number
-): void {
-  if (!mapRenderer.mapData || mapRenderer.isLoading) return;
-  drawTileLayer(renderer, mapRenderer, "layer2", col, row);
-}
-
 /** 获取瓦片纹理的世界坐标区域（用于碰撞检测） */
 export function getTileTextureRegion(
   renderer: MapRenderer,
@@ -356,22 +346,6 @@ export function getTileTextureRegion(
     width: rect.w,
     height: rect.h,
   };
-}
-
-/** 检查指定瓦片是否有纹理 */
-export function hasTileTexture(
-  renderer: MapRenderer,
-  col: number,
-  row: number,
-  layer: "layer1" | "layer2" | "layer3"
-): boolean {
-  const mapData = renderer.mapData;
-  if (!mapData || renderer.isLoading) return false;
-
-  const tileIndex = col + row * mapData.mapColumnCounts;
-  if (tileIndex < 0 || tileIndex >= mapData[layer].length) return false;
-
-  return mapData[layer][tileIndex].mpcIndex !== 0;
 }
 
 /** 交错渲染地图（layer1 -> layer2+角色 -> layer3） */

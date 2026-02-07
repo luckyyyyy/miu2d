@@ -211,11 +211,3 @@ export function getOuterEdge(
 
   return edgeCanvas;
 }
-
-/**
- * 清除边缘缓存（由于使用 WeakMap，通常不需要手动调用）
- */
-export function clearEdgeCache(): void {
-  // WeakMap 不支持 clear()，但可以重新创建
-  // 由于 WeakMap 的特性，当 canvas 被垃圾回收时，缓存会自动清理
-}

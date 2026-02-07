@@ -23,7 +23,7 @@ import {
 } from "../effects";
 import { getMagic, getMagicAtLevel } from "../magicLoader";
 import type { WorkItem } from "../magicSprite";
-import { MagicSprite } from "../magicSprite";
+import { MagicSprite, MINIMAL_DAMAGE } from "../magicSprite";
 import type { MagicData } from "../types";
 import { MAGIC_BASE_SPEED, MagicMoveKind } from "../types";
 import type {
@@ -817,8 +817,8 @@ export class SpriteUpdater {
           friend.addThew(magic.rangeAddThew);
         }
         // if (BelongMagic.RangeSpeedUp > 0 && target.SppedUpByMagicSprite == null)
-        if (magic.rangeSpeedUp > 0 && friend.speedUpByMagicSprite === null) {
-          friend.speedUpByMagicSprite = sprite;
+        if (magic.rangeSpeedUp > 0 && friend.statusEffects.speedUpByMagicSprite === null) {
+          friend.statusEffects.speedUpByMagicSprite = sprite;
         }
       }
     }
@@ -844,12 +844,12 @@ export class SpriteUpdater {
         // if (BelongMagic.RangeFreeze > 0)
         //       target.SetFrozenSeconds(BelongMagic.RangeFreeze/1000.0f, BelongMagic.NoSpecialKindEffect == 0);
         if (magic.rangeFreeze > 0) {
-          enemy.setFrozenSeconds(magic.rangeFreeze / 1000, magic.noSpecialKindEffect === 0);
+          enemy.statusEffects.setFrozenSeconds(magic.rangeFreeze / 1000, magic.noSpecialKindEffect === 0);
         }
 
         // if (BelongMagic.RangePoison > 0) { ... }
         if (magic.rangePoison > 0) {
-          enemy.setPoisonSeconds(magic.rangePoison / 1000, magic.noSpecialKindEffect === 0);
+          enemy.statusEffects.setPoisonSeconds(magic.rangePoison / 1000, magic.noSpecialKindEffect === 0);
           if (belongCharacter.isPlayer || belongCharacter.isPartner) {
             enemy.poisonByCharacterName = belongCharacter.name;
           }
@@ -858,13 +858,13 @@ export class SpriteUpdater {
         // if (BelongMagic.RangePetrify > 0)
         //       target.SetPetrifySeconds(BelongMagic.RangePetrify/1000.0f, BelongMagic.NoSpecialKindEffect == 0);
         if (magic.rangePetrify > 0) {
-          enemy.setPetrifySeconds(magic.rangePetrify / 1000, magic.noSpecialKindEffect === 0);
+          enemy.statusEffects.setPetrifySeconds(magic.rangePetrify / 1000, magic.noSpecialKindEffect === 0);
         }
 
         // if (BelongMagic.RangeDamage > 0) { CharacterHited(...); AddDestroySprite(...); }
         if (magic.rangeDamage > 0) {
           // 使用简化的伤害计算
-          const damage = Math.max(magic.rangeDamage - enemy.realDefend, MagicSprite.MinimalDamage);
+          const damage = Math.max(magic.rangeDamage - enemy.realDefend, MINIMAL_DAMAGE);
           enemy.takeDamage(damage, belongCharacter);
 
           // 播放特效

@@ -604,13 +604,6 @@ export function formatSaveTime(date: Date = new Date()): string {
  */
 // ============= 存档操作函数 =============
 
-/** 检查是否可以加载存档 */
-export function canLoadSave(index: number): boolean {
-  if (!isIndexInRange(index)) return false;
-  const key = getSaveKey(index);
-  return localStorage.getItem(key) !== null;
-}
-
 /** 获取所有存档槽位信息 */
 export function getSaveSlots(): SaveSlotInfo[] {
   const slots: SaveSlotInfo[] = [];

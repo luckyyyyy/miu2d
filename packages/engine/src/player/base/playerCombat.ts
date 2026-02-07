@@ -139,7 +139,7 @@ export abstract class PlayerCombat extends PlayerInput {
 
     // if (!CanPerformeAttack()) return;
     // CanPerformeAttack() checks DisableSkillMilliseconds <= 0
-    if (this.disableSkillMilliseconds > 0) {
+    if (this.statusEffects.disableSkillMilliseconds > 0) {
       return;
     }
 

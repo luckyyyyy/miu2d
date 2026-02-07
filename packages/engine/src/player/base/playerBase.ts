@@ -476,7 +476,7 @@ export abstract class PlayerBase extends Character {
       this.engine.npcManager.clearFollowTargetIfEqual(this._controledCharacter);
 
       // ControledCharacter.ControledMagicSprite = null
-      this._controledCharacter.controledMagicSprite = null;
+      this._controledCharacter.statusEffects.controledMagicSprite = null;
 
       // ControledCharacter = null
       this._controledCharacter = null;
