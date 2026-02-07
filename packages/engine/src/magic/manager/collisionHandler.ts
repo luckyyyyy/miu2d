@@ -58,6 +58,11 @@ export class CollisionHandler {
   private callbacks: ICollisionCallbacks;
   private state: MagicManagerState;
 
+  // 统一通过 IEngineContext 获取所有引擎服务
+  private get engine() {
+    return getEngineContext();
+  }
+
   constructor(
     deps: MagicManagerDeps,
     charHelper: ICharacterHelper,
@@ -79,7 +84,7 @@ export class CollisionHandler {
   checkMapObstacle(sprite: MagicSprite): boolean {
     if (sprite.magic.passThroughWall > 0) return false;
 
-    const collisionChecker = getEngineContext().map;
+    const collisionChecker = this.engine.map;
     if (!collisionChecker) return false;
 
     const tile = sprite.tilePosition;

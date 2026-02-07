@@ -18,20 +18,17 @@ import type { Player } from "../player/player";
  * 通过 IEngineContext 获取 Player 和 NpcManager
  */
 export class SpecialActionHandler {
-  /**
-   * 获取 Player（通过 IEngineContext）
-   */
-  private get player(): Player {
-    const ctx = getEngineContext();
-    return ctx.player as Player;
+  // 统一通过 IEngineContext 获取所有引擎服务
+  private get engine() {
+    return getEngineContext();
   }
 
-  /**
-   * 获取 NpcManager（通过 IEngineContext）
-   */
+  private get player(): Player {
+    return this.engine.player as Player;
+  }
+
   private get npcManager(): NpcManager {
-    const ctx = getEngineContext();
-    return ctx.npcManager as NpcManager;
+    return this.engine.npcManager as NpcManager;
   }
 
   /**

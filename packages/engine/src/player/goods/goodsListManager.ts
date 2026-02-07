@@ -81,6 +81,11 @@ export class GoodsListManager {
   private onUpdateView: (() => void) | null = null;
   private onShowMessage: ((msg: string) => void) | null = null;
 
+  // 统一通过 IEngineContext 获取所有引擎服务
+  private get engine() {
+    return getEngineContext();
+  }
+
   constructor() {
     this.renewList();
   }
@@ -705,7 +710,7 @@ export class GoodsListManager {
         // ScriptManager.RunScript(good.Script)
         // C# 参考: Utils.cs line 493-494 - Good 脚本路径固定为 script/goods/
         if (good.script) {
-          const engine = getEngineContext();
+          const engine = this.engine;
           if (engine) {
             // 物品脚本路径固定在 script/goods/ 目录下
             const fullPath = good.script.startsWith("/")

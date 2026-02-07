@@ -28,6 +28,11 @@ export class GuiManager {
   private isMoviePlaying: boolean = false; // Track movie playback state
   private pendingMovieFile: string | null = null; // Pending movie file for late subscribers
 
+  // 统一通过 IEngineContext 获取所有引擎服务
+  private get engine() {
+    return getEngineContext();
+  }
+
   constructor(
     private events: EventEmitter,
     private memoListManager: MemoListManager
@@ -414,7 +419,7 @@ export class GuiManager {
     for (const key of panelKeys) this.state.panels[key] = false;
 
     if (wasBuyOpen) {
-      getEngineContext().getManager("buy").endBuy();
+      this.engine.getManager("buy").endBuy();
     }
     this.emitPanelChange(null, false);
   }
@@ -603,8 +608,7 @@ export class GuiManager {
     if (this.state.panels.buy) {
       if (code === "Escape") {
         // 结束购物会话
-        const engineContext = getEngineContext();
-        engineContext.getManager("buy").endBuy();
+        this.engine.getManager("buy").endBuy();
         // 关闭商店和背包
         this.closeBuyGui();
         return true;
@@ -712,7 +716,7 @@ export class GuiManager {
 
   private isScriptRunning(): boolean {
     try {
-      return getEngineContext().getManager("script").isRunning();
+      return this.engine.getManager("script").isRunning();
     } catch {
       return false;
     }

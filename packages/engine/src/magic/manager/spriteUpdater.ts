@@ -71,6 +71,11 @@ export class SpriteUpdater {
   private callbacks: ISpriteUpdaterCallbacks;
   private state: MagicManagerState;
 
+  // 统一通过 IEngineContext 获取所有引擎服务
+  private get engine() {
+    return getEngineContext();
+  }
+
   constructor(
     deps: MagicManagerDeps,
     charHelper: ICharacterHelper,
@@ -619,7 +624,7 @@ export class SpriteUpdater {
           const destination = sprite.destination;
           let targetTile = pixelToTile(destination.x, destination.y);
 
-          const map = getEngineContext().map;
+          const map = this.engine.map;
           if (!map.isTileWalkable(targetTile)) {
               const neighbors = [
                 { x: targetTile.x - 1, y: targetTile.y },
@@ -877,7 +882,7 @@ export class SpriteUpdater {
     tileDistance: number
   ): Character[] {
     const friends: Character[] = [];
-    const ctx = getEngineContext();
+    const ctx = this.engine;
     if (!ctx) return friends;
 
     // 检查玩家
@@ -911,7 +916,7 @@ export class SpriteUpdater {
     tileDistance: number
   ): Character[] {
     const enemies: Character[] = [];
-    const ctx = getEngineContext();
+    const ctx = this.engine;
     if (!ctx) return enemies;
 
     // 检查玩家
@@ -941,7 +946,7 @@ export class SpriteUpdater {
    */
   private findFightersInTileDistance(centerTile: Vector2, tileDistance: number): Character[] {
     const fighters: Character[] = [];
-    const ctx = getEngineContext();
+    const ctx = this.engine;
     if (!ctx) return fighters;
 
     // 检查玩家

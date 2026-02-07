@@ -84,17 +84,24 @@ export class MapBase {
   /** 是否正在执行陷阱脚本 */
   private _isInRunMapTrap: boolean = false;
 
-  // ============= 构造函数（私有，使用单例） =============
-  private constructor() {}
+  // ============= 构造函数 =============
+  constructor() {}
 
   /**
-   * 获取单例实例
+   * @deprecated 使用引擎注入的 map 实例代替。将在后续版本移除。
    */
   static get Instance(): MapBase {
     if (!MapBase._instance) {
       MapBase._instance = new MapBase();
     }
     return MapBase._instance;
+  }
+
+  /**
+   * @internal 设置全局单例引用（仅由 GameEngine 在初始化时调用）
+   */
+  static setInstance(instance: MapBase): void {
+    MapBase._instance = instance;
   }
 
   /**
@@ -440,12 +447,12 @@ export class MapBase {
 
     // NPC 障碍
     try {
-      const ctx = getEngineContext();
-      if (ctx.npcManager.isObstacle(tile.x, tile.y)) {
+      const engine = getEngineContext();
+      if (engine.npcManager.isObstacle(tile.x, tile.y)) {
         return false;
       }
       // Obj 障碍
-      const objManager = ctx.getManager("obj");
+      const objManager = engine.getManager("obj");
       if (objManager.isObstacle(tile.x, tile.y)) {
         return false;
       }

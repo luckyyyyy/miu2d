@@ -182,11 +182,18 @@ export class GameEngine implements IEngineContext {
   // 引擎是否已完成一次性初始化（全局资源已加载）
   private isEngineInitialized: boolean = false;
 
+  // 地图基类实例（由引擎创建和持有）
+  private readonly _map: MapBase;
+
   private constructor(config: GameEngineConfig) {
     this.config = config;
 
     // 设置全局引擎上下文（让 Sprite 及其子类能访问引擎服务）
     setEngineContext(this);
+
+    // 创建地图实例并设置为全局单例（后向兼容 MapBase.Instance）
+    this._map = new MapBase();
+    MapBase.setInstance(this._map);
 
     // 创建全局资源
     this.talkTextList = new TalkTextListManager();
@@ -363,6 +370,7 @@ export class GameEngine implements IEngineContext {
           memoListManager: this.memoListManager,
           weatherManager: this.weatherManager,
           timerManager: this.timerManager,
+          map: this._map,
           clearMouseInput: () => this.clearMouseInput(),
         },
         {
@@ -684,7 +692,7 @@ export class GameEngine implements IEngineContext {
 
         // 加载新地图时清空已触发的陷阱列表
         // 参考 JxqyMap.LoadMapFromBuffer() 中的 _ignoredTrapsIndex.Clear()
-        MapBase.Instance.clearIgnoredTraps();
+        this._map.clearIgnoredTraps();
 
         // 更新地图渲染器
         this.mapRenderer.mapData = mapData;
@@ -1524,7 +1532,7 @@ export class GameEngine implements IEngineContext {
    * 核心服务：地图基类（障碍检测、陷阱、坐标转换）
    */
   get map(): MapBase {
-    return MapBase.Instance;
+    return this._map;
   }
 
   /**

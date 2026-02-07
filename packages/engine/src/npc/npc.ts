@@ -186,20 +186,7 @@ export class Npc extends Character {
   }
 
   // aiType getter/setter - inherited from Character
-
-  /**
-   * IsRandMoveRandAttack => AIType == 1 || AIType == 2
-   */
-  get isRandMoveRandAttack(): boolean {
-    return this.aiType === 1 || this.aiType === 2;
-  }
-
-  /**
-   * IsNotFightBackWhenBeHit => AIType == 2
-   */
-  get isNotFightBackWhenBeHit(): boolean {
-    return this.aiType === 2;
-  }
+  // isRandMoveRandAttack, isNotFightBackWhenBeHit - inherited from CharacterBase
 
   get fixedPathTilePositions(): Vector2[] | null {
     return this._fixedPathTilePositions;

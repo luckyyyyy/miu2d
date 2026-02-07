@@ -29,7 +29,7 @@ import { logger } from "../core/logger";
 import type { ScreenEffects } from "../effects";
 import type { GuiManager } from "../gui/guiManager";
 import type { MemoListManager } from "../listManager";
-import { MapBase } from "../map/mapBase";
+import type { MapBase } from "../map/mapBase";
 import type { NpcManager } from "../npc";
 import type { ObjManager } from "../obj";
 import type { GoodsListManager } from "../player/goods";
@@ -67,6 +67,7 @@ export interface LoaderDependencies {
   screenEffects: ScreenEffects;
   memoListManager: MemoListManager;
   guiManager: GuiManager;
+  map: MapBase;
   getScriptExecutor: () => ScriptExecutor;
   loadMap: (mapPath: string) => Promise<void>;
   parseIni: (content: string) => Record<string, Record<string, string>>;
@@ -430,7 +431,7 @@ export class Loader {
         if (optionSection.MapTime) {
           const mapTime = parseInt(optionSection.MapTime, 10);
           this.deps.setMapTime?.(mapTime);
-          MapBase.Instance.mapTime = mapTime;
+          this.deps.map.mapTime = mapTime;
           logger.debug(`[Loader] MapTime: ${mapTime}`);
         }
 
@@ -622,7 +623,7 @@ export class Loader {
       // Step 6: 加载陷阱 (92-94%)
       // Reference: Loader.LoadTraps() -> MapBase.loadTrap(StorageBase.TrapsFilePath)
       this.reportProgress(92, "加载陷阱...");
-      await MapBase.Instance.loadTrap(`${basePath}/Traps.ini`);
+      await this.deps.map.loadTrap(`${basePath}/Traps.ini`);
 
       // Step 7: 加载陷阱忽略列表（可选，如果存在）(94-96%)
       // Reference: Loader.LoadTrapIgnoreList() -> MapBase.Instance.loadTrapIndexIgnoreList()
@@ -724,7 +725,7 @@ export class Loader {
     }
 
     if (ignoredIndices.length > 0) {
-      MapBase.Instance.loadTrapIndexIgnoreList(ignoredIndices);
+      this.deps.map.loadTrapIndexIgnoreList(ignoredIndices);
       logger.debug(`[Loader] Loaded ${ignoredIndices.length} ignored trap indices`);
     }
   }
@@ -1382,7 +1383,7 @@ export class Loader {
       } else {
         logger.debug(`[Loader] Loading traps from initial Traps.ini...`);
         const trapBasePath = ResourcePath.saveBase(0);
-        await MapBase.Instance.loadTrap(`${trapBasePath}/Traps.ini`);
+        await this.deps.map.loadTrap(`${trapBasePath}/Traps.ini`);
         if (data.snapshot?.trap) {
           this.loadTrapsFromSave(data.snapshot.trap, undefined);
         }
@@ -1963,12 +1964,12 @@ export class Loader {
 
   /** 收集陷阱快照（已触发的陷阱索引列表） */
   private collectTrapSnapshot(): number[] {
-    return MapBase.Instance.collectTrapDataForSave().ignoreList;
+    return this.deps.map.collectTrapDataForSave().ignoreList;
   }
 
   /** 收集陷阱分组（按地图名存储的陷阱配置） */
   private collectTrapGroups(): Record<string, TrapGroupValue> {
-    return MapBase.Instance.collectTrapDataForSave().mapTraps;
+    return this.deps.map.collectTrapDataForSave().mapTraps;
   }
 
   // ============= 数据加载方法 =============
@@ -2076,7 +2077,7 @@ export class Loader {
     snapshot: number[],
     groups: Record<string, TrapGroupValue> | undefined
   ): void {
-    MapBase.Instance.loadTrapsFromSave(groups, snapshot);
+    this.deps.map.loadTrapsFromSave(groups, snapshot);
   }
 
   /**

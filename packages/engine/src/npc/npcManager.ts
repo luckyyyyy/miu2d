@@ -80,8 +80,12 @@ export class NpcManager {
    * 获取 Player（通过 IEngineContext）
    */
   private get _player(): Character {
-    const ctx = getEngineContext();
-    return ctx.player as unknown as Character;
+    return this.engine.player as unknown as Character;
+  }
+
+  // 统一通过 IEngineContext 获取所有引擎服务
+  private get engine() {
+    return getEngineContext();
   }
 
   /**
@@ -92,7 +96,7 @@ export class NpcManager {
   runDeathScript(scriptPath: string, npc: Npc): void {
     if (!scriptPath) return;
 
-    const engine = getEngineContext();
+    const engine = this.engine;
     if (!engine) return;
 
     const basePath = engine.getScriptBasePath();
@@ -771,9 +775,8 @@ export class NpcManager {
     const npcsToDelete: string[] = [];
 
     // 通过 IEngineContext 获取 ObjManager 和 isDropEnabled
-    const engineContext = getEngineContext();
-    const objManager = engineContext.getManager("obj") as ObjManager;
-    const isDropEnabled = engineContext.isDropEnabled();
+    const objManager = this.engine.getManager("obj") as ObjManager;
+    const isDropEnabled = this.engine.isDropEnabled();
 
     for (const [id, npc] of this.npcs) {
       if (!npc.isVisible) continue;

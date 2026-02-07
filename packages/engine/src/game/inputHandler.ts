@@ -59,48 +59,18 @@ export class InputHandler {
   private lastRightButtonDown: boolean = false;
 
   // 统一通过 IEngineContext 获取所有引擎服务
-  private get ctx() {
+  private get engine() {
     return getEngineContext();
   }
 
+  /** 便捷访问: Player（需要类型转换） */
   private get player(): Player {
-    return this.ctx.player as Player;
+    return this.engine.player as Player;
   }
 
-  private get guiManager() {
-    return this.ctx.getManager("gui");
-  }
-
-  private get interactionManager() {
-    return this.ctx.getManager("interaction");
-  }
-
-  private get scriptExecutor(): ScriptExecutor {
-    return this.ctx.getManager("script") as ScriptExecutor;
-  }
-
-  private get debugManager() {
-    return this.ctx.getManager("debug");
-  }
-
-  private get magicHandler() {
-    return this.ctx.getManager("magicHandler");
-  }
-
+  /** 便捷访问: NpcManager（需要类型转换） */
   private get npcManager(): NpcManager {
-    return this.ctx.npcManager as NpcManager;
-  }
-
-  private get objManager() {
-    return this.ctx.getManager("obj");
-  }
-
-  private get audioManager() {
-    return this.ctx.audio;
-  }
-
-  private getScriptBasePath(): string {
-    return this.ctx.getScriptBasePath();
+    return this.engine.npcManager as NpcManager;
   }
 
   constructor(deps: InputHandlerDependencies) {
@@ -151,7 +121,7 @@ export class InputHandler {
     if (!this.pendingInteraction) return;
 
     const player = this.player;
-    const scriptExecutor = this.scriptExecutor;
+    const scriptExecutor = this.engine.getManager("script") as ScriptExecutor;
 
     // Don't check if script is running
     if (scriptExecutor.isRunning()) return;
@@ -244,7 +214,10 @@ export class InputHandler {
    * Handle keyboard input
    */
   handleKeyDown(code: string, shiftKey: boolean = false): boolean {
-    const { debugManager, guiManager, scriptExecutor, magicHandler } = this;
+    const debugManager = this.engine.getManager("debug");
+    const guiManager = this.engine.getManager("gui");
+    const scriptExecutor = this.engine.getManager("script") as ScriptExecutor;
+    const magicHandler = this.engine.getManager("magicHandler");
 
     if (debugManager.handleInput(code, shiftKey)) {
       return true;
@@ -335,7 +308,7 @@ export class InputHandler {
       //     NpcManager.ForEachPartner(character => character.UseDrug(drug));
       // }
       if (info.good.followPartnerHasDrugEffect > 0) {
-        this.npcManager.forEachPartner((partner) => {
+        (this.engine.npcManager as NpcManager).forEachPartner((partner) => {
           partner.useDrug(info.good);
         });
       }
@@ -356,7 +329,11 @@ export class InputHandler {
     worldY: number,
     viewRect: { x: number; y: number; width: number; height: number }
   ): void {
-    const { npcManager, objManager, interactionManager, guiManager, scriptExecutor } = this;
+    const npcManager = this.engine.npcManager as NpcManager;
+    const objManager = this.engine.getManager("obj");
+    const interactionManager = this.engine.getManager("interaction");
+    const guiManager = this.engine.getManager("gui");
+    const scriptExecutor = this.engine.getManager("script") as ScriptExecutor;
 
     // Clear previous hover state
     interactionManager.clearHoverState();
@@ -430,7 +407,11 @@ export class InputHandler {
     ctrlKey: boolean = false,
     altKey: boolean = false
   ): void {
-    const { guiManager, interactionManager, player, scriptExecutor, magicHandler } = this;
+    const guiManager = this.engine.getManager("gui");
+    const interactionManager = this.engine.getManager("interaction");
+    const player = this.engine.player as Player;
+    const scriptExecutor = this.engine.getManager("script") as ScriptExecutor;
+    const magicHandler = this.engine.getManager("magicHandler");
 
     // _lastMouseState.LeftButton == ButtonState.Released
     // 只在"新按下"时触发交互，防止重复触发
@@ -638,7 +619,7 @@ export class InputHandler {
    * Handle continuous mouse input for movement
    */
   handleContinuousMouseInput(input: InputState): void {
-    const interactionManager = this.interactionManager;
+    const interactionManager = this.engine.getManager("interaction");
 
     if (input.isMouseDown && input.clickedTile) {
       // If hovering over interactive target, don't process as movement
@@ -656,7 +637,8 @@ export class InputHandler {
    * @param useRightScript Use ScriptFileRight instead of ScriptFile
    */
   async interactWithNpc(npc: Npc, useRightScript: boolean = false): Promise<void> {
-    const { guiManager, player } = this;
+    const guiManager = this.engine.getManager("gui");
+    const player = this.engine.player as Player;
 
     // Reference: C# _autoAttackTarget = null; character.InteractWith(...)
     player.cancelAutoAttack();
@@ -698,7 +680,7 @@ export class InputHandler {
    */
   private async executeNpcInteraction(npc: Npc, useRightScript: boolean): Promise<void> {
     const player = this.player;
-    const scriptExecutor = this.scriptExecutor;
+    const scriptExecutor = this.engine.getManager("script") as ScriptExecutor;
 
     const scriptFile = useRightScript ? npc.scriptFileRight : npc.scriptFile;
     if (!scriptFile) return;
@@ -712,7 +694,7 @@ export class InputHandler {
     // Stop player movement
     player.stopMovement();
 
-    const basePath = this.getScriptBasePath();
+    const basePath = this.engine.getScriptBasePath();
     await scriptExecutor.runScript(`${basePath}/${scriptFile}`, { type: "npc", id: npc.name });
   }
 
@@ -762,7 +744,9 @@ export class InputHandler {
    * Execute the actual Object interaction (turn, run script)
    */
   private async executeObjInteraction(obj: Obj, useRightScript: boolean): Promise<void> {
-    const { player, interactionManager, audioManager } = this;
+    const player = this.engine.player as Player;
+    const interactionManager = this.engine.getManager("interaction");
+    const audioManager = this.engine.audio;
 
     // Check if object can be interacted with
     if (!obj.canInteract(useRightScript)) return;
@@ -962,7 +946,8 @@ export class InputHandler {
    * Check if tile has NPC or Obj obstacle
    */
   private hasObstacle(tile: Vector2): boolean {
-    const { npcManager, objManager } = this;
+    const npcManager = this.engine.npcManager as NpcManager;
+    const objManager = this.engine.getManager("obj");
 
     // Check NPC collision
     if (npcManager.isObstacle(tile.x, tile.y)) {
@@ -1016,7 +1001,8 @@ export class InputHandler {
    * Interact with closest object (Q key)
    */
   private async interactWithClosestObj(): Promise<void> {
-    const { player, objManager } = this;
+    const player = this.engine.player as Player;
+    const objManager = this.engine.getManager("obj");
     const closestObj = objManager.getClosestInteractableObj(player.tilePosition, 13);
     if (closestObj) {
       await this.interactWithObj(closestObj, false);
@@ -1027,7 +1013,8 @@ export class InputHandler {
    * Interact with closest NPC (E key)
    */
   private async interactWithClosestNpc(): Promise<void> {
-    const { player, npcManager } = this;
+    const player = this.engine.player as Player;
+    const npcManager = this.engine.npcManager as NpcManager;
     // Get closest interactive NPC within 13 tiles
     let closestNpc: Npc | null = null;
     let closestDist = 13;
@@ -1074,8 +1061,8 @@ export class InputHandler {
    * Check if input can be processed (not blocked by GUI or script)
    */
   canProcessInput(): boolean {
-    const guiManager = this.guiManager;
-    const scriptExecutor = this.scriptExecutor;
+    const guiManager = this.engine.getManager("gui");
+    const scriptExecutor = this.engine.getManager("script") as ScriptExecutor;
     return !guiManager.isBlockingInput() && !scriptExecutor.isRunning();
   }
 }

@@ -32,7 +32,6 @@
 
 import type { AudioManager } from "../audio";
 import { ResourcePath } from "../config/resourcePaths";
-import { getEngineContext } from "../core/engineContext";
 import type { EventEmitter } from "../core/eventEmitter";
 import { GameEvents } from "../core/gameEvents";
 import { logger } from "../core/logger";
@@ -93,6 +92,7 @@ export interface GameManagerDeps {
   memoListManager: MemoListManager;
   weatherManager: WeatherManager;
   timerManager: TimerManager;
+  map: MapBase;
   clearMouseInput?: () => void; // 清除鼠标按住状态（对话框弹出时调用）
 }
 
@@ -118,6 +118,9 @@ export class GameManager {
   // Shop system
   private buyManager: BuyManager;
   private buyVersion: number = 0;
+
+  // 地图基类（由引擎注入）
+  private readonly map: MapBase;
 
   // Refactored modules
   private weatherManager: WeatherManager;
@@ -175,9 +178,9 @@ export class GameManager {
     this.weatherManager = deps.weatherManager;
     this.timerManager = deps.timerManager;
     this.clearMouseInput = deps.clearMouseInput;
+    this.map = deps.map;
 
     // Initialize systems
-    // Character/Npc/Player 通过 IEngineContext.map 获取 MapBase.Instance
     this.player = new Player();
 
     this.npcManager = new NpcManager();
@@ -268,7 +271,7 @@ export class GameManager {
       this.scriptExecutor,
       () => this.variables,
       () => ({ mapName: this.currentMapName, mapPath: this.currentMapPath }),
-      () => MapBase.Instance.getIgnoredTrapIndices()
+      () => this.map.getIgnoredTrapIndices()
     );
 
     // Initialize loader (after scriptExecutor is created)
@@ -281,6 +284,7 @@ export class GameManager {
       screenEffects: this.screenEffects,
       memoListManager: this.memoListManager,
       guiManager: this.guiManager,
+      map: this.map,
       getScriptExecutor: () => this.scriptExecutor,
       loadMap: (mapPath) => this.loadMap(mapPath),
       parseIni: parseIni,
@@ -432,7 +436,7 @@ export class GameManager {
     // Initialize input handler
     // InputHandler 通过 IEngineContext 获取各管理器，只需传入碰撞检测回调
     this.inputHandler = new InputHandler({
-      isTileWalkable: (tile: Vector2) => MapBase.Instance.isTileWalkable(tile),
+      isTileWalkable: (tile: Vector2) => this.map.isTileWalkable(tile),
     });
 
     // Initialize special action handler
@@ -477,7 +481,7 @@ export class GameManager {
       loadNpcFile: (fileName) => this.loadNpcFile(fileName),
       loadGameSave: (index) => this.loadGameSave(index),
       setMapTrap: (trapIndex, trapFileName, mapName) => {
-        MapBase.Instance.setMapTrap(trapIndex, trapFileName, mapName);
+        this.map.setMapTrap(trapIndex, trapFileName, mapName);
       },
       checkTrap: (tile) => this.checkTrap(tile),
       cameraMoveTo: (direction, distance, speed) => {
@@ -501,7 +505,7 @@ export class GameManager {
       enableDrop: () => this.enableDrop(),
       disableDrop: () => this.disableDrop(),
       // Map obstacle check
-      isMapObstacleForCharacter: (x, y) => MapBase.Instance.isObstacleForCharacter(x, y),
+      isMapObstacleForCharacter: (x, y) => this.map.isObstacleForCharacter(x, y),
       // Show map pos flag
       setScriptShowMapPos: (show) => this.setScriptShowMapPos(show),
       // Map time
@@ -518,7 +522,7 @@ export class GameManager {
         // 3. 从内存加载新角色数据
         await this.loader.loadPlayerDataFromMemory();
         // 4. 数据加载完成后通知 UI 更新
-        getEngineContext().notifyPlayerStateChanged();
+        this.notifyPlayerStateChanged();
       },
       // Debug hooks
       onScriptStart: this.debugManager.onScriptStart,
@@ -554,10 +558,19 @@ export class GameManager {
   }
 
   /**
+   * 通知 UI 刷新玩家状态（切换角色、读档等）
+   */
+  private notifyPlayerStateChanged(): void {
+    this.events.emit(GameEvents.UI_PLAYER_CHANGE, {});
+    this.events.emit(GameEvents.UI_GOODS_CHANGE, {});
+    this.events.emit(GameEvents.UI_MAGIC_CHANGE, {});
+  }
+
+  /**
    * Get MapBase for IEngineContext
    */
   getMapService() {
-    return MapBase.Instance;
+    return this.map;
   }
 
   /**
@@ -571,7 +584,7 @@ export class GameManager {
    * Check and trigger trap at tile
    */
   private checkTrap(tile: Vector2): void {
-    MapBase.Instance.checkTrap(
+    this.map.checkTrap(
       tile,
       this.mapData,
       this.currentMapName,
@@ -619,13 +632,13 @@ export class GameManager {
         );
 
         // Update MapBase with new map data
-        MapBase.Instance.setMapData(this.mapData);
+        this.map.setMapData(this.mapData);
 
         // MagicManager 现在通过 IEngineContext 获取碰撞检测器
         // 无需手动设置 setMapObstacleChecker
 
         // Debug trap info
-        MapBase.Instance.debugLogTraps(this.mapData, this.currentMapName);
+        this.map.debugLogTraps(this.mapData, this.currentMapName);
       }
     }
     logger.debug(`[GameManager] Map loaded successfully`);
@@ -665,8 +678,8 @@ export class GameManager {
     this.debugManager.clearScriptHistory();
     const result = await this.loader.loadGameFromSlot(index);
     if (result) {
-      // 通知 UI 刷新（通过 IEngineContext 统一接口）
-      getEngineContext().notifyPlayerStateChanged();
+      // 通知 UI 刷新
+      this.notifyPlayerStateChanged();
     }
     return result;
   }
@@ -705,7 +718,7 @@ export class GameManager {
    */
   setMapData(mapData: JxqyMapData): void {
     this.mapData = mapData;
-    MapBase.Instance.setMapData(mapData);
+    this.map.setMapData(mapData);
   }
 
   /**
@@ -715,8 +728,8 @@ export class GameManager {
   setCurrentMapName(mapName: string): void {
     this.currentMapName = mapName;
     // 更新 MapBase 的地图信息
-    MapBase.Instance.mapFileNameWithoutExtension = mapName;
-    MapBase.Instance.mapFileName = `${mapName}.map`;
+    this.map.mapFileNameWithoutExtension = mapName;
+    this.map.mapFileName = `${mapName}.map`;
   }
 
   /**
@@ -818,11 +831,11 @@ export class GameManager {
 
     // Reset trap flag when trap script finishes
     if (
-      MapBase.Instance.isInRunMapTrap &&
+      this.map.isInRunMapTrap &&
       !this.scriptExecutor.isRunning() &&
       !this.scriptExecutor.isWaitingForInput()
     ) {
-      MapBase.Instance.isInRunMapTrap = false;
+      this.map.isInRunMapTrap = false;
     }
 
     // Update screen effects
@@ -861,7 +874,7 @@ export class GameManager {
     this.inputHandler.update();
 
     // Check for trap at player's position
-    if (!MapBase.Instance.isInRunMapTrap) {
+    if (!this.map.isInRunMapTrap) {
       const playerTile = this.player.tilePosition;
       this.checkTrap(playerTile);
     }
@@ -1004,7 +1017,7 @@ export class GameManager {
    * IEngineContext 接口实现
    */
   hasTrapScript(tile: Vector2): boolean {
-    return MapBase.Instance.hasTrapScriptWithMapData(tile, this.mapData, this.currentMapName);
+    return this.map.hasTrapScriptWithMapData(tile, this.mapData, this.currentMapName);
   }
 
   isPausedState(): boolean {
@@ -1156,7 +1169,7 @@ export class GameManager {
    * Web 版实现：保存到 localStorage（按存档槽位区分），在 loadGame 时会读取并合并。
    */
   saveMapTrap(): void {
-    const { ignoreList, mapTraps } = MapBase.Instance.collectTrapDataForSave();
+    const { ignoreList, mapTraps } = this.map.collectTrapDataForSave();
     try {
       const key = this.getRuntimeTrapsKey();
       const trapData = { snapshot: ignoreList, groups: mapTraps };
@@ -1194,7 +1207,7 @@ export class GameManager {
         groups?: Record<string, Record<number, string>>;
       };
 
-      MapBase.Instance.loadTrapsFromSave(trapData.groups, trapData.snapshot || []);
+      this.map.loadTrapsFromSave(trapData.groups, trapData.snapshot || []);
 
       logger.log(`[GameManager] LoadRuntimeTraps: merged runtime trap data from ${key}`);
       return true;

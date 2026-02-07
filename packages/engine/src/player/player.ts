@@ -14,7 +14,6 @@
 import { Character } from "../character";
 import type { CharacterBase } from "../character/base";
 import { applyConfigToPlayer, parseCharacterIni } from "../character/iniParser";
-import { getEngineContext } from "../core/engineContext";
 import { logger } from "../core/logger";
 import type { Vector2 } from "../core/types";
 import { CharacterState, RUN_SPEED_FOLD } from "../core/types";
@@ -267,13 +266,12 @@ export class Player extends PlayerCombat {
 
     // Run death script if set
     if (this.deathScript) {
-      const engine = getEngineContext();
-      const basePath = engine.getScriptBasePath();
+      const basePath = this.engine.getScriptBasePath();
       const fullPath = this.deathScript.startsWith("/")
         ? this.deathScript
         : `${basePath}/${this.deathScript}`;
       logger.log(`[Player] Running death script: ${fullPath}`);
-      engine.runScript(fullPath);
+      this.engine.runScript(fullPath);
     }
 
     // Globals.IsInputDisabled = true

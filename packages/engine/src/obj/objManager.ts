@@ -82,12 +82,13 @@ export class ObjManager {
   private _objsInView: Obj[] = [];
   private _objsByRow: Map<number, Obj[]> = new Map();
 
-  /**
-   * 获取 AudioManager（通过 IEngineContext）
-   */
+  // 统一通过 IEngineContext 获取所有引擎服务
+  private get engine() {
+    return getEngineContext();
+  }
+
   private get audioManager(): AudioManager {
-    const ctx = getEngineContext();
-    return ctx.audio;
+    return this.engine.audio;
   }
 
   /**

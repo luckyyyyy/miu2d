@@ -72,24 +72,24 @@ export class DebugManager {
   private config: DebugManagerConfig;
 
   // 统一通过 IEngineContext 获取所有引擎服务
-  private get ctx() {
+  private get engine() {
     return getEngineContext();
   }
 
   private get player(): Player {
-    return this.ctx.player as Player;
+    return this.engine.player as Player;
   }
 
   private get npcManager(): NpcManager {
-    return this.ctx.npcManager as NpcManager;
+    return this.engine.npcManager as NpcManager;
   }
 
   private get objManager(): ObjManager {
-    return this.ctx.getManager("obj") as ObjManager;
+    return this.engine.getManager("obj") as ObjManager;
   }
 
   private get guiManager(): GuiManager {
-    return this.ctx.getManager("gui") as GuiManager;
+    return this.engine.getManager("gui") as GuiManager;
   }
 
   // 脚本执行历史（包含完整内容，最多20条）

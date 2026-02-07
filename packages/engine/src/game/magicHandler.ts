@@ -32,28 +32,21 @@ export interface MagicHandlerDependencies {
 export class MagicHandler {
   private getLastInput: () => InputState | null;
 
-  /**
-   * 获取 Player（通过 IEngineContext）
-   */
+  // 统一通过 IEngineContext 获取所有引擎服务
+  private get engine() {
+    return getEngineContext();
+  }
+
   private get player(): Player {
-    const ctx = getEngineContext();
-    return ctx.player as Player;
+    return this.engine.player as Player;
   }
 
-  /**
-   * 获取 GuiManager（通过 IEngineContext）
-   */
   private get guiManager(): GuiManager {
-    const ctx = getEngineContext();
-    return ctx.getManager("gui") as GuiManager;
+    return this.engine.getManager("gui") as GuiManager;
   }
 
-  /**
-   * 获取 MagicManager（通过 IEngineContext）
-   */
   private get magicManager(): MagicManager {
-    const ctx = getEngineContext();
-    return ctx.getManager("magic") as MagicManager;
+    return this.engine.getManager("magic") as MagicManager;
   }
 
   /**
@@ -137,7 +130,7 @@ export class MagicHandler {
     // if (Globals.OutEdgeNpc != null)
     //     UseMagic(CurrentMagicInUse.TheMagic, Globals.OutEdgeNpc.TilePosition, Globals.OutEdgeNpc);
     // else UseMagic(CurrentMagicInUse.TheMagic, mouseTilePosition);
-    const interactionManager = getEngineContext().getManager("interaction") as InteractionManager;
+    const interactionManager = this.engine.getManager("interaction") as InteractionManager;
     const hoverTarget = interactionManager.getHoverTarget();
 
     // lines 1407-1419

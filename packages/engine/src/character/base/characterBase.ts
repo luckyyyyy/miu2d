@@ -461,10 +461,6 @@ export abstract class CharacterBase extends Sprite implements CharacterInstance 
     return this.kind === CharacterKind.Follower;
   }
 
-  get isEventCharacter(): boolean {
-    return this.kind === CharacterKind.Eventer;
-  }
-
   get isEventer(): boolean {
     return this.kind === CharacterKind.Eventer;
   }

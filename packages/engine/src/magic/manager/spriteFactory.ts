@@ -36,6 +36,11 @@ export class SpriteFactory {
   private charHelper: ICharacterHelper;
   private callbacks: ISpriteFactoryCallbacks;
 
+  // 统一通过 IEngineContext 获取所有引擎服务
+  private get engine() {
+    return getEngineContext();
+  }
+
   constructor(
     deps: MagicManagerDeps,
     charHelper: ICharacterHelper,
@@ -1334,7 +1339,7 @@ export class SpriteFactory {
     }
 
     let summonTile = pixelToTile(destination.x, destination.y);
-    const collisionChecker = getEngineContext().map;
+    const collisionChecker = this.engine.map;
     if (!collisionChecker.isTileWalkable(summonTile)) {
       const neighbors = [
         { x: summonTile.x - 1, y: summonTile.y },
