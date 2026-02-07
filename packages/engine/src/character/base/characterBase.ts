@@ -706,7 +706,7 @@ export abstract class CharacterBase extends Sprite implements CharacterInstance 
   }
 
   // === Status Effects Getters ===
-  get isFrozened(): boolean {
+  get isFrozen(): boolean {
     return this.frozenSeconds > 0;
   }
 

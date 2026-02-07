@@ -629,7 +629,7 @@ export class MapBase {
 
   /**
    * 清空已忽略的陷阱列表（加载新地图时调用）
-   * 中的 _ingnoredTrapsIndex.Clear()
+   * 中的 _ignoredTrapsIndex.Clear()
    */
   clearIgnoredTraps(): void {
     this._ignoredTrapsIndex.clear();

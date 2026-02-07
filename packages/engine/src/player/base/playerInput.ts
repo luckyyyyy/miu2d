@@ -38,7 +38,6 @@ export abstract class PlayerInput extends PlayerBase {
 
     // Reference: PerformActionOk() - 在 Magic/Attack/Jump/Hurt/Death 等状态下不能移动
     if (!this.canPerformAction()) {
-      // logger.debug(`[Player.handleInput] BLOCKED: canPerformAction=false, state=${this._state}`);
       return null;
     }
 
@@ -96,14 +95,8 @@ export abstract class PlayerInput extends PlayerBase {
       }
 
       if (!success) {
-        // logger.debug(
-        //   `[Player.handleInput] 鼠标长按移动失败: targetTile=(${targetTile.x}, ${targetTile.y})`
-        // );
       } else {
         // 验证 walkTo 成功后路径状态
-        // logger.debug(
-        //   `[Player.handleInput] walkTo成功后: pathLen=${this.path.length}, destTile=(${this._destinationMoveTilePosition?.x}, ${this._destinationMoveTilePosition?.y}), state=${this._state}`
-        // );
       }
       return null;
     }
@@ -308,11 +301,7 @@ export abstract class PlayerInput extends PlayerBase {
     this._isMoving = false;
     this._targetPosition = null;
     // Use FightStand if in fighting mode
-    if (this._isInFighting && this.isStateImageOk(CharacterState.FightStand)) {
-      this.state = CharacterState.FightStand;
-    } else {
-      this.state = CharacterState.Stand;
-    }
+    this.state = this.selectFightOrNormalState(CharacterState.FightStand, CharacterState.Stand);
   }
 
   // =============================================

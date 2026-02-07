@@ -491,7 +491,7 @@ export abstract class CharacterCombat extends CharacterMovement {
 
       // Reference: Character.Death() - 状态效果死亡动画
       // 冰冻死亡 -> 冰碎动画
-      if (this.isFrozened && this.isFrozenVisualEffect) {
+      if (this.isFrozen && this.isFrozenVisualEffect) {
         this.applySpecialDeathAnimation("frozen");
       }
       // 中毒死亡 -> 毒气动画

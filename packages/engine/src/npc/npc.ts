@@ -638,9 +638,9 @@ export class Npc extends Character {
   }
 
   /**
-   * CancleAttackTarget()
+   * CancelAttackTarget()
    */
-  cancleAttackTarget(): void {
+  cancelAttackTarget(): void {
     this._destinationAttackTilePosition = null;
   }
 

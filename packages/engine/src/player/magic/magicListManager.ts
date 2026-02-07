@@ -302,14 +302,11 @@ export class MagicListManager {
     for (const path of paths) {
       const asf = await loadAsf(path);
       if (asf) {
-        // logger.debug(`[MagicListManager] Preloaded SpecialAttackTexture: ${path}`);
         return;
       }
     }
     logger.warn(`[MagicListManager] Failed to preload SpecialAttackTexture: ${asfFileName}`);
   }
-
-
 
   /**
    * 清空列表

@@ -411,9 +411,6 @@ export class MagicManager {
     }
     this.initializeSpriteEffects(sprite);
     this.state.magicSprites.set(sprite.id, sprite);
-    // logger.log(
-    //   `[MagicManager] Added sprite: ${sprite.magic.name} (id=${sprite.id}, userId=${sprite.belongCharacterId})`
-    // );
   }
 
   private addWorkItem(delayMs: number, sprite: MagicSprite): void {

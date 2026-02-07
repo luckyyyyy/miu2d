@@ -326,13 +326,9 @@ export class SpriteUpdater {
     // Reference: MagicSprite.Update() - 动画结束后直接处理，不依赖 velocity
     if (!sprite.isInPlaying) {
       if (sprite.isSuperMode || sprite.magic.moveKind === MagicMoveKind.SuperMode) {
-        // logger.log(`[SpriteUpdater] SuperMode animation ended, calling startDestroyAnimation`);
         this.startDestroyAnimation(sprite);
         return;
       }
-      // logger.log(
-      //   `[SpriteUpdater] Sprite ${sprite.magic.name} animation ended: leftFrameToPlay=${sprite.leftFrameToPlay}, frameCountsPerDirection=${sprite.frameCountsPerDirection}, lifeFrame=${sprite.magic.lifeFrame}, movedDistance=${sprite.movedDistance.toFixed(0)}`
-      // );
       this.handleSpriteLifeEnd(sprite);
       return;
     }
@@ -359,9 +355,6 @@ export class SpriteUpdater {
    * 处理精灵生命结束
    */
   private handleSpriteLifeEnd(sprite: MagicSprite): void {
-    // logger.log(
-    //   `[SpriteUpdater] handleSpriteLifeEnd: ${sprite.magic.name}, destroyOnEnd=${sprite.destroyOnEnd}`
-    // );
     if (sprite.destroyOnEnd) {
       this.startDestroyAnimation(sprite);
     } else {
@@ -374,7 +367,6 @@ export class SpriteUpdater {
    */
   startDestroyAnimation(sprite: MagicSprite): void {
     if (sprite.isInDestroy) return;
-    // logger.log(`[SpriteUpdater] startDestroyAnimation: ${sprite.magic.name}`);
     sprite.isInDestroy = true;
 
     // SuperMode 全屏攻击

@@ -175,21 +175,14 @@ export abstract class Character extends CharacterCombat {
    */
   private handlePoisonExp(poisonKillerName: string): void {
     const player = this.engine.player;
-    const calcExp = (
-      killer: { level: number },
-      dead: { level: number; expBonus?: number }
-    ): number => {
-      const exp = killer.level * dead.level + (dead.expBonus ?? 0);
-      return exp < 4 ? 4 : exp;
-    };
     if (player && poisonKillerName === player.name) {
-      const exp = calcExp(player, this);
+      const exp = CharacterCombat.getCharacterDeathExp(player, this);
       player.addExp(exp, true);
     } else {
       const npcManager = this.engine.npcManager;
       const poisoner = npcManager.getNpc(poisonKillerName);
       if (poisoner && poisoner.canLevelUp > 0) {
-        const exp = calcExp(poisoner, this);
+        const exp = CharacterCombat.getCharacterDeathExp(poisoner, this);
         poisoner.addExp(exp);
       }
     }
@@ -933,18 +926,7 @@ export abstract class Character extends CharacterCombat {
   }
 
   protected standImmediately(): void {
-    // 调试：追踪 standImmediately 调用
-    if (this.isPlayer && this.path.length > 0) {
-      // logger.debug(
-      //   `[Character.standImmediately] 清空路径! pathLen=${this.path.length}, destTile=(${this._destinationMoveTilePosition?.x}, ${this._destinationMoveTilePosition?.y})`
-      // );
-      // console.trace("[standImmediately] 调用栈");
-    }
-    if (this._isInFighting && this.isStateImageOk(CharacterState.FightStand)) {
-      this.state = CharacterState.FightStand;
-    } else {
-      this.state = CharacterState.Stand;
-    }
+    this.state = this.selectFightOrNormalState(CharacterState.FightStand, CharacterState.Stand);
     this.path = [];
   }
 

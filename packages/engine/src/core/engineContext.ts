@@ -113,7 +113,7 @@ export interface INpcManager {
   /**
    * 清除所有 NPC 对指定角色的追踪目标
    */
-  cleartFollowTargetIfEqual(target: ICharacter): void;
+  clearFollowTargetIfEqual(target: ICharacter): void;
 }
 
 // IMapService 已删除，直接使用 MapBase

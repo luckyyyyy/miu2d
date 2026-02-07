@@ -111,11 +111,7 @@ export class Player extends PlayerCombat {
       if (!this.consumeRunningThew()) {
         // Not enough thew, switch to walking
         // Use FightWalk if in fighting mode
-        if (this._isInFighting && this.isStateImageOk(CharacterState.FightWalk)) {
-          this.state = CharacterState.FightWalk;
-        } else {
-          this.state = CharacterState.Walk;
-        }
+        this.state = this.selectFightOrNormalState(CharacterState.FightWalk, CharacterState.Walk);
       }
     }
 

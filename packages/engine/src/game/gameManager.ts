@@ -232,11 +232,6 @@ export class GameManager {
 
     // MagicManager 现在由 NPCs 通过 IEngineContext 获取
 
-    // Add sprite destroyed listener for logging
-    // this.magicManager.onSpriteDestroyed((sprite) => {
-    //   logger.log(`[Magic] Sprite destroyed: ${sprite.magic.name}`);
-    // });
-
     // Initialize buy manager (shop system)
     this.buyManager = new BuyManager();
     this.buyManager.setCallbacks({
@@ -610,7 +605,7 @@ export class GameManager {
     // this.scriptExecutor.clearCache();
 
     // 注意：不清空 ignoredTrapIndices
-    // 中 _ingnoredTrapsIndex 只在 LoadTrap（加载存档时）才会清空
+    // 中 _ignoredTrapsIndex 只在 LoadTrap（加载存档时）才会清空
     // 因为 ignoredTrapIndices 是跨地图的全局状态
     // this.trapManager.clearIgnoredTraps(); // 移除此调用
 
@@ -796,9 +791,6 @@ export class GameManager {
     // 调试：追踪帧开始时的玩家状态
     if (this.player && input.isMouseDown) {
       // const p = this.player;
-      // logger.debug(
-      //   `[GameManager.update] 帧开始: pathLen=${p.path.length}, destTile=(${p.destinationMoveTilePosition?.x}, ${p.destinationMoveTilePosition?.y}), state=${p.state}, isMouseDown=${input.isMouseDown}`
-      // );
     }
 
     // Store input for mouse position access in other methods (e.g., magic targeting)
@@ -899,9 +891,6 @@ export class GameManager {
     // 调试：追踪帧结束时的玩家状态
     if (this.player && input.isMouseDown) {
       // const p = this.player;
-      // logger.debug(
-      //   `[GameManager.update] 帧结束: pathLen=${p.path.length}, destTile=(${p.destinationMoveTilePosition?.x}, ${p.destinationMoveTilePosition?.y}), state=${p.state}`
-      // );
     }
   }
 

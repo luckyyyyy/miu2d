@@ -261,7 +261,7 @@ export class NpcAI {
       npc.isAIDisabled ||
       npc.blindMilliseconds > 0
     ) {
-      npc.cancleAttackTarget();
+      npc.cancelAttackTarget();
       return;
     }
 
@@ -291,7 +291,7 @@ export class NpcAI {
    */
   private followTargetLost(): void {
     const npc = this._npc;
-    npc.cancleAttackTarget();
+    npc.cancelAttackTarget();
     if (npc.isPartner) {
       this.moveToPlayer();
     }

@@ -267,7 +267,6 @@ export abstract class PlayerBase extends Character {
         const asf = getCachedAsf(path);
         if (asf) {
           this._specialAttackTexture = asf;
-          // logger.debug(`[Player] Got cached SpecialAttackTexture: ${path}`);
           break;
         }
       }
@@ -277,7 +276,6 @@ export abstract class PlayerBase extends Character {
       const baseMagic = getMagic(xiuLianMagic.magic.attackFile);
       if (baseMagic) {
         this._xiuLianAttackMagic = baseMagic;
-        // logger.debug(`[Player] Got cached XiuLianAttackMagic: ${baseMagic.name}`);
       } else {
         logger.warn(`[Player] XiuLianAttackMagic not in cache: ${xiuLianMagic.magic.attackFile}`);
         this._xiuLianAttackMagic = null;
@@ -475,7 +473,7 @@ export abstract class PlayerBase extends Character {
     if (this._controledCharacter !== null) {
       // NpcManager.CleartFollowTargetIfEqual(ControledCharacter)
       // 清除其他 NPC 对被控制角色的追踪
-      this.engine.npcManager.cleartFollowTargetIfEqual(this._controledCharacter);
+      this.engine.npcManager.clearFollowTargetIfEqual(this._controledCharacter);
 
       // ControledCharacter.ControledMagicSprite = null
       this._controledCharacter.controledMagicSprite = null;

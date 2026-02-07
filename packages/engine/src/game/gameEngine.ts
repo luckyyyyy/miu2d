@@ -685,7 +685,7 @@ export class GameEngine implements IEngineContext {
         const mapName = fullMapPath.split("/").pop()?.replace(".map", "") || "";
 
         // 加载新地图时清空已触发的陷阱列表
-        // 参考 JxqyMap.LoadMapFromBuffer() 中的 _ingnoredTrapsIndex.Clear()
+        // 参考 JxqyMap.LoadMapFromBuffer() 中的 _ignoredTrapsIndex.Clear()
         MapBase.Instance.clearIgnoredTraps();
 
         // 更新地图渲染器

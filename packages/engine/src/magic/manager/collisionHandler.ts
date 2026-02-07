@@ -118,15 +118,9 @@ export class CollisionHandler {
         };
       }
 
-      // logger.log(
-      //   `[CollisionHandler] Ball bounce at wall: ${sprite.magic.name} at (${tile.x}, ${tile.y})`
-      // );
       return false; // 不销毁，继续飞行
     }
 
-    // logger.log(
-    //   `[CollisionHandler] Sprite ${sprite.magic.name} hit map obstacle at (${tile.x}, ${tile.y})`
-    // );
     this.callbacks.startDestroyAnimation(sprite);
     return true;
   }
@@ -182,9 +176,6 @@ export class CollisionHandler {
       if (!target && sprite.elapsedMilliseconds < 100) {
         // const enemies = this.npcManager.getEnemyPositions();
         // const spritePw = sprite.positionInWorld;
-        // logger.log(
-        //   `[CollisionHandler] Player magic ${sprite.magic.name} at tile(${tileX},${tileY})/pixel(${spritePw.x.toFixed(0)},${spritePw.y.toFixed(0)}), enemies: ${enemies}`
-        // );
       }
       characterHited = this.characterHited(sprite, target);
     } else if (belongCharacter.isEnemy) {
@@ -533,7 +524,7 @@ export class CollisionHandler {
     // AdditionalEffect 效果
     switch (magic.additionalEffect) {
       case 1:
-        if (!character.isFrozened) {
+        if (!character.isFrozen) {
           const seconds = (belongCharacter?.level ?? 1) / 10 + 1;
           character.setFrozenSeconds(seconds, magic.noSpecialKindEffect === 0);
         }

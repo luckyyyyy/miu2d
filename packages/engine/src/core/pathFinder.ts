@@ -357,9 +357,6 @@ export function findPathPerfect(
 
   // 检查目标位置是否是障碍物
   if (isMapObstacle(endTile)) {
-    // logger.debug(
-    //   `[PathFinder.findPathPerfect] 目标位置是障碍物: endTile=(${endTile.x}, ${endTile.y})`
-    // );
     return [];
   }
 
@@ -397,11 +394,6 @@ export function findPathPerfect(
       //   (endTile.x < startTile.x && minX < startTile.x) || // 目标在西，有向西探索
       //   (endTile.x > startTile.x && maxX > startTile.x); // 目标在东，有向东探索
 
-      // logger.debug(
-      //   `[PathFinder.findPathPerfect] 超过最大尝试次数: maxTryCount=${maxTryCount}, from=(${startTile.x}, ${startTile.y}) to=(${endTile.x}, ${endTile.y}), ` +
-      //     `exploredRange=[(${minX},${minY})-(${maxX},${maxY})], exploredNodes=${costSoFar.size}, frontierSize=${frontier.length}, ` +
-      //     `exploredTowardTarget=${exploredInTargetDirection}, lastExplored=${lastExplored ? `(${lastExplored.x},${lastExplored.y})` : "null"}`
-      // );
       break;
     }
 
@@ -459,9 +451,6 @@ export function findPathPerfect(
   const path = getPath(cameFrom, startTile, endTile);
 
   if (path.length === 0 && tryCount > 0) {
-    // logger.debug(
-    //   `[PathFinder.findPathPerfect] 寻路完成但无路径: from=(${startTile.x}, ${startTile.y}) to=(${endTile.x}, ${endTile.y}), tryCount=${tryCount}, frontierExhausted=${frontier.length === 0}, noNeighborsCount=${noNeighborsCount}`
-    // );
   }
 
   return path;

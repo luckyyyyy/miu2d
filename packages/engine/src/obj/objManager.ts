@@ -676,9 +676,6 @@ export class ObjManager {
     obj.currentFrameIndex = objData.frame;
 
     this.objects.push(obj);
-    // logger.log(
-    //   `[ObjManager] Created obj from save: ${objData.objName} at (${objData.mapX}, ${objData.mapY})`
-    // );
   }
 
   /**

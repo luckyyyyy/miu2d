@@ -389,9 +389,6 @@ export class NpcManager {
     // NPC 通过 IEngineContext 获取 NpcManager、Player、MagicManager、AudioManager
 
     // Log NPC creation for debugging
-    // logger.log(
-    //   `[NpcManager] Created NPC (with config): ${config.name} at (${tileX}, ${tileY}), id=${npc.id}, npcIni=${config.npcIni || "none"}`
-    // );
 
     // Auto-load sprites using Npc's own method (must await so appearance is ready)
     if (config.npcIni) {
@@ -446,8 +443,8 @@ export class NpcManager {
         if (!npc.isPartner) {
           toDelete.push(id);
         } else {
-          // npc.CancleAttackTarget()
-          npc.cancleAttackTarget();
+          // npc.CancelAttackTarget()
+          npc.cancelAttackTarget();
         }
       }
       for (const id of toDelete) {
@@ -909,7 +906,7 @@ export class NpcManager {
    * Clear follow target for all NPCs if equal to target
    * NpcManager.CleartFollowTargetIfEqual(target)
    */
-  cleartFollowTargetIfEqual(target: Character): void {
+  clearFollowTargetIfEqual(target: Character): void {
     for (const [, npc] of this.npcs) {
       if (npc.followTarget === target) {
         npc.clearFollowTarget();
@@ -1325,7 +1322,7 @@ export class NpcManager {
   disableAI(): void {
     logger.log("[NpcManager] Disabling global NPC AI");
     this._globalAIDisabled = true;
-    this.cancleFighterAttacking();
+    this.cancelFighterAttacking();
   }
 
   /**
@@ -1932,9 +1929,6 @@ export class NpcManager {
       await npc.levelManager.setLevelFile(extraState.levelIniFile);
     }
 
-    // logger.log(
-    //   `[NpcManager] Created NPC: ${config.name} at (${mapX}, ${mapY}), npcIni=${config.npcIni}`
-    // );
     return npc;
   }
 
@@ -2234,10 +2228,10 @@ export class NpcManager {
    * Cancel all fighter attacking (used when global AI is disabled)
    *
    */
-  cancleFighterAttacking(): void {
+  cancelFighterAttacking(): void {
     for (const [, npc] of this.npcs) {
       if (npc.isFighterKind) {
-        npc.cancleAttackTarget();
+        npc.cancelAttackTarget();
       }
     }
   }
