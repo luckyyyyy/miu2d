@@ -17,9 +17,9 @@
  */
 
 // Bezier curve
-export { bezier2D } from "./bezier";
+export { bezier2D } from "../character/modules/bezier";
 // Binary utilities
-export { getLittleEndianInt, readFixedString, readNullTerminatedString } from "./binaryUtils";
+export { getLittleEndianInt, readNullTerminatedString } from "../resource/binaryUtils";
 export type { Rect } from "./collision";
 // Collision detection
 export { isBoxCollide } from "./collision";
@@ -41,11 +41,11 @@ export {
   getVOffsets,
 } from "./direction";
 // Distance calculation
-export { distance, getViewTileDistance, tileDistance } from "./distance";
+export { distance, getViewTileDistance } from "./distance";
 // Edge detection
-export { getOuterEdge } from "./edgeDetection";
+export { getOuterEdge } from "../sprite/edgeDetection";
 // Encoding
-export { decodeGb2312, getTextDecoder } from "./encoding";
+export { getTextDecoder } from "../resource/encoding";
 // ID generation
 export { generateId } from "./id";
 // INI parser
@@ -53,4 +53,4 @@ export { parseIni } from "./iniParser";
 // Math utilities
 export { clamp, getSpeedRatio, lerp, normalizeVector, vectorLength } from "./math";
 // Neighbor utilities
-export { getNeighbors, getWalkableNeighbors } from "./neighbors";
+export { getNeighbors } from "./neighbors";

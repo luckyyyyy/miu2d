@@ -602,147 +602,129 @@ export function formatSaveTime(date: Date = new Date()): string {
  * Storage Manager - 存档管理器
  * 处理 localStorage 读写操作
  */
-export class StorageManager {
-  /**
-   * 检查是否可以加载存档
-   */
-  static canLoad(index: number): boolean {
-    if (!isIndexInRange(index)) return false;
-    const key = getSaveKey(index);
-    return localStorage.getItem(key) !== null;
-  }
+// ============= 存档操作函数 =============
 
-  /**
-   * 获取所有存档槽位信息
-   */
-  static getSaveSlots(): SaveSlotInfo[] {
-    const slots: SaveSlotInfo[] = [];
+/** 检查是否可以加载存档 */
+export function canLoadSave(index: number): boolean {
+  if (!isIndexInRange(index)) return false;
+  const key = getSaveKey(index);
+  return localStorage.getItem(key) !== null;
+}
 
-    for (let i = SAVE_INDEX_BEGIN; i <= SAVE_INDEX_END; i++) {
-      const slot: SaveSlotInfo = {
-        index: i,
-        exists: false,
-      };
+/** 获取所有存档槽位信息 */
+export function getSaveSlots(): SaveSlotInfo[] {
+  const slots: SaveSlotInfo[] = [];
 
-      try {
-        const key = getSaveKey(i);
-        const data = localStorage.getItem(key);
-        if (data) {
-          const saveData = JSON.parse(data) as SaveData;
-          slot.exists = true;
-          slot.time = saveData.state.time;
-          slot.mapName = saveData.state.map;
-          slot.level = saveData.player.level;
-          slot.screenshot = saveData.screenshot;
-        }
-      } catch (error) {
-        logger.warn(`[Storage] Error reading save slot ${i}:`, error);
-      }
-
-      slots.push(slot);
-    }
-
-    return slots;
-  }
-
-  /**
-   * 保存游戏到指定槽位
-   */
-  static saveGame(index: number, data: SaveData): boolean {
-    if (!isIndexInRange(index)) {
-      logger.error(`[Storage] Invalid save index: ${index}`);
-      return false;
-    }
+  for (let i = SAVE_INDEX_BEGIN; i <= SAVE_INDEX_END; i++) {
+    const slot: SaveSlotInfo = {
+      index: i,
+      exists: false,
+    };
 
     try {
-      const key = getSaveKey(index);
-      const json = JSON.stringify(data);
-      localStorage.setItem(key, json);
-      logger.log(`[Storage] Game saved to slot ${index}`);
-      return true;
-    } catch (error) {
-      logger.error(`[Storage] Error saving game to slot ${index}:`, error);
-      return false;
-    }
-  }
-
-  /**
-   * 加载指定槽位的存档
-   */
-  static loadGame(index: number): SaveData | null {
-    if (!isIndexInRange(index)) {
-      logger.error(`[Storage] Invalid load index: ${index}`);
-      return null;
-    }
-
-    try {
-      const key = getSaveKey(index);
-      const data = localStorage.getItem(key);
-      if (!data) {
-        logger.warn(`[Storage] No save data found at slot ${index}`);
-        return null;
-      }
-
-      const saveData = JSON.parse(data) as SaveData;
-      logger.log(`[Storage] Game loaded from slot ${index}`);
-      return saveData;
-    } catch (error) {
-      logger.error(`[Storage] Error loading game from slot ${index}:`, error);
-      return null;
-    }
-  }
-
-  /**
-   * 删除指定槽位的存档
-   */
-  static deleteGame(index: number): boolean {
-    if (!isIndexInRange(index)) {
-      logger.error(`[Storage] Invalid delete index: ${index}`);
-      return false;
-    }
-
-    try {
-      const key = getSaveKey(index);
-      localStorage.removeItem(key);
-      logger.log(`[Storage] Save slot ${index} deleted`);
-      return true;
-    } catch (error) {
-      logger.error(`[Storage] Error deleting save slot ${index}:`, error);
-      return false;
-    }
-  }
-
-  /**
-   * 删除所有存档
-   */
-  static deleteAllSaves(): void {
-    for (let i = SAVE_INDEX_BEGIN; i <= SAVE_INDEX_END; i++) {
       const key = getSaveKey(i);
-      localStorage.removeItem(key);
+      const data = localStorage.getItem(key);
+      if (data) {
+        const saveData = JSON.parse(data) as SaveData;
+        slot.exists = true;
+        slot.time = saveData.state.time;
+        slot.mapName = saveData.state.map;
+        slot.level = saveData.player.level;
+        slot.screenshot = saveData.screenshot;
+      }
+    } catch (error) {
+      logger.warn(`[Storage] Error reading save slot ${i}:`, error);
     }
-    logger.log(`[Storage] All saves deleted`);
+
+    slots.push(slot);
   }
 
-  /**
-   * 从 canvas 生成截图
-   */
-  static captureScreenshot(canvas: HTMLCanvasElement): string | undefined {
-    try {
-      // 创建临时 canvas 用于缩放
-      const tempCanvas = document.createElement("canvas");
-      tempCanvas.width = SCREENSHOT_WIDTH;
-      tempCanvas.height = SCREENSHOT_HEIGHT;
-      const ctx = tempCanvas.getContext("2d");
-      if (!ctx) return undefined;
+  return slots;
+}
 
-      // 绘制缩放后的图像
-      ctx.drawImage(canvas, 0, 0, SCREENSHOT_WIDTH, SCREENSHOT_HEIGHT);
+/** 保存游戏到指定槽位 */
+export function saveGame(index: number, data: SaveData): boolean {
+  if (!isIndexInRange(index)) {
+    logger.error(`[Storage] Invalid save index: ${index}`);
+    return false;
+  }
 
-      // 转为 base64 (使用 JPEG 减小体积)
-      return tempCanvas.toDataURL("image/jpeg", 0.7);
-    } catch (error) {
-      logger.error("[Storage] Error capturing screenshot:", error);
-      return undefined;
+  try {
+    const key = getSaveKey(index);
+    const json = JSON.stringify(data);
+    localStorage.setItem(key, json);
+    logger.log(`[Storage] Game saved to slot ${index}`);
+    return true;
+  } catch (error) {
+    logger.error(`[Storage] Error saving game to slot ${index}:`, error);
+    return false;
+  }
+}
+
+/** 加载指定槽位的存档 */
+export function loadGame(index: number): SaveData | null {
+  if (!isIndexInRange(index)) {
+    logger.error(`[Storage] Invalid load index: ${index}`);
+    return null;
+  }
+
+  try {
+    const key = getSaveKey(index);
+    const data = localStorage.getItem(key);
+    if (!data) {
+      logger.warn(`[Storage] No save data found at slot ${index}`);
+      return null;
     }
+
+    const saveData = JSON.parse(data) as SaveData;
+    logger.log(`[Storage] Game loaded from slot ${index}`);
+    return saveData;
+  } catch (error) {
+    logger.error(`[Storage] Error loading game from slot ${index}:`, error);
+    return null;
+  }
+}
+
+/** 删除指定槽位的存档 */
+export function deleteSave(index: number): boolean {
+  if (!isIndexInRange(index)) {
+    logger.error(`[Storage] Invalid delete index: ${index}`);
+    return false;
+  }
+
+  try {
+    const key = getSaveKey(index);
+    localStorage.removeItem(key);
+    logger.log(`[Storage] Save slot ${index} deleted`);
+    return true;
+  } catch (error) {
+    logger.error(`[Storage] Error deleting save slot ${index}:`, error);
+    return false;
+  }
+}
+
+/** 删除所有存档 */
+export function deleteAllSaves(): void {
+  for (let i = SAVE_INDEX_BEGIN; i <= SAVE_INDEX_END; i++) {
+    const key = getSaveKey(i);
+    localStorage.removeItem(key);
+  }
+  logger.log(`[Storage] All saves deleted`);
+}
+
+/** 从 canvas 生成截图 */
+export function captureScreenshot(canvas: HTMLCanvasElement): string | undefined {
+  try {
+    const tempCanvas = document.createElement("canvas");
+    tempCanvas.width = SCREENSHOT_WIDTH;
+    tempCanvas.height = SCREENSHOT_HEIGHT;
+    const ctx = tempCanvas.getContext("2d");
+    if (!ctx) return undefined;
+
+    ctx.drawImage(canvas, 0, 0, SCREENSHOT_WIDTH, SCREENSHOT_HEIGHT);
+    return tempCanvas.toDataURL("image/jpeg", 0.7);
+  } catch (error) {
+    logger.error("[Storage] Error capturing screenshot:", error);
+    return undefined;
   }
 }

@@ -7,7 +7,7 @@
  */
 
 import { logger } from "@miu2d/engine/core/logger";
-import { type SaveSlotInfo, StorageManager } from "@miu2d/engine/runtime/storage";
+import { type SaveSlotInfo, getSaveSlots } from "@miu2d/engine/runtime/storage";
 import type { ButtonConfig, SaveLoadGuiConfig } from "@miu2d/engine/gui/uiSettings";
 import type React from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -167,7 +167,7 @@ export const SaveLoadGui: React.FC<SaveLoadGuiProps> = ({
   // 加载存档列表
   const loadSlots = useCallback(() => {
     try {
-      const slotInfos = StorageManager.getSaveSlots();
+      const slotInfos = getSaveSlots();
       setSlots(slotInfos);
     } catch (error) {
       logger.error("[SaveLoadGui] Failed to load save slots:", error);

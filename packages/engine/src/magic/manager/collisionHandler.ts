@@ -6,7 +6,8 @@
  */
 
 import type { CharacterBase } from "../../character/base";
-import { Character } from "../../character/character";
+import type { Character } from "../../character/character";
+import { getCharacterDeathExp } from "../../core/effectCalc";
 import { getEngineContext } from "../../core/engineContext";
 import { logger } from "../../core/logger";
 import {
@@ -586,7 +587,7 @@ export class CollisionHandler {
 
     if (isKill) {
       if (isPlayerCaster || isPartner || isSummonedByPlayerOrPartner || isControledByPlayer) {
-        const exp = Character.getCharacterDeathExp(this.player, target);
+        const exp = getCharacterDeathExp(this.player, target);
         logger.log(`[CollisionHandler] Kill! Player gains ${exp} exp`);
         this.player.addExp(exp, true);
 
@@ -602,7 +603,7 @@ export class CollisionHandler {
             shouldGiveNpcExp = summoner?.isPartner ?? false;
           }
           if (shouldGiveNpcExp) {
-            const npcExp = Character.getCharacterDeathExp(belongCharacter, target);
+            const npcExp = getCharacterDeathExp(belongCharacter, target);
             belongCharacter.addExp(npcExp);
             logger.log(
               `[CollisionHandler] Partner/Summon ${belongCharacter.name} gains ${npcExp} exp`

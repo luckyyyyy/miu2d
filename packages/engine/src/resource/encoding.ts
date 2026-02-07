@@ -25,14 +25,3 @@ export function getTextDecoder(): TextDecoder {
   return cachedDecoder;
 }
 
-/**
- * Decode GB2312/GBK encoded buffer to string
- * Used ONLY for reading Chinese text from BINARY game resource files (map, MPC)
- * NOTE: Text files (.ini, .txt) in resources/ are now UTF-8, use response.text() instead
- *
- * @param buffer ArrayBuffer containing GBK encoded data
- * @returns Decoded string
- */
-export function decodeGb2312(buffer: ArrayBuffer): string {
-  return getTextDecoder().decode(new Uint8Array(buffer));
-}

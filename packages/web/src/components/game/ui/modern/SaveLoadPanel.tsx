@@ -4,7 +4,7 @@
  */
 
 import { logger } from "@miu2d/engine/core/logger";
-import { type SaveSlotInfo, StorageManager } from "@miu2d/engine/runtime/storage";
+import { type SaveSlotInfo, getSaveSlots } from "@miu2d/engine/runtime/storage";
 import type React from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { GlassButton, PanelHeader } from "./components";
@@ -170,7 +170,7 @@ export const SaveLoadPanel: React.FC<SaveLoadPanelProps> = ({
   // 加载存档列表
   const loadSlots = useCallback(() => {
     try {
-      const slotInfos = StorageManager.getSaveSlots();
+      const slotInfos = getSaveSlots();
       setSlots(slotInfos);
     } catch (error) {
       logger.error("[SaveLoadPanel] Failed to load save slots:", error);

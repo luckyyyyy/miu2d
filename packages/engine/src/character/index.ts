@@ -13,8 +13,6 @@
  * - character.setSpecialAction() - play special action animation
  */
 
-// Re-export Npc and NpcManager from npc module for backward compatibility
-export { Npc, NpcManager } from "../npc";
 // Class-based exports
 export { Character, type MagicToUseInfoItem } from "./character";
 // INI Parser - data-driven config parsing (new, replaces verbose switch-case)

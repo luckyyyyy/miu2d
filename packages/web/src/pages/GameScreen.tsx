@@ -12,7 +12,8 @@
  */
 
 import { logger } from "@miu2d/engine/core/logger";
-import { loadGameData, reloadGameData, setResourcePaths } from "@miu2d/engine/config";
+import { setResourcePaths } from "@miu2d/engine/config";
+import { loadGameData, reloadGameData } from "@miu2d/engine/resource";
 import { setLevelConfigGameSlug, initNpcLevelConfig } from "@miu2d/engine/character/level";
 import { resourceLoader } from "@miu2d/engine/resource/resourceLoader";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";

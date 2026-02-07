@@ -10,12 +10,10 @@
 
 import {
   getMagicsData,
-  isGameDataLoaded,
-  registerCacheBuilder,
   type ApiMagicData,
 } from "../resource/resourceLoader";
-import { getResourceRoot, normalizeCacheKey } from "../config/resourcePaths";
-import { logger } from "../core/logger";
+import { createConfigCache } from "../resource/cacheRegistry";
+import { getResourceRoot } from "../config/resourcePaths";
 import { createDefaultMagicData, type MagicData, MagicMoveKind, MagicSpecialKind } from "./types";
 
 // ========== API 响应类型（从 dataLoader 复用） ==========
@@ -26,9 +24,6 @@ type ApiAttackFile = ApiMagicData extends { attackFile: infer A } ? NonNullable<
 // ========== 缓存 ==========
 
 const MAGIC_KEY_PREFIXES = ["ini/magic/"] as const;
-
-/** 已解析的武功配置缓存 (key -> MagicData) */
-const magicConfigCache = new Map<string, MagicData>();
 
 // ========== MoveKind 字符串到枚举映射 ==========
 
@@ -198,7 +193,11 @@ function applyCommonMagicFields(
 /**
  * 将 API 武功数据转换为引擎 MagicData
  */
-function convertApiMagicToMagicData(api: ApiMagicData): MagicData {
+function convertApiMagicToMagicData(
+  api: ApiMagicData,
+  cache: Map<string, MagicData>,
+  normalizeKey: (key: string) => string,
+): MagicData {
   const magic = createDefaultMagicData();
 
   // 基础信息
@@ -218,7 +217,7 @@ function convertApiMagicToMagicData(api: ApiMagicData): MagicData {
     const attackFileName = `${api.key.replace(".ini", "")}-attack.ini`;
     magic.attackFile = attackFileName;
     const attackMagic = convertAttackFileToMagicData(api.attackFile, attackFileName);
-    magicConfigCache.set(normalizeCacheKey(attackFileName, MAGIC_KEY_PREFIXES), attackMagic);
+    cache.set(normalizeKey(attackFileName), attackMagic);
   }
 
   // 关联武功
@@ -284,70 +283,41 @@ function convertAttackFileToMagicData(attack: ApiAttackFile, fileName: string): 
 
 
 
-/**
- * 从统一数据构建武功缓存（自动被 dataLoader 调用）
- */
-function buildMagicCache(): void {
-  const data = getMagicsData();
-  if (!data) {
-    return;
-  }
+// ========== 缓存（使用通用 CacheRegistry） ==========
 
-  // 清空旧缓存
-  magicConfigCache.clear();
+type MagicApiData = NonNullable<ReturnType<typeof getMagicsData>>;
 
-  // 处理玩家武功
-  for (const api of data.player) {
-    const magic = convertApiMagicToMagicData(api);
-    const cacheKey = normalizeCacheKey(api.key, MAGIC_KEY_PREFIXES);
-    magicConfigCache.set(cacheKey, magic);
-  }
-
-  // 处理 NPC 武功
-  for (const api of data.npc) {
-    const magic = convertApiMagicToMagicData(api);
-    const cacheKey = normalizeCacheKey(api.key, MAGIC_KEY_PREFIXES);
-    magicConfigCache.set(cacheKey, magic);
-  }
-
-  logger.info(
-    `[MagicConfigLoader] Built cache: ${data.player.length} player + ${data.npc.length} npc magics`
-  );
-}
-
-// 注册到 dataLoader，数据加载完成后自动构建缓存
-registerCacheBuilder(buildMagicCache);
+const magicCacheStore = createConfigCache<MagicApiData, MagicData>({
+  name: "MagicConfig",
+  keyPrefixes: MAGIC_KEY_PREFIXES,
+  getData: getMagicsData,
+  build(data, cache, normalizeKey) {
+    // 处理玩家武功
+    for (const api of data.player) {
+      const magic = convertApiMagicToMagicData(api, cache, normalizeKey);
+      cache.set(normalizeKey(api.key), magic);
+    }
+    // 处理 NPC 武功
+    for (const api of data.npc) {
+      const magic = convertApiMagicToMagicData(api, cache, normalizeKey);
+      cache.set(normalizeKey(api.key), magic);
+    }
+  },
+});
 
 // ========== 公共 API ==========
 
-/**
- * 从缓存获取武功配置
- *
- * @param fileName 武功文件名（支持多种格式）
- * @returns MagicData 或 null
- */
+/** 从缓存获取武功配置 */
 export function getMagicFromApiCache(fileName: string): MagicData | null {
-  const cacheKey = normalizeCacheKey(fileName, MAGIC_KEY_PREFIXES);
-  const cached = magicConfigCache.get(cacheKey);
-
-  if (cached) {
-    // 返回副本，避免外部修改影响缓存
-    return { ...cached };
-  }
-
-  return null;
+  const cached = magicCacheStore.get(fileName);
+  // 返回副本，避免外部修改影响缓存
+  return cached ? { ...cached } : null;
 }
 
-/**
- * 检查武功配置是否已加载
- */
 export function isMagicApiLoaded(): boolean {
-  return isGameDataLoaded() && magicConfigCache.size > 0;
+  return magicCacheStore.isLoaded();
 }
 
-/**
- * 获取所有缓存的武功文件名
- */
 export function getAllCachedMagicFileNames(): string[] {
-  return Array.from(magicConfigCache.keys());
+  return magicCacheStore.allKeys();
 }

@@ -10,8 +10,8 @@
 
 import { logger } from "../core/logger";
 import type { JxqyMapData, MapMpcIndex, MapTileInfo } from "../core/mapTypes";
-import { getLittleEndianInt, readNullTerminatedString } from "../utils/binaryUtils";
-import { getTextDecoder } from "../utils/encoding";
+import { getLittleEndianInt, readNullTerminatedString } from "./binaryUtils";
+import { getTextDecoder } from "./encoding";
 import { resourceLoader } from "./resourceLoader";
 
 /**

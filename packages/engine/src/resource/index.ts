@@ -13,11 +13,10 @@
  * 2. 其他地方直接 import { loadAsf, loadMpc } 使用
  */
 export * from "./asf";
+export * from "./cacheRegistry";
 export * from "./map";
 export * from "./mpc";
 export * from "./resourceLoader";
 export * from "./shd";
 export * from "./xnb";
 
-// 重新导出 WASM 初始化函数
-export { initWasm } from "../wasm/wasmManager";

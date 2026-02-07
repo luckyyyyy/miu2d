@@ -1,13 +1,5 @@
-import {
-  createMapRenderer,
-  loadMap,
-  loadMapMpcs,
-  type MapRenderer,
-  renderMap,
-  setCameraSize,
-  updateCamera,
-  Canvas2DRenderer,
-} from "@miu2d/engine";
+import { createMapRenderer, loadMapMpcs, type MapRenderer, renderMap, setCameraSize, updateCamera, Canvas2DRenderer } from "@miu2d/engine";
+import { loadMap } from "@miu2d/engine/resource";
 import { logger } from "@miu2d/engine/core/logger";
 import { useEffect, useRef, useState } from "react";
 

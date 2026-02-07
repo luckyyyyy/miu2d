@@ -37,19 +37,7 @@ import type { MagicListManager } from "../player/magic/magicListManager";
 import type { Player } from "../player/player";
 import { resourceLoader } from "../resource/resourceLoader";
 import type { ScriptExecutor } from "../script/executor";
-import {
-  type CharacterSaveSlot,
-  formatSaveTime,
-  type GoodsItemData,
-  type MagicItemData,
-  type NpcSaveItem,
-  type ObjSaveItem,
-  type PlayerSaveData,
-  SAVE_VERSION,
-  type SaveData,
-  StorageManager,
-  type TrapGroupValue,
-} from "./storage";
+import { type CharacterSaveSlot, formatSaveTime, type GoodsItemData, type MagicItemData, type NpcSaveItem, type ObjSaveItem, type PlayerSaveData, SAVE_VERSION, type SaveData, type TrapGroupValue, saveGame, loadGame, captureScreenshot } from "./storage";
 
 /**
  * 加载进度回调
@@ -777,11 +765,11 @@ export class Loader {
       // 截图预览
       const canvas = this.deps.getCanvas();
       if (canvas) {
-        saveData.screenshot = StorageManager.captureScreenshot(canvas);
+        saveData.screenshot = captureScreenshot(canvas);
       }
 
       // 保存到 localStorage
-      const success = StorageManager.saveGame(index, saveData);
+      const success = saveGame(index, saveData);
       if (success) {
         // 更新当前存档槽位
         this._currentSaveSlot = index;
@@ -1470,7 +1458,7 @@ export class Loader {
     this.reportProgress(0, `读取存档 ${index}...`);
     logger.log(`[Loader] Loading game from slot ${index}...`);
 
-    const data = StorageManager.loadGame(index);
+    const data = loadGame(index);
     if (!data) {
       logger.error(`[Loader] No save data found at slot ${index}`);
       return false;

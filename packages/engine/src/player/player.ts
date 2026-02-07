@@ -18,7 +18,7 @@ import { logger } from "../core/logger";
 import type { Vector2 } from "../core/types";
 import { CharacterState, RUN_SPEED_FOLD } from "../core/types";
 import type { PlayerSaveData } from "../runtime/storage";
-import { getEffectAmount } from "../magic/effects/common";
+import { getEffectAmount } from "../core/effectCalc";
 import type { MagicSprite } from "../magic/magicSprite";
 import type { MagicData } from "../magic/types";
 import { MagicMoveKind, MagicSpecialKind } from "../magic/types";

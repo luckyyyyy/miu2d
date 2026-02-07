@@ -50,7 +50,8 @@ import type { GuiManagerState } from "../gui/types";
 import { MemoListManager, PartnerListManager, TalkTextListManager } from "../listManager";
 import type { MagicItemInfo } from "../magic";
 import { MagicRenderer } from "../magic/magicRenderer";
-import { loadMap, MapBase } from "../map";
+import { MapBase } from "../map";
+import { loadMap } from "../resource";
 import {
   createMapRenderer,
   loadMapMpcs,
@@ -180,9 +181,6 @@ export class GameEngine implements IEngineContext {
   //
   private lastPlayerPositionForCamera: Vector2 | null = null;
 
-  // 引擎是否已完成一次性初始化（全局资源已加载）
-  private isEngineInitialized: boolean = false;
-
   // 地图基类实例（由引擎创建和持有）
   private readonly _map: MapBase;
 
@@ -302,7 +300,6 @@ export class GameEngine implements IEngineContext {
     this._renderer?.dispose();
     this._renderer = null;
     this.events.clear();
-    this.isEngineInitialized = false;
     this.state = "uninitialized";
     setEngineContext(null);
   }
@@ -318,7 +315,7 @@ export class GameEngine implements IEngineContext {
    * 对应JxqyGame.Initialize() + LoadContent()
    */
   async initialize(): Promise<void> {
-    if (this.isEngineInitialized) {
+    if (this.state !== "uninitialized") {
       logger.warn("[GameEngine] Engine already initialized");
       return;
     }
@@ -388,12 +385,11 @@ export class GameEngine implements IEngineContext {
 
       // ========== 阶段4：创建 UI 桥接器 ==========
       this.uiBridgeInstance = this.createUIBridge();
-      this.isEngineInitialized = true;
       this.emitLoadProgress(40, "引擎初始化完成");
       logger.log("[GameEngine] Engine initialization completed (global resources loaded)");
     } catch (error) {
       logger.error("[GameEngine] Engine initialization failed:", error);
-      this.isEngineInitialized = false;
+      this.state = "uninitialized";
       this.events.emit(GameEvents.GAME_INITIALIZED, { success: false });
       throw error;
     }
@@ -408,7 +404,7 @@ export class GameEngine implements IEngineContext {
    * 对应Loader.NewGame()
    */
   async newGame(): Promise<void> {
-    if (!this.isEngineInitialized) {
+    if (this.state === "uninitialized") {
       logger.error("[GameEngine] Cannot start new game: engine not initialized");
       throw new Error("Engine not initialized. Call initialize() first.");
     }
@@ -460,7 +456,7 @@ export class GameEngine implements IEngineContext {
    * 对应Loader.LoadGame(index)
    */
   async loadGame(index: number): Promise<void> {
-    if (!this.isEngineInitialized) {
+    if (this.state === "uninitialized") {
       logger.error("[GameEngine] Cannot load game: engine not initialized");
       throw new Error("Engine not initialized. Call initialize() first.");
     }
@@ -524,7 +520,7 @@ export class GameEngine implements IEngineContext {
    * @param index 存档槽位索引 (1-7)
    */
   async loadGameFromSlot(index: number): Promise<void> {
-    if (!this.isEngineInitialized) {
+    if (this.state === "uninitialized") {
       logger.error("[GameEngine] Cannot load game: engine not initialized");
       throw new Error("Engine not initialized. Call initialize() first.");
     }
@@ -586,7 +582,7 @@ export class GameEngine implements IEngineContext {
    * @returns 是否保存成功
    */
   async saveGameToSlot(index: number): Promise<boolean> {
-    if (!this.isEngineInitialized) {
+    if (this.state === "uninitialized") {
       logger.error("[GameEngine] Cannot save game: not initialized");
       throw new Error("Engine not initialized. Call initialize() first.");
     }
@@ -1287,7 +1283,7 @@ export class GameEngine implements IEngineContext {
     // 同步天气系统尺寸（初始化前也可调用）
     this.weatherManager.setWindowSize(width, height);
 
-    if (!this.isEngineInitialized) {
+    if (this.state === "uninitialized" || !this.mapRendererInstance) {
       this.events.emit(GameEvents.SCREEN_RESIZE, { width, height });
       return;
     }
@@ -1448,7 +1444,7 @@ export class GameEngine implements IEngineContext {
    * 屏幕坐标转世界坐标
    */
   screenToWorld(screenX: number, screenY: number): Vector2 {
-    if (!this.isEngineInitialized) {
+    if (this.state === "uninitialized" || !this.mapRendererInstance) {
       return { x: screenX, y: screenY };
     }
     return {
@@ -1874,7 +1870,7 @@ export class GameEngine implements IEngineContext {
   }
 
   isInitialized(): boolean {
-    return this.isEngineInitialized;
+    return this.state !== "uninitialized";
   }
 
   /**

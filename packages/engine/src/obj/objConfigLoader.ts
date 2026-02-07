@@ -6,12 +6,9 @@
 
 import {
   getObjsData,
-  isGameDataLoaded,
-  registerCacheBuilder,
   type ApiObjData,
 } from "../resource/resourceLoader";
-import { normalizeCacheKey } from "../config/resourcePaths";
-import { logger } from "../core/logger";
+import { createConfigCache } from "../resource/cacheRegistry";
 
 // ========== 类型定义 ==========
 
@@ -68,8 +65,6 @@ export interface ObjConfig {
 
 const OBJ_KEY_PREFIXES = ["ini/obj/", "ini/objres/"] as const;
 
-const objConfigCache = new Map<string, ObjConfig>();
-
 // ========== Kind 映射 ==========
 
 const KIND_MAP: Record<string, number> = {
@@ -118,59 +113,50 @@ function convertApiObjToConfig(api: ApiObjData): ObjConfig {
 
 
 
-// ========== ObjRes 缓存 ==========
+// ========== 缓存（使用通用 CacheRegistry） ==========
 
-const objResCache = new Map<string, ObjResInfo>();
+type ObjApiData = NonNullable<ReturnType<typeof getObjsData>>;
 
-// ========== 构建缓存 ==========
+const objConfigCacheStore = createConfigCache<ObjApiData, ObjConfig>({
+  name: "ObjConfig",
+  keyPrefixes: OBJ_KEY_PREFIXES,
+  getData: getObjsData,
+  build(data, cache, normalizeKey) {
+    for (const api of data.objs) {
+      cache.set(normalizeKey(api.key), convertApiObjToConfig(api));
+    }
+  },
+});
 
-function buildObjConfigCache(): void {
-  const data = getObjsData();
-  if (!data) return;
-
-  objConfigCache.clear();
-  objResCache.clear();
-
-  // 1. 构建 Obj 配置缓存
-  for (const api of data.objs) {
-    const config = convertApiObjToConfig(api);
-    const cacheKey = normalizeCacheKey(api.key, OBJ_KEY_PREFIXES);
-    objConfigCache.set(cacheKey, config);
-  }
-
-  // 2. 构建 ObjRes 资源缓存（用 objres 文件名作为 key）
-  for (const resData of data.resources) {
-    const cacheKey = normalizeCacheKey(resData.key, OBJ_KEY_PREFIXES);
-    const resInfo: ObjResInfo = {
-      imagePath: resData.resources?.common?.image ?? "",
-      soundPath: resData.resources?.common?.sound ?? "",
-    };
-    objResCache.set(cacheKey, resInfo);
-  }
-
-  logger.info(`[ObjConfigLoader] Built cache: ${data.objs.length} objs, ${objResCache.size} objres`);
-}
-
-registerCacheBuilder(buildObjConfigCache);
+const objResCacheStore = createConfigCache<ObjApiData, ObjResInfo>({
+  name: "ObjRes",
+  keyPrefixes: OBJ_KEY_PREFIXES,
+  getData: getObjsData,
+  build(data, cache, normalizeKey) {
+    for (const resData of data.resources) {
+      cache.set(normalizeKey(resData.key), {
+        imagePath: resData.resources?.common?.image ?? "",
+        soundPath: resData.resources?.common?.sound ?? "",
+      });
+    }
+  },
+});
 
 // ========== 公共 API ==========
 
 export function getObjConfigFromCache(fileName: string): ObjConfig | null {
-  return objConfigCache.get(normalizeCacheKey(fileName, OBJ_KEY_PREFIXES)) ?? null;
+  return objConfigCacheStore.get(fileName);
 }
 
-/**
- * 获取 ObjRes 资源映射
- * fileName 是 objres 文件名（如 obj-宝箱1.ini）
- */
+/** 获取 ObjRes 资源映射 */
 export function getObjResFromCache(fileName: string): ObjResInfo | null {
-  return objResCache.get(normalizeCacheKey(fileName, OBJ_KEY_PREFIXES)) ?? null;
+  return objResCacheStore.get(fileName);
 }
 
 export function isObjConfigLoaded(): boolean {
-  return isGameDataLoaded() && objConfigCache.size > 0;
+  return objConfigCacheStore.isLoaded();
 }
 
 export function getAllObjConfigKeys(): string[] {
-  return Array.from(objConfigCache.keys());
+  return objConfigCacheStore.allKeys();
 }

@@ -35,10 +35,3 @@ export function readNullTerminatedString(
   return getTextDecoder().decode(data.slice(offset, end));
 }
 
-/**
- * Read a fixed-length string (trimming trailing nulls)
- * 读取固定长度字符串（去除尾部 null）
- */
-export function readFixedString(data: Uint8Array, offset: number, length: number): string {
-  return readNullTerminatedString(data, offset, length);
-}

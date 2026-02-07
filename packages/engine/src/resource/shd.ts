@@ -10,7 +10,7 @@
 
 import { logger } from "../core/logger";
 import type { MpcHead } from "../core/mapTypes";
-import { getLittleEndianInt } from "../utils/binaryUtils";
+import { getLittleEndianInt } from "./binaryUtils";
 import { resourceLoader } from "./resourceLoader";
 
 /**

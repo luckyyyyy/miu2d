@@ -13,7 +13,7 @@
 import type { Camera } from "../core/mapTypes";
 import { getFrameAtlasInfo, getFrameCanvas } from "../resource/asf";
 import { tileToPixel } from "../utils";
-import { getOuterEdge } from "../utils/edgeDetection";
+import { getOuterEdge } from "../sprite/edgeDetection";
 import type { IRenderer } from "../webgl/iRenderer";
 import type { Obj } from "./obj";
 

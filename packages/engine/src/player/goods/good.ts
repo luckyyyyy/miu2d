@@ -7,11 +7,9 @@
 
 import {
   getGoodsData,
-  isGameDataLoaded,
-  registerCacheBuilder,
   type ApiGoodsData,
 } from "../../resource/resourceLoader";
-import { normalizeCacheKey } from "../../config/resourcePaths";
+import { createConfigCache } from "../../resource/cacheRegistry";
 import { logger } from "../../core/logger";
 
 // ============= Enums =============
@@ -78,8 +76,6 @@ const GoodsPartMap: Record<ApiGoodsPart, EquipPosition> = {
 
 /** 物品缓存 key -> Good */
 const GOODS_KEY_PREFIXES = ["ini/goods/"] as const;
-
-const goodsCache = new Map<string, Good>();
 
 // ============= Good 类 =============
 
@@ -275,61 +271,41 @@ export class Good {
 
 
 
-// ============= 内部函数 =============
+// ============= 缓存（使用通用 CacheRegistry） =============
 
-/**
- * 从统一数据构建物品缓存（自动被 dataLoader 调用）
- */
-function buildGoodsCache(): void {
-  const data = getGoodsData();
-  if (!data) {
-    return;
-  }
+type GoodsApiData = NonNullable<ReturnType<typeof getGoodsData>>;
 
-  goodsCache.clear();
-  for (const api of data) {
-    const good = new Good(api);
-    const key = normalizeCacheKey(api.key, GOODS_KEY_PREFIXES);
-    goodsCache.set(key, good);
-  }
-
-  logger.info(`[Good] Built cache: ${data.length} goods`);
-}
-
-// 注册到 dataLoader，数据加载完成后自动构建缓存
-registerCacheBuilder(buildGoodsCache);
+const goodsCacheStore = createConfigCache<GoodsApiData, Good>({
+  name: "Goods",
+  keyPrefixes: GOODS_KEY_PREFIXES,
+  getData: getGoodsData,
+  build(data, cache, normalizeKey) {
+    for (const api of data) {
+      cache.set(normalizeKey(api.key), new Good(api));
+    }
+  },
+});
 
 // ============= 公共 API =============
 
-/**
- * 获取物品（同步，从缓存读取）
- */
+/** 获取物品（同步，从缓存读取） */
 export function getGood(fileName: string): Good | null {
-  const key = normalizeCacheKey(fileName, GOODS_KEY_PREFIXES);
-  const good = goodsCache.get(key);
+  const good = goodsCacheStore.get(fileName);
   if (!good) {
-    logger.warn(`[Good] Not found: ${fileName} (key=${key})`);
+    logger.warn(`[Good] Not found: ${fileName}`);
   }
-  return good ?? null;
+  return good;
 }
 
-/**
- * 检查物品配置是否已加载
- */
 export function isGoodsLoaded(): boolean {
-  return isGameDataLoaded() && goodsCache.size > 0;
+  return goodsCacheStore.isLoaded();
 }
 
-/**
- * 获取所有缓存的物品键名
- */
 export function getAllGoodsKeys(): string[] {
-  return Array.from(goodsCache.keys());
+  return goodsCacheStore.allKeys();
 }
 
-/**
- * 获取所有物品列表（用于调试面板）
- */
+/** 获取所有物品列表（用于调试面板） */
 export function getAllGoods(): Good[] {
-  return Array.from(goodsCache.values());
+  return goodsCacheStore.allValues();
 }

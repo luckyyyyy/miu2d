@@ -9,7 +9,7 @@
  */
 
 import { LOG_LEVELS, type LogLevel, logger } from "@miu2d/engine/core/logger";
-import { type SaveSlotInfo, StorageManager } from "@miu2d/engine/runtime/storage";
+import { type SaveSlotInfo, getSaveSlots, deleteSave } from "@miu2d/engine/runtime/storage";
 import { useCallback, useEffect, useState } from "react";
 import type { UITheme } from "@/components/game/ui";
 
@@ -157,7 +157,7 @@ export function SaveLoadPanel({
   const loadSlots = useCallback(async () => {
     setLoading(true);
     try {
-      const slotInfos = StorageManager.getSaveSlots();
+      const slotInfos = getSaveSlots();
       setSlots(slotInfos);
     } catch (error) {
       logger.error("Failed to load save slots:", error);
@@ -202,7 +202,7 @@ export function SaveLoadPanel({
     setOperatingSlot(index);
     setConfirmAction(null);
     try {
-      StorageManager.deleteGame(index);
+      deleteSave(index);
       await loadSlots();
     } finally {
       setOperatingSlot(null);

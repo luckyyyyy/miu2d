@@ -9,7 +9,7 @@ import { ResourcePath } from "../../config/resourcePaths";
 import { logger } from "../../core/logger";
 import type { Vector2 } from "../../core/types";
 import { CharacterState } from "../../core/types";
-import { getEffectAmount } from "../../magic/effects/common";
+import { getEffectAmount, getCharacterDeathExp } from "../../core/effectCalc";
 import { type AsfData, getCachedAsf, loadAsf } from "../../resource/asf";
 import { tileToPixel } from "../../utils";
 import type { CharacterBase, MagicToUseInfoItem } from "./characterBase";
@@ -173,18 +173,6 @@ export abstract class CharacterCombat extends CharacterMovement {
   // === Damage Methods ===
   // =============================================
 
-  /**
-   * 计算击杀经验
-   * 或类似逻辑
-   */
-  static getCharacterDeathExp(
-    killer: { level: number },
-    dead: { level: number; expBonus?: number }
-  ): number {
-    if (!killer || !dead) return 1;
-    const exp = killer.level * dead.level + (dead.expBonus ?? 0);
-    return exp < 4 ? 4 : exp;
-  }
 
   /**
    * 受到伤害
@@ -271,7 +259,7 @@ export abstract class CharacterCombat extends CharacterMovement {
       if (attacker && (attacker.isPlayer || attacker.isFighterFriend)) {
         const player = this.engine.player;
         if (player) {
-          const exp = CharacterCombat.getCharacterDeathExp(player, this);
+          const exp = getCharacterDeathExp(player, this);
           player.addExp(exp, true);
         }
       }

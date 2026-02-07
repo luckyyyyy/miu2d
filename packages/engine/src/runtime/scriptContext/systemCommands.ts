@@ -5,7 +5,7 @@
 
 import type { ScriptContext } from "../../script/executor";
 import type { ScriptCommandContext } from "./types";
-import { StorageManager } from "../storage";
+import { deleteAllSaves } from "../storage";
 import { logger } from "../../core/logger";
 import { resolveScriptPath } from "../../config/resourcePaths";
 
@@ -110,7 +110,7 @@ export function createSystemCommands(ctx: ScriptCommandContext): Partial<ScriptC
       logger.log("[ScriptContext] SaveMapTrap");
     },
     clearAllSave: () => {
-      StorageManager.deleteAllSaves();
+      deleteAllSaves();
       logger.log("[ScriptContext] ClearAllSave: all user saves deleted");
     },
     enableSave: () => {

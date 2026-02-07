@@ -12,6 +12,7 @@
  */
 
 import { logger } from "../core/logger";
+import { getCharacterDeathExp } from "../core/effectCalc";
 import { canMoveInDirection, findNeighborInDirection as findNeighborByIndex, PathType } from "../core/pathFinder";
 import type { IRenderer } from "../webgl/iRenderer";
 import type { CharacterConfig, Vector2 } from "../core/types";
@@ -175,13 +176,13 @@ export abstract class Character extends CharacterCombat {
   private handlePoisonExp(poisonKillerName: string): void {
     const player = this.engine.player;
     if (player && poisonKillerName === player.name) {
-      const exp = CharacterCombat.getCharacterDeathExp(player, this);
+      const exp = getCharacterDeathExp(player, this);
       player.addExp(exp, true);
     } else {
       const npcManager = this.engine.npcManager;
       const poisoner = npcManager.getNpc(poisonKillerName);
       if (poisoner && poisoner.canLevelUp > 0) {
-        const exp = CharacterCombat.getCharacterDeathExp(poisoner, this);
+        const exp = getCharacterDeathExp(poisoner, this);
         poisoner.addExp(exp);
       }
     }
@@ -902,14 +903,6 @@ export abstract class Character extends CharacterCombat {
   // =============================================
   // === ReplaceMagicList Methods ===
   // =============================================
-
-  static parseMagicList(listStr: string): Array<{ magicIni: string; useDistance: number }> {
-    return FlyIniManager.parseMagicList(listStr);
-  }
-
-  static parseMagicListNoDistance(listStr: string): string[] {
-    return FlyIniManager.parseMagicListNoDistance(listStr);
-  }
 
   protected onReplaceMagicList(_reasonMagic: MagicData, listStr: string): void {
     this._flyIniManager.replaceMagicList(listStr, this.attackRadius, this.name);

@@ -6,24 +6,17 @@
 
 import {
   getNpcsData,
-  isGameDataLoaded,
-  registerCacheBuilder,
   type ApiNpcData,
   type ApiNpcResources,
-  type ApiNpcResData,
 } from "../resource/resourceLoader";
-import { normalizeCacheKey } from "../config/resourcePaths";
+import { createConfigCache } from "../resource/cacheRegistry";
 import type { CharacterConfig, CharacterStats } from "../core/types";
 import { CharacterState } from "../core/types";
-import { logger } from "../core/logger";
 import type { NpcResStateInfo } from "../character/resFile";
 
 // ========== 缓存 ==========
 
 const NPC_KEY_PREFIXES = ["ini/npc/", "ini/partner/"] as const;
-
-const npcConfigCache = new Map<string, CharacterConfig>();
-const npcResCache = new Map<string, Map<number, NpcResStateInfo>>();
 
 // ========== Kind/Relation 映射 ==========
 
@@ -171,66 +164,56 @@ function convertApiResourcesToStateMap(resources: ApiNpcResources | null | undef
   return stateMap.size > 0 ? stateMap : null;
 }
 
-// ========== 构建缓存 ==========
+// ========== 缓存（使用通用 CacheRegistry） ==========
 
-function buildNpcConfigCache(): void {
-  const data = getNpcsData();
-  if (!data) return;
+type NpcApiData = NonNullable<ReturnType<typeof getNpcsData>>;
 
-  npcConfigCache.clear();
-  npcResCache.clear();
-
-  // 1. 构建 NPC 配置缓存（从 npcs 数组）
-  for (const api of data.npcs) {
-    const config = convertApiNpcToConfig(api);
-    const cacheKey = normalizeCacheKey(api.key, NPC_KEY_PREFIXES);
-
-    // 通过 API 返回的 resourceKey 直接设置 npcIni（npcres 文件名）
-    if (api.resourceKey) {
-      config.npcIni = api.resourceKey;
+const npcConfigCacheStore = createConfigCache<NpcApiData, CharacterConfig>({
+  name: "NpcConfig",
+  keyPrefixes: NPC_KEY_PREFIXES,
+  getData: getNpcsData,
+  build(data, cache, normalizeKey) {
+    for (const api of data.npcs) {
+      const config = convertApiNpcToConfig(api);
+      if (api.resourceKey) config.npcIni = api.resourceKey;
+      cache.set(normalizeKey(api.key), config);
     }
+  },
+});
 
-    npcConfigCache.set(cacheKey, config);
-
-    // NPC 自身也可能有 resources（inline）
-    const resMap = convertApiResourcesToStateMap(api.resources);
-    if (resMap) {
-      npcResCache.set(cacheKey, resMap);
+const npcResCacheStore = createConfigCache<NpcApiData, Map<number, NpcResStateInfo>>({
+  name: "NpcRes",
+  keyPrefixes: NPC_KEY_PREFIXES,
+  getData: getNpcsData,
+  build(data, cache, normalizeKey) {
+    // 1. NPC 自身可能有 inline resources
+    for (const api of data.npcs) {
+      const resMap = convertApiResourcesToStateMap(api.resources);
+      if (resMap) cache.set(normalizeKey(api.key), resMap);
     }
-  }
-
-  // 2. 构建 NpcRes 资源缓存（从 resources 数组）
-  for (const resData of data.resources) {
-    const cacheKey = normalizeCacheKey(resData.key, NPC_KEY_PREFIXES);
-    const resMap = convertApiResourcesToStateMap(resData.resources);
-    if (resMap) {
-      npcResCache.set(cacheKey, resMap);
+    // 2. 独立的 NpcRes 资源
+    for (const resData of data.resources) {
+      const resMap = convertApiResourcesToStateMap(resData.resources);
+      if (resMap) cache.set(normalizeKey(resData.key), resMap);
     }
-  }
-
-  logger.info(`[NpcConfigLoader] Built cache: ${data.npcs.length} npcs, ${npcResCache.size} npcres`);
-}
-
-registerCacheBuilder(buildNpcConfigCache);
+  },
+});
 
 // ========== 公共 API ==========
 
 export function getNpcConfigFromCache(fileName: string): CharacterConfig | null {
-  return npcConfigCache.get(normalizeCacheKey(fileName, NPC_KEY_PREFIXES)) ?? null;
+  return npcConfigCacheStore.get(fileName);
 }
 
-/**
- * 获取 NPC 资源映射（state -> ASF/Sound）
- * 替代原有的 loadNpcRes INI 加载
- */
+/** 获取 NPC 资源映射（state -> ASF/Sound） */
 export function getNpcResFromCache(npcIni: string): Map<number, NpcResStateInfo> | null {
-  return npcResCache.get(normalizeCacheKey(npcIni, NPC_KEY_PREFIXES)) ?? null;
+  return npcResCacheStore.get(npcIni);
 }
 
 export function isNpcConfigLoaded(): boolean {
-  return isGameDataLoaded() && npcConfigCache.size > 0;
+  return npcConfigCacheStore.isLoaded();
 }
 
 export function getAllNpcConfigKeys(): string[] {
-  return Array.from(npcConfigCache.keys());
+  return npcConfigCacheStore.allKeys();
 }

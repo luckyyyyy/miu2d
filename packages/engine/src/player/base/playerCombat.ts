@@ -17,6 +17,7 @@ import { getDirection, tileToPixel } from "../../utils";
 import type { Good } from "../goods";
 import { GoodEffectType } from "../goods/good";
 import { PlayerInput, THEW_USE_AMOUNT_WHEN_ATTACK } from "./playerInput";
+import { FlyIniManager } from "../../character/modules";
 
 /**
  * PlayerCombat - 战斗功能层
@@ -350,7 +351,7 @@ export abstract class PlayerCombat extends PlayerInput {
     const currentIndex = this.currentUseMagicIndex;
 
     // var magics = list == "无" ? new List<string>() : ParseMagicListNoDistance(list);
-    const magics = listStr === "无" ? [] : Character.parseMagicListNoDistance(listStr);
+    const magics = listStr === "无" ? [] : FlyIniManager.parseMagicListNoDistance(listStr);
 
     // var path = StorageBase.SaveGameDirectory + @"\" + Name + "_" + reasonMagic.Name + "_" + string.Join("_", magics) + ".ini";
     const path = `${this.name}_${reasonMagic.name}_${magics.join("_")}.ini`;

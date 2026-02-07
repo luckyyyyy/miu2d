@@ -3,7 +3,7 @@
  * 贝塞尔曲线工具 - 用于角色跳跃移动
  * Reference: Engine/Lib/BezierCurve.cs
  */
-import type { Vector2 } from "../core/types";
+import type { Vector2 } from "../../core/types";
 
 /**
  * Factorial lookup table (precomputed up to 32)
