@@ -74,34 +74,34 @@ export interface LoaderDependencies {
   clearScriptCache: () => void;
   clearVariables: () => void;
   /** 清理精灵/ASF/武功等资源缓存（新游戏/读档时调用，释放 JS 堆和 GPU 纹理） */
-  clearResourceCaches?: () => void;
+  clearResourceCaches: () => void;
   resetEventId: () => void;
   resetGameTime: () => void;
-  loadPlayerSprites?: (npcIni: string) => Promise<void>;
+  loadPlayerSprites: (npcIni: string) => Promise<void>;
   // 用于存档
-  getVariables?: () => Record<string, number>;
-  setVariables?: (vars: Record<string, number>) => void;
-  getCurrentMapName?: () => string;
-  getCanvas?: () => HTMLCanvasElement | null;
+  getVariables: () => Record<string, number>;
+  setVariables: (vars: Record<string, number>) => void;
+  getCurrentMapName: () => string;
+  getCanvas: () => HTMLCanvasElement | null;
   // 进度回调（可选，用于报告加载进度）
   onProgress?: LoadProgressCallback;
   // 立即将摄像机居中到玩家位置（用于加载存档后避免摄像机飞过去）
-  centerCameraOnPlayer?: () => void;
+  centerCameraOnPlayer: () => void;
 
   // === 游戏选项和计时器 (用于存档) ===
   // 地图时间
-  getMapTime?: () => number;
-  setMapTime?: (time: number) => void;
+  getMapTime: () => number;
+  setMapTime: (time: number) => void;
   // 存档/掉落开关
-  isSaveEnabled?: () => boolean;
-  setSaveEnabled?: (enabled: boolean) => void;
-  isDropEnabled?: () => boolean;
-  setDropEnabled?: (enabled: boolean) => void;
+  isSaveEnabled: () => boolean;
+  setSaveEnabled: (enabled: boolean) => void;
+  isDropEnabled: () => boolean;
+  setDropEnabled: (enabled: boolean) => void;
   // 天气
-  getWeatherState?: () => { isSnowing: boolean; isRaining: boolean };
-  setWeatherState?: (state: { snowShow: boolean; rainFile: string }) => void;
+  getWeatherState: () => { isSnowing: boolean; isRaining: boolean };
+  setWeatherState: (state: { snowShow: boolean; rainFile: string }) => void;
   // 计时器
-  getTimerState?: () => {
+  getTimerState: () => {
     isOn: boolean;
     totalSecond: number;
     isHidden: boolean;
@@ -109,7 +109,7 @@ export interface LoaderDependencies {
     timerScript: string;
     triggerTime: number;
   };
-  setTimerState?: (state: {
+  setTimerState: (state: {
     isOn: boolean;
     totalSecond: number;
     isHidden: boolean;
@@ -120,14 +120,14 @@ export interface LoaderDependencies {
 
   // === 新增: 脚本显示地图坐标、水波效果、并行脚本 ===
   // 脚本显示地图坐标
-  isScriptShowMapPos?: () => boolean;
-  setScriptShowMapPos?: (show: boolean) => void;
+  isScriptShowMapPos: () => boolean;
+  setScriptShowMapPos: (show: boolean) => void;
   // 水波效果
-  isWaterEffectEnabled?: () => boolean;
-  setWaterEffectEnabled?: (enabled: boolean) => void;
+  isWaterEffectEnabled: () => boolean;
+  setWaterEffectEnabled: (enabled: boolean) => void;
   // 并行脚本 (通过 ScriptExecutor 获取/设置)
-  getParallelScripts?: () => Array<{ filePath: string; waitMilliseconds: number }>;
-  loadParallelScripts?: (scripts: Array<{ filePath: string; waitMilliseconds: number }>) => void;
+  getParallelScripts: () => Array<{ filePath: string; waitMilliseconds: number }>;
+  loadParallelScripts: (scripts: Array<{ filePath: string; waitMilliseconds: number }>) => void;
 }
 
 /**
@@ -334,7 +334,7 @@ export class Loader {
         // 清理变量
         clearVariables();
         // 清理精灵/ASF/武功等资源缓存，释放 JS 堆和 GPU 纹理
-        this.deps.clearResourceCaches?.();
+        this.deps.clearResourceCaches();
         // 由 MagicManager 自己管理清理
         // NpcManager.ClearAllNpc()
         npcManager.clearAllNpc();
@@ -349,7 +349,7 @@ export class Loader {
         audioManager.stopMusic();
         // Globals.IsInputDisabled = false
         // Globals.IsSaveDisabled = false
-        this.deps.setSaveEnabled?.(true);
+        this.deps.setSaveEnabled(true);
         // 重置绘制颜色为白色（参考 C#: LoadGameFile() 总是显式设置颜色）
         this.deps.screenEffects.resetColors();
         // 启用 NPC AI
@@ -419,7 +419,7 @@ export class Loader {
         // 脚本显示地图坐标
         if (stateSection.ScriptShowMapPos) {
           const showMapPos = parseInt(stateSection.ScriptShowMapPos, 10) > 0;
-          this.deps.setScriptShowMapPos?.(showMapPos);
+          this.deps.setScriptShowMapPos(showMapPos);
           logger.debug(`[Loader] ScriptShowMapPos: ${showMapPos}`);
         }
       }
@@ -430,7 +430,7 @@ export class Loader {
         // MapTime
         if (optionSection.MapTime) {
           const mapTime = parseInt(optionSection.MapTime, 10);
-          this.deps.setMapTime?.(mapTime);
+          this.deps.setMapTime(mapTime);
           this.deps.map.mapTime = mapTime;
           logger.debug(`[Loader] MapTime: ${mapTime}`);
         }
@@ -438,19 +438,17 @@ export class Loader {
         // SnowShow - 雪效果
         if (optionSection.SnowShow) {
           const snowShow = parseInt(optionSection.SnowShow, 10) !== 0;
-          if (this.deps.setWeatherState) {
-            this.deps.setWeatherState({
-              snowShow,
-              rainFile: optionSection.RainFile || "",
-            });
-          }
+          this.deps.setWeatherState({
+            snowShow,
+            rainFile: optionSection.RainFile || "",
+          });
           logger.debug(`[Loader] SnowShow: ${snowShow}`);
         }
 
         // Water - 水波效果
         if (optionSection.Water) {
           const waterEnabled = parseInt(optionSection.Water, 10) !== 0;
-          this.deps.setWaterEffectEnabled?.(waterEnabled);
+          this.deps.setWaterEffectEnabled(waterEnabled);
           logger.debug(`[Loader] Water effect: ${waterEnabled}`);
         }
 
@@ -485,21 +483,21 @@ export class Loader {
         // SaveDisabled - 禁止存档
         if (optionSection.SaveDisabled) {
           const saveDisabled = parseInt(optionSection.SaveDisabled, 10) > 0;
-          this.deps.setSaveEnabled?.(!saveDisabled);
+          this.deps.setSaveEnabled(!saveDisabled);
           logger.debug(`[Loader] SaveDisabled: ${saveDisabled}`);
         }
 
         // IsDropGoodWhenDefeatEnemyDisabled - 禁止掉落
         if (optionSection.IsDropGoodWhenDefeatEnemyDisabled) {
           const dropDisabled = parseInt(optionSection.IsDropGoodWhenDefeatEnemyDisabled, 10) > 0;
-          this.deps.setDropEnabled?.(!dropDisabled);
+          this.deps.setDropEnabled(!dropDisabled);
           logger.debug(`[Loader] DropDisabled: ${dropDisabled}`);
         }
       }
 
       // ========== [Timer] Section ==========
       // LoadGameFile() timer section
-      if (timerSection && this.deps.setTimerState) {
+      if (timerSection) {
         const isOn = timerSection.IsOn !== "0";
         if (isOn) {
           const totalSecond = parseInt(timerSection.TotalSecond || "0", 10);
@@ -595,11 +593,9 @@ export class Loader {
 
       // 加载玩家精灵 (80-88%)
       this.reportProgress(80, "加载玩家精灵...");
-      if (this.deps.loadPlayerSprites) {
-        const playerNpcIni = player.npcIni;
-        logger.debug(`[Loader] Loading player sprites: ${playerNpcIni}`);
-        await this.deps.loadPlayerSprites(playerNpcIni);
-      }
+      const playerNpcIni = player.npcIni;
+      logger.debug(`[Loader] Loading player sprites: ${playerNpcIni}`);
+      await this.deps.loadPlayerSprites(playerNpcIni);
 
       this.reportProgress(88, "应用装备特效...");
       // 应用装备特效
@@ -641,7 +637,7 @@ export class Loader {
 
       // 摄像机居中到玩家 (96-98%)
       this.reportProgress(96, "初始化摄像机...");
-      this.deps.centerCameraOnPlayer?.();
+      this.deps.centerCameraOnPlayer();
 
       this.reportProgress(98, "完成加载...");
       logger.debug(`[Loader] Game save loaded successfully`);
@@ -779,11 +775,9 @@ export class Loader {
       const saveData = this.collectSaveData();
 
       // 截图预览
-      if (this.deps.getCanvas) {
-        const canvas = this.deps.getCanvas();
-        if (canvas) {
-          saveData.screenshot = StorageManager.captureScreenshot(canvas);
-        }
+      const canvas = this.deps.getCanvas();
+      if (canvas) {
+        saveData.screenshot = StorageManager.captureScreenshot(canvas);
       }
 
       // 保存到 localStorage
@@ -1175,7 +1169,7 @@ export class Loader {
       clearScriptCache();
       this.deps.clearVariables();
       // 清理精灵/ASF/武功等资源缓存，释放 JS 堆和 GPU 纹理
-      this.deps.clearResourceCaches?.();
+      this.deps.clearResourceCaches();
       npcManager.clearAllNpc();
       objManager.clearAll();
       audioManager.stopMusic();
@@ -1284,11 +1278,9 @@ export class Loader {
       // 加载玩家精灵 (85-88%)
       this.reportProgress(85, "加载玩家精灵...");
       // Reference: Loader.LoadPlayer() -> new Player(path) -> Load() -> Initlize()
-      if (this.deps.loadPlayerSprites) {
-        const playerNpcIni = player.npcIni;
-        logger.debug(`[Loader] Loading player sprites: ${playerNpcIni}`);
-        await this.deps.loadPlayerSprites(playerNpcIni);
-      }
+      const playerNpcIni = player.npcIni;
+      logger.debug(`[Loader] Loading player sprites: ${playerNpcIni}`);
+      await this.deps.loadPlayerSprites(playerNpcIni);
 
       // 精灵加载后恢复 state（因为 _state=-1，值不同会触发纹理更新）
       player.state = data.player.state ?? 0;
@@ -1448,7 +1440,7 @@ export class Loader {
       // 必须在 fadeIn 之前完成，否则会看到摄像机移动
       this.reportProgress(98, "完成加载...");
       logger.debug(`[Loader] Centering camera on player...`);
-      this.deps.centerCameraOnPlayer?.();
+      this.deps.centerCameraOnPlayer();
 
       // Step 16: 恢复其他角色数据到内存
       // 用于 PlayerChange 切换角色时使用
@@ -1516,17 +1508,10 @@ export class Loader {
     const goodsListManager = player.getGoodsListManager();
     const magicListManager = player.getMagicListManager();
 
-    const mapName = getCurrentMapName?.() || "";
-    const variables = getVariables?.() || {};
-    const weatherState = getWeatherState?.() || { isSnowing: false, isRaining: false };
-    const timerState = getTimerState?.() || {
-      isOn: false,
-      totalSecond: 0,
-      isHidden: false,
-      isScriptSet: false,
-      timerScript: "",
-      triggerTime: 0,
-    };
+    const mapName = getCurrentMapName();
+    const variables = getVariables();
+    const weatherState = getWeatherState();
+    const timerState = getTimerState();
 
     // 获取绘制颜色 (mpcStyle = map draw color, asfStyle = sprite draw color)
     const mapColor = screenEffects.getMapTintColor();
@@ -1551,19 +1536,19 @@ export class Loader {
         bgm: audioManager.getCurrentMusicFile() || "",
         chr: player.playerIndex, // Player 维护的 playerIndex
         time: formatSaveTime(),
-        scriptShowMapPos: this.deps.isScriptShowMapPos?.() ?? false,
+        scriptShowMapPos: this.deps.isScriptShowMapPos(),
       },
 
       // 选项 - 参考Saver.cs [Option] section
       option: {
-        mapTime: getMapTime?.() ?? 0,
+        mapTime: getMapTime(),
         snowShow: weatherState.isSnowing,
         rainFile: weatherState.isRaining ? "rain" : "", // 保存雨声文件名
-        water: this.deps.isWaterEffectEnabled?.() ?? false,
+        water: this.deps.isWaterEffectEnabled(),
         mpcStyle: colorToHex(mapColor),
         asfStyle: colorToHex(spriteColor),
-        saveDisabled: !(isSaveEnabled?.() ?? true),
-        isDropGoodWhenDefeatEnemyDisabled: !(isDropEnabled?.() ?? true),
+        saveDisabled: !isSaveEnabled(),
+        isDropGoodWhenDefeatEnemyDisabled: !isDropEnabled(),
       },
 
       // 计时器 - 参考Saver.cs [Timer] section
@@ -1580,7 +1565,7 @@ export class Loader {
       variables: { ...variables },
 
       // 并行脚本
-      parallelScripts: this.deps.getParallelScripts?.() ?? [],
+      parallelScripts: this.deps.getParallelScripts(),
 
       // 玩家数据
       player: this.collectPlayerData(player),

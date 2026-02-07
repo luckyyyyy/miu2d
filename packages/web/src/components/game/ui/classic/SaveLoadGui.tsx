@@ -7,7 +7,7 @@
  */
 
 import { logger } from "@miu2d/engine/core/logger";
-import { type SaveSlotInfo, StorageManager } from "@miu2d/engine/game/storage";
+import { type SaveSlotInfo, StorageManager } from "@miu2d/engine/runtime/storage";
 import type { ButtonConfig, SaveLoadGuiConfig } from "@miu2d/engine/gui/uiSettings";
 import type React from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";

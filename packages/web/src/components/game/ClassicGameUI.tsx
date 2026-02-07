@@ -547,7 +547,7 @@ export const ClassicGameUI: React.FC<ClassicGameUIProps> = ({ logic, width, heig
           isVisible={true}
           screenWidth={width}
           screenHeight={height}
-          canSave={engine?.getGameManager()?.isSaveEnabled() ?? false}
+          canSave={engine ? engine.getGameManager().isSaveEnabled() : false}
           onSave={async (index) => {
             dispatch({ type: "SAVE_GAME", slotIndex: index });
             return true;

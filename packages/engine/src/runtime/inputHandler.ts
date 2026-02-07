@@ -21,8 +21,23 @@ import type { Npc, NpcManager } from "../npc";
 import type { Obj } from "../obj/obj";
 import type { Player } from "../player/player";
 import type { ScriptExecutor } from "../script/executor";
-import { getDirectionFromVector, getViewTileDistance, pixelToTile } from "../utils";
+import { getViewTileDistance, pixelToTile } from "../utils";
 import { findDistanceTileInDirection } from "../core/pathFinder";
+
+const createEmptyInputState = (): InputState => ({
+  keys: new Set<string>(),
+  mouseX: 0,
+  mouseY: 0,
+  mouseWorldX: 0,
+  mouseWorldY: 0,
+  isMouseDown: false,
+  isRightMouseDown: false,
+  clickedTile: null,
+  isShiftDown: false,
+  isAltDown: false,
+  isCtrlDown: false,
+  joystickDirection: null,
+});
 
 /**
  * Pending interaction target
@@ -50,7 +65,7 @@ export class InputHandler {
 
   // Last known input state for mouse position access
   // stores mouse state for targeting
-  private lastInput: InputState | null = null;
+  private lastInput: InputState;
 
   // Pending interaction target (player walking towards)
   private pendingInteraction: PendingInteraction | null = null;
@@ -77,6 +92,7 @@ export class InputHandler {
 
   constructor(deps: InputHandlerDependencies) {
     this.deps = deps;
+    this.lastInput = createEmptyInputState();
   }
 
   /**
@@ -103,7 +119,7 @@ export class InputHandler {
   /**
    * Get last input state (for magic targeting, etc.)
    */
-  getLastInput(): InputState | null {
+  getLastInput(): InputState {
     return this.lastInput;
   }
 
@@ -489,26 +505,27 @@ export class InputHandler {
 
     if (button === "left") {
       // If hovering over enemy NPC, attack it (walk to and attack)
-      if (hoverTarget.npc) {
+      if (hoverTarget.type === "npc") {
+        const npc = hoverTarget.npc;
         // Globals.OutEdgeNpc != ControledCharacter - 不能攻击自己控制的角色
-        if (isControlling && hoverTarget.npc === player.controledCharacter) {
+        if (isControlling && npc === player.controledCharacter) {
           // 不做任何事，不能攻击被控角色
           return;
         }
 
         // Check if NPC is enemy or non-fighter (can be attacked)
-        if (hoverTarget.npc.isEnemy || hoverTarget.npc.isNoneFighter) {
+        if (npc.isEnemy || npc.isNoneFighter) {
           // 攻击 NPC 会取消之前的待处理交互
           this.cancelPendingInteraction();
           // Attack the NPC - walk to and attack
-          this.attackNpcWithCharacter(activeCharacter, hoverTarget.npc, isRun);
+          this.attackNpcWithCharacter(activeCharacter, npc, isRun);
           return;
         }
         // Otherwise interact normally (talk)
-        this.interactWithNpcUsingCharacter(activeCharacter, hoverTarget.npc, false, isRun);
+        this.interactWithNpcUsingCharacter(activeCharacter, npc, false, isRun);
         return;
       }
-      if (hoverTarget.obj) {
+      if (hoverTarget.type === "obj") {
         this.interactWithObjUsingCharacter(activeCharacter, hoverTarget.obj, false, isRun);
         return;
       }
@@ -534,14 +551,14 @@ export class InputHandler {
 
       // rightButtonPressed with HasInteractScriptRight
       // 先检查是否有右键交互脚本
-      if (hoverTarget.npc?.scriptFileRight) {
+      if (hoverTarget.type === "npc" && hoverTarget.npc.scriptFileRight) {
         // Globals.OutEdgeNpc != ControledCharacter
         if (!(isControlling && hoverTarget.npc === player.controledCharacter)) {
           this.interactWithNpc(hoverTarget.npc, true);
           return;
         }
       }
-      if (hoverTarget.obj?.hasInteractScriptRight) {
+      if (hoverTarget.type === "obj" && hoverTarget.obj.hasInteractScriptRight) {
         this.interactWithObj(hoverTarget.obj, true);
         return;
       }

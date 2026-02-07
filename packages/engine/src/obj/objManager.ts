@@ -43,7 +43,7 @@ import { logger } from "../core/logger";
 import type { Vector2 } from "../core/types";
 import { resourceLoader } from "../resource/resourceLoader";
 import { loadAsf } from "../resource/asf";
-import type { ObjSaveItem } from "../game/storage";
+import type { ObjSaveItem } from "../runtime/storage";
 import { parseIni } from "../utils";
 import type { IRenderer } from "../webgl/iRenderer";
 import { Obj, type ObjKind, ObjState } from "./obj";

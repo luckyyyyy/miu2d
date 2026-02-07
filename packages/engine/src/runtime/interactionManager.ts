@@ -32,17 +32,15 @@ export const EdgeColors = {
 /**
  * Interaction target type
  */
-export type InteractionTargetType = "npc" | "obj" | null;
+export type InteractionTargetType = "npc" | "obj" | "none";
 
 /**
  * Current interaction target info
  */
-export interface InteractionTarget {
-  type: InteractionTargetType;
-  npc: Npc | null;
-  obj: Obj | null;
-  edgeColor: string;
-}
+export type InteractionTarget =
+  | { type: "npc"; npc: Npc; obj: null; edgeColor: string }
+  | { type: "obj"; npc: null; obj: Obj; edgeColor: string }
+  | { type: "none"; npc: null; obj: null; edgeColor: string };
 
 /**
  * Obj interaction state - tracks whether objects have been interacted with
@@ -77,7 +75,7 @@ export class InteractionManager {
   clearHoverState(): void {
     this._hoveredNpc = null;
     this._hoveredObj = null;
-    this._edgeColor = EdgeColors.NPC;
+    this._edgeColor = "";
     this._offsetX = 0;
     this._offsetY = 0;
   }
@@ -143,7 +141,7 @@ export class InteractionManager {
       };
     }
     return {
-      type: null,
+      type: "none",
       npc: null,
       obj: null,
       edgeColor: "",

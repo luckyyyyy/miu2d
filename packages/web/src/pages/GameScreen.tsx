@@ -2,7 +2,7 @@
  * GameScreen - 游戏页面
  *
  * 特点:
- * - 游戏逻辑在单例引擎中运行
+ * - 游戏逻辑在引擎实例中运行
  * - React只负责画布和UI
  * - 窗口调整时只更新尺寸
  * - 所有调试功能通过 DebugManager 访问
@@ -14,7 +14,6 @@
 import { logger } from "@miu2d/engine/core/logger";
 import { loadGameData, reloadGameData, setResourcePaths } from "@miu2d/engine/config";
 import { setLevelConfigGameSlug, initNpcLevelConfig } from "@miu2d/engine/character/level";
-import { GameEngine } from "@miu2d/engine/game/gameEngine";
 import { resourceLoader } from "@miu2d/engine/resource/resourceLoader";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
@@ -276,7 +275,7 @@ export default function GameScreen() {
     logger.log("[GameScreen] Returning to title...");
 
     // 销毁引擎
-    GameEngine.destroy();
+    gameRef.current?.getEngine()?.dispose();
 
     // 清除 URL 中的 load 参数，防止自动重新进入游戏
     if (searchParams.has("load")) {

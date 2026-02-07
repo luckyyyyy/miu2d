@@ -14,7 +14,7 @@ import { CharacterKind, type CharacterState, type Direction, RelationType } from
 import { type DropCharacter, getDropObj } from "../drop/goodDrop";
 import type { ObjManager } from "../obj/objManager";
 import { resourceLoader } from "../resource/resourceLoader";
-import type { NpcSaveItem } from "../game/storage";
+import type { NpcSaveItem } from "../runtime/storage";
 import { distance, getNeighbors, getViewTileDistance, parseIni } from "../utils";
 import { Npc } from "./npc";
 import { collectNpcSnapshot, parseNpcData } from "./npcPersistence";

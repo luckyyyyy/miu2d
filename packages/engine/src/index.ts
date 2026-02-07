@@ -39,8 +39,8 @@ export {
 export * from "./debug";
 // Effects system
 export * from "./effects";
-// Game management
-export * from "./game";
+// Runtime (engine entrypoints)
+export * from "./runtime";
 // GUI system
 export * from "./gui";
 // List managers
@@ -52,8 +52,6 @@ export * from "./resource";
 export * from "./script";
 // Sprite system (new class-based)
 export * from "./sprite";
-// UI Bridge (for multi-UI support)
-export * from "./gui";
 export * from "./utils";
 // Weather system
 export * from "./weather";

@@ -9,7 +9,7 @@
 import { ResourcePath } from "@miu2d/engine/config/resourcePaths";
 import { GameEvents, type UIVideoPlayEvent } from "@miu2d/engine/core/gameEvents";
 import { logger } from "@miu2d/engine/core/logger";
-import type { GameEngine } from "@miu2d/engine/game";
+import type { GameEngine } from "@miu2d/engine/runtime";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { loadAudioSettings, saveAudioSettings } from "@/components/common";
 

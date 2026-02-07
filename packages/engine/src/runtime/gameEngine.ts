@@ -1,10 +1,10 @@
 /**
- * GameEngine - 游戏引擎单例
+ * GameEngine - 游戏引擎
  *
  * ================== 职责边界 ==================
  *
  * GameEngine 负责「引擎层」：
- * 1. 单例容器 - 持有所有子系统实例（依赖注入的根）
+ * 1. 引擎容器 - 持有所有子系统实例（依赖注入的根）
  * 2. 游戏循环 - start/stop/gameLoop (requestAnimationFrame)
  * 3. 渲染管线 - render(), 相机控制, 交错渲染
  * 4. 输入转换 - 键盘/鼠标事件 → InputState
@@ -85,12 +85,10 @@ export interface GameEngineConfig {
 export type GameEngineState = "uninitialized" | "loading" | "running" | "paused";
 
 /**
- * GameEngine 单例类 - 所有子系统的容器
+ * GameEngine 类 - 所有子系统的容器
  * 实现 IEngineContext 接口，为 Sprite 及其子类提供引擎服务访问
  */
 export class GameEngine implements IEngineContext {
-  private static instance: GameEngine | null = null;
-
   // ============= 全局资源 =============
   readonly talkTextList: TalkTextListManager;
   readonly partnerList: PartnerListManager;
@@ -107,25 +105,26 @@ export class GameEngine implements IEngineContext {
   readonly timerManager: TimerManager;
 
   // ============= 游戏相关（延迟初始化）=============
-  private _gameManager: GameManager | null = null;
-  private _mapRenderer: MapRenderer | null = null;
-  private _objRenderer: ObjRenderer | null = null;
-  private _uiBridge: UIBridge | null = null;
+  private gameManagerInstance!: GameManager;
+  private mapRendererInstance!: MapRenderer;
+  private objRendererInstance!: ObjRenderer;
+  private uiBridgeInstance!: UIBridge;
 
   // 断言已初始化的 getter（内部使用，避免大量 ?. 检查）
   private get gameManager(): GameManager {
-    if (!this._gameManager) throw new Error("GameManager not initialized");
-    return this._gameManager;
+    return this.gameManagerInstance;
   }
 
   private get mapRenderer(): MapRenderer {
-    if (!this._mapRenderer) throw new Error("MapRenderer not initialized");
-    return this._mapRenderer;
+    return this.mapRendererInstance;
   }
 
   private get objRenderer(): ObjRenderer {
-    if (!this._objRenderer) throw new Error("ObjRenderer not initialized");
-    return this._objRenderer;
+    return this.objRendererInstance;
+  }
+
+  private get uiBridge(): UIBridge {
+    return this.uiBridgeInstance;
   }
 
   // 游戏循环
@@ -187,7 +186,7 @@ export class GameEngine implements IEngineContext {
   // 地图基类实例（由引擎创建和持有）
   private readonly _map: MapBase;
 
-  private constructor(config: GameEngineConfig) {
+  constructor(config: GameEngineConfig) {
     this.config = config;
 
     // 设置全局引擎上下文（让 Sprite 及其子类能访问引擎服务）
@@ -296,29 +295,16 @@ export class GameEngine implements IEngineContext {
   }
 
   /**
-   * 获取单例实例
+   * 释放引擎资源（用于完全重置）
    */
-  static getInstance(config?: GameEngineConfig): GameEngine {
-    if (!GameEngine.instance) {
-      if (!config) {
-        config = { width: 800, height: 600 };
-      }
-      GameEngine.instance = new GameEngine(config);
-    }
-    return GameEngine.instance;
-  }
-
-  /**
-   * 销毁单例（用于测试或完全重置）
-   */
-  static destroy(): void {
-    if (GameEngine.instance) {
-      GameEngine.instance.stop();
-      GameEngine.instance._renderer?.dispose();
-      GameEngine.instance._renderer = null;
-      GameEngine.instance.events.clear();
-      GameEngine.instance = null;
-    }
+  dispose(): void {
+    this.stop();
+    this._renderer?.dispose();
+    this._renderer = null;
+    this.events.clear();
+    this.isEngineInitialized = false;
+    this.state = "uninitialized";
+    setEngineContext(null);
   }
 
   // ============= 初始化 =============
@@ -350,9 +336,9 @@ export class GameEngine implements IEngineContext {
 
       // ========== 阶段2：创建渲染器 ==========
       this.emitLoadProgress(20, "创建渲染器...");
-      this._objRenderer = new ObjRenderer();
-      this._mapRenderer = createMapRenderer();
-      this._mapRenderer.camera = {
+      this.objRendererInstance = new ObjRenderer();
+      this.mapRendererInstance = createMapRenderer();
+      this.mapRendererInstance.camera = {
         x: 0,
         y: 0,
         width: this.config.width,
@@ -361,7 +347,7 @@ export class GameEngine implements IEngineContext {
 
       // ========== 阶段3：创建游戏管理器 ==========
       this.emitLoadProgress(30, "创建游戏管理器...");
-      this._gameManager = new GameManager(
+      this.gameManagerInstance = new GameManager(
         {
           events: this.events,
           audioManager: this.audio,
@@ -401,13 +387,13 @@ export class GameEngine implements IEngineContext {
       });
 
       // ========== 阶段4：创建 UI 桥接器 ==========
-      this._uiBridge = this.createUIBridge();
-
+      this.uiBridgeInstance = this.createUIBridge();
       this.isEngineInitialized = true;
       this.emitLoadProgress(40, "引擎初始化完成");
       logger.log("[GameEngine] Engine initialization completed (global resources loaded)");
     } catch (error) {
       logger.error("[GameEngine] Engine initialization failed:", error);
+      this.isEngineInitialized = false;
       this.events.emit(GameEvents.GAME_INITIALIZED, { success: false });
       throw error;
     }
@@ -600,9 +586,9 @@ export class GameEngine implements IEngineContext {
    * @returns 是否保存成功
    */
   async saveGameToSlot(index: number): Promise<boolean> {
-    if (!this.isEngineInitialized || !this._gameManager) {
+    if (!this.isEngineInitialized) {
       logger.error("[GameEngine] Cannot save game: not initialized");
-      return false;
+      throw new Error("Engine not initialized. Call initialize() first.");
     }
 
     try {
@@ -659,7 +645,7 @@ export class GameEngine implements IEngineContext {
    * - 初始加载时：外部流程已设置 state="loading"，此函数不改变状态
    * - 游戏内切换：当前 state="running"，临时切换到 loading 显示进度，完成后恢复
    */
-  private async handleMapChange(mapPath: string): Promise<JxqyMapData | null> {
+  private async handleMapChange(mapPath: string): Promise<JxqyMapData> {
     // 确保屏幕是黑的，防止在地图加载过程中看到摄像机移动
     // 如果脚本已经执行了 FadeOut，这里只是确保；如果没有，这会立即设置黑屏
     if (!this.screenEffects.isScreenBlack()) {
@@ -697,6 +683,9 @@ export class GameEngine implements IEngineContext {
         // 加载新地图时清空已触发的陷阱列表
         // 参考 JxqyMap.LoadMapFromBuffer() 中的 _ignoredTrapsIndex.Clear()
         this._map.clearIgnoredTraps();
+
+        // 让 GameManager 在摄像机计算前就拥有 mapData
+        this.gameManager.setMapData(mapData);
 
         // 更新地图渲染器
         this.mapRenderer.mapData = mapData;
@@ -745,12 +734,12 @@ export class GameEngine implements IEngineContext {
         return mapData;
       }
 
-      // 地图加载失败，恢复状态
+      // 地图加载失败，恢复状态并抛错
       if (wasRunning) {
         this.state = "running";
         this.emitLoadProgress(100, "");
       }
-      return null;
+      throw new Error(`Failed to load map: ${fullMapPath}`);
     } catch (error) {
       logger.error(`[GameEngine] Failed to load map: ${fullMapPath}`, error);
       // 出错时也要恢复状态
@@ -758,7 +747,7 @@ export class GameEngine implements IEngineContext {
         this.state = "running";
         this.emitLoadProgress(100, "");
       }
-      return null;
+      throw error;
     }
   }
 
@@ -884,8 +873,6 @@ export class GameEngine implements IEngineContext {
    * 更新游戏逻辑
    */
   private update(deltaTime: number): void {
-    if (!this.gameManager || !this.mapRenderer) return;
-
     const { width, height } = this.config;
 
     // 计算视野区域（复用于多个子系统）
@@ -921,11 +908,9 @@ export class GameEngine implements IEngineContext {
     // 更新音频监听者位置（玩家位置）
     // Globals.ListenerPosition = ThePlayer.PositionInWorld
     const player = this.gameManager.getPlayer();
-    if (player) {
-      this.audio.setListenerPosition(player.pixelPosition);
-      // 更新玩家遮挡状态（用于半透明效果）
-      player.updateOcclusionState();
-    }
+    this.audio.setListenerPosition(player.pixelPosition);
+    // 更新玩家遮挡状态（用于半透明效果）
+    player.updateOcclusionState();
 
     // 更新游戏
     this.gameManager.update(deltaTime, this.inputState);
@@ -972,8 +957,6 @@ export class GameEngine implements IEngineContext {
    * 更新相机
    */
   private updateCamera(deltaTime: number): void {
-    if (!this.gameManager || !this.mapRenderer) return;
-
     const player = this.gameManager.getPlayer();
     const { width, height } = this.config;
 
@@ -1058,16 +1041,14 @@ export class GameEngine implements IEngineContext {
 
     // 限制相机在地图范围内
     const mapData = this.gameManager.getMapData();
-    if (mapData) {
-      this.mapRenderer.camera.x = Math.max(
-        0,
-        Math.min(this.mapRenderer.camera.x, mapData.mapPixelWidth - width)
-      );
-      this.mapRenderer.camera.y = Math.max(
-        0,
-        Math.min(this.mapRenderer.camera.y, mapData.mapPixelHeight - height)
-      );
-    }
+    this.mapRenderer.camera.x = Math.max(
+      0,
+      Math.min(this.mapRenderer.camera.x, mapData.mapPixelWidth - width)
+    );
+    this.mapRenderer.camera.y = Math.max(
+      0,
+      Math.min(this.mapRenderer.camera.y, mapData.mapPixelHeight - height)
+    );
   }
 
   /**
@@ -1075,10 +1056,7 @@ export class GameEngine implements IEngineContext {
    * 用于加载存档后避免摄像机从 (0,0) 飞到玩家位置
    */
   private centerCameraOnPlayer(): void {
-    if (!this._gameManager || !this._mapRenderer) return;
-
-    const player = this._gameManager?.getPlayer();
-    if (!player) return;
+    const player = this.gameManager.getPlayer();
 
     const { width, height } = this.config;
 
@@ -1087,14 +1065,12 @@ export class GameEngine implements IEngineContext {
     let targetY = player.pixelPosition.y - height / 2;
 
     // 限制在地图范围内
-    const mapData = this._gameManager.getMapData();
-    if (mapData) {
-      targetX = Math.max(0, Math.min(targetX, mapData.mapPixelWidth - width));
-      targetY = Math.max(0, Math.min(targetY, mapData.mapPixelHeight - height));
-    }
+    const mapData = this.gameManager.getMapData();
+    targetX = Math.max(0, Math.min(targetX, mapData.mapPixelWidth - width));
+    targetY = Math.max(0, Math.min(targetY, mapData.mapPixelHeight - height));
 
-    this._mapRenderer.camera.x = targetX;
-    this._mapRenderer.camera.y = targetY;
+    this.mapRenderer.camera.x = targetX;
+    this.mapRenderer.camera.y = targetY;
     // 更新上次玩家位置
     this.lastPlayerPositionForCamera = { ...player.pixelPosition };
 
@@ -1105,8 +1081,7 @@ export class GameEngine implements IEngineContext {
    * 渲染游戏画面
    */
   private render(): void {
-    if (!this._renderer || !this.gameManager || !this.mapRenderer) return;
-
+    if (!this._renderer) return;
     const renderer = this._renderer;
     const { width, height } = this.config;
 
@@ -1204,7 +1179,7 @@ export class GameEngine implements IEngineContext {
       // 渲染该行的物体（使用预计算的按行分组）
       const objsAtRow = objManager.getObjsAtRow(row);
       for (const obj of objsAtRow) {
-        this.objRenderer?.drawObj(r, obj, mapR.camera.x, mapR.camera.y);
+        this.objRenderer.drawObj(r, obj, mapR.camera.x, mapR.camera.y);
       }
 
       // 渲染玩家
@@ -1246,7 +1221,7 @@ export class GameEngine implements IEngineContext {
     // if (Globals.IsInSuperMagicMode) { Globals.SuperModeMagicSprite.Draw(_spriteBatch); }
     // SuperMode 精灵不在普通列表中，需要单独渲染
     const superModeMagicMgr = this.getManager("magic");
-    if (superModeMagicMgr?.isInSuperMagicMode) {
+    if (superModeMagicMgr.isInSuperMagicMode) {
       const superModeSprite = superModeMagicMgr.superModeMagicSprite;
       if (superModeSprite && !superModeSprite.isDestroyed) {
         this.magicRenderer.render(r, superModeSprite, mapR.camera.x, mapR.camera.y);
@@ -1255,14 +1230,14 @@ export class GameEngine implements IEngineContext {
 
     // === 高亮边缘在所有内容渲染完成后单独绘制（最高层） ===
     // 末尾: if (Globals.OutEdgeSprite != null) { ... }
-    if (hoverTarget.type === "npc" && hoverTarget.npc) {
+    if (hoverTarget.type === "npc") {
       const npc = hoverTarget.npc;
       if (npc.isSpritesLoaded() && npc.isVisible) {
         npc.drawHighlight(r, mapR.camera.x, mapR.camera.y, edgeColor);
       }
-    } else if (hoverTarget.type === "obj" && hoverTarget.obj) {
+    } else if (hoverTarget.type === "obj") {
       const obj = hoverTarget.obj;
-      this.objRenderer?.drawObjHighlight(r, obj, mapR.camera.x, mapR.camera.y, edgeColor);
+      this.objRenderer.drawObjHighlight(r, obj, mapR.camera.x, mapR.camera.y, edgeColor);
     }
   }
 
@@ -1309,16 +1284,19 @@ export class GameEngine implements IEngineContext {
     this.config.width = width;
     this.config.height = height;
 
-    if (this._mapRenderer) {
-      this._mapRenderer.camera.width = width;
-      this._mapRenderer.camera.height = height;
+    // 同步天气系统尺寸（初始化前也可调用）
+    this.weatherManager.setWindowSize(width, height);
+
+    if (!this.isEngineInitialized) {
+      this.events.emit(GameEvents.SCREEN_RESIZE, { width, height });
+      return;
     }
+
+    this.mapRendererInstance.camera.width = width;
+    this.mapRendererInstance.camera.height = height;
 
     // 同步渲染器尺寸
     this._renderer?.resize(width, height);
-
-    // 同步天气系统尺寸
-    this.weatherManager.setWindowSize(width, height);
 
     // 重新居中镜头到玩家，确保尺寸变化时玩家始终保持在屏幕中心
     this.centerCameraOnPlayer();
@@ -1334,11 +1312,7 @@ export class GameEngine implements IEngineContext {
   handleKeyDown(code: string, shiftKey: boolean = false): boolean {
     this.inputState.keys.add(code);
     this.inputState.isShiftDown = shiftKey;
-
-    if (this.gameManager) {
-      return this.gameManager.handleKeyDown(code, shiftKey);
-    }
-    return false;
+    return this.gameManager.handleKeyDown(code, shiftKey);
   }
 
   /**
@@ -1419,7 +1393,7 @@ export class GameEngine implements IEngineContext {
     }
 
     // 通知 InputHandler 更新按钮状态（用于交互防重复）
-    this.gameManager?.handleMouseUp(isRightButton);
+    this.gameManager.handleMouseUp(isRightButton);
   }
 
   /**
@@ -1446,8 +1420,7 @@ export class GameEngine implements IEngineContext {
    * 在施法/攻击/跳跃等状态下不能移动
    */
   canPlayerMove(): boolean {
-    const player = this._gameManager?.getPlayer();
-    if (!player) return false;
+    const player = this.gameManager.getPlayer();
     return player.performActionOk();
   }
 
@@ -1461,9 +1434,7 @@ export class GameEngine implements IEngineContext {
     ctrlKey: boolean = false,
     altKey: boolean = false
   ): void {
-    if (this.gameManager) {
-      this.gameManager.handleClick(worldX, worldY, button, ctrlKey, altKey);
-    }
+    this.gameManager.handleClick(worldX, worldY, button, ctrlKey, altKey);
   }
 
   /**
@@ -1477,12 +1448,12 @@ export class GameEngine implements IEngineContext {
    * 屏幕坐标转世界坐标
    */
   screenToWorld(screenX: number, screenY: number): Vector2 {
-    if (!this._mapRenderer) {
+    if (!this.isEngineInitialized) {
       return { x: screenX, y: screenY };
     }
     return {
-      x: screenX + this._mapRenderer.camera.x,
-      y: screenY + this._mapRenderer.camera.y,
+      x: screenX + this.mapRendererInstance.camera.x,
+      y: screenY + this.mapRendererInstance.camera.y,
     };
   }
 
@@ -1498,15 +1469,15 @@ export class GameEngine implements IEngineContext {
   /**
    * 获取游戏管理器
    */
-  getGameManager(): GameManager | null {
-    return this._gameManager;
+  getGameManager(): GameManager {
+    return this.gameManager;
   }
 
   /**
    * 获取GUI状态
    */
-  getGuiState(): GuiManagerState | undefined {
-    return this._gameManager?.getGuiManager().getState();
+  getGuiState(): GuiManagerState {
+    return this.gameManager.getGuiManager().getState();
   }
 
   /**
@@ -1544,12 +1515,10 @@ export class GameEngine implements IEngineContext {
    */
   async runScript(scriptPath: string, belongObject?: { type: string; id: string }): Promise<void> {
     const executor = this.gameManager.getScriptExecutor();
-    if (executor) {
-      await executor.runScript(
-        scriptPath,
-        belongObject as { type: "npc" | "obj"; id: string } | undefined
-      );
-    }
+    await executor.runScript(
+      scriptPath,
+      belongObject as { type: "npc" | "obj"; id: string } | undefined
+    );
   }
 
   /**
@@ -1580,7 +1549,7 @@ export class GameEngine implements IEngineContext {
    * 检查物品掉落是否启用
    */
   isDropEnabled(): boolean {
-    return this._gameManager?.isDropEnabled() ?? true;
+    return this.gameManager.isDropEnabled();
   }
 
   /**
@@ -1636,7 +1605,7 @@ export class GameEngine implements IEngineContext {
         result = this.gameManager.getMagicHandler();
         break;
       case "mapRenderer":
-        result = this._mapRenderer;
+        result = this.mapRenderer;
         break;
       case "script":
         result = this.gameManager.getScriptExecutor();
@@ -1657,8 +1626,8 @@ export class GameEngine implements IEngineContext {
   /**
    * 获取 UI 桥接器（非 IEngineContext，UI 层使用）
    */
-  getUIBridge(): IUIBridge | null {
-    return this._uiBridge;
+  getUIBridge(): IUIBridge {
+    return this.uiBridge;
   }
 
   /**
@@ -1686,126 +1655,79 @@ export class GameEngine implements IEngineContext {
 
       // ===== 状态获取器 =====
       state: {
-        getPlayer: () => this._gameManager?.getPlayer() ?? null,
-        getPlayerIndex: () => this._gameManager?.getPlayer()?.playerIndex ?? 0,
-        getGoodsListManager: () => this._gameManager?.getGoodsListManager() ?? null,
-        getMagicListManager: () => this._gameManager?.getMagicListManager() ?? null,
-        getBuyManager: () => this._gameManager?.getBuyManager() ?? null,
+        getPlayer: () => this.gameManager.getPlayer(),
+        getPlayerIndex: () => this.gameManager.getPlayer().playerIndex,
+        getGoodsListManager: () => this.gameManager.getGoodsListManager(),
+        getMagicListManager: () => this.gameManager.getMagicListManager(),
+        getBuyManager: () => this.gameManager.getBuyManager(),
         getMemoListManager: () => this.memoListManager,
         getTimerManager: () => this.timerManager,
         getPanels: () => {
-          const state = this._gameManager?.getGuiManager()?.getState();
-          return (
-            state?.panels ?? {
-              state: false,
-              equip: false,
-              xiulian: false,
-              goods: false,
-              magic: false,
-              memo: false,
-              system: false,
-              saveLoad: false,
-              buy: false,
-              npcEquip: false,
-              title: false,
-              timer: false,
-              littleMap: false,
-            }
-          );
+          const state = this.gameManager.getGuiManager().getState();
+          return state.panels;
         },
         getDialogState: () => {
-          const state = this._gameManager?.getGuiManager()?.getState();
-          return (
-            state?.dialog ?? {
-              isVisible: false,
-              text: "",
-              portraitIndex: 0,
-              portraitSide: "left" as const,
-              nameText: "",
-              textProgress: 0,
-              isComplete: true,
-              isInSelecting: false,
-              selectA: "",
-              selectB: "",
-              selection: -1,
-            }
-          );
+          const state = this.gameManager.getGuiManager().getState();
+          return state.dialog;
         },
         getSelectionState: () => {
-          const state = this._gameManager?.getGuiManager()?.getState();
-          return (
-            state?.selection ?? {
-              isVisible: false,
-              message: "",
-              options: [],
-              selectedIndex: 0,
-              hoveredIndex: -1,
-            }
-          );
+          const state = this.gameManager.getGuiManager().getState();
+          return state.selection;
         },
         getMultiSelectionState: () => {
-          const state = this._gameManager?.getGuiManager()?.getState();
-          return (
-            state?.multiSelection ?? {
-              isVisible: false,
-              message: "",
-              options: [],
-              columns: 1,
-              selectionCount: 1,
-              selectedIndices: [],
-            }
-          );
+          const state = this.gameManager.getGuiManager().getState();
+          return state.multiSelection;
         },
-        canSaveGame: () => this._gameManager?.isSaveEnabled() ?? false,
+        canSaveGame: () => this.gameManager.isSaveEnabled(),
       },
 
       // ===== 物品操作 =====
       goods: {
         useItem: (index: number) => {
-          const goodsManager = this._gameManager?.getGoodsListManager();
-          const entry = goodsManager?.getItemInfo(index);
-          const player = this._gameManager?.getPlayer();
-          const npcManager = this._gameManager?.getNpcManager();
+          const goodsManager = this.gameManager.getGoodsListManager();
+          const entry = goodsManager.getItemInfo(index);
+          const player = this.gameManager.getPlayer();
+          const npcManager = this.gameManager.getNpcManager();
           if (entry?.good) {
             if (entry.good.kind === GoodKind.Equipment) {
               const equipIndex = getEquipSlotIndex(entry.good.part);
               if (equipIndex > 0) {
-                goodsManager?.exchangeListItemAndEquiping(index, equipIndex);
+                goodsManager.exchangeListItemAndEquiping(index, equipIndex);
               }
             } else if (entry.good.kind === GoodKind.Drug) {
-              goodsManager?.usingGood(index);
-              player?.useDrug(entry.good);
-              if (entry.good.followPartnerHasDrugEffect > 0 && npcManager) {
+              goodsManager.usingGood(index);
+              player.useDrug(entry.good);
+              if (entry.good.followPartnerHasDrugEffect > 0) {
                 npcManager.forEachPartner((partner) => {
                   partner.useDrug(entry.good);
                 });
               }
             } else if (entry.good.kind === GoodKind.Event) {
-              goodsManager?.usingGood(index);
+              goodsManager.usingGood(index);
             }
           }
         },
         equipItem: (fromIndex: number, toSlot: string) => {
           const slotIndex = slotNameToIndex(toSlot);
-          this._gameManager?.getGoodsListManager()?.exchangeListItemAndEquiping(fromIndex, slotIndex);
+          this.gameManager.getGoodsListManager().exchangeListItemAndEquiping(fromIndex, slotIndex);
         },
         unequipItem: (slot: string) => {
           const slotIndex = slotNameToIndex(slot);
-          this._gameManager?.getGoodsListManager()?.unEquipGood(slotIndex);
+          this.gameManager.getGoodsListManager().unEquipGood(slotIndex);
         },
         swapItems: (fromIndex: number, toIndex: number) => {
-          this._gameManager?.getGoodsListManager()?.exchangeListItem(fromIndex, toIndex);
+          this.gameManager.getGoodsListManager().exchangeListItem(fromIndex, toIndex);
         },
         useBottomItem: (slotIndex: number) => {
           const actualIndex = 221 + slotIndex;
-          const goodsManager = this._gameManager?.getGoodsListManager();
-          const entry = goodsManager?.getItemInfo(actualIndex);
-          const player = this._gameManager?.getPlayer();
-          const npcManager = this._gameManager?.getNpcManager();
-          goodsManager?.usingGood(actualIndex, player?.level ?? 1);
+          const goodsManager = this.gameManager.getGoodsListManager();
+          const entry = goodsManager.getItemInfo(actualIndex);
+          const player = this.gameManager.getPlayer();
+          const npcManager = this.gameManager.getNpcManager();
+          goodsManager.usingGood(actualIndex, player.level);
           if (entry?.good && entry.good.kind === GoodKind.Drug) {
-            player?.useDrug(entry.good);
-            if (entry.good.followPartnerHasDrugEffect > 0 && npcManager) {
+            player.useDrug(entry.good);
+            if (entry.good.followPartnerHasDrugEffect > 0) {
               npcManager.forEachPartner((partner) => {
                 partner.useDrug(entry.good);
               });
@@ -1815,49 +1737,47 @@ export class GameEngine implements IEngineContext {
         swapEquipSlots: (fromSlot: string, toSlot: string) => {
           const fromIndex = slotNameToIndex(fromSlot);
           const toIndex = slotNameToIndex(toSlot);
-          this._gameManager?.getGoodsListManager()?.exchangeListItem(fromIndex, toIndex);
+          this.gameManager.getGoodsListManager().exchangeListItem(fromIndex, toIndex);
         },
       },
 
       // ===== 武功操作 =====
       magic: {
         useMagic: async (magicIndex: number) => {
-          this._gameManager?.handleMagicRightClick(magicIndex);
+          this.gameManager.handleMagicRightClick(magicIndex);
         },
         useMagicByBottom: async (bottomSlot: number) => {
-          await this._gameManager?.useMagicByBottomSlot(bottomSlot);
+          await this.gameManager.useMagicByBottomSlot(bottomSlot);
         },
         setCurrentMagic: (magicIndex: number) => {
-          this._gameManager?.handleMagicRightClick(magicIndex);
+          this.gameManager.handleMagicRightClick(magicIndex);
         },
         setCurrentMagicByBottom: (bottomIndex: number) => {
-          this._gameManager?.getMagicListManager()?.setCurrentMagicByBottomIndex(bottomIndex);
+          this.gameManager.getMagicListManager().setCurrentMagicByBottomIndex(bottomIndex);
         },
         swapMagic: (fromIndex: number, toIndex: number) => {
-          this._gameManager?.getMagicListManager()?.exchangeListItem(fromIndex, toIndex);
+          this.gameManager.getMagicListManager().exchangeListItem(fromIndex, toIndex);
         },
         assignMagicToBottom: (magicIndex: number, bottomSlot: number) => {
           this.handleMagicDrop(magicIndex, bottomSlot);
         },
         setXiuLianMagic: (magicIndex: number) => {
           const xiuLianIndex = 49;
-          this._gameManager?.getMagicListManager()?.exchangeListItem(magicIndex, xiuLianIndex);
+          this.gameManager.getMagicListManager().exchangeListItem(magicIndex, xiuLianIndex);
         },
       },
 
       // ===== 商店操作 =====
       shop: {
         buyItem: async (shopIndex: number) => {
-          const buyManager = this._gameManager?.getBuyManager();
-          const player = this._gameManager?.getPlayer();
-          if (!buyManager || !player) return false;
+          const buyManager = this.gameManager.getBuyManager();
+          const player = this.gameManager.getPlayer();
 
           return buyManager.buyGood(
             shopIndex,
             player.money,
             (fileName) => {
-              const goodsManager = this._gameManager?.getGoodsListManager();
-              if (!goodsManager) return false;
+              const goodsManager = this.gameManager.getGoodsListManager();
               const result = goodsManager.addGoodToList(fileName);
               return result.success;
             },
@@ -1867,10 +1787,9 @@ export class GameEngine implements IEngineContext {
           );
         },
         sellItem: (bagIndex: number) => {
-          const goodsManager = this._gameManager?.getGoodsListManager();
-          const buyManager = this._gameManager?.getBuyManager();
-          const player = this._gameManager?.getPlayer();
-          if (!goodsManager || !buyManager || !player) return;
+          const goodsManager = this.gameManager.getGoodsListManager();
+          const buyManager = this.gameManager.getBuyManager();
+          const player = this.gameManager.getPlayer();
 
           const entry = goodsManager.getItemInfo(bagIndex);
           if (entry?.good && entry.good.sellPrice > 0 && buyManager.getCanSellSelfGoods()) {
@@ -1880,10 +1799,10 @@ export class GameEngine implements IEngineContext {
           }
         },
         closeShop: () => {
-          const buyManager = this._gameManager?.getBuyManager();
-          const guiManager = this._gameManager?.getGuiManager();
-          buyManager?.endBuy();
-          guiManager?.closeBuyGui();
+          const buyManager = this.gameManager.getBuyManager();
+          const guiManager = this.gameManager.getGuiManager();
+          buyManager.endBuy();
+          guiManager.closeBuyGui();
         },
       },
 
@@ -1901,24 +1820,24 @@ export class GameEngine implements IEngineContext {
           }
         },
         showSaveLoad: (visible: boolean) => {
-          this._gameManager?.getGuiManager()?.showSaveLoad(visible);
+          this.gameManager.getGuiManager().showSaveLoad(visible);
         },
       },
 
       // ===== 对话操作 =====
       dialog: {
         dialogClick: () => {
-          this._gameManager?.getGuiManager()?.handleDialogClick();
+          this.gameManager.getGuiManager().handleDialogClick();
         },
         dialogSelect: (selection: number) => {
-          this._gameManager?.getGuiManager()?.onDialogSelectionMade(selection);
+          this.gameManager.getGuiManager().onDialogSelectionMade(selection);
           this.onSelectionMade(selection);
         },
         selectionChoose: (index: number) => {
-          this._gameManager?.getGuiManager()?.selectByIndex(index);
+          this.gameManager.getGuiManager().selectByIndex(index);
         },
         multiSelectionToggle: (index: number) => {
-          this._gameManager?.getGuiManager()?.toggleMultiSelection(index);
+          this.gameManager.getGuiManager().toggleMultiSelection(index);
         },
       },
 
@@ -1927,18 +1846,16 @@ export class GameEngine implements IEngineContext {
         togglePanel: (panel: UIPanelName) =>
           this.togglePanel(panel as keyof GuiManagerState["panels"]),
         showMessage: (text: string) => {
-          this._gameManager?.getGuiManager()?.showMessage(text);
+          this.gameManager.getGuiManager().showMessage(text);
         },
         showSystem: (visible: boolean) => {
-          this._gameManager?.getGuiManager()?.showSystem(visible);
+          this.gameManager.getGuiManager().showSystem(visible);
         },
         minimapClick: (worldX: number, worldY: number) => {
-          const player = this._gameManager?.getPlayer();
-          if (player) {
-            const tile = pixelToTile(worldX, worldY);
-            player.walkTo(tile);
-            this.togglePanel("littleMap");
-          }
+          const player = this.gameManager.getPlayer();
+          const tile = pixelToTile(worldX, worldY);
+          player.walkTo(tile);
+          this.togglePanel("littleMap");
         },
         onVideoEnd: () => {
           this.events.emit(GameEvents.UI_VIDEO_END, {});
@@ -1956,6 +1873,10 @@ export class GameEngine implements IEngineContext {
     return this.state;
   }
 
+  isInitialized(): boolean {
+    return this.isEngineInitialized;
+  }
+
   /**
    * 获取加载进度
    */
@@ -1970,42 +1891,42 @@ export class GameEngine implements IEngineContext {
    * 获取物品版本（用于触发UI更新）
    */
   getGoodsVersion(): number {
-    return this._gameManager?.getGoodsVersion() ?? 0;
+    return this.gameManager.getGoodsVersion();
   }
 
   /**
    * 获取武功版本（用于触发UI更新）
    */
   getMagicVersion(): number {
-    return this._gameManager?.getMagicVersion() ?? 0;
+    return this.gameManager.getMagicVersion();
   }
 
   /**
    * 获取物品管理器
    */
-  getGoodsListManager(): GoodsListManager | null {
-    return this._gameManager?.getGoodsListManager() ?? null;
+  getGoodsListManager(): GoodsListManager {
+    return this.gameManager.getGoodsListManager();
   }
 
   /**
    * 获取商店武功列表
    */
   getStoreMagics(): (MagicItemInfo | null)[] {
-    return this._gameManager?.getStoreMagics() ?? [];
+    return this.gameManager.getStoreMagics();
   }
 
   /**
    * 获取底栏武功列表
    */
   getBottomMagics(): (MagicItemInfo | null)[] {
-    return this._gameManager?.getBottomMagics() ?? [];
+    return this.gameManager.getBottomMagics();
   }
 
   /**
    * 获取底栏物品列表
    */
   getBottomGoods(): (GoodsItemInfo | null)[] {
-    return this._gameManager?.getBottomGoods() ?? [];
+    return this.gameManager.getBottomGoods();
   }
 
   /**
@@ -2022,43 +1943,42 @@ export class GameEngine implements IEngineContext {
    * 用于移动端松开摇杆时立即停止
    */
   stopPlayerMovement(): void {
-    this._gameManager?.getPlayer()?.stopMovement();
+    this.gameManager.getPlayer().stopMovement();
   }
 
   /**
    * 使用底栏武功
    */
   async useMagicByBottomSlot(slotIndex: number): Promise<void> {
-    await this._gameManager?.useMagicByBottomSlot(slotIndex);
+    await this.gameManager.useMagicByBottomSlot(slotIndex);
   }
 
   /**
    * 处理武功拖放
    */
   handleMagicDrop(sourceStoreIndex: number, targetBottomSlot: number): void {
-    this._gameManager?.handleMagicDrop(sourceStoreIndex, targetBottomSlot);
+    this.gameManager.handleMagicDrop(sourceStoreIndex, targetBottomSlot);
   }
 
   /**
    * 处理武功右键
    */
   handleMagicRightClick(storeIndex: number): void {
-    this._gameManager?.handleMagicRightClick(storeIndex);
+    this.gameManager.handleMagicRightClick(storeIndex);
   }
 
   /**
    * 处理选择
    */
   onSelectionMade(index: number): void {
-    this._gameManager?.onSelectionMade(index);
+    this.gameManager.onSelectionMade(index);
   }
 
   /**
    * 切换GUI面板
    */
   togglePanel(panel: keyof GuiManagerState["panels"]): void {
-    const guiManager = this._gameManager?.getGuiManager();
-    if (!guiManager) return;
+    const guiManager = this.gameManager.getGuiManager();
 
     switch (panel) {
       case "state":
@@ -2094,22 +2014,21 @@ export class GameEngine implements IEngineContext {
    * 是否无敌模式
    */
   isGodMode(): boolean {
-    return this._gameManager?.isGodMode() ?? false;
+    return this.gameManager.isGodMode();
   }
 
   /**
    * 执行脚本
    */
   async executeScript(scriptContent: string): Promise<string | null> {
-    return this._gameManager?.executeScript(scriptContent) ?? "游戏未初始化";
+    return this.gameManager.executeScript(scriptContent);
   }
 
   /**
    * 获取玩家状态
    */
-  getPlayerStats(): PlayerStatsInfo | null {
-    const player = this._gameManager?.getPlayer();
-    if (!player) return null;
+  getPlayerStats(): PlayerStatsInfo {
+    const player = this.gameManager.getPlayer();
     return {
       level: player.level,
       life: player.life,
@@ -2129,18 +2048,16 @@ export class GameEngine implements IEngineContext {
   /**
    * 获取玩家位置
    */
-  getPlayerPosition(): Vector2 | null {
-    const player = this._gameManager?.getPlayer();
-    if (!player) return null;
+  getPlayerPosition(): Vector2 {
+    const player = this.gameManager.getPlayer();
     return { x: player.tilePosition.x, y: player.tilePosition.y };
   }
 
   /**
    * 获取相机位置（像素坐标）
    */
-  getCameraPosition(): Vector2 | null {
-    if (!this._mapRenderer) return null;
-    return { x: this._mapRenderer.camera.x, y: this._mapRenderer.camera.y };
+  getCameraPosition(): Vector2 {
+    return { x: this.mapRenderer.camera.x, y: this.mapRenderer.camera.y };
   }
 
   /**
@@ -2150,9 +2067,8 @@ export class GameEngine implements IEngineContext {
     x: number;
     y: number;
     worldToScreen: (worldX: number, worldY: number) => { x: number; y: number };
-  } | null {
-    if (!this._mapRenderer) return null;
-    const camera = this._mapRenderer.camera;
+  } {
+    const camera = this.mapRenderer.camera;
     return {
       x: camera.x,
       y: camera.y,
@@ -2166,8 +2082,8 @@ export class GameEngine implements IEngineContext {
   /**
    * 获取当前地图数据
    */
-  getMapData(): JxqyMapData | null {
-    return this._gameManager?.getMapData() ?? null;
+  getMapData(): JxqyMapData {
+    return this.gameManager.getMapData();
   }
 
   /**
@@ -2183,4 +2099,8 @@ export class GameEngine implements IEngineContext {
       : undefined;
     return this.performanceStats.getStats(rendererInfo);
   }
+}
+
+export function createGameEngine(config: GameEngineConfig): GameEngine {
+  return new GameEngine(config);
 }

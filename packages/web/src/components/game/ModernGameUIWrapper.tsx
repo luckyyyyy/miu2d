@@ -600,7 +600,7 @@ export const ModernGameUIWrapper: React.FC<ModernGameUIWrapperProps> = ({
           isVisible={true}
           screenWidth={width}
           screenHeight={height}
-          canSave={engine?.getGameManager()?.isSaveEnabled() ?? false}
+          canSave={engine ? engine.getGameManager().isSaveEnabled() : false}
           onSave={async (index) => {
             dispatch({ type: "SAVE_GAME", slotIndex: index });
             return true;

@@ -3,7 +3,7 @@
  */
 
 import type { GameVariables } from "@miu2d/engine/core/types";
-import type { PerformanceStatsData } from "@miu2d/engine/game/performanceStats";
+import type { PerformanceStatsData } from "@miu2d/engine/runtime/performanceStats";
 import type { MagicItemInfo } from "@miu2d/engine/magic";
 import type { ResourceStats } from "@miu2d/engine/resource/resourceLoader";
 

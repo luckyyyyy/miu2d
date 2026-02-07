@@ -46,8 +46,8 @@ import type { MemoListManager, TalkTextListManager } from "../listManager";
 import type { PartnerListManager } from "../listManager/partnerList";
 import type { MagicItemInfo } from "../magic";
 import { MagicManager } from "../magic";
-import { MagicRenderer } from "../magic/magicRenderer";
-import { MapBase } from "../map/mapBase";
+import type { MagicRenderer } from "../magic/magicRenderer";
+import type { MapBase } from "../map/mapBase";
 import type { Npc } from "../npc";
 import { NpcManager } from "../npc";
 import type { Obj, ObjManager } from "../obj";
@@ -73,11 +73,10 @@ import { createScriptContext } from "./scriptContextFactory";
 import { SpecialActionHandler } from "./specialActionHandler";
 
 export interface GameManagerConfig {
-  onMapChange?: (mapPath: string) => Promise<JxqyMapData | null>;
-  onLoadComplete?: () => void;
-  getCanvas?: () => HTMLCanvasElement | null;
+  onMapChange: (mapPath: string) => Promise<JxqyMapData>;
+  getCanvas: () => HTMLCanvasElement | null;
   // 立即将摄像机居中到玩家位置（用于加载存档后避免摄像机飞过去）
-  centerCameraOnPlayer?: () => void;
+  centerCameraOnPlayer: () => void;
 }
 
 /**
@@ -130,7 +129,7 @@ export class GameManager {
   // Refactored modules
   private weatherManager: WeatherManager;
   private timerManager: TimerManager;
-  private loader!: Loader;
+  private loader: Loader;
   private cameraController: CameraController;
   private magicHandler!: MagicHandler;
   private inputHandler!: InputHandler;
@@ -141,7 +140,8 @@ export class GameManager {
   private variables: GameVariables = {};
   private currentMapPath: string = "";
   private currentMapName: string = "";
-  private mapData: JxqyMapData | null = null;
+  private mapData!: JxqyMapData;
+  private hasMapData: boolean = false;
   private saveEnabled: boolean = true;
   private dropEnabled: boolean = true;
   private scriptShowMapPos: boolean = false;
@@ -169,7 +169,7 @@ export class GameManager {
   // Input control callback
   private clearMouseInput?: () => void;
 
-  constructor(deps: GameManagerDeps, config: GameManagerConfig = {}) {
+  constructor(deps: GameManagerDeps, config: GameManagerConfig) {
     this.config = config;
 
     // Store injected dependencies
@@ -296,7 +296,7 @@ export class GameManager {
       getScriptExecutor: () => this.scriptExecutor,
       loadMap: (mapPath) => this.loadMap(mapPath),
       parseIni: parseIni,
-      clearScriptCache: () => this.scriptExecutor?.clearCache(),
+      clearScriptCache: () => this.scriptExecutor.clearCache(),
       clearResourceCaches: () => {
         // 清理精灵缓存（SpriteSet 持有 AsfData 和 atlas canvas）
         Sprite.clearCache();
@@ -330,9 +330,9 @@ export class GameManager {
         );
       },
       getCurrentMapName: () => this.currentMapName,
-      getCanvas: () => this.config.getCanvas?.() ?? null,
+      getCanvas: () => this.config.getCanvas(),
       // 加载存档后立即居中摄像机（避免摄像机飞过去）
-      centerCameraOnPlayer: () => this.config.centerCameraOnPlayer?.(),
+      centerCameraOnPlayer: () => this.config.centerCameraOnPlayer(),
 
       // === 游戏选项和计时器 ===
       // mapTime
@@ -438,7 +438,7 @@ export class GameManager {
     // Initialize magic handler
     // MagicHandler 通过 IEngineContext 获取 Player, GuiManager, MagicManager, MagicListManager
     this.magicHandler = new MagicHandler({
-      getLastInput: () => this.inputHandler?.getLastInput() ?? null,
+      getLastInput: () => this.inputHandler.getLastInput(),
     });
 
     // Initialize input handler
@@ -593,9 +593,10 @@ export class GameManager {
    * Check and trigger trap at tile
    */
   private checkTrap(tile: Vector2): void {
+    const mapData = this.requireMapData();
     this.map.checkTrap(
       tile,
-      this.mapData,
+      mapData,
       this.currentMapName,
       () => this.scriptExecutor.isRunning(),
       () => this.scriptExecutor.isWaitingForInput(),
@@ -632,24 +633,22 @@ export class GameManager {
     // this.trapManager.clearIgnoredTraps(); // 移除此调用
 
     // Load map data via callback
-    if (this.config.onMapChange) {
-      this.mapData = await this.config.onMapChange(mapPath);
+    const mapData = await this.config.onMapChange(mapPath);
+    this.mapData = mapData;
+    this.hasMapData = true;
 
-      if (this.mapData) {
-        logger.debug(
-          `[GameManager] Map loaded: ${this.mapData.mapColumnCounts}x${this.mapData.mapRowCounts} tiles`
-        );
+    logger.debug(
+      `[GameManager] Map loaded: ${mapData.mapColumnCounts}x${mapData.mapRowCounts} tiles`
+    );
 
-        // Update MapBase with new map data
-        this.map.setMapData(this.mapData);
+    // Update MapBase with new map data
+    this.map.setMapData(mapData);
 
-        // MagicManager 现在通过 IEngineContext 获取碰撞检测器
-        // 无需手动设置 setMapObstacleChecker
+    // MagicManager 现在通过 IEngineContext 获取碰撞检测器
+    // 无需手动设置 setMapObstacleChecker
 
-        // Debug trap info
-        this.map.debugLogTraps(this.mapData, this.currentMapName);
-      }
-    }
+    // Debug trap info
+    this.map.debugLogTraps(mapData, this.currentMapName);
     logger.debug(`[GameManager] Map loaded successfully`);
   }
 
@@ -727,6 +726,7 @@ export class GameManager {
    */
   setMapData(mapData: JxqyMapData): void {
     this.mapData = mapData;
+    this.hasMapData = true;
     this.map.setMapData(mapData);
   }
 
@@ -1017,7 +1017,14 @@ export class GameManager {
     return this.currentMapPath;
   }
 
-  getMapData(): JxqyMapData | null {
+  getMapData(): JxqyMapData {
+    return this.requireMapData();
+  }
+
+  private requireMapData(): JxqyMapData {
+    if (!this.hasMapData) {
+      throw new Error("Map data not loaded. Call loadMap() first.");
+    }
     return this.mapData;
   }
 
@@ -1026,7 +1033,8 @@ export class GameManager {
    * IEngineContext 接口实现
    */
   hasTrapScript(tile: Vector2): boolean {
-    return this.map.hasTrapScriptWithMapData(tile, this.mapData, this.currentMapName);
+    const mapData = this.requireMapData();
+    return this.map.hasTrapScriptWithMapData(tile, mapData, this.currentMapName);
   }
 
   isPausedState(): boolean {

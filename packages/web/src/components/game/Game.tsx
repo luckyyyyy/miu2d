@@ -2,7 +2,7 @@
  * Game - 游戏主组件
  *
  * 架构特点:
- * 1. 游戏引擎是单例，独立于React
+ * 1. 游戏引擎是实例，独立于React
  * 2. React只负责画布、镜头和UI渲染
  * 3. 游戏循环在引擎中运行，不在React中
  * 4. UI通过事件订阅获取状态更新
@@ -11,7 +11,7 @@
 
 import { GameEvents, type UIPanelChangeEvent } from "@miu2d/engine/core/gameEvents";
 import type { DebugManager } from "@miu2d/engine/debug";
-import type { GameEngine } from "@miu2d/engine/game/gameEngine";
+import type { GameEngine } from "@miu2d/engine/runtime/gameEngine";
 import type React from "react";
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { useGameEngine } from "@/hooks";
@@ -124,7 +124,7 @@ export const Game = forwardRef<GameHandle, GameProps>(
       ref,
       () => ({
         getEngine: () => engine,
-        getDebugManager: () => engine?.getGameManager()?.getDebugManager() ?? null,
+        getDebugManager: () => (engine ? engine.getGameManager().getDebugManager() : null),
         getError: () => error,
       }),
       [engine, error]

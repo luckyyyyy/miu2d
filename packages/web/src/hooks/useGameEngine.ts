@@ -19,10 +19,8 @@ import {
   type GameLoadProgressEvent,
 } from "@miu2d/engine/core/gameEvents";
 import { logger } from "@miu2d/engine/core/logger";
-import {
-  GameEngine,
-  type GameEngineState,
-} from "@miu2d/engine/game/gameEngine";
+import { createGameEngine } from "@miu2d/engine/runtime/gameEngine";
+import type { GameEngine, GameEngineState } from "@miu2d/engine/runtime/gameEngine";
 import { useEffect, useRef, useState } from "react";
 
 export interface UseGameEngineOptions {
@@ -61,8 +59,7 @@ export function useGameEngine(options: UseGameEngineOptions): UseGameEngineResul
 
   // 初始化引擎
   useEffect(() => {
-    // 获取或创建引擎实例
-    const engine = GameEngine.getInstance({ width, height });
+    const engine = engineRef.current ?? createGameEngine({ width, height });
     engineRef.current = engine;
 
     // 清理之前的订阅（如果有）
@@ -144,7 +141,14 @@ export function useGameEngine(options: UseGameEngineOptions): UseGameEngineResul
       }
       unsubscribersRef.current = [];
     };
-  }, [width, height, autoStart, loadSlot]);
+  }, [autoStart, height, loadSlot, width]);
+
+  useEffect(() => {
+    return () => {
+      engineRef.current?.dispose();
+      engineRef.current = null;
+    };
+  }, []);
 
   // 处理尺寸变化
   useEffect(() => {

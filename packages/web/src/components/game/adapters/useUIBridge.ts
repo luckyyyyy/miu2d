@@ -10,7 +10,7 @@
  * - 所有动作通过 dispatch 派发
  */
 
-import type { GameEngine } from "@miu2d/engine/game/gameEngine";
+import type { GameEngine } from "@miu2d/engine/runtime/gameEngine";
 import type {
   UIAction,
   UIDialogState,
@@ -188,7 +188,11 @@ const defaultMinimap: UIMinimapState = {
  */
 export function useUIBridge(engine: GameEngine | null): UseUIBridgeResult {
   // 获取 UIBridge 实例
-  const bridge = useMemo(() => engine?.getUIBridge() ?? null, [engine]);
+  const bridge = useMemo(() => {
+    if (!engine) return null;
+    if (!engine.isInitialized()) return null;
+    return engine.getUIBridge();
+  }, [engine]);
 
   // 状态
   const [player, setPlayer] = useState<UIPlayerState | null>(null);
@@ -410,7 +414,11 @@ export function useUIMinimap(result: UseUIBridgeResult | null): UIMinimapState |
  * 派发 UI 动作的便捷 Hook
  */
 export function useUIDispatch(engine: GameEngine | null): (action: UIAction) => void {
-  const bridge = useMemo(() => engine?.getUIBridge() ?? null, [engine]);
+  const bridge = useMemo(() => {
+    if (!engine) return null;
+    if (!engine.isInitialized()) return null;
+    return engine.getUIBridge();
+  }, [engine]);
 
   return useCallback(
     (action: UIAction) => {

@@ -12,8 +12,8 @@
 
 import type { AudioManager } from "../audio";
 import type { DebugManager } from "../debug/debugManager";
-import type { InteractionManager } from "../game/interactionManager";
-import type { MagicHandler } from "../game/magicHandler";
+import type { InteractionManager } from "../runtime/interactionManager";
+import type { MagicHandler } from "../runtime/magicHandler";
 import type { BuyManager } from "../gui/buyManager";
 import type { GuiManager } from "../gui/guiManager";
 import type { MagicManager } from "../magic";
@@ -145,7 +145,7 @@ export interface ManagerMap {
   buy: BuyManager;
   interaction: InteractionManager;
   magicHandler: MagicHandler;
-  mapRenderer: MapRenderer | null;
+  mapRenderer: MapRenderer;
   script: IScriptExecutor;
 }
 

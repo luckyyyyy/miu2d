@@ -9,7 +9,7 @@
  */
 
 import { LOG_LEVELS, type LogLevel, logger } from "@miu2d/engine/core/logger";
-import { type SaveSlotInfo, StorageManager } from "@miu2d/engine/game/storage";
+import { type SaveSlotInfo, StorageManager } from "@miu2d/engine/runtime/storage";
 import { useCallback, useEffect, useState } from "react";
 import type { UITheme } from "@/components/game/ui";
 

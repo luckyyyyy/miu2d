@@ -112,11 +112,11 @@ function convertMagicInfoToSlot(info: MagicItemInfo | null, index: number): UIMa
 
 /** 状态获取器 - 用于获取游戏状态 */
 export interface UIStateGetters {
-  getPlayer: () => Player | null;
-  getPlayerIndex?: () => number;
-  getGoodsListManager: () => GoodsListManager | null;
-  getMagicListManager: () => MagicListManager | null;
-  getBuyManager: () => BuyManager | null;
+  getPlayer: () => Player;
+  getPlayerIndex: () => number;
+  getGoodsListManager: () => GoodsListManager;
+  getMagicListManager: () => MagicListManager;
+  getBuyManager: () => BuyManager;
   getMemoListManager: () => MemoListManager;
   getTimerManager: () => TimerManager;
   getPanels: () => UIPanelVisibility;
@@ -378,12 +378,11 @@ export class UIBridge implements IUIBridge {
 
   // ============= 状态构建 =============
 
-  private buildPlayerState(): UIPlayerState | null {
+  private buildPlayerState(): UIPlayerState {
     const player = this.deps.state.getPlayer();
-    if (!player) return null;
 
     // 获取当前角色索引用于面板图像切换
-    const playerIndex = this.deps.state.getPlayerIndex?.() ?? 0;
+    const playerIndex = this.deps.state.getPlayerIndex();
 
     return {
       playerIndex,
@@ -408,23 +407,6 @@ export class UIBridge implements IUIBridge {
   private buildGoodsState(): UIGoodsState {
     const goodsManager = this.deps.state.getGoodsListManager();
     const player = this.deps.state.getPlayer();
-
-    if (!goodsManager) {
-      return {
-        items: [],
-        equips: {
-          head: null,
-          neck: null,
-          body: null,
-          back: null,
-          hand: null,
-          wrist: null,
-          foot: null,
-        },
-        bottomGoods: [],
-        money: player?.money ?? 0,
-      };
-    }
 
     // 背包物品 (1-198)
     const items: UIGoodsSlot[] = [];
@@ -504,20 +486,12 @@ export class UIBridge implements IUIBridge {
       items,
       equips,
       bottomGoods,
-      money: player?.money ?? 0,
+      money: player.money,
     };
   }
 
   private buildMagicState(): UIMagicState {
     const magicManager = this.deps.state.getMagicListManager();
-
-    if (!magicManager) {
-      return {
-        storeMagics: [],
-        bottomMagics: [],
-        xiuLianMagic: null,
-      };
-    }
 
     // 武功仓库 (1-45)
     const storeMagics: (UIMagicSlot | null)[] = [];

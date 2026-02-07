@@ -11,14 +11,13 @@
  * - 本文件包含状态机、存档/加载、等级、遮挡等 (~800行)
  */
 
-import { Character } from "../character";
-import type { CharacterBase } from "../character/base";
+import type { Character } from "../character";
 import { resolveScriptPath } from "../config/resourcePaths";
 import { applyConfigToPlayer, parseCharacterIni } from "../character/iniParser";
 import { logger } from "../core/logger";
 import type { Vector2 } from "../core/types";
 import { CharacterState, RUN_SPEED_FOLD } from "../core/types";
-import type { PlayerSaveData } from "../game/storage";
+import type { PlayerSaveData } from "../runtime/storage";
 import { getEffectAmount } from "../magic/effects/common";
 import type { MagicSprite } from "../magic/magicSprite";
 import type { MagicData } from "../magic/types";
@@ -28,18 +27,16 @@ import type { IRenderer } from "../webgl/iRenderer";
 import { getTileTextureRegion } from "../map/renderer";
 import { resourceLoader } from "../resource/resourceLoader";
 import { isBoxCollide, pixelToTile } from "../utils";
-import type { Good } from "./goods";
 import {
   LIFE_RESTORE_PERCENT,
   MANA_RESTORE_PERCENT,
-  type PlayerAction,
   PlayerCombat,
   RESTORE_INTERVAL_MS,
   SITTING_MANA_RESTORE_INTERVAL,
   THEW_RESTORE_PERCENT,
 } from "./base";
 
-export { type PlayerAction } from "./base";
+export type { PlayerAction } from "./base";
 
 /**
  * Player - 完整的玩家类
@@ -867,11 +864,8 @@ export class Player extends PlayerCombat {
    * 中检测 layer2, layer3 和 NPC 碰撞
    */
   private checkOcclusionTransparency(): boolean {
-    const engine = this.engine;
-    if (!engine) return false;
-
-    const mapRenderer = engine.getManager("mapRenderer");
-    if (!mapRenderer || !mapRenderer.mapData || mapRenderer.isLoading) return false;
+    const mapRenderer = this.engine.getManager("mapRenderer");
+    if (!mapRenderer.mapData || mapRenderer.isLoading) return false;
 
     const playerRegion = this.regionInWorld;
     const playerMapY = this.tilePosition.y;
@@ -900,18 +894,15 @@ export class Player extends PlayerCombat {
 
     // 检测与视野内 NPC 的碰撞
     // 性能优化：使用 Update 阶段预计算的 npcsInView，已经过滤了视野外的 NPC
-    const npcManager = engine.npcManager;
-    if (npcManager) {
-      const npcsInView = npcManager.npcsInView;
+    const npcsInView = this.engine.npcManager.npcsInView;
 
-      for (const npc of npcsInView) {
-        if (!npc.isVisible || npc.isHide) continue;
-        // 只检测在玩家前面的 NPC（mapY > playerMapY）
-        if (npc.tilePosition.y > playerMapY) {
-          const npcRegion = npc.regionInWorld;
-          if (isBoxCollide(playerRegion, npcRegion)) {
-            return true;
-          }
+    for (const npc of npcsInView) {
+      if (!npc.isVisible || npc.isHide) continue;
+      // 只检测在玩家前面的 NPC（mapY > playerMapY）
+      if (npc.tilePosition.y > playerMapY) {
+        const npcRegion = npc.regionInWorld;
+        if (isBoxCollide(playerRegion, npcRegion)) {
+          return true;
         }
       }
     }

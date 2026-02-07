@@ -22,7 +22,7 @@ import type { InteractionManager } from "./interactionManager";
  * 只保留无法通过 IEngineContext 获取的回调
  */
 export interface MagicHandlerDependencies {
-  getLastInput: () => InputState | null;
+  getLastInput: () => InputState;
 }
 
 /**
@@ -30,7 +30,7 @@ export interface MagicHandlerDependencies {
  * 大部分依赖通过 IEngineContext 获取
  */
 export class MagicHandler {
-  private getLastInput: () => InputState | null;
+  private getLastInput: () => InputState;
 
   // 统一通过 IEngineContext 获取所有引擎服务
   private get engine() {
@@ -138,7 +138,10 @@ export class MagicHandler {
     // if (CurrentMagicInUse.TheMagic.BodyRadius > 0 &&
     //     (Globals.OutEdgeNpc == null || !Globals.OutEdgeNpc.IsEnemy))
     // { GuiManager.ShowMessage("无有效目标"); }
-    if (magicInfo.magic.bodyRadius > 0 && (hoverTarget.npc === null || !hoverTarget.npc.isEnemy)) {
+    if (
+      magicInfo.magic.bodyRadius > 0 &&
+      (hoverTarget.type !== "npc" || !hoverTarget.npc.isEnemy)
+    ) {
       guiManager.showMessage("无有效目标");
       return;
     }
@@ -147,7 +150,7 @@ export class MagicHandler {
     // Check MoveKind == 21 requirement - need any target
     // else if (CurrentMagicInUse.TheMagic.MoveKind == 21 && Globals.OutEdgeNpc == null)
     // { GuiManager.ShowMessage("无目标"); }
-    if (magicInfo.magic.moveKind === 21 && hoverTarget.npc === null) {
+    if (magicInfo.magic.moveKind === 21 && hoverTarget.type !== "npc") {
       guiManager.showMessage("无目标");
       return;
     }
@@ -156,7 +159,7 @@ export class MagicHandler {
     let targetId: string | undefined;
 
     // Check for hovered NPC first
-    if (hoverTarget.npc) {
+    if (hoverTarget.type === "npc") {
       // Use NPC's tile position as destination
       // Reference: UseMagic(CurrentMagicInUse.TheMagic, Globals.OutEdgeNpc.TilePosition, Globals.OutEdgeNpc)
       const npcTilePos = hoverTarget.npc.tilePosition;
@@ -171,7 +174,7 @@ export class MagicHandler {
       // Reference: UseMagic(CurrentMagicInUse.TheMagic, mouseTilePosition)
       const lastInput = this.getLastInput();
 
-      if (lastInput && (lastInput.mouseWorldX !== 0 || lastInput.mouseWorldY !== 0)) {
+      if (lastInput.mouseWorldX !== 0 || lastInput.mouseWorldY !== 0) {
         // Reference:
         // var mouseWorldPosition = Globals.TheCarmera.ToWorldPosition(mouseScreenPosition);
         // var mouseTilePosition = MapBase.ToTilePosition(mouseWorldPosition);
