@@ -1,6 +1,6 @@
 /**
  * UI Settings Loader - loads and parses UI_Settings.ini
- * 
+ *
  *
  * INI files in resources/ are now UTF-8 encoded.
  */
@@ -9,6 +9,7 @@ import { DefaultPaths } from "../config/resourcePaths";
 import { logger } from "../core/logger";
 import { resourceLoader } from "../resource/resourceLoader";
 import { parseIni } from "../utils";
+import { colorToCSS, parseIniColor } from "./uiConfig";
 
 // Cache for loaded settings
 let cachedSettings: Record<string, Record<string, string>> | null = null;
@@ -65,15 +66,9 @@ export function getSection(
  */
 export function parseColor(colorStr: string, defaultColor = "rgba(0,0,0,1)"): string {
   if (!colorStr) return defaultColor;
-  const parts = colorStr.split(",").map((s) => parseInt(s.trim(), 10));
-  if (parts.length >= 3) {
-    const r = parts[0];
-    const g = parts[1];
-    const b = parts[2];
-    const a = parts.length >= 4 ? parts[3] / 255 : 1;
-    return `rgba(${r},${g},${b},${a})`;
-  }
-  return defaultColor;
+  const parts = colorStr.split(",");
+  if (parts.length < 3) return defaultColor;
+  return colorToCSS(parseIniColor(colorStr));
 }
 
 /**
@@ -645,7 +640,7 @@ export function parseDialogGuiConfig(
 }
 
 // ============= SaveLoad GUI Config Parser =============
-// 
+//
 
 export function parseSaveLoadGuiConfig(
   settings: Record<string, Record<string, string>>

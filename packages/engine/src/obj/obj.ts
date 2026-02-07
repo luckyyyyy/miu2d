@@ -4,7 +4,7 @@
  * Extends Sprite with object-specific functionality
  */
 
-import { ResourcePath } from "../config/resourcePaths";
+import { ResourcePath, resolveScriptPath } from "../config/resourcePaths";
 import { logger } from "../core/logger";
 import type { Vector2 } from "../core/types";
 import { type AsfData, getFrameCanvas, getFrameIndex, loadAsf } from "../resource/asf";
@@ -576,7 +576,7 @@ export class Obj extends Sprite {
     const engine = this.engine;
     if (engine) {
       const scriptBasePath = engine.getScriptBasePath();
-      const fullPath = scriptFile.startsWith("/") ? scriptFile : `${scriptBasePath}/${scriptFile}`;
+      const fullPath = resolveScriptPath(scriptBasePath, scriptFile);
       engine.runScript(fullPath, { type: "obj", id: this._id });
     }
 

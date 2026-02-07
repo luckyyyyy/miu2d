@@ -10,6 +10,7 @@ import { getEngineContext } from "../../core/engineContext";
 import { logger } from "../../core/logger";
 import type { Vector2 } from "../../core/types";
 import type { NpcManager } from "../../npc";
+import { findNeighborInDirection } from "../../core/pathFinder";
 import type { Player } from "../../player/player";
 import { pixelToTile, tileToPixel } from "../../utils";
 import {
@@ -19,7 +20,6 @@ import {
   getDirectionOffset8,
 } from "../../utils/direction";
 import { getSpeedRatio, normalizeVector } from "../../utils/math";
-import { getNeighbors } from "../../utils/neighbors";
 import type { CharacterRef } from "../effects";
 import { magicRenderer } from "../magicRenderer";
 import { MagicSprite } from "../magicSprite";
@@ -1114,7 +1114,7 @@ export class SpriteFactory {
     const magicDelayMs = 60;
 
     const originTile = pixelToTile(origin.x, origin.y);
-    const startTile = this.findNeighborInDirection(originTile, directionIndex);
+    const startTile = findNeighborInDirection(originTile, directionIndex);
     const startPos = tileToPixel(startTile.x, startTile.y);
 
     const sprite = MagicSprite.createFixed(userId, magic, startPos, destroyOnEnd);
@@ -1124,8 +1124,8 @@ export class SpriteFactory {
     let rightTile = { ...startTile };
 
     for (let i = 1; i < count; i++) {
-      leftTile = this.findNeighborInDirection(leftTile, (directionIndex + 7) % 8);
-      rightTile = this.findNeighborInDirection(rightTile, (directionIndex + 1) % 8);
+      leftTile = findNeighborInDirection(leftTile, (directionIndex + 7) % 8);
+      rightTile = findNeighborInDirection(rightTile, (directionIndex + 1) % 8);
 
       const leftPos = tileToPixel(leftTile.x, leftTile.y);
       const rightPos = tileToPixel(rightTile.x, rightTile.y);
@@ -1197,14 +1197,6 @@ export class SpriteFactory {
       this.callbacks.addWorkItem(delay, MagicSprite.createFixed(userId, magic, pos1, destroyOnEnd));
       this.callbacks.addWorkItem(delay, MagicSprite.createFixed(userId, magic, pos2, destroyOnEnd));
     }
-  }
-
-  /**
-   * 查找指定方向的相邻瓦片
-   * 使用 getNeighbors 来正确处理等角瓦片的奇偶行偏移
-   */
-  private findNeighborInDirection(tile: Vector2, direction: number): Vector2 {
-    return getNeighbors(tile)[direction % 8];
   }
 
   // ========== 特殊 MoveKind 方法 ==========

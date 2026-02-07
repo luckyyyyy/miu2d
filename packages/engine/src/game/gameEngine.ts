@@ -36,7 +36,7 @@
 // 子系统
 import { AudioManager } from "../audio";
 import type { Character } from "../character/character";
-import { ResourcePath } from "../config/resourcePaths";
+import { ResourcePath, resolveScriptPath } from "../config/resourcePaths";
 import { type IEngineContext, setEngineContext } from "../core/engineContext";
 import { EventEmitter } from "../core/eventEmitter";
 import { GameEvents, type GameLoadProgressEvent } from "../core/gameEvents";
@@ -389,7 +389,7 @@ export class GameEngine implements IEngineContext {
       this.timerManager.setScriptRunner((scriptFileName) => {
         // 根据当前地图构建完整脚本路径
         const basePath = this.getScriptBasePath();
-        const fullPath = `${basePath}/${scriptFileName}`;
+        const fullPath = resolveScriptPath(basePath, scriptFileName);
         logger.log(`[GameEngine] Timer script triggered: ${scriptFileName} -> ${fullPath}`);
         this.gameManager.runScript(fullPath).catch((err: unknown) => {
           logger.error(`[GameEngine] Timer script failed: ${fullPath}`, err);

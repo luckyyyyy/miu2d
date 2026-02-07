@@ -12,6 +12,7 @@
  * - Distance checking: walk to target if too far
  */
 
+import { resolveScriptPath } from "../config/resourcePaths";
 import type { Character } from "../character/character";
 import { getEngineContext } from "../core/engineContext";
 import { logger } from "../core/logger";
@@ -21,6 +22,7 @@ import type { Obj } from "../obj/obj";
 import type { Player } from "../player/player";
 import type { ScriptExecutor } from "../script/executor";
 import { getDirectionFromVector, getViewTileDistance, pixelToTile } from "../utils";
+import { findDistanceTileInDirection } from "../core/pathFinder";
 
 /**
  * Pending interaction target
@@ -695,7 +697,7 @@ export class InputHandler {
     player.stopMovement();
 
     const basePath = this.engine.getScriptBasePath();
-    await scriptExecutor.runScript(`${basePath}/${scriptFile}`, { type: "npc", id: npc.name });
+    await scriptExecutor.runScript(resolveScriptPath(basePath, scriptFile), { type: "npc", id: npc.name });
   }
 
   /**
@@ -830,7 +832,7 @@ export class InputHandler {
     const dy = playerTile.y - targetTile.y;
 
     // 计算目标位置（从目标指向玩家方向，距离 interactDistance）
-    const destTile = this.findDistanceTileInDirection(
+    const destTile = findDistanceTileInDirection(
       targetTile,
       { x: dx, y: dy },
       interactDistance
@@ -854,7 +856,7 @@ export class InputHandler {
     ];
 
     for (const dir of direction8List) {
-      const tryTile = this.findDistanceTileInDirection(targetTile, dir, interactDistance);
+      const tryTile = findDistanceTileInDirection(targetTile, dir, interactDistance);
       if (isTileWalkable(tryTile) && !this.hasObstacle(tryTile)) {
         return tryTile;
       }
@@ -864,102 +866,11 @@ export class InputHandler {
   }
 
   /**
-   * Find a tile at specified distance in a direction from origin
-   *
-   * Key insight: In isometric maps, we can't just add direction * distance
-   * because tiles don't follow simple Cartesian coordinates.
-   * We must iterate through neighbors step by step.
-   */
-  private findDistanceTileInDirection(
-    origin: Vector2,
-    direction: Vector2,
-    distance: number
-  ): Vector2 {
-    // if (direction == Vector2.Zero || tileDistance < 1) return tilePosition;
-    if ((direction.x === 0 && direction.y === 0) || distance < 1) {
-      return origin;
-    }
-
-    // for (var i = 0; i < tileDistance; i++) { neighbor = FindNeighborInDirection(neighbor, direction); }
-    let current = origin;
-    for (let i = 0; i < distance; i++) {
-      current = this.findNeighborInDirection(current, direction);
-    }
-
-    return current;
-  }
-
-  /**
-   * Find neighbor tile in a specific direction
-   * Reference: PathFinder.FindNeighborInDirection(tilePosition, direction)
-   */
-  private findNeighborInDirection(tilePosition: Vector2, direction: Vector2): Vector2 {
-    if (direction.x === 0 && direction.y === 0) {
-      return tilePosition;
-    }
-
-    // return FindAllNeighbors(tilePosition)[Utils.GetDirectionIndex(direction, 8)];
-    const directionIndex = getDirectionFromVector(direction);
-    const neighbors = this.getNeighbors(tilePosition);
-    return neighbors[directionIndex];
-  }
-
-  /**
-   * Get all 8 neighbors of a tile in isometric coordinates
-   * Direction layout:
-   * 3  4  5
-   * 2     6
-   * 1  0  7
-   */
-  private getNeighbors(tile: Vector2): Vector2[] {
-    const x = tile.x;
-    const y = tile.y;
-
-    if (Math.floor(y) % 2 === 0) {
-      // Even row
-      return [
-        { x: x, y: y + 2 }, // 0: South
-        { x: x - 1, y: y + 1 }, // 1: SouthWest
-        { x: x - 1, y: y }, // 2: West
-        { x: x - 1, y: y - 1 }, // 3: NorthWest
-        { x: x, y: y - 2 }, // 4: North
-        { x: x, y: y - 1 }, // 5: NorthEast
-        { x: x + 1, y: y }, // 6: East
-        { x: x, y: y + 1 }, // 7: SouthEast
-      ];
-    } else {
-      // Odd row
-      return [
-        { x: x, y: y + 2 }, // 0: South
-        { x: x, y: y + 1 }, // 1: SouthWest
-        { x: x - 1, y: y }, // 2: West
-        { x: x, y: y - 1 }, // 3: NorthWest
-        { x: x, y: y - 2 }, // 4: North
-        { x: x + 1, y: y - 1 }, // 5: NorthEast
-        { x: x + 1, y: y }, // 6: East
-        { x: x + 1, y: y + 1 }, // 7: SouthEast
-      ];
-    }
-  }
-
-  /**
-   * Check if tile has NPC or Obj obstacle
+   * Check if tile has obstacle for player movement
+   * 委托给 Player.hasObstacle，保持逻辑统一（NPC + Obj + Magic 障碍）
    */
   private hasObstacle(tile: Vector2): boolean {
-    const npcManager = this.engine.npcManager as NpcManager;
-    const objManager = this.engine.getManager("obj");
-
-    // Check NPC collision
-    if (npcManager.isObstacle(tile.x, tile.y)) {
-      return true;
-    }
-
-    // Check Obj collision
-    if (objManager.isObstacle(tile.x, tile.y)) {
-      return true;
-    }
-
-    return false;
+    return this.player.hasObstacle(tile);
   }
 
   /**

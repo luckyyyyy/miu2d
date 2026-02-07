@@ -14,6 +14,7 @@
  * 注意：渲染由 renderer.ts 处理，MapBase 专注于逻辑
  */
 
+import { resolveScriptPath } from "../config/resourcePaths";
 import { getEngineContext } from "../core/engineContext";
 import { logger } from "../core/logger";
 import type { JxqyMapData, MapTileInfo } from "../core/mapTypes";
@@ -699,7 +700,7 @@ export class MapBase {
 
     // 运行脚本
     const basePath = getScriptBasePath();
-    const scriptPath = `${basePath}/${trapScriptName}`;
+    const scriptPath = resolveScriptPath(basePath, trapScriptName);
     logger.log(`[MapBase] Running trap script: ${scriptPath}`);
     runScript(scriptPath);
 
@@ -835,7 +836,7 @@ export class MapBase {
 
       // 运行脚本
       const basePath = getScriptBasePath();
-      const scriptPath = `${basePath}/${trapScriptName}`;
+      const scriptPath = resolveScriptPath(basePath, trapScriptName);
       logger.log(`[MapBase] Running trap script: ${scriptPath}`);
       runScript(scriptPath);
 

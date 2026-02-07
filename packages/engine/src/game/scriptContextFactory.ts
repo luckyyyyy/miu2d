@@ -7,8 +7,9 @@
 
 import type { AudioManager } from "../audio";
 import type { Character } from "../character/character";
-import { ResourcePath } from "../config/resourcePaths";
+import { ResourcePath, resolveScriptPath } from "../config/resourcePaths";
 import { logger } from "../core/logger";
+import { parseIni } from "../utils/iniParser";
 import type { Vector2 } from "../core/types";
 import { CharacterState } from "../core/types";
 import type { ScreenEffects } from "../effects";
@@ -798,30 +799,13 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
         }
 
         // Parse INI file
-        const lines = content.split(/\r?\n/);
+        const sections = parseIni(content);
         const items: string[] = [];
-        let currentSection = "";
 
-        for (const line of lines) {
-          const trimmed = line.trim();
-          if (!trimmed || trimmed.startsWith(";")) continue;
-
-          const sectionMatch = trimmed.match(/^\[([^\]]+)\]$/);
-          if (sectionMatch) {
-            currentSection = sectionMatch[1];
-            continue;
-          }
-
-          // Parse IniFile entries from numbered sections
-          if (currentSection && currentSection !== "Header") {
-            const eqIdx = trimmed.indexOf("=");
-            if (eqIdx > 0) {
-              const key = trimmed.substring(0, eqIdx).trim();
-              const value = trimmed.substring(eqIdx + 1).trim();
-              if (key === "IniFile") {
-                items.push(value);
-              }
-            }
+        for (const [sectionName, section] of Object.entries(sections)) {
+          if (sectionName === "Header") continue;
+          if (section.IniFile) {
+            items.push(section.IniFile);
           }
         }
 
@@ -1033,7 +1017,7 @@ export function createScriptContext(deps: ScriptContextDependencies): ScriptCont
     // Script management
     runScript: async (scriptFile) => {
       const basePath = getScriptBasePath();
-      await runScript(`${basePath}/${scriptFile}`);
+      await runScript(resolveScriptPath(basePath, scriptFile));
     },
     getCurrentMapPath: () => "", // Will be overridden by caller
     returnToTitle: () => {

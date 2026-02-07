@@ -430,6 +430,10 @@ export abstract class CharacterBase extends Sprite implements CharacterInstance 
     return this.kind === CharacterKind.Player;
   }
 
+  get isNormal(): boolean {
+    return this.kind === CharacterKind.Normal;
+  }
+
   get isFriend(): boolean {
     return this.relation === RelationType.Friend;
   }
@@ -797,17 +801,8 @@ export abstract class CharacterBase extends Sprite implements CharacterInstance 
 
   /** 是否应该在小地图上显示 */
   shouldShowOnMinimap(): boolean {
-    if (this.isEnemy || this.isPartner || this.isPlayer) {
-      return true;
-    }
-    if (
-      this.kind === CharacterKind.Normal ||
-      this.kind === CharacterKind.Fighter ||
-      this.kind === CharacterKind.Eventer
-    ) {
-      return true;
-    }
-    return false;
+    if (this.isEnemy) return true;
+    return this.isPlayer || this.isPartner || this.isNormal || this.isFighterKind || this.isEventer;
   }
 
   /** 状态检查方法 */

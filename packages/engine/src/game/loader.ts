@@ -971,60 +971,21 @@ export class Loader {
     const content = await resourceLoader.loadText(path);
     if (!content) return [];
 
+    const sections = this.deps.parseIni(content);
     const items: MagicItemData[] = [];
-    let currentIndex = 0;
-    let currentItem: Partial<MagicItemData> | null = null;
 
-    for (const line of content.split("\n")) {
-      const trimmed = line.trim();
-      if (!trimmed || trimmed.startsWith(";")) continue;
+    for (const [sectionName, section] of Object.entries(sections)) {
+      const index = parseInt(sectionName, 10);
+      if (Number.isNaN(index)) continue;
 
-      // 检查节名 [1], [2], ...
-      const sectionMatch = trimmed.match(/^\[(\d+)\]$/);
-      if (sectionMatch) {
-        // 保存上一个项
-        if (currentItem?.fileName) {
-          items.push({
-            fileName: currentItem.fileName,
-            level: currentItem.level ?? 1,
-            exp: currentItem.exp ?? 0,
-            index: currentIndex,
-          });
-        }
-        currentIndex = parseInt(sectionMatch[1], 10);
-        currentItem = {};
-        continue;
-      }
+      const fileName = section.IniFile;
+      if (!fileName) continue;
 
-      if (!currentItem) continue;
-
-      // 解析键值对
-      const eqIdx = trimmed.indexOf("=");
-      if (eqIdx === -1) continue;
-
-      const key = trimmed.substring(0, eqIdx).trim().toLowerCase();
-      const value = trimmed.substring(eqIdx + 1).trim();
-
-      switch (key) {
-        case "inifile":
-          currentItem.fileName = value;
-          break;
-        case "level":
-          currentItem.level = parseInt(value, 10) || 1;
-          break;
-        case "exp":
-          currentItem.exp = parseInt(value, 10) || 0;
-          break;
-      }
-    }
-
-    // 保存最后一个项
-    if (currentItem?.fileName) {
       items.push({
-        fileName: currentItem.fileName,
-        level: currentItem.level ?? 1,
-        exp: currentItem.exp ?? 0,
-        index: currentIndex,
+        fileName,
+        level: parseInt(section.Level || "1", 10) || 1,
+        exp: parseInt(section.Exp || "0", 10) || 0,
+        index,
       });
     }
 
@@ -1039,51 +1000,16 @@ export class Loader {
     const content = await resourceLoader.loadText(path);
     if (!content) return [];
 
+    const sections = this.deps.parseIni(content);
     const items: GoodsItemData[] = [];
-    let currentItem: Partial<GoodsItemData> | null = null;
 
-    for (const line of content.split("\n")) {
-      const trimmed = line.trim();
-      if (!trimmed || trimmed.startsWith(";")) continue;
+    for (const section of Object.values(sections)) {
+      const fileName = section.IniFile;
+      if (!fileName) continue;
 
-      // 检查节名 [1], [2], ...
-      const sectionMatch = trimmed.match(/^\[(\d+)\]$/);
-      if (sectionMatch) {
-        // 保存上一个项
-        if (currentItem?.fileName) {
-          items.push({
-            fileName: currentItem.fileName,
-            count: currentItem.count ?? 1,
-          });
-        }
-        currentItem = {};
-        continue;
-      }
-
-      if (!currentItem) continue;
-
-      // 解析键值对
-      const eqIdx = trimmed.indexOf("=");
-      if (eqIdx === -1) continue;
-
-      const key = trimmed.substring(0, eqIdx).trim().toLowerCase();
-      const value = trimmed.substring(eqIdx + 1).trim();
-
-      switch (key) {
-        case "inifile":
-          currentItem.fileName = value;
-          break;
-        case "number":
-          currentItem.count = parseInt(value, 10) || 1;
-          break;
-      }
-    }
-
-    // 保存最后一个项
-    if (currentItem?.fileName) {
       items.push({
-        fileName: currentItem.fileName,
-        count: currentItem.count ?? 1,
+        fileName,
+        count: parseInt(section.Number || "1", 10) || 1,
       });
     }
 

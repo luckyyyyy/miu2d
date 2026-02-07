@@ -6,6 +6,7 @@
 import { getEngineContext } from "../../core/engineContext";
 import { logger } from "../../core/logger";
 import { resourceLoader } from "../../resource/resourceLoader";
+import { parseIni } from "../../utils/iniParser";
 import { EquipPosition, Good, GoodKind, getGood } from "./good";
 
 // ============= Constants =============
@@ -157,56 +158,19 @@ export class GoodsListManager {
       }
 
       // Parse INI content
-      const lines = content.split(/\r?\n/);
-      let currentSection = "";
-      let currentIndex = -1;
-      let iniFile = "";
-      let number = 1;
+      const sections = parseIni(content);
 
-      for (const line of lines) {
-        const trimmed = line.trim();
+      for (const [sectionName, section] of Object.entries(sections)) {
+        const index = parseInt(sectionName, 10);
+        if (Number.isNaN(index) || index <= 0) continue;
 
-        // Section header
-        if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
-          // Process previous section
-          if (currentIndex > 0 && iniFile) {
-            const good = getGood(iniFile);
-            if (good) {
-              this.goodsList[currentIndex] = {
-                good,
-                count: number,
-                remainColdMilliseconds: 0,
-              };
-            }
-          }
+        const iniFile = section.IniFile || section.inifile;
+        if (!iniFile) continue;
 
-          currentSection = trimmed.slice(1, -1);
-          currentIndex = parseInt(currentSection, 10);
-          if (Number.isNaN(currentIndex)) currentIndex = -1;
-          iniFile = "";
-          number = 1;
-          continue;
-        }
-
-        // Key=Value
-        const eqIndex = trimmed.indexOf("=");
-        if (eqIndex === -1) continue;
-
-        const key = trimmed.substring(0, eqIndex).trim().toLowerCase();
-        const value = trimmed.substring(eqIndex + 1).trim();
-
-        if (key === "inifile") {
-          iniFile = value;
-        } else if (key === "number") {
-          number = parseInt(value, 10) || 1;
-        }
-      }
-
-      // Process last section
-      if (currentIndex > 0 && iniFile) {
+        const number = parseInt(section.Number || section.number || "1", 10) || 1;
         const good = getGood(iniFile);
         if (good) {
-          this.goodsList[currentIndex] = {
+          this.goodsList[index] = {
             good,
             count: number,
             remainColdMilliseconds: 0,

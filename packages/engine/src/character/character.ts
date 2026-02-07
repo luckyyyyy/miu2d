@@ -12,7 +12,7 @@
  */
 
 import { logger } from "../core/logger";
-import { canMoveInDirection, PathType } from "../core/pathFinder";
+import { canMoveInDirection, findNeighborInDirection as findNeighborByIndex, PathType } from "../core/pathFinder";
 import type { IRenderer } from "../webgl/iRenderer";
 import type { CharacterConfig, Vector2 } from "../core/types";
 import { CharacterState, RUN_SPEED_FOLD, TILE_WIDTH } from "../core/types";
@@ -28,7 +28,6 @@ import {
   type SpriteSet,
 } from "../sprite/sprite";
 import { distance, getDirectionFromVector, pixelToTile, tileToPixel } from "../utils";
-import { getNeighbors } from "../utils/neighbors";
 import { CharacterCombat, MAX_NON_FIGHT_SECONDS } from "./base";
 import { applyConfigToCharacter } from "./iniParser";
 import { FlyIniManager } from "./modules";
@@ -275,12 +274,8 @@ export abstract class Character extends CharacterCombat {
   }
 
   protected findNeighborInDirection(tilePos: Vector2, direction: Vector2): Vector2 {
-    const len = Math.sqrt(direction.x * direction.x + direction.y * direction.y);
-    if (len === 0) return tilePos;
-
     const dirIndex = getDirectionFromVector(direction);
-    // 使用 getNeighbors 来正确处理等角瓦片的奇偶行偏移
-    return getNeighbors(tilePos)[dirIndex];
+    return findNeighborByIndex(tilePos, dirIndex);
   }
 
   protected correctPositionToCurrentTile(): void {

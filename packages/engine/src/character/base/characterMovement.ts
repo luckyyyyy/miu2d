@@ -7,6 +7,7 @@
 
 import { logger } from "../../core/logger";
 import {
+  findDistanceTileInDirection as findDistanceTileInDirectionUtil,
   findPathInDirection,
   PathType,
   findPath as pathFinderFindPath,
@@ -687,16 +688,7 @@ export abstract class CharacterMovement extends CharacterBase {
     direction: Vector2,
     distance: number
   ): Vector2 {
-    const len = Math.sqrt(direction.x * direction.x + direction.y * direction.y);
-    if (len === 0) return fromTile;
-
-    const normX = direction.x / len;
-    const normY = direction.y / len;
-
-    return {
-      x: Math.round(fromTile.x + normX * distance),
-      y: Math.round(fromTile.y + normY * distance),
-    };
+    return findDistanceTileInDirectionUtil(fromTile, direction, distance);
   }
 
   // =============================================

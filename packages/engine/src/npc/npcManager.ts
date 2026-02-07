@@ -6,7 +6,7 @@
 import type { Character } from "../character";
 import type { CharacterBase } from "../character/base";
 import { loadNpcConfig } from "../character/resFile";
-import { ResourcePath } from "../config/resourcePaths";
+import { ResourcePath, resolveScriptPath } from "../config/resourcePaths";
 import { getEngineContext } from "../core/engineContext";
 import { logger } from "../core/logger";
 import type { CharacterConfig, Vector2 } from "../core/types";
@@ -100,7 +100,7 @@ export class NpcManager {
     if (!engine) return;
 
     const basePath = engine.getScriptBasePath();
-    const fullPath = scriptPath.startsWith("/") ? scriptPath : `${basePath}/${scriptPath}`;
+    const fullPath = resolveScriptPath(basePath, scriptPath);
 
     // 使用 ScriptExecutor 的队列系统
     logger.log(`[NpcManager] Queueing death script for ${npc.name}: ${fullPath}`);
@@ -322,7 +322,7 @@ export class NpcManager {
    */
   getPlayerKindCharacter(): Npc | null {
     for (const [, npc] of this.npcs) {
-      if (npc.kind === CharacterKind.Player) {
+      if (npc.isPlayer) {
         return npc;
       }
     }
@@ -546,7 +546,7 @@ export class NpcManager {
     for (const [, npc] of this.npcs) {
       if (!npc.isVisible) continue;
       // Only eventer NPCs are interactable
-      if (npc.kind !== CharacterKind.Eventer) continue;
+      if (!npc.isEventer) continue;
 
       const npcPos = { x: npc.positionInWorld.x, y: npc.positionInWorld.y };
       const dist = distance(position, npcPos);
@@ -619,7 +619,7 @@ export class NpcManager {
    * Used for jump obstacle check - if there's an eventer at the tile, can't jump there
    */
   getEventer(tile: Vector2): Npc | null {
-    return this.findNpcAt(tile, (npc) => npc.kind === CharacterKind.Eventer);
+    return this.findNpcAt(tile, (npc) => npc.isEventer);
   }
 
   /**
@@ -2154,7 +2154,7 @@ export class NpcManager {
     }
 
     // Also check player
-    if (this._player && this._player.kind === CharacterKind.Player) {
+    if (this._player) {
       if (ignoreList?.some((item) => item === this._player)) {
         // Player is in ignore list
       } else if (!this._player.isDeathInvoked) {
@@ -2166,6 +2166,37 @@ export class NpcManager {
     }
 
     return closest;
+  }
+
+  /**
+   * Find friends (non-opposite characters) within tile distance
+   */
+  findFriendsInTileDistance(
+    finder: Character,
+    beginTilePosition: Position,
+    tileDistance: number
+  ): Character[] {
+    const friends: Character[] = [];
+    if (!finder || tileDistance < 1) return friends;
+
+    for (const [, npc] of this.npcs) {
+      if (!finder.isOpposite(npc)) {
+        const viewDist = getViewTileDistance(beginTilePosition, npc.tilePosition);
+        if (viewDist <= tileDistance) {
+          friends.push(npc);
+        }
+      }
+    }
+
+    // Check player
+    if (this._player && !finder.isOpposite(this._player)) {
+      const viewDist = getViewTileDistance(beginTilePosition, this._player.tilePosition);
+      if (viewDist <= tileDistance) {
+        friends.push(this._player);
+      }
+    }
+
+    return friends;
   }
 
   /**
@@ -2217,7 +2248,7 @@ export class NpcManager {
     }
 
     // Check player
-    if (this._player && this._player.kind === CharacterKind.Player) {
+    if (this._player) {
       const viewDist = getViewTileDistance(beginTilePosition, this._player.tilePosition);
       if (viewDist <= tileDistance) {
         fighters.push(this._player);

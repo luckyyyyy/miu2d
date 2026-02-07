@@ -13,6 +13,7 @@
 
 import { Character } from "../character";
 import type { CharacterBase } from "../character/base";
+import { resolveScriptPath } from "../config/resourcePaths";
 import { applyConfigToPlayer, parseCharacterIni } from "../character/iniParser";
 import { logger } from "../core/logger";
 import type { Vector2 } from "../core/types";
@@ -22,6 +23,7 @@ import { getEffectAmount } from "../magic/effects/common";
 import type { MagicSprite } from "../magic/magicSprite";
 import type { MagicData } from "../magic/types";
 import { MagicMoveKind, MagicSpecialKind } from "../magic/types";
+import { Sprite } from "../sprite/sprite";
 import type { IRenderer } from "../webgl/iRenderer";
 import { getTileTextureRegion } from "../map/renderer";
 import { resourceLoader } from "../resource/resourceLoader";
@@ -220,34 +222,10 @@ export class Player extends PlayerCombat {
   }
 
   /**
-   * Update animation (calls Sprite.update directly)
+   * Update animation (calls Sprite.update directly, skipping Character.update state machine)
    */
   private updateAnimation(deltaTime: number): void {
-    // Call Sprite.update directly (not Character.update to avoid recursion)
-    if (this._texture && this.isShow) {
-      const deltaMs = deltaTime * 1000;
-      this._elapsedMilliSecond += deltaMs;
-
-      const frameInterval = this._texture.interval || 100;
-
-      // Only advance if elapsed > interval
-      if (this._elapsedMilliSecond > frameInterval) {
-        this._elapsedMilliSecond -= frameInterval;
-
-        // Advance frame based on reverse flag
-        if (this.isInPlaying && this._isPlayReverse) {
-          this.currentFrameIndex--;
-        } else {
-          this.currentFrameIndex++;
-        }
-        this.frameAdvanceCount = 1;
-
-        // Decrement frames left to play
-        if (this._leftFrameToPlay > 0) {
-          this._leftFrameToPlay--;
-        }
-      }
-    }
+    Sprite.prototype.update.call(this, deltaTime);
   }
 
   // =============================================
@@ -267,9 +245,7 @@ export class Player extends PlayerCombat {
     // Run death script if set
     if (this.deathScript) {
       const basePath = this.engine.getScriptBasePath();
-      const fullPath = this.deathScript.startsWith("/")
-        ? this.deathScript
-        : `${basePath}/${this.deathScript}`;
+      const fullPath = resolveScriptPath(basePath, this.deathScript);
       logger.log(`[Player] Running death script: ${fullPath}`);
       this.engine.runScript(fullPath);
     }

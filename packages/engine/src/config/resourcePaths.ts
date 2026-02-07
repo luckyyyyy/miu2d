@@ -448,3 +448,17 @@ export function ensureResourcePath(path: string): string {
   }
   return buildPath(path);
 }
+
+/**
+ * 解析脚本路径：如果 scriptFile 是绝对路径（以 "/" 开头）则直接使用，
+ * 否则拼接 basePath + "/" + scriptFile
+ *
+ * 统一了引擎中 7+ 处重复的脚本路径拼接逻辑，
+ * 修复了部分调用点缺少 startsWith("/") 检查的问题
+ */
+export function resolveScriptPath(basePath: string, scriptFile: string): string {
+  if (scriptFile.startsWith("/")) {
+    return scriptFile;
+  }
+  return `${basePath}/${scriptFile}`;
+}

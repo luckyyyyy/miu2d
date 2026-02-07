@@ -12,6 +12,7 @@ import { logger } from "../../core/logger";
 import type { Vector2 } from "../../core/types";
 import type { ScreenEffects } from "../../effects";
 import type { GuiManager } from "../../gui/guiManager";
+import type { NpcManager } from "../../npc";
 import type { Player } from "../../player/player";
 import { pixelToTile, tileToPixel } from "../../utils";
 import {
@@ -874,105 +875,34 @@ export class SpriteUpdater {
   }
 
   /**
-   * 查找范围内的友军
+   * 查找范围内的友军 — 委托给 NpcManager
    */
   private findFriendsInTileDistance(
     finder: Character,
     centerTile: Vector2,
     tileDistance: number
   ): Character[] {
-    const friends: Character[] = [];
-    const ctx = this.engine;
-    if (!ctx) return friends;
-
-    // 检查玩家
-    if (!finder.isOpposite(this.player)) {
-      const dist = this.getViewTileDistance(centerTile, this.player.tilePosition);
-      if (dist <= tileDistance) {
-        friends.push(this.player);
-      }
-    }
-
-    // 检查 NPC
-    for (const [, npc] of ctx.npcManager.getAllNpcs()) {
-      const npcChar = npc as Character;
-      if (!finder.isOpposite(npcChar)) {
-        const dist = this.getViewTileDistance(centerTile, npcChar.tilePosition);
-        if (dist <= tileDistance) {
-          friends.push(npcChar);
-        }
-      }
-    }
-
-    return friends;
+    const npcManager = this.engine.npcManager as NpcManager;
+    return npcManager.findFriendsInTileDistance(finder, centerTile, tileDistance);
   }
 
   /**
-   * 查找范围内的敌人
+   * 查找范围内的敌人 — 委托给 NpcManager
    */
   private findEnemiesInTileDistance(
     finder: Character,
     centerTile: Vector2,
     tileDistance: number
   ): Character[] {
-    const enemies: Character[] = [];
-    const ctx = this.engine;
-    if (!ctx) return enemies;
-
-    // 检查玩家
-    if (finder.isOpposite(this.player)) {
-      const dist = this.getViewTileDistance(centerTile, this.player.tilePosition);
-      if (dist <= tileDistance) {
-        enemies.push(this.player);
-      }
-    }
-
-    // 检查 NPC
-    for (const [, npc] of ctx.npcManager.getAllNpcs()) {
-      const npcChar = npc as Character;
-      if (finder.isOpposite(npcChar)) {
-        const dist = this.getViewTileDistance(centerTile, npcChar.tilePosition);
-        if (dist <= tileDistance) {
-          enemies.push(npcChar);
-        }
-      }
-    }
-
-    return enemies;
+    const npcManager = this.engine.npcManager as NpcManager;
+    return npcManager.findEnemiesInTileDistance(finder, centerTile, tileDistance);
   }
 
   /**
-   * 查找范围内的所有战斗单位
+   * 查找范围内的所有战斗单位 — 委托给 NpcManager
    */
   private findFightersInTileDistance(centerTile: Vector2, tileDistance: number): Character[] {
-    const fighters: Character[] = [];
-    const ctx = this.engine;
-    if (!ctx) return fighters;
-
-    // 检查玩家
-    const playerDist = this.getViewTileDistance(centerTile, this.player.tilePosition);
-    if (playerDist <= tileDistance) {
-      fighters.push(this.player);
-    }
-
-    // 检查 NPC
-    for (const [, npc] of ctx.npcManager.getAllNpcs()) {
-      const npcChar = npc as Character;
-      if (npcChar.isFighter) {
-        const dist = this.getViewTileDistance(centerTile, npcChar.tilePosition);
-        if (dist <= tileDistance) {
-          fighters.push(npcChar);
-        }
-      }
-    }
-
-    return fighters;
-  }
-
-  /**
-   * 计算视野格子距离（最大值）
-   */
-  private getViewTileDistance(tile1: Vector2, tile2: Vector2): number {
-    return Math.max(Math.abs(tile1.x - tile2.x), Math.abs(tile1.y - tile2.y));
+    const npcManager = this.engine.npcManager as NpcManager;
+    return npcManager.findFightersInTileDistance(centerTile, tileDistance);
   }
 }

@@ -143,8 +143,10 @@ export interface UiSettings {
   dialog: DialogGuiConfig;
 }
 
-// 解析颜色字符串 "r,g,b,a" 或 "r,g,b"
-function parseColor(colorStr: string): UiColorRGBA {
+/**
+ * 解析 INI 颜色字符串 "r,g,b,a" 或 "r,g,b" 为 UiColorRGBA (0-255 整数)
+ */
+export function parseIniColor(colorStr: string): UiColorRGBA {
   const parts = colorStr.split(",").map((s) => parseInt(s.trim(), 10));
   return {
     r: parts[0] || 0,
@@ -196,7 +198,7 @@ function parseText(section: Record<string, string> | undefined): UiTextConfig {
     height: parseNum(section.Height),
     charSpace: parseNum(section.CharSpace),
     lineSpace: parseNum(section.LineSpace),
-    color: parseColor(section.Color || "0,0,0,255"),
+    color: parseIniColor(section.Color || "0,0,0,255"),
     align: parseNum(section.Align, 0),
   };
 }
@@ -264,7 +266,7 @@ export async function loadUiSettings(): Promise<UiSettings> {
       textList: {
         ...parseText(ini.SaveLoad_Text_List),
         itemHeight: parseNum(ini.SaveLoad_Text_List?.ItemHeight, 25),
-        selectedColor: parseColor(ini.SaveLoad_Text_List?.SelectedColor || "102,73,212,204"),
+        selectedColor: parseIniColor(ini.SaveLoad_Text_List?.SelectedColor || "102,73,212,204"),
       },
       loadBtn: parseButton(ini.SaveLoad_Load_Btn),
       saveBtn: parseButton(ini.SaveLoad_Save_Btn),
