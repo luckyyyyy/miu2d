@@ -5,6 +5,7 @@
 
 import type { ScriptContext } from "../../script/executor";
 import type { ScriptCommandContext } from "./types";
+import { isCharacterMoveEnd } from "./helpers";
 import { CharacterState } from "../../core/types";
 import { ResourcePath } from "../../config/resourcePaths";
 import { logger } from "../../core/logger";
@@ -49,66 +50,17 @@ export function createNpcCommands(ctx: ScriptCommandContext): Partial<ScriptCont
       npcManager.npcGoto(name, x, y);
     },
     isNpcGotoEnd: (name, destination) => {
-      // Reference: IsCharacterMoveEndAndStanding(character, destinationTilePosition, isRun=false)
-      // 获取角色
       let character: Character | null = null;
       if (player && player.name === name) {
         character = player;
       } else {
         character = npcManager.getNpc(name);
       }
-
-      if (!character) return true;
-
-      const tilePos = character.tilePosition;
-      const atDestination = tilePos.x === destination.x && tilePos.y === destination.y;
-
-      // var isEnd = true;
-      let isEnd = true;
-
-      // if (character != null && character.TilePosition != destinationTilePosition)
-      if (!atDestination) {
-        // if (character.IsStanding()) { character.WalkTo(destinationTilePosition); }
-        if (character.isStanding()) {
-          character.walkTo(destination);
-        }
-
-        // Check moveable - path validity
-        // if (character.Path == null ||
-        //     (character.Path.Count == 2 &&
-        //      character.TilePosition != MapBase.ToTilePosition(character.Path.First.Next.Value) &&
-        //      character.HasObstacle(MapBase.ToTilePosition(character.Path.First.Next.Value))))
-        // { character.StandingImmediately(); }
-        // else { isEnd = false; }
-        const path = character.path;
-        if (path.length === 0) {
-          // Path is null/empty - can't move, end immediately
-          character.standingImmediately();
-        } else if (
-          path.length === 1 &&
-          (tilePos.x !== path[0].x || tilePos.y !== path[0].y) &&
-          character.hasObstacle(path[0])
-        ) {
-          // Only 1 step and it's blocked by dynamic obstacle → give up
-          character.standingImmediately();
-        } else if (isMapObstacleForCharacter(tilePos.x, tilePos.y)) {
-          // Character stuck on map obstacle tile → give up
-          logger.warn(
-            `[isNpcGotoEnd] ${name} stuck on map obstacle at (${tilePos.x}, ${tilePos.y}), giving up NpcGoto to (${destination.x}, ${destination.y})`
-          );
-          character.standingImmediately();
-        } else {
-          isEnd = false;
-        }
-      } else {
-        // else if (character.TilePosition == destinationTilePosition && !character.IsStanding())
-        // At destination tile but still moving - keep waiting
-        if (!character.isStanding()) {
-          isEnd = false;
-        }
-      }
-
-      return isEnd;
+      return isCharacterMoveEnd(
+        character, destination,
+        (c, d) => c.walkTo(d),
+        isMapObstacleForCharacter, `isNpcGotoEnd(${name})`,
+      );
     },
     npcGotoDir: (name, direction, steps) => {
       if (player && player.name === name) {
@@ -118,13 +70,9 @@ export function createNpcCommands(ctx: ScriptCommandContext): Partial<ScriptCont
       npcManager.npcGotoDir(name, direction, steps);
     },
     isNpcGotoDirEnd: (name) => {
-      if (player && player.name === name) {
-        return player.state === CharacterState.Stand || player.state === CharacterState.Stand1;
-      }
-
-      const npc = npcManager.getNpc(name);
-      if (!npc) return true;
-      return npc.state === CharacterState.Stand || npc.state === CharacterState.Stand1;
+      const character = getCharacterByName(name);
+      if (!character) return true;
+      return character.state === CharacterState.Stand || character.state === CharacterState.Stand1;
     },
     setNpcActionFile: async (name, stateType, asfFile) => {
       logger.log(
@@ -138,51 +86,27 @@ export function createNpcCommands(ctx: ScriptCommandContext): Partial<ScriptCont
       await npcManager.setNpcActionFile(name, stateType, asfFile);
     },
     npcSpecialAction: (name, asfFile) => {
-      const isPlayer = player.name === name;
-
-      if (isPlayer) {
-        // Use Player's setSpecialAction method
-        player
-          .setSpecialAction(asfFile)
-          .then((success: boolean) => {
-            if (!success) {
-              logger.warn(`[ScriptContext] Failed to start player special action, clearing state`);
-            }
-          })
-          .catch((err: unknown) => {
-            logger.error(`Failed to start player special action:`, err);
-            player.isInSpecialAction = false;
-          });
-      } else {
-        // Use getNpc to get Npc class instance
-        const npc = npcManager.getNpc(name);
-        if (npc) {
-          logger.log(`[ScriptContext] NpcSpecialAction for NPC "${name}": ${asfFile}`);
-          // Use Npc's setSpecialAction method
-          npc
-            .setSpecialAction(asfFile)
-            .then((success: boolean) => {
-              if (!success) {
-                logger.warn(`[ScriptContext] Failed to start NPC special action, clearing state`);
-              }
-            })
-            .catch((err: unknown) => {
-              logger.error(`Failed to start NPC special action:`, err);
-              npc.isInSpecialAction = false;
-            });
-        } else {
-          logger.warn(`[ScriptContext] NpcSpecialAction: NPC not found: ${name}`);
-        }
+      const character = getCharacterByName(name);
+      if (!character) {
+        logger.warn(`[ScriptContext] NpcSpecialAction: Character not found: ${name}`);
+        return;
       }
+      character
+        .setSpecialAction(asfFile)
+        .then((success: boolean) => {
+          if (!success) {
+            logger.warn(`[ScriptContext] Failed to start special action for ${name}`);
+          }
+        })
+        .catch((err: unknown) => {
+          logger.error(`Failed to start special action for ${name}:`, err);
+          character.isInSpecialAction = false;
+        });
     },
     isNpcSpecialActionEnd: (name) => {
-      if (player && player.name === name) {
-        return !player.isInSpecialAction;
-      }
-
-      const npc = npcManager.getNpc(name);
-      if (!npc) return true;
-      return !npc.isInSpecialAction;
+      const character = getCharacterByName(name);
+      if (!character) return true;
+      return !character.isInSpecialAction;
     },
     setNpcLevel: (name, level) => {
       if (player.name === name) {

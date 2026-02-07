@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Phase 2: Merge ui/ into gui/
- * 
+ *
  * Actions:
  * 1. Move ui/contract.ts → gui/contract.ts
  * 2. Move ui/uiBridge.ts → gui/uiBridge.ts
@@ -103,9 +103,9 @@ for (const file of engineFiles) {
   if (file.endsWith("ui/contract.ts") || file.endsWith("ui/uiBridge.ts") || file.endsWith("ui/index.ts")) {
     continue;
   }
-  
+
   const rel = path.relative(path.dirname(file), ENGINE_SRC);
-  
+
   replaceInFile(file, [
     // Direct imports from ui/ → gui/
     ['from "../ui/contract"', 'from "../gui/contract"'],

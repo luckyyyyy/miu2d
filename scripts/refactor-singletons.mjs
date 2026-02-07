@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Phase 3+4: Clean up singletons and reduce scattered imports
- * 
+ *
  * 1. Remove unused resourceLoader bind convenience exports
  * 2. Remove deprecated MapBase.Instance / MapBase.setInstance (unused)
  * 3. Remove unused magicRenderer module-level singleton (→ class-only export)
@@ -50,25 +50,25 @@ updateFile("map/mapBase.ts", content => {
     /  \/\*\* 单例实例 \(\) \*\/\n  private static _instance: MapBase \| null = null;\n\n/,
     ""
   );
-  
+
   // Remove the static Instance getter
   content = content.replace(
     /  \/\*\*\n   \* @deprecated 使用引擎注入的 map 实例代替。将在后续版本移除。\n   \*\/\n  static get Instance\(\): MapBase \{[\s\S]*?\n  \}\n\n/,
     ""
   );
-  
+
   // Remove setInstance
   content = content.replace(
     /  \/\*\*\n   \* @internal 设置全局单例引用（仅由 GameEngine 在初始化时调用）\n   \*\/\n  static setInstance\(instance: MapBase\): void \{\n    MapBase\._instance = instance;\n  \}\n\n/,
     ""
   );
-  
+
   // Update the doc comment that references MapBase.Instance
   content = content.replace(
     " * 所有状态都在实例上，通过 MapBase.Instance 或 engine.map 访问",
     " * 所有状态都在实例上，通过 engine.map 访问"
   );
-  
+
   return content;
 });
 
@@ -103,7 +103,7 @@ updateFile("magic/magicLoader.ts", content => {
     'import { magicRenderer } from "./magicRenderer";',
     'import type { MagicRenderer } from "./magicRenderer";'
   );
-  
+
   // We need to understand how magicRenderer is used in magicLoader.ts first
   // It's used as: magicRenderer.getAsf(...)
   // Change the function to accept magicRenderer as parameter

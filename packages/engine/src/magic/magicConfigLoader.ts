@@ -148,6 +148,54 @@ function extractFileName(key: string): string {
 }
 
 /**
+ * Apply common magic fields shared between main magic and attack file
+ */
+function applyCommonMagicFields(
+  magic: MagicData,
+  src: {
+    name?: string | null; intro?: string | null;
+    speed?: number | null; moveKind?: string | null; region?: number | null;
+    specialKind?: string | null; specialKindValue?: number | null; specialKindMilliSeconds?: number | null;
+    alphaBlend?: boolean | null; flyingLum?: number | null; vanishLum?: number | null;
+    flyingImage?: string | null; vanishImage?: string | null;
+    flyingSound?: string | null; vanishSound?: string | null;
+    waitFrame?: number | null; lifeFrame?: number | null;
+    passThrough?: boolean | null; passThroughWall?: boolean | null;
+    attackAll?: boolean | null; vibratingScreen?: boolean | null;
+    bounce?: boolean | null; bounceHurt?: number | null;
+    traceEnemy?: boolean | null; traceSpeed?: number | null;
+    rangeRadius?: number | null;
+  },
+): void {
+  magic.name = src.name || "";
+  magic.intro = src.intro || "";
+  magic.speed = src.speed || 8;
+  magic.moveKind = parseMoveKind(src.moveKind ?? undefined);
+  magic.region = src.region || 0;
+  magic.specialKind = parseSpecialKind(src.specialKind ?? undefined);
+  magic.specialKindValue = src.specialKindValue || 0;
+  magic.specialKindMilliSeconds = src.specialKindMilliSeconds || 0;
+  magic.alphaBlend = src.alphaBlend ? 1 : 0;
+  magic.flyingLum = src.flyingLum || 0;
+  magic.vanishLum = src.vanishLum || 0;
+  magic.flyingImage = normalizeResourcePath(src.flyingImage, "effect");
+  magic.vanishImage = normalizeResourcePath(src.vanishImage, "effect");
+  magic.flyingSound = normalizeSoundPath(src.flyingSound);
+  magic.vanishSound = normalizeSoundPath(src.vanishSound);
+  magic.waitFrame = src.waitFrame ?? 0;
+  magic.lifeFrame = src.lifeFrame ?? 4;
+  magic.passThrough = src.passThrough ? 1 : 0;
+  magic.passThroughWall = src.passThroughWall ? 1 : 0;
+  magic.attackAll = src.attackAll ? 1 : 0;
+  magic.vibratingScreen = src.vibratingScreen ? 1 : 0;
+  magic.bounce = src.bounce ? 1 : 0;
+  magic.bounceHurt = src.bounceHurt || 0;
+  magic.traceEnemy = src.traceEnemy ? 1 : 0;
+  magic.traceSpeed = src.traceSpeed || 0;
+  magic.rangeRadius = src.rangeRadius || 0;
+}
+
+/**
  * 将 API 武功数据转换为引擎 MagicData
  */
 function convertApiMagicToMagicData(api: ApiMagicData): MagicData {
@@ -155,51 +203,20 @@ function convertApiMagicToMagicData(api: ApiMagicData): MagicData {
 
   // 基础信息
   magic.fileName = extractFileName(api.key);
-  magic.name = api.name;
-  magic.intro = api.intro || "";
+  applyCommonMagicFields(magic, api);
 
-  // 运动属性
-  magic.speed = api.speed || 8;
-  magic.moveKind = parseMoveKind(api.moveKind);
-  magic.region = api.region || 0;
-
-  // 特效属性
-  magic.specialKind = parseSpecialKind(api.specialKind);
-  magic.specialKindValue = api.specialKindValue || 0;
-  magic.specialKindMilliSeconds = api.specialKindMilliSeconds || 0;
-  magic.alphaBlend = api.alphaBlend ? 1 : 0;
-  magic.flyingLum = api.flyingLum || 0;
-  magic.vanishLum = api.vanishLum || 0;
-
-  // 图像资源（应用路径转换）
+  // 图像资源（主武功特有）
   magic.image = normalizeResourcePath(api.image, "magic");
   magic.icon = normalizeResourcePath(api.icon, "magic");
-  magic.flyingImage = normalizeResourcePath(api.flyingImage, "effect");
-  magic.vanishImage = normalizeResourcePath(api.vanishImage, "effect");
   magic.superModeImage = normalizeResourcePath(api.superModeImage, "effect");
-
-  // 声音资源
-  magic.flyingSound = normalizeSoundPath(api.flyingSound);
-  magic.vanishSound = normalizeSoundPath(api.vanishSound);
-
-  // 帧相关
-  magic.waitFrame = api.waitFrame ?? 0;
-  magic.lifeFrame = api.lifeFrame ?? 4;
-
-  // 从属关系
-  // belong 在 API 中是字符串，需要映射（暂时忽略，保持默认0）
 
   // 动作和攻击文件
   magic.actionFile = api.actionFile || undefined;
 
   // AttackFile 是嵌套的武功数据
   if (api.attackFile) {
-    // 存储为文件名引用，实际使用时会单独加载
-    // 为嵌套的 attackFile 创建一个虚拟文件名
     const attackFileName = `${api.key.replace(".ini", "")}-attack.ini`;
     magic.attackFile = attackFileName;
-
-    // 同时将 attackFile 数据转换并缓存
     const attackMagic = convertAttackFileToMagicData(api.attackFile, attackFileName);
     magicConfigCache.set(normalizeCacheKey(attackFileName, MAGIC_KEY_PREFIXES), attackMagic);
   }
@@ -210,18 +227,9 @@ function convertApiMagicToMagicData(api: ApiMagicData): MagicData {
   magic.parasiticMagic = api.parasiticMagic || undefined;
   magic.explodeMagicFile = api.explodeMagicFile || undefined;
 
-  // 杂项标志
-  magic.passThrough = api.passThrough ? 1 : 0;
-  magic.passThroughWall = api.passThroughWall ? 1 : 0;
-  magic.attackAll = api.attackAll ? 1 : 0;
-  magic.vibratingScreen = api.vibratingScreen ? 1 : 0;
-  magic.bounce = api.bounce ? 1 : 0;
-  magic.bounceHurt = api.bounceHurt || 0;
-  magic.traceEnemy = api.traceEnemy ? 1 : 0;
-  magic.traceSpeed = api.traceSpeed || 0;
+  // 杂项标志（主武功特有）
   magic.beginAtUser = api.beginAtUser ? 1 : 0;
   magic.beginAtMouse = api.beginAtMouse ? 1 : 0;
-  magic.rangeRadius = api.rangeRadius || 0;
 
   // 寄生
   magic.parasitic = api.parasitic ? 1 : 0;
@@ -269,42 +277,8 @@ function convertApiMagicToMagicData(api: ApiMagicData): MagicData {
  */
 function convertAttackFileToMagicData(attack: ApiAttackFile, fileName: string): MagicData {
   const magic = createDefaultMagicData();
-
   magic.fileName = fileName;
-  magic.name = attack.name || "";
-  magic.intro = attack.intro || "";
-
-  magic.speed = attack.speed || 8;
-  magic.moveKind = parseMoveKind(attack.moveKind);
-  magic.region = attack.region || 0;
-
-  magic.specialKind = parseSpecialKind(attack.specialKind);
-  magic.specialKindValue = attack.specialKindValue || 0;
-  magic.specialKindMilliSeconds = attack.specialKindMilliSeconds || 0;
-
-  magic.alphaBlend = attack.alphaBlend ? 1 : 0;
-  magic.flyingLum = attack.flyingLum || 0;
-  magic.vanishLum = attack.vanishLum || 0;
-
-  magic.flyingImage = normalizeResourcePath(attack.flyingImage, "effect");
-  magic.vanishImage = normalizeResourcePath(attack.vanishImage, "effect");
-
-  magic.flyingSound = normalizeSoundPath(attack.flyingSound);
-  magic.vanishSound = normalizeSoundPath(attack.vanishSound);
-
-  magic.waitFrame = attack.waitFrame ?? 0;
-  magic.lifeFrame = attack.lifeFrame ?? 4;
-
-  magic.passThrough = attack.passThrough ? 1 : 0;
-  magic.passThroughWall = attack.passThroughWall ? 1 : 0;
-  magic.attackAll = attack.attackAll ? 1 : 0;
-  magic.vibratingScreen = attack.vibratingScreen ? 1 : 0;
-  magic.bounce = attack.bounce ? 1 : 0;
-  magic.bounceHurt = attack.bounceHurt || 0;
-  magic.traceEnemy = attack.traceEnemy ? 1 : 0;
-  magic.traceSpeed = attack.traceSpeed || 0;
-  magic.rangeRadius = attack.rangeRadius || 0;
-
+  applyCommonMagicFields(magic, attack);
   return magic;
 }
 

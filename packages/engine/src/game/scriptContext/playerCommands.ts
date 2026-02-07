@@ -5,6 +5,7 @@
 
 import type { ScriptContext } from "../../script/executor";
 import type { ScriptCommandContext } from "./types";
+import { isCharacterMoveEnd } from "./helpers";
 import { CharacterState } from "../../core/types";
 import { getNeighbors, tileToPixel } from "../../utils";
 import { logger } from "../../core/logger";
@@ -20,6 +21,11 @@ export function createPlayerCommands(ctx: ScriptCommandContext): Partial<ScriptC
     centerCameraOnPlayer,
     isMapObstacleForCharacter,
   } = ctx;
+
+  // Helper: wrap player action with null check + logging
+  const pa = (fn: (p: Player) => void, label: string) => () => {
+    if (player) { fn(player); logger.log(`[ScriptContext] ${label}`); }
+  };
 
   return {
     setPlayerPosition: (x, y, characterName?) => {
@@ -80,95 +86,21 @@ export function createPlayerCommands(ctx: ScriptCommandContext): Partial<ScriptC
       player.walkToTile(x, y);
     },
     isPlayerGotoEnd: (destination) => {
-      // Reference: C# IsCharacterMoveEndAndStanding(character, destinationTilePosition, isRun=false)
-      if (!player) return true;
-
-      const pos = player.tilePosition;
-      const atDestination = pos.x === destination.x && pos.y === destination.y;
-
-      let isEnd = true;
-
-      if (!atDestination) {
-        // If standing, try to walk to destination
-        if (player.isStanding()) {
-          player.walkToTile(destination.x, destination.y);
-        }
-
-        // Check moveable (C# pattern)
-        const path = player.path;
-        if (!path || path.length === 0) {
-          // No path found, give up
-          player.standingImmediately();
-        } else if (
-          path.length === 1 &&
-          (pos.x !== path[0].x || pos.y !== path[0].y) &&
-          player.hasObstacle(path[0])
-        ) {
-          // Only 1 step and it's blocked by dynamic obstacle (NPC/Obj) → give up
-          player.standingImmediately();
-        } else if (isMapObstacleForCharacter(pos.x, pos.y)) {
-          // Player is stuck on a map obstacle tile (abnormal state) → give up
-          // This prevents infinite retries when findPathInDirection creates
-          // short direction paths that can never reach the real destination
-          logger.warn(
-            `[isPlayerGotoEnd] Player stuck on map obstacle at (${pos.x}, ${pos.y}), giving up PlayerGoto to (${destination.x}, ${destination.y})`
-          );
-          player.standingImmediately();
-        } else {
-          isEnd = false;
-        }
-      } else {
-        // At destination tile but still moving - keep waiting
-        if (!player.isStanding()) {
-          isEnd = false;
-        }
-      }
-
-      return isEnd;
+      return isCharacterMoveEnd(
+        player, destination,
+        (_c, d) => player.walkToTile(d.x, d.y),
+        isMapObstacleForCharacter, "isPlayerGotoEnd",
+      );
     },
     playerRunTo: (x, y) => {
       player.runToTile(x, y);
     },
     isPlayerRunToEnd: (destination) => {
-      // Reference: C# IsCharacterMoveEndAndStanding(character, destinationTilePosition, isRun=true)
-      if (!player) return true;
-
-      const pos = player.tilePosition;
-      const atDestination = pos.x === destination.x && pos.y === destination.y;
-
-      let isEnd = true;
-
-      if (!atDestination) {
-        // If standing, try to run to destination
-        if (player.isStanding()) {
-          player.runToTile(destination.x, destination.y);
-        }
-
-        // Check moveable (C# pattern)
-        const path = player.path;
-        if (!path || path.length === 0) {
-          player.standingImmediately();
-        } else if (
-          path.length === 1 &&
-          (pos.x !== path[0].x || pos.y !== path[0].y) &&
-          player.hasObstacle(path[0])
-        ) {
-          player.standingImmediately();
-        } else if (isMapObstacleForCharacter(pos.x, pos.y)) {
-          logger.warn(
-            `[isPlayerRunToEnd] Player stuck on map obstacle at (${pos.x}, ${pos.y}), giving up PlayerRunTo to (${destination.x}, ${destination.y})`
-          );
-          player.standingImmediately();
-        } else {
-          isEnd = false;
-        }
-      } else {
-        if (!player.isStanding()) {
-          isEnd = false;
-        }
-      }
-
-      return isEnd;
+      return isCharacterMoveEnd(
+        player, destination,
+        (_c, d) => player.runToTile(d.x, d.y),
+        isMapObstacleForCharacter, "isPlayerRunToEnd",
+      );
     },
     playerGotoDir: (direction, steps) => {
       player.walkToDirection(direction, steps);
@@ -185,84 +117,18 @@ export function createPlayerCommands(ctx: ScriptCommandContext): Partial<ScriptC
     },
 
     // Player stats
-    fullLife: () => {
-      if (player) {
-        player.fullLife();
-        logger.log("[ScriptContext] FullLife");
-      }
-    },
-    fullMana: () => {
-      if (player) {
-        player.fullMana();
-        logger.log("[ScriptContext] FullMana");
-      }
-    },
-    fullThew: () => {
-      if (player) {
-        player.fullThew();
-        logger.log("[ScriptContext] FullThew");
-      }
-    },
-    addLife: (amount) => {
-      if (player) {
-        player.addLife(amount);
-        logger.log(`[ScriptContext] AddLife: ${amount}`);
-      }
-    },
-    addMana: (amount) => {
-      if (player) {
-        player.addMana(amount);
-        logger.log(`[ScriptContext] AddMana: ${amount}`);
-      }
-    },
-    addThew: (amount) => {
-      if (player) {
-        player.addThew(amount);
-        logger.log(`[ScriptContext] AddThew: ${amount}`);
-      }
-    },
-    disableFight: () => {
-      // Globals.ThePlayer.DisableFight()
-      if (player) {
-        player.isFightDisabled = true;
-        logger.log("[ScriptContext] DisableFight");
-      }
-    },
-    enableFight: () => {
-      // Globals.ThePlayer.EnableFight()
-      if (player) {
-        player.isFightDisabled = false;
-        logger.log("[ScriptContext] EnableFight");
-      }
-    },
-    disableJump: () => {
-      // Globals.ThePlayer.DisableJump()
-      if (player) {
-        player.isJumpDisabled = true;
-        logger.log("[ScriptContext] DisableJump");
-      }
-    },
-    enableJump: () => {
-      // Globals.ThePlayer.EnableJump()
-      if (player) {
-        player.isJumpDisabled = false;
-        logger.log("[ScriptContext] EnableJump");
-      }
-    },
-    disableRun: () => {
-      // Globals.ThePlayer.DisableRun()
-      if (player) {
-        player.isRunDisabled = true;
-        logger.log("[ScriptContext] DisableRun");
-      }
-    },
-    enableRun: () => {
-      // Globals.ThePlayer.EnableRun()
-      if (player) {
-        player.isRunDisabled = false;
-        logger.log("[ScriptContext] EnableRun");
-      }
-    },
+    fullLife: pa(p => p.fullLife(), "FullLife"),
+    fullMana: pa(p => p.fullMana(), "FullMana"),
+    fullThew: pa(p => p.fullThew(), "FullThew"),
+    addLife: (amount) => { if (player) { player.addLife(amount); logger.log(`[ScriptContext] AddLife: ${amount}`); } },
+    addMana: (amount) => { if (player) { player.addMana(amount); logger.log(`[ScriptContext] AddMana: ${amount}`); } },
+    addThew: (amount) => { if (player) { player.addThew(amount); logger.log(`[ScriptContext] AddThew: ${amount}`); } },
+    disableFight: pa(p => { p.isFightDisabled = true; }, "DisableFight"),
+    enableFight: pa(p => { p.isFightDisabled = false; }, "EnableFight"),
+    disableJump: pa(p => { p.isJumpDisabled = true; }, "DisableJump"),
+    enableJump: pa(p => { p.isJumpDisabled = false; }, "EnableJump"),
+    disableRun: pa(p => { p.isRunDisabled = true; }, "DisableRun"),
+    enableRun: pa(p => { p.isRunDisabled = false; }, "EnableRun"),
 
     // Character state
     toNonFightingState: () => {
@@ -434,30 +300,10 @@ export function createPlayerCommands(ctx: ScriptCommandContext): Partial<ScriptC
         logger.log(`[ScriptContext] AddDefend: ${value}, type=${t}`);
       }
     },
-    addEvade: (value) => {
-      if (player) {
-        player.evade += value;
-        logger.log(`[ScriptContext] AddEvade: ${value}`);
-      }
-    },
-    addLifeMax: (value) => {
-      if (player) {
-        player.lifeMax += value;
-        logger.log(`[ScriptContext] AddLifeMax: ${value}`);
-      }
-    },
-    addManaMax: (value) => {
-      if (player) {
-        player.manaMax += value;
-        logger.log(`[ScriptContext] AddManaMax: ${value}`);
-      }
-    },
-    addThewMax: (value) => {
-      if (player) {
-        player.thewMax += value;
-        logger.log(`[ScriptContext] AddThewMax: ${value}`);
-      }
-    },
+    addEvade: (value) => { if (player) { player.evade += value; logger.log(`[ScriptContext] AddEvade: ${value}`); } },
+    addLifeMax: (value) => { if (player) { player.lifeMax += value; logger.log(`[ScriptContext] AddLifeMax: ${value}`); } },
+    addManaMax: (value) => { if (player) { player.manaMax += value; logger.log(`[ScriptContext] AddManaMax: ${value}`); } },
+    addThewMax: (value) => { if (player) { player.thewMax += value; logger.log(`[ScriptContext] AddThewMax: ${value}`); } },
     setPlayerMagicToUseWhenBeAttacked: (magicFile, direction) => {
       if (player) {
         player.magicToUseWhenBeAttacked = magicFile;

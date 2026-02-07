@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Phase 1: Unify ConfigLoader normalizeKey pattern
- * 
+ *
  * Replace each file's local normalizeKey with normalizeCacheKey from config/resourcePaths.
  */
 
@@ -22,7 +22,7 @@ function transform(filePath, config) {
   // 1. Add normalizeCacheKey import (add to existing config/resourcePaths import or create new)
   if (config.addImport) {
     const { importFrom, existingImportPattern, addSymbol } = config.addImport;
-    
+
     if (existingImportPattern) {
       // Add to existing import
       const regex = new RegExp(existingImportPattern);
@@ -76,7 +76,7 @@ function transform(filePath, config) {
     for (const sym of config.removeUnusedImport) {
       // Check if symbol is still used (excluding imports)
       const lines = content.split("\n");
-      const usedInCode = lines.some(line => 
+      const usedInCode = lines.some(line =>
         !line.trimStart().startsWith("import") && line.includes(sym) && !line.includes(`// ${sym}`)
       );
       if (!usedInCode) {
@@ -287,7 +287,7 @@ console.log("\n=== Updating config/index.ts ===");
   const filePath = "config/index.ts";
   const fullPath = path.join(ENGINE_SRC, filePath);
   let content = fs.readFileSync(fullPath, "utf-8");
-  
+
   if (!content.includes("normalizeCacheKey")) {
     content = content.replace(
       "  // 工具函数\n  isResourcePath,",
