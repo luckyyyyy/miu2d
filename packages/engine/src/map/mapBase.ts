@@ -15,7 +15,7 @@
  */
 
 import { resolveScriptPath } from "../config/resourcePaths";
-import { getEngineContext } from "../core/engineContext";
+import { EngineAccess } from "../core/engineAccess";
 import { logger } from "../core/logger";
 import type { JxqyMapData, MapTileInfo } from "../core/mapTypes";
 import type { Vector2 } from "../core/types";
@@ -54,7 +54,10 @@ export const LAYER_INDEX = {
  *
  * 所有状态都在实例上，通过 engine.map 访问
  */
-export class MapBase {
+export class MapBase extends EngineAccess {
+  constructor() {
+    super();
+  }
   // ============= 地图数据 =============
   private _mapData: JxqyMapData | null = null;
   private _isOk: boolean = false;
@@ -81,9 +84,6 @@ export class MapBase {
   private _ignoredTrapsIndex: Set<number> = new Set();
   /** 是否正在执行陷阱脚本 */
   private _isInRunMapTrap: boolean = false;
-
-  // ============= 构造函数 =============
-  constructor() {}
 
   /**
    * 设置地图数据（由外部加载后设置）
@@ -407,12 +407,12 @@ export class MapBase {
 
     // NPC 障碍
     try {
-      const engine = getEngineContext();
+      const engine = this.engine;
       if (engine.npcManager.isObstacle(tile.x, tile.y)) {
         return false;
       }
       // Obj 障碍
-      const objManager = engine.getManager("obj");
+      const objManager = this.obj;
       if (objManager.isObstacle(tile.x, tile.y)) {
         return false;
       }

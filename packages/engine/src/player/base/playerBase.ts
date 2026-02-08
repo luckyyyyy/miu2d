@@ -13,7 +13,6 @@ import { PathType } from "../../core/pathFinder";
 import type { Vector2 } from "../../core/types";
 import { CharacterKind, CharacterState, DEFAULT_PLAYER_STATS, Direction } from "../../core/types";
 import type { GuiManager } from "../../gui/guiManager";
-import type { MagicManager } from "../../magic";
 import { getMagic, getMagicAtLevel } from "../../magic/magicLoader";
 import type { MagicData, MagicItemInfo } from "../../magic/types";
 import { MagicAddonEffect } from "../../magic/types";
@@ -293,10 +292,6 @@ export abstract class PlayerBase extends Character {
   /**
    * 获取 MagicManager（通过 IEngineContext）
    */
-  protected get magicManager(): MagicManager {
-    return this.engine.getManager("magic") as MagicManager;
-  }
-
   /**
    * 获取 NpcManager（通过 IEngineContext）
    */
@@ -319,7 +314,7 @@ export abstract class PlayerBase extends Character {
     }
 
     // Check ObjManager obstacle
-    const objManager = this.engine.getManager("obj");
+    const objManager = this.obj;
     if (objManager.isObstacle(tilePosition.x, tilePosition.y)) {
       return true;
     }
@@ -336,7 +331,7 @@ export abstract class PlayerBase extends Character {
    * 获取 GuiManager（通过 IEngineContext）
    */
   protected get guiManager(): GuiManager {
-    return this.engine.getManager("gui") as GuiManager;
+    return this.gui;
   }
 
   /**

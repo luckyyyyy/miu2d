@@ -38,7 +38,7 @@
 
 import type { AudioManager } from "../audio";
 import { ResourcePath } from "../config/resourcePaths";
-import { getEngineContext } from "../core/engineContext";
+import { EngineAccess } from "../core/engineAccess";
 import { logger } from "../core/logger";
 import type { Vector2 } from "../core/types";
 import { resourceLoader } from "../resource/resourceLoader";
@@ -63,7 +63,7 @@ interface ObjSavedState {
   currentFrameIndex: number; // Current animation frame (e.g., opened box)
 }
 
-export class ObjManager {
+export class ObjManager extends EngineAccess {
   // private static LinkedList<Obj> _list = new LinkedList<Obj>();
   // 使用数组而不是 Map，，允许多个对象（包括同类尸体）
   private objects: Obj[] = [];
@@ -81,11 +81,6 @@ export class ObjManager {
   // 在 Update 阶段预计算，Render 阶段直接使用
   private _objsInView: Obj[] = [];
   private _objsByRow: Map<number, Obj[]> = new Map();
-
-  // 统一通过 IEngineContext 获取所有引擎服务
-  private get engine() {
-    return getEngineContext();
-  }
 
   private get audioManager(): AudioManager {
     return this.engine.audio;

@@ -13,7 +13,7 @@ export function createMapAPI(ctx: ScriptCommandContext): MapAPI {
     load: async (mapName) => { await ctx.loadMap(mapName); },
     loadNpc: async (fileName) => { await ctx.loadNpcFile(fileName); },
     free: () => { /* JS uses garbage collection */ },
-    getCurrentPath: () => "",  // Overridden by caller
+    getCurrentPath: () => ctx.getCurrentMapPath(),
     setTime: (time) => { ctx.setMapTime(time); },
     setTrap: (trapIndex, trapFileName, mapName?) => { ctx.setMapTrap(trapIndex, trapFileName, mapName); },
     saveTrap: () => { ctx.saveMapTrap(); },

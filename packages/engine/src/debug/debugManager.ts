@@ -15,7 +15,7 @@
  * 所有调试面板功能都从此模块导出
  */
 
-import { getEngineContext } from "../core/engineContext";
+import { EngineAccess } from "../core/engineAccess";
 import { logger } from "../core/logger";
 import type { GameVariables } from "../core/types";
 import type { GuiManager } from "../gui/guiManager";
@@ -62,7 +62,7 @@ export interface LoadedResourcesInfo {
   objFile: string;
 }
 
-export class DebugManager {
+export class DebugManager extends EngineAccess {
   private godMode: boolean = false;
   // Player, NpcManager, ObjManager, GuiManager 现在通过 IEngineContext 获取
   private scriptExecutor: ScriptExecutor | null = null;
@@ -70,11 +70,6 @@ export class DebugManager {
   private getMapInfo: (() => { mapName: string; mapPath: string }) | null = null;
   private getTriggeredTraps: (() => number[]) | null = null;
   private config: DebugManagerConfig;
-
-  // 统一通过 IEngineContext 获取所有引擎服务
-  private get engine() {
-    return getEngineContext();
-  }
 
   private get player(): Player {
     return this.engine.player as Player;
@@ -85,11 +80,11 @@ export class DebugManager {
   }
 
   private get objManager(): ObjManager {
-    return this.engine.getManager("obj") as ObjManager;
+    return this.obj as ObjManager;
   }
 
   private get guiManager(): GuiManager {
-    return this.engine.getManager("gui") as GuiManager;
+    return this.gui as GuiManager;
   }
 
   // 脚本执行历史（包含完整内容，最多20条）
@@ -102,6 +97,7 @@ export class DebugManager {
   }[] = [];
 
   constructor(config: DebugManagerConfig = {}) {
+    super();
     this.config = config;
   }
 

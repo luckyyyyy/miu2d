@@ -6,12 +6,12 @@
  */
 
 import { ResourcePath } from "../config/resourcePaths";
-import { getEngineContext } from "../core/engineContext";
+import { EngineAccess } from "../core/engineAccess";
 import { logger } from "../core/logger";
 import type { InputState, Vector2 } from "../core/types";
 import { CharacterState } from "../core/types";
 import type { GuiManager } from "../gui/guiManager";
-import type { MagicItemInfo, MagicManager } from "../magic";
+import type { MagicItemInfo } from "../magic";
 import type { MagicListManager } from "../player/magic/magicListManager";
 import type { Player } from "../player/player";
 import { getDirectionFromVector, pixelToTile, tileToPixel } from "../utils";
@@ -29,24 +29,15 @@ export interface MagicHandlerDependencies {
  * MagicHandler - Manages magic usage, initialization, and UI interactions
  * 大部分依赖通过 IEngineContext 获取
  */
-export class MagicHandler {
+export class MagicHandler extends EngineAccess {
   private getLastInput: () => InputState;
-
-  // 统一通过 IEngineContext 获取所有引擎服务
-  private get engine() {
-    return getEngineContext();
-  }
 
   private get player(): Player {
     return this.engine.player as Player;
   }
 
   private get guiManager(): GuiManager {
-    return this.engine.getManager("gui") as GuiManager;
-  }
-
-  private get magicManager(): MagicManager {
-    return this.engine.getManager("magic") as MagicManager;
+    return this.gui as GuiManager;
   }
 
   /**
@@ -57,6 +48,7 @@ export class MagicHandler {
   }
 
   constructor(deps: MagicHandlerDependencies) {
+    super();
     this.getLastInput = deps.getLastInput;
   }
 
@@ -130,7 +122,7 @@ export class MagicHandler {
     // if (Globals.OutEdgeNpc != null)
     //     UseMagic(CurrentMagicInUse.TheMagic, Globals.OutEdgeNpc.TilePosition, Globals.OutEdgeNpc);
     // else UseMagic(CurrentMagicInUse.TheMagic, mouseTilePosition);
-    const interactionManager = this.engine.getManager("interaction") as InteractionManager;
+    const interactionManager = this.interaction as InteractionManager;
     const hoverTarget = interactionManager.getHoverTarget();
 
     // lines 1407-1419

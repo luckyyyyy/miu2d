@@ -599,7 +599,6 @@ export const ClassicGameUI: React.FC<ClassicGameUIProps> = ({ logic, width, heig
       />
 
       {/* Video Player */}
-      <VideoPlayer engine={engine} />
 
       {/* Engine Watermark */}
       <div

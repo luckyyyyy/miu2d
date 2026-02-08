@@ -4,7 +4,7 @@
  */
 
 import { ResourcePath } from "../config/resourcePaths";
-import { getEngineContext, type IEngineContext } from "../core/engineContext";
+import { EngineAccess } from "../core/engineAccess";
 import { logger } from "../core/logger";
 import type { Vector2 } from "../core/types";
 import { CharacterState } from "../core/types";
@@ -196,7 +196,7 @@ export function getAsfForState(spriteSet: SpriteSet, state: CharacterState): Asf
 }
 
 /** Sprite 类 - 所有可视对象的基类 */
-export class Sprite {
+export class Sprite extends EngineAccess {
   protected _positionInWorld: Vector2 = { x: 0, y: 0 };
   protected _mapX: number = 0;
   protected _mapY: number = 0;
@@ -217,10 +217,6 @@ export class Sprite {
   protected _baseFileName: string = "";
   protected _spriteSet: SpriteSet = createEmptySpriteSet();
 
-  /** 获取引擎上下文，子类通过此访问引擎服务 */
-  protected get engine(): IEngineContext {
-    return getEngineContext();
-  }
 
   // ============= 位置属性 =============
 

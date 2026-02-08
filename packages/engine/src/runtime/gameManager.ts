@@ -70,6 +70,7 @@ import { MagicHandler } from "./magicHandler";
 import { Sprite } from "../sprite/sprite";
 // Import refactored modules
 import { createScriptContext } from "./scriptContextFactory";
+import type { BlockingResolver } from "../script/blockingResolver";
 import { SpecialActionHandler } from "./specialActionHandler";
 
 export interface GameManagerConfig {
@@ -265,8 +266,8 @@ export class GameManager {
     // DebugManager 通过 IEngineContext 获取 Player, NpcManager, GuiManager, ObjManager
 
     // Create script context
-    const scriptContext = this.createScriptContext();
-    this.scriptExecutor = new ScriptExecutor(scriptContext);
+    const { scriptContext, resolver } = this.buildScriptContext();
+    this.scriptExecutor = new ScriptExecutor(scriptContext, resolver);
 
     // Set up runParallelScript callback (after ScriptExecutor is created)
     scriptContext.runParallelScript = (scriptFile: string, delay?: number) => {
@@ -467,8 +468,8 @@ export class GameManager {
   /**
    * Create script context for script executor
    */
-  private createScriptContext(): ScriptContext {
-    const context = createScriptContext({
+  private buildScriptContext(): { scriptContext: ScriptContext; resolver: BlockingResolver } {
+    return createScriptContext({
       player: this.player,
       npcManager: this.npcManager,
       guiManager: this.guiManager,
@@ -515,6 +516,8 @@ export class GameManager {
       disableDrop: () => this.disableDrop(),
       // Map obstacle check
       isMapObstacleForCharacter: (x, y) => this.map.isObstacleForCharacter(x, y),
+      // Map path accessor
+      getCurrentMapPath: () => this.currentMapPath,
       // Show map pos flag
       setScriptShowMapPos: (show) => this.setScriptShowMapPos(show),
       // Map time
@@ -549,11 +552,6 @@ export class GameManager {
         this.events.emit(GameEvents.RETURN_TO_TITLE, {});
       },
     });
-
-    // Override getCurrentMapPath to return the actual value
-    context.getCurrentMapPath = () => this.currentMapPath;
-
-    return context;
   }
 
   /**
@@ -699,6 +697,13 @@ export class GameManager {
    */
   setLoadProgressCallback(callback: ((progress: number, text: string) => void) | undefined): void {
     this.loader.setProgressCallback(callback);
+  }
+
+  /**
+   * 设置加载完成回调
+   */
+  setLoadCompleteCallback(callback: (() => void) | undefined): void {
+    this.loader.setLoadCompleteCallback(callback);
   }
 
   /**

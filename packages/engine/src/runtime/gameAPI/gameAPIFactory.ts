@@ -30,6 +30,7 @@ function buildCommandContext(deps: ScriptContextDependencies): ScriptCommandCont
     cameraMoveTo, cameraMoveToPosition, isCameraMoving, isCameraMoveToPositionEnd,
     setCameraPosition, centerCameraOnPlayer, runScript,
     enableSave, disableSave, enableDrop, disableDrop, isMapObstacleForCharacter,
+    getCurrentMapPath,
   } = deps;
 
   const levelManager = player.levelManager;
@@ -66,7 +67,7 @@ function buildCommandContext(deps: ScriptContextDependencies): ScriptCommandCont
     cameraMoveTo, cameraMoveToPosition, isCameraMoving, isCameraMoveToPositionEnd,
     setCameraPosition, centerCameraOnPlayer,
     runScript, enableSave, disableSave, enableDrop, disableDrop,
-    isMapObstacleForCharacter,
+    isMapObstacleForCharacter, getCurrentMapPath,
     setScriptShowMapPos: deps.setScriptShowMapPos,
     setMapTime: deps.setMapTime,
     saveMapTrap: deps.saveMapTrap,

@@ -82,7 +82,7 @@ export class Player extends PlayerCombat {
    * 自动运行该物体的脚本（通常用于陷阱、机关等）
    */
   private updateTouchObj(): void {
-    const objManager = this.engine.getManager("obj");
+    const objManager = this.obj;
     if (!objManager) return;
 
     const objs = objManager.getObjsAtPosition({ x: this.mapX, y: this.mapY });
@@ -864,7 +864,7 @@ export class Player extends PlayerCombat {
    * 中检测 layer2, layer3 和 NPC 碰撞
    */
   private checkOcclusionTransparency(): boolean {
-    const mapRenderer = this.engine.getManager("mapRenderer");
+    const mapRenderer = this.mapRenderer;
     if (!mapRenderer.mapData || mapRenderer.isLoading) return false;
 
     const playerRegion = this.regionInWorld;

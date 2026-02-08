@@ -7,7 +7,7 @@
  * this handler only manages script-triggered special actions (e.g., kneel/stand)
  */
 
-import { getEngineContext } from "../core/engineContext";
+import { EngineAccess } from "../core/engineAccess";
 import { logger } from "../core/logger";
 import { CharacterState } from "../core/types";
 import type { NpcManager } from "../npc";
@@ -17,12 +17,7 @@ import type { Player } from "../player/player";
  * SpecialActionHandler - Manages special action completion checks
  * 通过 IEngineContext 获取 Player 和 NpcManager
  */
-export class SpecialActionHandler {
-  // 统一通过 IEngineContext 获取所有引擎服务
-  private get engine() {
-    return getEngineContext();
-  }
-
+export class SpecialActionHandler extends EngineAccess {
   private get player(): Player {
     return this.engine.player as Player;
   }

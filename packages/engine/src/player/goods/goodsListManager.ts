@@ -3,7 +3,7 @@
  * Manages player's inventory and equipment
  */
 
-import { getEngineContext } from "../../core/engineContext";
+import { EngineAccess } from "../../core/engineAccess";
 import { logger } from "../../core/logger";
 import { resourceLoader } from "../../resource/resourceLoader";
 import { parseIni } from "../../utils/iniParser";
@@ -59,7 +59,7 @@ export type EquipingCallback = (
 export type UnEquipingCallback = (equip: Good | null, justEffectType?: boolean) => void;
 
 // ============= GoodsListManager =============
-export class GoodsListManager {
+export class GoodsListManager extends EngineAccess {
   private goodsList: (GoodsItemInfo | null)[] = new Array(MAX_GOODS + 1).fill(null);
 
   // Callbacks for equipment changes
@@ -68,12 +68,8 @@ export class GoodsListManager {
   private onUpdateView: (() => void) | null = null;
   private onShowMessage: ((msg: string) => void) | null = null;
 
-  // 统一通过 IEngineContext 获取所有引擎服务
-  private get engine() {
-    return getEngineContext();
-  }
-
   constructor() {
+    super();
     this.renewList();
   }
 

@@ -7,12 +7,11 @@ import type { Character } from "../character";
 import type { CharacterBase } from "../character/base";
 import { loadNpcConfig } from "../character/resFile";
 import { ResourcePath, resolveScriptPath } from "../config/resourcePaths";
-import { getEngineContext } from "../core/engineContext";
+import { EngineAccess } from "../core/engineAccess";
 import { logger } from "../core/logger";
 import type { CharacterConfig, Vector2 } from "../core/types";
 import { CharacterKind, type CharacterState, type Direction, RelationType } from "../core/types";
 import { type DropCharacter, getDropObj } from "../drop/goodDrop";
-import type { ObjManager } from "../obj/objManager";
 
 /**
  * Check if two characters are enemies (pure function)
@@ -59,7 +58,7 @@ export interface ViewRect {
 }
 
 /** NpcManager 类*/
-export class NpcManager {
+export class NpcManager extends EngineAccess {
   // Internal storage uses Npc class instances
   private npcs: Map<string, Npc> = new Map();
   // Note: NPC config is loaded from API cache (npcConfigLoader)
@@ -99,11 +98,6 @@ export class NpcManager {
    */
   private get _player(): Character {
     return this.engine.player as unknown as Character;
-  }
-
-  // 统一通过 IEngineContext 获取所有引擎服务
-  private get engine() {
-    return getEngineContext();
   }
 
   /**
@@ -775,7 +769,7 @@ export class NpcManager {
     const npcsToDelete: string[] = [];
 
     // 通过 IEngineContext 获取 ObjManager 和 isDropEnabled
-    const objManager = this.engine.getManager("obj") as ObjManager;
+    const objManager = this.obj;
     const isDropEnabled = this.engine.isDropEnabled();
 
     for (const [id, npc] of this.npcs) {

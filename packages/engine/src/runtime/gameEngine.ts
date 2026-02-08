@@ -46,13 +46,14 @@ import { EventEmitter } from "../core/eventEmitter";
 import { GameEvents, type GameLoadProgressEvent } from "../core/gameEvents";
 import { logger } from "../core/logger";
 import type { JxqyMapData } from "../core/mapTypes";
-import type { InputState, Vector2 } from "../core/types";
+import { createDefaultInputState, type InputState, type Vector2 } from "../core/types";
 import { CharacterState, type Direction } from "../core/types";
 import { DebugManager, type PlayerStatsInfo } from "../debug";
 import { ScreenEffects } from "../effects";
+import type { GuiManager } from "../gui/guiManager";
 import type { GuiManagerState } from "../gui/types";
 import { MemoListManager, PartnerListManager, TalkTextListManager } from "../listManager";
-import type { MagicItemInfo } from "../magic";
+import type { MagicItemInfo, MagicManager } from "../magic";
 import { MagicRenderer } from "../magic/magicRenderer";
 import { MapBase } from "../map";
 import { loadMap } from "../resource";
@@ -78,6 +79,10 @@ import type { IRenderer } from "../webgl/iRenderer";
 import { createRenderer, type RendererBackend } from "../webgl";
 import { GameManager } from "./gameManager";
 import { PerformanceStats, type PerformanceStatsData } from "./performanceStats";
+import type { BuyManager } from "../gui/buyManager";
+import type { InteractionManager } from "./interactionManager";
+import type { MagicHandler } from "./magicHandler";
+import type { ScriptExecutor } from "../script/executor";
 
 export interface GameEngineConfig {
   width: number;
@@ -120,7 +125,7 @@ export class GameEngine implements IEngineContext {
     return this.gameManagerInstance;
   }
 
-  private get mapRenderer(): MapRenderer {
+  get mapRenderer(): MapRenderer {
     return this.mapRendererInstance;
   }
 
@@ -130,6 +135,31 @@ export class GameEngine implements IEngineContext {
 
   private get uiBridge(): UIBridge {
     return this.uiBridgeInstance;
+  }
+
+  // ===== IEngineContext high-frequency managers =====
+  get guiManager(): GuiManager {
+    return this.gameManager.getGuiManager();
+  }
+
+  get magicManager(): MagicManager {
+    return this.gameManager.getMagicManager();
+  }
+
+  get buyManager(): BuyManager {
+    return this.gameManager.getBuyManager();
+  }
+
+  get interactionManager(): InteractionManager {
+    return this.gameManager.getInteractionManager();
+  }
+
+  get magicHandler(): MagicHandler {
+    return this.gameManager.getMagicHandler();
+  }
+
+  get scriptExecutor(): ScriptExecutor {
+    return this.gameManager.getScriptExecutor();
   }
 
   // 游戏循环
@@ -152,20 +182,7 @@ export class GameEngine implements IEngineContext {
   private config: GameEngineConfig;
 
   // 输入状态
-  private inputState: InputState = {
-    keys: new Set<string>(),
-    mouseX: 0,
-    mouseY: 0,
-    mouseWorldX: 0,
-    mouseWorldY: 0,
-    isMouseDown: false,
-    isRightMouseDown: false,
-    clickedTile: null,
-    isShiftDown: false,
-    isAltDown: false,
-    isCtrlDown: false,
-    joystickDirection: null,
-  };
+  private inputState: InputState = createDefaultInputState();
 
   // 渲染器抽象层（WebGL / Canvas2D）
   private _renderer: IRenderer | null = null;
@@ -175,6 +192,7 @@ export class GameEngine implements IEngineContext {
   private state: GameEngineState = "uninitialized";
   private loadProgress: number = 0;
   private loadingText: string = "";
+  private hasEmittedReady: boolean = false;
 
   // 地图加载进度回调（用于存档加载时将 MPC 进度映射到正确范围）
   private mapLoadProgressCallback: ((progress: number, text: string) => void) | null = null;
@@ -185,6 +203,7 @@ export class GameEngine implements IEngineContext {
 
   // 地图基类实例（由引擎创建和持有）
   private readonly _map: MapBase;
+
 
   constructor(config: GameEngineConfig) {
     this.config = config;
@@ -303,7 +322,24 @@ export class GameEngine implements IEngineContext {
     this._renderer = null;
     this.events.clear();
     this.state = "uninitialized";
+    this.hasEmittedReady = false;
     setEngineContext(null);
+  }
+
+  private emitInitialized(success: boolean): void {
+    if (success) {
+      if (this.hasEmittedReady) return;
+      this.hasEmittedReady = true;
+    }
+    this.events.emit(GameEvents.GAME_INITIALIZED, { success });
+  }
+
+  private handleLoadComplete(): void {
+    if (this.state !== "loading") return;
+
+    // 核心资源已加载完成，允许进入运行态
+    this.state = "running";
+    this.emitInitialized(true);
   }
 
   // ============= 初始化 =============
@@ -323,6 +359,7 @@ export class GameEngine implements IEngineContext {
     }
 
     this.state = "loading";
+    this.hasEmittedReady = false;
     this.emitLoadProgress(0, "初始化引擎...");
 
     try {
@@ -371,6 +408,7 @@ export class GameEngine implements IEngineContext {
           centerCameraOnPlayer: () => this.centerCameraOnPlayer(),
         }
       );
+      this.gameManagerInstance.setLoadCompleteCallback(() => this.handleLoadComplete());
 
       // 设置计时器脚本执行回调
       // ScriptExecuter.Update 中使用 Utils.GetScriptParser(_timeScriptFileName) 获取脚本
@@ -389,10 +427,15 @@ export class GameEngine implements IEngineContext {
       this.uiBridgeInstance = this.createUIBridge();
       this.emitLoadProgress(40, "引擎初始化完成");
       logger.log("[GameEngine] Engine initialization completed (global resources loaded)");
+
+      // 提前启动主循环，在 loading 状态下只推进安全子系统
+      if (!this.isRunning) {
+        this.start();
+      }
     } catch (error) {
       logger.error("[GameEngine] Engine initialization failed:", error);
       this.state = "uninitialized";
-      this.events.emit(GameEvents.GAME_INITIALIZED, { success: false });
+      this.emitInitialized(false);
       throw error;
     }
   }
@@ -433,16 +476,16 @@ export class GameEngine implements IEngineContext {
       // LoadGame(0) 会从初始存档加载武功，不需要额外初始化
       await this.gameManager.newGame();
 
-      this.emitLoadProgress(100, "游戏开始");
+      // 先切换到 running 状态，再发送完成事件
+      // 否则 LOAD_PROGRESS handler 看到 state=loading 会设置 isReady=false
       this.state = "running";
-
-      // 发送初始化完成事件
-      this.events.emit(GameEvents.GAME_INITIALIZED, { success: true });
+      this.emitLoadProgress(100, "游戏开始");
+      this.emitInitialized(true);
 
       logger.log("[GameEngine] New game started");
     } catch (error) {
       logger.error("[GameEngine] Failed to start new game:", error);
-      this.events.emit(GameEvents.GAME_INITIALIZED, { success: false });
+      this.emitInitialized(false);
       throw error;
     } finally {
       this.mapLoadProgressCallback = null;
@@ -560,14 +603,14 @@ export class GameEngine implements IEngineContext {
       // 仅在初次加载时发送 GAME_INITIALIZED 事件（触发 UI 层启动游戏循环）
       // mid-game reload 时游戏循环已在运行，不需要再次触发 start()
       if (!wasAlreadyRunning) {
-        this.events.emit(GameEvents.GAME_INITIALIZED, { success: true });
+        this.emitInitialized(true);
       }
 
       logger.log(`[GameEngine] Game loaded from slot ${index}`);
     } catch (error) {
       logger.error(`[GameEngine] Failed to load game from slot ${index}:`, error);
       if (!wasAlreadyRunning) {
-        this.events.emit(GameEvents.GAME_INITIALIZED, { success: false });
+        this.emitInitialized(false);
       }
       throw error;
     } finally {
@@ -772,7 +815,7 @@ export class GameEngine implements IEngineContext {
       return;
     }
 
-    if (this.state !== "running" && this.state !== "paused") {
+    if (this.state !== "running" && this.state !== "paused" && this.state !== "loading") {
       logger.error("[GameEngine] Cannot start: not initialized");
       return;
     }
@@ -780,7 +823,9 @@ export class GameEngine implements IEngineContext {
     this.isRunning = true;
     this.lastTime = performance.now();
     this.nextFrameTime = performance.now(); // 初始化帧率控制
-    this.state = "running";
+    if (this.state !== "loading") {
+      this.state = "running";
+    }
 
     this.animationFrameId = requestAnimationFrame((time) => this.gameLoop(time));
     logger.log("[GameEngine] Game loop started (60 FPS locked)");
@@ -871,6 +916,14 @@ export class GameEngine implements IEngineContext {
    * 更新游戏逻辑
    */
   private update(deltaTime: number): void {
+    // loading 状态下只推进脚本/特效/GUI，避免访问未加载的地图数据
+    if (this.state === "loading") {
+      this.gameManager.getScriptExecutor().update(deltaTime * 1000);
+      this.gameManager.getScreenEffects().update(deltaTime);
+      this.gameManager.getGuiManager().update(deltaTime);
+      return;
+    }
+
     const { width, height } = this.config;
 
     // 计算视野区域（复用于多个子系统）
@@ -1218,7 +1271,7 @@ export class GameEngine implements IEngineContext {
     // === SuperMode 精灵渲染（在所有内容之上） ===
     // if (Globals.IsInSuperMagicMode) { Globals.SuperModeMagicSprite.Draw(_spriteBatch); }
     // SuperMode 精灵不在普通列表中，需要单独渲染
-    const superModeMagicMgr = this.getManager("magic");
+    const superModeMagicMgr = this.magicManager;
     if (superModeMagicMgr.isInSuperMagicMode) {
       const superModeSprite = superModeMagicMgr.superModeMagicSprite;
       if (superModeSprite && !superModeSprite.isDestroyed) {
@@ -1568,50 +1621,6 @@ export class GameEngine implements IEngineContext {
     this.events.emit(GameEvents.UI_PLAYER_CHANGE, {});
     this.events.emit(GameEvents.UI_GOODS_CHANGE, {});
     this.events.emit(GameEvents.UI_MAGIC_CHANGE, {});
-  }
-
-  /**
-   * 获取指定类型的管理器
-   */
-  getManager<T extends import("../core/engineContext").ManagerType>(
-    type: T
-  ): import("../core/engineContext").ManagerMap[T] {
-    let result: unknown;
-    switch (type) {
-      case "magic":
-        result = this.gameManager.getMagicManager();
-        break;
-      case "obj":
-        result = this.objManager;
-        break;
-      case "gui":
-        result = this.gameManager.getGuiManager();
-        break;
-      case "debug":
-        result = this.debugManager;
-        break;
-      case "weather":
-        result = this.weatherManager;
-        break;
-      case "buy":
-        result = this.gameManager.getBuyManager();
-        break;
-      case "interaction":
-        result = this.gameManager.getInteractionManager();
-        break;
-      case "magicHandler":
-        result = this.gameManager.getMagicHandler();
-        break;
-      case "mapRenderer":
-        result = this.mapRenderer;
-        break;
-      case "script":
-        result = this.gameManager.getScriptExecutor();
-        break;
-      default:
-        throw new Error(`Unknown manager type: ${type}`);
-    }
-    return result as import("../core/engineContext").ManagerMap[T];
   }
 
   /**

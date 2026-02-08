@@ -210,7 +210,7 @@ function evaluateCondition(condition: string, getVariable: (name: string) => num
  * ChooseEx(message, option1, option2, ..., $resultVar)
  * Options can have {condition} syntax
  */
-const chooseExCommand: CommandHandler = (params, _result, helpers) => {
+const chooseExCommand: CommandHandler = async (params, _result, helpers) => {
   if (params.length < 3) {
     logger.warn("[ScriptExecutor] ChooseEx: insufficient parameters");
     return true;
@@ -230,7 +230,6 @@ const chooseExCommand: CommandHandler = (params, _result, helpers) => {
     const rawText = helpers.resolveString(params[i] || "");
     const parsed = parseConditions(rawText);
 
-    // Check if all conditions are satisfied
     let isVisible = true;
     for (const cond of parsed.conditions) {
       if (!evaluateCondition(cond, helpers.context.getVariable)) {
@@ -244,18 +243,16 @@ const chooseExCommand: CommandHandler = (params, _result, helpers) => {
     }
   }
 
-  helpers.state.selectionResultVar = resultVar.slice(1);
-  helpers.context.chooseEx(message, options, resultVar.slice(1));
-  helpers.state.waitingForChooseEx = true;
-  helpers.state.waitingForInput = true;
-  return false;
+  const result = await helpers.context.chooseEx(message, options, resultVar.slice(1));
+  helpers.context.setVariable(resultVar.slice(1), result);
+  return true;
 };
 
 /**
  * ChooseMultiple - Multi-selection dialog
  * ChooseMultiple(columns, rows, varPrefix, message, option1, option2, ...)
  */
-const chooseMultipleCommand: CommandHandler = (params, _result, helpers) => {
+const chooseMultipleCommand: CommandHandler = async (params, _result, helpers) => {
   if (params.length < 5) {
     logger.warn("[ScriptExecutor] ChooseMultiple: insufficient parameters");
     return true;
@@ -285,11 +282,11 @@ const chooseMultipleCommand: CommandHandler = (params, _result, helpers) => {
     }
   }
 
-  helpers.state.chooseMultipleVarPrefix = varPrefix;
-  helpers.context.chooseMultiple(columns, rows, varPrefix, message, options);
-  helpers.state.waitingForChooseMultiple = true;
-  helpers.state.waitingForInput = true;
-  return false;
+  const results = await helpers.context.chooseMultiple(columns, rows, varPrefix, message, options);
+  for (let i = 0; i < results.length; i++) {
+    helpers.context.setVariable(`${varPrefix}${i}`, results[i]);
+  }
+  return true;
 };
 
 /**

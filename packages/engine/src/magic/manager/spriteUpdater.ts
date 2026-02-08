@@ -7,7 +7,7 @@
 
 import type { AudioManager } from "../../audio";
 import type { Character } from "../../character/character";
-import { getEngineContext } from "../../core/engineContext";
+import { EngineAccess } from "../../core/engineAccess";
 import { logger } from "../../core/logger";
 import type { Vector2 } from "../../core/types";
 import type { ScreenEffects } from "../../effects";
@@ -62,7 +62,7 @@ export interface ISpriteUpdaterCallbacks {
 /**
  * 武功精灵更新器
  */
-export class SpriteUpdater {
+export class SpriteUpdater extends EngineAccess {
   private player: Player;
   private guiManager: GuiManager;
   private screenEffects: ScreenEffects;
@@ -72,11 +72,6 @@ export class SpriteUpdater {
   private callbacks: ISpriteUpdaterCallbacks;
   private state: MagicManagerState;
 
-  // 统一通过 IEngineContext 获取所有引擎服务
-  private get engine() {
-    return getEngineContext();
-  }
-
   constructor(
     deps: MagicManagerDeps,
     charHelper: ICharacterHelper,
@@ -84,6 +79,7 @@ export class SpriteUpdater {
     callbacks: ISpriteUpdaterCallbacks,
     state: MagicManagerState
   ) {
+    super();
     this.player = deps.player;
     this.guiManager = deps.guiManager;
     this.screenEffects = deps.screenEffects;

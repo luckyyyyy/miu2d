@@ -73,6 +73,8 @@ export interface LoaderDependencies {
   getCanvas: () => HTMLCanvasElement | null;
   // 进度回调（可选，用于报告加载进度）
   onProgress?: LoadProgressCallback;
+  // 加载完成回调（可选，用于通知核心加载完成）
+  onLoadComplete?: () => void;
   // 立即将摄像机居中到玩家位置（用于加载存档后避免摄像机飞过去）
   centerCameraOnPlayer: () => void;
 
@@ -225,6 +227,13 @@ export class Loader {
    */
   setProgressCallback(callback: LoadProgressCallback | undefined): void {
     this.deps.onProgress = callback;
+  }
+
+  /**
+   * 设置加载完成回调（用于通知核心加载完成）
+   */
+  setLoadCompleteCallback(callback: (() => void) | undefined): void {
+    this.deps.onLoadComplete = callback;
   }
 
   /**
@@ -628,6 +637,7 @@ export class Loader {
       this.deps.centerCameraOnPlayer();
 
       this.reportProgress(98, "完成加载...");
+      this.deps.onLoadComplete?.();
       logger.debug(`[Loader] Game save loaded successfully`);
 
       // Debug: 打印障碍物体
@@ -1429,6 +1439,7 @@ export class Loader {
       this.reportProgress(98, "完成加载...");
       logger.debug(`[Loader] Centering camera on player...`);
       this.deps.centerCameraOnPlayer();
+      this.deps.onLoadComplete?.();
 
       // Step 16: 恢复其他角色数据到内存
       // 用于 PlayerChange 切换角色时使用

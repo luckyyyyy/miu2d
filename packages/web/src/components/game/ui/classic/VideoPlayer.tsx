@@ -298,24 +298,14 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ engine }) => {
     [isVisible, isPaused, duration, volume, isMuted, handleVideoEnd]
   );
 
-  // Subscribe to video play events AND check for pending video on mount
+  // Subscribe to video play events
+  // VideoPlayer is always mounted (even during loading), so it will catch
+  // UI_VIDEO_PLAY events in real-time. No need to check for pending movies.
   useEffect(() => {
     if (!engine) return;
 
     const events = engine.events;
-
-    // Subscribe to future events
     events.on(GameEvents.UI_VIDEO_PLAY, handleVideoPlay);
-
-    // Check if there's a pending video that was requested before we mounted
-    const guiManager = engine.getManager("gui");
-    const pendingMovie = guiManager?.getPendingMovie();
-    if (pendingMovie) {
-      logger.log(`[VideoPlayer] Found pending movie on mount: ${pendingMovie}`);
-      const videoPath = normalizeVideoPath(pendingMovie);
-      setVideoFile(videoPath);
-      setIsVisible(true);
-    }
 
     return () => {
       events.off(GameEvents.UI_VIDEO_PLAY, handleVideoPlay);

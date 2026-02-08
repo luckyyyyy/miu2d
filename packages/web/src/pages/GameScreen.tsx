@@ -471,6 +471,7 @@ export default function GameScreen() {
         {gamePhase === "title" && (
           <div className="w-full h-full">
             <TitleGui
+              gameSlug={gameSlug}
               screenWidth={window.innerWidth}
               screenHeight={window.innerHeight}
               onNewGame={handleNewGame}

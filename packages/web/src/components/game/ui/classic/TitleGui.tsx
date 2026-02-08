@@ -60,6 +60,7 @@ const UI_CONFIG = {
 };
 
 interface TitleGuiProps {
+  gameSlug?: string;
   screenWidth?: number;
   screenHeight?: number;
   onNewGame: () => void;
@@ -168,6 +169,7 @@ const TitleButton: React.FC<TitleButtonProps> = ({
 };
 
 export const TitleGui: React.FC<TitleGuiProps> = ({
+  gameSlug,
   screenWidth: _screenWidth = 800,
   screenHeight: _screenHeight = 600,
   onNewGame,
@@ -179,8 +181,21 @@ export const TitleGui: React.FC<TitleGuiProps> = ({
   const [backgroundLoaded, setBackgroundLoaded] = useState(false);
   const [backgroundError, setBackgroundError] = useState(false);
 
+  const resourceRoot = gameSlug ? `/game/${gameSlug}/resources` : null;
+  const resolvePath = useCallback(
+    (relativePath: string) => {
+      if (!relativePath) return relativePath;
+      if (resourceRoot) {
+        const normalized = relativePath.replace(/\\/g, "/").replace(/^\//, "");
+        return `${resourceRoot}/${normalized}`;
+      }
+      return buildPath(relativePath);
+    },
+    [resourceRoot]
+  );
+
   // 背景图路径
-  const backgroundUrl = buildPath(UI_CONFIG.background);
+  const backgroundUrl = resolvePath(UI_CONFIG.background);
 
   // 原版背景是 640x480，需要居中
   const ORIGINAL_WIDTH = 640;
@@ -290,7 +305,7 @@ export const TitleGui: React.FC<TitleGuiProps> = ({
         {UI_CONFIG.buttons.map((btn) => (
           <TitleButton
             key={btn.id}
-            imagePath={btn.image}
+            imagePath={resolvePath(btn.image)}
             left={btn.left}
             top={btn.top}
             width={btn.width}

@@ -92,7 +92,7 @@ export abstract class CharacterCombat extends CharacterMovement {
     this.exp += amount;
     if (this.exp > this.levelUpExp) {
       // Reference: GuiManager.ShowMessage(Name + "的等级提升了");
-      const gui = this.engine.getManager("gui") as { showMessage?: (msg: string) => void };
+      const gui = this.gui as { showMessage?: (msg: string) => void };
       gui.showMessage?.(`${this.name}的等级提升了`);
       this.toLevelByExp(this.exp);
     }
@@ -186,7 +186,7 @@ export abstract class CharacterCombat extends CharacterMovement {
     if (this.isDeathInvoked || this.isDeath) return;
 
     // 调试无敌模式
-    if (this.isPlayer && this.engine.getManager("debug").isGodMode()) {
+    if (this.isPlayer && this.debug.isGodMode()) {
       return;
     }
 
@@ -287,7 +287,7 @@ export abstract class CharacterCombat extends CharacterMovement {
   ): number {
     if (this.isDeathInvoked || this.isDeath) return 0;
 
-    if (this.isPlayer && this.engine.getManager("debug").isGodMode()) {
+    if (this.isPlayer && this.debug.isGodMode()) {
       return 0;
     }
 

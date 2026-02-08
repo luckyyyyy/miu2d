@@ -9,7 +9,6 @@ import { logger } from "../core/logger";
 import { PathType } from "../core/pathFinder";
 import type { CharacterConfig, Vector2 } from "../core/types";
 import { CharacterKind, CharacterState } from "../core/types";
-import type { MagicManager } from "../magic";
 import type { MagicData } from "../magic/types";
 import type { AsfData } from "../resource/asf";
 import { generateId, getDirectionFromVector, tileToPixel } from "../utils";
@@ -66,10 +65,6 @@ export class Npc extends Character {
   /**
    * 获取 MagicManager（通过 IEngineContext）
    */
-  private get magicManager(): MagicManager {
-    return this.engine.getManager("magic") as MagicManager;
-  }
-
   /**
    * 获取 NpcManager（通过 IEngineContext）
    */
@@ -674,7 +669,7 @@ export class Npc extends Character {
     }
 
     // Check ObjManager obstacle
-    if (this.engine.getManager("obj").isObstacle(tilePosition.x, tilePosition.y)) {
+    if (this.obj.isObstacle(tilePosition.x, tilePosition.y)) {
       return true;
     }
 

@@ -6,7 +6,7 @@
  */
 
 import type { Character } from "../../character/character";
-import { getEngineContext } from "../../core/engineContext";
+import { EngineAccess } from "../../core/engineAccess";
 import { logger } from "../../core/logger";
 import type { Vector2 } from "../../core/types";
 import type { NpcManager } from "../../npc";
@@ -30,23 +30,19 @@ import type { ICharacterHelper, ISpriteFactoryCallbacks, MagicManagerDeps } from
 /**
  * 武功精灵创建工厂
  */
-export class SpriteFactory {
+export class SpriteFactory extends EngineAccess {
   private player: Player;
   private npcManager: NpcManager;
   private magicRenderer: MagicRenderer;
   private charHelper: ICharacterHelper;
   private callbacks: ISpriteFactoryCallbacks;
 
-  // 统一通过 IEngineContext 获取所有引擎服务
-  private get engine() {
-    return getEngineContext();
-  }
-
   constructor(
     deps: MagicManagerDeps,
     charHelper: ICharacterHelper,
     callbacks: ISpriteFactoryCallbacks
   ) {
+    super();
     this.player = deps.player;
     this.npcManager = deps.npcManager;
     this.magicRenderer = deps.magicRenderer;

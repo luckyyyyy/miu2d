@@ -669,7 +669,6 @@ export const ModernGameUIWrapper: React.FC<ModernGameUIWrapperProps> = ({
       )}
 
       {/* 视频播放器 */}
-      <VideoPlayer engine={engine} />
 
       {/* Engine Watermark */}
       <div

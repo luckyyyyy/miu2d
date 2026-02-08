@@ -7,7 +7,7 @@
  * 设计原则：
  * 1. 核心服务用只读属性（player, npcManager, map, audio）
  * 2. 便捷方法用于高频操作（runScript, queueScript）
- * 3. 低频管理器通过 getManager() 获取
+ * 3. 低频管理器通过直接属性访问
  */
 
 import type { AudioManager } from "../audio";
@@ -65,7 +65,10 @@ export interface IPlayer extends ICharacter {
  * 脚本执行器接口
  */
 export interface IScriptExecutor {
-  runScript(scriptPath: string): Promise<void>;
+  runScript(
+    scriptPath: string,
+    belongObject?: { type: "npc" | "obj" | "good"; id: string }
+  ): Promise<void>;
   isRunning(): boolean;
 }
 
@@ -119,37 +122,6 @@ export interface INpcManager {
 // IMapService 已删除，直接使用 MapBase
 
 /**
- * 管理器类型枚举
- */
-export type ManagerType =
-  | "magic"
-  | "obj"
-  | "gui"
-  | "debug"
-  | "weather"
-  | "buy"
-  | "interaction"
-  | "magicHandler"
-  | "mapRenderer"
-  | "script";
-
-/**
- * 管理器类型映射
- */
-export interface ManagerMap {
-  magic: MagicManager;
-  obj: ObjManager;
-  gui: GuiManager;
-  debug: DebugManager;
-  weather: WeatherManager;
-  buy: BuyManager;
-  interaction: InteractionManager;
-  magicHandler: MagicHandler;
-  mapRenderer: MapRenderer;
-  script: IScriptExecutor;
-}
-
-/**
  * 引擎上下文接口 - Sprite 及其子类通过此接口访问引擎服务
  *
  * 设计分层：
@@ -167,6 +139,26 @@ export interface IEngineContext {
   readonly map: MapBase;
   /** 音频管理器（完整实例，支持 3D 音效等） */
   readonly audio: AudioManager;
+  /** Obj 管理器 */
+  readonly objManager: ObjManager;
+  /** GUI 管理器 */
+  readonly guiManager: GuiManager;
+  /** Debug 管理器 */
+  readonly debugManager: DebugManager;
+  /** 天气管理器 */
+  readonly weatherManager: WeatherManager;
+  /** 商店管理器 */
+  readonly buyManager: BuyManager;
+  /** 交互管理器 */
+  readonly interactionManager: InteractionManager;
+  /** 武功处理器 */
+  readonly magicHandler: MagicHandler;
+  /** 武功管理器 */
+  readonly magicManager: MagicManager;
+  /** 地图渲染器 */
+  readonly mapRenderer: MapRenderer;
+  /** 脚本执行器 */
+  readonly scriptExecutor: IScriptExecutor;
 
   // ===== 便捷方法（高频操作）=====
   /**
@@ -207,13 +199,6 @@ export interface IEngineContext {
    */
   notifyPlayerStateChanged(): void;
 
-  // ===== 低频管理器（按需获取）=====
-  /**
-   * 获取指定类型的管理器
-   * @example engine.getManager('magic')
-   * @example engine.getManager('gui')
-   */
-  getManager<T extends ManagerType>(type: T): ManagerMap[T];
 }
 
 /**

@@ -121,12 +121,10 @@ const getRandNumCommand: CommandHandler = (params, _result, helpers) => {
 /**
  * Sleep - Pause execution
  */
-const sleepCommand: CommandHandler = (params, _result, helpers) => {
+const sleepCommand: CommandHandler = async (params, _result, helpers) => {
   const ms = helpers.resolveNumber(params[0] || "0");
-  helpers.state.waitTime = ms;
-  helpers.context.sleep(ms);
-  helpers.state.currentLine++;
-  return false;
+  await helpers.context.sleep(ms);
+  return true;
 };
 
 /**

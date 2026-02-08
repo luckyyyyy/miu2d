@@ -340,6 +340,21 @@ export interface InputState {
   joystickDirection: Direction | null;
 }
 
+export const createDefaultInputState = (): InputState => ({
+  keys: new Set<string>(),
+  mouseX: 0,
+  mouseY: 0,
+  mouseWorldX: 0,
+  mouseWorldY: 0,
+  isMouseDown: false,
+  isRightMouseDown: false,
+  clickedTile: null,
+  isShiftDown: false,
+  isAltDown: false,
+  isCtrlDown: false,
+  joystickDirection: null,
+});
+
 // ============= Animation Types =============
 export interface AnimationFrame {
   frameIndex: number;

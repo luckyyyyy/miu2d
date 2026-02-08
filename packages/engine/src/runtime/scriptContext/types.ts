@@ -51,6 +51,7 @@ export interface ScriptCommandContext {
   getVariables: () => Record<string, number>;
   setVariable: (name: string, value: number) => void;
   getCurrentMapName: () => string;
+  getCurrentMapPath: () => string;
 
   // === Action callbacks ===
   loadMap: (mapPath: string) => Promise<void>;

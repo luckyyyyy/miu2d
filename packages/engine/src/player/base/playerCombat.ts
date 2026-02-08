@@ -850,7 +850,7 @@ export abstract class PlayerCombat extends PlayerInput {
    */
   takeDamageRaw(amount: number): boolean {
     // 调试无敌模式：玩家不受伤害
-    if (this.engine.getManager("debug").isGodMode()) {
+    if (this.debug.isGodMode()) {
       return false;
     }
 

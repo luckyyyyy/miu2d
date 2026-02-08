@@ -45,8 +45,8 @@ class ParallelScriptRunner {
   private currentLine: number = 0;
   private commandRegistry: CommandRegistry;
   private context: ScriptContext;
-  private waitTime: number = 0;
   private isFinished: boolean = false;
+  private pendingPromise: Promise<boolean> | null = null;
 
   constructor(script: ScriptData, commandRegistry: CommandRegistry, context: ScriptContext) {
     this.script = script;
@@ -65,9 +65,9 @@ class ParallelScriptRunner {
   continue(): boolean {
     if (this.isFinished) return false;
 
-    // Handle wait time
-    if (this.waitTime > 0) {
-      return true; // Still waiting
+    // If waiting for an async handler to complete, check if it's done
+    if (this.pendingPromise) {
+      return true; // Still waiting for async handler
     }
 
     while (this.currentLine < this.script.codes.length) {
@@ -91,9 +91,6 @@ class ParallelScriptRunner {
             callStack: [],
             belongObject: null,
           },
-            waitingForFadeOut: false,
-            belongObject: null,
-          },
           context: this.context,
           resolveString: (expr: string) => this.resolveString(expr),
           resolveNumber: (expr: string) => this.resolveNumber(expr),
@@ -104,8 +101,22 @@ class ParallelScriptRunner {
         };
 
         // CommandHandler returns true to continue, false to pause
-        // For async handlers returning Promise, parallel scripts treat as "continue"
+        // For async handlers, wait for resolution before continuing
         const shouldContinue = handler(code.parameters, code.result, helpers);
+
+        if (shouldContinue instanceof Promise) {
+          // Async handler — wait for it to resolve before continuing
+          this.currentLine++;
+          this.pendingPromise = shouldContinue;
+          shouldContinue.then((result) => {
+            this.pendingPromise = null;
+            if (!result) {
+              // Handler said to stop
+              this.isFinished = true;
+            }
+          });
+          return true;
+        }
 
         if (shouldContinue === false) {
           // Pause execution, next call will continue from next line
@@ -146,17 +157,10 @@ class ParallelScriptRunner {
     }
     logger.warn(`[ParallelScript] Label not found: ${label}`);
   }
-
-  updateWaitTime(deltaTime: number): void {
-    if (this.waitTime > 0) {
-      this.waitTime -= deltaTime;
-    }
-  }
 }
 
 /**
  * 脚本队列项
- * 中的 LinkedList<ScriptRunner>
  */
 interface ScriptQueueItem {
   scriptPath: string;
@@ -590,7 +594,6 @@ export class ScriptExecutor {
 
       // Run script if ready
       if (item.scriptInRun) {
-        item.scriptInRun.updateWaitTime(deltaTime);
         if (!item.scriptInRun.continue()) {
           delayedToRemove.push(i);
         }

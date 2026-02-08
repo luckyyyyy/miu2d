@@ -8,7 +8,7 @@
 import type { CharacterBase } from "../../character/base";
 import type { Character } from "../../character/character";
 import { getCharacterDeathExp } from "../../core/effectCalc";
-import { getEngineContext } from "../../core/engineContext";
+import { EngineAccess } from "../../core/engineAccess";
 import { logger } from "../../core/logger";
 import {
   bouncingAtPoint,
@@ -51,7 +51,7 @@ export interface ICollisionCallbacks {
 /**
  * 碰撞处理器
  */
-export class CollisionHandler {
+export class CollisionHandler extends EngineAccess {
   private player: Player;
   private npcManager: NpcManager;
   private magicListManager: MagicListManager;
@@ -59,17 +59,13 @@ export class CollisionHandler {
   private callbacks: ICollisionCallbacks;
   private state: MagicManagerState;
 
-  // 统一通过 IEngineContext 获取所有引擎服务
-  private get engine() {
-    return getEngineContext();
-  }
-
   constructor(
     deps: MagicManagerDeps,
     charHelper: ICharacterHelper,
     callbacks: ICollisionCallbacks,
     state: MagicManagerState
   ) {
+    super();
     this.player = deps.player;
     this.npcManager = deps.npcManager;
     this.magicListManager = deps.magicListManager;

@@ -108,7 +108,7 @@ export function createNpcAPI(ctx: ScriptCommandContext, resolver: BlockingResolv
     walkToNonBlocking: (name, x, y) => {
       const character = getCharacterByName(name);
       if (!character) { logger.warn(`[GameAPI.npc] walkToNonBlocking: not found: ${name}`); return; }
-      character.walkTo(x, y);
+      character.walkTo({ x, y });
     },
     setLevel: (name, level) => {
       if (player.name === name) { player.setLevelTo(level); }

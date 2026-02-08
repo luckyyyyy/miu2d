@@ -64,30 +64,11 @@ const playSoundCommand: CommandHandler = (params, _result, helpers) => {
  * PlayMovie(fileName) plays video using XNA VideoPlayer
  * Blocks script execution until video ends or is skipped
  */
-const playMovieCommand: CommandHandler = (params, _result, helpers) => {
+const playMovieCommand: CommandHandler = async (params, _result, helpers) => {
   const file = helpers.resolveString(params[0] || "");
-
-  // If already waiting for movie, check if it ended
-  if (helpers.state.waitingForMovie) {
-    if (helpers.context.isMovieEnd()) {
-      helpers.state.waitingForMovie = false;
-      return true;
-    }
-    return false;
-  }
-
-  // Start playing movie
   logger.log(`[ScriptExecutor] PlayMovie: "${file}"`);
-  helpers.context.playMovie(file);
-
-  // Check if movie already ended (e.g., file not found, instantly skipped)
-  if (helpers.context.isMovieEnd()) {
-    return true;
-  }
-
-  // Wait for movie to end
-  helpers.state.waitingForMovie = true;
-  return false;
+  await helpers.context.playMovie(file);
+  return true;
 };
 
 // ============= Screen Effects Commands =============
@@ -95,46 +76,28 @@ const playMovieCommand: CommandHandler = (params, _result, helpers) => {
 /**
  * FadeIn - Fade in effect (BLOCKING)
  */
-const fadeInCommand: CommandHandler = (_params, _result, helpers) => {
-  helpers.context.fadeIn();
-
-  if (helpers.context.isFadeInEnd()) {
-    return true;
-  }
-
-  helpers.state.waitingForFadeIn = true;
-  return false;
+const fadeInCommand: CommandHandler = async (_params, _result, helpers) => {
+  await helpers.context.fadeIn();
+  return true;
 };
 
 /**
  * FadeOut - Fade out effect (BLOCKING)
  */
-const fadeOutCommand: CommandHandler = (_params, _result, helpers) => {
-  helpers.context.fadeOut();
-
-  if (helpers.context.isFadeOutEnd()) {
-    return true;
-  }
-
-  helpers.state.waitingForFadeOut = true;
-  return false;
+const fadeOutCommand: CommandHandler = async (_params, _result, helpers) => {
+  await helpers.context.fadeOut();
+  return true;
 };
 
 /**
  * MoveScreen - Move camera (BLOCKING)
  */
-const moveScreenCommand: CommandHandler = (params, _result, helpers) => {
+const moveScreenCommand: CommandHandler = async (params, _result, helpers) => {
   const direction = helpers.resolveNumber(params[0] || "0");
   const distance = helpers.resolveNumber(params[1] || "100");
   const speed = helpers.resolveNumber(params[2] || "1");
-  helpers.context.moveScreen(direction, distance, speed);
-
-  if (helpers.context.isMoveScreenEnd()) {
-    return true;
-  }
-
-  helpers.state.waitingForMoveScreen = true;
-  return false;
+  await helpers.context.moveScreen(direction, distance, speed);
+  return true;
 };
 
 /**
@@ -451,34 +414,31 @@ const setTimeScriptCommand: CommandHandler = (params, _result, helpers) => {
  * BuyGoods - Open buy goods interface
  * BuyGoods(buyFile, canSellSelfGoods)
  */
-const buyGoodsCommand: CommandHandler = (params, _result, helpers) => {
+const buyGoodsCommand: CommandHandler = async (params, _result, helpers) => {
   const buyFile = helpers.resolveString(params[0] || "");
   const canSellSelfGoods = params.length >= 2 && helpers.resolveNumber(params[1]) !== 0;
-  helpers.context.buyGoods(buyFile, canSellSelfGoods);
-  helpers.state.waitingForBuyGoods = true;
-  return false;
+  await helpers.context.buyGoods(buyFile, canSellSelfGoods);
+  return true;
 };
 
 /**
  * SellGoods - Open sell goods interface (same as BuyGoods with canSellSelfGoods=true)
  * SellGoods(buyFile) -> BuyGoods(buyFile, true)
  */
-const sellGoodsCommand: CommandHandler = (params, _result, helpers) => {
+const sellGoodsCommand: CommandHandler = async (params, _result, helpers) => {
   const buyFile = helpers.resolveString(params[0] || "");
-  helpers.context.buyGoods(buyFile, true);
-  helpers.state.waitingForBuyGoods = true;
-  return false;
+  await helpers.context.buyGoods(buyFile, true);
+  return true;
 };
 
 /**
  * BuyGoodsOnly - Open buy goods interface without selling (canSellSelfGoods=false)
  * BuyGoodsOnly(buyFile) -> BuyGoods(buyFile, false)
  */
-const buyGoodsOnlyCommand: CommandHandler = (params, _result, helpers) => {
+const buyGoodsOnlyCommand: CommandHandler = async (params, _result, helpers) => {
   const buyFile = helpers.resolveString(params[0] || "");
-  helpers.context.buyGoods(buyFile, false);
-  helpers.state.waitingForBuyGoods = true;
-  return false;
+  await helpers.context.buyGoods(buyFile, false);
+  return true;
 };
 
 /**
@@ -589,18 +549,12 @@ const disableDropCommand: CommandHandler = (_params, _result, helpers) => {
  * MoveScreenEx - Move screen to position (BLOCKING)
  * MoveScreenEx(x, y, speed)
  */
-const moveScreenExCommand: CommandHandler = (params, _result, helpers) => {
+const moveScreenExCommand: CommandHandler = async (params, _result, helpers) => {
   const x = helpers.resolveNumber(params[0] || "0");
   const y = helpers.resolveNumber(params[1] || "0");
   const speed = helpers.resolveNumber(params[2] || "1");
-  helpers.context.moveScreenEx(x, y, speed);
-
-  if (helpers.context.isMoveScreenExEnd()) {
-    return true;
-  }
-
-  helpers.state.waitingForMoveScreenEx = true;
-  return false;
+  await helpers.context.moveScreenEx(x, y, speed);
+  return true;
 };
 
 /**

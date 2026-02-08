@@ -91,6 +91,9 @@ export interface ScriptContextDependencies {
   // Map obstacle check (injected to avoid global MapBase.Instance)
   isMapObstacleForCharacter: (x: number, y: number) => boolean;
 
+  // Map path accessor
+  getCurrentMapPath: () => string;
+
   // Return to title
   returnToTitle: () => void;
 
