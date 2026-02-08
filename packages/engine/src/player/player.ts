@@ -13,7 +13,6 @@
 
 import type { Character } from "../character";
 import { resolveScriptPath } from "../config/resourcePaths";
-import { applyConfigToPlayer, parseCharacterIni } from "../character/iniParser";
 import { logger } from "../core/logger";
 import type { Vector2 } from "../core/types";
 import { CharacterState, RUN_SPEED_FOLD } from "../core/types";
@@ -550,33 +549,8 @@ export class Player extends PlayerCombat {
   // === Save/Load ===
   // =============================================
 
-  async loadFromFile(filePath: string): Promise<boolean> {
-    // 确保等级配置已初始化
-    await this.levelManager.initialize();
-
-    try {
-      const content = await resourceLoader.loadText(filePath);
-      if (!content) return false;
-
-      // 1. 解析 INI 为 CharacterConfig
-      const config = parseCharacterIni(content);
-      if (!config) return false;
-
-      // 2. 应用配置到 Player（纯赋值）
-      applyConfigToPlayer(config, this);
-
-      // 3. 调用 setXXX 方法触发副作用（包括 setPosition/setDirection）
-      this.applyConfigSetters();
-
-      return true;
-    } catch (error) {
-      logger.error(`[Player] Error loading:`, error);
-      return false;
-    }
-  }
-
   /**
-   * 从 API 玩家数据加载（替代 save/game/PlayerX.ini）
+   * 从 API 玩家数据加载
    * 用于初始存档 (index=0) 加载，数据来自 /api/data 的 players 数组
    */
   async loadFromApiData(data: ApiPlayerData): Promise<boolean> {

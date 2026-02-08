@@ -523,7 +523,7 @@ export class GameEngine implements IEngineContext {
     });
 
     try {
-      // 存档加载会恢复武功数据，不需要额外初始化 initializePlayerMagics
+      // 存档加载会恢复武功数据，不需要额外初始化
       await this.gameManager.loadGameSave(index);
 
       this.emitLoadProgress(100, "存档加载完成");
@@ -590,7 +590,7 @@ export class GameEngine implements IEngineContext {
     };
 
     try {
-      // JSON 存档加载会恢复武功数据，不需要额外初始化 initializePlayerMagics
+      // JSON 存档加载会恢复武功数据，不需要额外初始化
       const success = await this.gameManager.loadGameFromSlot(index);
       if (!success) {
         throw new Error(`存档 ${index} 不存在`);

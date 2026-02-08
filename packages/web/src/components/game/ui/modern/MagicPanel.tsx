@@ -227,8 +227,8 @@ const MagicSlot: React.FC<MagicSlotProps> = ({
         {/* 武功图标：占位符在底层，ASF 动画覆盖在上层 */}
         {hasMagic && (
           <>
-            {/* 文字占位符（当 ASF 未加载或不存在时可见） */}
-            <div
+            {/* 文字占位符（当图标不存在时显示） */}
+            {!iconPath && <div
               style={{
                 position: "absolute",
                 inset: 0,
@@ -250,8 +250,8 @@ const MagicSlot: React.FC<MagicSlotProps> = ({
               >
                 {displayName.slice(0, 2)}
               </span>
-            </div>
-            {/* ASF 动画图标（加载成功时覆盖占位符） */}
+            </div>}
+            {/* ASF 动画图标 */}
             {iconPath && (
               <AsfAnimatedSprite
                 path={iconPath}

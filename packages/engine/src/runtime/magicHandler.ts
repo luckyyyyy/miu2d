@@ -269,34 +269,6 @@ export class MagicHandler extends EngineAccess {
   }
 
   /**
-   * Initialize player with starting magics
-   * Called after game initialization is complete
-   *
-   * loads magics from ini file
-   * Magics are stored in Store area (indices 1-36)
-   * Player must manually drag them to bottom bar (indices 40-44)
-   *
-   * @param playerIndex The player save slot index (0-7), defaults to 0
-   */
-  async initializePlayerMagics(playerIndex: number = 0): Promise<void> {
-    logger.log("[MagicHandler] Initializing player magics...");
-
-    const magicListManager = this.magicListManager;
-
-    // Load from save file
-    // Path format: /resources/save/game/Magic{playerIndex}.ini
-    const magicListPath = ResourcePath.saveGame(`Magic${playerIndex}.ini`);
-
-    const loaded = await magicListManager.loadPlayerList(magicListPath);
-    if (!loaded) {
-      logger.warn(`[MagicHandler] Failed to load magic list from ${magicListPath}`);
-    }
-
-    // NOTE: Do NOT auto-move magics to bottom bar
-    // Player must drag from MagicGui to BottomGui manually
-  }
-
-  /**
    * Add magic to player's magic list
    * Used by script commands (AddMagic)
    * 委托给 Player.addMagic

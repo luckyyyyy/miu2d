@@ -118,6 +118,8 @@ export default function GameScreen() {
   const [isResizing, setIsResizing] = useState(false);
   const [gameResolution, setGameResolution] = useState(getStoredResolution);
   const [, forceUpdate] = useState({});
+  // API 数据（gameConfig + gameData）是否已加载完成
+  const [isDataReady, setIsDataReady] = useState(false);
   // UI 主题状态
   const [uiTheme, setUITheme] = useState<UITheme>(loadUITheme);
   // 标题界面读档弹窗状态
@@ -142,11 +144,18 @@ export default function GameScreen() {
         logger.warn(`[GameScreen] Failed to load NPC level config:`, error);
       });
 
-      // 先加载游戏全局配置，再加载游戏数据
+      // 先加载游戏全局配置，再加载游戏数据（阻塞引擎初始化）
+      setIsDataReady(false);
       loadGameConfig(gameSlug)
         .then(() => loadGameData(gameSlug))
+        .then(() => {
+          setIsDataReady(true);
+          logger.info(`[GameScreen] Game config and data loaded for ${gameSlug}`);
+        })
         .catch((error) => {
           logger.warn(`[GameScreen] Failed to load game config/data from API:`, error);
+          // 即使失败也标记就绪，避免永远卡住
+          setIsDataReady(true);
         });
     }
   }, [gameSlug]);
@@ -695,14 +704,20 @@ export default function GameScreen() {
                     : undefined
                 }
               >
-                <Game
-                  ref={gameRef}
-                  width={windowSize.width}
-                  height={windowSize.height}
-                  loadSlot={loadSlot}
-                  onReturnToTitle={handleReturnToTitle}
-                  uiTheme={uiTheme}
-                />
+                {isDataReady ? (
+                  <Game
+                    ref={gameRef}
+                    width={windowSize.width}
+                    height={windowSize.height}
+                    loadSlot={loadSlot}
+                    onReturnToTitle={handleReturnToTitle}
+                    uiTheme={uiTheme}
+                  />
+                ) : (
+                  <div className="flex items-center justify-center w-full h-full text-gray-400">
+                    加载游戏数据...
+                  </div>
+                )}
               </div>
 
               {/* 移动端控制层 */}

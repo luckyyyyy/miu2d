@@ -5,8 +5,6 @@
 
 import { EngineAccess } from "../../core/engineAccess";
 import { logger } from "../../core/logger";
-import { resourceLoader } from "../../resource/resourceLoader";
-import { parseIni } from "../../utils/iniParser";
 import { EquipPosition, Good, GoodKind, getGood } from "./good";
 
 // ============= Constants =============
@@ -123,60 +121,6 @@ export class GoodsListManager extends EngineAccess {
    */
   isInBottomGoodsRange(index: number): boolean {
     return index >= BOTTOM_INDEX_BEGIN && index <= BOTTOM_INDEX_END;
-  }
-
-  /**
-   * Load goods list from file
-   * Uses unified resourceLoader for text data fetching
-   */
-  async loadList(filePath: string): Promise<boolean> {
-    this.renewList();
-
-    try {
-      const content = await resourceLoader.loadText(filePath);
-      if (!content) {
-        logger.error(`[GoodsListManager] Failed to load: ${filePath}`);
-        return false;
-      }
-
-      // Parse INI content
-      const sections = parseIni(content);
-
-      for (const [sectionName, section] of Object.entries(sections)) {
-        const index = parseInt(sectionName, 10);
-        if (Number.isNaN(index) || index <= 0) continue;
-
-        const iniFile = section.IniFile || section.inifile;
-        if (!iniFile) continue;
-
-        const number = parseInt(section.Number || section.number || "1", 10) || 1;
-        const good = getGood(iniFile);
-        if (good) {
-          this.goodsList[index] = {
-            good,
-            count: number,
-            remainColdMilliseconds: 0,
-          };
-        }
-      }
-
-      // Debug: Log all loaded items
-      let loadedCount = 0;
-      for (let i = LIST_INDEX_BEGIN; i <= LIST_INDEX_END; i++) {
-        if (this.goodsList[i]) {
-          loadedCount++;
-          logger.log(
-            `[GoodsListManager] Slot ${i}: ${this.goodsList[i]?.good.name} x${this.goodsList[i]?.count}`
-          );
-        }
-      }
-      logger.log(`[GoodsListManager] Loaded ${loadedCount} items from ${filePath}`);
-      this.onUpdateView?.();
-      return true;
-    } catch (error) {
-      logger.error(`[GoodsListManager] Error loading ${filePath}:`, error);
-      return false;
-    }
   }
 
   /**

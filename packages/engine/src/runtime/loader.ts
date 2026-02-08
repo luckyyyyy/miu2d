@@ -23,7 +23,6 @@
  */
 
 import type { AudioManager } from "../audio";
-import { applyConfigToPlayer, loadCharacterConfig } from "../character/iniParser";
 import { ResourcePath } from "../config/resourcePaths";
 import { logger } from "../core/logger";
 import type { ScreenEffects } from "../effects";
@@ -583,18 +582,6 @@ export class Loader {
       if (apiPlayerData?.npcIni) {
         await player.setNpcIni(apiPlayerData.npcIni);
         logger.debug(`[Loader] Pre-set NpcIni from API: ${apiPlayerData.npcIni} (index=${player.npcIniIndex})`);
-      } else {
-        // 用户存档从文件加载
-        const playerPath = `${basePath}/Player${chrIndex}.ini`;
-        try {
-          const playerConfig = await loadCharacterConfig(playerPath);
-          if (playerConfig?.npcIni) {
-            await player.setNpcIni(playerConfig.npcIni);
-            logger.debug(`[Loader] Pre-set NpcIni: ${playerConfig.npcIni} (index=${player.npcIniIndex})`);
-          }
-        } catch (e) {
-          logger.debug(`[Loader] Could not pre-read player config for NpcIniIndex`, e);
-        }
       }
 
       // Step 3: 加载 Magic、Goods、Memo (72-78%)
@@ -603,7 +590,7 @@ export class Loader {
       magicListManager.stopReplace();
       magicListManager.clearReplaceList();
 
-      // 初始存档优先从 API initialMagics 加载，否则从 INI 文件加载
+      // 从 API 数据加载武功
       if (apiPlayerData?.initialMagics && apiPlayerData.initialMagics.length > 0) {
         const magicItems: MagicItemData[] = apiPlayerData.initialMagics.map((m, i) => ({
           fileName: m.iniFile,
@@ -613,14 +600,10 @@ export class Loader {
         }));
         await this.loadMagicsFromJSON(magicItems, 0, magicListManager);
         logger.debug(`[Loader] Loaded ${magicItems.length} magics from API data`);
-      } else {
-        const magicPath = `${basePath}/Magic${chrIndex}.ini`;
-        logger.debug(`[Loader] Loading magic from: ${magicPath}`);
-        await magicListManager.loadPlayerList(magicPath);
       }
 
       this.reportProgress(74, "加载物品...");
-      // 初始存档优先从 API initialGoods 加载，否则从 INI 文件加载
+      // 从 API 数据加载物品
       if (apiPlayerData?.initialGoods && apiPlayerData.initialGoods.length > 0) {
         const goodsItems: GoodsItemData[] = apiPlayerData.initialGoods.map(g => ({
           fileName: g.iniFile,
@@ -628,10 +611,6 @@ export class Loader {
         }));
         this.loadGoodsFromJSON(goodsItems, [], goodsListManager);
         logger.debug(`[Loader] Loaded ${goodsItems.length} goods from API data`);
-      } else {
-        const goodsPath = `${basePath}/Goods${chrIndex}.ini`;
-        logger.debug(`[Loader] Loading goods from: ${goodsPath}`);
-        await goodsListManager.loadList(goodsPath);
       }
 
       this.reportProgress(76, "加载备忘...");
@@ -642,14 +621,8 @@ export class Loader {
       // Step 4: 加载玩家 (78-88%)
       this.reportProgress(78, "加载玩家...");
       if (apiPlayerData) {
-        // 初始存档从 API 数据加载
         logger.debug(`[Loader] Loading player from API data: ${apiPlayerData.key}`);
         await player.loadFromApiData(apiPlayerData);
-      } else {
-        // 用户存档从文件加载
-        const playerPath = `${basePath}/Player${chrIndex}.ini`;
-        logger.debug(`[Loader] Loading player from: ${playerPath}`);
-        await player.loadFromFile(playerPath);
       }
 
       // 加载玩家精灵 (80-88%)
@@ -666,10 +639,6 @@ export class Loader {
       // 应用武功效果（FlyIni 替换等）
       // Reference: Loader.LoadPlayer() -> Globals.ThePlayer.LoadMagicEffect()
       player.loadMagicEffect();
-
-      // Step 4.1: 应用修炼武功
-      // Globals.ThePlayer.XiuLianMagic = MagicListManager.GetItemInfo(MagicListManager.XiuLianIndex)
-      // 这在 magicListManager.loadPlayerList 中已经处理
 
       // Step 5: 加载同伴 (partner) (90-92%)
       // Reference: Loader.LoadPartner() -> NpcManager.LoadPartner(StorageBase.PartnerFilePath)
@@ -955,6 +924,10 @@ export class Loader {
     magicListManager.stopReplace();
     magicListManager.clearReplaceList();
 
+    // 必须先清空旧列表，确保即使新角色没有数据，旧角色物品/武功也不会残留
+    goodsListManager.renewList();
+    magicListManager.renewList();
+
     // 获取内存存储
     const memoryData = this.characterMemory.get(index);
 
@@ -1004,23 +977,6 @@ export class Loader {
       }
     }
 
-    if (!magicLoaded) {
-      // 从资源文件加载初始武功
-      // Reference: MagicListManager.LoadPlayerList(StorageBase.MagicListFilePath)
-      const magicIniPath = ResourcePath.saveGame(`Magic${index}.ini`);
-      try {
-        const magicItems = await this.parseMagicListIni(magicIniPath);
-        if (magicItems.length > 0) {
-          await this.loadMagicsFromJSON(magicItems, 0, magicListManager);
-          logger.log(
-            `[Loader] LoadMagicList: loaded ${magicItems.length} magics from INI (index=${index})`
-          );
-        }
-      } catch (e) {
-        logger.warn(`[Loader] Failed to load magic list from INI:`, e);
-      }
-    }
-
     // 加载物品列表
     let goodsLoaded = false;
 
@@ -1057,88 +1013,16 @@ export class Loader {
       }
     }
 
-    if (!goodsLoaded) {
-      // 从资源文件加载初始物品
-      // Reference: GoodsListManager.LoadList(StorageBase.GoodsListFilePath)
-      const goodsIniPath = ResourcePath.saveGame(`Goods${index}.ini`);
-      try {
-        const goodsItems = await this.parseGoodsListIni(goodsIniPath);
-        if (goodsItems.length > 0) {
-          this.loadGoodsFromJSON(goodsItems, [], goodsListManager);
-          logger.log(
-            `[Loader] LoadGoodsList: loaded ${goodsItems.length} goods from INI (index=${index})`
-          );
-        }
-      } catch (_e) {
-        // 物品文件可能不存在，这不是错误
-        logger.debug(`[Loader] No goods INI file for index ${index}`);
-      }
-    }
-
     logger.log(
-      `[Loader] LoadMagicGoodList: loaded from ${magicLoaded || goodsLoaded ? "memory" : "INI files"} (index=${index})`
+      `[Loader] LoadMagicGoodList: done (index=${index}, magic=${magicLoaded}, goods=${goodsLoaded})`
     );
-  }
-
-  /**
-   * 解析武功列表 INI 文件
-   * 格式参考 resources/save/game/Magic1.ini
-   */
-  private async parseMagicListIni(path: string): Promise<MagicItemData[]> {
-    const content = await resourceLoader.loadText(path);
-    if (!content) return [];
-
-    const sections = this.deps.parseIni(content);
-    const items: MagicItemData[] = [];
-
-    for (const [sectionName, section] of Object.entries(sections)) {
-      const index = parseInt(sectionName, 10);
-      if (Number.isNaN(index)) continue;
-
-      const fileName = section.IniFile;
-      if (!fileName) continue;
-
-      items.push({
-        fileName,
-        level: parseInt(section.Level || "1", 10) || 1,
-        exp: parseInt(section.Exp || "0", 10) || 0,
-        index,
-      });
-    }
-
-    return items;
-  }
-
-  /**
-   * 解析物品列表 INI 文件
-   * 格式参考 resources/save/game/Goods0.ini
-   */
-  private async parseGoodsListIni(path: string): Promise<GoodsItemData[]> {
-    const content = await resourceLoader.loadText(path);
-    if (!content) return [];
-
-    const sections = this.deps.parseIni(content);
-    const items: GoodsItemData[] = [];
-
-    for (const section of Object.values(sections)) {
-      const fileName = section.IniFile;
-      if (!fileName) continue;
-
-      items.push({
-        fileName,
-        count: parseInt(section.Number || "1", 10) || 1,
-      });
-    }
-
-    return items;
   }
 
   /**
    * 加载玩家数据
    * Reference: Loader.LoadPlayer()
    *
-   * 优先从内存加载，如果内存为空则从资源文件加载初始数据
-   * = save/game/Player{index}.ini
+   * 优先从内存加载，如果内存为空则从 API 数据加载
    */
   private async loadPlayerFromMemory(): Promise<void> {
     const { player } = this.deps;
@@ -1178,28 +1062,6 @@ export class Loader {
         } catch (e) {
           logger.error(`[Loader] Failed to load player from API data:`, e);
         }
-      }
-    }
-
-    if (!loaded) {
-      // 内存为空，从资源文件加载初始数据
-      // path = StorageBase.PlayerFilePath -> save/game/Player{index}.ini
-      const playerIniPath = ResourcePath.saveGame(`Player${index}.ini`);
-      try {
-        const config = await loadCharacterConfig(playerIniPath);
-        if (config) {
-          // 把 CharacterConfig 应用到 player
-          applyConfigToPlayer(config, player);
-          // 需要重新加载精灵
-          // Globals.ThePlayer = new Player(path) 会从 npcIni 加载精灵
-          await player.loadSpritesFromNpcIni(config.npcIni);
-          loaded = true;
-          logger.log(`[Loader] LoadPlayer: loaded from INI file (index=${index})`);
-        } else {
-          logger.warn(`[Loader] LoadPlayer: INI file not found or invalid (index=${index})`);
-        }
-      } catch (e) {
-        logger.error(`[Loader] Failed to load player from INI:`, e);
       }
     }
 
