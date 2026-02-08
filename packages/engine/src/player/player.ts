@@ -26,6 +26,7 @@ import { Sprite } from "../sprite/sprite";
 import type { IRenderer } from "../webgl/iRenderer";
 import { getTileTextureRegion } from "../map/renderer";
 import { resourceLoader } from "../resource/resourceLoader";
+import type { ApiPlayerData } from "../resource/resourceLoader";
 import { isBoxCollide, pixelToTile } from "../utils";
 import {
   LIFE_RESTORE_PERCENT,
@@ -570,6 +571,72 @@ export class Player extends PlayerCombat {
       return true;
     } catch (error) {
       logger.error(`[Player] Error loading:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * 从 API 玩家数据加载（替代 save/game/PlayerX.ini）
+   * 用于初始存档 (index=0) 加载，数据来自 /api/data 的 players 数组
+   */
+  async loadFromApiData(data: ApiPlayerData): Promise<boolean> {
+    await this.levelManager.initialize();
+
+    try {
+      // 基本信息
+      this.name = data.name;
+      if (data.npcIni) {
+        this.setNpcIni(data.npcIni);
+      }
+      this.kind = data.kind;
+      this.relation = data.relation;
+      this.pathFinder = data.pathFinder;
+
+      // 配置字符串
+      if (data.bodyIni) this.bodyIni = data.bodyIni;
+      if (data.flyIni) this.setFlyIni(data.flyIni);
+      if (data.flyIni2) this.setFlyIni2(data.flyIni2);
+      if (data.deathScript) this.deathScript = data.deathScript;
+      if (data.scriptFile) this.scriptFile = data.scriptFile;
+      if (data.levelIni) this.levelIniFile = data.levelIni;
+      if (data.timeScript) this.timerScript = data.timeScript;
+
+      // 位置
+      this.setPosition(data.mapX, data.mapY);
+      this.setDirection(data.dir);
+
+      // 范围
+      this.idle = data.idle;
+      this.visionRadius = data.visionRadius;
+      this.dialogRadius = data.dialogRadius;
+      this.attackRadius = data.attackRadius;
+
+      // 属性 - 先设置 Max 再设置当前值
+      this.level = data.level;
+      this.exp = data.exp;
+      this.levelUpExp = data.levelUpExp;
+      this.lifeMax = data.lifeMax;
+      this.life = data.life;
+      this.thewMax = data.thewMax;
+      this.thew = data.thew;
+      this.manaMax = data.manaMax;
+      this.mana = data.mana;
+      this.attack = data.attack;
+      this.attackLevel = data.attackLevel;
+      this.defend = data.defend;
+      this.evade = data.evade;
+      this.lum = data.lum;
+      this.walkSpeed = data.walkSpeed;
+
+      // Player 特有
+      this.money = data.money;
+      this.manaLimit = data.manaLimit !== 0;
+      this.expBonus = data.expBonus;
+
+      logger.info(`[Player] Loaded from API data: ${data.name} at (${data.mapX}, ${data.mapY})`);
+      return true;
+    } catch (error) {
+      logger.error(`[Player] Error loading from API data:`, error);
       return false;
     }
   }

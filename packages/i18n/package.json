@@ -5,20 +5,17 @@
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "files": [
-    "dist"
-  ],
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
+      "types": "./src/index.ts",
       "default": "./dist/index.js"
     },
     "./locales/zh": {
-      "types": "./dist/locales/zh.d.ts",
+      "types": "./src/locales/zh.ts",
       "default": "./dist/locales/zh.js"
     },
     "./locales/en": {
-      "types": "./dist/locales/en.d.ts",
+      "types": "./src/locales/en.ts",
       "default": "./dist/locales/en.js"
     }
   },

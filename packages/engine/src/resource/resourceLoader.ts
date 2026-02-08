@@ -1300,19 +1300,175 @@ export interface ApiShopData {
   items: ApiShopItemData[];
 }
 
+/**
+ * API 返回的玩家角色数据
+ */
+export interface ApiPlayerData {
+  id: string;
+  gameId: string;
+  key: string;
+  name: string;
+  index: number;
+  npcIni: string;
+  bodyIni: string;
+  flyIni: string;
+  flyIni2: string;
+  levelIni: string;
+  deathScript: string;
+  scriptFile: string;
+  secondAttack: string;
+  timeScript: string;
+  mapX: number;
+  mapY: number;
+  desX: number;
+  desY: number;
+  dir: number;
+  kind: number;
+  relation: number;
+  pathFinder: number;
+  idle: number;
+  walkSpeed: number;
+  visionRadius: number;
+  attackRadius: number;
+  dialogRadius: number;
+  attackLevel: number;
+  life: number;
+  lifeMax: number;
+  mana: number;
+  manaMax: number;
+  thew: number;
+  thewMax: number;
+  attack: number;
+  defend: number;
+  evade: number;
+  exp: number;
+  levelUpExp: number;
+  level: number;
+  money: number;
+  lum: number;
+  action: number;
+  state: number;
+  doing: number;
+  fight: number;
+  magic: number;
+  belong: number;
+  expBonus: number;
+  manaLimit: number;
+  timeCount: number;
+  timeLimit: number;
+  timeTrigger: number;
+}
+
+/**
+ * API 返回的游戏全局配置
+ */
+export interface ApiConfigResponse {
+  gameName: string;
+  gameVersion: string;
+  gameDescription: string;
+  playerKey: string;
+  newGameScript: string;
+  portraitAsf: string;
+  player: {
+    thewCost: {
+      runCost: number;
+      attackCost: number;
+      jumpCost: number;
+      useThewWhenNormalRun: boolean;
+    };
+    restore: {
+      lifeRestorePercent: number;
+      thewRestorePercent: number;
+      manaRestorePercent: number;
+      restoreIntervalMs: number;
+      sittingManaRestoreInterval: number;
+    };
+    speed: {
+      baseSpeed: number;
+      runSpeedFold: number;
+      minChangeMoveSpeedPercent: number;
+    };
+    combat: {
+      maxNonFightSeconds: number;
+      dialogRadius: number;
+    };
+  };
+  drop: unknown;
+}
+
 export interface ApiDataResponse {
   magics: ApiMagicResponse;
   goods: ApiGoodsData[];
   shops: ApiShopData[];
   npcs: ApiNpcResponse;
   objs: ApiObjResponse;
+  players: ApiPlayerData[];
+  portraits: Array<{ index: number; asfFile: string }>;
+}
+
+// ========== 共享状态 ==========
+
+let currentGameSlug = "";
+
+// ========== 游戏配置缓存 ==========
+
+let cachedGameConfig: ApiConfigResponse | null = null;
+let isGameConfigLoadedFlag = false;
+let configLoadingPromise: Promise<void> | null = null;
+
+/**
+ * 从 API 加载游戏全局配置
+ */
+export async function loadGameConfig(gameSlug: string, force = false): Promise<void> {
+  if (!force && isGameConfigLoadedFlag && currentGameSlug === gameSlug) {
+    return;
+  }
+
+  if (configLoadingPromise && currentGameSlug === gameSlug) {
+    await configLoadingPromise;
+    return;
+  }
+
+  configLoadingPromise = (async () => {
+    const apiUrl = `/game/${gameSlug}/api/config?_t=${Date.now()}`;
+    logger.info(`[ResourceLoader] Loading game config from ${apiUrl}`);
+
+    try {
+      const response = await fetch(apiUrl);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      cachedGameConfig = await response.json();
+      isGameConfigLoadedFlag = true;
+      currentGameSlug = gameSlug;
+
+      logger.info(
+        `[ResourceLoader] Loaded config: playerKey=${cachedGameConfig?.playerKey}, gameName=${cachedGameConfig?.gameName}`
+      );
+    } catch (error) {
+      logger.error(`[ResourceLoader] Failed to load game config:`, error);
+      throw error;
+    } finally {
+      configLoadingPromise = null;
+    }
+  })();
+
+  await configLoadingPromise;
+}
+
+export function isGameConfigLoaded(): boolean {
+  return isGameConfigLoadedFlag;
+}
+
+export function getGameConfig(): ApiConfigResponse | null {
+  return cachedGameConfig;
 }
 
 // ========== 游戏数据缓存 ==========
 
 let cachedGameData: ApiDataResponse | null = null;
 let isGameDataLoadedFlag = false;
-let currentGameSlug = "";
 let loadingPromise: Promise<void> | null = null;
 const cacheBuilders: Array<() => void | Promise<void>> = [];
 
@@ -1403,4 +1559,12 @@ export function getObjsData(): ApiObjResponse | null {
 
 export function getShopsData(): ApiShopData[] | null {
   return cachedGameData?.shops ?? null;
+}
+
+export function getPlayersData(): ApiPlayerData[] | null {
+  return cachedGameData?.players ?? null;
+}
+
+export function getPortraitsData(): Array<{ index: number; asfFile: string }> | null {
+  return cachedGameData?.portraits ?? null;
 }

@@ -13,6 +13,7 @@ export function PlayerListPanel({ basePath }: { basePath: string }) {
   const navigate = useNavigate();
   const gameId = currentGame?.id;
   const [showImportModal, setShowImportModal] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   const { data: playerList, isLoading, refetch } = trpc.player.list.useQuery(
     { gameId: gameId! },
@@ -57,7 +58,7 @@ export function PlayerListPanel({ basePath }: { basePath: string }) {
           </button>
           <button
             type="button"
-            onClick={() => navigate(`${basePath}/new/basic`)}
+            onClick={() => setShowCreateModal(true)}
             className="flex items-center gap-2 px-2 py-1.5 text-xs text-[#cccccc] hover:bg-[#3c3c3c] rounded transition-colors"
           >
             {DashboardIcons.add}
@@ -113,7 +114,107 @@ export function PlayerListPanel({ basePath }: { basePath: string }) {
           batchResult={batchImportMutation.data ?? null}
         />
       )}
+
+      {/* 新建角色模态框 */}
+      {showCreateModal && gameId && (
+        <CreatePlayerModal
+          onClose={() => setShowCreateModal(false)}
+          basePath={basePath}
+          gameId={gameId}
+          onSuccess={() => refetch()}
+        />
+      )}
     </>
+  );
+}
+
+// ========== 新建角色模态框 ==========
+
+function CreatePlayerModal({
+  onClose,
+  basePath,
+  gameId,
+  onSuccess,
+}: {
+  onClose: () => void;
+  basePath: string;
+  gameId: string;
+  onSuccess: () => void;
+}) {
+  const navigate = useNavigate();
+  const [name, setName] = useState("");
+  const [key, setKey] = useState("");
+
+  const createMutation = trpc.player.create.useMutation({
+    onSuccess: (data) => {
+      onSuccess();
+      onClose();
+      navigate(`${basePath}/${data.id}`);
+    },
+  });
+
+  const handleCreate = () => {
+    createMutation.mutate({
+      gameId,
+      key,
+      name,
+    });
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="bg-[#252526] rounded-lg border border-[#454545] w-96">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-[#454545]">
+          <h3 className="font-medium text-white">新建角色</h3>
+          <button type="button" onClick={onClose} className="text-[#858585] hover:text-white">
+            ✕
+          </button>
+        </div>
+        <div className="p-4 space-y-4">
+          <div>
+            <label className="block text-xs text-[#858585] mb-1">角色 Key <span className="text-red-400">*</span></label>
+            <input
+              type="text"
+              value={key}
+              onChange={(e) => setKey(e.target.value)}
+              className="w-full px-3 py-2 bg-[#3c3c3c] border border-[#454545] rounded text-white text-sm focus:outline-none focus:border-[#007acc]"
+              placeholder="如 Player0.ini"
+            />
+            <p className="text-xs text-[#666] mt-1">唯一标识符，对应 INI 文件名</p>
+          </div>
+          <div>
+            <label className="block text-xs text-[#858585] mb-1">角色名称 <span className="text-red-400">*</span></label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="w-full px-3 py-2 bg-[#3c3c3c] border border-[#454545] rounded text-white text-sm focus:outline-none focus:border-[#007acc]"
+              placeholder="输入角色名称"
+            />
+          </div>
+          {createMutation.error && (
+            <div className="text-red-400 text-sm">{createMutation.error.message}</div>
+          )}
+        </div>
+        <div className="flex justify-end gap-2 px-4 py-3 border-t border-[#454545]">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 text-sm text-[#cccccc] hover:bg-[#3c3c3c] rounded"
+          >
+            取消
+          </button>
+          <button
+            type="button"
+            onClick={handleCreate}
+            disabled={!key.trim() || !name.trim() || createMutation.isPending}
+            className="px-4 py-2 text-sm bg-[#0e639c] hover:bg-[#1177bb] text-white rounded disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {createMutation.isPending ? "创建中..." : "创建"}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 

@@ -368,7 +368,7 @@ export class GameEngine implements IEngineContext {
       // 注：LevelManager 由 Player 持有，MagicExpConfig 由 MagicListManager 持有
       this.emitLoadProgress(10, "加载全局资源...");
       await this.talkTextList.initialize();
-      await this.partnerList.initialize();
+      this.partnerList.initialize();
 
       // ========== 阶段2：创建渲染器 ==========
       this.emitLoadProgress(20, "创建渲染器...");

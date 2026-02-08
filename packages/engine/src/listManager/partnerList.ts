@@ -1,68 +1,33 @@
 /**
  * PartnerList - based on JxqyHD Engine/ListManager/PartnerList.cs
- * Manages partner index lookup from PartnerIdx.ini
+ * Manages partner index lookup from /api/data players
  */
 
 import { logger } from "../core/logger";
-import { resourceLoader } from "../resource/resourceLoader";
+import { getPlayersData } from "../resource/resourceLoader";
 
 export class PartnerListManager {
   private list: Map<number, string> = new Map();
   private isInitialized = false;
 
   /**
-   * Initialize the partner list from PartnerIdx.ini
+   * Initialize the partner list from /api/data players
    */
-  async initialize(): Promise<void> {
+  initialize(): void {
     if (this.isInitialized) return;
 
-    const path = "/resources/Content/PartnerIdx.ini";
-    try {
-      const content = await resourceLoader.loadText(path);
-      if (!content) {
-        logger.warn("[PartnerList] Failed to load PartnerIdx.ini");
-        return;
-      }
-
-      this.parseContent(content);
-      this.isInitialized = true;
-      logger.log(`[PartnerList] Loaded ${this.list.size} partner entries`);
-    } catch (error) {
-      logger.error("[PartnerList] Error loading PartnerIdx.ini:", error);
+    const players = getPlayersData();
+    if (!players || players.length === 0) {
+      logger.warn("[PartnerList] No players data available from API");
+      return;
     }
-  }
 
-  private parseContent(content: string): void {
-    const lines = content.split("\n");
-    let inSection = false;
-
-    for (const rawLine of lines) {
-      const line = rawLine.trim();
-
-      if (!line || line.startsWith(";")) {
-        continue;
-      }
-
-      // Check for section header
-      if (line.startsWith("[")) {
-        inSection = true;
-        continue;
-      }
-
-      if (!inSection) continue;
-
-      // Parse key=value
-      const eqIdx = line.indexOf("=");
-      if (eqIdx === -1) continue;
-
-      const key = line.substring(0, eqIdx).trim();
-      const value = line.substring(eqIdx + 1).trim();
-
-      const index = parseInt(key, 10);
-      if (!Number.isNaN(index)) {
-        this.list.set(index, value);
-      }
+    for (const player of players) {
+      this.list.set(player.index, player.name);
     }
+
+    this.isInitialized = true;
+    logger.log(`[PartnerList] Loaded ${this.list.size} partner entries from API data`);
   }
 
   /**

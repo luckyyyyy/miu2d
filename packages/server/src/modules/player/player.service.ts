@@ -15,7 +15,7 @@ import type {
 	BatchImportPlayerResult,
 } from "@miu2d/types";
 import { createDefaultPlayer } from "@miu2d/types";
-import { and, eq, desc } from "drizzle-orm";
+import { and, eq, desc, sql } from "drizzle-orm";
 import { db } from "../../db/client";
 import { gameMembers, games, players } from "../../db/schema";
 import type { Language } from "../../i18n";
@@ -139,6 +139,7 @@ export class PlayerService {
 
 	/**
 	 * 创建玩家角色
+	 * index 未提供时自动递增（当前最大 index + 1）
 	 */
 	async create(
 		input: CreatePlayerInput,
@@ -154,7 +155,17 @@ export class PlayerService {
 		};
 
 		// 分离索引字段和 data 字段
-		const { gameId, key, name, index, id: _id, createdAt: _c, updatedAt: _u, ...data } = fullPlayer;
+		const { gameId, key, name, index: inputIndex, id: _id, createdAt: _c, updatedAt: _u, ...data } = fullPlayer;
+
+		// index 未指定时自动递增
+		let index = inputIndex;
+		if (index === undefined || index === null) {
+			const [result] = await db
+				.select({ maxIndex: sql<number>`coalesce(max(${players.index}), -1)` })
+				.from(players)
+				.where(eq(players.gameId, gameId));
+			index = (result?.maxIndex ?? -1) + 1;
+		}
 
 		const [row] = await db
 			.insert(players)
@@ -162,7 +173,7 @@ export class PlayerService {
 				gameId,
 				key,
 				name: name ?? "",
-				index: index ?? 0,
+				index,
 				data,
 			})
 			.returning();

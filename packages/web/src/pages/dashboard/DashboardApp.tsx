@@ -103,8 +103,6 @@ export function DashboardApp() {
         {/* 角色编辑 */}
         <Route path="player">
           <Route index element={<PlayerListPage />} />
-          <Route path="new" element={<Navigate to="basic" replace />} />
-          <Route path="new/:tab" element={<PlayerDetailPage />} />
           <Route path=":playerId" element={<Navigate to="basic" replace />} />
           <Route path=":playerId/:tab" element={<PlayerDetailPage />} />
         </Route>

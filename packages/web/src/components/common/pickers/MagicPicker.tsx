@@ -87,7 +87,7 @@ export function MagicPicker({
         {value ? (
           <div className="flex items-center gap-2 flex-1 min-w-0">
             {/* 武功图标 */}
-            <span className="text-sm flex-shrink-0">⚔️</span>
+            <MagicIcon iconPath={selectedMagic?.icon} gameSlug={gameSlug} size={20} />
 
             {/* 武功名称 */}
             <span className="text-xs text-[#cccccc] truncate flex-1" title={value}>

@@ -195,7 +195,8 @@ export type GetPlayerInput = z.infer<typeof GetPlayerInputSchema>;
 export const CreatePlayerInputSchema = PlayerBaseSchema.extend({
   gameId: z.string().uuid(),
   key: z.string(),
-}).partial().required({ gameId: true, key: true });
+  name: z.string(),
+}).partial().required({ gameId: true, key: true, name: true });
 export type CreatePlayerInput = z.infer<typeof CreatePlayerInputSchema>;
 
 export const UpdatePlayerInputSchema = PlayerBaseSchema.partial().extend({

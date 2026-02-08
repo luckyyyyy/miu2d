@@ -396,10 +396,6 @@ export const DefaultPaths = {
   get magicExp(): string {
     return ResourcePath.level("MagicExp.ini");
   },
-  /** 新游戏脚本 */
-  get newGameScript(): string {
-    return ResourcePath.scriptCommon("NewGame.txt");
-  },
   /** 对话索引文件 */
   get talkIndex(): string {
     return ResourcePath.content("TalkIndex.txt");

@@ -24,7 +24,7 @@
 
 import type { AudioManager } from "../audio";
 import { applyConfigToPlayer, loadCharacterConfig } from "../character/iniParser";
-import { DefaultPaths, ResourcePath } from "../config/resourcePaths";
+import { ResourcePath } from "../config/resourcePaths";
 import { logger } from "../core/logger";
 import type { ScreenEffects } from "../effects";
 import type { GuiManager } from "../gui/guiManager";
@@ -36,6 +36,7 @@ import type { GoodsListManager } from "../player/goods";
 import type { MagicListManager } from "../player/magic/magicListManager";
 import type { Player } from "../player/player";
 import { resourceLoader } from "../resource/resourceLoader";
+import { getGameConfig, getPlayersData } from "../resource/resourceLoader";
 import type { ScriptExecutor } from "../script/executor";
 import { type CharacterSaveSlot, formatSaveTime, type GoodsItemData, type MagicItemData, type NpcSaveItem, type ObjSaveItem, type PlayerSaveData, SAVE_VERSION, type SaveData, type TrapGroupValue, saveGame, loadGame, captureScreenshot } from "./storage";
 
@@ -269,9 +270,16 @@ export class Loader {
     // 以黑屏开始（用于淡入淡出特效）
     screenEffects.setFadeTransparency(1);
 
-    // 运行 NewGame 脚本
+    // 运行 NewGame 脚本（从 /api/config 获取内联脚本内容）
     const scriptExecutor = getScriptExecutor();
-    await scriptExecutor.runScript(DefaultPaths.newGameScript);
+    const config = getGameConfig();
+    const newGameScriptContent = config?.newGameScript;
+    if (newGameScriptContent) {
+      logger.info(`[Loader] Running newGame script from API config`);
+      await scriptExecutor.runScriptContent(newGameScriptContent, "NewGame.txt");
+    } else {
+      logger.error(`[Loader] No newGameScript found in API config`);
+    }
 
     logger.log("[Loader] New game started");
   }
@@ -551,15 +559,26 @@ export class Loader {
       // Step 2.5: 预读玩家 npcIni 以设置 NpcIniIndex
       // 必须在加载武功列表之前设置，否则 SpecialAttackTexture 预加载会使用错误的索引
       // 例如 z-杨影枫2.ini -> NpcIniIndex=2 -> 云生结海攻击2.asf（而非默认的1）
-      const playerPath = `${basePath}/Player${chrIndex}.ini`;
-      try {
-        const playerConfig = await loadCharacterConfig(playerPath);
-        if (playerConfig?.npcIni) {
-          await player.setNpcIni(playerConfig.npcIni);
-          logger.debug(`[Loader] Pre-set NpcIni: ${playerConfig.npcIni} (index=${player.npcIniIndex})`);
+      const playerKey = `Player${chrIndex}.ini`;
+
+      // 初始存档 (index=0) 从 API 数据加载玩家
+      const apiPlayerData = index === 0 ? this.findApiPlayer(playerKey) : null;
+
+      if (apiPlayerData?.npcIni) {
+        await player.setNpcIni(apiPlayerData.npcIni);
+        logger.debug(`[Loader] Pre-set NpcIni from API: ${apiPlayerData.npcIni} (index=${player.npcIniIndex})`);
+      } else {
+        // 用户存档从文件加载
+        const playerPath = `${basePath}/Player${chrIndex}.ini`;
+        try {
+          const playerConfig = await loadCharacterConfig(playerPath);
+          if (playerConfig?.npcIni) {
+            await player.setNpcIni(playerConfig.npcIni);
+            logger.debug(`[Loader] Pre-set NpcIni: ${playerConfig.npcIni} (index=${player.npcIniIndex})`);
+          }
+        } catch (e) {
+          logger.debug(`[Loader] Could not pre-read player config for NpcIniIndex`, e);
         }
-      } catch (e) {
-        logger.debug(`[Loader] Could not pre-read player config for NpcIniIndex`, e);
       }
 
       // Step 3: 加载 Magic、Goods、Memo (72-78%)
@@ -584,9 +603,16 @@ export class Loader {
 
       // Step 4: 加载玩家 (78-88%)
       this.reportProgress(78, "加载玩家...");
-      // playerPath 已在 Step 2.5 定义
-      logger.debug(`[Loader] Loading player from: ${playerPath}`);
-      await player.loadFromFile(playerPath);
+      if (apiPlayerData) {
+        // 初始存档从 API 数据加载
+        logger.debug(`[Loader] Loading player from API data: ${apiPlayerData.key}`);
+        await player.loadFromApiData(apiPlayerData);
+      } else {
+        // 用户存档从文件加载
+        const playerPath = `${basePath}/Player${chrIndex}.ini`;
+        logger.debug(`[Loader] Loading player from: ${playerPath}`);
+        await player.loadFromFile(playerPath);
+      }
 
       // 加载玩家精灵 (80-88%)
       this.reportProgress(80, "加载玩家精灵...");
@@ -689,6 +715,15 @@ export class Loader {
     } catch (error) {
       logger.warn(`[Loader] Error loading partner file:`, error);
     }
+  }
+
+  /**
+   * 从 API 数据中查找指定 key 的玩家数据
+   */
+  private findApiPlayer(playerKey: string): import("../resource/resourceLoader").ApiPlayerData | null {
+    const players = getPlayersData();
+    if (!players) return null;
+    return players.find(p => p.key === playerKey) ?? null;
   }
 
   /**

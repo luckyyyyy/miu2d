@@ -13,7 +13,7 @@
 
 import { logger } from "@miu2d/engine/core/logger";
 import { setResourcePaths } from "@miu2d/engine/config";
-import { loadGameData, reloadGameData } from "@miu2d/engine/resource";
+import { loadGameData, loadGameConfig, reloadGameData } from "@miu2d/engine/resource";
 import { setLevelConfigGameSlug, initNpcLevelConfig } from "@miu2d/engine/character/level";
 import { resourceLoader } from "@miu2d/engine/resource/resourceLoader";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -142,10 +142,12 @@ export default function GameScreen() {
         logger.warn(`[GameScreen] Failed to load NPC level config:`, error);
       });
 
-      // 统一加载所有游戏数据（武功、物品、NPC、物体）
-      loadGameData(gameSlug).catch((error) => {
-        logger.warn(`[GameScreen] Failed to load game data from API:`, error);
-      });
+      // 先加载游戏全局配置，再加载游戏数据
+      loadGameConfig(gameSlug)
+        .then(() => loadGameData(gameSlug))
+        .catch((error) => {
+          logger.warn(`[GameScreen] Failed to load game config/data from API:`, error);
+        });
     }
   }, [gameSlug]);
 

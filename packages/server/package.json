@@ -6,10 +6,9 @@
     "./trpc": "./src/trpc/@generated/app-router.ts"
   },
   "scripts": {
-    "predev": "pnpm -C ../types build && pnpm -C ../i18n build",
     "gen:trpc": "tsx scripts/generate-trpc-types.ts",
     "gen:trpc:watch": "tsx scripts/generate-trpc-types.ts --watch",
-    "dev": "concurrently -n trpc,nest \"pnpm gen:trpc:watch\" \"nest start --watch\"",
+    "dev": "concurrently -n types,i18n,trpc,nest \"pnpm -C ../types dev\" \"pnpm -C ../i18n dev\" \"pnpm gen:trpc:watch\" \"nest start --watch\"",
     "prebuild": "pnpm -C ../types build && pnpm -C ../i18n build",
     "build": "pnpm gen:trpc && nest build",
     "start": "node dist/main.js",
