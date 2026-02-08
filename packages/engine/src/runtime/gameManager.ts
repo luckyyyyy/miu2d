@@ -1168,71 +1168,19 @@ export class GameManager {
   // ============= Map Trap =============
 
   /**
-   * 获取当前存档槽位对应的 localStorage 键名
-   * 使用存档槽位区分不同存档的运行时数据，避免跨存档污染
-   */
-  private getRuntimeTrapsKey(): string {
-    const slot = this.loader.currentSaveSlot;
-    return slot === null ? "jxqy_traps_runtime_new" : `jxqy_traps_runtime_slot${slot}`;
-  }
-
-  /**
    * Save map trap configuration
    * MapBase.SaveTrap(@"save\game\Traps.ini")
    *
-   * 这个命令允许脚本在游戏过程中立即保存陷阱配置，而不需要完整存档。
-   * 例如：玩家触发陷阱后，脚本修改陷阱配置并调用 SaveMapTrap，
-   * 即使玩家不存档就退出，下次读档时陷阱配置也会保留。
-   *
-   * Web 版实现：保存到 localStorage（按存档槽位区分），在 loadGame 时会读取并合并。
+   * C# 原版会写文件到 save\game\Traps.ini，用于脚本中途保存陷阱状态。
+   * Web 版中陷阱数据始终保持在内存 (map._traps / map._ignoredTrapsIndex)，
+   * 在用户存档时 collectSaveData() 会自动收集并持久化到 localStorage。
+   * 因此 SaveMapTrap 只需记录日志，无需额外操作。
    */
   saveMapTrap(): void {
     const { ignoreList, mapTraps } = this.map.collectTrapDataForSave();
-    try {
-      const key = this.getRuntimeTrapsKey();
-      const trapData = { snapshot: ignoreList, groups: mapTraps };
-      localStorage.setItem(key, JSON.stringify(trapData));
-      logger.log(
-        `[GameManager] SaveMapTrap: saved ${ignoreList.length} snapshot indices, ${Object.keys(mapTraps).length} groups to ${key}`
-      );
-    } catch (e) {
-      logger.error("[GameManager] SaveMapTrap failed:", e);
-    }
-  }
-
-  /**
-   * 清除运行时保存的陷阱数据
-   * 在加载存档或开始新游戏时调用
-   */
-  clearRuntimeTraps(): void {
-    const key = this.getRuntimeTrapsKey();
-    localStorage.removeItem(key);
-    logger.debug(`[GameManager] Runtime traps cleared for ${key}`);
-  }
-
-  /**
-   * 加载运行时保存的陷阱数据（如果存在）
-   * 在 loadGame 完成后调用，合并脚本通过 SaveMapTrap 保存的数据
-   */
-  loadRuntimeTraps(): boolean {
-    try {
-      const key = this.getRuntimeTrapsKey();
-      const json = localStorage.getItem(key);
-      if (!json) return false;
-
-      const trapData = JSON.parse(json) as {
-        snapshot: number[];
-        groups?: Record<string, Record<number, string>>;
-      };
-
-      this.map.loadTrapsFromSave(trapData.groups, trapData.snapshot || []);
-
-      logger.log(`[GameManager] LoadRuntimeTraps: merged runtime trap data from ${key}`);
-      return true;
-    } catch (e) {
-      logger.warn("[GameManager] LoadRuntimeTraps failed:", e);
-      return false;
-    }
+    logger.log(
+      `[GameManager] SaveMapTrap: ${ignoreList.length} snapshot indices, ${Object.keys(mapTraps).length} trap groups (in memory, will persist on save)`
+    );
   }
 
   // ============= Camera =============

@@ -1188,9 +1188,7 @@ export class Loader {
       npcManager.clearNpcGroups();
       objManager.clearObjGroups();
 
-      // 清除运行时保存的陷阱数据（避免跨存档污染）
-      // Reference: 读档时会从存档复制 Traps.ini 到 save/game/
-      localStorage.removeItem("jxqy_traps_runtime");
+
 
       // Step 4: 加载游戏状态
       const state = data.state;
