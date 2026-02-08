@@ -356,8 +356,7 @@ export class NpcAI {
       if (this.npcManager) {
         const dead = this.npcManager.findFriendDeadKilledByLiveCharacter(npc, npc.visionRadius);
         if (dead) {
-          const lastAttacker = (dead as unknown as { _lastAttacker?: Character | null })
-            ._lastAttacker;
+          const lastAttacker = dead.lastAttacker;
           if (lastAttacker && !lastAttacker.isDeathInvoked) {
             target = lastAttacker;
             this._keepDistanceCharacterWhenFriendDeath = target;

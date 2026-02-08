@@ -7,52 +7,65 @@ import type { ScriptCommandContext } from "../scriptContext/types";
 import { deleteAllSaves } from "../storage";
 import { logger } from "../../core/logger";
 import { resolveScriptPath } from "../../config/resourcePaths";
+import { BlockingResolver, BlockingEvent } from "../../script/blockingResolver";
 
-export function createDialogAPI(ctx: ScriptCommandContext): DialogAPI {
+export function createDialogAPI(ctx: ScriptCommandContext, resolver: BlockingResolver): DialogAPI {
   const { guiManager, talkTextList } = ctx;
 
   return {
-    show: (text, portraitIndex) => {
+    show: async (text, portraitIndex) => {
       ctx.clearMouseInput?.();
       guiManager.showDialog(text, portraitIndex);
+      await resolver.waitForEvent(BlockingEvent.DIALOG_CLOSED);
     },
+
+    showTalk: async (startId, endId) => {
+      const details = talkTextList.getTextDetails(startId, endId);
+      for (const detail of details) {
+        ctx.clearMouseInput?.();
+        guiManager.showDialog(detail.text, detail.portraitIndex);
+        await resolver.waitForEvent(BlockingEvent.DIALOG_CLOSED);
+      }
+    },
+
     showMessage: (text) => { guiManager.showMessage(text); },
-    showSelection: (message, selectA, selectB) => {
+
+    showSelection: async (message, selectA, selectB) => {
       ctx.clearMouseInput?.();
       guiManager.showDialogSelection(message, selectA, selectB);
+      return resolver.waitForEvent<number>(BlockingEvent.SELECTION_MADE);
     },
-    showSelectionList: (options, message?) => {
+
+    showSelectionList: async (options, message?) => {
       ctx.clearMouseInput?.();
       guiManager.showSelection(
         options.map(o => ({ ...o, enabled: true })),
         message || "",
       );
+      return resolver.waitForEvent<number>(BlockingEvent.SELECTION_MADE);
     },
-    chooseEx: (message, options, _resultVar) => {
+
+    chooseEx: async (message, options, _resultVar) => {
       const selectionOptions = options.map((opt, idx) => ({
         text: opt.text,
         label: String(idx),
         enabled: true,
       }));
       guiManager.showSelection(selectionOptions, message);
+      return resolver.waitForEvent<number>(BlockingEvent.SELECTION_MADE);
     },
-    chooseMultiple: (columns, rows, varPrefix, message, options) => {
+
+    chooseMultiple: async (columns, rows, _varPrefix, message, options) => {
       const selectionOptions = options.map((opt, idx) => ({
         text: opt.text,
         label: String(idx),
         enabled: opt.condition !== "false",
       }));
       guiManager.showMultiSelection(columns, rows, message, selectionOptions);
-      (guiManager as unknown as { multiSelectionVarPrefix?: string }).multiSelectionVarPrefix = varPrefix;
+      return resolver.waitForEvent<number[]>(BlockingEvent.CHOOSE_MULTIPLE_DONE);
     },
-    isChooseExEnd: () => !guiManager.getState().selection.isVisible,
-    isChooseMultipleEnd: () => guiManager.isMultiSelectionEnd(),
-    getSelectionResult: () => guiManager.getState().selection.selectedIndex,
-    getMultiSelectionResult: () => guiManager.getState().selection.selectedIndex,
-    getChooseMultipleResult: () => guiManager.getMultiSelectionResult(),
+
     showSystemMessage: (msg, stayTime?) => { guiManager.showMessage(msg, stayTime || 3000); },
-    waitForClose: () => { /* Handled by script executor */ },
-    waitForSelection: () => { /* Handled by script executor */ },
     talkTextList,
   };
 }
@@ -102,7 +115,7 @@ export function createSaveAPI(ctx: ScriptCommandContext): SaveAPI {
   };
 }
 
-export function createScriptRunnerAPI(ctx: ScriptCommandContext): ScriptRunnerAPI {
+export function createScriptRunnerAPI(ctx: ScriptCommandContext, resolver: BlockingResolver): ScriptRunnerAPI {
   return {
     run: async (scriptFile) => {
       const basePath = ctx.getScriptBasePath();
@@ -117,7 +130,10 @@ export function createScriptRunnerAPI(ctx: ScriptCommandContext): ScriptRunnerAP
       // Handled by command handler directly
     },
     setShowMapPos: (show) => { ctx.setScriptShowMapPos(show); },
-    sleep: (_ms) => { /* Handled by executor */ },
+    sleep: async (ms) => {
+      const start = performance.now();
+      await resolver.waitForCondition(() => performance.now() - start >= ms);
+    },
     loadGame: async (index) => { await ctx.loadGameSave(index); },
   };
 }

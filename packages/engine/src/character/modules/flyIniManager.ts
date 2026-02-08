@@ -19,6 +19,56 @@ export interface FlyIniInfo {
   useDistance: number;
 }
 
+// === 纯函数：技能列表解析 ===
+
+/**
+ * 解析技能列表字符串（带距离）
+ *
+ * @param listStr 格式: "Magic1:Distance1;Magic2:Distance2" 或 "Magic1;Magic2"
+ */
+export function parseMagicList(listStr: string): FlyIniInfo[] {
+  const result: FlyIniInfo[] = [];
+  if (!listStr) return result;
+
+  const parts = listStr.split(/[;；]/);
+  for (const part of parts) {
+    const trimmed = part.trim();
+    if (!trimmed) continue;
+
+    const colonMatch = trimmed.match(/^(.+?)[：:](\d+)$/);
+    if (colonMatch) {
+      const magicIni = colonMatch[1].trim();
+      const useDistance = parseInt(colonMatch[2], 10) || 0;
+      result.push({ magicIni, useDistance });
+    } else {
+      result.push({ magicIni: trimmed, useDistance: 0 });
+    }
+  }
+  return result;
+}
+
+/**
+ * 解析技能列表字符串（不带距离）
+ */
+export function parseMagicListNoDistance(listStr: string): string[] {
+  const result: string[] = [];
+  if (!listStr) return result;
+
+  const parts = listStr.split(/[;；]/);
+  for (const part of parts) {
+    const trimmed = part.trim();
+    if (!trimmed) continue;
+
+    const colonMatch = trimmed.match(/^(.+?)[：:](\d+)$/);
+    if (colonMatch) {
+      result.push(colonMatch[1].trim());
+    } else {
+      result.push(trimmed);
+    }
+  }
+  return result;
+}
+
 /**
  * FlyIniManager - 管理角色的技能配置列表
  */
@@ -315,64 +365,12 @@ export class FlyIniManager {
    * 从字符串添加多个技能
    */
   private addMagicsFromString(listStr: string, attackRadius: number): void {
-    const magics = FlyIniManager.parseMagicList(listStr);
+    const magics = parseMagicList(listStr);
     for (const item of magics) {
       const useDistance = item.useDistance === 0 ? attackRadius : item.useDistance;
       this._flyIniInfos.push({ useDistance, magicIni: item.magicIni });
     }
     this._flyIniInfos.sort((a, b) => a.useDistance - b.useDistance);
-  }
-
-  // === 静态解析方法 ===
-
-  /**
-   * 解析技能列表字符串（带距离）
-   *
-   * @param listStr 格式: "Magic1:Distance1;Magic2:Distance2" 或 "Magic1;Magic2"
-   */
-  static parseMagicList(listStr: string): FlyIniInfo[] {
-    const result: FlyIniInfo[] = [];
-    if (!listStr) return result;
-
-    const parts = listStr.split(/[;；]/);
-    for (const part of parts) {
-      const trimmed = part.trim();
-      if (!trimmed) continue;
-
-      const colonMatch = trimmed.match(/^(.+?)[：:](\d+)$/);
-      if (colonMatch) {
-        const magicIni = colonMatch[1].trim();
-        const useDistance = parseInt(colonMatch[2], 10) || 0;
-        result.push({ magicIni, useDistance });
-      } else {
-        // 没有距离，使用 0（后续会用 attackRadius）
-        result.push({ magicIni: trimmed, useDistance: 0 });
-      }
-    }
-    return result;
-  }
-
-  /**
-   * 解析技能列表字符串（不带距离）
-   *
-   */
-  static parseMagicListNoDistance(listStr: string): string[] {
-    const result: string[] = [];
-    if (!listStr) return result;
-
-    const parts = listStr.split(/[;；]/);
-    for (const part of parts) {
-      const trimmed = part.trim();
-      if (!trimmed) continue;
-
-      const colonMatch = trimmed.match(/^(.+?)[：:](\d+)$/);
-      if (colonMatch) {
-        result.push(colonMatch[1].trim());
-      } else {
-        result.push(trimmed);
-      }
-    }
-    return result;
   }
 
   /**

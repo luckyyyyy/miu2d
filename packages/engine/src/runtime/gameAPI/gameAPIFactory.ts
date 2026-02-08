@@ -8,6 +8,7 @@ import { ResourcePath } from "../../config/resourcePaths";
 import type { Npc } from "../../npc";
 import type { Player } from "../../player/player";
 import type { ScriptCommandContext } from "../scriptContext/types";
+import type { BlockingResolver } from "../../script/blockingResolver";
 
 import { createPlayerAPI } from "./playerAPI";
 import { createNpcAPI } from "./npcAPI";
@@ -79,29 +80,29 @@ function buildCommandContext(deps: ScriptContextDependencies): ScriptCommandCont
 /**
  * Create a complete GameAPI instance from dependencies.
  */
-export function createGameAPIImpl(deps: ScriptContextDependencies): {
+export function createGameAPIImpl(deps: ScriptContextDependencies, resolver: BlockingResolver): {
   api: GameAPI;
   ctx: ScriptCommandContext;
 } {
   const ctx = buildCommandContext(deps);
 
   const api: GameAPI = {
-    player: createPlayerAPI(ctx),
-    npc: createNpcAPI(ctx),
-    goods: createGoodsAPI(ctx),
+    player: createPlayerAPI(ctx, resolver),
+    npc: createNpcAPI(ctx, resolver),
+    goods: createGoodsAPI(ctx, resolver),
     magic: createMagicAPI(ctx),
     memo: createMemoAPI(ctx),
     map: createMapAPI(ctx),
     obj: createObjAPI(ctx),
-    camera: createCameraAPI(ctx),
-    audio: createAudioAPI(ctx),
-    effects: createEffectsAPI(ctx),
-    dialog: createDialogAPI(ctx),
+    camera: createCameraAPI(ctx, resolver),
+    audio: createAudioAPI(ctx, resolver),
+    effects: createEffectsAPI(ctx, resolver),
+    dialog: createDialogAPI(ctx, resolver),
     timer: createTimerAPI(ctx),
     variables: createVariableAPI(ctx),
     input: createInputAPI(ctx),
     save: createSaveAPI(ctx),
-    script: createScriptRunnerAPI(ctx),
+    script: createScriptRunnerAPI(ctx, resolver),
   };
 
   return { api, ctx };

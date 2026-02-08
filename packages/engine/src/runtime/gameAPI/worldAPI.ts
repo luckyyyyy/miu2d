@@ -6,6 +6,7 @@ import type { MapAPI, ObjAPI, CameraAPI, AudioAPI, EffectsAPI, TimerAPI } from "
 import type { ScriptCommandContext } from "../scriptContext/types";
 import { logger } from "../../core/logger";
 import { tileToPixel } from "../../utils";
+import type { BlockingResolver } from "../../script/blockingResolver";
 
 export function createMapAPI(ctx: ScriptCommandContext): MapAPI {
   return {
@@ -46,15 +47,19 @@ export function createObjAPI(ctx: ScriptCommandContext): ObjAPI {
   };
 }
 
-export function createCameraAPI(ctx: ScriptCommandContext): CameraAPI {
+export function createCameraAPI(ctx: ScriptCommandContext, resolver: BlockingResolver): CameraAPI {
   return {
-    move: (direction, distance, speed) => { ctx.cameraMoveTo(direction, distance, speed); },
-    isMoveEnd: () => !ctx.isCameraMoving(),
-    moveTo: (x, y, speed) => {
+    move: async (direction, distance, speed) => {
+      ctx.cameraMoveTo(direction, distance, speed);
+      if (!ctx.isCameraMoving()) return;
+      await resolver.waitForCondition(() => !ctx.isCameraMoving());
+    },
+    moveTo: async (x, y, speed) => {
       const pixelPos = tileToPixel(x, y);
       ctx.cameraMoveToPosition(pixelPos.x, pixelPos.y, speed);
+      if (ctx.isCameraMoveToPositionEnd()) return;
+      await resolver.waitForCondition(() => ctx.isCameraMoveToPositionEnd());
     },
-    isMoveToEnd: () => ctx.isCameraMoveToPositionEnd(),
     setPosition: (x, y) => {
       const pixelPos = tileToPixel(x, y);
       ctx.setCameraPosition(pixelPos.x, pixelPos.y);
@@ -64,7 +69,7 @@ export function createCameraAPI(ctx: ScriptCommandContext): CameraAPI {
   };
 }
 
-export function createAudioAPI(ctx: ScriptCommandContext): AudioAPI {
+export function createAudioAPI(ctx: ScriptCommandContext, resolver: BlockingResolver): AudioAPI {
   const { audioManager, guiManager } = ctx;
 
   return {
@@ -75,19 +80,28 @@ export function createAudioAPI(ctx: ScriptCommandContext): AudioAPI {
       else { audioManager.playSound(file); }
     },
     stopSound: () => { audioManager.stopAllSounds(); },
-    playMovie: (file) => { guiManager.playMovie(file); },
-    isMovieEnd: () => guiManager.isMovieEnd(),
+    playMovie: async (file) => {
+      guiManager.playMovie(file);
+      if (guiManager.isMovieEnd()) return;
+      await resolver.waitForCondition(() => guiManager.isMovieEnd());
+    },
   };
 }
 
-export function createEffectsAPI(ctx: ScriptCommandContext): EffectsAPI {
+export function createEffectsAPI(ctx: ScriptCommandContext, resolver: BlockingResolver): EffectsAPI {
   const { player, screenEffects, weatherManager, levelManager } = ctx;
 
   return {
-    fadeIn: () => { screenEffects.fadeIn(); },
-    fadeOut: () => { screenEffects.fadeOut(); },
-    isFadeInEnd: () => screenEffects.isFadeInEnd(),
-    isFadeOutEnd: () => screenEffects.isFadeOutEnd(),
+    fadeIn: async () => {
+      screenEffects.fadeIn();
+      if (screenEffects.isFadeInEnd()) return;
+      await resolver.waitForCondition(() => screenEffects.isFadeInEnd());
+    },
+    fadeOut: async () => {
+      screenEffects.fadeOut();
+      if (screenEffects.isFadeOutEnd()) return;
+      await resolver.waitForCondition(() => screenEffects.isFadeOutEnd());
+    },
     changeMapColor: (r, g, b) => { screenEffects.setMapColor(r, g, b); },
     changeSpriteColor: (r, g, b) => { screenEffects.setSpriteColor(r, g, b); },
     beginRain: (fileName) => { weatherManager.beginRain(fileName); },

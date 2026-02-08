@@ -22,7 +22,6 @@ import {
 } from "../iniParser";
 import { LevelManager } from "../level/levelManager";
 import { BezierMover, FlyIniManager, StatusEffectsManager } from "../modules";
-import { loadCharacterAsf } from "../resFile";
 
 /** 加载中状态标记（-1），确保后续 state 变更时触发纹理更新 */
 export const LOADING_STATE = -1 as CharacterState;
@@ -122,7 +121,12 @@ export abstract class CharacterBase extends Sprite implements CharacterInstance 
   // =============================================
   // === Combat ===
   // =============================================
-  protected _lastAttacker: Character | null = null;
+  protected _lastAttacker: CharacterBase | null = null;
+
+  /** 最后攻击此角色的角色（用于 AI 仇恨追踪） */
+  get lastAttacker(): CharacterBase | null {
+    return this._lastAttacker;
+  }
 
   // =============================================
   // === Configuration Files ===
@@ -312,9 +316,9 @@ export abstract class CharacterBase extends Sprite implements CharacterInstance 
   protected _destinationAttackTilePosition: Vector2 | null = null;
   protected _attackDestination: Vector2 | null = null;
   protected _magicToUseWhenAttack: string | null = null;
-  followTarget: Character | null = null;
+  followTarget: CharacterBase | null = null;
   isFollowTargetFound: boolean = false;
-  protected _interactiveTarget: Character | null = null;
+  protected _interactiveTarget: CharacterBase | null = null;
   protected _isInteractiveRightScript: boolean = false;
 
   // === Special Action ===
@@ -324,7 +328,7 @@ export abstract class CharacterBase extends Sprite implements CharacterInstance 
   specialActionAsf: string | undefined = undefined;
 
   // === BezierMove ===
-  protected _bezierMover = new BezierMover<Character>();
+  protected _bezierMover = new BezierMover<CharacterBase>();
 
   // === Audio ===
   protected _stateSounds: Map<number, string> = new Map();
@@ -701,13 +705,13 @@ export abstract class CharacterBase extends Sprite implements CharacterInstance 
   }
 
   /** 设置跟随目标 */
-  follow(target: Character): void {
+  follow(target: CharacterBase): void {
     this.followTarget = target;
     this.isFollowTargetFound = true;
   }
 
   /** 判断是否是对立关系 */
-  isOpposite(target: Character): boolean {
+  isOpposite(target: CharacterBase): boolean {
     if (target.isEnemy) {
       return this.isPlayer || this.isFighterFriend || this.isNoneFighter;
     } else if (target.isPlayer || target.isFighterFriend) {
@@ -923,6 +927,3 @@ export abstract class CharacterBase extends Sprite implements CharacterInstance 
   /** 受到伤害 */
   abstract takeDamage(damage: number, attacker: CharacterBase | null): void;
 }
-
-// 类型别名 - 确保继承链中可以使用 Character 类型
-export type Character = CharacterBase;

@@ -6,12 +6,12 @@ import type { PlayerAPI } from "../../core/gameAPI";
 import type { ScriptCommandContext } from "../scriptContext/types";
 import { isCharacterMoveEnd } from "../scriptContext/helpers";
 import { CharacterState } from "../../core/types";
-import { getNeighbors, tileToPixel } from "../../utils";
 import { logger } from "../../core/logger";
+import type { BlockingResolver } from "../../script/blockingResolver";
 import type { Npc } from "../../npc";
 import type { Player } from "../../player/player";
 
-export function createPlayerAPI(ctx: ScriptCommandContext): PlayerAPI {
+export function createPlayerAPI(ctx: ScriptCommandContext, resolver: BlockingResolver): PlayerAPI {
   const {
     player,
     npcManager,
@@ -55,31 +55,49 @@ export function createPlayerAPI(ctx: ScriptCommandContext): PlayerAPI {
     },
     setDirection: (direction) => { player.setDirection(direction); },
     setState: (state) => { player.setFightState(state !== 0); },
-    walkTo: (x, y) => { player.walkToTile(x, y); },
-    isWalkEnd: (destination) => isCharacterMoveEnd(
-      player, destination, (_c, d) => player.walkToTile(d.x, d.y),
-      isMapObstacleForCharacter, "isPlayerGotoEnd",
-    ),
-    walkToDir: (direction, steps) => { player.walkToDirection(direction, steps); },
-    isWalkDirEnd: () => {
-      if (!player) return true;
-      return player.state === CharacterState.Stand || player.state === CharacterState.Stand1;
+
+    // Blocking movement → Promise
+    walkTo: async (x, y) => {
+      const destination = { x, y };
+      player.walkToTile(x, y);
+      if (isCharacterMoveEnd(player, destination, (_c, d) => player.walkToTile(d.x, d.y), isMapObstacleForCharacter, "playerWalkTo")) {
+        return;
+      }
+      await resolver.waitForCondition(() =>
+        isCharacterMoveEnd(player, destination, (_c, d) => player.walkToTile(d.x, d.y), isMapObstacleForCharacter, "playerWalkTo")
+      );
     },
-    runTo: (x, y) => { player.runToTile(x, y); },
-    isRunEnd: (destination) => isCharacterMoveEnd(
-      player, destination, (_c, d) => player.runToTile(d.x, d.y),
-      isMapObstacleForCharacter, "isPlayerRunToEnd",
-    ),
-    jumpTo: (x, y) => {
+
+    walkToDir: async (direction, steps) => {
+      player.walkToDirection(direction, steps);
+      if (!player || player.state === CharacterState.Stand || player.state === CharacterState.Stand1) return;
+      await resolver.waitForCondition(() =>
+        !player || player.state === CharacterState.Stand || player.state === CharacterState.Stand1
+      );
+    },
+
+    runTo: async (x, y) => {
+      const destination = { x, y };
+      player.runToTile(x, y);
+      if (isCharacterMoveEnd(player, destination, (_c, d) => player.runToTile(d.x, d.y), isMapObstacleForCharacter, "playerRunTo")) {
+        return;
+      }
+      await resolver.waitForCondition(() =>
+        isCharacterMoveEnd(player, destination, (_c, d) => player.runToTile(d.x, d.y), isMapObstacleForCharacter, "playerRunTo")
+      );
+    },
+
+    jumpTo: async (x, y) => {
       if (player) {
         const success = player.jumpTo({ x, y });
         logger.log(`[GameAPI.player] jumpTo: (${x}, ${y}) success=${success}`);
       }
+      if (!player || player.state === CharacterState.Stand || player.state === CharacterState.Stand1) return;
+      await resolver.waitForCondition(() =>
+        !player || player.state === CharacterState.Stand || player.state === CharacterState.Stand1
+      );
     },
-    isJumpEnd: () => {
-      if (!player) return true;
-      return player.state === CharacterState.Stand || player.state === CharacterState.Stand1;
-    },
+
     walkToNonBlocking: (x, y) => {
       if (player) { player.walkToTile(x, y); }
     },

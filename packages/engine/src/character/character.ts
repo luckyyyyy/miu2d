@@ -46,6 +46,15 @@ export {
  */
 export abstract class Character extends CharacterCombat {
   // =============================================
+  // === Type-narrowed overrides ===
+  // =============================================
+
+  /** 最后攻击此角色的角色（类型收窄为 Character） */
+  override get lastAttacker(): Character | null {
+    return this._lastAttacker as Character | null;
+  }
+
+  // =============================================
   // === Update State Machine ===
   // =============================================
 
@@ -357,8 +366,13 @@ export abstract class Character extends CharacterCombat {
     // Override in subclass
   }
 
-  protected onMagicCast(): void {
+  onMagicCast(): void {
     // Override in subclass
+  }
+
+  /** 坐下动作，Player 子类中实现 */
+  sitdown(): void {
+    this.state = CharacterState.Sit;
   }
 
   protected onReachedDestination(): void {
@@ -948,5 +962,17 @@ export abstract class Character extends CharacterCombat {
       return PathType.PerfectMaxPlayerTry;
     }
     return PathType.PathOneStep;
+  }
+
+  /**
+   * 动态增加数值属性（脚本命令 AddProperty 使用）
+   * 只对已存在的 number 类型属性生效
+   */
+  addNumericProperty(propName: string, value: number): void {
+    const key = propName.charAt(0).toLowerCase() + propName.slice(1);
+    const record = this as unknown as Record<string, unknown>;
+    if (key in record && typeof record[key] === "number") {
+      (record[key] as number) += value;
+    }
   }
 }

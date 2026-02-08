@@ -167,8 +167,7 @@ export class NpcManager {
 
       // Check if killed by a live character with MagicSprite
       // We check lastAttacker instead since we don't have MagicSprite system yet
-      const lastAttacker = (theDead as unknown as { _lastAttacker?: Character | null })
-        ._lastAttacker;
+      const lastAttacker = theDead.lastAttacker;
       if (!lastAttacker || lastAttacker.isDeathInvoked) {
         continue;
       }

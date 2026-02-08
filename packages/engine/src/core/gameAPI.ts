@@ -6,8 +6,8 @@
  *
  * Design principles:
  * - Domain-grouped sub-interfaces (player, npc, goods, etc.)
- * - Sync fire-and-forget + polling for blocking operations
- *   (Future: add async wrappers for JS/Lua)
+ * - Blocking operations return Promise (powered by BlockingResolver internally)
+ * - Both DSL executor and JS/Lua engines share the same API
  * - No engine internals leaked - only script-level operations
  */
 
@@ -38,18 +38,14 @@ export interface GameAPI {
 // ===== Player =====
 
 export interface PlayerAPI {
-  // Position & movement
+  // Position & movement (blocking → Promise)
   setPosition(x: number, y: number, characterName?: string): void;
   setDirection(direction: number): void;
   setState(state: number): void;
-  walkTo(x: number, y: number): void;
-  isWalkEnd(destination: Vector2): boolean;
-  walkToDir(direction: number, steps: number): void;
-  isWalkDirEnd(): boolean;
-  runTo(x: number, y: number): void;
-  isRunEnd(destination: Vector2): boolean;
-  jumpTo(x: number, y: number): void;
-  isJumpEnd(): boolean;
+  walkTo(x: number, y: number): Promise<void>;
+  walkToDir(direction: number, steps: number): Promise<void>;
+  runTo(x: number, y: number): Promise<void>;
+  jumpTo(x: number, y: number): Promise<void>;
   walkToNonBlocking(x: number, y: number): void;
   runToNonBlocking(x: number, y: number): void;
   centerCamera(): void;
@@ -96,13 +92,14 @@ export interface NpcAPI {
   delete(name: string): void;
   getPosition(name: string): Vector2 | null;
   setPosition(name: string, x: number, y: number): void;
-  walkTo(name: string, x: number, y: number): void;
-  isWalkEnd(name: string, destination: Vector2): boolean;
-  walkToDir(name: string, direction: number, steps: number): void;
-  isWalkDirEnd(name: string): boolean;
+  walkTo(name: string, x: number, y: number): Promise<void>;
+  walkToDir(name: string, direction: number, steps: number): Promise<void>;
   setActionFile(name: string, stateType: number, asfFile: string): Promise<void>;
-  specialAction(name: string, asfFile: string): void;
-  isSpecialActionEnd(name: string): boolean;
+  specialAction(name: string, asfFile: string): Promise<void>;
+  /** Fire-and-forget version (used by NpcSpecialAction non-blocking command) */
+  specialActionNonBlocking(name: string, asfFile: string): void;
+  /** Fire-and-forget walk (used by NpcGotoEx non-blocking command) */
+  walkToNonBlocking(name: string, x: number, y: number): void;
   setLevel(name: string, level: number): void;
   setDirection(name: string, direction: number): void;
   setState(name: string, state: number): void;
@@ -145,8 +142,7 @@ export interface GoodsAPI {
   deleteByName(name: string, count?: number): void;
   hasFreeSpace(): boolean;
   addRandom(buyFileName: string): Promise<void>;
-  buy(buyFile: string, canSellSelfGoods: boolean): void;
-  isBuyEnd(): boolean;
+  buy(buyFile: string, canSellSelfGoods: boolean): Promise<void>;
   setDropIni(name: string, dropFile: string): void;
   setDropEnabled(enabled: boolean): void;
 }
@@ -203,10 +199,8 @@ export interface ObjAPI {
 // ===== Camera =====
 
 export interface CameraAPI {
-  move(direction: number, distance: number, speed: number): void;
-  isMoveEnd(): boolean;
-  moveTo(x: number, y: number, speed: number): void;
-  isMoveToEnd(): boolean;
+  move(direction: number, distance: number, speed: number): Promise<void>;
+  moveTo(x: number, y: number, speed: number): Promise<void>;
   setPosition(x: number, y: number): void;
   openWaterEffect(): void;
   closeWaterEffect(): void;
@@ -219,17 +213,14 @@ export interface AudioAPI {
   stopMusic(): void;
   playSound(file: string, emitterPosition?: Vector2): void;
   stopSound(): void;
-  playMovie(file: string): void;
-  isMovieEnd(): boolean;
+  playMovie(file: string): Promise<void>;
 }
 
 // ===== Effects =====
 
 export interface EffectsAPI {
-  fadeIn(): void;
-  fadeOut(): void;
-  isFadeInEnd(): boolean;
-  isFadeOutEnd(): boolean;
+  fadeIn(): Promise<void>;
+  fadeOut(): Promise<void>;
   changeMapColor(r: number, g: number, b: number): void;
   changeSpriteColor(r: number, g: number, b: number): void;
   beginRain(fileName: string): void;
@@ -244,30 +235,24 @@ export interface EffectsAPI {
 // ===== Dialog =====
 
 export interface DialogAPI {
-  show(text: string, portraitIndex: number): void;
+  show(text: string, portraitIndex: number): Promise<void>;
+  showTalk(startId: number, endId: number): Promise<void>;
   showMessage(text: string): void;
-  showSelection(message: string, selectA: string, selectB: string): void;
-  showSelectionList(options: SelectionOption[], message?: string): void;
+  showSelection(message: string, selectA: string, selectB: string): Promise<number>;
+  showSelectionList(options: SelectionOption[], message?: string): Promise<number>;
   chooseEx(
     message: string,
     options: Array<{ text: string; condition?: string }>,
     resultVar: string,
-  ): void;
+  ): Promise<number>;
   chooseMultiple(
     columns: number,
     rows: number,
     varPrefix: string,
     message: string,
     options: Array<{ text: string; condition?: string }>,
-  ): void;
-  isChooseExEnd(): boolean;
-  isChooseMultipleEnd(): boolean;
-  getSelectionResult(): number;
-  getMultiSelectionResult(): number;
-  getChooseMultipleResult(): number[];
+  ): Promise<number[]>;
   showSystemMessage(msg: string, stayTime?: number): void;
-  waitForClose(): void;
-  waitForSelection(): void;
   /** Access to TalkTextList for Say/Talk commands */
   talkTextList: TalkTextListManager;
 }
@@ -311,8 +296,6 @@ export interface ScriptRunnerAPI {
   returnToTitle(): void;
   randRun(probability: number, script1: string, script2: string): void;
   setShowMapPos(show: boolean): void;
-  /** Sleep for ms (handled by executor, not actual blocking) */
-  sleep(ms: number): void;
-  /** Load saved game */
+  sleep(ms: number): Promise<void>;
   loadGame(index: number): Promise<void>;
 }

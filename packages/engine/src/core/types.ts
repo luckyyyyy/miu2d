@@ -259,54 +259,11 @@ export interface ScriptState {
   currentLine: number;
   isRunning: boolean;
   isPaused: boolean;
-  waitTime: number;
-  waitingForInput: boolean;
   callStack: { script: ScriptData; line: number }[];
-  selectionResultVar?: string; // Variable name to store selection result
-  isInTalk: boolean; // Whether currently in a Talk sequence
-  talkQueue: { text: string; portraitIndex: number }[]; // Queue of talk dialogs
 
   // the NPC, Obj, or Good that triggered this script
   // Used by commands like DelCurObj, SetObjScript, DelGoods, etc.
   belongObject: { type: "npc" | "obj" | "good"; id: string } | null;
-
-  // Blocking wait states (ScriptRunner checks these each frame)
-  // PlayerGoto
-  waitingForPlayerGoto: boolean;
-  playerGotoDestination: Vector2 | null;
-  // PlayerGotoDir
-  waitingForPlayerGotoDir: boolean;
-  // PlayerRunTo
-  waitingForPlayerRunTo: boolean;
-  playerRunToDestination: Vector2 | null;
-  // PlayerJumpTo
-  waitingForPlayerJumpTo?: boolean;
-  playerJumpToDestination?: Vector2 | null;
-  // NpcGoto
-  waitingForNpcGoto: boolean;
-  npcGotoName: string | null;
-  npcGotoDestination: Vector2 | null;
-  // NpcGotoDir
-  waitingForNpcGotoDir: boolean;
-  npcGotoDirName: string | null;
-  // FadeIn/FadeOut
-  waitingForFadeIn: boolean;
-  waitingForFadeOut: boolean;
-  // NpcSpecialActionEx
-  waitingForNpcSpecialAction: boolean;
-  npcSpecialActionName: string | null;
-  // MoveScreen
-  waitingForMoveScreen: boolean;
-  // MoveScreenEx
-  waitingForMoveScreenEx?: boolean;
-  // BuyGoods
-  waitingForBuyGoods?: boolean;
-  // ChooseEx/ChooseMultiple
-  waitingForChooseEx?: boolean;
-  waitingForChooseMultiple?: boolean;
-  chooseMultipleVarPrefix?: string;
-  // PlayMovie
-  waitingForMovie?: boolean;
 }
 
 // ============= Game Variables =============

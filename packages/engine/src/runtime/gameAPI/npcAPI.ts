@@ -10,8 +10,9 @@ import { ResourcePath } from "../../config/resourcePaths";
 import { logger } from "../../core/logger";
 import { tileToPixel } from "../../utils";
 import type { Character } from "../../character/character";
+import type { BlockingResolver } from "../../script/blockingResolver";
 
-export function createNpcAPI(ctx: ScriptCommandContext): NpcAPI {
+export function createNpcAPI(ctx: ScriptCommandContext, resolver: BlockingResolver): NpcAPI {
   const {
     player,
     npcManager,
@@ -33,28 +34,38 @@ export function createNpcAPI(ctx: ScriptCommandContext): NpcAPI {
       if (player && player.name === name) { player.setPosition(x, y); return; }
       npcManager.setNpcPosition(name, x, y);
     },
-    walkTo: (name, x, y) => {
-      if (player && player.name === name) { player.walkToTile(x, y); return; }
-      npcManager.npcGoto(name, x, y);
+
+    // Blocking movement → Promise
+    walkTo: async (name, x, y) => {
+      const destination = { x, y };
+      if (player && player.name === name) { player.walkToTile(x, y); }
+      else { npcManager.npcGoto(name, x, y); }
+
+      const getChar = () => {
+        if (player && player.name === name) return player as Character;
+        return npcManager.getNpc(name) as Character | null;
+      };
+      const check = () => {
+        const character = getChar();
+        return isCharacterMoveEnd(character, destination, (c, d) => c.walkTo(d), isMapObstacleForCharacter, `npcWalkTo(${name})`);
+      };
+      if (check()) return;
+      await resolver.waitForCondition(check);
     },
-    isWalkEnd: (name, destination) => {
-      let character: Character | null = null;
-      if (player && player.name === name) { character = player; }
-      else { character = npcManager.getNpc(name); }
-      return isCharacterMoveEnd(
-        character, destination, (c, d) => c.walkTo(d),
-        isMapObstacleForCharacter, `isNpcGotoEnd(${name})`,
-      );
+
+    walkToDir: async (name, direction, steps) => {
+      if (player && player.name === name) { player.walkToDirection(direction, steps); }
+      else { npcManager.npcGotoDir(name, direction, steps); }
+
+      const check = () => {
+        const character = getCharacterByName(name);
+        if (!character) return true;
+        return character.state === CharacterState.Stand || character.state === CharacterState.Stand1;
+      };
+      if (check()) return;
+      await resolver.waitForCondition(check);
     },
-    walkToDir: (name, direction, steps) => {
-      if (player && player.name === name) { player.walkToDirection(direction, steps); return; }
-      npcManager.npcGotoDir(name, direction, steps);
-    },
-    isWalkDirEnd: (name) => {
-      const character = getCharacterByName(name);
-      if (!character) return true;
-      return character.state === CharacterState.Stand || character.state === CharacterState.Stand1;
-    },
+
     setActionFile: async (name, stateType, asfFile) => {
       if (player && player.name === name) {
         await player.setNpcActionFile(stateType, asfFile);
@@ -62,9 +73,28 @@ export function createNpcAPI(ctx: ScriptCommandContext): NpcAPI {
       }
       await npcManager.setNpcActionFile(name, stateType, asfFile);
     },
-    specialAction: (name, asfFile) => {
+
+    // Blocking special action → Promise
+    specialAction: async (name, asfFile) => {
       const character = getCharacterByName(name);
       if (!character) { logger.warn(`[GameAPI.npc] specialAction: not found: ${name}`); return; }
+      try {
+        const success = await character.setSpecialAction(asfFile);
+        if (!success) { logger.warn(`[GameAPI.npc] Failed special action for ${name}`); return; }
+      } catch (err: unknown) {
+        logger.error(`Failed special action for ${name}:`, err);
+        character.isInSpecialAction = false;
+        return;
+      }
+      // Wait for animation to complete
+      if (!character.isInSpecialAction) return;
+      await resolver.waitForCondition(() => !character.isInSpecialAction);
+    },
+
+    // Non-blocking version (fire-and-forget)
+    specialActionNonBlocking: (name, asfFile) => {
+      const character = getCharacterByName(name);
+      if (!character) { logger.warn(`[GameAPI.npc] specialActionNonBlocking: not found: ${name}`); return; }
       character.setSpecialAction(asfFile)
         .then((success: boolean) => {
           if (!success) logger.warn(`[GameAPI.npc] Failed special action for ${name}`);
@@ -74,10 +104,11 @@ export function createNpcAPI(ctx: ScriptCommandContext): NpcAPI {
           character.isInSpecialAction = false;
         });
     },
-    isSpecialActionEnd: (name) => {
+    // Non-blocking walk (fire-and-forget)
+    walkToNonBlocking: (name, x, y) => {
       const character = getCharacterByName(name);
-      if (!character) return true;
-      return !character.isInSpecialAction;
+      if (!character) { logger.warn(`[GameAPI.npc] walkToNonBlocking: not found: ${name}`); return; }
+      character.walkTo(x, y);
     },
     setLevel: (name, level) => {
       if (player.name === name) { player.setLevelTo(level); }
@@ -155,9 +186,7 @@ export function createNpcAPI(ctx: ScriptCommandContext): NpcAPI {
           if (character.flyIni) { character.performeAttack(pixelDest, character.flyIni); }
           break;
         case CharacterState.Sit:
-          if ("sitdown" in character && typeof (character as unknown as Record<string, unknown>).sitdown === "function") {
-            (character as unknown as { sitdown: () => void }).sitdown();
-          } else { character.state = CharacterState.Sit; }
+          character.sitdown();
           break;
         case CharacterState.Hurt: character.hurting(); break;
         case CharacterState.Death: character.death(); break;
@@ -208,10 +237,7 @@ export function createNpcAPI(ctx: ScriptCommandContext): NpcAPI {
       if (player && player.name === name) { characters.push(player); }
       const propName = property.charAt(0).toLowerCase() + property.slice(1);
       for (const character of characters) {
-        const charRecord = character as unknown as Record<string, unknown>;
-        if (propName in charRecord && typeof charRecord[propName] === "number") {
-          (charRecord[propName] as number) += value;
-        }
+        character.addNumericProperty(propName, value);
       }
     },
     changeFlyIni: (name, magicFile) => {

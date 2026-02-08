@@ -14,6 +14,8 @@ export interface IEffectCharacter {
   realAttack: number;
   attack2: number;
   attack3: number;
+  getAddMagicEffectPercent?(): number;
+  getAddMagicEffectAmount?(): number;
 }
 
 /**
@@ -68,13 +70,8 @@ export function addMagicEffect(
   }
 
   // 获取角色的加成属性
-  const player = belongCharacter as unknown as {
-    getAddMagicEffectPercent?: () => number;
-    getAddMagicEffectAmount?: () => number;
-  };
-
-  const percent = player.getAddMagicEffectPercent?.() ?? 0;
-  const amount = player.getAddMagicEffectAmount?.() ?? 0;
+  const percent = belongCharacter.getAddMagicEffectPercent?.() ?? 0;
+  const amount = belongCharacter.getAddMagicEffectAmount?.() ?? 0;
 
   // 还有按武功名称/类型的加成 (GetAddMagicEffectInfoWithName/Type)
   // 低优先级功能，暂未实现

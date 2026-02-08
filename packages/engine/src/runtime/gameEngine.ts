@@ -68,7 +68,7 @@ import { ObjRenderer } from "../obj/objRenderer";
 import { GoodKind, type GoodsListManager, getEquipSlotIndex } from "../player/goods";
 import type { GoodsItemInfo } from "../player/goods/goodsListManager";
 import type { Player } from "../player/player";
-import { Sprite } from "../sprite/sprite";
+import { Sprite, setSpriteDrawColor } from "../sprite/sprite";
 import { TimerManager } from "../timer";
 import type { IUIBridge, UIPanelName } from "../gui/contract";
 import { UIBridge, type UIBridgeDeps } from "../gui/uiBridge";
@@ -945,9 +945,9 @@ export class GameEngine implements IEngineContext {
     // C#: Color.Black (0,0,0) 触发灰度着色器, 其他颜色为乘法着色
     // TS: "black" → grayscale filter via COLOR_FILTER_MAP
     if (this.screenEffects.isSpriteGrayscale()) {
-      Sprite.drawColor = "black";
+      setSpriteDrawColor("black");
     } else {
-      Sprite.drawColor = "white";
+      setSpriteDrawColor("white");
     }
   }
 

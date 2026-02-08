@@ -10,51 +10,31 @@ import type { CommandHandler, CommandRegistry } from "./types";
  * Say command - Show dialog with optional portrait
  * Also calls PlayerKindCharacter.ToNonFightingState()
  */
-const sayCommand: CommandHandler = (params, _result, helpers) => {
+const sayCommand: CommandHandler = async (params, _result, helpers) => {
   const text = helpers.resolveString(params[0] || "");
   const portrait = params[1] ? helpers.resolveNumber(params[1]) : 0;
   logger.log(`[ScriptExecutor] Say: "${text.substring(0, 50)}..." portrait=${portrait}`);
-  helpers.context.showDialog(text, portrait);
-  // Globals.PlayerKindCharacter.ToNonFightingState()
   helpers.context.toNonFightingState();
-  helpers.state.waitingForInput = true;
-  return false;
+  await helpers.context.showDialog(text, portrait);
+  return true;
 };
 
 /**
  * Talk command - Show sequential dialogs from TalkIndex.txt
  * Also calls PlayerKindCharacter.ToNonFightingState()
  */
-const talkCommand: CommandHandler = (params, _result, helpers) => {
+const talkCommand: CommandHandler = async (params, _result, helpers) => {
   const startId = helpers.resolveNumber(params[0] || "0");
   const endId = helpers.resolveNumber(params[1] || "0");
-
-  const talkTextList = helpers.context.talkTextList;
-  const details = talkTextList.getTextDetails(startId, endId);
-
-  if (details.length > 0) {
-    helpers.state.isInTalk = true;
-    helpers.state.talkQueue = details.map((d) => ({
-      text: d.text,
-      portraitIndex: d.portraitIndex,
-    }));
-
-    const first = helpers.state.talkQueue.shift()!;
-    helpers.context.showDialog(first.text, first.portraitIndex);
-    // Globals.PlayerKindCharacter.ToNonFightingState()
-    helpers.context.toNonFightingState();
-    helpers.state.waitingForInput = true;
-  } else {
-    logger.warn(`[ScriptExecutor] Talk: no dialog found for ${startId}-${endId}`);
-    helpers.state.isInTalk = false;
-  }
-  return false;
+  helpers.context.toNonFightingState();
+  await helpers.context.showTalk(startId, endId);
+  return true;
 };
 
 /**
  * Choose command - Show selection options
  */
-const chooseCommand: CommandHandler = (params, _result, helpers) => {
+const chooseCommand: CommandHandler = async (params, _result, helpers) => {
   const lastParam = params[params.length - 1] || "";
   const hasResultVar = lastParam.startsWith("$");
 
@@ -62,8 +42,9 @@ const chooseCommand: CommandHandler = (params, _result, helpers) => {
     const message = helpers.resolveString(params[0] || "");
     const selectA = helpers.resolveString(params[1] || "");
     const selectB = helpers.resolveString(params[2] || "");
-    helpers.state.selectionResultVar = lastParam.slice(1);
-    helpers.context.showDialogSelection(message, selectA, selectB);
+    const varName = lastParam.slice(1);
+    const result = await helpers.context.showDialogSelection(message, selectA, selectB);
+    helpers.context.setVariable(varName, result);
   } else {
     const options: SelectionOption[] = [];
     for (let i = 0; i < params.length; i += 2) {
@@ -74,21 +55,21 @@ const chooseCommand: CommandHandler = (params, _result, helpers) => {
         });
       }
     }
-    helpers.context.showSelection(options, "");
+    const selectedIndex = await helpers.context.showSelection(options, "");
+    // For label-based selection, jump to the selected label
+    if (options[selectedIndex]) {
+      helpers.gotoLabel(options[selectedIndex].label);
+    }
   }
 
-  helpers.state.waitingForInput = true;
-  return false;
+  return true;
 };
 
 /**
  * Select command - Show selection using TalkTextList IDs
- * - uses TalkTextList.GetTextDetail(int.Parse(parameters[n])).Text
  * Format: Select(messageId, optionAId, optionBId, $resultVar)
- * Note: uses GuiManager.Selection(message, selectA, selectB) via DialogInterface.Select()
- *       The result (0 or 1) is stored in parameters[3] (the variable name).
  */
-const selectCommand: CommandHandler = (params, _result, helpers) => {
+const selectCommand: CommandHandler = async (params, _result, helpers) => {
   const talkTextList = helpers.context.talkTextList;
   const lastParam = params[params.length - 1] || "";
 
@@ -99,7 +80,6 @@ const selectCommand: CommandHandler = (params, _result, helpers) => {
     return true;
   }
 
-  // Reference: GuiManager.Selection(message, selectA, selectB)
   const messageId = helpers.resolveNumber(params[0]);
   const optionAId = helpers.resolveNumber(params[1]);
   const optionBId = helpers.resolveNumber(params[2]);
@@ -112,11 +92,10 @@ const selectCommand: CommandHandler = (params, _result, helpers) => {
   const selectA = optionADetail?.text || `[Text ${optionAId}]`;
   const selectB = optionBDetail?.text || `[Text ${optionBId}]`;
 
-  helpers.state.selectionResultVar = lastParam.slice(1);
-  helpers.context.showDialogSelection(message, selectA, selectB);
-
-  helpers.state.waitingForInput = true;
-  return false;
+  const varName = lastParam.slice(1);
+  const result = await helpers.context.showDialogSelection(message, selectA, selectB);
+  helpers.context.setVariable(varName, result);
+  return true;
 };
 
 /**

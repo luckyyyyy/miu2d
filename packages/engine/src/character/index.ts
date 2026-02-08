@@ -14,7 +14,7 @@
  */
 
 // Class-based exports
-export { Character, type MagicToUseInfoItem } from "./character";
+export { Character } from "./character";
 // INI Parser - data-driven config parsing (new, replaces verbose switch-case)
 export {
   applyConfigToCharacter,

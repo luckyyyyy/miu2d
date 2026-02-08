@@ -9,8 +9,9 @@ import { logger } from "../../core/logger";
 import { parseIni } from "../../utils/iniParser";
 import { resourceLoader } from "../../resource/resourceLoader";
 import { getNeighbors, tileToPixel } from "../../utils";
+import type { BlockingResolver } from "../../script/blockingResolver";
 
-export function createGoodsAPI(ctx: ScriptCommandContext): GoodsAPI {
+export function createGoodsAPI(ctx: ScriptCommandContext, resolver: BlockingResolver): GoodsAPI {
   const { player, guiManager, buyManager, goodsListManager, getCharacterByName } = ctx;
 
   return {
@@ -54,8 +55,10 @@ export function createGoodsAPI(ctx: ScriptCommandContext): GoodsAPI {
     buy: async (buyFile, canSellSelfGoods) => {
       const success = await buyManager.beginBuy(buyFile, null, canSellSelfGoods);
       if (success) { guiManager.openBuyGui(); }
+      // Wait until buy UI is closed
+      if (!buyManager.isOpen()) return;
+      await resolver.waitForCondition(() => !buyManager.isOpen());
     },
-    isBuyEnd: () => !buyManager.isOpen(),
     setDropIni: (name, dropFile) => {
       const character = getCharacterByName(name);
       if (character) { character.dropIni = dropFile; }
@@ -106,7 +109,7 @@ export function createMagicAPI(ctx: ScriptCommandContext): MagicAPI {
       const origin = player.positionInWorld;
       const destination = tileToPixel(mapX, mapY);
       player.setPendingMagic(magicInfo.magic, origin, destination);
-      (player as unknown as { onMagicCast(): void }).onMagicCast();
+      player.onMagicCast();
     },
   };
 }

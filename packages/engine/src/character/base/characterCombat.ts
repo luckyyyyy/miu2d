@@ -15,6 +15,11 @@ import { tileToPixel } from "../../utils";
 import type { CharacterBase, MagicToUseInfoItem } from "./characterBase";
 import { CharacterMovement } from "./characterMovement";
 
+// Module-level cached death animation ASF data
+let _frozenDie: AsfData | null = null;
+let _poisonDie: AsfData | null = null;
+let _petrifiedDie: AsfData | null = null;
+
 /**
  * CharacterCombat - 战斗功能层
  */
@@ -417,11 +422,6 @@ export abstract class CharacterCombat extends CharacterMovement {
   // === Death Methods ===
   // =============================================
 
-  // private static Asf FrozenDie/PoisonDie/PetrifiedDie
-  private static FrozenDie: AsfData | null = null;
-  private static PoisonDie: AsfData | null = null;
-  private static PetrifiedDie: AsfData | null = null;
-
   /**
    * 角色死亡处理
    * Reference: Character.Death()
@@ -510,11 +510,11 @@ export abstract class CharacterCombat extends CharacterMovement {
     switch (type) {
       case "frozen":
         asfPath = ResourcePath.asfInterlude("die-冰.asf");
-        asf = CharacterCombat.FrozenDie || getCachedAsf(asfPath);
+        asf = _frozenDie || getCachedAsf(asfPath);
         if (!asf) {
           // 异步加载并缓存
           loadAsf(asfPath).then((loaded) => {
-            CharacterCombat.FrozenDie = loaded;
+            _frozenDie = loaded;
             if (loaded && this.isInDeathing) {
               this.texture = loaded;
               this.currentDirection = 0;
@@ -524,10 +524,10 @@ export abstract class CharacterCombat extends CharacterMovement {
         break;
       case "poison":
         asfPath = ResourcePath.asfInterlude("die-毒.asf");
-        asf = CharacterCombat.PoisonDie || getCachedAsf(asfPath);
+        asf = _poisonDie || getCachedAsf(asfPath);
         if (!asf) {
           loadAsf(asfPath).then((loaded) => {
-            CharacterCombat.PoisonDie = loaded;
+            _poisonDie = loaded;
             if (loaded && this.isInDeathing) {
               this.texture = loaded;
               this.currentDirection = 0;
@@ -537,10 +537,10 @@ export abstract class CharacterCombat extends CharacterMovement {
         break;
       case "petrified":
         asfPath = ResourcePath.asfInterlude("die-石.asf");
-        asf = CharacterCombat.PetrifiedDie || getCachedAsf(asfPath);
+        asf = _petrifiedDie || getCachedAsf(asfPath);
         if (!asf) {
           loadAsf(asfPath).then((loaded) => {
-            CharacterCombat.PetrifiedDie = loaded;
+            _petrifiedDie = loaded;
             if (loaded && this.isInDeathing) {
               this.texture = loaded;
               this.currentDirection = 0;

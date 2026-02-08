@@ -227,27 +227,6 @@ export class MapBase {
   // ============= 视图范围计算 =============
 
   /**
-   * 获取当前视图内的起始瓦片
-   *
-   */
-  getStartTileInView(): Vector2 {
-    return MapBase.getStartTileInViewStatic(this.viewBeginX, this.viewBeginY);
-  }
-
-  /**
-   * 获取当前视图内的结束瓦片
-   *
-   */
-  getEndTileInView(): Vector2 {
-    return MapBase.getEndTileInViewStatic(
-      this.viewBeginX + this._viewWidth,
-      this.viewBeginY + this._viewHeight,
-      this.mapColumnCounts,
-      this.mapRowCounts
-    );
-  }
-
-  /**
    * 静态方法：获取视图内的起始瓦片
    */
   static getStartTileInViewStatic(viewBeginX: number, viewBeginY: number): Vector2 {
@@ -445,20 +424,6 @@ export class MapBase {
   }
 
   // ============= 坐标转换（实例方法，兼容接口）=============
-
-  /**
-   * 像素坐标 → 瓦片坐标（实例方法）
-   */
-  toTilePosition(pixelX: number, pixelY: number): Vector2 {
-    return MapBase.toTilePosition(pixelX, pixelY);
-  }
-
-  /**
-   * 瓦片坐标 → 像素坐标（实例方法）
-   */
-  toPixelPosition(tileX: number, tileY: number): Vector2 {
-    return MapBase.toPixelPosition(tileX, tileY);
-  }
 
   /**
    * 检查瓦片是否为跳跃障碍（别名，兼容接口）

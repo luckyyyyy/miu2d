@@ -25,8 +25,9 @@ export function gameAPIToScriptContext(api: GameAPI, extras: ScriptContextExtras
     getVariable: api.variables.get,
     setVariable: api.variables.set,
 
-    // Dialog
+    // Dialog (blocking → Promise)
     showDialog: api.dialog.show,
+    showTalk: api.dialog.showTalk,
     showMessage: api.dialog.showMessage,
     showDialogSelection: api.dialog.showSelection,
     showSelection: api.dialog.showSelectionList,
@@ -36,16 +37,16 @@ export function gameAPIToScriptContext(api: GameAPI, extras: ScriptContextExtras
     loadNpc: api.map.loadNpc,
     loadGame: api.script.loadGame,
 
-    // Player position & movement
+    // Player position & movement (blocking → Promise)
     setPlayerPosition: api.player.setPosition,
     setPlayerDirection: api.player.setDirection,
     setPlayerState: api.player.setState,
     playerGoto: api.player.walkTo,
-    isPlayerGotoEnd: api.player.isWalkEnd,
     playerGotoDir: api.player.walkToDir,
-    isPlayerGotoDirEnd: api.player.isWalkDirEnd,
     playerRunTo: api.player.runTo,
-    isPlayerRunToEnd: api.player.isRunEnd,
+    playerJumpTo: api.player.jumpTo,
+    playerGotoEx: api.player.walkToNonBlocking,
+    playerRunToEx: api.player.runToNonBlocking,
 
     // NPC
     addNpc: api.npc.add,
@@ -53,12 +54,11 @@ export function gameAPIToScriptContext(api: GameAPI, extras: ScriptContextExtras
     getNpcPosition: api.npc.getPosition,
     setNpcPosition: api.npc.setPosition,
     npcGoto: api.npc.walkTo,
-    isNpcGotoEnd: api.npc.isWalkEnd,
+    npcGotoNonBlocking: api.npc.walkToNonBlocking,
     npcGotoDir: api.npc.walkToDir,
-    isNpcGotoDirEnd: api.npc.isWalkDirEnd,
     setNpcActionFile: api.npc.setActionFile,
     npcSpecialAction: api.npc.specialAction,
-    isNpcSpecialActionEnd: api.npc.isSpecialActionEnd,
+    npcSpecialActionNonBlocking: api.npc.specialActionNonBlocking,
     setNpcLevel: api.npc.setLevel,
     setNpcDirection: api.npc.setDirection,
     setNpcState: api.npc.setState,
@@ -72,9 +72,12 @@ export function gameAPIToScriptContext(api: GameAPI, extras: ScriptContextExtras
     enableNpcAI: () => api.npc.setAIEnabled(true),
     disableNpcAI: () => api.npc.setAIEnabled(false),
 
-    // Camera
+    // Camera (blocking → Promise)
     moveScreen: api.camera.move,
-    isMoveScreenEnd: api.camera.isMoveEnd,
+    moveScreenEx: api.camera.moveTo,
+    setMapPos: api.camera.setPosition,
+    openWaterEffect: api.camera.openWaterEffect,
+    closeWaterEffect: api.camera.closeWaterEffect,
 
     // Goods
     addGoods: api.goods.add,
@@ -117,17 +120,14 @@ export function gameAPIToScriptContext(api: GameAPI, extras: ScriptContextExtras
     // Trap
     setMapTrap: api.map.setTrap,
 
-    // Game flow
+    // Game flow (blocking → Promise)
     sleep: api.script.sleep,
     playMusic: api.audio.playMusic,
     stopMusic: api.audio.stopMusic,
     playSound: api.audio.playSound,
     playMovie: api.audio.playMovie,
-    isMovieEnd: api.audio.isMovieEnd,
     fadeIn: api.effects.fadeIn,
     fadeOut: api.effects.fadeOut,
-    isFadeInEnd: api.effects.isFadeInEnd,
-    isFadeOutEnd: api.effects.isFadeOutEnd,
     changeMapColor: api.effects.changeMapColor,
     changeAsfColor: api.effects.changeSpriteColor,
     beginRain: api.effects.beginRain,
@@ -153,10 +153,6 @@ export function gameAPIToScriptContext(api: GameAPI, extras: ScriptContextExtras
     enableRun: () => api.player.setRunEnabled(true),
 
     // Player extended
-    playerJumpTo: api.player.jumpTo,
-    isPlayerJumpToEnd: api.player.isJumpEnd,
-    playerGotoEx: api.player.walkToNonBlocking,
-    playerRunToEx: api.player.runToNonBlocking,
     setPlayerScn: api.player.centerCamera,
     getMoneyNum: api.player.getMoney,
     setMoneyNum: api.player.setMoney,
@@ -196,9 +192,8 @@ export function gameAPIToScriptContext(api: GameAPI, extras: ScriptContextExtras
     getNpcCount: api.npc.getCount,
     setKeepAttack: api.npc.setKeepAttack,
 
-    // Goods extended
+    // Goods extended (blocking → Promise)
     buyGoods: api.goods.buy,
-    isBuyGoodsEnd: api.goods.isBuyEnd,
     getGoodsNum: api.goods.getCountByFile,
     getGoodsNumByName: api.goods.getCountByName,
     clearGoods: api.goods.clear,
@@ -209,13 +204,6 @@ export function gameAPIToScriptContext(api: GameAPI, extras: ScriptContextExtras
     setDropIni: api.goods.setDropIni,
     enableDrop: () => api.goods.setDropEnabled(true),
     disableDrop: () => api.goods.setDropEnabled(false),
-
-    // Camera extended
-    moveScreenEx: api.camera.moveTo,
-    isMoveScreenExEnd: api.camera.isMoveToEnd,
-    setMapPos: api.camera.setPosition,
-    openWaterEffect: api.camera.openWaterEffect,
-    closeWaterEffect: api.camera.closeWaterEffect,
 
     // Save
     saveMapTrap: api.map.saveTrap,
@@ -240,21 +228,12 @@ export function gameAPIToScriptContext(api: GameAPI, extras: ScriptContextExtras
     randRun: api.script.randRun,
     stopSound: api.audio.stopSound,
 
-    // Dialog extended
+    // Dialog extended (blocking → Promise)
     chooseEx: api.dialog.chooseEx,
     chooseMultiple: api.dialog.chooseMultiple,
-    isChooseExEnd: api.dialog.isChooseExEnd,
-    isChooseMultipleEnd: api.dialog.isChooseMultipleEnd,
-    getMultiSelectionResult: api.dialog.getMultiSelectionResult,
-    getChooseMultipleResult: api.dialog.getChooseMultipleResult,
 
     // Character state
     toNonFightingState: api.player.toNonFightingState,
-
-    // Wait
-    waitForDialogClose: api.dialog.waitForClose,
-    waitForSelection: api.dialog.waitForSelection,
-    getSelectionResult: api.dialog.getSelectionResult,
 
     // Script
     runScript: api.script.run,

@@ -14,6 +14,20 @@ import type { IRenderer } from "../webgl/iRenderer";
 import type { ColorFilter } from "../webgl/types";
 import { type AsfData, type AsfFrame, getFrameAtlasInfo, getFrameCanvas, getFrameIndex, loadAsf } from "../resource/asf";
 
+// ============= 全局精灵渲染颜色 =============
+// 替代原 Sprite.drawColor 静态属性，由 GameEngine 每帧更新
+let _spriteDrawColor = "white";
+
+/** 获取全局精灵绘制颜色 */
+export function getSpriteDrawColor(): string {
+  return _spriteDrawColor;
+}
+
+/** 设置全局精灵绘制颜色（仅 GameEngine 调用） */
+export function setSpriteDrawColor(color: string): void {
+  _spriteDrawColor = color;
+}
+
 /** 角色状态对应的 ASF 动画集 */
 export interface SpriteSet {
   stand: AsfData | null;
@@ -198,9 +212,6 @@ export class Sprite {
   frameAdvanceCount: number = 0;
   isShow: boolean = true;
   protected _elapsedMilliSecond: number = 0;
-
-  static drawColor: string = "white";
-  static rainDrawColor: string = "white";
 
   protected _basePath: string = "";
   protected _baseFileName: string = "";
@@ -520,7 +531,7 @@ export class Sprite {
     offX: number = 0,
     offY: number = 0
   ): void {
-    this.drawWithColor(renderer, cameraX, cameraY, Sprite.drawColor, offX, offY);
+    this.drawWithColor(renderer, cameraX, cameraY, getSpriteDrawColor(), offX, offY);
   }
 
   /** 带颜色效果绘制（"black"灰度/"frozen"冰冻/"poison"中毒） */

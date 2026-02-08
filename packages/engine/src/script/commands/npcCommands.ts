@@ -118,21 +118,12 @@ const setNpcLevelCommand: CommandHandler = (params, _result, helpers) => {
 /**
  * NpcGoto - Walk NPC to position (BLOCKING)
  */
-const npcGotoCommand: CommandHandler = (params, _result, helpers) => {
+const npcGotoCommand: CommandHandler = async (params, _result, helpers) => {
   const npcName = helpers.resolveString(params[0] || "");
   const x = helpers.resolveNumber(params[1] || "0");
   const y = helpers.resolveNumber(params[2] || "0");
-  const destination = { x, y };
-  helpers.context.npcGoto(npcName, x, y);
-
-  if (helpers.context.isNpcGotoEnd(npcName, destination)) {
-    return true;
-  }
-
-  helpers.state.waitingForNpcGoto = true;
-  helpers.state.npcGotoName = npcName;
-  helpers.state.npcGotoDestination = destination;
-  return false;
+  await helpers.context.npcGoto(npcName, x, y);
+  return true;
 };
 
 /**
@@ -143,7 +134,7 @@ const npcGotoExCommand: CommandHandler = (params, _result, helpers) => {
   const npcName = helpers.resolveString(params[0] || "");
   const x = helpers.resolveNumber(params[1] || "0");
   const y = helpers.resolveNumber(params[2] || "0");
-  helpers.context.npcGoto(npcName, x, y);
+  helpers.context.npcGotoNonBlocking(npcName, x, y);
   // Non-blocking, return immediately
   return true;
 };
@@ -151,19 +142,12 @@ const npcGotoExCommand: CommandHandler = (params, _result, helpers) => {
 /**
  * NpcGotoDir - Walk NPC in direction (BLOCKING)
  */
-const npcGotoDirCommand: CommandHandler = (params, _result, helpers) => {
+const npcGotoDirCommand: CommandHandler = async (params, _result, helpers) => {
   const npcName = helpers.resolveString(params[0] || "");
   const direction = helpers.resolveNumber(params[1] || "0");
   const steps = helpers.resolveNumber(params[2] || "1");
-  helpers.context.npcGotoDir(npcName, direction, steps);
-
-  if (helpers.context.isNpcGotoDirEnd(npcName)) {
-    return true;
-  }
-
-  helpers.state.waitingForNpcGotoDir = true;
-  helpers.state.npcGotoDirName = npcName;
-  return false;
+  await helpers.context.npcGotoDir(npcName, direction, steps);
+  return true;
 };
 
 /**
@@ -191,25 +175,18 @@ const setNpcActionFileCommand: CommandHandler = (params, _result, helpers) => {
 const npcSpecialActionCommand: CommandHandler = (params, _result, helpers) => {
   const npcName = helpers.resolveString(params[0] || "");
   const asfFile = helpers.resolveString(params[1] || "");
-  helpers.context.npcSpecialAction(npcName, asfFile);
+  helpers.context.npcSpecialActionNonBlocking(npcName, asfFile);
   return true;
 };
 
 /**
  * NpcSpecialActionEx - Play NPC special animation (BLOCKING)
  */
-const npcSpecialActionExCommand: CommandHandler = (params, _result, helpers) => {
+const npcSpecialActionExCommand: CommandHandler = async (params, _result, helpers) => {
   const npcName = helpers.resolveString(params[0] || "");
   const asfFile = helpers.resolveString(params[1] || "");
-  helpers.context.npcSpecialAction(npcName, asfFile);
-
-  if (helpers.context.isNpcSpecialActionEnd(npcName)) {
-    return true;
-  }
-
-  helpers.state.waitingForNpcSpecialAction = true;
-  helpers.state.npcSpecialActionName = npcName;
-  return false;
+  await helpers.context.npcSpecialAction(npcName, asfFile);
+  return true;
 };
 
 /**

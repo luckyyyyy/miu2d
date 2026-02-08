@@ -734,13 +734,14 @@ export class CollisionHandler {
         }
       } else {
         // NPC: 使用 NPC 预加载的数据
-        const npc = target as { _magicToUseWhenBeAttackedData?: MagicData };
-        if (npc._magicToUseWhenBeAttackedData) {
+        const npc = target as Npc;
+        const beAttackedMagic = npc.getBeAttackedMagicData();
+        if (beAttackedMagic) {
           this.triggerBeAttackedMagic(
             sprite,
             target,
             attacker,
-            npc._magicToUseWhenBeAttackedData,
+            beAttackedMagic,
             target.magicDirectionWhenBeAttacked
           );
         }

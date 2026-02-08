@@ -404,6 +404,14 @@ export class Npc extends Character {
   // === AI 公共方法（供 NpcAI 模块调用）===
 
   /**
+   * 获取被攻击时使用的预加载武功数据（同步）
+   * 供 CollisionHandler 在碰撞检测时使用
+   */
+  getBeAttackedMagicData(): MagicData | null {
+    return this._magicCache.getSpecial("beAttacked");
+  }
+
+  /**
    * Use magic when life is low - 公开给 AI 模块使用
    * PerformeAttack(PositionInWorld + Utils.GetDirection8(CurrentDirection), MagicToUseWhenLifeLow)
    */
@@ -517,7 +525,7 @@ export class Npc extends Character {
    * PlaySoundEffect(NpcIni[(int)CharacterState.Magic].Sound);
    * MagicManager.UseMagic(this, MagicUse, PositionInWorld, _magicDestination, _magicTarget);
    */
-  protected override onMagicCast(): void {
+  override onMagicCast(): void {
     // Play magic state sound
     this.playStateSound(CharacterState.Magic);
 

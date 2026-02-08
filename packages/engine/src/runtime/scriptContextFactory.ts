@@ -20,9 +20,10 @@ import type { PartnerListManager } from "../listManager/partnerList";
 import type { NpcManager } from "../npc";
 import type { ObjManager } from "../obj";
 import type { Player } from "../player/player";
-import type { ScriptContext } from "../script/executor";
+import type { ScriptContext } from "../script/commands/types";
 import type { TimerManager } from "../timer";
 import type { WeatherManager } from "../weather";
+import { BlockingResolver } from "../script/blockingResolver";
 import { createGameAPIImpl, gameAPIToScriptContext } from "./gameAPI";
 
 /**
@@ -107,10 +108,12 @@ export interface ScriptContextDependencies {
 export function createGameAPIAndScriptContext(deps: ScriptContextDependencies): {
   gameAPI: GameAPI;
   scriptContext: ScriptContext;
+  resolver: BlockingResolver;
   /** Set runParallelScript callback (must be called after ScriptExecutor is created) */
   setRunParallelScript: (fn: (scriptFile: string, delayMs: number) => void) => void;
 } {
-  const { api, ctx } = createGameAPIImpl(deps);
+  const resolver = new BlockingResolver();
+  const { api, ctx } = createGameAPIImpl(deps, resolver);
 
   const scriptContext = gameAPIToScriptContext(api, {
     scriptBasePath: ctx.getScriptBasePath(),
@@ -121,6 +124,7 @@ export function createGameAPIAndScriptContext(deps: ScriptContextDependencies): 
   return {
     gameAPI: api,
     scriptContext,
+    resolver,
     setRunParallelScript: (fn) => {
       ctx.runParallelScript = fn;
     },
@@ -132,7 +136,10 @@ export function createGameAPIAndScriptContext(deps: ScriptContextDependencies): 
  *
  * @deprecated Prefer createGameAPIAndScriptContext() to get both APIs.
  */
-export function createScriptContext(deps: ScriptContextDependencies): ScriptContext {
-  const { scriptContext } = createGameAPIAndScriptContext(deps);
-  return scriptContext;
+export function createScriptContext(deps: ScriptContextDependencies): {
+  scriptContext: ScriptContext;
+  resolver: BlockingResolver;
+} {
+  const { scriptContext, resolver } = createGameAPIAndScriptContext(deps);
+  return { scriptContext, resolver };
 }
