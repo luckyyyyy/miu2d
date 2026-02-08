@@ -349,10 +349,21 @@ export abstract class CharacterMovement extends CharacterBase {
           this._currentDirection = getDirection({ x: 0, y: 0 }, { x: dx, y: dy });
         }
 
-        // 更新 tile 坐标
+        // === 防穿墙: 等角坐标系瓦片漂移保护 ===
+        // 等角地图中，两个相邻瓦片中心间的像素插值经常落入第三个瓦片（菱形几何特性）
+        // 该第三瓦片可能是墙壁，如果 _mapX/_mapY 被设为墙壁瓦片，
+        // 后续鼠标点击触发的寻路会从墙内开始 → 穿墙
+        // 修正方式：只在新瓦片是当前瓦片或目标瓦片时更新 _mapX/_mapY
+        // 不修改像素位置和 movedDistance，避免视觉卡顿
         const newTile = pixelToTile(this._positionInWorld.x, this._positionInWorld.y);
-        this._mapX = newTile.x;
-        this._mapY = newTile.y;
+        if (
+          (newTile.x === this._mapX && newTile.y === this._mapY) ||
+          (newTile.x === target.x && newTile.y === target.y)
+        ) {
+          this._mapX = newTile.x;
+          this._mapY = newTile.y;
+        }
+        // else: 保持 _mapX/_mapY 不变，角色逻辑位置仍在上一个有效瓦片
       }
     }
 
