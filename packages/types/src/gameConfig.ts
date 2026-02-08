@@ -218,13 +218,43 @@ export const GameConfigDataSchema = z.object({
   playerKey: z.string().default(""),
   /** 新游戏触发脚本内容 */
   newGameScript: z.string().default(""),
-  /** 游戏设置 */
-  player: PlayerConfigSchema,
-  /** 掉落系统配置 */
-  drop: DropConfigSchema,
+  /** 对话头像 ASF 路径 */
+  portraitAsf: z.string().default(""),
+  /** 游戏设置（设置 playerKey 后生效） */
+  player: PlayerConfigSchema.optional(),
+  /** 掉落系统配置（设置 playerKey 后生效） */
+  drop: DropConfigSchema.optional(),
 });
 
 export type GameConfigData = z.infer<typeof GameConfigDataSchema>;
+
+/**
+ * Dashboard 前端用的完整配置类型（player/drop 始终存在）
+ * 用于编辑界面，保证字段总是有值
+ */
+export type GameConfigDataFull = Omit<GameConfigData, "player" | "drop"> & {
+  player: PlayerConfig;
+  drop: DropConfig;
+};
+
+/**
+ * 将 API 返回的可选配置合并为完整配置（补全默认值）
+ */
+export function mergeGameConfig(data?: Partial<GameConfigData>): GameConfigDataFull {
+  const defaults = createDefaultGameConfig();
+  return {
+    ...defaults,
+    ...data,
+    player: {
+      ...createDefaultPlayerConfig(),
+      ...(data?.player ?? {}),
+    },
+    drop: {
+      ...createDefaultDropConfig(),
+      ...(data?.drop ?? {}),
+    },
+  };
+}
 
 /**
  * 完整的游戏配置（含 DB 元字段）
@@ -331,7 +361,6 @@ export function createDefaultGameConfig(): GameConfigData {
     gameDescription: "",
     playerKey: "",
     newGameScript: "",
-    player: createDefaultPlayerConfig(),
-    drop: createDefaultDropConfig(),
+    portraitAsf: "",
   };
 }

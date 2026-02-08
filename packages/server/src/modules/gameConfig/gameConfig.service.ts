@@ -10,7 +10,7 @@ import type {
 import { createDefaultGameConfig, GameConfigDataSchema } from "@miu2d/types";
 import { and, eq } from "drizzle-orm";
 import { db } from "../../db/client";
-import { gameConfigs, gameMembers } from "../../db/schema";
+import { gameConfigs, gameMembers, games } from "../../db/schema";
 import type { Language } from "../../i18n";
 import { getMessage } from "../../i18n";
 
@@ -128,6 +128,40 @@ export class GameConfigService {
 			.returning();
 
 		return this.toGameConfig(newRow);
+	}
+	/**
+	 * 公开接口：通过 slug 获取游戏配置（无需认证）
+	 * 不存在则返回默认配置
+	 */
+	async getPublicBySlug(gameSlug: string): Promise<GameConfigData> {
+		const [game] = await db
+			.select({ id: games.id })
+			.from(games)
+			.where(eq(games.slug, gameSlug))
+			.limit(1);
+
+		if (!game) {
+			throw new Error("Game not found");
+		}
+
+		const [row] = await db
+			.select()
+			.from(gameConfigs)
+			.where(eq(gameConfigs.gameId, game.id))
+			.limit(1);
+
+		if (row) {
+			const config = this.toGameConfig(row).data;
+			// playerKey 未设置时，不返回 player/drop 配置
+			if (!config.playerKey) {
+				const { player: _, drop: __, ...rest } = config;
+				return rest;
+			}
+			return config;
+		}
+
+		// 不存在则返回默认配置
+		return createDefaultGameConfig();
 	}
 }
 

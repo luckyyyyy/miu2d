@@ -218,6 +218,7 @@ export {
   createDefaultDropConfig,
   createDefaultPlayerConfig,
   createDefaultGameConfig,
+  mergeGameConfig,
 } from "./gameConfig.js";
 export type {
   MoneyDropTier,
@@ -233,6 +234,7 @@ export type {
   PlayerCombat,
   PlayerConfig,
   GameConfigData,
+  GameConfigDataFull,
   GameConfig,
   GetGameConfigInput,
   UpdateGameConfigInput,
