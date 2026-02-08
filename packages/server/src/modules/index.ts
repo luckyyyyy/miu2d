@@ -9,5 +9,6 @@ import "./level";
 import "./magic";
 import "./npc";
 import "./obj";
+import "./save";
 import "./shop";
 import "./user";

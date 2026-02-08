@@ -66,6 +66,7 @@ import { CameraController } from "./cameraController";
 import { InputHandler } from "./inputHandler";
 import { InteractionManager } from "./interactionManager";
 import { Loader } from "./loader";
+import type { SaveData } from "./storage";
 import { MagicHandler } from "./magicHandler";
 import { Sprite } from "../sprite/sprite";
 // Import refactored modules
@@ -713,6 +714,20 @@ export class GameManager {
    */
   async saveGame(index: number): Promise<boolean> {
     return await this.loader.saveGame(index);
+  }
+
+  /**
+   * 收集当前游戏状态（不存储，返回 SaveData 对象）
+   */
+  collectSaveData(): SaveData {
+    return this.loader.collectSaveData();
+  }
+
+  /**
+   * 从 JSON 数据加载存档（恢复游戏状态）
+   */
+  async loadGameFromJSON(data: SaveData): Promise<void> {
+    return await this.loader.loadGameFromJSON(data);
   }
 
   /**

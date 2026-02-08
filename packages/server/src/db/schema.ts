@@ -347,3 +347,36 @@ export const portraits = pgTable("portraits", {
   /** 更新时间 */
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow()
 });
+
+/**
+ * 存档表
+ * 存储用户的服务端存档
+ * 元数据存 PG，完整存档数据也存 JSONB（一般 < 1MB）
+ */
+export const saves = pgTable("saves", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  /** 所属游戏 */
+  gameId: uuid("game_id").references(() => games.id, { onDelete: "cascade" }).notNull(),
+  /** 所属用户 */
+  userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  /** 存档名称（用户自定义） */
+  name: text("name").notNull(),
+  /** 地图名称（便于预览） */
+  mapName: text("map_name"),
+  /** 玩家等级 */
+  level: integer("level"),
+  /** 玩家名称 */
+  playerName: text("player_name"),
+  /** 截图 (base64 JPEG, ~50KB) */
+  screenshot: text("screenshot"),
+  /** 是否公开分享 */
+  isShared: boolean("is_shared").notNull().default(false),
+  /** 分享码（随机生成，用于分享链接） */
+  shareCode: text("share_code").unique(),
+  /** 完整存档数据（JSONB，存储引擎 SaveData） */
+  data: jsonb("data").notNull(),
+  /** 创建时间 */
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  /** 更新时间 */
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow()
+});

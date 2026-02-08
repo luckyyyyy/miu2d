@@ -176,8 +176,8 @@ export function FilePreview({ file }: FilePreviewProps) {
         const { downloadUrl } = await getDownloadUrlMutation.mutateAsync({ fileId: file.id });
         setPreviewUrl(downloadUrl);
 
-        // ASF 文件
-        if (ext === "asf") {
+        // ASF / MSF 文件
+        if (ext === "asf" || ext === "msf") {
           if (!wasmReady) {
             setError("WASM 解码器尚未初始化");
             return;
@@ -186,7 +186,7 @@ export function FilePreview({ file }: FilePreviewProps) {
           const buffer = await response.arrayBuffer();
           const asf = decodeAsfWasm(buffer);
           if (!asf) {
-            setError("ASF 解码失败");
+            setError(ext === "msf" ? "MSF 解码失败" : "ASF 解码失败");
             return;
           }
           setAsfData(asf);
@@ -338,8 +338,8 @@ export function FilePreview({ file }: FilePreviewProps) {
 
   const ext = getFileExtension(file.name);
 
-  // ASF 预览
-  if (ext === "asf" && asfData) {
+  // ASF / MSF 预览
+  if ((ext === "asf" || ext === "msf") && asfData) {
     return (
       <AsfViewer
         asf={asfData}

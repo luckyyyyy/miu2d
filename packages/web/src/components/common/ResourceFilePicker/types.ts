@@ -160,7 +160,7 @@ export function getResourceFileType(fieldName: string, fileName?: string): Resou
 
   const ext = fileName.split(".").pop()?.toLowerCase();
 
-  if (ext === "asf" || ext === "mpc") {
+  if (ext === "asf" || ext === "msf" || ext === "mpc") {
     return "asf";
   }
 

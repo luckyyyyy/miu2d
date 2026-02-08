@@ -1,9 +1,10 @@
 /**
- * ASF file parser - 游戏的精灵动画格式
+ * 精灵动画加载器 - 支持 MSF (Miu Sprite Format) 新格式
  *
- * 格式: Header(16) + Metadata(64) + Palette(colors*4) + FrameOffsets(frames*8) + RLE压缩帧数据
+ * MSF 格式: per-frame tight bbox + indexed8 像素，HTTP 传输时自动压缩
+ * 向后兼容：如果传入 .asf 路径，自动重写为 .msf
  *
- * 使用 WASM 解码器，性能比 TypeScript 快 2x+
+ * 使用 WASM 解码器
  * 注意：使用前需在应用启动时调用 await initWasm()
  */
 
@@ -45,15 +46,23 @@ export function clearAsfCache(): void {
 }
 
 /**
+ * 将 .asf 扩展名重写为 .msf（兼容旧路径引用）
+ */
+function rewriteAsfToMsf(url: string): string {
+  return url.replace(/\.asf$/i, ".msf");
+}
+
+/**
  * 同步获取已缓存的 ASF
  * 必须先通过 loadAsf 加载过才能获取
  */
 export function getCachedAsf(url: string): AsfData | null {
-  return resourceLoader.getFromCache<AsfData>(url, "asf");
+  return resourceLoader.getFromCache<AsfData>(rewriteAsfToMsf(url), "asf");
 }
 
 export async function loadAsf(url: string): Promise<AsfData | null> {
-  return resourceLoader.loadParsedBinary<AsfData>(url, decodeAsfWasm, "asf");
+  const msfUrl = rewriteAsfToMsf(url);
+  return resourceLoader.loadParsedBinary<AsfData>(msfUrl, decodeAsfWasm, "asf");
 }
 
 /** 获取帧的 canvas（延迟创建）— 用于 UI 预览等非批量渲染场景 */

@@ -6,40 +6,43 @@
  * - React只负责画布和UI
  * - 窗口调整时只更新尺寸
  * - 所有调试功能通过 DebugManager 访问
- * - 支持从 URL 参数加载存档 (?load=N)
  * - 左侧图标菜单栏 + 面板展开（类似 VS Code 侧边栏）
  * - 支持移动端：虚拟摇杆 + 技能按钮（类似王者荣耀）
  */
 
 import { logger } from "@miu2d/engine/core/logger";
+import { GameEvents, type UIPanelChangeEvent } from "@miu2d/engine/core/gameEvents";
 import { setResourcePaths } from "@miu2d/engine/config";
-import { loadGameData, loadGameConfig, reloadGameData } from "@miu2d/engine/resource";
+import { loadGameData, loadGameConfig, reloadGameData, getGameConfig } from "@miu2d/engine/resource";
 import { setLevelConfigGameSlug, initNpcLevelConfig } from "@miu2d/engine/character/level";
 import { resourceLoader } from "@miu2d/engine/resource/resourceLoader";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useParams, useSearchParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import type { GameHandle } from "../components";
 import {
   DebugPanel,
   Game,
   GameCursor,
+  GameTopBar,
   loadUITheme,
   MobileControls,
-  SaveLoadGui,
-  SaveLoadPanel,
   SettingsPanel,
+  ShareOverlay,
   TitleGui,
   TouchDragIndicator,
+  WebSaveLoadPanel,
 } from "../components";
 import type { UITheme } from "../components/game/ui";
-import { TouchDragProvider } from "../contexts";
+import { TouchDragProvider, useAuth } from "../contexts";
 import { useMobile } from "../hooks";
+import { trpc } from "../lib/trpc";
 
 // 侧边栏宽度常量
 const SIDEBAR_WIDTH = 48;
 const PANEL_MIN_WIDTH = 200;
 const PANEL_MAX_WIDTH = 600;
 const PANEL_DEFAULT_WIDTH = 280;
+const TOP_BAR_HEIGHT = 40;
 const PANEL_WIDTH_STORAGE_KEY = "jxqy_panel_width";
 const RESOLUTION_STORAGE_KEY = "jxqy_resolution";
 
@@ -96,8 +99,8 @@ const saveResolution = (width: number, height: number) => {
   }
 };
 
-// 当前展开的面板类型
-type ActivePanel = "none" | "debug" | "saveload" | "settings";
+// 当前展开的面板类型（存档已移至全屏 WebSaveLoadPanel）
+type ActivePanel = "none" | "debug" | "settings";
 
 // 游戏阶段：title = 标题界面，playing = 游戏中
 type GamePhase = "title" | "playing";
@@ -106,13 +109,13 @@ type GamePhase = "title" | "playing";
 const MOBILE_SCALE = 0.75;
 
 export default function GameScreen() {
-  // 从 URL 获取 gameSlug
-  const { gameSlug } = useParams<{ gameSlug: string }>();
+  // 从 URL 获取 gameSlug 和 shareCode
+  const { gameSlug, shareCode } = useParams<{ gameSlug: string; shareCode?: string }>();
+  const { user, isAuthenticated } = useAuth();
 
   const gameRef = useRef<GameHandle>(null);
   const gameAreaRef = useRef<HTMLDivElement>(null);
   const [gamePhase, setGamePhase] = useState<GamePhase>("title");
-  const [loadSlotOverride, setLoadSlotOverride] = useState<number | undefined>(undefined);
   const [activePanel, setActivePanel] = useState<ActivePanel>("none"); // 标题界面时默认不显示面板
   const [panelWidth, setPanelWidth] = useState(getStoredPanelWidth);
   const [isResizing, setIsResizing] = useState(false);
@@ -122,13 +125,15 @@ export default function GameScreen() {
   const [isDataReady, setIsDataReady] = useState(false);
   // UI 主题状态
   const [uiTheme, setUITheme] = useState<UITheme>(loadUITheme);
-  // 标题界面读档弹窗状态
-  const [showTitleLoadModal, setShowTitleLoadModal] = useState(false);
+  // 新的 Web 存档面板（全屏半透明）
+  const [showWebSaveLoad, setShowWebSaveLoad] = useState(false);
+  // 分享存档 overlay 状态
+  const [showShareOverlay, setShowShareOverlay] = useState(!!shareCode);
+  // 游戏名（从 config 获取）
+  const [gameName, setGameName] = useState("");
 
   // 移动端检测
   const { isMobile, isLandscape, screenWidth, screenHeight } = useMobile();
-  // 标记是否已经处理过 URL 参数（防止从游戏返回标题后再次自动进入）
-  const urlLoadHandledRef = useRef(false);
 
   // 设置资源路径（基于 gameSlug）并加载游戏数据，设置等级配置 gameSlug
   useEffect(() => {
@@ -147,7 +152,14 @@ export default function GameScreen() {
       // 先加载游戏全局配置，再加载游戏数据（阻塞引擎初始化）
       setIsDataReady(false);
       loadGameConfig(gameSlug)
-        .then(() => loadGameData(gameSlug))
+        .then(() => {
+          // 读取游戏名
+          const config = getGameConfig();
+          if (config?.gameName) {
+            setGameName(config.gameName);
+          }
+          return loadGameData(gameSlug);
+        })
         .then(() => {
           setIsDataReady(true);
           logger.info(`[GameScreen] Game config and data loaded for ${gameSlug}`);
@@ -159,31 +171,6 @@ export default function GameScreen() {
         });
     }
   }, [gameSlug]);
-
-  // 获取 URL 参数
-  const [searchParams, setSearchParams] = useSearchParams();
-  const urlLoadSlot = useMemo(() => {
-    const loadParam = searchParams.get("load");
-    if (loadParam) {
-      const slot = parseInt(loadParam, 10);
-      if (slot >= 1 && slot <= 7) {
-        return slot;
-      }
-    }
-    return undefined;
-  }, [searchParams]);
-
-  // 实际使用的 loadSlot（优先使用 loadSlotOverride，然后是 URL 参数）
-  const loadSlot = loadSlotOverride ?? urlLoadSlot;
-
-  // 如果 URL 有 load 参数，直接进入游戏（只处理一次）
-  useEffect(() => {
-    if (urlLoadSlot && gamePhase === "title" && !urlLoadHandledRef.current) {
-      urlLoadHandledRef.current = true;
-      setGamePhase("playing");
-      setActivePanel("debug"); // 游戏中默认显示调试面板
-    }
-  }, [urlLoadSlot, gamePhase]);
 
   // 获取 DebugManager（稳定引用，通过 ref 访问）
   const getDebugManager = useCallback(() => gameRef.current?.getDebugManager(), []);
@@ -208,10 +195,10 @@ export default function GameScreen() {
         };
       }
 
-      // 桌面端：考虑侧边栏和面板
+      // 桌面端：考虑侧边栏、面板和顶栏
       const activePanelWidth = activePanel !== "none" ? panelWidth : 0;
       const maxWidth = window.innerWidth - SIDEBAR_WIDTH - activePanelWidth;
-      const maxHeight = window.innerHeight;
+      const maxHeight = window.innerHeight - TOP_BAR_HEIGHT;
 
       // 自适应模式：使用最大可用空间
       if (resolution.width === 0 || resolution.height === 0) {
@@ -289,19 +276,13 @@ export default function GameScreen() {
     // 销毁引擎
     gameRef.current?.getEngine()?.dispose();
 
-    // 清除 URL 中的 load 参数，防止自动重新进入游戏
-    if (searchParams.has("load")) {
-      searchParams.delete("load");
-      setSearchParams(searchParams, { replace: true });
-    }
-
     // 重置状态
     setGamePhase("title");
     setActivePanel("none");
-    setLoadSlotOverride(undefined);
+    setShowWebSaveLoad(false);
 
     logger.log("[GameScreen] Returned to title");
-  }, [searchParams, setSearchParams]);
+  }, []);
 
   // 定期更新调试面板（只在游戏中）
   useEffect(() => {
@@ -316,26 +297,31 @@ export default function GameScreen() {
   // 标题界面 - 开始新游戏
   const handleNewGame = useCallback(() => {
     logger.log("[GameScreen] Starting new game...");
-    setLoadSlotOverride(undefined); // 确保不加载存档
     setGamePhase("playing");
     setActivePanel("debug"); // 游戏中默认显示调试面板
   }, []);
 
-  // 标题界面 - 读取存档
+  // 标题界面 - 读取存档（显示 WebSaveLoadPanel）
   const handleLoadGame = useCallback(() => {
-    // 显示原版风格的存档选择界面
-    setShowTitleLoadModal(true);
+    setShowWebSaveLoad(true);
   }, []);
 
-  // 标题界面 - 选择存档后开始游戏
-  const handleTitleLoadSlot = useCallback(async (index: number): Promise<boolean> => {
-    logger.log(`[GameScreen] Loading save slot ${index} from title...`);
-    setShowTitleLoadModal(false);
-    setLoadSlotOverride(index);
-    setGamePhase("playing");
-    setActivePanel("debug");
-    return true;
-  }, []);
+  // 拦截游戏内存档界面：当引擎试图打开存档面板时，替换为 WebSaveLoadPanel
+  useEffect(() => {
+    if (gamePhase !== "playing") return;
+    const engine = gameRef.current?.getEngine();
+    if (!engine) return;
+
+    const unsub = engine.getEvents().on(GameEvents.UI_PANEL_CHANGE, (event: UIPanelChangeEvent) => {
+      if (event.panel === "saveLoad" && event.isOpen) {
+        // 拦截：关闭引擎内的存档面板，打开 Web 存档面板
+        engine.getGameManager().getGuiManager().showSaveLoad(false);
+        setShowWebSaveLoad(true);
+      }
+    });
+
+    return () => unsub();
+  }, [gamePhase]);
 
   // 切换面板
   const togglePanel = (panel: ActivePanel) => {
@@ -346,26 +332,47 @@ export default function GameScreen() {
     }
   };
 
-  // 存档操作
-  const handleSave = async (index: number): Promise<boolean> => {
+  // 收集存档数据（用于 WebSaveLoadPanel）
+  const collectSaveData = useCallback(() => {
     const engine = getEngine();
-    if (!engine) return false;
-    return await engine.saveGameToSlot(index);
-  };
+    if (!engine) return null;
+    try {
+      const saveData = engine.collectSaveData();
+      // 截图
+      const canvas = engine.getCanvas();
+      let screenshot: string | undefined;
+      if (canvas) {
+        try {
+          screenshot = canvas.toDataURL("image/jpeg", 0.6);
+        } catch {
+          // ignore screenshot failure
+        }
+      }
+      return {
+        data: saveData as unknown as Record<string, unknown>,
+        screenshot,
+        mapName: saveData.state?.map ?? "",
+        level: saveData.player?.level ?? 1,
+        playerName: saveData.player?.name ?? "",
+      };
+    } catch (error) {
+      logger.error("[GameScreen] Failed to collect save data:", error);
+      return null;
+    }
+  }, [getEngine]);
 
-  // 读档操作
-  const handleLoad = async (index: number): Promise<boolean> => {
+  // 加载存档数据（从服务器获取的 data 传入引擎）
+  const loadSaveData = useCallback(async (data: Record<string, unknown>): Promise<boolean> => {
     const engine = getEngine();
     if (!engine) return false;
     try {
-      await engine.loadGameFromSlot(index);
-      // 读档成功后不关闭面板，让用户手动关闭
+      await engine.loadGameFromJSON(data as unknown as import("@miu2d/engine/runtime").SaveData);
       return true;
     } catch (error) {
-      logger.error("Load game error:", error);
+      logger.error("[GameScreen] Failed to load save data:", error);
       return false;
     }
-  };
+  }, [getEngine]);
 
   // 截图功能
   const takeScreenshot = () => {
@@ -454,6 +461,7 @@ export default function GameScreen() {
       id: "saveload" as const,
       icon: "💾",
       tooltip: "存档",
+      action: () => setShowWebSaveLoad(true), // 打开全屏WebSaveLoadPanel
     },
     {
       id: "settings" as const,
@@ -480,7 +488,11 @@ export default function GameScreen() {
 
         {/* 标题界面 */}
         {gamePhase === "title" && (
-          <div className="w-full h-full">
+          <div className="w-full h-full relative">
+            {/* 顶栏 */}
+            <div className="absolute top-0 left-0 right-0 z-[1100]">
+              <GameTopBar gameName={gameName} />
+            </div>
             <TitleGui
               gameSlug={gameSlug}
               screenWidth={window.innerWidth}
@@ -488,31 +500,70 @@ export default function GameScreen() {
               onNewGame={handleNewGame}
               onLoadGame={handleLoadGame}
             />
-            {/* 标题界面读档弹窗 - 使用原版风格的 SaveLoadGui */}
-            {showTitleLoadModal && (
-              <div
-                className="fixed inset-0 z-[1100] bg-black/70 flex items-center justify-center"
-                onClick={() => setShowTitleLoadModal(false)}
-              >
-                <div onClick={(e) => e.stopPropagation()}>
-                  <SaveLoadGui
-                    isVisible={true}
-                    screenWidth={window.innerWidth}
-                    screenHeight={window.innerHeight}
-                    canSave={false}
-                    onSave={async () => false}
-                    onLoad={handleTitleLoadSlot}
-                    onClose={() => setShowTitleLoadModal(false)}
-                  />
-                </div>
-              </div>
+            {/* Web 存档面板（标题界面读档 - 只能读不能存） */}
+            {showWebSaveLoad && gameSlug && (
+              <WebSaveLoadPanel
+                gameSlug={gameSlug}
+                visible={showWebSaveLoad}
+                canSave={false}
+                onCollectSaveData={() => null}
+                onLoadSaveData={async (data) => {
+                  // 标题界面读档：进入游戏后加载
+                  setShowWebSaveLoad(false);
+                  setGamePhase("playing");
+                  setActivePanel("debug");
+                  // 延迟加载，等引擎初始化完成
+                  setTimeout(async () => {
+                    const engine = gameRef.current?.getEngine();
+                    if (engine) {
+                      try {
+                        await engine.loadGameFromJSON(data as unknown as import("@miu2d/engine/runtime").SaveData);
+                      } catch (e) {
+                        logger.error("[GameScreen] Failed to load save from title:", e);
+                      }
+                    }
+                  }, 500);
+                  return true;
+                }}
+                onClose={() => setShowWebSaveLoad(false)}
+              />
+            )}
+            {/* 分享存档 overlay */}
+            {showShareOverlay && shareCode && gameSlug && (
+              <ShareOverlayWithFetch
+                gameSlug={gameSlug}
+                shareCode={shareCode}
+                onDone={(data) => {
+                  setShowShareOverlay(false);
+                  if (data) {
+                    // 进入游戏并加载分享存档
+                    setGamePhase("playing");
+                    setActivePanel("debug");
+                    setTimeout(async () => {
+                      const engine = gameRef.current?.getEngine();
+                      if (engine) {
+                        try {
+                          await engine.loadGameFromJSON(data as unknown as import("@miu2d/engine/runtime").SaveData);
+                        } catch (e) {
+                          logger.error("[GameScreen] Failed to load shared save:", e);
+                        }
+                      }
+                    }, 500);
+                  }
+                }}
+              />
             )}
           </div>
         )}
 
         {/* 游戏界面 */}
         {gamePhase === "playing" && (
-          <>
+          <div className="flex h-full w-full flex-col overflow-hidden">
+            {/* 顶栏 - 正常流布局，不遮挡游戏画面 */}
+            <GameTopBar gameName={gameName} />
+
+            {/* 主体区域 */}
+            <div className="flex flex-1 overflow-hidden">
             {/* 左侧图标菜单栏 - 移动端隐藏 */}
             {!isMobile && (
               <div className="w-12 bg-[#1a1a2e] flex flex-col items-center py-2 gap-1 border-r border-gray-700/50 z-10">
@@ -644,14 +695,7 @@ export default function GameScreen() {
                   </div>
                 )}
 
-                {/* 存档/读档面板 */}
-                {activePanel === "saveload" && (
-                  <SaveLoadPanel
-                    onSave={handleSave}
-                    onLoad={handleLoad}
-                    onClose={() => setActivePanel("none")}
-                  />
-                )}
+                {/* 存档/读档面板 - 已移至全屏 WebSaveLoadPanel */}
 
                 {/* 设置面板 */}
                 {activePanel === "settings" && (
@@ -709,7 +753,6 @@ export default function GameScreen() {
                     ref={gameRef}
                     width={windowSize.width}
                     height={windowSize.height}
-                    loadSlot={loadSlot}
                     onReturnToTitle={handleReturnToTitle}
                     uiTheme={uiTheme}
                   />
@@ -736,9 +779,59 @@ export default function GameScreen() {
               {/* 触摸拖拽指示器（移动端） */}
               {isMobile && <TouchDragIndicator />}
             </div>
-          </>
+
+            </div>{/* end 主体区域 */}
+
+            {/* Web 存档/读档面板（全屏覆盖） */}
+            {showWebSaveLoad && gameSlug && (
+              <WebSaveLoadPanel
+                gameSlug={gameSlug}
+                visible={showWebSaveLoad}
+                canSave={gamePhase === "playing"}
+                onCollectSaveData={collectSaveData}
+                onLoadSaveData={loadSaveData}
+                onClose={() => setShowWebSaveLoad(false)}
+              />
+            )}
+          </div>
         )}
       </div>
     </TouchDragProvider>
+  );
+}
+
+/**
+ * ShareOverlayWithFetch - 获取分享存档并显示 overlay
+ */
+function ShareOverlayWithFetch({
+  gameSlug,
+  shareCode,
+  onDone,
+}: {
+  gameSlug: string;
+  shareCode: string;
+  onDone: (data: Record<string, unknown> | null) => void;
+}) {
+  const sharedQuery = trpc.save.getShared.useQuery(
+    { gameSlug, shareCode },
+    { retry: false },
+  );
+
+  const sharedSave = sharedQuery.data
+    ? {
+        userName: sharedQuery.data.userName ?? "未知用户",
+        saveName: sharedQuery.data.name,
+        mapName: sharedQuery.data.mapName,
+        level: sharedQuery.data.level,
+        data: sharedQuery.data.data as Record<string, unknown>,
+      }
+    : null;
+
+  return (
+    <ShareOverlay
+      sharedSave={sharedSave}
+      error={sharedQuery.error ? "分享存档不存在或已失效" : null}
+      onDone={onDone}
+    />
   );
 }

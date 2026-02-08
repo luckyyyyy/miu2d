@@ -121,6 +121,7 @@ interface ConfirmDialogProps {
   confirmText?: string;
   cancelText?: string;
   danger?: boolean;
+  loading?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -131,27 +132,33 @@ export function ConfirmDialog({
   confirmText = "确定",
   cancelText = "取消",
   danger = false,
+  loading = false,
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
   return (
-    <Dialog title={title} onClose={onCancel}>
+    <Dialog title={title} onClose={loading ? () => {} : onCancel}>
       <div className="p-4 text-[13px] text-[#cccccc]">{message}</div>
       <div className="flex justify-end gap-2 px-4 py-3 border-t border-[#454545]">
         <button
           onClick={onCancel}
-          className="px-4 py-1.5 bg-[#3c3c3c] hover:bg-[#4a4a4a] rounded text-[13px] text-[#cccccc] transition-colors"
+          disabled={loading}
+          className="px-4 py-1.5 bg-[#3c3c3c] hover:bg-[#4a4a4a] rounded text-[13px] text-[#cccccc] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {cancelText}
         </button>
         <button
           onClick={onConfirm}
-          className={`px-4 py-1.5 rounded text-[13px] text-white transition-colors ${
+          disabled={loading}
+          className={`px-4 py-1.5 rounded text-[13px] text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 ${
             danger
               ? "bg-red-600 hover:bg-red-700"
               : "bg-[#0e639c] hover:bg-[#1177bb]"
           }`}
         >
+          {loading && (
+            <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+          )}
           {confirmText}
         </button>
       </div>

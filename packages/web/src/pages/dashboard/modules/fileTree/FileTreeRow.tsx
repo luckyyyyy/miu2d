@@ -12,6 +12,7 @@ const FILE_ICONS: Record<string, string> = {
   folderOpen: "📂",
   file: "📄",
   asf: "🎬",
+  msf: "🎬",
   ini: "⚙️",
   txt: "📝",
   npc: "👤",

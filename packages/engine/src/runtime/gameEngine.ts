@@ -79,6 +79,7 @@ import type { IRenderer } from "../webgl/iRenderer";
 import { createRenderer, type RendererBackend } from "../webgl";
 import { GameManager } from "./gameManager";
 import { PerformanceStats, type PerformanceStatsData } from "./performanceStats";
+import type { SaveData } from "./storage";
 import type { BuyManager } from "../gui/buyManager";
 import type { InteractionManager } from "./interactionManager";
 import type { MagicHandler } from "./magicHandler";
@@ -638,6 +639,20 @@ export class GameEngine implements IEngineContext {
       logger.error(`[GameEngine] Failed to save game to slot ${index}:`, error);
       return false;
     }
+  }
+
+  /**
+   * 收集当前游戏状态用于保存（不写入 localStorage）
+   */
+  collectSaveData(): SaveData {
+    return this.gameManager.collectSaveData();
+  }
+
+  /**
+   * 从 JSON 数据加载存档（恢复游戏状态）
+   */
+  async loadGameFromJSON(data: SaveData): Promise<void> {
+    return await this.gameManager.loadGameFromJSON(data);
   }
 
   /**

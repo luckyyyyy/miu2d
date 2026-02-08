@@ -15,6 +15,7 @@ import { ObjModule } from "./modules/obj/obj.module";
 import { PlayerModule } from "./modules/player/player.module";
 import { PortraitModule } from "./modules/portrait/portrait.module";
 import { ShopModule } from "./modules/shop/shop.module";
+import { SaveModule } from "./modules/save";
 import { UserModule } from "./modules/user";
 
 @Module({
@@ -34,6 +35,7 @@ import { UserModule } from "./modules/user";
     ObjModule,
     PlayerModule,
     PortraitModule,
+    SaveModule,
     ShopModule,
     UserModule
   ],

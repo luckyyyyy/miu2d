@@ -20,6 +20,19 @@ interface WasmAsfHeader {
   frames_per_direction: number;
 }
 
+interface WasmMsfHeader {
+  canvas_width: number;
+  canvas_height: number;
+  frame_count: number;
+  directions: number;
+  fps: number;
+  anchor_x: number;
+  anchor_y: number;
+  pixel_format: number;
+  palette_size: number;
+  frames_per_direction: number;
+}
+
 interface WasmMpcHeader {
   frames_data_length_sum: number;
   global_width: number;
@@ -37,6 +50,9 @@ export interface WasmModule {
   // ASF 解码
   parse_asf_header(data: Uint8Array): WasmAsfHeader | undefined;
   decode_asf_frames(data: Uint8Array, output: Uint8Array): number;
+  // MSF 解码
+  parse_msf_header(data: Uint8Array): WasmMsfHeader | undefined;
+  decode_msf_frames(data: Uint8Array, output: Uint8Array): number;
   // MPC 解码
   parse_mpc_header(data: Uint8Array): WasmMpcHeader | undefined;
   decode_mpc_frames(

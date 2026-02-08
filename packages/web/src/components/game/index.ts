@@ -22,6 +22,9 @@ export { useGameUILogic } from "./hooks";
 export { LoadingOverlay } from "./LoadingOverlay";
 export { MapViewer } from "./MapViewer";
 export { ModernGameUIWrapper } from "./ModernGameUIWrapper";
+export { WebSaveLoadPanel } from "./WebSaveLoadPanel";
+export { ShareOverlay } from "./ShareOverlay";
+export { GameTopBar } from "./GameTopBar";
 // UI 组件
 export * from "./ui";
 // Note: TooltipState, MagicTooltipState, MagicDragData 已经从 ./ui 导出

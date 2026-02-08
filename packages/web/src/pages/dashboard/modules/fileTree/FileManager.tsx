@@ -61,6 +61,8 @@ export function FileManager() {
 
   // 上传状态
   const [uploads, setUploads] = useState<UploadItem[]>([]);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isProcessingDrop, setIsProcessingDrop] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Mutations
@@ -321,6 +323,7 @@ export function FileManager() {
   const handleDelete = useCallback(async () => {
     if (!selectedNode) return;
 
+    setIsDeleting(true);
     try {
       await deleteMutation.mutateAsync({ fileId: selectedNode.id });
       setSelectedNode(null);
@@ -332,6 +335,7 @@ export function FileManager() {
       }, { replace: true });
       await refreshTree();
     } finally {
+      setIsDeleting(false);
       setShowDeleteDialog(false);
     }
   }, [selectedNode, deleteMutation, refreshTree, setSearchParams]);
@@ -551,7 +555,13 @@ export function FileManager() {
   const handleDropUpload = useCallback(async (dataTransfer: DataTransfer, targetParentId: string | null) => {
     if (!currentGame?.id) return;
 
-    const files = await processDataTransfer(dataTransfer);
+    setIsProcessingDrop(true);
+    let files: { relativePath: string; file: File }[];
+    try {
+      files = await processDataTransfer(dataTransfer);
+    } finally {
+      setIsProcessingDrop(false);
+    }
     if (files.length === 0) return;
 
     // 创建上传任务
@@ -732,6 +742,15 @@ export function FileManager() {
             </div>
           </div>
         )}
+        {/* 解析文件/文件夹中 */}
+        {isProcessingDrop && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10 bg-[#1e1e1e]/70">
+            <div className="text-center">
+              <div className="w-6 h-6 border-2 border-[#0e639c] border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+              <p className="text-sm text-[#cccccc]">正在解析文件...</p>
+            </div>
+          </div>
+        )}
         {/* 工具栏 */}
         <div className="flex items-center justify-end px-3 py-2 border-b border-[#454545] bg-[#252526]">
           <div className="flex items-center gap-1">
@@ -875,6 +894,7 @@ export function FileManager() {
           }
           confirmText="删除"
           danger
+          loading={isDeleting}
           onConfirm={handleDelete}
           onCancel={() => setShowDeleteDialog(false)}
         />

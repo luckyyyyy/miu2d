@@ -1,0 +1,14 @@
+[package]
+name = "asf2msf"
+version = "0.1.0"
+edition = "2021"
+description = "ASF → MSF sprite format converter"
+
+[[bin]]
+name = "asf2msf"
+path = "src/main.rs"
+
+[dependencies]
+walkdir = "2"
+rayon = "1.10"
+zstd = "0.13"

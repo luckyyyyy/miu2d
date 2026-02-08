@@ -480,3 +480,29 @@ export type {
   BatchImportObjInput,
   BatchImportObjResult,
 } from "./obj.js";
+
+// 存档类型
+export {
+  SaveSlotSchema,
+  UpsertSaveInputSchema,
+  ListSavesInputSchema,
+  GetSaveInputSchema,
+  DeleteSaveInputSchema,
+  ShareSaveInputSchema,
+  GetSharedSaveInputSchema,
+  SaveDataResponseSchema,
+  AdminListSavesInputSchema,
+  AdminListSavesOutputSchema,
+} from "./save.js";
+export type {
+  SaveSlot,
+  UpsertSaveInput,
+  ListSavesInput,
+  GetSaveInput,
+  DeleteSaveInput,
+  ShareSaveInput,
+  GetSharedSaveInput,
+  SaveDataResponse,
+  AdminListSavesInput,
+  AdminListSavesOutput,
+} from "./save.js";

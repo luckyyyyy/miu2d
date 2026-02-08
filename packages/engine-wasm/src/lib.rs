@@ -11,6 +11,7 @@ use wasm_bindgen::prelude::*;
 pub mod asf_decoder;
 pub mod collision;
 pub mod mpc_decoder;
+pub mod msf_codec;
 pub mod pathfinder;
 
 /// 初始化 WASM 模块
