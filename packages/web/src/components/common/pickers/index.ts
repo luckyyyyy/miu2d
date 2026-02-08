@@ -2,9 +2,13 @@
  * 通用选择器组件
  *
  * 包含：
+ * - GoodsPicker: 物品选择器
  * - MagicPicker: 武功选择器
- * - ResourceListPicker: 资源列表选择器（NPC 资源 / Obj 资源通用）
+ * - NpcResourcePicker: NPC 资源选择器（外观配置）
+ * - ResourceListPicker: 资源列表选择器（通用）
  */
 
+export { GoodsPicker, type GoodsPickerProps } from "./GoodsPicker";
 export { MagicPicker, type MagicPickerProps } from "./MagicPicker";
+export { NpcResourcePicker, type NpcResourcePickerProps } from "./NpcResourcePicker";
 export { ResourceListPicker, type ResourceListPickerProps, type ResourceListItem } from "./ResourceListPicker";

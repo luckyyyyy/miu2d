@@ -1357,6 +1357,10 @@ export interface ApiPlayerData {
   timeCount: number;
   timeLimit: number;
   timeTrigger: number;
+  /** 初始武功列表（从 API 配置） */
+  initialMagics: Array<{ iniFile: string; level: number; exp: number }>;
+  /** 初始物品列表（从 API 配置） */
+  initialGoods: Array<{ iniFile: string; number: number }>;
 }
 
 /**

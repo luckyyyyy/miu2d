@@ -513,6 +513,11 @@ export class DebugManager extends EngineAccess {
 
     const xiuLian = this.magicListManager.getItemInfo(49);
     if (xiuLian?.magic) {
+      // 没有等级数据的武功不能升级
+      if (!xiuLian.magic.levels || xiuLian.magic.levels.size === 0) {
+        this.showMessage(`${xiuLian.magic.name} 无法升级`);
+        return;
+      }
       const maxLevel = xiuLian.magic.maxLevel || 10;
       const newLevel = Math.min(xiuLian.level + 1, maxLevel);
       if (newLevel > xiuLian.level) {
@@ -537,6 +542,11 @@ export class DebugManager extends EngineAccess {
 
     const xiuLian = this.magicListManager.getItemInfo(49);
     if (xiuLian?.magic) {
+      // 没有等级数据的武功不能调整等级
+      if (!xiuLian.magic.levels || xiuLian.magic.levels.size === 0) {
+        this.showMessage(`${xiuLian.magic.name} 无法调整等级`);
+        return;
+      }
       const newLevel = Math.max(xiuLian.level - 1, 1);
       if (newLevel < xiuLian.level) {
         this.magicListManager.setMagicLevel(xiuLian.magic.fileName, newLevel);

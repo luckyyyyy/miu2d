@@ -559,7 +559,23 @@ export class Loader {
       // Step 2.5: 预读玩家 npcIni 以设置 NpcIniIndex
       // 必须在加载武功列表之前设置，否则 SpecialAttackTexture 预加载会使用错误的索引
       // 例如 z-杨影枫2.ini -> NpcIniIndex=2 -> 云生结海攻击2.asf（而非默认的1）
-      const playerKey = `Player${chrIndex}.ini`;
+
+      // 初始存档 (index=0) 优先使用 /api/config 的 playerKey，而非从 chrIndex 推导
+      // 这样配置 playerKey: "Player1.ini" 时能正确加载对应角色数据
+      let playerKey = `Player${chrIndex}.ini`;
+      if (index === 0) {
+        const configPlayerKey = getGameConfig()?.playerKey;
+        if (configPlayerKey) {
+          playerKey = configPlayerKey;
+          // 从 playerKey 提取 chrIndex（如 "Player1.ini" → 1）
+          const match = configPlayerKey.match(/Player(\d+)\.ini/i);
+          if (match) {
+            chrIndex = parseInt(match[1], 10);
+            player.setPlayerIndex(chrIndex);
+            logger.debug(`[Loader] Using config playerKey: ${configPlayerKey}, chrIndex=${chrIndex}`);
+          }
+        }
+      }
 
       // 初始存档 (index=0) 从 API 数据加载玩家
       const apiPlayerData = index === 0 ? this.findApiPlayer(playerKey) : null;
@@ -587,14 +603,36 @@ export class Loader {
       magicListManager.stopReplace();
       magicListManager.clearReplaceList();
 
-      const magicPath = `${basePath}/Magic${chrIndex}.ini`;
-      logger.debug(`[Loader] Loading magic from: ${magicPath}`);
-      await magicListManager.loadPlayerList(magicPath);
+      // 初始存档优先从 API initialMagics 加载，否则从 INI 文件加载
+      if (apiPlayerData?.initialMagics && apiPlayerData.initialMagics.length > 0) {
+        const magicItems: MagicItemData[] = apiPlayerData.initialMagics.map((m, i) => ({
+          fileName: m.iniFile,
+          level: m.level,
+          exp: m.exp,
+          index: i + 1,
+        }));
+        await this.loadMagicsFromJSON(magicItems, 0, magicListManager);
+        logger.debug(`[Loader] Loaded ${magicItems.length} magics from API data`);
+      } else {
+        const magicPath = `${basePath}/Magic${chrIndex}.ini`;
+        logger.debug(`[Loader] Loading magic from: ${magicPath}`);
+        await magicListManager.loadPlayerList(magicPath);
+      }
 
       this.reportProgress(74, "加载物品...");
-      const goodsPath = `${basePath}/Goods${chrIndex}.ini`;
-      logger.debug(`[Loader] Loading goods from: ${goodsPath}`);
-      await goodsListManager.loadList(goodsPath);
+      // 初始存档优先从 API initialGoods 加载，否则从 INI 文件加载
+      if (apiPlayerData?.initialGoods && apiPlayerData.initialGoods.length > 0) {
+        const goodsItems: GoodsItemData[] = apiPlayerData.initialGoods.map(g => ({
+          fileName: g.iniFile,
+          count: g.number,
+        }));
+        this.loadGoodsFromJSON(goodsItems, [], goodsListManager);
+        logger.debug(`[Loader] Loaded ${goodsItems.length} goods from API data`);
+      } else {
+        const goodsPath = `${basePath}/Goods${chrIndex}.ini`;
+        logger.debug(`[Loader] Loading goods from: ${goodsPath}`);
+        await goodsListManager.loadList(goodsPath);
+      }
 
       this.reportProgress(76, "加载备忘...");
       const memoPath = `${basePath}/memo.ini`;
@@ -724,6 +762,16 @@ export class Loader {
     const players = getPlayersData();
     if (!players) return null;
     return players.find(p => p.key === playerKey) ?? null;
+  }
+
+  /**
+   * 从 API 数据中按 index 查找玩家数据
+   * 用于 changePlayer 时从 API 加载目标角色配置
+   */
+  private findApiPlayerByIndex(index: number): import("../resource/resourceLoader").ApiPlayerData | null {
+    const players = getPlayersData();
+    if (!players) return null;
+    return players.find(p => p.index === index) ?? null;
   }
 
   /**
@@ -935,6 +983,28 @@ export class Loader {
     }
 
     if (!magicLoaded) {
+      // 尝试从 API 数据加载初始武功
+      const apiPlayer = this.findApiPlayerByIndex(index);
+      if (apiPlayer?.initialMagics && apiPlayer.initialMagics.length > 0) {
+        try {
+          const magicItems: MagicItemData[] = apiPlayer.initialMagics.map((m, i) => ({
+            fileName: m.iniFile,
+            level: m.level,
+            exp: m.exp,
+            index: i + 1, // 从 1 开始分配位置
+          }));
+          await this.loadMagicsFromJSON(magicItems, 0, magicListManager);
+          magicLoaded = true;
+          logger.log(
+            `[Loader] LoadMagicList: loaded ${magicItems.length} magics from API data (index=${index})`
+          );
+        } catch (e) {
+          logger.warn(`[Loader] Failed to load magic list from API data:`, e);
+        }
+      }
+    }
+
+    if (!magicLoaded) {
       // 从资源文件加载初始武功
       // Reference: MagicListManager.LoadPlayerList(StorageBase.MagicListFilePath)
       const magicIniPath = ResourcePath.saveGame(`Magic${index}.ini`);
@@ -964,6 +1034,26 @@ export class Loader {
         }
       } catch (e) {
         logger.warn(`[Loader] Failed to load goods list from memory:`, e);
+      }
+    }
+
+    if (!goodsLoaded) {
+      // 尝试从 API 数据加载初始物品
+      const apiPlayer = this.findApiPlayerByIndex(index);
+      if (apiPlayer?.initialGoods && apiPlayer.initialGoods.length > 0) {
+        try {
+          const goodsItems: GoodsItemData[] = apiPlayer.initialGoods.map(g => ({
+            fileName: g.iniFile,
+            count: g.number,
+          }));
+          this.loadGoodsFromJSON(goodsItems, [], goodsListManager);
+          goodsLoaded = true;
+          logger.log(
+            `[Loader] LoadGoodsList: loaded ${goodsItems.length} goods from API data (index=${index})`
+          );
+        } catch (e) {
+          logger.warn(`[Loader] Failed to load goods list from API data:`, e);
+        }
       }
     }
 
@@ -1077,6 +1167,21 @@ export class Loader {
     }
 
     if (!loaded) {
+      // 尝试从 API 数据加载
+      const apiPlayer = this.findApiPlayerByIndex(index);
+      if (apiPlayer) {
+        try {
+          await player.loadFromApiData(apiPlayer);
+          await player.loadSpritesFromNpcIni(apiPlayer.npcIni);
+          loaded = true;
+          logger.log(`[Loader] LoadPlayer: loaded from API data (index=${index}, key=${apiPlayer.key})`);
+        } catch (e) {
+          logger.error(`[Loader] Failed to load player from API data:`, e);
+        }
+      }
+    }
+
+    if (!loaded) {
       // 内存为空，从资源文件加载初始数据
       // path = StorageBase.PlayerFilePath -> save/game/Player{index}.ini
       const playerIniPath = ResourcePath.saveGame(`Player${index}.ini`);
@@ -1134,13 +1239,20 @@ export class Loader {
     const index = player.playerIndex;
     logger.log(`[Loader] Loading player (index ${index}) data from memory...`);
 
-    // 预设 NpcIniIndex（从内存或资源文件中提取 npcIni）
+    // 预设 NpcIniIndex（从内存或 API 数据中提取 npcIni）
     // 必须在加载武功列表之前设置，否则 SpecialAttackTexture 预加载会使用错误的索引
     const memoryData = this.characterMemory.get(index);
     const npcIni = memoryData?.player?.npcIni;
     if (npcIni) {
       await player.setNpcIni(npcIni);
       logger.debug(`[Loader] Pre-set NpcIni from memory: ${npcIni} (index=${player.npcIniIndex})`);
+    } else {
+      // 没有内存数据时，尝试从 API 数据获取 npcIni
+      const apiPlayer = this.findApiPlayerByIndex(index);
+      if (apiPlayer?.npcIni) {
+        await player.setNpcIni(apiPlayer.npcIni);
+        logger.debug(`[Loader] Pre-set NpcIni from API: ${apiPlayer.npcIni} (index=${player.npcIniIndex})`);
+      }
     }
 
     // 加载新角色的武功/物品

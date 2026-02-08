@@ -3,7 +3,6 @@
  * 参考 NPC 编辑页面布局
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { createPortal } from "react-dom";
 import { useParams, useNavigate } from "react-router-dom";
 import { trpc } from "../../../../lib/trpc";
 import { useToast } from "../../../../contexts/ToastContext";
@@ -12,9 +11,8 @@ import type { DetailTab } from "../../components/DetailPageLayout";
 import { EditorEmptyState } from "../../components/EditorEmptyState";
 import { useDashboard } from "../../DashboardContext";
 import { NumberInput, ResourceFilePicker } from "../../../../components/common";
-import { MagicPicker, ResourceListPicker } from "../../../../components/common/pickers";
+import { GoodsPicker, MagicPicker, NpcResourcePicker, ResourceListPicker } from "../../../../components/common/pickers";
 import type { ResourceListItem } from "../../../../components/common/pickers";
-import { LazyAsfIcon } from "../../../../components/common/LazyAsfIcon";
 import type { Player, PlayerInitialMagic, PlayerInitialGoods } from "@miu2d/types";
 import { createDefaultPlayer } from "@miu2d/types";
 
@@ -179,7 +177,7 @@ export function PlayerDetailPage() {
       isDeleting={deleteMutation.isPending}
     >
       {activeTab === "basic" && (
-        <BasicInfoSection formData={formData} updateField={updateField} />
+        <BasicInfoSection formData={formData} updateField={updateField} gameId={gameId!} gameSlug={gameSlug!} />
       )}
 
       {activeTab === "initialMagics" && (
@@ -221,9 +219,13 @@ export function PlayerDetailPage() {
 function BasicInfoSection({
   formData,
   updateField,
+  gameId,
+  gameSlug,
 }: {
   formData: Partial<Player>;
   updateField: <K extends keyof Player>(key: K, value: Player[K]) => void;
+  gameId: string;
+  gameSlug: string;
 }) {
   return (
     <section className="bg-[#252526] border border-[#3c3c3c] rounded-xl overflow-hidden">
@@ -274,14 +276,14 @@ function BasicInfoSection({
           <p className="text-xs text-[#555] mt-1">2=玩家角色</p>
         </div>
 
-        <div>
-          <label className="block text-sm text-[#858585] mb-1">NpcIni (外观配置)</label>
-          <input
-            type="text"
-            value={formData.npcIni || ""}
-            onChange={(e) => updateField("npcIni", e.target.value)}
-            placeholder="例如: z-杨影枫.ini"
-            className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white focus:outline-none focus:border-[#0098ff]"
+        <div className="col-span-2">
+          <NpcResourcePicker
+            label="外观配置"
+            value={formData.npcIni || null}
+            onChange={(val) => updateField("npcIni", val ?? "")}
+            gameId={gameId}
+            gameSlug={gameSlug}
+            placeholder="选择 NPC 资源（角色外观）"
           />
         </div>
 
@@ -473,7 +475,10 @@ function InitialGoodsSection({
   gameSlug: string;
 }) {
   const goods: PlayerInitialGoods[] = formData.initialGoods ?? [];
-  const [showGoodsPicker, setShowGoodsPicker] = useState(false);
+
+  const handleAdd = useCallback(() => {
+    updateField("initialGoods", [...goods, { iniFile: "", number: 1 }]);
+  }, [goods, updateField]);
 
   const handleRemove = useCallback((index: number) => {
     updateField("initialGoods", goods.filter((_, i) => i !== index));
@@ -490,16 +495,6 @@ function InitialGoodsSection({
     [goods],
   );
 
-  // 查询物品列表
-  const { data: goodsList } = trpc.goods.list.useQuery(
-    { gameId },
-    { enabled: !!gameId },
-  );
-
-  const handleAddGoods = useCallback((goodsKey: string) => {
-    updateField("initialGoods", [...goods, { iniFile: goodsKey, number: 1 }]);
-  }, [goods, updateField]);
-
   return (
     <div className="space-y-5">
       <section className="bg-[#252526] border border-[#3c3c3c] rounded-xl overflow-hidden">
@@ -507,7 +502,7 @@ function InitialGoodsSection({
           <h2 className="text-sm font-medium text-[#cccccc]">🎒 初始物品列表</h2>
           <button
             type="button"
-            onClick={() => setShowGoodsPicker(true)}
+            onClick={handleAdd}
             className="px-3 py-1 text-xs bg-[#0e639c] hover:bg-[#1177bb] rounded text-white transition-colors"
           >
             + 添加物品
@@ -520,276 +515,62 @@ function InitialGoodsSection({
           </div>
         ) : (
           <div className="divide-y divide-[#333]">
-            {goods.map((item, index) => {
-              const goodsInfo = goodsList?.find((g) => g.key.toLowerCase() === item.iniFile.toLowerCase());
-              return (
-                <div key={index} className="p-4 flex items-center gap-4 hover:bg-[#2a2d2e] transition-colors">
-                  {/* 序号 */}
-                  <div className="w-6 h-6 rounded bg-[#3c3c3c] flex items-center justify-center text-xs text-[#808080] flex-shrink-0">
-                    {index + 1}
-                  </div>
-
-                  {/* 物品信息 */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm">📦</span>
-                      <span className="text-sm text-white truncate">{goodsInfo?.name || item.iniFile}</span>
-                      {goodsInfo && (
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded ${
-                          goodsInfo.kind === "Consumable" ? "bg-green-500/20 text-green-400" :
-                          goodsInfo.kind === "Equipment" ? "bg-blue-500/20 text-blue-400" :
-                          "bg-purple-500/20 text-purple-400"
-                        }`}>
-                          {goodsInfo.kind === "Consumable" ? "消耗品" : goodsInfo.kind === "Equipment" ? "装备" : "任务"}
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-xs text-[#808080] truncate mt-0.5">{item.iniFile}</div>
-                  </div>
-
-                  {/* 数量 */}
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <label className="text-xs text-[#858585]">数量</label>
-                    <NumberInput
-                      min={1}
-                      value={item.number}
-                      onChange={(val) => handleUpdateItem(index, { number: val ?? 1 })}
-                      className="w-20"
-                    />
-                  </div>
-
-                  {/* 删除按钮 */}
-                  <button
-                    type="button"
-                    onClick={() => handleRemove(index)}
-                    className="w-7 h-7 flex items-center justify-center rounded hover:bg-[#3c3c3c] text-[#808080] hover:text-red-400 transition-colors flex-shrink-0"
-                    title="移除"
-                  >
-                    <svg className="w-4 h-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-                      <path d="M4 4l8 8M12 4l-8 8" />
-                    </svg>
-                  </button>
+            {goods.map((item, index) => (
+              <div key={index} className="p-4 flex items-start gap-4 hover:bg-[#2a2d2e] transition-colors">
+                {/* 序号 */}
+                <div className="w-6 h-6 rounded bg-[#3c3c3c] flex items-center justify-center text-xs text-[#808080] flex-shrink-0 mt-1">
+                  {index + 1}
                 </div>
-              );
-            })}
+
+                {/* 物品选择器 + 数量 */}
+                <div className="flex-1 space-y-3">
+                  <GoodsPicker
+                    label="物品"
+                    value={item.iniFile || null}
+                    onChange={(val) => {
+                      if (val) handleUpdateItem(index, { iniFile: val });
+                      else handleRemove(index);
+                    }}
+                    gameId={gameId}
+                    gameSlug={gameSlug}
+                    existingKeys={existingKeys}
+                    placeholder="选择物品"
+                  />
+                  <div className="flex gap-4 ml-[92px]">
+                    <div className="flex items-center gap-2">
+                      <label className="text-xs text-[#858585]">数量</label>
+                      <NumberInput
+                        min={1}
+                        value={item.number}
+                        onChange={(val) => handleUpdateItem(index, { number: val ?? 1 })}
+                        className="w-20"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* 删除按钮 */}
+                <button
+                  type="button"
+                  onClick={() => handleRemove(index)}
+                  className="w-7 h-7 flex items-center justify-center rounded hover:bg-[#3c3c3c] text-[#808080] hover:text-red-400 transition-colors flex-shrink-0 mt-1"
+                  title="移除"
+                >
+                  <svg className="w-4 h-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <path d="M4 4l8 8M12 4l-8 8" />
+                  </svg>
+                </button>
+              </div>
+            ))}
           </div>
         )}
       </section>
-
-      {/* 物品选择器弹窗 - 使用 ResourceListPicker 风格 */}
-      {showGoodsPicker && gameId && (
-        <GoodsPickerDialog
-          gameId={gameId}
-          gameSlug={gameSlug}
-          existingKeys={existingKeys}
-          onSelect={(key) => { handleAddGoods(key); setShowGoodsPicker(false); }}
-          onClose={() => setShowGoodsPicker(false)}
-        />
-      )}
 
       <div className="text-xs text-[#666] bg-[#1e1e1e] p-3 rounded">
         <p>初始物品对应存档 <code className="text-[#ce9178]">GoodsX.ini</code> 文件，X 为角色索引。</p>
         <p className="mt-1">每个物品可设置数量，用于设定角色的起始背包物品。</p>
       </div>
     </div>
-  );
-}
-
-// ========== 物品选择器弹窗（带分类筛选） ==========
-
-const GOODS_KIND_LABELS: Record<string, string> = {
-  Consumable: "消耗品",
-  Equipment: "装备",
-  Quest: "任务道具",
-};
-
-const GOODS_KIND_ICONS: Record<string, string> = {
-  Consumable: "🍵",
-  Equipment: "⚔️",
-  Quest: "📜",
-};
-
-function GoodsPickerDialog({
-  gameId,
-  gameSlug,
-  existingKeys,
-  onSelect,
-  onClose,
-}: {
-  gameId: string;
-  gameSlug?: string;
-  existingKeys: Set<string>;
-  onSelect: (key: string) => void;
-  onClose: () => void;
-}) {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [kindFilter, setKindFilter] = useState<string>("All");
-  const [selectedKey, setSelectedKey] = useState<string | null>(null);
-
-  const { data: goodsList, isLoading } = trpc.goods.list.useQuery(
-    { gameId },
-    { enabled: !!gameId },
-  );
-
-  const filteredGoods = useMemo(() => {
-    if (!goodsList) return [];
-    return goodsList.filter((g) => {
-      if (kindFilter !== "All" && g.kind !== kindFilter) return false;
-      if (searchQuery) {
-        const q = searchQuery.toLowerCase();
-        return g.name.toLowerCase().includes(q) || g.key.toLowerCase().includes(q);
-      }
-      return true;
-    });
-  }, [goodsList, searchQuery, kindFilter]);
-
-  const kindCounts = useMemo(() => {
-    if (!goodsList) return { All: 0, Consumable: 0, Equipment: 0, Quest: 0 };
-    const counts = { All: goodsList.length, Consumable: 0, Equipment: 0, Quest: 0 };
-    for (const g of goodsList) {
-      if (g.kind in counts) counts[g.kind as keyof typeof counts]++;
-    }
-    return counts;
-  }, [goodsList]);
-
-  const handleConfirm = useCallback(() => {
-    if (selectedKey) onSelect(selectedKey);
-  }, [selectedKey, onSelect]);
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-      else if (e.key === "Enter" && selectedKey) handleConfirm();
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [selectedKey, onClose, handleConfirm]);
-
-  return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={onClose}>
-      <div
-        className="w-[550px] min-h-[300px] max-h-[70vh] bg-[#1e1e1e] border border-[#454545] rounded-lg shadow-2xl flex flex-col overflow-hidden"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* 标题栏 */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-[#454545] bg-[#252526]">
-          <h2 className="text-white font-medium">选择物品</h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-1 rounded hover:bg-[#3c3c3c] text-[#808080] hover:text-white"
-          >
-            ✕
-          </button>
-        </div>
-
-        {/* 搜索 */}
-        <div className="px-4 py-2 border-b border-[#454545]">
-          <input
-            type="text"
-            placeholder="搜索物品名称或标识..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full px-3 py-2 bg-[#3c3c3c] border border-[#454545] rounded text-white text-sm focus:outline-none focus:border-[#0e639c]"
-            autoFocus
-          />
-        </div>
-
-        {/* 分类 Tabs */}
-        <div className="flex gap-1 px-4 py-2 border-b border-[#454545]">
-          {(["All", "Consumable", "Equipment", "Quest"] as const).map((kind) => (
-            <button
-              key={kind}
-              type="button"
-              onClick={() => setKindFilter(kind)}
-              className={`px-3 py-1 text-xs rounded transition-colors ${
-                kindFilter === kind
-                  ? "bg-[#094771] text-white"
-                  : "bg-[#3c3c3c] text-[#cccccc] hover:bg-[#4a4a4a]"
-              }`}
-            >
-              {kind === "All" ? "全部" : `${GOODS_KIND_ICONS[kind]} ${GOODS_KIND_LABELS[kind]}`}
-              <span className="ml-1 text-[#888]">({kindCounts[kind]})</span>
-            </button>
-          ))}
-        </div>
-
-        {/* 物品列表 */}
-        <div className="flex-1 min-h-[200px] overflow-auto">
-          {isLoading ? (
-            <div className="text-center py-8 text-[#808080]">加载中...</div>
-          ) : filteredGoods.length === 0 ? (
-            <div className="text-center py-8 text-[#808080]">
-              {searchQuery ? "没有匹配的物品" : "暂无物品，请先在物品模块中创建"}
-            </div>
-          ) : (
-            filteredGoods.map((g) => {
-              const alreadyAdded = existingKeys.has(g.key.toLowerCase());
-              const isSelected = selectedKey === g.key;
-              return (
-                <div
-                  key={g.id}
-                  className={`flex items-center gap-3 px-4 py-2.5 border-b border-[#333] select-none ${
-                    alreadyAdded
-                      ? "opacity-40 cursor-not-allowed"
-                      : isSelected
-                        ? "bg-[#0e639c] text-white cursor-pointer"
-                        : "hover:bg-[#2a2d2e] text-[#cccccc] cursor-pointer"
-                  }`}
-                  onClick={() => !alreadyAdded && setSelectedKey(g.key)}
-                  onDoubleClick={() => !alreadyAdded && onSelect(g.key)}
-                >
-                  <LazyAsfIcon iconPath={g.icon} gameSlug={gameSlug} size={28} prefix="asf/goods/" fallback="📦" />
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium truncate">{g.name}</div>
-                    <div className={`text-xs truncate ${isSelected ? "text-white/70" : "text-[#808080]"}`}>
-                      {g.key}
-                    </div>
-                  </div>
-                  <span className={`text-xs px-2 py-0.5 rounded ${
-                    g.kind === "Consumable" ? "bg-green-500/20 text-green-400" :
-                    g.kind === "Equipment" ? "bg-blue-500/20 text-blue-400" :
-                    "bg-purple-500/20 text-purple-400"
-                  }`}>
-                    {GOODS_KIND_LABELS[g.kind] ?? g.kind}
-                  </span>
-                  {alreadyAdded && (
-                    <span className="text-xs text-[#858585]">已添加</span>
-                  )}
-                </div>
-              );
-            })
-          )}
-        </div>
-
-        {/* 底部 */}
-        <div className="flex items-center justify-between px-4 py-3 border-t border-[#454545] bg-[#252526]">
-          <span className="text-xs text-[#808080]">{filteredGoods.length} 项可选</span>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-1.5 text-sm rounded bg-[#3c3c3c] text-[#cccccc] hover:bg-[#4c4c4c]"
-            >
-              取消
-            </button>
-            <button
-              type="button"
-              onClick={handleConfirm}
-              disabled={!selectedKey}
-              className={`px-4 py-1.5 text-sm rounded ${
-                selectedKey
-                  ? "bg-[#0e639c] text-white hover:bg-[#1177bb]"
-                  : "bg-[#3c3c3c] text-[#808080] cursor-not-allowed"
-              }`}
-            >
-              确认
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>,
-    document.body,
   );
 }
 

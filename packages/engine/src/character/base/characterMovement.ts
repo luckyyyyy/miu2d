@@ -192,13 +192,9 @@ export abstract class CharacterMovement extends CharacterBase {
    * 沿路径移动
    * Reference: Character.MoveAlongPath(elapsedSeconds, speedFold)
    *
-   * 严格按照 C# 原版逻辑：
-   * 1. 在 tileFrom 时检查 tileTo 的障碍物（动态障碍、NPC 等）
-   * 2. 执行像素级移动（MoveTo），累加 movedDistance
-   * 3. 位置纠正：如果移动后 tilePosition 既不是 tileFrom 也不是 tileTo，强制纠正
-   * 4. 到达路点后（movedDistance >= distance）：
-   *    - 移除当前路段，将溢出距离传递到下一段路径
-   *    - 检查新的下一瓦片障碍物（TS 增强：比 C# 更安全）
+   * 移动方向始终从 当前像素位置 → 目标瓦片像素 计算，保证平滑。
+   * 到达路点后将剩余距离传递到下一段路径（carry-over），高速移动不会卡顿。
+   * 到达路点时检查下一瓦片障碍物，防止穿墙。
    */
   moveAlongPath(deltaTime: number, speedFold: number = 1): CharacterUpdateResult {
     const result: CharacterUpdateResult = {
@@ -220,8 +216,6 @@ export abstract class CharacterMovement extends CharacterBase {
 
     const tileTo = this.path[0];
     const tileFrom = { x: this._mapX, y: this._mapY };
-    const fromPixel = tileToPixel(tileFrom.x, tileFrom.y);
-    const toPixel = tileToPixel(tileTo.x, tileTo.y);
 
     // === C# Reference: if (TilePosition == tileFrom && tileFrom != tileTo) ===
     // 在 tileFrom 时检查 tileTo 的障碍物
@@ -235,7 +229,6 @@ export abstract class CharacterMovement extends CharacterBase {
           tileTo.x === this._destinationMoveTilePosition.x &&
           tileTo.y === this._destinationMoveTilePosition.y
         ) {
-          // C#: tileTo == DestinationMoveTilePosition → just one step, standing
           this.path = [];
           this.standingImmediately();
           return result;
@@ -247,7 +240,6 @@ export abstract class CharacterMovement extends CharacterBase {
           Math.abs(this._positionInWorld.y - currentTilePixel.y) < 2;
 
         if (atTileCenter && this._destinationMoveTilePosition) {
-          // C#: PositionInWorld == MapBase.ToPixelPosition(TilePosition) → at tile center, find new path
           const hasObstacleCheck = (tile: Vector2): boolean => this.hasObstacle(tile);
           const isMapObstacle = (tile: Vector2): boolean => this.checkMapObstacleForCharacter(tile);
           const isHardObstacle = (tile: Vector2): boolean => this.checkHardObstacle(tile);
@@ -269,7 +261,6 @@ export abstract class CharacterMovement extends CharacterBase {
             this.path = newPath.slice(1);
           }
         } else {
-          // C#: Move back to tile center
           this._positionInWorld = { ...currentTilePixel };
           this.path = [];
           this.standingImmediately();
@@ -278,138 +269,136 @@ export abstract class CharacterMovement extends CharacterBase {
       }
     }
 
-    // === C# Reference: MoveTo(direction, elapsedSeconds * speedFold) ===
-    // 计算 from→to 方向和距离
-    const segDx = toPixel.x - fromPixel.x;
-    const segDy = toPixel.y - fromPixel.y;
-    const segDist = Math.sqrt(segDx * segDx + segDy * segDy);
+    // 计算本帧总移动预算
+    let moveRemaining = this.getEffectiveSpeed(speedFold) * deltaTime;
 
-    if (segDist > 0) {
-      // 归一化方向
-      const dirX = segDx / segDist;
-      const dirY = segDy / segDist;
+    // 循环消耗移动预算，允许一帧内跨越多个路点（高速移动时保持平滑）
+    while (moveRemaining > 0 && this.path.length > 0) {
+      const target = this.path[0];
+      const targetPixel = tileToPixel(target.x, target.y);
 
-      // 设置朝向（Reference: MoveTo 中 SetDirection）
-      this._currentDirection = getDirection({ x: 0, y: 0 }, { x: dirX, y: dirY });
+      const dx = targetPixel.x - this._positionInWorld.x;
+      const dy = targetPixel.y - this._positionInWorld.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
 
-      // 计算本帧移动距离并累加 movedDistance
-      const moveAmount = this.getEffectiveSpeed(speedFold) * deltaTime;
-      this._positionInWorld.x += dirX * moveAmount;
-      this._positionInWorld.y += dirY * moveAmount;
-      this.movedDistance += moveAmount;
-
-      if (
-        this._state !== CharacterState.Walk &&
-        this._state !== CharacterState.Run &&
-        this._state !== CharacterState.FightWalk &&
-        this._state !== CharacterState.FightRun
-      ) {
-        this.state = this.selectFightOrNormalState(CharacterState.FightWalk, CharacterState.Walk);
-      }
-      result.moved = true;
-    }
-
-    // === C# Reference: Position correction ===
-    // 如果移动后 tilePosition 既不是 tileFrom 也不是 tileTo，强制纠正位置
-    // 防止等角坐标系下像素→瓦片映射导致角色"跳"到不在路径上的瓦片
-    const currentTile = pixelToTile(this._positionInWorld.x, this._positionInWorld.y);
-    const isAtFrom = currentTile.x === tileFrom.x && currentTile.y === tileFrom.y;
-    const isAtTo = currentTile.x === tileTo.x && currentTile.y === tileTo.y;
-
-    if (!isAtFrom && !isAtTo && segDist > 0) {
-      if (this.movedDistance >= segDist) {
-        // 已经走过了整段距离，直接到终点
-        this.movedDistance = segDist;
-        this._positionInWorld = { ...toPixel };
-      } else {
-        // 还在中途，纠正到路径中点偏前处
-        const correctDistance = segDist / 2 + 1;
-        const dirX = segDx / segDist;
-        const dirY = segDy / segDist;
-        this._positionInWorld.x = fromPixel.x + dirX * correctDistance;
-        this._positionInWorld.y = fromPixel.y + dirY * correctDistance;
-        this.movedDistance = correctDistance;
-      }
-    }
-
-    // 更新 tile 坐标
-    const updatedTile = pixelToTile(this._positionInWorld.x, this._positionInWorld.y);
-    this._mapX = updatedTile.x;
-    this._mapY = updatedTile.y;
-
-    // === C# Reference: if (MovedDistance >= distance) → 到达路点 ===
-    if (this.movedDistance >= segDist) {
-      // 确保精确到达路点
-      this._positionInWorld = { ...toPixel };
-      this._mapX = tileTo.x;
-      this._mapY = tileTo.y;
-
-      if (this.path.length > 1) {
-        // C#: Path.RemoveFirst(); Apply offset to next move
-        // 将溢出距离传递到下一段路径，保持运动连续
-        const offset = this.movedDistance - segDist;
+      if (dist < 1) {
+        // 已在路点上，snap 并推进到下一段
+        this._positionInWorld = { ...targetPixel };
+        this._mapX = target.x;
+        this._mapY = target.y;
+        this.movedDistance = 0;
         this.path.shift();
+        result.moved = true;
 
-        // TS 增强：推进后立即检查新 path[0] 的障碍物
-        // C# 在下一帧才检查，但高速移动下一帧可能就已经冲过去了
+        if (this.path.length === 0) {
+          // 到达最终目的地
+          this._destinationMoveTilePosition = { x: 0, y: 0 };
+          this.state = this.selectFightOrNormalState(CharacterState.FightStand, CharacterState.Stand);
+          result.reachedDestination = true;
+          this.onReachedDestination();
+          break;
+        }
+
+        // 检查下一瓦片障碍物（防止高速穿墙）
         const nextTile = this.path[0];
         if (this.hasObstacle(nextTile)) {
-          // 新的下一瓦片有障碍，尝试重新寻路
-          this.movedDistance = 0;
-          if (this._destinationMoveTilePosition) {
-            const hasObstacleCheck = (tile: Vector2): boolean => this.hasObstacle(tile);
-            const isMapObstacle = (tile: Vector2): boolean => this.checkMapObstacleForCharacter(tile);
-            const isHardObstacle = (tile: Vector2): boolean => this.checkHardObstacle(tile);
+          this._handleObstacleOnNextTile(nextTile);
+          break;
+        }
+        continue;
+      }
 
-            const newPath = pathFinderFindPath(
-              { x: this._mapX, y: this._mapY },
-              this._destinationMoveTilePosition,
-              this.getPathType(),
-              hasObstacleCheck,
-              isMapObstacle,
-              isHardObstacle,
-              8
-            );
+      if (moveRemaining >= dist) {
+        // 本帧预算足够到达当前路点
+        this._positionInWorld = { ...targetPixel };
+        this._mapX = target.x;
+        this._mapY = target.y;
+        moveRemaining -= dist;
+        this.movedDistance = 0;
+        this.path.shift();
+        result.moved = true;
 
-            if (newPath.length === 0) {
-              this.path = [];
-              this.standingImmediately();
-            } else {
-              this.path = newPath.slice(1);
-            }
-          } else {
-            this.path = [];
-            this.standingImmediately();
-          }
-        } else {
-          // 将溢出距离应用到下一段
-          const newToPixel = tileToPixel(nextTile.x, nextTile.y);
-          const newDx = newToPixel.x - toPixel.x;
-          const newDy = newToPixel.y - toPixel.y;
-          const newDist = Math.sqrt(newDx * newDx + newDy * newDy);
+        // 设置朝向
+        this._currentDirection = getDirection({ x: 0, y: 0 }, { x: dx, y: dy });
 
-          if (newDist > 0 && offset > 0) {
-            const newDirX = newDx / newDist;
-            const newDirY = newDy / newDist;
-            this._positionInWorld.x = toPixel.x + newDirX * offset;
-            this._positionInWorld.y = toPixel.y + newDirY * offset;
-            this.movedDistance = offset;
-          } else {
-            this.movedDistance = 0;
-          }
+        if (this.path.length === 0) {
+          this._destinationMoveTilePosition = { x: 0, y: 0 };
+          this.state = this.selectFightOrNormalState(CharacterState.FightStand, CharacterState.Stand);
+          result.reachedDestination = true;
+          this.onReachedDestination();
+          break;
+        }
+
+        // 检查下一瓦片障碍物
+        const nextTile = this.path[0];
+        if (this.hasObstacle(nextTile)) {
+          this._handleObstacleOnNextTile(nextTile);
+          break;
         }
       } else {
-        // C#: Path.Count <= 2 → 到达最终目的地
-        this.path.shift();
-        this.movedDistance = 0;
-        this._destinationMoveTilePosition = { x: 0, y: 0 };
-        this.state = this.selectFightOrNormalState(CharacterState.FightStand, CharacterState.Stand);
-        result.reachedDestination = true;
-        this.onReachedDestination();
+        // 预算不足以到达路点，按比例移动
+        const ratio = moveRemaining / dist;
+        this._positionInWorld.x += dx * ratio;
+        this._positionInWorld.y += dy * ratio;
+        this.movedDistance += moveRemaining;
+        moveRemaining = 0;
+        result.moved = true;
+
+        // 使用移动方向设置朝向（即使接近目标也保持正确）
+        if (dx !== 0 || dy !== 0) {
+          this._currentDirection = getDirection({ x: 0, y: 0 }, { x: dx, y: dy });
+        }
+
+        // 更新 tile 坐标
+        const newTile = pixelToTile(this._positionInWorld.x, this._positionInWorld.y);
+        this._mapX = newTile.x;
+        this._mapY = newTile.y;
       }
+    }
+
+    if (
+      result.moved &&
+      this._state !== CharacterState.Walk &&
+      this._state !== CharacterState.Run &&
+      this._state !== CharacterState.FightWalk &&
+      this._state !== CharacterState.FightRun
+    ) {
+      this.state = this.selectFightOrNormalState(CharacterState.FightWalk, CharacterState.Walk);
     }
 
     return result;
+  }
+
+  /**
+   * 到达路点后发现下一瓦片有障碍物时的处理
+   */
+  private _handleObstacleOnNextTile(nextTile: Vector2): void {
+    this.movedDistance = 0;
+    if (this._destinationMoveTilePosition) {
+      const hasObstacleCheck = (tile: Vector2): boolean => this.hasObstacle(tile);
+      const isMapObstacle = (tile: Vector2): boolean => this.checkMapObstacleForCharacter(tile);
+      const isHardObstacle = (tile: Vector2): boolean => this.checkHardObstacle(tile);
+
+      const newPath = pathFinderFindPath(
+        { x: this._mapX, y: this._mapY },
+        this._destinationMoveTilePosition,
+        this.getPathType(),
+        hasObstacleCheck,
+        isMapObstacle,
+        isHardObstacle,
+        8
+      );
+
+      if (newPath.length === 0) {
+        this.path = [];
+        this.standingImmediately();
+      } else {
+        this.path = newPath.slice(1);
+      }
+    } else {
+      this.path = [];
+      this.standingImmediately();
+    }
   }
 
   // =============================================

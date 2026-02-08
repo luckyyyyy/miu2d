@@ -196,6 +196,8 @@ export const CreatePlayerInputSchema = PlayerBaseSchema.extend({
   gameId: z.string().uuid(),
   key: z.string(),
   name: z.string(),
+  // 覆盖 index：去掉 default(0)，让未提供时为 undefined 触发服务端自增
+  index: z.number().int().min(0).optional(),
 }).partial().required({ gameId: true, key: true, name: true });
 export type CreatePlayerInput = z.infer<typeof CreatePlayerInputSchema>;
 
