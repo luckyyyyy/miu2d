@@ -1,6 +1,6 @@
 import { EditorApp } from "@miu2d/viewer";
 import { Route, BrowserRouter as Router, Routes } from "react-router-dom";
-import { DeviceProvider, AuthProvider, TRPCProvider } from "./contexts";
+import { DeviceProvider, AuthProvider, TRPCProvider, ThemeProvider } from "./contexts";
 import {
   DashboardApp,
   GameScreen,
@@ -15,6 +15,7 @@ export default function App() {
   return (
     <TRPCProvider>
       <AuthProvider>
+        <ThemeProvider>
         <DeviceProvider>
           <Router>
             <Routes>
@@ -29,6 +30,7 @@ export default function App() {
             </Routes>
           </Router>
         </DeviceProvider>
+        </ThemeProvider>
       </AuthProvider>
     </TRPCProvider>
   );

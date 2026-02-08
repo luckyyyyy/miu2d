@@ -34,6 +34,12 @@ export const createContext = async ({ req, res }: CreateExpressContextOptions) =
   const languageValue = Array.isArray(languageHeader) ? languageHeader[0] : languageHeader;
   const language = normalizeLanguage(typeof languageValue === "string" ? languageValue : undefined);
 
+  // 获取客户端 IP（支持反向代理）
+  const forwarded = req.headers["x-forwarded-for"];
+  const ip = typeof forwarded === "string"
+    ? forwarded.split(",")[0].trim()
+    : req.socket.remoteAddress || "unknown";
+
   return {
     db,
     userId,
@@ -41,6 +47,7 @@ export const createContext = async ({ req, res }: CreateExpressContextOptions) =
     gameKey: typeof gameKey === "string" ? gameKey : undefined,
     game: undefined as Game | undefined,
     language,
+    ip,
     res
   };
 };

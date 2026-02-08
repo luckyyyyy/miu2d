@@ -6,6 +6,8 @@ import { Ctx, Mutation, Router } from "../../trpc/decorators";
 import type { Context } from "../../trpc/context";
 import { getMessage } from "../../i18n";
 import { authService, toUserOutput } from "./auth.service";
+import { sendLoginNotification, sendWelcomeEmail, sendVerifyEmail } from "../../email";
+import { emailTokenService } from "../user/emailToken.service";
 
 export const loginInput = z.object({
 	email: z.string().email(),
@@ -59,6 +61,11 @@ export class AuthRouter {
 		const sessionId = await authService.createSession(user.id);
 		authService.setSessionCookie(ctx.res, sessionId);
 
+		// 异步发送登录通知邮件（不阻塞登录响应）
+		sendLoginNotification(user.email, user.name, ctx.ip).catch((err) =>
+			this.logger.error("Failed to send login notification", err)
+		);
+
 		return {
 			user: toUserOutput(user),
 			defaultGameSlug
@@ -79,6 +86,14 @@ export class AuthRouter {
 
 		const sessionId = await authService.createSession(result.user.id);
 		authService.setSessionCookie(ctx.res, sessionId);
+
+		// 异步发送欢迎邮件和验证邮件（不阻塞注册响应）
+		sendWelcomeEmail(result.user.email, result.user.name).catch((err) =>
+			this.logger.error("Failed to send welcome email", err)
+		);
+		emailTokenService.createAndSendVerifyToken(result.user.id, result.user.email, result.user.name).catch((err) =>
+			this.logger.error("Failed to send verify email", err)
+		);
 
 		return {
 			user: toUserOutput(result.user),

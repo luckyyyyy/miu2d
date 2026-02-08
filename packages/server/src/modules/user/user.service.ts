@@ -10,6 +10,7 @@ export const toUserOutput = (user: typeof users.$inferSelect) => ({
 	name: user.name,
 	email: user.email,
 	role: user.role as "admin" | "user",
+	emailVerified: user.emailVerified,
 	settings: (user.settings as UserSettings | null) ?? null
 });
 
@@ -123,6 +124,43 @@ export class UserService {
 		const [updated] = await db
 			.update(users)
 			.set({ settings: nextSettings })
+			.where(eq(users.id, userId))
+			.returning();
+
+		if (!updated) {
+			throw new TRPCError({
+				code: "NOT_FOUND",
+				message: getMessage(language, "errors.user.notFound")
+			});
+		}
+
+		return updated;
+	}
+
+	async changePassword(
+		userId: string,
+		currentPassword: string,
+		newPassword: string,
+		language: Language
+	) {
+		const user = await this.getById(userId);
+		if (!user) {
+			throw new TRPCError({
+				code: "NOT_FOUND",
+				message: getMessage(language, "errors.user.notFound")
+			});
+		}
+
+		if (user.passwordHash !== currentPassword) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: getMessage(language, "errors.user.wrongPassword")
+			});
+		}
+
+		const [updated] = await db
+			.update(users)
+			.set({ passwordHash: newPassword })
 			.where(eq(users.id, userId))
 			.returning();
 

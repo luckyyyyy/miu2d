@@ -236,6 +236,23 @@ export interface MagicItemData {
   exp: number;
   /** 列表索引 (1-36 存储区, 40-44 快捷栏, 49 修炼) */
   index: number;
+  /**
+   * 隐藏计数（装备关联武功的引用计数）
+   * 参考 C# MagicListManager.MagicItemInfo.HideCount
+   * 默认为 1（可见），脱装备 -1，穿装备 +1，= 0 时移入隐藏列表
+   */
+  hideCount?: number;
+  /**
+   * 隐藏前的列表原始索引
+   * 参考 C# MagicListManager.MagicItemInfo.LastIndexWhenHide
+   * 用于显示时恢复到原来的位置
+   */
+  lastIndexWhenHide?: number;
+  /**
+   * 是否在隐藏列表中
+   * 对应 C# HideStartIndex(1000+) 的武功
+   */
+  isHidden?: boolean;
 }
 
 /**
@@ -404,8 +421,6 @@ export interface NpcSaveItem {
   levelIniFile?: string;
 }
 
-// NpcSaveData wrapper removed - use NpcSaveItem[] directly in SaveData
-
 /**
  * 物体保存数据 ()
  * 参考 JxqyHD/Engine/Obj.cs 的 Save 方法
@@ -441,8 +456,6 @@ export interface ObjSaveItem {
   millisecondsToRemove: number;
   isRemoved: boolean;
 }
-
-// ObjSaveData wrapper removed - use ObjSaveItem[] directly in SaveData
 
 /**
  * 多角色存档数据
@@ -554,32 +567,32 @@ export interface SaveSlotInfo {
 // ============= 常量 =============
 
 /** 存档版本号 */
-export const SAVE_VERSION = 1;
+export const SAVE_VERSION = 2;
 
 /** 存档索引范围 */
-export const SAVE_INDEX_BEGIN = 1;
-export const SAVE_INDEX_END = 7;
+const SAVE_INDEX_BEGIN = 1;
+const SAVE_INDEX_END = 7;
 
 /** localStorage key 前缀 */
-export const STORAGE_KEY_PREFIX = "jxqy_save_";
+const STORAGE_KEY_PREFIX = "jxqy_save_";
 
 /** 截图宽高 */
-export const SCREENSHOT_WIDTH = 320;
-export const SCREENSHOT_HEIGHT = 240;
+const SCREENSHOT_WIDTH = 320;
+const SCREENSHOT_HEIGHT = 240;
 
 // ============= 工具函数 =============
 
 /**
  * 获取存档的 localStorage key
  */
-export function getSaveKey(index: number): string {
+function getSaveKey(index: number): string {
   return `${STORAGE_KEY_PREFIX}${index}`;
 }
 
 /**
  * 检查索引是否有效
  */
-export function isIndexInRange(index: number): boolean {
+function isIndexInRange(index: number): boolean {
   return index >= SAVE_INDEX_BEGIN && index <= SAVE_INDEX_END;
 }
 
@@ -598,10 +611,6 @@ export function formatSaveTime(date: Date = new Date()): string {
 
 // ============= Storage Manager =============
 
-/**
- * Storage Manager - 存档管理器
- * 处理 localStorage 读写操作
- */
 // ============= 存档操作函数 =============
 
 /** 获取所有存档槽位信息 */

@@ -57,11 +57,12 @@ export function GridLine({
   if (isHorizontal) {
     return (
       <motion.div
-        className="absolute h-[2px] pointer-events-none"
+        className="absolute pointer-events-none"
         style={{
           top: position,
           left: 0,
           width: 120,
+          height: 2,
           background:
             "linear-gradient(90deg, transparent, rgba(251,146,60,0.8), rgba(251,191,36,0.6), transparent)",
           boxShadow: "0 0 20px rgba(251,146,60,0.5), 0 0 40px rgba(251,146,60,0.3)",
@@ -83,10 +84,11 @@ export function GridLine({
 
   return (
     <motion.div
-      className="absolute w-[2px] pointer-events-none"
+      className="absolute pointer-events-none"
       style={{
         left: position,
         top: 0,
+        width: 2,
         height: 120,
         background:
           "linear-gradient(180deg, transparent, rgba(251,146,60,0.8), rgba(251,191,36,0.6), transparent)",

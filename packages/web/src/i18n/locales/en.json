@@ -10,6 +10,7 @@
   "auth": {
     "login": {
       "title": "Sign in to Miu2D",
+      "subtitle": "Welcome back, continue your adventure",
       "email": "Email",
       "password": "Password",
       "submit": "Sign in",
@@ -19,6 +20,7 @@
     },
     "register": {
       "title": "Sign up for Miu2D",
+      "subtitle": "Join us and begin your martial arts journey",
       "name": "Username",
       "email": "Email",
       "password": "Password",
@@ -29,6 +31,34 @@
       "toLogin": "Sign in"
     },
     "logout": "Sign out"
+  },
+  "settings": {
+    "title": "Account Settings",
+    "profile": "Profile",
+    "avatar": "Avatar",
+    "name": "Name",
+    "email": "Email",
+    "save": "Save",
+    "saving": "Saving...",
+    "saved": "Saved",
+    "cancel": "Cancel",
+    "changePassword": "Change Password",
+    "currentPassword": "Current Password",
+    "newPassword": "New Password",
+    "confirmNewPassword": "Confirm New Password",
+    "passwordChanged": "Password changed successfully",
+    "language": "Language",
+    "theme": "Theme",
+    "themeLight": "Light",
+    "themeDark": "Dark",
+    "themeAuto": "System",
+    "langAuto": "System",
+    "dangerZone": "Danger Zone",
+    "deleteAvatar": "Delete Avatar",
+    "deleteAvatarConfirm": "Delete your avatar?",
+    "namePlaceholder": "Enter your name",
+    "emailPlaceholder": "Enter your email",
+    "passwordPlaceholder": "At least 4 characters"
   },
   "errors": {
     "auth": {

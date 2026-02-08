@@ -58,7 +58,8 @@ export const zh = {
       },
       user: {
         notFound: "用户不存在",
-        emailInUse: "邮箱已被使用"
+        emailInUse: "邮箱已被使用",
+        wrongPassword: "当前密码不正确"
       },
       game: {
         notFound: "游戏不存在",

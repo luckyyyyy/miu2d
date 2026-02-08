@@ -4,13 +4,15 @@
 
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
-import { useTheme } from "@/contexts";
+import { Link } from "react-router-dom";
+import { useTheme, useAuth } from "@/contexts";
 import { type Locale, supportedLanguages } from "@/i18n";
-import { SunIcon, MoonIcon, GlobeIcon, GitHubIcon } from "@miu2d/ui";
+import { SunIcon, MoonIcon, GlobeIcon, GitHubIcon, Avatar } from "@miu2d/ui";
 
 export function Header() {
   const { theme, toggleTheme } = useTheme();
   const { t, i18n } = useTranslation();
+  const { user, isAuthenticated } = useAuth();
   const locale = i18n.language as Locale;
   const setLocale = (lang: Locale) => i18n.changeLanguage(lang);
   const locales = [...supportedLanguages];
@@ -114,6 +116,36 @@ export function Header() {
                 <MoonIcon className="w-5 h-5 text-zinc-600" />
               )}
             </motion.button>
+
+            {/* Auth */}
+            {isAuthenticated ? (
+              <Link
+                to="/dashboard"
+                className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-lg bg-gradient-to-r from-orange-500 to-amber-500 text-white text-sm font-medium hover:from-orange-600 hover:to-amber-600 transition-all shadow-sm"
+              >
+                <Avatar
+                  name={user?.name || "?"}
+                  avatarUrl={user?.settings?.avatarUrl}
+                  size={22}
+                />
+                <span className="hidden sm:inline">{user?.name}</span>
+              </Link>
+            ) : (
+              <div className="flex items-center gap-2 ml-1">
+                <Link
+                  to="/login"
+                  className="px-3 py-1.5 rounded-lg text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                >
+                  {t("nav.login")}
+                </Link>
+                <Link
+                  to="/register"
+                  className="px-3 py-1.5 rounded-lg text-sm font-medium bg-gradient-to-r from-orange-500 to-amber-500 text-white hover:from-orange-600 hover:to-amber-600 transition-all shadow-sm"
+                >
+                  {t("nav.register")}
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       </div>

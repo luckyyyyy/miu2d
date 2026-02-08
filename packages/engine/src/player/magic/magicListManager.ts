@@ -346,6 +346,55 @@ export class MagicListManager {
   }
 
   /**
+   * 获取隐藏列表中的武功项信息
+   * 用于存档保存时遍历隐藏武功
+   */
+  getHiddenItemInfo(index: number): MagicItemInfo | null {
+    if (!this.indexInRange(index)) return null;
+    return this.getActiveMagicListHide()[index];
+  }
+
+  /**
+   * 添加武功到隐藏列表（用于读档恢复隐藏武功）
+   * 参考 C# MagicListManager.LoadList 中 HideStartIndex 区域的加载逻辑
+   */
+  async addHiddenMagic(
+    fileName: string,
+    options: {
+      index: number;
+      level?: number;
+      exp?: number;
+      hideCount?: number;
+      lastIndexWhenHide?: number;
+    }
+  ): Promise<boolean> {
+    const { index, level = 1, exp = 0, hideCount = 0, lastIndexWhenHide = 0 } = options;
+
+    if (!this.indexInRange(index)) {
+      logger.warn(`[MagicListManager] Invalid hidden index: ${index}`);
+      return false;
+    }
+
+    const magic = getMagic(fileName);
+    if (!magic) {
+      logger.warn(`[MagicListManager] Failed to load hidden magic: ${fileName}`);
+      return false;
+    }
+
+    const levelMagic = getMagicAtLevel(magic, level);
+    const itemInfo = createDefaultMagicItemInfo(levelMagic, level);
+    itemInfo.exp = exp;
+    itemInfo.hideCount = hideCount;
+    itemInfo.lastIndexWhenHide = lastIndexWhenHide;
+
+    await this._setMagicItemAt(index, itemInfo, true);
+    logger.debug(
+      `[MagicListManager] Added hidden magic "${magic.name}" Lv.${level} at hidden index ${index}`
+    );
+    return true;
+  }
+
+  /**
    * 获取武功项的索引
    */
   getItemIndex(info: MagicItemInfo | null): number {
@@ -919,71 +968,6 @@ export class MagicListManager {
       }
     }
     return false;
-  }
-
-  /**
-   * 序列化（用于存档）
-   * 注意：序列化时使用原始列表，而不是替换列表
-   */
-  serialize(): object {
-    const data: {
-      index: number;
-      fileName: string;
-      level: number;
-      exp: number;
-      hideCount: number;
-    }[] = [];
-    for (let i = 1; i <= MAGIC_LIST_CONFIG.maxMagic; i++) {
-      const info = this.magicList[i]; // 使用原始列表进行存档
-      if (info?.magic) {
-        data.push({
-          index: i,
-          fileName: info.magic.fileName,
-          level: info.level,
-          exp: info.exp,
-          hideCount: info.hideCount,
-        });
-      }
-    }
-    return { magics: data };
-  }
-
-  /**
-   * 反序列化（从存档加载）
-   */
-  async deserialize(data: {
-    magics?: {
-      index: number;
-      fileName: string;
-      level?: number;
-      exp?: number;
-      hideCount?: number;
-    }[];
-  }): Promise<void> {
-    this.renewList();
-
-    if (!data?.magics) return;
-
-    for (const item of data.magics) {
-      const magic = getMagic(item.fileName);
-      if (magic) {
-        const levelMagic = getMagicAtLevel(magic, item.level || 1);
-        const info = createDefaultMagicItemInfo(levelMagic, item.level || 1);
-        info.exp = item.exp || 0;
-        info.hideCount = item.hideCount || 1;
-
-        if (item.index >= 1 && item.index <= MAGIC_LIST_CONFIG.maxMagic) {
-          this.magicList[item.index] = info;
-
-          if (this.indexInXiuLianIndex(item.index)) {
-            this.xiuLianMagic = info;
-            this.callbacks.onXiuLianMagicChange?.(info);
-          }
-        }
-      }
-    }
-
-    this.updateView();
   }
 
   // ============= 脚本命令支持 =============

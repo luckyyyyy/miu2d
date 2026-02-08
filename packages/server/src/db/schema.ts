@@ -1,10 +1,11 @@
-import { jsonb, pgTable, text, timestamp, uuid, integer, unique } from "drizzle-orm/pg-core";
+import { boolean, jsonb, pgTable, text, timestamp, uuid, integer, unique } from "drizzle-orm/pg-core";
 
 export const users = pgTable("users", {
   id: uuid("id").defaultRandom().primaryKey(),
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
   passwordHash: text("password_hash").notNull(),
+  emailVerified: boolean("email_verified").notNull().default(false),
   settings: jsonb("settings"),
   role: text("role").notNull().default("user"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow()
@@ -15,6 +16,21 @@ export const sessions = pgTable("sessions", {
   userId: uuid("user_id").references(() => users.id).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull()
+});
+
+/**
+ * 邮箱验证令牌表
+ * type: "verify" = 验证当前邮箱, "change" = 修改邮箱
+ */
+export const emailTokens = pgTable("email_tokens", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  token: text("token").notNull().unique(),
+  type: text("type", { enum: ["verify", "change"] }).notNull(),
+  /** 修改邮箱时记录新邮箱地址 */
+  newEmail: text("new_email"),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow()
 });
 
 /**

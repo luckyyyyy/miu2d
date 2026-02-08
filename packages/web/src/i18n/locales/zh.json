@@ -10,6 +10,7 @@
   "auth": {
     "login": {
       "title": "登录 Miu2D",
+      "subtitle": "欢迎回来，继续你的冒险旅程",
       "email": "邮箱",
       "password": "密码",
       "submit": "登录",
@@ -19,6 +20,7 @@
     },
     "register": {
       "title": "注册 Miu2D",
+      "subtitle": "加入我们，开启你的武侠之旅",
       "name": "用户名",
       "email": "邮箱",
       "password": "密码",
@@ -29,6 +31,34 @@
       "toLogin": "立即登录"
     },
     "logout": "退出登录"
+  },
+  "settings": {
+    "title": "账号设置",
+    "profile": "个人资料",
+    "avatar": "头像",
+    "name": "昵称",
+    "email": "邮箱",
+    "save": "保存",
+    "saving": "保存中...",
+    "saved": "已保存",
+    "cancel": "取消",
+    "changePassword": "修改密码",
+    "currentPassword": "当前密码",
+    "newPassword": "新密码",
+    "confirmNewPassword": "确认新密码",
+    "passwordChanged": "密码修改成功",
+    "language": "语言",
+    "theme": "主题",
+    "themeLight": "浅色",
+    "themeDark": "深色",
+    "themeAuto": "跟随系统",
+    "langAuto": "跟随系统",
+    "dangerZone": "危险操作",
+    "deleteAvatar": "删除头像",
+    "deleteAvatarConfirm": "确定删除头像？",
+    "namePlaceholder": "输入你的昵称",
+    "emailPlaceholder": "输入你的邮箱",
+    "passwordPlaceholder": "至少 4 个字符"
   },
   "errors": {
     "auth": {

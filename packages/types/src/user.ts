@@ -15,6 +15,7 @@ export const UserSchema = z.object({
   name: z.string(),
   email: z.string().email(),
   role: z.enum(["admin", "user"]),
+  emailVerified: z.boolean(),
   settings: UserSettingsSchema.nullable().optional()
 });
 

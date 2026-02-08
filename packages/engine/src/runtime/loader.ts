@@ -1867,11 +1867,33 @@ export class Loader {
     for (let i = 1; i <= maxMagic; i++) {
       const info = magicListManager.getItemInfo(i);
       if (info?.magic) {
+        const item: MagicItemData = {
+          fileName: info.magic.fileName,
+          level: info.level,
+          exp: info.exp,
+          index: i,
+        };
+        // 只在 hideCount !== 1（默认值）时保存以节省空间
+        if (info.hideCount !== 1) {
+          item.hideCount = info.hideCount;
+        }
+        items.push(item);
+      }
+    }
+
+    // 遍历隐藏武功列表（装备关联武功，脱装备后被隐藏）
+    // 参考 C# MagicListManager.SaveList: HideStartIndex(1000+) 区域
+    for (let i = 1; i <= maxMagic; i++) {
+      const info = magicListManager.getHiddenItemInfo(i);
+      if (info?.magic) {
         items.push({
           fileName: info.magic.fileName,
           level: info.level,
           exp: info.exp,
           index: i,
+          hideCount: info.hideCount,
+          lastIndexWhenHide: info.lastIndexWhenHide,
+          isHidden: true,
         });
       }
     }
@@ -1922,8 +1944,12 @@ export class Loader {
     // 清空列表
     magicListManager.renewList();
 
-    // 串行加载武功到指定位置
-    for (const item of magics) {
+    // 分离可见武功和隐藏武功
+    const visibleMagics = magics.filter((m) => !m.isHidden);
+    const hiddenMagics = magics.filter((m) => m.isHidden);
+
+    // 串行加载可见武功到指定位置
+    for (const item of visibleMagics) {
       // 使用保存的索引位置，如果没有则自动分配
       const targetIndex = item.index ?? -1;
 
@@ -1934,7 +1960,15 @@ export class Loader {
           level: item.level,
           exp: item.exp,
         });
-        if (!success) {
+        if (success) {
+          // 恢复 hideCount（可能 > 1，表示多件装备提供同一武功）
+          if (item.hideCount !== undefined) {
+            const info = magicListManager.getItemInfo(targetIndex);
+            if (info) {
+              info.hideCount = item.hideCount;
+            }
+          }
+        } else {
           logger.warn(`[Loader] Failed to load magic ${item.fileName} at index ${targetIndex}`);
         }
       } else {
@@ -1948,6 +1982,18 @@ export class Loader {
           }
         }
       }
+    }
+
+    // 加载隐藏武功（装备关联武功，脱装备后被隐藏）
+    // 参考 C# MagicListManager.LoadList: HideStartIndex(1000+) 区域
+    for (const item of hiddenMagics) {
+      await magicListManager.addHiddenMagic(item.fileName, {
+        index: item.index,
+        level: item.level,
+        exp: item.exp,
+        hideCount: item.hideCount ?? 0,
+        lastIndexWhenHide: item.lastIndexWhenHide ?? 0,
+      });
     }
 
     // 设置修炼武功

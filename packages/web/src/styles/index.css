@@ -1,6 +1,8 @@
 @import "tailwindcss" source("../../src");
 
-/* 添加 editor 包的源文件扫描路径 */
+/* 添加 monorepo 其他包的源文件扫描路径 */
+@source "../../../ui/src";
+@source "../../../viewer/src";
 @source "../../../editor/src";
 
 /* Tailwind CSS v4 暗色模式配置 - 使用 class 策略 */

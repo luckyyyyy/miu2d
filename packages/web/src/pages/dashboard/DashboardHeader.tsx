@@ -1,15 +1,33 @@
 /**
  * Dashboard 顶部栏
  */
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
+import { useTranslation } from "react-i18next";
+import { Avatar } from "@miu2d/ui";
 import { DashboardIcons } from "./icons";
 import { GameSelectorWithData } from "./GameSelector";
 import { useAuth } from "../../contexts";
+import { AccountSettingsModal } from "./components/AccountSettingsModal";
 
 export function DashboardHeader() {
+  const { t } = useTranslation();
   const { user, logout } = useAuth();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // 点击外部关闭菜单
+  useEffect(() => {
+    if (!showUserMenu) return;
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setShowUserMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [showUserMenu]);
 
   return (
     <header className="flex h-10 items-center justify-between border-b border-[#1e1e1e] bg-[#3c3c3c] px-2">
@@ -26,52 +44,66 @@ export function DashboardHeader() {
         <button
           type="button"
           className="p-1.5 rounded hover:bg-[#4a4a4a] text-[#858585] hover:text-white transition-colors"
-          title="搜索"
+          title={t("nav.features")}
         >
           {DashboardIcons.search}
         </button>
 
         {/* 用户菜单 */}
-        <div className="relative">
+        <div className="relative" ref={menuRef}>
           <button
             type="button"
             onClick={() => setShowUserMenu(!showUserMenu)}
-            className="flex items-center gap-2 px-2 py-1 rounded hover:bg-[#4a4a4a] transition-colors"
+            className="flex items-center gap-2 px-1.5 py-0.5 rounded hover:bg-[#4a4a4a] transition-colors"
           >
-            <span className="text-[#858585]">{DashboardIcons.user}</span>
-            <span className="text-sm text-[#cccccc]">
-              {user?.name || "用户"}
+            <Avatar
+              name={user?.name || "?"}
+              avatarUrl={user?.settings?.avatarUrl}
+              size={24}
+            />
+            <span className="text-sm text-[#cccccc] max-w-[100px] truncate">
+              {user?.name || "—"}
             </span>
           </button>
 
           {showUserMenu && (
-            <div className="absolute right-0 top-full mt-1 w-48 bg-[#252526] border border-[#454545] rounded-md shadow-xl z-50 overflow-hidden">
-              <div className="px-4 py-2 border-b border-[#454545]">
-                <div className="text-sm text-white">{user?.name}</div>
-                <div className="text-xs text-[#858585]">{user?.email}</div>
+            <div className="absolute right-0 top-full mt-1 w-52 bg-[#252526] border border-[#454545] rounded-lg shadow-xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-1 duration-150">
+              <div className="px-4 py-3 border-b border-[#454545] flex items-center gap-3">
+                <Avatar
+                  name={user?.name || "?"}
+                  avatarUrl={user?.settings?.avatarUrl}
+                  size={36}
+                />
+                <div className="min-w-0">
+                  <div className="text-sm font-medium text-white truncate">{user?.name}</div>
+                  <div className="text-xs text-[#858585] truncate">{user?.email}</div>
+                </div>
               </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowUserMenu(false);
-                  // TODO: 跳转到个人设置
-                }}
-                className="w-full flex items-center gap-2 px-4 py-2 text-left hover:bg-[#2a2d2e] transition-colors text-sm"
-              >
-                {DashboardIcons.settings}
-                <span>账号设置</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowUserMenu(false);
-                  logout();
-                }}
-                className="w-full flex items-center gap-2 px-4 py-2 text-left hover:bg-[#2a2d2e] transition-colors text-sm text-red-400"
-              >
-                {DashboardIcons.back}
-                <span>退出登录</span>
-              </button>
+              <div className="py-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowUserMenu(false);
+                    setShowSettings(true);
+                  }}
+                  className="w-full flex items-center gap-2.5 px-4 py-2 text-left hover:bg-[#2a2d2e] transition-colors text-sm text-[#cccccc]"
+                >
+                  {DashboardIcons.settings}
+                  <span>{t("settings.title")}</span>
+                </button>
+                <div className="my-1 border-t border-[#454545]" />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowUserMenu(false);
+                    logout();
+                  }}
+                  className="w-full flex items-center gap-2.5 px-4 py-2 text-left hover:bg-[#2a2d2e] transition-colors text-sm text-red-400"
+                >
+                  {DashboardIcons.back}
+                  <span>{t("auth.logout")}</span>
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -80,6 +112,11 @@ export function DashboardHeader() {
       {/* 创建游戏模态框 - TODO */}
       {showCreateModal && (
         <CreateGameModal onClose={() => setShowCreateModal(false)} />
+      )}
+
+      {/* 账号设置弹窗 */}
+      {showSettings && (
+        <AccountSettingsModal onClose={() => setShowSettings(false)} />
       )}
     </header>
   );

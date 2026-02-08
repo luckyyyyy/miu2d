@@ -12,6 +12,7 @@ export const toUserOutput = (user: typeof users.$inferSelect) => ({
 	name: user.name,
 	email: user.email,
 	role: user.role as "admin" | "user",
+	emailVerified: user.emailVerified,
 	settings: (user.settings as UserSettings | null) ?? null
 });
 

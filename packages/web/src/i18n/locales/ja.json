@@ -3,7 +3,62 @@
     "features": "機能",
     "demo": "デモ",
     "docs": "ドキュメント",
-    "github": "GitHub"
+    "github": "GitHub",
+    "login": "ログイン",
+    "register": "新規登録"
+  },
+  "auth": {
+    "login": {
+      "title": "Miu2D にログイン",
+      "subtitle": "おかえりなさい、冒険を続けましょう",
+      "email": "メールアドレス",
+      "password": "パスワード",
+      "submit": "ログイン",
+      "loading": "ログイン中...",
+      "noAccount": "アカウントをお持ちでないですか？",
+      "toRegister": "新規登録"
+    },
+    "register": {
+      "title": "Miu2D に新規登録",
+      "subtitle": "参加して、武侠の旅を始めましょう",
+      "name": "ユーザー名",
+      "email": "メールアドレス",
+      "password": "パスワード",
+      "confirmPassword": "パスワード確認",
+      "submit": "新規登録",
+      "loading": "登録中...",
+      "hasAccount": "すでにアカウントをお持ちですか？",
+      "toLogin": "ログイン"
+    },
+    "logout": "ログアウト"
+  },
+  "settings": {
+    "title": "アカウント設定",
+    "profile": "プロフィール",
+    "avatar": "アバター",
+    "name": "名前",
+    "email": "メールアドレス",
+    "save": "保存",
+    "saving": "保存中...",
+    "saved": "保存しました",
+    "cancel": "キャンセル",
+    "changePassword": "パスワード変更",
+    "currentPassword": "現在のパスワード",
+    "newPassword": "新しいパスワード",
+    "confirmNewPassword": "新しいパスワード（確認）",
+    "passwordChanged": "パスワードを変更しました",
+    "language": "言語",
+    "theme": "テーマ",
+    "themeLight": "ライト",
+    "themeDark": "ダーク",
+    "themeAuto": "システム",
+    "langAuto": "システム",
+    "dangerZone": "危険な操作",
+    "deleteAvatar": "アバターを削除",
+    "deleteAvatarConfirm": "アバターを削除しますか？",
+    "namePlaceholder": "名前を入力",
+    "emailPlaceholder": "メールアドレスを入力",
+    "passwordPlaceholder": "4文字以上"
   },
   "errors": {
     "auth": {

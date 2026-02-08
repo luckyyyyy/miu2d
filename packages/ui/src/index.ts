@@ -8,6 +8,9 @@
  * - 高度可复用的视觉组件
  */
 
+// ============= Avatar 头像 =============
+export { Avatar, type AvatarProps } from "./Avatar";
+
 // ============= Icons 图标 =============
 export {
   GitHubIcon,
