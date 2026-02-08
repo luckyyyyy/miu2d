@@ -31,6 +31,7 @@ interface WasmMsfHeader {
   pixel_format: number;
   palette_size: number;
   frames_per_direction: number;
+  total_individual_pixel_bytes: number;
 }
 
 interface WasmMpcHeader {
@@ -53,6 +54,12 @@ export interface WasmModule {
   // MSF 解码
   parse_msf_header(data: Uint8Array): WasmMsfHeader | undefined;
   decode_msf_frames(data: Uint8Array, output: Uint8Array): number;
+  decode_msf_individual_frames(
+    data: Uint8Array,
+    pixelOutput: Uint8Array,
+    frameSizesOutput: Uint8Array,
+    frameOffsetsOutput: Uint8Array
+  ): number;
   // MPC 解码
   parse_mpc_header(data: Uint8Array): WasmMpcHeader | undefined;
   decode_mpc_frames(

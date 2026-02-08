@@ -39,6 +39,8 @@ export interface AsfData {
   isLoaded: boolean;
   /** 帧图集（延迟创建） */
   atlas?: AsfAtlas;
+  /** MSF 像素格式: 0=Rgba8, 1=Indexed8, 2=Indexed8Alpha8 */
+  pixelFormat?: number;
 }
 
 export function clearAsfCache(): void {

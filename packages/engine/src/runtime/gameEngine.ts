@@ -561,6 +561,17 @@ export class GameEngine implements IEngineContext {
   }
 
   /**
+   * 初始化并从 JSON 数据加载存档（便捷方法）
+   *
+   * 用于分享存档加载、标题界面读档等场景，
+   * 仅初始化引擎资源，不运行 NewGame.txt 脚本。
+   */
+  async initializeAndLoadFromJSON(data: SaveData): Promise<void> {
+    await this.initialize();
+    await this.loadGameFromJSON(data);
+  }
+
+  /**
    * 从 localStorage 存档槽位加载游戏
    *
    * @param index 存档槽位索引 (1-7)

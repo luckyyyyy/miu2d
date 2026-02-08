@@ -21,6 +21,7 @@ import {
 import { logger } from "@miu2d/engine/core/logger";
 import { createGameEngine } from "@miu2d/engine/runtime/gameEngine";
 import type { GameEngine, GameEngineState } from "@miu2d/engine/runtime/gameEngine";
+import type { SaveData } from "@miu2d/engine/runtime";
 import { useEffect, useRef, useState } from "react";
 
 export interface UseGameEngineOptions {
@@ -29,6 +30,8 @@ export interface UseGameEngineOptions {
   autoStart?: boolean;
   /** 可选：从存档槽位加载 (1-7) */
   loadSlot?: number;
+  /** 可选：从 JSON 存档数据加载（分享存档、标题界面读档） */
+  initialSaveData?: SaveData;
 }
 
 export interface UseGameEngineResult {
@@ -45,7 +48,7 @@ export interface UseGameEngineResult {
  * 游戏引擎 Hook
  */
 export function useGameEngine(options: UseGameEngineOptions): UseGameEngineResult {
-  const { width, height, autoStart = true, loadSlot } = options;
+  const { width, height, autoStart = true, loadSlot, initialSaveData } = options;
 
   const engineRef = useRef<GameEngine | null>(null);
   const [state, setState] = useState<GameEngineState>("uninitialized");
@@ -112,7 +115,10 @@ export function useGameEngine(options: UseGameEngineOptions): UseGameEngineResul
         setError(null);
 
         try {
-          if (loadSlot && loadSlot >= 1 && loadSlot <= 7) {
+          if (initialSaveData) {
+            // 从 JSON 存档数据加载（分享存档、标题界面读档）
+            await engine.initializeAndLoadFromJSON(initialSaveData);
+          } else if (loadSlot && loadSlot >= 1 && loadSlot <= 7) {
             // 从存档槽位加载
             await engine.initializeAndLoadGame(loadSlot);
           } else {
@@ -141,7 +147,7 @@ export function useGameEngine(options: UseGameEngineOptions): UseGameEngineResul
       }
       unsubscribersRef.current = [];
     };
-  }, [autoStart, height, loadSlot, width]);
+  }, [autoStart, height, initialSaveData, loadSlot, width]);
 
   useEffect(() => {
     return () => {

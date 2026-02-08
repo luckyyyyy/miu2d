@@ -91,6 +91,9 @@ pub struct MsfHeader {
     pub pixel_format: u8,
     pub palette_size: u16,
     pub frames_per_direction: u16,
+    /// Total RGBA bytes for all frames when decoded individually
+    /// (sum of width*height*4 per frame, with empty frames counted as 1×1)
+    pub total_individual_pixel_bytes: u32,
 }
 
 // ============================================================================
@@ -422,6 +425,24 @@ pub fn parse_msf_header(data: &[u8]) -> Option<MsfHeader> {
         frame_count.max(1)
     };
 
+    // Compute total individual pixel bytes by scanning frame table
+    let palette_start = 28;
+    let frame_table_start = palette_start + palette_size as usize * 4;
+    let fc = frame_count as usize;
+    let mut total_individual_pixel_bytes = 0u32;
+    if frame_table_start + fc * FRAME_ENTRY_SIZE <= data.len() {
+        for i in 0..fc {
+            let ft_off = frame_table_start + i * FRAME_ENTRY_SIZE;
+            let w = u16::from_le_bytes([data[ft_off + 4], data[ft_off + 5]]) as u32;
+            let h = u16::from_le_bytes([data[ft_off + 6], data[ft_off + 7]]) as u32;
+            if w > 0 && h > 0 {
+                total_individual_pixel_bytes += w * h * 4;
+            } else {
+                total_individual_pixel_bytes += 4; // 1×1 placeholder
+            }
+        }
+    }
+
     Some(MsfHeader {
         canvas_width,
         canvas_height,
@@ -433,6 +454,7 @@ pub fn parse_msf_header(data: &[u8]) -> Option<MsfHeader> {
         pixel_format,
         palette_size,
         frames_per_direction,
+        total_individual_pixel_bytes,
     })
 }
 
@@ -645,6 +667,218 @@ pub fn decode_msf_frames(data: &[u8], output: &Uint8Array) -> u32 {
     }
 
     output.copy_from(&all_pixels);
+    frame_count as u32
+}
+
+/// Decode MSF frames as individual images (for MPC-style per-frame varying sizes)
+///
+/// Unlike decode_msf_frames which composites into a global canvas,
+/// this returns each frame at its own dimensions.
+///
+/// Output buffers (matching decode_mpc_frames signature):
+/// - pixel_output: RGBA pixels for all frames concatenated
+/// - frame_sizes_output: [width, height] u32 pairs per frame
+/// - frame_offsets_output: byte offset of each frame in pixel_output
+///
+/// Returns: frame count, or 0 on failure
+#[wasm_bindgen]
+pub fn decode_msf_individual_frames(
+    data: &[u8],
+    pixel_output: &Uint8Array,
+    frame_sizes_output: &Uint8Array,
+    frame_offsets_output: &Uint8Array,
+) -> u32 {
+    if data.len() < 28 {
+        return 0;
+    }
+    if &data[0..4] != MSF_MAGIC {
+        return 0;
+    }
+
+    let flags = u16::from_le_bytes([data[6], data[7]]);
+
+    // Header
+    let off = 8;
+    let frame_count = u16::from_le_bytes([data[off + 4], data[off + 5]]) as usize;
+
+    // Pixel format
+    let pf_off = 24;
+    let pixel_format_byte = data[pf_off];
+    let pixel_format = match PixelFormat::from_u8(pixel_format_byte) {
+        Some(pf) => pf,
+        None => return 0,
+    };
+    let palette_size = u16::from_le_bytes([data[pf_off + 1], data[pf_off + 2]]) as usize;
+
+    // Read palette
+    let mut palette = [[0u8; 4]; 256];
+    let palette_start = 28;
+    for i in 0..palette_size.min(256) {
+        let po = palette_start + i * 4;
+        if po + 4 > data.len() {
+            break;
+        }
+        palette[i] = [data[po], data[po + 1], data[po + 2], data[po + 3]];
+    }
+
+    // Frame table
+    let frame_table_start = palette_start + palette_size * 4;
+    if frame_table_start + frame_count * FRAME_ENTRY_SIZE > data.len() {
+        return 0;
+    }
+
+    let mut frame_entries = Vec::with_capacity(frame_count);
+    let mut ft_off = frame_table_start;
+    for _ in 0..frame_count {
+        let width = u16::from_le_bytes([data[ft_off + 4], data[ft_off + 5]]);
+        let height = u16::from_le_bytes([data[ft_off + 6], data[ft_off + 7]]);
+        let data_offset = u32::from_le_bytes([
+            data[ft_off + 8],
+            data[ft_off + 9],
+            data[ft_off + 10],
+            data[ft_off + 11],
+        ]);
+        let data_length = u32::from_le_bytes([
+            data[ft_off + 12],
+            data[ft_off + 13],
+            data[ft_off + 14],
+            data[ft_off + 15],
+        ]);
+        ft_off += FRAME_ENTRY_SIZE;
+        frame_entries.push((width, height, data_offset, data_length));
+    }
+
+    // Skip extension chunks
+    let mut ext_off = ft_off;
+    loop {
+        if ext_off + 8 > data.len() {
+            return 0;
+        }
+        let chunk_id = &data[ext_off..ext_off + 4];
+        let chunk_len = u32::from_le_bytes([
+            data[ext_off + 4],
+            data[ext_off + 5],
+            data[ext_off + 6],
+            data[ext_off + 7],
+        ]) as usize;
+        ext_off += 8;
+        if chunk_id == CHUNK_END {
+            break;
+        }
+        ext_off += chunk_len;
+    }
+
+    // Decompress blob
+    let blob_start = ext_off;
+    let is_compressed = (flags & 1) != 0;
+    let decompressed_buf: Vec<u8>;
+    let blob: &[u8] = if is_compressed {
+        let compressed = &data[blob_start..];
+        decompressed_buf = match zstd_decompress(compressed) {
+            Some(buf) => buf,
+            None => return 0,
+        };
+        &decompressed_buf
+    } else {
+        &data[blob_start..]
+    };
+
+    // Calculate total output size
+    let mut total_pixel_bytes = 0usize;
+    for &(w, h, _, _) in &frame_entries {
+        if w > 0 && h > 0 {
+            total_pixel_bytes += (w as usize) * (h as usize) * 4;
+        } else {
+            total_pixel_bytes += 4; // 1×1 placeholder
+        }
+    }
+
+    let mut all_pixels = vec![0u8; total_pixel_bytes];
+    let mut frame_sizes = vec![0u32; frame_count * 2];
+    let mut frame_offsets = vec![0u32; frame_count];
+    let mut out_offset = 0usize;
+
+    for (i, &(w, h, data_off, _data_len)) in frame_entries.iter().enumerate() {
+        let fw = w as usize;
+        let fh = h as usize;
+
+        if fw == 0 || fh == 0 {
+            frame_sizes[i * 2] = 1;
+            frame_sizes[i * 2 + 1] = 1;
+            frame_offsets[i] = out_offset as u32;
+            out_offset += 4;
+            continue;
+        }
+
+        frame_sizes[i * 2] = fw as u32;
+        frame_sizes[i * 2 + 1] = fh as u32;
+        frame_offsets[i] = out_offset as u32;
+
+        let blob_off = data_off as usize;
+        let frame_pixel_count = fw * fh;
+
+        match pixel_format {
+            PixelFormat::Indexed8 => {
+                for p in 0..frame_pixel_count {
+                    let src = blob_off + p;
+                    if src >= blob.len() {
+                        break;
+                    }
+                    let color_idx = blob[src] as usize;
+                    let dst = out_offset + p * 4;
+                    if color_idx < 256 {
+                        let c = &palette[color_idx];
+                        if c[3] > 0 {
+                            all_pixels[dst] = c[0];
+                            all_pixels[dst + 1] = c[1];
+                            all_pixels[dst + 2] = c[2];
+                            all_pixels[dst + 3] = c[3];
+                        }
+                    }
+                }
+            }
+            PixelFormat::Indexed8Alpha8 => {
+                for p in 0..frame_pixel_count {
+                    let src = blob_off + p * 2;
+                    if src + 1 >= blob.len() {
+                        break;
+                    }
+                    let color_idx = blob[src] as usize;
+                    let alpha = blob[src + 1];
+                    if alpha == 0 {
+                        continue;
+                    }
+                    let dst = out_offset + p * 4;
+                    if color_idx < 256 {
+                        let c = &palette[color_idx];
+                        all_pixels[dst] = c[0];
+                        all_pixels[dst + 1] = c[1];
+                        all_pixels[dst + 2] = c[2];
+                        all_pixels[dst + 3] = alpha;
+                    }
+                }
+            }
+            PixelFormat::Rgba8 => {
+                let src_start = blob_off;
+                let src_end = src_start + frame_pixel_count * 4;
+                if src_end <= blob.len() {
+                    all_pixels[out_offset..out_offset + frame_pixel_count * 4]
+                        .copy_from_slice(&blob[src_start..src_end]);
+                }
+            }
+        }
+
+        out_offset += frame_pixel_count * 4;
+    }
+
+    pixel_output.copy_from(&all_pixels);
+
+    let frame_sizes_bytes: Vec<u8> = frame_sizes.iter().flat_map(|v| v.to_le_bytes()).collect();
+    frame_sizes_output.copy_from(&frame_sizes_bytes);
+
+    let frame_offsets_bytes: Vec<u8> = frame_offsets.iter().flat_map(|v| v.to_le_bytes()).collect();
+    frame_offsets_output.copy_from(&frame_offsets_bytes);
+
     frame_count as u32
 }
 

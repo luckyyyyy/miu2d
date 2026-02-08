@@ -2,11 +2,19 @@
 name = "asf2msf"
 version = "0.1.0"
 edition = "2021"
-description = "ASF → MSF sprite format converter"
+description = "ASF/MPC → MSF sprite format converter"
 
 [[bin]]
 name = "asf2msf"
 path = "src/main.rs"
+
+[[bin]]
+name = "mpc2msf"
+path = "src/bin/mpc2msf.rs"
+
+[[bin]]
+name = "verify_mpc"
+path = "src/bin/verify_mpc.rs"
 
 [dependencies]
 walkdir = "2"

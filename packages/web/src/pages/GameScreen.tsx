@@ -16,6 +16,7 @@ import { setResourcePaths } from "@miu2d/engine/config";
 import { loadGameData, loadGameConfig, reloadGameData, getGameConfig } from "@miu2d/engine/resource";
 import { setLevelConfigGameSlug, initNpcLevelConfig } from "@miu2d/engine/character/level";
 import { resourceLoader } from "@miu2d/engine/resource/resourceLoader";
+import type { SaveData } from "@miu2d/engine/runtime";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import type { GameHandle } from "../components";
@@ -131,6 +132,8 @@ export default function GameScreen() {
   const [showShareOverlay, setShowShareOverlay] = useState(!!shareCode);
   // 游戏名（从 config 获取）
   const [gameName, setGameName] = useState("");
+  // 初始存档数据（分享存档加载、标题界面读档时传入 Game 组件）
+  const [initialSaveData, setInitialSaveData] = useState<SaveData | undefined>(undefined);
 
   // 移动端检测
   const { isMobile, isLandscape, screenWidth, screenHeight } = useMobile();
@@ -280,6 +283,7 @@ export default function GameScreen() {
     setGamePhase("title");
     setActivePanel("none");
     setShowWebSaveLoad(false);
+    setInitialSaveData(undefined);
 
     logger.log("[GameScreen] Returned to title");
   }, []);
@@ -508,21 +512,11 @@ export default function GameScreen() {
                 canSave={false}
                 onCollectSaveData={() => null}
                 onLoadSaveData={async (data) => {
-                  // 标题界面读档：进入游戏后加载
+                  // 标题界面读档：设置初始存档数据，进入游戏时直接加载（不会运行 NewGame.txt）
                   setShowWebSaveLoad(false);
+                  setInitialSaveData(data as unknown as SaveData);
                   setGamePhase("playing");
                   setActivePanel("debug");
-                  // 延迟加载，等引擎初始化完成
-                  setTimeout(async () => {
-                    const engine = gameRef.current?.getEngine();
-                    if (engine) {
-                      try {
-                        await engine.loadGameFromJSON(data as unknown as import("@miu2d/engine/runtime").SaveData);
-                      } catch (e) {
-                        logger.error("[GameScreen] Failed to load save from title:", e);
-                      }
-                    }
-                  }, 500);
                   return true;
                 }}
                 onClose={() => setShowWebSaveLoad(false)}
@@ -536,19 +530,10 @@ export default function GameScreen() {
                 onDone={(data) => {
                   setShowShareOverlay(false);
                   if (data) {
-                    // 进入游戏并加载分享存档
+                    // 设置初始存档数据，进入游戏时直接加载（不会运行 NewGame.txt）
+                    setInitialSaveData(data as unknown as SaveData);
                     setGamePhase("playing");
                     setActivePanel("debug");
-                    setTimeout(async () => {
-                      const engine = gameRef.current?.getEngine();
-                      if (engine) {
-                        try {
-                          await engine.loadGameFromJSON(data as unknown as import("@miu2d/engine/runtime").SaveData);
-                        } catch (e) {
-                          logger.error("[GameScreen] Failed to load shared save:", e);
-                        }
-                      }
-                    }, 500);
                   }
                 }}
               />
@@ -753,6 +738,7 @@ export default function GameScreen() {
                     ref={gameRef}
                     width={windowSize.width}
                     height={windowSize.height}
+                    initialSaveData={initialSaveData}
                     onReturnToTitle={handleReturnToTitle}
                     uiTheme={uiTheme}
                   />

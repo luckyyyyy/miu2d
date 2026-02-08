@@ -16,10 +16,19 @@ import { resourceLoader } from "./resourceLoader";
 import { loadShd, type Shd } from "./shd";
 
 /**
+ * Rewrite .mpc URL to .msf (MSF format after conversion)
+ */
+function rewriteMpcToMsf(url: string): string {
+  return url.replace(/\.mpc$/i, ".msf");
+}
+
+/**
  * Load an MPC file from a URL
+ * Automatically uses MSF format if available (.mpc → .msf rewrite)
  */
 export async function loadMpc(url: string): Promise<Mpc | null> {
-  return resourceLoader.loadParsedBinary<Mpc>(url, decodeMpcWasm, "mpc");
+  const msfUrl = rewriteMpcToMsf(url);
+  return resourceLoader.loadParsedBinary<Mpc>(msfUrl, decodeMpcWasm, "mpc");
 }
 
 /**
@@ -42,10 +51,11 @@ export async function loadMpcWithShadow(mpcUrl: string, shdUrl?: string): Promis
     }
   }
 
-  // Load MPC
-  const buffer = await resourceLoader.loadBinary(mpcUrl);
+  // Load MPC (auto-rewrite to MSF)
+  const msfUrl = rewriteMpcToMsf(mpcUrl);
+  const buffer = await resourceLoader.loadBinary(msfUrl);
   if (!buffer) {
-    logger.error(`[MPC] Failed to load: ${mpcUrl}`);
+    logger.error(`[MPC] Failed to load: ${msfUrl}`);
     return null;
   }
 

@@ -36,6 +36,8 @@ export interface GameProps {
   height?: number;
   /** 可选：从存档槽位加载 (1-7) */
   loadSlot?: number;
+  /** 可选：从 JSON 存档数据加载（分享存档、标题界面读档） */
+  initialSaveData?: import("@miu2d/engine/runtime").SaveData;
   /** 返回标题界面回调 */
   onReturnToTitle?: () => void;
   /** UI 主题 */
@@ -46,7 +48,7 @@ export interface GameProps {
  * Game Component
  */
 export const Game = forwardRef<GameHandle, GameProps>(
-  ({ width = 800, height = 600, loadSlot, onReturnToTitle, uiTheme = "classic" }, ref) => {
+  ({ width = 800, height = 600, loadSlot, initialSaveData, onReturnToTitle, uiTheme = "classic" }, ref) => {
     const canvasRef = useRef<GameCanvasHandle>(null);
     const containerRef = useRef<HTMLDivElement>(null);
 
@@ -56,6 +58,7 @@ export const Game = forwardRef<GameHandle, GameProps>(
       height,
       autoStart: true,
       loadSlot,
+      initialSaveData,
     });
 
     // 监听返回标题事件

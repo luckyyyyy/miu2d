@@ -265,9 +265,23 @@ export function AsfViewer({ asf, fileName, isLoading, error }: AsfViewerProps) {
                 <span className="text-[#cccccc]">{asf.interval}ms</span>
               </div>
               <div className="flex justify-between">
-                <span>颜色数:</span>
-                <span className="text-[#cccccc]">{asf.colorCount}</span>
+                <span>颜色:</span>
+                <span className="text-[#cccccc]">
+                  {asf.pixelFormat === 0 ? "真彩色 (RGBA)" : `${asf.colorCount}色`}
+                </span>
               </div>
+              {asf.pixelFormat !== undefined && (
+                <div className="flex justify-between">
+                  <span>像素格式:</span>
+                  <span className="text-[#cccccc]">
+                    {asf.pixelFormat === 0
+                      ? "RGBA8"
+                      : asf.pixelFormat === 1
+                        ? "Indexed8"
+                        : "Indexed8+Alpha"}
+                  </span>
+                </div>
+              )}
               <div className="flex justify-between">
                 <span>偏移 (左, 底):</span>
                 <span className="text-[#cccccc]">

@@ -95,6 +95,7 @@ function decodeMsf(
     framesPerDirection: header.frames_per_direction,
     frames,
     isLoaded: true,
+    pixelFormat: header.pixel_format,
   };
 }
 

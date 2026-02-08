@@ -55,6 +55,11 @@ export class MsfHeader {
     frames_per_direction: number;
     palette_size: number;
     pixel_format: number;
+    /**
+     * Total RGBA bytes for all frames when decoded individually
+     * (sum of width*height*4 per frame, with empty frames counted as 1×1)
+     */
+    total_individual_pixel_bytes: number;
 }
 
 /**
@@ -203,6 +208,21 @@ export function decode_mpc_frames(data: Uint8Array, pixel_output: Uint8Array, fr
 export function decode_msf_frames(data: Uint8Array, output: Uint8Array): number;
 
 /**
+ * Decode MSF frames as individual images (for MPC-style per-frame varying sizes)
+ *
+ * Unlike decode_msf_frames which composites into a global canvas,
+ * this returns each frame at its own dimensions.
+ *
+ * Output buffers (matching decode_mpc_frames signature):
+ * - pixel_output: RGBA pixels for all frames concatenated
+ * - frame_sizes_output: [width, height] u32 pairs per frame
+ * - frame_offsets_output: byte offset of each frame in pixel_output
+ *
+ * Returns: frame count, or 0 on failure
+ */
+export function decode_msf_individual_frames(data: Uint8Array, pixel_output: Uint8Array, frame_sizes_output: Uint8Array, frame_offsets_output: Uint8Array): number;
+
+/**
  * 初始化 WASM 模块
  * 设置 panic hook 以便在控制台显示 Rust panic 信息
  */
@@ -308,6 +328,7 @@ export interface InitOutput {
     readonly __wbg_set_msfheader_frames_per_direction: (a: number, b: number) => void;
     readonly parse_msf_header: (a: number, b: number) => number;
     readonly decode_msf_frames: (a: number, b: number, c: any) => number;
+    readonly decode_msf_individual_frames: (a: number, b: number, c: any, d: any, e: any) => number;
     readonly __wbg_pathfinder_free: (a: number, b: number) => void;
     readonly pathfinder_new: (a: number, b: number) => number;
     readonly pathfinder_set_obstacle_bitmap: (a: number, b: number, c: number, d: number, e: number) => void;
@@ -325,6 +346,7 @@ export interface InitOutput {
     readonly __wbg_set_mpcheader_interval: (a: number, b: number) => void;
     readonly __wbg_set_mpcheader_bottom: (a: number, b: number) => void;
     readonly __wbg_set_mpcheader_left: (a: number, b: number) => void;
+    readonly __wbg_set_msfheader_total_individual_pixel_bytes: (a: number, b: number) => void;
     readonly __wbg_get_mpcheader_frames_data_length_sum: (a: number) => number;
     readonly __wbg_get_mpcheader_global_width: (a: number) => number;
     readonly __wbg_get_mpcheader_global_height: (a: number) => number;
@@ -334,6 +356,7 @@ export interface InitOutput {
     readonly __wbg_get_mpcheader_interval: (a: number) => number;
     readonly __wbg_get_mpcheader_bottom: (a: number) => number;
     readonly __wbg_get_mpcheader_left: (a: number) => number;
+    readonly __wbg_get_msfheader_total_individual_pixel_bytes: (a: number) => number;
     readonly __wbindgen_free: (a: number, b: number, c: number) => void;
     readonly __wbindgen_malloc: (a: number, b: number) => number;
     readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;

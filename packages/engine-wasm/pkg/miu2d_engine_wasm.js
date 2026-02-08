@@ -386,6 +386,15 @@ export class MsfHeader {
         return ret;
     }
     /**
+     * Total RGBA bytes for all frames when decoded individually
+     * (sum of width*height*4 per frame, with empty frames counted as 1×1)
+     * @returns {number}
+     */
+    get total_individual_pixel_bytes() {
+        const ret = wasm.__wbg_get_asfheader_width(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
      * @param {number} arg0
      */
     set anchor_x(arg0) {
@@ -444,6 +453,14 @@ export class MsfHeader {
      */
     set pixel_format(arg0) {
         wasm.__wbg_set_msfheader_pixel_format(this.__wbg_ptr, arg0);
+    }
+    /**
+     * Total RGBA bytes for all frames when decoded individually
+     * (sum of width*height*4 per frame, with empty frames counted as 1×1)
+     * @param {number} arg0
+     */
+    set total_individual_pixel_bytes(arg0) {
+        wasm.__wbg_set_asfheader_width(this.__wbg_ptr, arg0);
     }
 }
 if (Symbol.dispose) MsfHeader.prototype[Symbol.dispose] = MsfHeader.prototype.free;
@@ -780,6 +797,31 @@ export function decode_msf_frames(data, output) {
     const ptr0 = passArray8ToWasm0(data, wasm.__wbindgen_malloc);
     const len0 = WASM_VECTOR_LEN;
     const ret = wasm.decode_msf_frames(ptr0, len0, output);
+    return ret >>> 0;
+}
+
+/**
+ * Decode MSF frames as individual images (for MPC-style per-frame varying sizes)
+ *
+ * Unlike decode_msf_frames which composites into a global canvas,
+ * this returns each frame at its own dimensions.
+ *
+ * Output buffers (matching decode_mpc_frames signature):
+ * - pixel_output: RGBA pixels for all frames concatenated
+ * - frame_sizes_output: [width, height] u32 pairs per frame
+ * - frame_offsets_output: byte offset of each frame in pixel_output
+ *
+ * Returns: frame count, or 0 on failure
+ * @param {Uint8Array} data
+ * @param {Uint8Array} pixel_output
+ * @param {Uint8Array} frame_sizes_output
+ * @param {Uint8Array} frame_offsets_output
+ * @returns {number}
+ */
+export function decode_msf_individual_frames(data, pixel_output, frame_sizes_output, frame_offsets_output) {
+    const ptr0 = passArray8ToWasm0(data, wasm.__wbindgen_malloc);
+    const len0 = WASM_VECTOR_LEN;
+    const ret = wasm.decode_msf_individual_frames(ptr0, len0, pixel_output, frame_sizes_output, frame_offsets_output);
     return ret >>> 0;
 }
 
