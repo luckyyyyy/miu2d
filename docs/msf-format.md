@@ -1,27 +1,30 @@
 # MSF (Miu Sprite Format) v1 — 二进制格式规范
 
-MSF 是 Miu2D Engine 设计的精灵动画格式，替代旧的 ASF 格式用于 Web 平台。
+MSF 是 Miu2D Engine 设计的精灵动画格式，替代旧的 ASF 和 MPC 格式用于 Web 平台。
 
-> **设计目标**：快解码、可扩展、Web 原生、无损保留 ASF 的全部视觉信息
+> **设计目标**：快解码、可扩展、Web 原生、无损保留 ASF/MPC 的全部视觉信息
 
 ---
 
-## 与 ASF 对比
+## 与 ASF/MPC 对比
 
-| 特性 | ASF (旧) | MSF v1 (新) |
-|------|----------|-------------|
-| 像素存储 | RLE 压缩 | Indexed8Alpha8 per-frame |
-| 帧边界 | 固定 canvas 大小 | **Per-frame tight bounding box** |
-| Alpha | 隐藏在 RLE 流中 | 显式 per-pixel alpha 字节 |
-| 调色板 | BGRA | RGBA |
-| 可扩展 | 否 | **Chunk-based 扩展** |
-| 解码复杂度 | 需要 RLE 状态机 | 简单拷贝 + 查表 |
-| 传输压缩 | 无（依赖 RLE） | 依赖 HTTP brotli/gzip |
-| gzip 传输体积 | — | 原始 ASF 的 ~25-40% |
+| 特性 | ASF (旧) | MPC (旧) | MSF v1 (新) |
+|------|----------|----------|-------------|
+| 用途 | 角色/物体动画 | 地图瓦片图块 | 统一替代两者 |
+| 像素存储 | RLE 压缩 | RLE 压缩 | Indexed8Alpha8 per-frame |
+| 帧边界 | 固定 canvas 大小 | 每帧独立尺寸 | **Per-frame tight bounding box** |
+| Alpha | 隐藏在 RLE 流中 | 透明=跳过 | 显式 per-pixel alpha 字节 |
+| 调色板 | BGRA | BGRA | RGBA |
+| 可扩展 | 否 | 否 | **Chunk-based 扩展** |
+| 解码复杂度 | RLE 状态机 | RLE 状态机 | 简单拷贝 + 查表 |
+| zstd 压缩 | 无 | 无 | 支持（flags bit 0） |
 
 ### 无损保证
 
-转换工具经过 **96.25 亿像素**的逐像素验证（2086 文件、0 差异），确保 100% 无损还原。
+| 源格式 | 文件数 | 像素格式 | 验证像素总数 | 差异像素 |
+|--------|--------|------------|------------|--------|
+| ASF | 2,086 | Indexed8Alpha8 | 96.25 亿 | **0** |
+| MPC | 2,848 | Indexed8Alpha8 | 7.4 亿 | **0** |
 
 ---
 
@@ -66,7 +69,7 @@ MSF 是 Miu2D Engine 设计的精灵动画格式，替代旧的 ASF 格式用于
 |------|------|------|------|------|
 | 0x00 | 4 | char[4] | `magic` | 固定 `"MSF1"` (0x4D 0x53 0x46 0x31) |
 | 0x04 | 2 | u16 | `version` | 格式版本，当前 = `1` |
-| 0x06 | 2 | u16 | `flags` | 位标志。bit 0: 0 = 未压缩, 1 = zstd 压缩 (v1 仅用 0) |
+| 0x06 | 2 | u16 | `flags` | 位标志。bit 0: 0 = 未压缩, 1 = zstd 压缩 |
 
 ### Header (偏移 0x08, 16 字节)
 
@@ -95,7 +98,7 @@ MSF 是 Miu2D Engine 设计的精灵动画格式，替代旧的 ASF 格式用于
 |----|------|-----------|------|
 | 0 | `Rgba8` | 4 | 直接 RGBA 8888 |
 | 1 | `Indexed8` | 1 | 调色板索引，无 per-pixel alpha |
-| **2** | **`Indexed8Alpha8`** | **2** | **调色板索引 + alpha 字节（推荐，ASF 转换默认使用）** |
+| **2** | **`Indexed8Alpha8`** | **2** | **调色板索引 + alpha 字节（推荐，ASF/MPC 转换默认使用）** |
 
 ### Palette (偏移 0x1C, `paletteSize × 4` 字节)
 
@@ -204,10 +207,108 @@ blobStart        = extensionStart + (所有 chunk 大小之和) + 8 (END sentine
 | 模块 | 文件 | 说明 |
 |------|------|------|
 | Rust 编解码 | `packages/engine-wasm/src/msf_codec.rs` | 编码器 + WASM 解码器 |
-| Rust CLI 转换 | `packages/asf2msf/src/main.rs` | 批量 ASF → MSF |
-| Rust 验证工具 | `packages/asf2msf/src/bin/verify.rs` | 逐像素比对 |
-| TS 解码桥接 | `packages/engine/src/wasm/wasmAsfDecoder.ts` | 自动检测 MSF/ASF |
-| TS URL 重写 | `packages/engine/src/resource/asf.ts` | `.asf` → `.msf` 透明替换 |
+| Rust CLI (ASF) | `packages/asf2msf/src/main.rs` | 批量 ASF → MSF |
+| Rust CLI (MPC) | `packages/asf2msf/src/bin/mpc2msf.rs` | 批量 MPC → MSF |
+| Rust 验证 (ASF) | `packages/asf2msf/src/bin/verify.rs` | ASF ↔ MSF 逐像素比对 |
+| Rust 验证 (MPC) | `packages/asf2msf/src/bin/verify_mpc.rs` | MPC ↔ MSF 逐像素比对 |
+| TS ASF 解码 | `packages/engine/src/wasm/wasmAsfDecoder.ts` | 自动检测 MSF/ASF |
+| TS MPC 解码 | `packages/engine/src/wasm/wasmMpcDecoder.ts` | 自动检测 MSF/MPC |
+| TS ASF URL 重写 | `packages/engine/src/resource/asf.ts` | `.asf` → `.msf` 透明替换 |
+| TS MPC URL 重写 | `packages/engine/src/resource/mpc.ts` | `.mpc` → `.msf` 透明替换 |
+
+---
+
+## ASF → MSF 转换
+
+ASF 帧使用全局 canvas（所有帧相同尺寸），转换时提取 tight bounding box 并保存 `offsetX/offsetY` 偏移。
+
+**WASM 解码模式**：`decode_msf_frames` — 将 tight bbox 合成回全局 canvas。
+
+| 项目 | 数据 |
+|------|------|
+| 源格式 | ASF（精灵动画） |
+| 目标像素格式 | `Indexed8Alpha8`（2字节/像素） |
+| 文件数 | 2,086 |
+| 原始大小 | 459 MB |
+| MSF 大小 | 235 MB（51.1%） |
+| 验证 | 96.25 亿像素，0 差异 |
+
+---
+
+## MPC → MSF 转换
+
+MPC（地图瓦片资源包）每帧有独立的宽高和 RLE 数据。转换到 MSF 时保留每帧独立尺寸，`offsetX=0, offsetY=0`（MPC 无 canvas 合成概念）。
+
+### 字段映射
+
+| MPC 字段 | MSF 字段 | 说明 |
+|----------|----------|------|
+| `globalWidth` | `canvasWidth` | 全局宽度 |
+| `globalHeight` | `canvasHeight` | 全局高度 |
+| `frameCounts` | `frameCount` | 帧数 |
+| `direction` | `directions` | 方向数（MPC 通常 = 1） |
+| `interval` (ms) | `fps` | `fps = 1000 / interval` |
+| `globalWidth / 2` | `anchorX` | 水平锚点 |
+| 经公式转换 | `anchorY` | `globalHeight >= 16 ? globalHeight - 16 - bottom : 16 - globalHeight - bottom` |
+
+### 透明度处理
+
+MPC RLE 使用 `byte > 0x80` 表示透明像素跳过，有色像素隐含 `alpha = 255`。MSF 使用 `Indexed8Alpha8`（2 字节/像素），将 MPC 语义精确映射为：
+
+| MPC RLE | MSF Indexed8Alpha8 |
+|---------|-------------------|
+| 透明像素（跳过） | `[index=0, alpha=0]` |
+| 有色像素 `idx` | `[index=idx, alpha=255]` |
+
+> 最初尝试使用 `Indexed8`（1 字节/像素），但无法区分"透明"和"调色板索引 0 的有色像素"，导致 2524/2848 文件验证失败。改用 `Indexed8Alpha8` 后全部通过。
+
+### WASM 解码模式
+
+MPC 转换后的 MSF 使用专用解码函数 `decode_msf_individual_frames`（区别于 ASF 的 `decode_msf_frames`）：
+
+| 函数 | 用途 | 输出方式 |
+|------|------|----------|
+| `decode_msf_frames` | ASF → 合成到全局 canvas | 每帧 = canvasWidth × canvasHeight |
+| `decode_msf_individual_frames` | MPC → 每帧独立尺寸 | 每帧 = frame.width × frame.height |
+
+`decode_msf_individual_frames` 的输出缓冲区：
+
+```
+pixel_output:         所有帧 RGBA 像素依次拼接
+frame_sizes_output:   [width₀, height₀, width₁, height₁, ...] (u32 pairs)
+frame_offsets_output: [offset₀, offset₁, ...] (u32, pixel_output 中的字节偏移)
+```
+
+### TS 自动检测
+
+[wasmMpcDecoder.ts](../packages/engine/src/wasm/wasmMpcDecoder.ts) 检查前 4 字节 magic：
+
+- `"MSF1"` → 使用 `parse_msf_header` + `decode_msf_individual_frames`
+- 否则 → 使用原有 `parse_mpc_header` + `decode_mpc_frames`
+
+[mpc.ts](../packages/engine/src/resource/mpc.ts) 将 `.mpc` URL 重写为 `.msf`（同 ASF 的透明替换模式）。
+
+### 转换统计
+
+| 项目 | 数据 |
+|------|------|
+| 源格式 | MPC（地图瓦片） |
+| 目标像素格式 | `Indexed8Alpha8`（2字节/像素） |
+| 文件数 | 2,848 |
+| 原始大小 | 562.5 MB |
+| MSF 大小 | 444.2 MB（79.0%） |
+| zstd 压缩级别 | 3 |
+| 验证 | 7.4 亿像素，0 差异 |
+
+### 命令
+
+```bash
+# 转换
+make mpc2msf
+
+# 验证
+make mpc2msf-verify
+```
 
 ---
 

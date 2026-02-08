@@ -53,9 +53,9 @@ mod msf {
         ])
     }
 
-    /// Decode MPC RLE frame to palette indices (1 byte per pixel)
+    /// Decode MPC RLE frame to Indexed8Alpha8 (2 bytes per pixel: index, alpha)
     /// MPC RLE: byte > 0x80 → (byte - 0x80) transparent pixels, else byte = count of color indices
-    fn decode_mpc_rle_to_indexed(
+    fn decode_mpc_rle_to_indexed_alpha(
         data: &[u8],
         rle_start: usize,
         rle_end: usize,
@@ -63,7 +63,7 @@ mod msf {
         height: usize,
     ) -> Vec<u8> {
         let total = width * height;
-        let mut indices = vec![0u8; total]; // 0 = transparent by convention
+        let mut buf = vec![0u8; total * 2]; // [index, alpha] pairs, all zero = transparent
         let mut data_offset = rle_start;
         let mut pixel_idx = 0usize;
 
@@ -72,7 +72,7 @@ mod msf {
             data_offset += 1;
 
             if byte > 0x80 {
-                // Transparent pixels — skip (already 0)
+                // Transparent pixels — skip (already [0, 0])
                 let count = (byte - 0x80) as usize;
                 pixel_idx += count;
             } else {
@@ -82,16 +82,15 @@ mod msf {
                     if pixel_idx >= total || data_offset >= data.len() {
                         break;
                     }
-                    // Store palette index + 1 so that 0 remains "transparent"
-                    // Actually for Indexed8 format, index 0 with palette alpha=0 means transparent
-                    // We'll set palette[0] alpha=0 to signal transparent
-                    indices[pixel_idx] = data[data_offset];
+                    let dst = pixel_idx * 2;
+                    buf[dst] = data[data_offset]; // palette index
+                    buf[dst + 1] = 255; // alpha = fully opaque
                     data_offset += 1;
                     pixel_idx += 1;
                 }
             }
         }
-        indices
+        buf
     }
 
     /// Convert a single MPC file to zstd-compressed MSF bytes
@@ -210,7 +209,7 @@ mod msf {
             let rle_start = ds + 20; // dataLen(4) + width(4) + height(4) + reserved(8)
             let rle_end = ds + data_len;
 
-            let indexed = decode_mpc_rle_to_indexed(
+            let indexed = decode_mpc_rle_to_indexed_alpha(
                 mpc_data,
                 rle_start,
                 rle_end,
@@ -245,8 +244,13 @@ mod msf {
         let palette_bytes = palette.len() * 4;
         let frame_table_bytes = frame_count as usize * FRAME_ENTRY_SIZE;
         let end_chunk_bytes = 8;
-        let total =
-            8 + 16 + 4 + palette_bytes + frame_table_bytes + end_chunk_bytes + compressed_blob.len();
+        let total = 8
+            + 16
+            + 4
+            + palette_bytes
+            + frame_table_bytes
+            + end_chunk_bytes
+            + compressed_blob.len();
         let mut out = Vec::with_capacity(total);
 
         // Magic + Version + Flags
@@ -264,8 +268,8 @@ mod msf {
         out.extend_from_slice(&bottom.to_le_bytes());
         out.extend_from_slice(&[0u8; 4]); // reserved
 
-        // Pixel format: Indexed8 (no per-pixel alpha for MPC)
-        out.push(1); // PixelFormat::Indexed8
+        // Pixel format: Indexed8Alpha8 (2 bytes per pixel: index + alpha)
+        out.push(2); // PixelFormat::Indexed8Alpha8
         out.extend_from_slice(&(palette.len() as u16).to_le_bytes());
         out.push(0);
 

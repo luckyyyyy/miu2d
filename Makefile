@@ -1,6 +1,6 @@
 # Miu2D Engine - Makefile
 
-.PHONY: init dev dev-web dev-server build install db-migrate db-seed db-up db-down docker tsc lint format help asf2msf asf2msf-verify
+.PHONY: init dev dev-web dev-server build install db-migrate db-seed db-up db-down docker tsc lint format help asf2msf asf2msf-verify mpc2msf mpc2msf-verify
 
 # 读取环境变量（如果存在）
 -include .env
@@ -27,6 +27,8 @@ help: ## 显示帮助信息
 	@printf "  $(YELLOW)make tsc$(NC)        - 类型检查\n"
 	@printf "  $(YELLOW)make asf2msf$(NC)    - 转换 ASF → MSF 格式\n"
 	@printf "  $(YELLOW)make asf2msf-verify$(NC) - 验证无损转换\n"
+	@printf "  $(YELLOW)make mpc2msf$(NC)    - 转换 MPC → MSF 格式\n"
+	@printf "  $(YELLOW)make mpc2msf-verify$(NC) - 验证无损转换\n"
 	@printf "$(BLUE)═══════════════════════════════════════$(NC)\n"
 
 init: ## 首次初始化项目（清理+安装+迁移+种子）
@@ -144,6 +146,16 @@ asf2msf: ## 转换 ASF 为 MSF 格式
 asf2msf-verify: ## 验证 ASF/MSF 像素完全一致
 	@printf "$(GREEN)🔍 验证 ASF/MSF 无损...$(NC)\n"
 	cd packages/asf2msf && cargo run --release --bin verify -- ../../resources/asf
+
+# MPC → MSF 精灵格式转换
+mpc2msf: ## 转换 MPC 为 MSF 格式
+	@printf "$(GREEN)🎨 转换 MPC → MSF...$(NC)\n"
+	cd packages/asf2msf && cargo run --release --bin mpc2msf -- ../../resources/mpc ../../resources/mpc
+	@printf "$(GREEN)✓ MPC → MSF 转换完成$(NC)\n"
+
+mpc2msf-verify: ## 验证 MPC/MSF 像素完全一致
+	@printf "$(GREEN)🔍 验证 MPC/MSF 无损...$(NC)\n"
+	cd packages/asf2msf && cargo run --release --bin verify_mpc -- ../../resources/mpc
 
 # 构建 Docker 镜像
 docker:

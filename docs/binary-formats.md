@@ -13,7 +13,7 @@
 3. [MPC 格式 - 地图瓦片资源包](#mpc-格式---地图瓦片资源包)
 4. [SHD 格式 - 阴影数据](#shd-格式---阴影数据)
 5. [MAP 格式 - 地图数据](#map-格式---地图数据)
-6. [MSF 格式 - Web 优化精灵动画](msf-format.md)（独立文档）
+6. [MSF 格式 - Web 优化精灵动画（ASF/MPC 统一替代）](msf-format.md)（独立文档）
 7. [附录：工具命令](#附录工具命令)
 
 ---
@@ -183,6 +183,8 @@ function getFrameIndex(direction: number, animFrame: number): number {
 ## MPC 格式 - 地图瓦片资源包
 
 MPC (Map Picture Container) 存储地图瓦片图片，每个 MPC 文件包含多帧图片（通常用于地图动画）。
+
+> 📦 Web 版本已将 MPC 转换为 [MSF 格式](msf-format.md#mpc--msf-转换)（Indexed8Alpha8 + zstd），运行时自动 `.mpc` → `.msf` URL 重写。
 
 ### 文件结构总览
 
@@ -585,6 +587,22 @@ xxd -s 192 -l 320 file.map
 
 # 查看 ASF 元数据
 xxd -s 16 -l 48 file.asf
+```
+
+### MSF 格式转换
+
+```bash
+# ASF → MSF（zstd 压缩）
+make asf2msf
+
+# MPC → MSF（zstd 压缩）
+make mpc2msf
+
+# 验证 ASF↔MSF 无损
+make asf2msf-verify
+
+# 验证 MPC↔MSF 无损
+make mpc2msf-verify
 ```
 
 ---
