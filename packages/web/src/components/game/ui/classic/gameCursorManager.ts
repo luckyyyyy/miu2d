@@ -10,7 +10,7 @@
  */
 import { buildPath } from "@miu2d/engine/config";
 import { logger } from "@miu2d/engine/core/logger";
-import { type AsfData, getFrameCanvas, loadAsf } from "@miu2d/engine/sprite/asf";
+import { type AsfData, getFrameCanvas, loadAsf } from "@miu2d/engine/resource/asf";
 
 // UI 配置
 const MOUSE_CONFIG = {
@@ -48,11 +48,12 @@ async function loadCursorAsf(): Promise<void> {
   }
 
   loadPromise = (async () => {
-    const fullPath = buildPath(MOUSE_CONFIG.image);
-    logger.debug(`[GameCursor] Loading cursor ASF from: ${fullPath}`);
+    // loadAsf 内部会自动添加资源根目录
+    const imagePath = MOUSE_CONFIG.image;
+    logger.debug(`[GameCursor] Loading cursor ASF from: ${imagePath}`);
 
     try {
-      const data = await loadAsf(fullPath);
+      const data = await loadAsf(imagePath);
       if (data && data.frames.length > 0) {
         cachedAsfData = data;
         logger.debug(`[GameCursor] Loaded ${data.frames.length} frames`);

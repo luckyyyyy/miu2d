@@ -8,7 +8,7 @@
 import { logger } from "@miu2d/engine/core/logger";
 import type { Good } from "@miu2d/engine/player/goods";
 import { GoodKind } from "@miu2d/engine/player/goods";
-import type { UIEquipSlotName } from "@miu2d/engine/ui/contract";
+import type { UIEquipSlotName } from "@miu2d/engine/gui/contract";
 import type React from "react";
 import { useCallback, useMemo, useState } from "react";
 import type { TouchDragData } from "@/contexts";
@@ -577,9 +577,12 @@ export const ModernGameUIWrapper: React.FC<ModernGameUIWrapperProps> = ({
       {panels?.buy && buyData.items.length > 0 && (
         <BuyPanel
           isVisible={true}
-          items={buyData.items.map((item) =>
-            item ? { good: item.good as Good, count: item.count } : null
-          )}
+          items={buyData.items.map((item) => {
+            if (!item) return null;
+            const basePrice = item.price > 0 ? item.price : item.good.cost;
+            const effectivePrice = Math.floor((basePrice * buyData.buyPercent) / 100);
+            return { good: item.good as Good, count: item.count, price: effectivePrice };
+          })}
           screenWidth={width}
           buyPercent={buyData.buyPercent}
           numberValid={buyData.numberValid}
@@ -597,7 +600,7 @@ export const ModernGameUIWrapper: React.FC<ModernGameUIWrapperProps> = ({
           isVisible={true}
           screenWidth={width}
           screenHeight={height}
-          canSave={engine?.getGameManager()?.isSaveEnabled() ?? false}
+          canSave={engine ? engine.getGameManager().isSaveEnabled() : false}
           onSave={async (index) => {
             dispatch({ type: "SAVE_GAME", slotIndex: index });
             return true;
@@ -638,6 +641,7 @@ export const ModernGameUIWrapper: React.FC<ModernGameUIWrapperProps> = ({
       <ItemTooltip
         isVisible={tooltip.isVisible}
         good={tooltip.good}
+        shopPrice={tooltip.shopPrice}
         position={tooltip.position}
         screenWidth={width}
         screenHeight={height}
@@ -665,7 +669,6 @@ export const ModernGameUIWrapper: React.FC<ModernGameUIWrapperProps> = ({
       )}
 
       {/* 视频播放器 */}
-      <VideoPlayer engine={engine} />
 
       {/* Engine Watermark */}
       <div

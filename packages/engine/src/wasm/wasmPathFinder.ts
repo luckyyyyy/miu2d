@@ -2,6 +2,8 @@
  * WASM PathFinder 桥接层
  * 提供与原生 TypeScript pathFinder.ts 相同的接口
  *
+ * WASM 初始化统一由 wasmManager 管理，本模块不再独立初始化
+ *
  * 使用方式:
  * 1. 调用 initWasmPathfinder() 初始化
  * 2. 使用 findPathWasm() 替代 findPath()
@@ -9,12 +11,10 @@
 
 import { logger } from "../core/logger";
 import type { Vector2 } from "../core/types";
+import { ensureWasmReady, isWasmReady } from "./wasmManager";
+import type { WasmModule } from "./wasmManager";
 
-// WASM 模块类型定义
-interface WasmPathFinderConstructor {
-  new (mapWidth: number, mapHeight: number): WasmPathFinderInstance;
-}
-
+// PathFinder 实例（在 WASM 初始化后创建，绑定到具体地图尺寸）
 interface WasmPathFinderInstance {
   set_obstacle_bitmap(bitmap: Uint8Array, hardBitmap: Uint8Array): void;
   set_obstacle(x: number, y: number, isObstacle: boolean, isHard: boolean): void;
@@ -28,63 +28,41 @@ interface WasmPathFinderInstance {
   ): Int32Array;
 }
 
-interface WasmModule {
-  PathFinder: WasmPathFinderConstructor;
-  PathType: {
-    PathOneStep: number;
-    SimpleMaxNpcTry: number;
-    PerfectMaxNpcTry: number;
-    PerfectMaxPlayerTry: number;
-    PathStraightLine: number;
-  };
-}
-
-let wasmModule: WasmModule | null = null;
 let wasmPathfinder: WasmPathFinderInstance | null = null;
-let isInitialized = false;
-let initPromise: Promise<boolean> | null = null;
+let isPathfinderReady = false;
 
 /**
  * 初始化 WASM 寻路模块
+ * 委托给 wasmManager 统一初始化 WASM，再创建 PathFinder 实例
  */
 export async function initWasmPathfinder(mapWidth: number, mapHeight: number): Promise<boolean> {
-  if (isInitialized && wasmPathfinder) {
+  if (isPathfinderReady && wasmPathfinder) {
     return true;
   }
 
-  if (initPromise) {
-    return initPromise;
-  }
-
-  initPromise = (async () => {
-    try {
-      // 动态导入 WASM 模块
-      const wasm = await import("@miu2d/engine-wasm");
-      await wasm.default(); // 初始化 WASM
-
-      wasmModule = wasm as unknown as WasmModule;
-      wasmPathfinder = new wasmModule.PathFinder(mapWidth, mapHeight);
-      isInitialized = true;
-
-      logger.info(`[WasmPathFinder] Initialized with map size ${mapWidth}x${mapHeight}`);
-      return true;
-    } catch (error) {
-      logger.warn(
-        "[WasmPathFinder] Failed to initialize, falling back to JS implementation",
-        error
-      );
+  try {
+    const wasmModule = await ensureWasmReady();
+    if (!wasmModule) {
+      logger.warn("[WasmPathFinder] WASM not available");
       return false;
     }
-  })();
 
-  return initPromise;
+    wasmPathfinder = new (wasmModule as WasmModule).PathFinder(mapWidth, mapHeight) as unknown as WasmPathFinderInstance;
+    isPathfinderReady = true;
+
+    logger.info(`[WasmPathFinder] Initialized with map size ${mapWidth}x${mapHeight}`);
+    return true;
+  } catch (error) {
+    logger.warn("[WasmPathFinder] Failed to initialize, falling back to JS implementation", error);
+    return false;
+  }
 }
 
 /**
  * 检查 WASM 是否可用
  */
 export function isWasmPathfinderAvailable(): boolean {
-  return isInitialized && wasmPathfinder !== null;
+  return isWasmReady() && isPathfinderReady && wasmPathfinder !== null;
 }
 
 /**
@@ -150,11 +128,9 @@ export function findPathWasm(
 }
 
 /**
- * 销毁 WASM 模块
+ * 销毁 WASM 寻路实例
  */
 export function disposeWasmPathfinder(): void {
   wasmPathfinder = null;
-  wasmModule = null;
-  isInitialized = false;
-  initPromise = null;
+  isPathfinderReady = false;
 }

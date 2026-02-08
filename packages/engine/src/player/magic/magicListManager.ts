@@ -5,12 +5,11 @@
 
 import { DefaultPaths, ResourcePath } from "../../config/resourcePaths";
 import { logger } from "../../core/logger";
-import { getMagicAtLevel, loadMagic } from "../../magic/magicLoader";
-import { magicRenderer } from "../../magic/magicRenderer";
+import { getMagic, getMagicAtLevel, preloadMagicAsf } from "../../magic/magicLoader";
 import type { MagicData, MagicItemInfo } from "../../magic/types";
 import { createDefaultMagicItemInfo } from "../../magic/types";
 import { resourceLoader } from "../../resource/resourceLoader";
-import { loadAsf } from "../../sprite/asf";
+import { loadAsf } from "../../resource/asf";
 import { parseIni } from "../../utils";
 
 /**
@@ -205,12 +204,14 @@ export class MagicListManager {
   /**
    * 设置 NpcIniIndex（由 Player 在 setNpcIni 时调用）
    * 用于构建 SpecialAttackTexture 路径：{ActionFile}{NpcIniIndex}.asf
+   *
+   * @returns Promise 当预加载完成时 resolve
    */
-  setNpcIniIndex(index: number): void {
+  async setNpcIniIndex(index: number): Promise<void> {
     this._npcIniIndex = index;
     // 如果已有修炼武功，需要重新加载其 SpecialAttackTexture
     if (this.xiuLianMagic?.magic?.actionFile && this.xiuLianMagic.magic.attackFile) {
-      this._preloadSpecialAttackTexture(this.xiuLianMagic.magic);
+      await this._preloadSpecialAttackTexture(this.xiuLianMagic.magic);
     }
   }
 
@@ -266,12 +267,15 @@ export class MagicListManager {
 
     // 预加载武功自身的 ASF 资源（飞行动画、消失动画等）
     if (itemInfo.magic) {
-      await this._preloadMagicAsf(itemInfo.magic);
+      await preloadMagicAsf(itemInfo.magic);
 
       // 如果武功有 AttackFile+ActionFile，预加载相关资源（以便之后放入修炼槽时同步获取）
       if (itemInfo.magic.attackFile && itemInfo.magic.actionFile) {
         // 预加载 AttackFile（它也是一个武功）
-        await loadMagic(itemInfo.magic.attackFile);
+        const attackMagic = getMagic(itemInfo.magic.attackFile);
+        if (attackMagic) {
+          await preloadMagicAsf(attackMagic);
+        }
         // 预加载 SpecialAttackTexture（特殊攻击动画）
         await this._preloadSpecialAttackTexture(itemInfo.magic);
       }
@@ -298,32 +302,10 @@ export class MagicListManager {
     for (const path of paths) {
       const asf = await loadAsf(path);
       if (asf) {
-        logger.debug(`[MagicListManager] Preloaded SpecialAttackTexture: ${path}`);
         return;
       }
     }
     logger.warn(`[MagicListManager] Failed to preload SpecialAttackTexture: ${asfFileName}`);
-  }
-
-  /**
-   * 预加载武功的 ASF 资源（异步，等待完成）
-   */
-  private async _preloadMagicAsf(magic: MagicData): Promise<void> {
-    const promises: Promise<unknown>[] = [];
-    if (magic.flyingImage) {
-      promises.push(magicRenderer.getAsf(magic.flyingImage));
-    }
-    if (magic.vanishImage) {
-      promises.push(magicRenderer.getAsf(magic.vanishImage));
-    }
-    // SuperMode 使用 superModeImage 作为主动画
-    if (magic.superModeImage) {
-      promises.push(magicRenderer.getAsf(magic.superModeImage));
-    }
-    if (promises.length > 0) {
-      await Promise.all(promises);
-      logger.debug(`[MagicListManager] Preloaded ASF for ${magic.name}`);
-    }
   }
 
   /**
@@ -344,79 +326,6 @@ export class MagicListManager {
       this.callbacks.onXiuLianMagicChange?.(null);
     }
     this.updateView();
-  }
-
-  /**
-   * 从配置文件加载玩家武功列表
-   * 
-   * Uses unified resourceLoader for text data fetching
-   * @param filePath 配置文件路径，如 /resources/save/game/Magic0.ini
-   */
-  async loadPlayerList(filePath: string): Promise<boolean> {
-    // 确保 MagicExp 配置已加载
-    await this.initializeMagicExp();
-
-    try {
-      logger.log(`[MagicListManager] Loading player magic list from ${filePath}...`);
-
-      const content = await resourceLoader.loadText(filePath);
-      if (!content) {
-        logger.warn(`[MagicListManager] Failed to load ${filePath}`);
-        return false;
-      }
-
-      const data = parseIni(content);
-
-      // 清空列表
-      this.renewList();
-
-      // 遍历所有 section（数字索引）
-      for (const sectionName in data) {
-        if (sectionName === "Head") continue;
-
-        const index = parseInt(sectionName, 10);
-        if (Number.isNaN(index)) continue;
-
-        const section = data[sectionName];
-        const iniFile = section.IniFile;
-        const level = parseInt(section.Level || "1", 10);
-        const exp = parseInt(section.Exp || "0", 10);
-        const hideCount = parseInt(section.HideCount || "0", 10);
-        const lastIndexWhenHide = parseInt(section.LastIndexWhenHide || "0", 10);
-
-        if (!iniFile) continue;
-
-        // 根据索引判断放入主列表还是隐藏列表
-        const isHidden = index >= MAGIC_LIST_CONFIG.hideStartIndex;
-        const targetIndex = isHidden ? index - MAGIC_LIST_CONFIG.hideStartIndex : index;
-
-        if (targetIndex < 0 || targetIndex > MAGIC_LIST_CONFIG.maxMagic) continue;
-
-        // 加载武功
-        const magic = await loadMagic(ResourcePath.magic(iniFile));
-        if (magic) {
-          const levelMagic = getMagicAtLevel(magic, level);
-          const itemInfo = createDefaultMagicItemInfo(levelMagic, level);
-          itemInfo.exp = exp;
-          itemInfo.hideCount = hideCount;
-          itemInfo.lastIndexWhenHide = lastIndexWhenHide;
-
-          // 使用统一入口添加
-          await this._setMagicItemAt(targetIndex, itemInfo, isHidden);
-
-          logger.log(
-            `[MagicListManager] Loaded magic "${magic.name}" Lv.${level} at index ${targetIndex}${isHidden ? " (hidden)" : ""}`
-          );
-        }
-      }
-
-      this.updateView();
-      logger.log("[MagicListManager] Player magic list loaded successfully");
-      return true;
-    } catch (error) {
-      logger.error("[MagicListManager] Failed to load player magic list:", error);
-      return false;
-    }
   }
 
   /**
@@ -547,7 +456,7 @@ export class MagicListManager {
     }
 
     // 加载武功
-    const magic = await loadMagic(fileName);
+    const magic = getMagic(fileName);
     if (!magic) {
       logger.warn(`[MagicListManager] Failed to load magic: ${fileName}`);
       return [false, -1, null];
@@ -722,7 +631,7 @@ export class MagicListManager {
 
   /**
    * 交换列表项（同步，资源已在 addMagic 时预加载）
-   * 
+   *
    */
   exchangeListItem(index1: number, index2: number): void {
     if (index1 === index2) return;
@@ -1056,7 +965,7 @@ export class MagicListManager {
     if (!data?.magics) return;
 
     for (const item of data.magics) {
-      const magic = await loadMagic(item.fileName);
+      const magic = getMagic(item.fileName);
       if (magic) {
         const levelMagic = getMagicAtLevel(magic, item.level || 1);
         const info = createDefaultMagicItemInfo(levelMagic, item.level || 1);
@@ -1193,7 +1102,7 @@ export class MagicListManager {
       // 填充快捷栏 (BottomIndex)
       for (let i = MAGIC_LIST_CONFIG.bottomIndexBegin; i <= MAGIC_LIST_CONFIG.bottomIndexEnd; i++) {
         if (listI < magicFileNames.length) {
-          const magic = await loadMagic(ResourcePath.magic(magicFileNames[listI]));
+          const magic = getMagic(ResourcePath.magic(magicFileNames[listI]));
           if (magic) {
             newList[i] = createDefaultMagicItemInfo(magic, 1);
             newList[i]!.hideCount = 1;
@@ -1207,7 +1116,7 @@ export class MagicListManager {
       // 填充存储区 (StoreIndex)
       for (let i = MAGIC_LIST_CONFIG.storeIndexBegin; i <= MAGIC_LIST_CONFIG.storeIndexEnd; i++) {
         if (listI < magicFileNames.length) {
-          const magic = await loadMagic(ResourcePath.magic(magicFileNames[listI]));
+          const magic = getMagic(ResourcePath.magic(magicFileNames[listI]));
           if (magic) {
             newList[i] = createDefaultMagicItemInfo(magic, 1);
             newList[i]!.hideCount = 1;
@@ -1248,6 +1157,55 @@ export class MagicListManager {
     this._isInReplaceMagicList = false;
     this._currentReplaceMagicListFilePath = "";
     logger.debug(`[MagicListManager] ClearReplaceList: all replacement lists cleared`);
+  }
+
+  /**
+   * 重新加载所有武功数据（用于热重载武功配置）
+   * 保留等级和经验，但使用新的 MagicData 配置
+   */
+  async reloadAllMagics(): Promise<void> {
+    let reloadCount = 0;
+
+    // 重新加载主列表中的武功
+    for (let i = 1; i <= MAGIC_LIST_CONFIG.maxMagic; i++) {
+      const info = this.magicList[i];
+      if (info?.magic) {
+        const newMagic = getMagic(info.magic.fileName);
+        if (newMagic) {
+          const levelMagic = getMagicAtLevel(newMagic, info.level);
+          info.magic = levelMagic;
+          reloadCount++;
+        }
+      }
+
+      // 同时处理隐藏列表
+      const hideInfo = this.magicListHide[i];
+      if (hideInfo?.magic) {
+        const newMagic = getMagic(hideInfo.magic.fileName);
+        if (newMagic) {
+          const levelMagic = getMagicAtLevel(newMagic, hideInfo.level);
+          hideInfo.magic = levelMagic;
+          reloadCount++;
+        }
+      }
+    }
+
+    // 更新当前使用的武功引用
+    if (this.currentMagicInUse?.magic) {
+      const idx = this.getItemIndex(this.currentMagicInUse);
+      if (idx > 0) {
+        this.currentMagicInUse = this.getItemInfo(idx);
+      }
+    }
+
+    // 更新修炼武功引用
+    if (this.xiuLianMagic?.magic) {
+      this.xiuLianMagic = this.getItemInfo(MAGIC_LIST_CONFIG.xiuLianIndex);
+      this.callbacks.onXiuLianMagicChange?.(this.xiuLianMagic);
+    }
+
+    this.updateView();
+    logger.info(`[MagicListManager] Reloaded ${reloadCount} magics`);
   }
 
   /**
@@ -1335,7 +1293,7 @@ export class MagicListManager {
         const newHideList: (MagicItemInfo | null)[] = new Array(size).fill(null);
 
         for (const item of items) {
-          const magic = await loadMagic(ResourcePath.magic(item.fileName));
+          const magic = getMagic(ResourcePath.magic(item.fileName));
           if (magic) {
             const levelMagic = getMagicAtLevel(magic, item.level || 1);
             const info = createDefaultMagicItemInfo(levelMagic, item.level || 1);

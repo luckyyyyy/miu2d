@@ -1,0 +1,1 @@
+export { GameGlobalConfigPage } from "./GameGlobalConfigPage";

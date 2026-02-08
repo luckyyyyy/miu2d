@@ -22,7 +22,6 @@ import {
 } from "../iniParser";
 import { LevelManager } from "../level/levelManager";
 import { BezierMover, FlyIniManager, StatusEffectsManager } from "../modules";
-import { loadCharacterAsf } from "../resFile";
 
 /** 加载中状态标记（-1），确保后续 state 变更时触发纹理更新 */
 export const LOADING_STATE = -1 as CharacterState;
@@ -122,7 +121,12 @@ export abstract class CharacterBase extends Sprite implements CharacterInstance 
   // =============================================
   // === Combat ===
   // =============================================
-  protected _lastAttacker: Character | null = null;
+  protected _lastAttacker: CharacterBase | null = null;
+
+  /** 最后攻击此角色的角色（用于 AI 仇恨追踪） */
+  get lastAttacker(): CharacterBase | null {
+    return this._lastAttacker;
+  }
 
   // =============================================
   // === Configuration Files ===
@@ -228,125 +232,51 @@ export abstract class CharacterBase extends Sprite implements CharacterInstance 
   buyIniString: string = "";
 
   // === Status Effects (使用 StatusEffectsManager 模块) ===
-  protected _statusEffects = new StatusEffectsManager();
+  readonly statusEffects = new StatusEffectsManager();
 
-  // 委托属性 - 公开
   get poisonByCharacterName(): string {
-    return this._statusEffects.poisonByCharacterName;
+    return this.statusEffects.poisonByCharacterName;
   }
   set poisonByCharacterName(v: string) {
-    this._statusEffects.poisonByCharacterName = v;
+    this.statusEffects.poisonByCharacterName = v;
   }
   get poisonSeconds(): number {
-    return this._statusEffects.poisonSeconds;
+    return this.statusEffects.poisonSeconds;
   }
   set poisonSeconds(v: number) {
-    this._statusEffects.poisonSeconds = v;
+    this.statusEffects.poisonSeconds = v;
   }
   get petrifiedSeconds(): number {
-    return this._statusEffects.petrifiedSeconds;
+    return this.statusEffects.petrifiedSeconds;
   }
   set petrifiedSeconds(v: number) {
-    this._statusEffects.petrifiedSeconds = v;
+    this.statusEffects.petrifiedSeconds = v;
   }
   get frozenSeconds(): number {
-    return this._statusEffects.frozenSeconds;
+    return this.statusEffects.frozenSeconds;
   }
   set frozenSeconds(v: number) {
-    this._statusEffects.frozenSeconds = v;
+    this.statusEffects.frozenSeconds = v;
   }
   get isPoisonVisualEffect(): boolean {
-    return this._statusEffects.isPoisonVisualEffect;
+    return this.statusEffects.isPoisonVisualEffect;
   }
   set isPoisonVisualEffect(v: boolean) {
-    this._statusEffects.isPoisonVisualEffect = v;
+    this.statusEffects.isPoisonVisualEffect = v;
   }
   get isPetrifiedVisualEffect(): boolean {
-    return this._statusEffects.isPetrifiedVisualEffect;
+    return this.statusEffects.isPetrifiedVisualEffect;
   }
   set isPetrifiedVisualEffect(v: boolean) {
-    this._statusEffects.isPetrifiedVisualEffect = v;
+    this.statusEffects.isPetrifiedVisualEffect = v;
   }
   get isFrozenVisualEffect(): boolean {
-    return this._statusEffects.isFrozenVisualEffect;
+    return this.statusEffects.isFrozenVisualEffect;
   }
   set isFrozenVisualEffect(v: boolean) {
-    this._statusEffects.isFrozenVisualEffect = v;
-  }
-  get invisibleByMagicTime(): number {
-    return this._statusEffects.invisibleByMagicTime;
-  }
-  set invisibleByMagicTime(v: number) {
-    this._statusEffects.invisibleByMagicTime = v;
-  }
-  get isVisibleWhenAttack(): boolean {
-    return this._statusEffects.isVisibleWhenAttack;
-  }
-  set isVisibleWhenAttack(v: boolean) {
-    this._statusEffects.isVisibleWhenAttack = v;
-  }
-  get disableMoveMilliseconds(): number {
-    return this._statusEffects.disableMoveMilliseconds;
-  }
-  set disableMoveMilliseconds(v: number) {
-    this._statusEffects.disableMoveMilliseconds = v;
-  }
-  get disableSkillMilliseconds(): number {
-    return this._statusEffects.disableSkillMilliseconds;
-  }
-  set disableSkillMilliseconds(v: number) {
-    this._statusEffects.disableSkillMilliseconds = v;
-  }
-  get speedUpByMagicSprite(): MagicSprite | null {
-    return this._statusEffects.speedUpByMagicSprite;
-  }
-  set speedUpByMagicSprite(v: MagicSprite | null) {
-    this._statusEffects.speedUpByMagicSprite = v;
+    this.statusEffects.isFrozenVisualEffect = v;
   }
 
-  // 委托属性 - protected
-  protected get _changeCharacterByMagicSprite(): MagicSprite | null {
-    return this._statusEffects.changeCharacterByMagicSprite;
-  }
-  protected set _changeCharacterByMagicSprite(v: MagicSprite | null) {
-    this._statusEffects.changeCharacterByMagicSprite = v;
-  }
-  protected get _changeCharacterByMagicSpriteTime(): number {
-    return this._statusEffects.changeCharacterByMagicSpriteTime;
-  }
-  protected set _changeCharacterByMagicSpriteTime(v: number) {
-    this._statusEffects.changeCharacterByMagicSpriteTime = v;
-  }
-  protected get _weakByMagicSprite(): MagicSprite | null {
-    return this._statusEffects.weakByMagicSprite;
-  }
-  protected set _weakByMagicSprite(v: MagicSprite | null) {
-    this._statusEffects.weakByMagicSprite = v;
-  }
-  protected get _weakByMagicSpriteTime(): number {
-    return this._statusEffects.weakByMagicSpriteTime;
-  }
-  protected set _weakByMagicSpriteTime(v: number) {
-    this._statusEffects.weakByMagicSpriteTime = v;
-  }
-  protected get _changeToOppositeMilliseconds(): number {
-    return this._statusEffects.changeToOppositeMilliseconds;
-  }
-  protected set _changeToOppositeMilliseconds(v: number) {
-    this._statusEffects.changeToOppositeMilliseconds = v;
-  }
-  protected get _changeFlyIniByMagicSprite(): MagicSprite | null {
-    return this._statusEffects.changeFlyIniByMagicSprite;
-  }
-  protected set _changeFlyIniByMagicSprite(v: MagicSprite | null) {
-    this._statusEffects.changeFlyIniByMagicSprite = v;
-  }
-  protected get _controledMagicSprite(): MagicSprite | null {
-    return this._statusEffects.controledMagicSprite;
-  }
-  protected set _controledMagicSprite(v: MagicSprite | null) {
-    this._statusEffects.controledMagicSprite = v;
-  }
 
   // === LifeMilliseconds ===
   protected _lifeMilliseconds: number = 0;
@@ -386,9 +316,9 @@ export abstract class CharacterBase extends Sprite implements CharacterInstance 
   protected _destinationAttackTilePosition: Vector2 | null = null;
   protected _attackDestination: Vector2 | null = null;
   protected _magicToUseWhenAttack: string | null = null;
-  followTarget: Character | null = null;
+  followTarget: CharacterBase | null = null;
   isFollowTargetFound: boolean = false;
-  protected _interactiveTarget: Character | null = null;
+  protected _interactiveTarget: CharacterBase | null = null;
   protected _isInteractiveRightScript: boolean = false;
 
   // === Special Action ===
@@ -396,10 +326,9 @@ export abstract class CharacterBase extends Sprite implements CharacterInstance 
   specialActionLastDirection: number = 4;
   specialActionFrame: number = 0;
   specialActionAsf: string | undefined = undefined;
-  customActionFiles: Map<number, string> = new Map();
 
   // === BezierMove ===
-  protected _bezierMover = new BezierMover<Character>();
+  protected _bezierMover = new BezierMover<CharacterBase>();
 
   // === Audio ===
   protected _stateSounds: Map<number, string> = new Map();
@@ -429,6 +358,10 @@ export abstract class CharacterBase extends Sprite implements CharacterInstance 
 
   get isPlayer(): boolean {
     return this.kind === CharacterKind.Player;
+  }
+
+  get isNormal(): boolean {
+    return this.kind === CharacterKind.Normal;
   }
 
   get isFriend(): boolean {
@@ -462,10 +395,6 @@ export abstract class CharacterBase extends Sprite implements CharacterInstance 
     return this.kind === CharacterKind.Follower;
   }
 
-  get isEventCharacter(): boolean {
-    return this.kind === CharacterKind.Eventer;
-  }
-
   get isEventer(): boolean {
     return this.kind === CharacterKind.Eventer;
   }
@@ -493,8 +422,8 @@ export abstract class CharacterBase extends Sprite implements CharacterInstance 
 
   // === Stats Properties ===
   get attack(): number {
-    if (this._weakByMagicSprite !== null) {
-      const weakPercent = this._weakByMagicSprite.magic.weakAttackPercent || 0;
+    if (this.statusEffects.weakByMagicSprite !== null) {
+      const weakPercent = this.statusEffects.weakByMagicSprite.magic.weakAttackPercent || 0;
       return Math.floor((this._attack * (100 - weakPercent)) / 100);
     }
     return this._attack;
@@ -505,8 +434,8 @@ export abstract class CharacterBase extends Sprite implements CharacterInstance 
   }
 
   get defend(): number {
-    if (this._weakByMagicSprite !== null) {
-      const weakPercent = this._weakByMagicSprite.magic.weakDefendPercent || 0;
+    if (this.statusEffects.weakByMagicSprite !== null) {
+      const weakPercent = this.statusEffects.weakByMagicSprite.magic.weakDefendPercent || 0;
       return Math.floor((this._defend * (100 - weakPercent)) / 100);
     }
     return this._defend;
@@ -518,27 +447,27 @@ export abstract class CharacterBase extends Sprite implements CharacterInstance 
 
   get realAttack(): number {
     let percent = 100;
-    if (this._changeCharacterByMagicSprite !== null) {
-      percent += this._changeCharacterByMagicSprite.magic.attackAddPercent || 0;
+    if (this.statusEffects.changeCharacterByMagicSprite !== null) {
+      percent += this.statusEffects.changeCharacterByMagicSprite.magic.attackAddPercent || 0;
     }
-    if (this._changeFlyIniByMagicSprite !== null) {
-      percent += this._changeFlyIniByMagicSprite.magic.attackAddPercent || 0;
+    if (this.statusEffects.changeFlyIniByMagicSprite !== null) {
+      percent += this.statusEffects.changeFlyIniByMagicSprite.magic.attackAddPercent || 0;
     }
     return Math.floor((this.attack * percent) / 100);
   }
 
   get realDefend(): number {
     let percent = 100;
-    if (this._changeCharacterByMagicSprite !== null) {
-      percent += this._changeCharacterByMagicSprite.magic.defendAddPercent || 0;
+    if (this.statusEffects.changeCharacterByMagicSprite !== null) {
+      percent += this.statusEffects.changeCharacterByMagicSprite.magic.defendAddPercent || 0;
     }
     return Math.floor((this.defend * percent) / 100);
   }
 
   get realEvade(): number {
     let percent = 100;
-    if (this._changeCharacterByMagicSprite !== null) {
-      percent += this._changeCharacterByMagicSprite.magic.evadeAddPercent || 0;
+    if (this.statusEffects.changeCharacterByMagicSprite !== null) {
+      percent += this.statusEffects.changeCharacterByMagicSprite.magic.evadeAddPercent || 0;
     }
     return Math.floor((this.evade * percent) / 100);
   }
@@ -555,13 +484,6 @@ export abstract class CharacterBase extends Sprite implements CharacterInstance 
     return this.life === this.lifeMax;
   }
 
-  get controledMagicSprite(): MagicSprite | null {
-    return this._controledMagicSprite;
-  }
-
-  set controledMagicSprite(value: MagicSprite | null) {
-    this._controledMagicSprite = value;
-  }
 
   get movedByMagicSprite(): MagicSprite | null {
     return this._movedByMagicSprite;
@@ -653,7 +575,7 @@ export abstract class CharacterBase extends Sprite implements CharacterInstance 
    */
   get isVisible(): boolean {
     // return InvisibleByMagicTime <= 0;
-    return this.invisibleByMagicTime <= 0;
+    return this.statusEffects.invisibleByMagicTime <= 0;
   }
 
   /**
@@ -707,7 +629,7 @@ export abstract class CharacterBase extends Sprite implements CharacterInstance 
   }
 
   // === Status Effects Getters ===
-  get isFrozened(): boolean {
+  get isFrozen(): boolean {
     return this.frozenSeconds > 0;
   }
 
@@ -751,7 +673,7 @@ export abstract class CharacterBase extends Sprite implements CharacterInstance 
 
   /** 获取有效关系（考虑状态效果） */
   getEffectiveRelation(): RelationType {
-    if (this._changeToOppositeMilliseconds > 0) {
+    if (this.statusEffects.changeToOppositeMilliseconds > 0) {
       if (this.relation === RelationType.Enemy) {
         return RelationType.Friend;
       } else if (this.relation === RelationType.Friend) {
@@ -783,13 +705,13 @@ export abstract class CharacterBase extends Sprite implements CharacterInstance 
   }
 
   /** 设置跟随目标 */
-  follow(target: Character): void {
+  follow(target: CharacterBase): void {
     this.followTarget = target;
     this.isFollowTargetFound = true;
   }
 
   /** 判断是否是对立关系 */
-  isOpposite(target: Character): boolean {
+  isOpposite(target: CharacterBase): boolean {
     if (target.isEnemy) {
       return this.isPlayer || this.isFighterFriend || this.isNoneFighter;
     } else if (target.isPlayer || target.isFighterFriend) {
@@ -802,17 +724,8 @@ export abstract class CharacterBase extends Sprite implements CharacterInstance 
 
   /** 是否应该在小地图上显示 */
   shouldShowOnMinimap(): boolean {
-    if (this.isEnemy || this.isPartner || this.isPlayer) {
-      return true;
-    }
-    if (
-      this.kind === CharacterKind.Normal ||
-      this.kind === CharacterKind.Fighter ||
-      this.kind === CharacterKind.Eventer
-    ) {
-      return true;
-    }
-    return false;
+    if (this.isEnemy) return true;
+    return this.isPlayer || this.isPartner || this.isNormal || this.isFighterKind || this.isEventer;
   }
 
   /** 状态检查方法 */
@@ -883,27 +796,6 @@ export abstract class CharacterBase extends Sprite implements CharacterInstance 
     return this.dialogRadius === 0 ? 1 : this.dialogRadius;
   }
 
-  // =============================================
-  // === Status Effects Setters ===
-  // =============================================
-
-  setFrozenSeconds(seconds: number, hasVisualEffect: boolean): void {
-    if (this.frozenSeconds > 0) return;
-    this.frozenSeconds = seconds;
-    this.isFrozenVisualEffect = hasVisualEffect;
-  }
-
-  setPoisonSeconds(seconds: number, hasVisualEffect: boolean): void {
-    if (this.poisonSeconds > 0) return;
-    this.poisonSeconds = seconds;
-    this.isPoisonVisualEffect = hasVisualEffect;
-  }
-
-  setPetrifySeconds(seconds: number, hasVisualEffect: boolean): void {
-    if (this.petrifiedSeconds > 0) return;
-    this.petrifiedSeconds = seconds;
-    this.isPetrifiedVisualEffect = hasVisualEffect;
-  }
 
   // =============================================
   // === Walkability Methods ===
@@ -964,35 +856,13 @@ export abstract class CharacterBase extends Sprite implements CharacterInstance 
     }
   }
 
+  /**
+   * 更新当前状态的贴图
+   * C# 参考: SetState() 直接从 NpcIni[state].Image 读取
+   * 我们直接从 _spriteSet 读取，因为 setNpcActionFile 已经直接修改了 _spriteSet
+   */
   protected _updateTextureForState(state: CharacterState): void {
-    if (this._customAsfCache.has(state)) {
-      const customAsf = this._customAsfCache.get(state);
-      if (customAsf) {
-        this._texture = customAsf;
-        // 通过 setter 重新设置方向，自动处理取模和帧范围计算
-        // Texture setter 调用 CurrentDirection = CurrentDirection; CurrentFrameIndex = _frameBegin;
-        this.currentDirection = this._currentDirection;
-        this._currentFrameIndex = this._frameBegin;
-        return;
-      }
-    }
-
-    if (this.customActionFiles.has(state)) {
-      const asfFile = this.customActionFiles.get(state)!;
-      this.loadCustomActionFile(state, asfFile)
-        .then(() => {
-          if (this._state === state && this._customAsfCache.has(state)) {
-            this._texture = this._customAsfCache.get(state) || null;
-            // 通过 setter 重新设置方向
-            this.currentDirection = this._currentDirection;
-            this._currentFrameIndex = this._frameBegin;
-          }
-        })
-        .catch((err: unknown) =>
-          logger.warn(`[CharacterBase] Failed to load custom ASF for state ${state}:`, err)
-        );
-    }
-
+    // 直接从 _spriteSet 读取（包含通过 setNpcActionFile 设置的自定义动作）
     this._texture = getAsfForState(this._spriteSet, state);
     if (this._texture) {
       // 通过 setter 重新设置方向，自动处理取模和帧范围计算
@@ -1033,16 +903,6 @@ export abstract class CharacterBase extends Sprite implements CharacterInstance 
     return false;
   }
 
-  /** 加载自定义动作文件 */
-  protected async loadCustomActionFile(stateType: number, asfFile: string): Promise<void> {
-    const asf = await loadCharacterAsf(asfFile);
-    if (asf) {
-      this._customAsfCache.set(stateType, asf);
-    } else {
-      logger.warn(`[CharacterBase] Failed to load custom action file: ${asfFile}`);
-    }
-  }
-
   /** 获取寻路类型 */
   abstract getPathType(): number;
 
@@ -1067,6 +927,3 @@ export abstract class CharacterBase extends Sprite implements CharacterInstance 
   /** 受到伤害 */
   abstract takeDamage(damage: number, attacker: CharacterBase | null): void;
 }
-
-// 类型别名 - 确保继承链中可以使用 Character 类型
-export type Character = CharacterBase;

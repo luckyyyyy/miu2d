@@ -6,6 +6,7 @@
  */
 
 import type { AudioManager } from "../audio";
+import type { IRenderer } from "../webgl/iRenderer";
 import { RAIN_COLOR, Rain } from "./rain";
 import { Snow } from "./snow";
 
@@ -34,7 +35,7 @@ export class WeatherManager {
     return this._isFlashing;
   }
 
-  constructor(audioManager: AudioManager | null = null) {
+  constructor(audioManager: AudioManager) {
     this.rain = new Rain(audioManager);
     this.snow = new Snow();
   }
@@ -79,8 +80,8 @@ export class WeatherManager {
    * @param cameraY 相机 Y 位置
    */
   update(deltaTime: number, cameraX: number, cameraY: number): void {
-    // 更新雨效果
-    const rainResult = this.rain.update(deltaTime);
+    // 更新雨效果（传入摄像机坐标用于视差）
+    const rainResult = this.rain.update(deltaTime, cameraX, cameraY);
     this._isFlashing = rainResult.isFlashing;
 
     // 更新雪效果
@@ -91,14 +92,14 @@ export class WeatherManager {
    * 绘制天气效果
    * 注意：应在所有游戏内容绘制完成后调用
    */
-  draw(ctx: CanvasRenderingContext2D, cameraX: number, cameraY: number): void {
+  draw(renderer: IRenderer, cameraX: number, cameraY: number): void {
     // 绘制雨（仅在下雨时）
     if (this.isRaining) {
-      this.rain.draw(ctx);
+      this.rain.draw(renderer);
     }
 
     // 绘制雪
-    this.snow.draw(ctx, cameraX, cameraY);
+    this.snow.draw(renderer, cameraX, cameraY);
   }
 
   /**

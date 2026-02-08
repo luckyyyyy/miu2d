@@ -9,9 +9,8 @@ import { logger } from "../core/logger";
 import { PathType } from "../core/pathFinder";
 import type { CharacterConfig, Vector2 } from "../core/types";
 import { CharacterKind, CharacterState } from "../core/types";
-import type { MagicManager } from "../magic";
 import type { MagicData } from "../magic/types";
-import type { AsfData } from "../sprite/asf";
+import type { AsfData } from "../resource/asf";
 import { generateId, getDirectionFromVector, tileToPixel } from "../utils";
 import { NpcAI, NpcMagicCache } from "./modules";
 import type { NpcManager } from "./npcManager";
@@ -61,17 +60,11 @@ export class Npc extends Character {
     });
   }
 
-
-
   // === Manager 访问（通过 IEngineContext）===
 
   /**
    * 获取 MagicManager（通过 IEngineContext）
    */
-  private get magicManager(): MagicManager {
-    return this.engine.getManager("magic") as MagicManager;
-  }
-
   /**
    * 获取 NpcManager（通过 IEngineContext）
    */
@@ -186,20 +179,7 @@ export class Npc extends Character {
   }
 
   // aiType getter/setter - inherited from Character
-
-  /**
-   * IsRandMoveRandAttack => AIType == 1 || AIType == 2
-   */
-  get isRandMoveRandAttack(): boolean {
-    return this.aiType === 1 || this.aiType === 2;
-  }
-
-  /**
-   * IsNotFightBackWhenBeHit => AIType == 2
-   */
-  get isNotFightBackWhenBeHit(): boolean {
-    return this.aiType === 2;
-  }
+  // isRandMoveRandAttack, isNotFightBackWhenBeHit - inherited from CharacterBase
 
   get fixedPathTilePositions(): Vector2[] | null {
     return this._fixedPathTilePositions;
@@ -246,6 +226,13 @@ export class Npc extends Character {
    */
   getCachedMagic(magicIni: string): MagicData | null {
     return this._magicCache.get(magicIni);
+  }
+
+  /**
+   * 清除武功缓存（用于热重载武功配置）
+   */
+  clearMagicCache(): void {
+    this._magicCache.clear();
   }
 
   // === Factory Methods ===
@@ -412,6 +399,14 @@ export class Npc extends Character {
   // === AI 公共方法（供 NpcAI 模块调用）===
 
   /**
+   * 获取被攻击时使用的预加载武功数据（同步）
+   * 供 CollisionHandler 在碰撞检测时使用
+   */
+  getBeAttackedMagicData(): MagicData | null {
+    return this._magicCache.getSpecial("beAttacked");
+  }
+
+  /**
    * Use magic when life is low - 公开给 AI 模块使用
    * PerformeAttack(PositionInWorld + Utils.GetDirection8(CurrentDirection), MagicToUseWhenLifeLow)
    */
@@ -525,7 +520,7 @@ export class Npc extends Character {
    * PlaySoundEffect(NpcIni[(int)CharacterState.Magic].Sound);
    * MagicManager.UseMagic(this, MagicUse, PositionInWorld, _magicDestination, _magicTarget);
    */
-  protected override onMagicCast(): void {
+  override onMagicCast(): void {
     // Play magic state sound
     this.playStateSound(CharacterState.Magic);
 
@@ -631,9 +626,9 @@ export class Npc extends Character {
   }
 
   /**
-   * CancleAttackTarget()
+   * CancelAttackTarget()
    */
-  cancleAttackTarget(): void {
+  cancelAttackTarget(): void {
     this._destinationAttackTilePosition = null;
   }
 
@@ -651,10 +646,6 @@ export class Npc extends Character {
     // 其他受伤反应可以在这里处理
     // MagicToUseWhenBeAttacked 由 MagicManager.characterHited 处理
   }
-
-  // clearFollowTarget() - inherited from Character
-  // setRelation() - inherited from Character (handles follow target clearing)
-  // partnerMoveTo() - inherited from Character
 
   // === Obstacle Check ===
 
@@ -678,7 +669,7 @@ export class Npc extends Character {
     }
 
     // Check ObjManager obstacle
-    if (this.engine.getManager("obj").isObstacle(tilePosition.x, tilePosition.y)) {
+    if (this.obj.isObstacle(tilePosition.x, tilePosition.y)) {
       return true;
     }
 
@@ -717,11 +708,11 @@ export class Npc extends Character {
 
   /**
    * Set custom action file for a state
-   *
+   * 直接调用父类的 setNpcActionFile
    */
   setActionFile(stateType: number, asfFile: string): void {
-    this.setCustomActionFile(stateType, asfFile);
-    logger.log(`[Npc] SetActionFile: ${this.name}, state=${stateType}, file=${asfFile}`);
+    this.setNpcActionFile(stateType, asfFile);
+    logger.debug(`[Npc] SetActionFile: ${this.name}, state=${stateType}, file=${asfFile}`);
   }
 
   /**
@@ -762,7 +753,7 @@ export class Npc extends Character {
         path.push({ x, y });
       }
       return path.length >= 2 ? path : null;
-    } catch {
+    } catch { // parse failed
       return null;
     }
   }

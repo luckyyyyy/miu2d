@@ -121,7 +121,7 @@ export interface CharacterStats {
   dir?: number;
 }
 
-// 
+//
 export interface CharacterConfig {
   name: string;
   npcIni: string;
@@ -176,6 +176,27 @@ export interface CharacterConfig {
 
   // === Drop Control ===
   noDropWhenDie?: number; // 死亡时不掉落物品
+
+  // === API Resources (从统一数据加载器获取的资源配置) ===
+  _apiResources?: {
+    stand?: { image: string | null; sound: string | null };
+    stand1?: { image: string | null; sound: string | null };
+    walk?: { image: string | null; sound: string | null };
+    run?: { image: string | null; sound: string | null };
+    jump?: { image: string | null; sound: string | null };
+    fightStand?: { image: string | null; sound: string | null };
+    fightWalk?: { image: string | null; sound: string | null };
+    fightRun?: { image: string | null; sound: string | null };
+    fightJump?: { image: string | null; sound: string | null };
+    attack?: { image: string | null; sound: string | null };
+    attack1?: { image: string | null; sound: string | null };
+    attack2?: { image: string | null; sound: string | null };
+    special1?: { image: string | null; sound: string | null };
+    special2?: { image: string | null; sound: string | null };
+    hurt?: { image: string | null; sound: string | null };
+    death?: { image: string | null; sound: string | null };
+    sit?: { image: string | null; sound: string | null };
+  };
 }
 
 // ============= Sprite Types (forward declaration) =============
@@ -200,7 +221,6 @@ export interface PlayerData {
   isMoving: boolean;
   targetPosition: Vector2 | null;
   sprite?: CharacterSpriteData;
-  customActionFiles?: Map<number, string>;
 
   // Player-specific fields
   money: number;
@@ -239,54 +259,11 @@ export interface ScriptState {
   currentLine: number;
   isRunning: boolean;
   isPaused: boolean;
-  waitTime: number;
-  waitingForInput: boolean;
   callStack: { script: ScriptData; line: number }[];
-  selectionResultVar?: string; // Variable name to store selection result
-  isInTalk: boolean; // Whether currently in a Talk sequence
-  talkQueue: { text: string; portraitIndex: number }[]; // Queue of talk dialogs
 
-  // the NPC or Obj that triggered this script
-  // Used by commands like DelCurObj, SetObjScript, etc.
-  belongObject: { type: "npc" | "obj"; id: string } | null;
-
-  // Blocking wait states (ScriptRunner checks these each frame)
-  // PlayerGoto
-  waitingForPlayerGoto: boolean;
-  playerGotoDestination: Vector2 | null;
-  // PlayerGotoDir
-  waitingForPlayerGotoDir: boolean;
-  // PlayerRunTo
-  waitingForPlayerRunTo: boolean;
-  playerRunToDestination: Vector2 | null;
-  // PlayerJumpTo
-  waitingForPlayerJumpTo?: boolean;
-  playerJumpToDestination?: Vector2 | null;
-  // NpcGoto
-  waitingForNpcGoto: boolean;
-  npcGotoName: string | null;
-  npcGotoDestination: Vector2 | null;
-  // NpcGotoDir
-  waitingForNpcGotoDir: boolean;
-  npcGotoDirName: string | null;
-  // FadeIn/FadeOut
-  waitingForFadeIn: boolean;
-  waitingForFadeOut: boolean;
-  // NpcSpecialActionEx
-  waitingForNpcSpecialAction: boolean;
-  npcSpecialActionName: string | null;
-  // MoveScreen
-  waitingForMoveScreen: boolean;
-  // MoveScreenEx
-  waitingForMoveScreenEx?: boolean;
-  // BuyGoods
-  waitingForBuyGoods?: boolean;
-  // ChooseEx/ChooseMultiple
-  waitingForChooseEx?: boolean;
-  waitingForChooseMultiple?: boolean;
-  chooseMultipleVarPrefix?: string;
-  // PlayMovie
-  waitingForMovie?: boolean;
+  // the NPC, Obj, or Good that triggered this script
+  // Used by commands like DelCurObj, SetObjScript, DelGoods, etc.
+  belongObject: { type: "npc" | "obj" | "good"; id: string } | null;
 }
 
 // ============= Game Variables =============
@@ -362,6 +339,21 @@ export interface InputState {
   // 使用方向移动而非鼠标点击，避免频繁寻路导致卡顿
   joystickDirection: Direction | null;
 }
+
+export const createDefaultInputState = (): InputState => ({
+  keys: new Set<string>(),
+  mouseX: 0,
+  mouseY: 0,
+  mouseWorldX: 0,
+  mouseWorldY: 0,
+  isMouseDown: false,
+  isRightMouseDown: false,
+  clickedTile: null,
+  isShiftDown: false,
+  isAltDown: false,
+  isCtrlDown: false,
+  joystickDirection: null,
+});
 
 // ============= Animation Types =============
 export interface AnimationFrame {

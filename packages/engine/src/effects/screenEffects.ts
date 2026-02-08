@@ -3,6 +3,8 @@
  * Handles fade in/out, color tinting, and other screen effects
  */
 
+import type { IRenderer } from "../webgl/iRenderer";
+
 export interface Color {
   r: number;
   g: number;
@@ -189,27 +191,33 @@ export class ScreenEffects {
    * Draw fade overlay on canvas
    * Based on ScriptExecuter.DrawFade()
    */
-  drawFade(ctx: CanvasRenderingContext2D, width: number, height: number): void {
+  drawFade(renderer: IRenderer, width: number, height: number): void {
     if (this.state.fadeTransparency > 0) {
-      ctx.save();
-      ctx.fillStyle = `rgba(0, 0, 0, ${this.state.fadeTransparency})`;
-      ctx.fillRect(0, 0, width, height);
-      ctx.restore();
+      renderer.fillRect({
+        x: 0,
+        y: 0,
+        width,
+        height,
+        color: `rgba(0, 0, 0, ${this.state.fadeTransparency})`,
+      });
     }
   }
 
   /**
    * Draw flash overlay on canvas
    */
-  drawFlash(ctx: CanvasRenderingContext2D, width: number, height: number): void {
+  drawFlash(renderer: IRenderer, width: number, height: number): void {
     if (this.state.isFlashing) {
       const progress = this.state.flashElapsed / this.state.flashDuration;
       const alpha = (Math.max(0, 1 - progress) * (this.state.flashColor.a ?? 255)) / 255;
 
-      ctx.save();
-      ctx.fillStyle = `rgba(${this.state.flashColor.r}, ${this.state.flashColor.g}, ${this.state.flashColor.b}, ${alpha})`;
-      ctx.fillRect(0, 0, width, height);
-      ctx.restore();
+      renderer.fillRect({
+        x: 0,
+        y: 0,
+        width,
+        height,
+        color: `rgba(${this.state.flashColor.r}, ${this.state.flashColor.g}, ${this.state.flashColor.b}, ${alpha})`,
+      });
     }
   }
 
@@ -229,18 +237,39 @@ export class ScreenEffects {
   }
 
   /**
-   * Check if map should be tinted
+   * Check if map color is black (0,0,0) → should use grayscale shader
+   * In C#: when DrawColor == Color.Black, switches to GrayScaleEffect shader
+   */
+  isMapGrayscale(): boolean {
+    const c = this.state.mapDrawColor;
+    return c.r === 0 && c.g === 0 && c.b === 0;
+  }
+
+  /**
+   * Check if sprite color is black (0,0,0) → should use grayscale shader
+   */
+  isSpriteGrayscale(): boolean {
+    const c = this.state.spriteDrawColor;
+    return c.r === 0 && c.g === 0 && c.b === 0;
+  }
+
+  /**
+   * Check if map should be tinted (non-white, non-black)
+   * Black (0,0,0) is handled separately as grayscale
    */
   isMapTinted(): boolean {
     const c = this.state.mapDrawColor;
+    if (c.r === 0 && c.g === 0 && c.b === 0) return false; // grayscale, not tint
     return c.r !== 255 || c.g !== 255 || c.b !== 255;
   }
 
   /**
-   * Check if sprites should be tinted
+   * Check if sprites should be tinted (non-white, non-black)
+   * Black (0,0,0) is handled separately as grayscale
    */
   isSpriteTinted(): boolean {
     const c = this.state.spriteDrawColor;
+    if (c.r === 0 && c.g === 0 && c.b === 0) return false; // grayscale, not tint
     return c.r !== 255 || c.g !== 255 || c.b !== 255;
   }
 

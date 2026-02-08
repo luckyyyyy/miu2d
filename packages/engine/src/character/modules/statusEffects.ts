@@ -82,7 +82,7 @@ export class StatusEffectsManager {
   // ========== Computed Getters ==========
 
   /** 是否被冻结 */
-  get isFrozened(): boolean {
+  get isFrozen(): boolean {
     return this.frozenSeconds > 0;
   }
 

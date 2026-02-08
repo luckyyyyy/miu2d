@@ -3,5 +3,5 @@
  */
 
 export { MemoListManager } from "./memoListManager";
-export { partnerList } from "./partnerList";
+export { PartnerListManager } from "./partnerList";
 export { type TalkTextDetail, TalkTextListManager } from "./talkTextList";

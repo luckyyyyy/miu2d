@@ -5,13 +5,18 @@
 export type { LevelDetail, LevelUpResult } from "./levelManager";
 export {
   calculateLevelUp,
-  clearLevelConfigCache,
-  DEFAULT_LEVEL_FILE,
   getLevelDetail,
   getNpcLevelConfig,
   getNpcLevelDetail,
+  initNpcLevelConfig,
   LevelManager,
-  loadLevelConfig,
-  loadNpcLevelConfig,
-  NPC_LEVEL_FILE,
 } from "./levelManager";
+
+export {
+  clearLevelConfigCache,
+  getDefaultNpcLevelKey,
+  getDefaultPlayerLevelKey,
+  getLevelConfigFromCache,
+  loadLevelConfig,
+  setLevelConfigGameSlug,
+} from "./levelConfigLoader";

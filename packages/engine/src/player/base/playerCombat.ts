@@ -10,13 +10,14 @@ import type { CharacterBase } from "../../character/base";
 import { logger } from "../../core/logger";
 import type { Vector2 } from "../../core/types";
 import { CharacterState } from "../../core/types";
-import { getCachedMagic, getMagicAtLevel, loadMagic } from "../../magic/magicLoader";
+import { getMagic, getMagicAtLevel } from "../../magic/magicLoader";
 import type { MagicData, MagicItemInfo } from "../../magic/types";
 import { MagicAddonEffect } from "../../magic/types";
 import { getDirection, tileToPixel } from "../../utils";
 import type { Good } from "../goods";
 import { GoodEffectType } from "../goods/good";
 import { PlayerInput, THEW_USE_AMOUNT_WHEN_ATTACK } from "./playerInput";
+import { parseMagicListNoDistance } from "../../character/modules";
 
 /**
  * PlayerCombat - 战斗功能层
@@ -138,7 +139,7 @@ export abstract class PlayerCombat extends PlayerInput {
 
     // if (!CanPerformeAttack()) return;
     // CanPerformeAttack() checks DisableSkillMilliseconds <= 0
-    if (this.disableSkillMilliseconds > 0) {
+    if (this.statusEffects.disableSkillMilliseconds > 0) {
       return;
     }
 
@@ -245,7 +246,7 @@ export abstract class PlayerCombat extends PlayerInput {
     }
 
     // 同步获取缓存的武功
-    const magic = getCachedMagic(this._magicToUseWhenAttack);
+    const magic = getMagic(this._magicToUseWhenAttack);
     if (!magic) {
       logger.warn(`[Player] Magic not preloaded: ${this._magicToUseWhenAttack}`);
       this._magicToUseWhenAttack = null;
@@ -350,7 +351,7 @@ export abstract class PlayerCombat extends PlayerInput {
     const currentIndex = this.currentUseMagicIndex;
 
     // var magics = list == "无" ? new List<string>() : ParseMagicListNoDistance(list);
-    const magics = listStr === "无" ? [] : Character.parseMagicListNoDistance(listStr);
+    const magics = listStr === "無" ? [] : parseMagicListNoDistance(listStr);
 
     // var path = StorageBase.SaveGameDirectory + @"\" + Name + "_" + reasonMagic.Name + "_" + string.Join("_", magics) + ".ini";
     const path = `${this.name}_${reasonMagic.name}_${magics.join("_")}.ini`;
@@ -443,7 +444,7 @@ export abstract class PlayerCombat extends PlayerInput {
    * Override magic cast hook - called when magic animation completes
    * case CharacterState.Magic - CanUseMagic() + PlaySoundEffect + MagicManager.UseMagic()
    */
-  protected override onMagicCast(): void {
+  override onMagicCast(): void {
     // Play Magic state sound effect
     // Reference: PlaySoundEffect(NpcIni[(int)CharacterState.Magic].Sound)
     this.playStateSound(CharacterState.Magic);
@@ -552,7 +553,7 @@ export abstract class PlayerCombat extends PlayerInput {
     direction: number
   ): Promise<void> {
     try {
-      const baseMagic = await loadMagic(magicFileName);
+      const baseMagic = getMagic(magicFileName);
       if (!baseMagic) {
         logger.warn(`[Player] Failed to load MagicToUseWhenBeAttacked: ${magicFileName}`);
         return;
@@ -580,7 +581,7 @@ export abstract class PlayerCombat extends PlayerInput {
     replacementMagicFileName: string
   ): Promise<void> {
     try {
-      const replacementMagic = await loadMagic(replacementMagicFileName);
+      const replacementMagic = getMagic(replacementMagicFileName);
       if (!replacementMagic) {
         logger.warn(`[Player] Failed to load UseReplaceMagic: ${replacementMagicFileName}`);
         return;
@@ -849,7 +850,7 @@ export abstract class PlayerCombat extends PlayerInput {
    */
   takeDamageRaw(amount: number): boolean {
     // 调试无敌模式：玩家不受伤害
-    if (this.engine.getManager("debug").isGodMode()) {
+    if (this.debug.isGodMode()) {
       return false;
     }
 

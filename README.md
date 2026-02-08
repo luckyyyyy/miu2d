@@ -6,7 +6,11 @@ A 2D RPG game engine built with modern Web technologies.
 
 ## 📖 About
 
-**Miu2D** is a 2D RPG game engine built with **TypeScript + React + Canvas**, designed for the Web platform.
+**Miu2D** is a 2D RPG game engine built with **TypeScript + React + WebGL**, designed for the Web platform.
+
+> 🔧 **Zero Engine Dependencies, Pure Native Implementation** — No Unity, no Godot, no Phaser, no PixiJS. The entire rendering pipeline is built from scratch with **raw WebGL API**, delivering native-level performance directly in the browser.
+
+> ⚡ **WebGL High-Performance Rendering** — Custom WebGL renderer with sprite batching, texture atlasing, and GPU-accelerated compositing. Canvas 2D fallback for maximum compatibility.
 
 ### 🎮 Demo: Legend of Yue Ying (月影传说) Web Remake
 
@@ -82,7 +86,7 @@ The original game was developed in C++, later remade by fans using C# + XNA fram
 
 - **Language**: TypeScript 5.9 (strict mode)
 - **Framework**: React 19, Vite 7
-- **Rendering**: HTML5 Canvas 2D
+- **Rendering**: WebGL (with Canvas 2D fallback)
 - **Styling**: Tailwind CSS 4
 - **Audio**: Web Audio API (OGG Vorbis)
 - **Code Quality**: Biome (lint + format)
@@ -90,12 +94,17 @@ The original game was developed in C++, later remade by fans using C# + XNA fram
 
 ### Project Structure
 
-This project uses **pnpm monorepo** architecture with two independent packages:
+This project uses **pnpm monorepo** architecture:
 
 | Package | Directory | Description |
 |---------|-----------|-------------|
 | **@miu2d/engine** | `packages/engine/` | Pure TypeScript 2D RPG engine, **no React dependency** |
+| **@miu2d/ui** | `packages/ui/` | Generic UI components (no business logic) |
+| **@miu2d/viewer** | `packages/viewer/` | Resource viewers (ASF/Map/Magic) and editors |
 | **@miu2d/web** | `packages/web/` | React application with UI and user interaction |
+| **@miu2d/server** | `packages/server/` | NestJS backend with tRPC API |
+| **@miu2d/types** | `packages/types/` | Shared Zod schemas and TypeScript types |
+| **@miu2d/i18n** | `packages/i18n/` | Internationalization resources |
 
 **Import engine modules:**
 ```typescript
@@ -115,7 +124,7 @@ import { resourceLoader } from "@miu2d/engine/resource/resourceLoader";
 
 - **Node.js** 18+
 - **pnpm** 9+ (required)
-- Modern browser with Canvas API and Web Audio API support
+- Modern browser with WebGL and Web Audio API support
 
 ### Installation
 
@@ -204,7 +213,7 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 - **Original Game**: Kingsoft (西山居) - Legend of Yue Ying (2001)
 - **C# Remake**: [mapic91/JxqyHD](https://github.com/mapic91/JxqyHD)
-- **Tech Stack**: TypeScript, React 19, Vite 7, Canvas API, Web Audio API
+- **Tech Stack**: TypeScript, React 19, Vite 7, WebGL, Web Audio API
 
 ---
 

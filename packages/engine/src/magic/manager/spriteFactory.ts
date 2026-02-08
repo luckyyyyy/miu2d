@@ -6,10 +6,11 @@
  */
 
 import type { Character } from "../../character/character";
-import { getEngineContext } from "../../core/engineContext";
+import { EngineAccess } from "../../core/engineAccess";
 import { logger } from "../../core/logger";
 import type { Vector2 } from "../../core/types";
 import type { NpcManager } from "../../npc";
+import { findNeighborInDirection } from "../../core/pathFinder";
 import type { Player } from "../../player/player";
 import { pixelToTile, tileToPixel } from "../../utils";
 import {
@@ -19,9 +20,8 @@ import {
   getDirectionOffset8,
 } from "../../utils/direction";
 import { getSpeedRatio, normalizeVector } from "../../utils/math";
-import { getNeighbors } from "../../utils/neighbors";
 import type { CharacterRef } from "../effects";
-import { magicRenderer } from "../magicRenderer";
+import type { MagicRenderer } from "../magicRenderer";
 import { MagicSprite } from "../magicSprite";
 import type { Kind19MagicInfo, MagicData } from "../types";
 import { MagicMoveKind } from "../types";
@@ -30,9 +30,10 @@ import type { ICharacterHelper, ISpriteFactoryCallbacks, MagicManagerDeps } from
 /**
  * 武功精灵创建工厂
  */
-export class SpriteFactory {
+export class SpriteFactory extends EngineAccess {
   private player: Player;
   private npcManager: NpcManager;
+  private magicRenderer: MagicRenderer;
   private charHelper: ICharacterHelper;
   private callbacks: ISpriteFactoryCallbacks;
 
@@ -41,8 +42,10 @@ export class SpriteFactory {
     charHelper: ICharacterHelper,
     callbacks: ISpriteFactoryCallbacks
   ) {
+    super();
     this.player = deps.player;
     this.npcManager = deps.npcManager;
+    this.magicRenderer = deps.magicRenderer;
     this.charHelper = charHelper;
     this.callbacks = callbacks;
   }
@@ -598,11 +601,11 @@ export class SpriteFactory {
 
       switch (magic.specialKind) {
         case 1:
-          effectTarget.life += effectAmount;
+          effectTarget.addLife(effectAmount);
           this.callbacks.addMagicSprite(sprite);
           break;
         case 2:
-          effectTarget.thew += effectAmount;
+          effectTarget.addThew(effectAmount);
           this.callbacks.addMagicSprite(sprite);
           break;
         case 3:
@@ -620,13 +623,13 @@ export class SpriteFactory {
           }
           break;
         case 4:
-          effectTarget.invisibleByMagicTime = effectAmount;
-          effectTarget.isVisibleWhenAttack = false;
+          effectTarget.statusEffects.invisibleByMagicTime = effectAmount;
+          effectTarget.statusEffects.isVisibleWhenAttack = false;
           this.callbacks.addMagicSprite(sprite);
           break;
         case 5:
-          effectTarget.invisibleByMagicTime = effectAmount;
-          effectTarget.isVisibleWhenAttack = true;
+          effectTarget.statusEffects.invisibleByMagicTime = effectAmount;
+          effectTarget.statusEffects.isVisibleWhenAttack = true;
           this.callbacks.addMagicSprite(sprite);
           break;
         case 7:
@@ -672,7 +675,7 @@ export class SpriteFactory {
     if (magic.superModeImage) {
       sprite.flyingAsfPath = magic.superModeImage;
 
-      const cached = magicRenderer.getCachedAsf(magic.superModeImage);
+      const cached = this.magicRenderer.getCachedAsf(magic.superModeImage);
       if (cached) {
         sprite.frameCountsPerDirection = cached.framesPerDirection;
         sprite.frameInterval = cached.interval;
@@ -800,10 +803,7 @@ export class SpriteFactory {
     destination: Vector2,
     destroyOnEnd: boolean
   ): void {
-    let count = 3;
-    if (magic.effectLevel > 3) {
-      count += Math.floor((magic.effectLevel - 1) / 3) * 2;
-    }
+    const count = this.getRegionCount(magic.effectLevel);
     const offsetRow = { x: 32, y: 16 };
     const offsetColumn = { x: 32, y: -16 };
     const halfCount = Math.floor(count / 2);
@@ -831,10 +831,7 @@ export class SpriteFactory {
     origin: Vector2,
     destroyOnEnd: boolean
   ): void {
-    let count = 3;
-    if (magic.effectLevel > 3) {
-      count += Math.floor((magic.effectLevel - 1) / 3) * 2;
-    }
+    const count = this.getRegionCount(magic.effectLevel);
     const magicDelayMs = 60;
     const crossOffsets = [
       { x: 32, y: 16 },
@@ -869,10 +866,7 @@ export class SpriteFactory {
     const direction = { x: destination.x - origin.x, y: destination.y - origin.y };
     const directionIndex = getDirectionIndex(direction, 8);
     const columnCount = 5;
-    let count = 3;
-    if (magic.effectLevel > 3) {
-      count += Math.floor((magic.effectLevel - 1) / 3) * 2;
-    }
+    const count = this.getRegionCount(magic.effectLevel);
     const magicDelayMs = 60;
 
     switch (directionIndex) {
@@ -908,7 +902,7 @@ export class SpriteFactory {
             x: beginPosition.x + offsetRow.x,
             y: beginPosition.y + offsetRow.y,
           };
-          this.addFixedWallAtPositionWithDelay(
+          this.addFixedWallAtPosition(
             userId,
             magic,
             beginPosition,
@@ -951,7 +945,7 @@ export class SpriteFactory {
           } else {
             beginPosition = { x: beginPosition.x - 32, y: beginPosition.y + 16 };
           }
-          this.addFixedWallAtPositionWithDelay(
+          this.addFixedWallAtPosition(
             userId,
             magic,
             beginPosition,
@@ -973,7 +967,7 @@ export class SpriteFactory {
           } else {
             beginPosition = { x: beginPosition.x + 32, y: beginPosition.y - 16 };
           }
-          this.addFixedWallAtPositionWithDelay(
+          this.addFixedWallAtPosition(
             userId,
             magic,
             beginPosition,
@@ -1065,10 +1059,7 @@ export class SpriteFactory {
     const rowOffset = rowOffsets[directionIndex];
     const columnOffset = columnOffsets[directionIndex];
 
-    let count = 3;
-    if (magic.effectLevel > 3) {
-      count += Math.floor((magic.effectLevel - 1) / 3) * 2;
-    }
+    const count = this.getRegionCount(magic.effectLevel);
     const magicDelayMs = 60;
 
     let beginPos = { ...origin };
@@ -1077,7 +1068,7 @@ export class SpriteFactory {
         x: beginPos.x + rowOffset.x,
         y: beginPos.y + rowOffset.y,
       };
-      this.addFixedWallAtPositionWithDelay(
+      this.addFixedWallAtPosition(
         userId,
         magic,
         beginPos,
@@ -1102,14 +1093,11 @@ export class SpriteFactory {
     const direction = { x: destination.x - origin.x, y: destination.y - origin.y };
     const directionIndex = getDirectionIndex(direction, 8);
 
-    let count = 3;
-    if (magic.effectLevel > 3) {
-      count += Math.floor((magic.effectLevel - 1) / 3) * 2;
-    }
+    const count = this.getRegionCount(magic.effectLevel);
     const magicDelayMs = 60;
 
     const originTile = pixelToTile(origin.x, origin.y);
-    const startTile = this.findNeighborInDirection(originTile, directionIndex);
+    const startTile = findNeighborInDirection(originTile, directionIndex);
     const startPos = tileToPixel(startTile.x, startTile.y);
 
     const sprite = MagicSprite.createFixed(userId, magic, startPos, destroyOnEnd);
@@ -1119,8 +1107,8 @@ export class SpriteFactory {
     let rightTile = { ...startTile };
 
     for (let i = 1; i < count; i++) {
-      leftTile = this.findNeighborInDirection(leftTile, (directionIndex + 7) % 8);
-      rightTile = this.findNeighborInDirection(rightTile, (directionIndex + 1) % 8);
+      leftTile = findNeighborInDirection(leftTile, (directionIndex + 7) % 8);
+      rightTile = findNeighborInDirection(rightTile, (directionIndex + 1) % 8);
 
       const leftPos = tileToPixel(leftTile.x, leftTile.y);
       const rightPos = tileToPixel(rightTile.x, rightTile.y);
@@ -1147,8 +1135,17 @@ export class SpriteFactory {
     this.addFixedPositionMagicSprite(userId, magic, destination, destroyOnEnd);
   }
 
+  /** 根据 effectLevel 计算区域武功数量 */
+  private getRegionCount(effectLevel: number): number {
+    let count = 3;
+    if (effectLevel > 3) {
+      count += Math.floor((effectLevel - 1) / 3) * 2;
+    }
+    return count;
+  }
+
   /**
-   * 在指定位置添加固定墙
+   * 在指定位置添加固定墙（支持可选延迟）
    */
   private addFixedWallAtPosition(
     userId: string,
@@ -1156,50 +1153,20 @@ export class SpriteFactory {
     center: Vector2,
     offset: Vector2,
     count: number,
-    destroyOnEnd: boolean
-  ): void {
-    const halfCount = Math.floor((count - 1) / 2);
-    const sprite = MagicSprite.createFixed(userId, magic, center, destroyOnEnd);
-    this.callbacks.addMagicSprite(sprite);
-
-    for (let i = 1; i <= halfCount; i++) {
-      const pos1 = { x: center.x + offset.x * i, y: center.y + offset.y * i };
-      const pos2 = { x: center.x - offset.x * i, y: center.y - offset.y * i };
-      this.callbacks.addMagicSprite(MagicSprite.createFixed(userId, magic, pos1, destroyOnEnd));
-      this.callbacks.addMagicSprite(MagicSprite.createFixed(userId, magic, pos2, destroyOnEnd));
-    }
-  }
-
-  /**
-   * 在指定位置添加固定墙（带延迟）
-   */
-  private addFixedWallAtPositionWithDelay(
-    userId: string,
-    magic: MagicData,
-    center: Vector2,
-    offset: Vector2,
-    count: number,
     destroyOnEnd: boolean,
-    delay: number
+    delay?: number
   ): void {
+    const add = (s: MagicSprite) =>
+      delay != null ? this.callbacks.addWorkItem(delay, s) : this.callbacks.addMagicSprite(s);
     const halfCount = Math.floor((count - 1) / 2);
-    const sprite = MagicSprite.createFixed(userId, magic, center, destroyOnEnd);
-    this.callbacks.addWorkItem(delay, sprite);
+    add(MagicSprite.createFixed(userId, magic, center, destroyOnEnd));
 
     for (let i = 1; i <= halfCount; i++) {
       const pos1 = { x: center.x + offset.x * i, y: center.y + offset.y * i };
       const pos2 = { x: center.x - offset.x * i, y: center.y - offset.y * i };
-      this.callbacks.addWorkItem(delay, MagicSprite.createFixed(userId, magic, pos1, destroyOnEnd));
-      this.callbacks.addWorkItem(delay, MagicSprite.createFixed(userId, magic, pos2, destroyOnEnd));
+      add(MagicSprite.createFixed(userId, magic, pos1, destroyOnEnd));
+      add(MagicSprite.createFixed(userId, magic, pos2, destroyOnEnd));
     }
-  }
-
-  /**
-   * 查找指定方向的相邻瓦片
-   * 使用 getNeighbors 来正确处理等角瓦片的奇偶行偏移
-   */
-  private findNeighborInDirection(tile: Vector2, direction: number): Vector2 {
-    return getNeighbors(tile)[direction % 8];
   }
 
   // ========== 特殊 MoveKind 方法 ==========
@@ -1303,7 +1270,7 @@ export class SpriteFactory {
 
     const sprite = this.addFixedPositionMagicSprite(userId, magic, origin, destroyOnEnd);
     if (sprite && this.player.controledCharacter) {
-      this.player.controledCharacter.controledMagicSprite = sprite;
+      this.player.controledCharacter.statusEffects.controledMagicSprite = sprite;
     }
   }
 
@@ -1334,7 +1301,7 @@ export class SpriteFactory {
     }
 
     let summonTile = pixelToTile(destination.x, destination.y);
-    const collisionChecker = getEngineContext().map;
+    const collisionChecker = this.engine.map;
     if (!collisionChecker.isTileWalkable(summonTile)) {
       const neighbors = [
         { x: summonTile.x - 1, y: summonTile.y },

@@ -46,53 +46,31 @@ const setPlayerStateCommand: CommandHandler = (params, _result, helpers) => {
 /**
  * PlayerGoto - Walk player to position (BLOCKING)
  */
-const playerGotoCommand: CommandHandler = (params, _result, helpers) => {
+const playerGotoCommand: CommandHandler = async (params, _result, helpers) => {
   const x = helpers.resolveNumber(params[0] || "0");
   const y = helpers.resolveNumber(params[1] || "0");
-  const destination = { x, y };
-  helpers.context.playerGoto(x, y);
-
-  if (helpers.context.isPlayerGotoEnd(destination)) {
-    return true;
-  }
-
-  helpers.state.waitingForPlayerGoto = true;
-  helpers.state.playerGotoDestination = destination;
-  return false;
+  await helpers.context.playerGoto(x, y);
+  return true;
 };
 
 /**
  * PlayerRunTo - Run player to position (BLOCKING)
  */
-const playerRunToCommand: CommandHandler = (params, _result, helpers) => {
+const playerRunToCommand: CommandHandler = async (params, _result, helpers) => {
   const x = helpers.resolveNumber(params[0] || "0");
   const y = helpers.resolveNumber(params[1] || "0");
-  const destination = { x, y };
-  helpers.context.playerRunTo(x, y);
-
-  if (helpers.context.isPlayerRunToEnd(destination)) {
-    return true;
-  }
-
-  helpers.state.waitingForPlayerRunTo = true;
-  helpers.state.playerRunToDestination = destination;
-  return false;
+  await helpers.context.playerRunTo(x, y);
+  return true;
 };
 
 /**
  * PlayerGotoDir - Walk player in direction (BLOCKING)
  */
-const playerGotoDirCommand: CommandHandler = (params, _result, helpers) => {
+const playerGotoDirCommand: CommandHandler = async (params, _result, helpers) => {
   const direction = helpers.resolveNumber(params[0] || "0");
   const steps = helpers.resolveNumber(params[1] || "1");
-  helpers.context.playerGotoDir(direction, steps);
-
-  if (helpers.context.isPlayerGotoDirEnd()) {
-    return true;
-  }
-
-  helpers.state.waitingForPlayerGotoDir = true;
-  return false;
+  await helpers.context.playerGotoDir(direction, steps);
+  return true;
 };
 
 /**
@@ -117,10 +95,25 @@ const addRandGoodsCommand: CommandHandler = async (params, _result, helpers) => 
 
 /**
  * DelGoods - Remove items from inventory
+ * If no parameters, removes the current item (from belongObject)
  */
 const delGoodsCommand: CommandHandler = (params, _result, helpers) => {
-  const goodsName = helpers.resolveString(params[0] || "");
+  let goodsName: string;
   const count = helpers.resolveNumber(params[1] || "1");
+
+  if (params.length === 0 || !params[0]) {
+    // No parameter - use belongObject (current good being used)
+    const belongObject = helpers.state.belongObject;
+    if (belongObject && belongObject.type === "good") {
+      goodsName = belongObject.id;
+    } else {
+      logger.warn("[DelGoods] No parameter and no current good");
+      return true;
+    }
+  } else {
+    goodsName = helpers.resolveString(params[0]);
+  }
+
   helpers.context.removeGoods(goodsName, count);
   return true;
 };
@@ -259,18 +252,11 @@ const playerGotoExCommand: CommandHandler = (params, _result, helpers) => {
  * PlayerJumpTo - Jump player to position (BLOCKING)
  *
  */
-const playerJumpToCommand: CommandHandler = (params, _result, helpers) => {
+const playerJumpToCommand: CommandHandler = async (params, _result, helpers) => {
   const x = helpers.resolveNumber(params[0] || "0");
   const y = helpers.resolveNumber(params[1] || "0");
-  helpers.context.playerJumpTo(x, y);
-
-  if (helpers.context.isPlayerJumpToEnd()) {
-    return true;
-  }
-
-  helpers.state.waitingForPlayerJumpTo = true;
-  helpers.state.playerJumpToDestination = { x, y };
-  return false;
+  await helpers.context.playerJumpTo(x, y);
+  return true;
 };
 
 /**
@@ -539,7 +525,7 @@ export function registerPlayerCommands(registry: CommandRegistry): void {
   registry.set("getmoneynum", getMoneyNumCommand);
   registry.set("setmoneynum", setMoneyNumCommand);
   registry.set("getplayerexp", getPlayerExpCommand);
-  registry.set("getexp", getPlayerExpCommand); // alias: 
+  registry.set("getexp", getPlayerExpCommand); // alias:
   registry.set("getplayerstate", getPlayerStateCommand);
   registry.set("getplayermagiclevel", getPlayerMagicLevelCommand);
 

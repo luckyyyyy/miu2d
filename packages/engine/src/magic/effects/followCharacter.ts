@@ -74,14 +74,14 @@ export function createFollowCharacterEffect(): MagicEffect {
         // user.InvisibleByMagicTime = effectAmount; user.IsVisibleWhenAttack = false;
         case MagicSpecialKind.InvisibleHide:
           if (caster.type === "player") {
-            caster.player.invisibleByMagicTime = effectAmount;
-            caster.player.isVisibleWhenAttack = false;
+            caster.player.statusEffects.invisibleByMagicTime = effectAmount;
+            caster.player.statusEffects.isVisibleWhenAttack = false;
             logger.log(
               `[FollowCharacter] InvisibleHide: duration=${effectAmount}ms, visibleWhenAttack=false`
             );
           } else if (caster.type === "npc") {
-            caster.npc.invisibleByMagicTime = effectAmount;
-            caster.npc.isVisibleWhenAttack = false;
+            caster.npc.statusEffects.invisibleByMagicTime = effectAmount;
+            caster.npc.statusEffects.isVisibleWhenAttack = false;
           }
           break;
 
@@ -89,14 +89,14 @@ export function createFollowCharacterEffect(): MagicEffect {
         // user.InvisibleByMagicTime = effectAmount; user.IsVisibleWhenAttack = true;
         case MagicSpecialKind.InvisibleShow:
           if (caster.type === "player") {
-            caster.player.invisibleByMagicTime = effectAmount;
-            caster.player.isVisibleWhenAttack = true;
+            caster.player.statusEffects.invisibleByMagicTime = effectAmount;
+            caster.player.statusEffects.isVisibleWhenAttack = true;
             logger.log(
               `[FollowCharacter] InvisibleShow: duration=${effectAmount}ms, visibleWhenAttack=true`
             );
           } else if (caster.type === "npc") {
-            caster.npc.invisibleByMagicTime = effectAmount;
-            caster.npc.isVisibleWhenAttack = true;
+            caster.npc.statusEffects.invisibleByMagicTime = effectAmount;
+            caster.npc.statusEffects.isVisibleWhenAttack = true;
           }
           break;
 

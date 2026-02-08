@@ -7,7 +7,8 @@
  */
 
 import type { Vector2 } from "../../core/types";
-import { bezier2D, normalizeVector, vectorLength } from "../../utils";
+import { bezier2D } from "./bezier";
+import { normalizeVector, vectorLength } from "../../utils";
 
 /**
  * 贝塞尔移动数据接口（用于序列化/调试）

@@ -19,11 +19,8 @@ import {
   type GameLoadProgressEvent,
 } from "@miu2d/engine/core/gameEvents";
 import { logger } from "@miu2d/engine/core/logger";
-import {
-  type GameEngine,
-  type GameEngineState,
-  getGameEngine,
-} from "@miu2d/engine/game/gameEngine";
+import { createGameEngine } from "@miu2d/engine/runtime/gameEngine";
+import type { GameEngine, GameEngineState } from "@miu2d/engine/runtime/gameEngine";
 import { useEffect, useRef, useState } from "react";
 
 export interface UseGameEngineOptions {
@@ -62,8 +59,7 @@ export function useGameEngine(options: UseGameEngineOptions): UseGameEngineResul
 
   // 初始化引擎
   useEffect(() => {
-    // 获取或创建引擎实例
-    const engine = getGameEngine({ width, height });
+    const engine = engineRef.current ?? createGameEngine({ width, height });
     engineRef.current = engine;
 
     // 清理之前的订阅（如果有）
@@ -92,7 +88,7 @@ export function useGameEngine(options: UseGameEngineOptions): UseGameEngineResul
       });
     unsubscribersRef.current.push(unsubProgress);
 
-    // 订阅初始化完成事件
+    // 订阅初始化完成事件（仅在初次加载时触发，mid-game reload 不会触发）
     const unsubInit = engine
       .getEvents()
       .on(GameEvents.GAME_INITIALIZED, (data: GameInitializedEvent) => {
@@ -100,8 +96,8 @@ export function useGameEngine(options: UseGameEngineOptions): UseGameEngineResul
           setState("running");
           setIsReady(true);
 
-          // 自动启动游戏循环
-          if (autoStart) {
+          // 自动启动游戏循环（仅在未运行时启动）
+          if (autoStart && !engine.getIsRunning()) {
             engine.start();
           }
         }
@@ -145,7 +141,14 @@ export function useGameEngine(options: UseGameEngineOptions): UseGameEngineResul
       }
       unsubscribersRef.current = [];
     };
-  }, [width, height, autoStart, loadSlot]);
+  }, [autoStart, height, loadSlot, width]);
+
+  useEffect(() => {
+    return () => {
+      engineRef.current?.dispose();
+      engineRef.current = null;
+    };
+  }, []);
 
   // 处理尺寸变化
   useEffect(() => {

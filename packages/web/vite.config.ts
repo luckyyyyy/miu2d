@@ -46,4 +46,26 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  server: {
+    proxy: {
+      // 代理后端 API 路径到后端 4000 端口
+      // 注意：/game/:gameSlug 是前端路由，不代理
+      // 只代理 /game/*/api/* 和 /game/*/resources/* 到后端
+      "/game": {
+        target: "http://localhost:4000",
+        changeOrigin: true,
+        bypass: (req) => {
+          const url = req.url || "";
+          // 匹配 /game/{gameSlug}/api/* 或 /game/{gameSlug}/resources/*
+          const isBackendPath = /^\/game\/[^/]+\/(api|resources)(\/|$)/.test(url);
+          if (!isBackendPath) {
+            // 返回前端路由，让 Vite 处理（返回 index.html）
+            return "/index.html";
+          }
+          // 返回 undefined 表示代理到后端
+          return undefined;
+        },
+      },
+    },
+  },
 });

@@ -13,12 +13,11 @@ import { PathType } from "../../core/pathFinder";
 import type { Vector2 } from "../../core/types";
 import { CharacterKind, CharacterState, DEFAULT_PLAYER_STATS, Direction } from "../../core/types";
 import type { GuiManager } from "../../gui/guiManager";
-import type { MagicManager } from "../../magic";
-import { getCachedMagic, getMagicAtLevel } from "../../magic/magicLoader";
+import { getMagic, getMagicAtLevel } from "../../magic/magicLoader";
 import type { MagicData, MagicItemInfo } from "../../magic/types";
 import { MagicAddonEffect } from "../../magic/types";
 import type { Npc, NpcManager } from "../../npc";
-import { type AsfData, getCachedAsf } from "../../sprite/asf";
+import { type AsfData, getCachedAsf } from "../../resource/asf";
 import { GoodsListManager } from "../goods/goodsListManager";
 import { MagicListManager } from "../magic/magicListManager";
 
@@ -208,8 +207,10 @@ export abstract class PlayerBase extends Character {
   /**
    * 设置 npcIni 并提取 NpcIniIndex
    * NpcIniIndex 用于构建 SpecialAttackTexture 路径
+   *
+   * @returns Promise 当预加载完成时 resolve
    */
-  setNpcIni(fileName: string): void {
+  async setNpcIni(fileName: string): Promise<void> {
     this.npcIni = fileName;
 
     // private static readonly Regex NpcIniIndexRegx = new Regex(@".*([0-9]+)\.ini");
@@ -226,8 +227,8 @@ export abstract class PlayerBase extends Character {
       this._npcIniIndex = 1;
     }
 
-    // 通知 MagicListManager 更新 npcIniIndex（用于预加载 SpecialAttackTexture）
-    this._magicListManager.setNpcIniIndex(this._npcIniIndex);
+    // 通知 MagicListManager 更新 npcIniIndex 并等待预加载完成
+    await this._magicListManager.setNpcIniIndex(this._npcIniIndex);
 
     // XiuLianMagic = XiuLianMagic; // Renew xiulian magic
     // 同步获取已预加载的资源
@@ -265,17 +266,15 @@ export abstract class PlayerBase extends Character {
         const asf = getCachedAsf(path);
         if (asf) {
           this._specialAttackTexture = asf;
-          logger.debug(`[Player] Got cached SpecialAttackTexture: ${path}`);
           break;
         }
       }
 
       // 同步从缓存获取修炼武功的 AttackFile（已在 MagicListManager 中预加载）
       // AttackFile = new Magic(path, noLevel=true, noAttackFile=true)
-      const baseMagic = getCachedMagic(xiuLianMagic.magic.attackFile);
+      const baseMagic = getMagic(xiuLianMagic.magic.attackFile);
       if (baseMagic) {
         this._xiuLianAttackMagic = baseMagic;
-        logger.debug(`[Player] Got cached XiuLianAttackMagic: ${baseMagic.name}`);
       } else {
         logger.warn(`[Player] XiuLianAttackMagic not in cache: ${xiuLianMagic.magic.attackFile}`);
         this._xiuLianAttackMagic = null;
@@ -293,10 +292,6 @@ export abstract class PlayerBase extends Character {
   /**
    * 获取 MagicManager（通过 IEngineContext）
    */
-  protected get magicManager(): MagicManager {
-    return this.engine.getManager("magic") as MagicManager;
-  }
-
   /**
    * 获取 NpcManager（通过 IEngineContext）
    */
@@ -319,7 +314,7 @@ export abstract class PlayerBase extends Character {
     }
 
     // Check ObjManager obstacle
-    const objManager = this.engine.getManager("obj");
+    const objManager = this.obj;
     if (objManager.isObstacle(tilePosition.x, tilePosition.y)) {
       return true;
     }
@@ -336,7 +331,7 @@ export abstract class PlayerBase extends Character {
    * 获取 GuiManager（通过 IEngineContext）
    */
   protected get guiManager(): GuiManager {
-    return this.engine.getManager("gui") as GuiManager;
+    return this.gui;
   }
 
   /**
@@ -390,16 +385,43 @@ export abstract class PlayerBase extends Character {
 
   /**
    * 添加武功到玩家武功列表
-   * @param magicFile 武功文件名（如 "剑系-无相心法.ini"）
+   * Reference: Player.AddMagic(string magicFileName)
+   *
+   * @param magicFile 武功文件名（如 "player-magic-漫天花雨.ini"）
    * @param level 武功等级，默认为 1
-   * @returns 是否添加成功
+   * @returns 是否添加成功（已存在也算成功）
    */
   async addMagic(magicFile: string, level: number = 1): Promise<boolean> {
-    const [success] = await this._magicListManager.addMagic(magicFile, { level });
-    if (!success) {
-      logger.warn(`[Player] Failed to add magic: ${magicFile}`);
+    if (!magicFile) return false;
+
+    const [isNew, index, magic] = await this._magicListManager.addMagic(magicFile, { level });
+
+    if (isNew && index !== -1 && magic) {
+      // 新学会武功
+      // Reference: GuiManager.ShowMessage("你学会了" + magic.Name);
+      this.showMessage(`你学会了${magic.name}`);
+      logger.debug(`[Player] Learned new magic: ${magic.name}`);
+      return true;
     }
-    return success;
+
+    if (!isNew && index !== -1) {
+      // 武功已存在
+      // Reference: GuiManager.ShowMessage("你已经学会了" + magic.Name);
+      if (magic) {
+        this.showMessage(`你已经学会了${magic.name}`);
+      }
+      logger.debug(`[Player] Magic already exists: ${magicFile}`);
+      return true;
+    }
+
+    // index === -1，添加失败（武功栏已满或加载失败）
+    // Reference: GuiManager.ShowMessage("武功栏已满");
+    if (magic === null) {
+      logger.warn(`[Player] Failed to load magic: ${magicFile}`);
+    } else {
+      this.showMessage("武功栏已满");
+    }
+    return false;
   }
 
   // =============================================
@@ -446,10 +468,10 @@ export abstract class PlayerBase extends Character {
     if (this._controledCharacter !== null) {
       // NpcManager.CleartFollowTargetIfEqual(ControledCharacter)
       // 清除其他 NPC 对被控制角色的追踪
-      this.engine.npcManager.cleartFollowTargetIfEqual(this._controledCharacter);
+      this.engine.npcManager.clearFollowTargetIfEqual(this._controledCharacter);
 
       // ControledCharacter.ControledMagicSprite = null
-      this._controledCharacter.controledMagicSprite = null;
+      this._controledCharacter.statusEffects.controledMagicSprite = null;
 
       // ControledCharacter = null
       this._controledCharacter = null;

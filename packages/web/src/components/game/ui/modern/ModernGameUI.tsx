@@ -17,7 +17,7 @@ import type {
   UISelectionState,
   UIShopState,
   UITimerState,
-} from "@miu2d/engine/ui/contract";
+} from "@miu2d/engine/gui/contract";
 import type React from "react";
 import { useCallback, useMemo, useState } from "react";
 import type { DragData, EquipSlotType, GoodItemData } from "../classic";
@@ -537,7 +537,7 @@ export const ModernGameUI: React.FC<ModernGameUIProps> = ({
         isVisible={shopState?.isOpen ?? false}
         items={
           shopState?.items?.map((item) =>
-            item ? { good: item.good as unknown as Good, count: item.count } : null
+            item ? { good: item.good as unknown as Good, count: item.count, price: item.price } : null
           ) ?? []
         }
         screenWidth={screenWidth}

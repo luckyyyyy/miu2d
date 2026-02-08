@@ -9,12 +9,12 @@ import type { CommandHandler, CommandRegistry } from "./types";
  * AddNpc - Add NPC to map
  * direction is required
  */
-const addNpcCommand: CommandHandler = (params, _result, helpers) => {
+const addNpcCommand: CommandHandler = async (params, _result, helpers) => {
   const npcFile = helpers.resolveString(params[0] || "");
   const x = helpers.resolveNumber(params[1] || "0");
   const y = helpers.resolveNumber(params[2] || "0");
   const direction = params.length >= 4 ? helpers.resolveNumber(params[3] || "4") : undefined;
-  helpers.context.addNpc(npcFile, x, y, direction);
+  await helpers.context.addNpc(npcFile, x, y, direction);
   return true;
 };
 
@@ -31,11 +31,11 @@ const loadNpcCommand: CommandHandler = async (params, _result, helpers) => {
 /**
  * LoadOneNpc - Load single NPC at position
  */
-const loadOneNpcCommand: CommandHandler = (params, _result, helpers) => {
+const loadOneNpcCommand: CommandHandler = async (params, _result, helpers) => {
   const npcFile = helpers.resolveString(params[0] || "");
   const x = helpers.resolveNumber(params[1] || "0");
   const y = helpers.resolveNumber(params[2] || "0");
-  helpers.context.addNpc(npcFile, x, y);
+  await helpers.context.addNpc(npcFile, x, y);
   return true;
 };
 
@@ -118,21 +118,12 @@ const setNpcLevelCommand: CommandHandler = (params, _result, helpers) => {
 /**
  * NpcGoto - Walk NPC to position (BLOCKING)
  */
-const npcGotoCommand: CommandHandler = (params, _result, helpers) => {
+const npcGotoCommand: CommandHandler = async (params, _result, helpers) => {
   const npcName = helpers.resolveString(params[0] || "");
   const x = helpers.resolveNumber(params[1] || "0");
   const y = helpers.resolveNumber(params[2] || "0");
-  const destination = { x, y };
-  helpers.context.npcGoto(npcName, x, y);
-
-  if (helpers.context.isNpcGotoEnd(npcName, destination)) {
-    return true;
-  }
-
-  helpers.state.waitingForNpcGoto = true;
-  helpers.state.npcGotoName = npcName;
-  helpers.state.npcGotoDestination = destination;
-  return false;
+  await helpers.context.npcGoto(npcName, x, y);
+  return true;
 };
 
 /**
@@ -143,7 +134,7 @@ const npcGotoExCommand: CommandHandler = (params, _result, helpers) => {
   const npcName = helpers.resolveString(params[0] || "");
   const x = helpers.resolveNumber(params[1] || "0");
   const y = helpers.resolveNumber(params[2] || "0");
-  helpers.context.npcGoto(npcName, x, y);
+  helpers.context.npcGotoNonBlocking(npcName, x, y);
   // Non-blocking, return immediately
   return true;
 };
@@ -151,23 +142,19 @@ const npcGotoExCommand: CommandHandler = (params, _result, helpers) => {
 /**
  * NpcGotoDir - Walk NPC in direction (BLOCKING)
  */
-const npcGotoDirCommand: CommandHandler = (params, _result, helpers) => {
+const npcGotoDirCommand: CommandHandler = async (params, _result, helpers) => {
   const npcName = helpers.resolveString(params[0] || "");
   const direction = helpers.resolveNumber(params[1] || "0");
   const steps = helpers.resolveNumber(params[2] || "1");
-  helpers.context.npcGotoDir(npcName, direction, steps);
-
-  if (helpers.context.isNpcGotoDirEnd(npcName)) {
-    return true;
-  }
-
-  helpers.state.waitingForNpcGotoDir = true;
-  helpers.state.npcGotoDirName = npcName;
-  return false;
+  await helpers.context.npcGotoDir(npcName, direction, steps);
+  return true;
 };
 
 /**
  * SetNpcActionFile - Set NPC animation file for a state
+ * 不等待 ASF 加载完成，立即继续执行脚本（匹配 C# 同步行为）
+ * 这样后续的 NpcSpecialAction 等命令能在同一帧内执行，
+ * 避免因异步加载导致中间帧闪烁
  */
 const setNpcActionFileCommand: CommandHandler = (params, _result, helpers) => {
   const npcName = helpers.resolveString(params[0] || "");
@@ -176,6 +163,8 @@ const setNpcActionFileCommand: CommandHandler = (params, _result, helpers) => {
   logger.log(
     `[ScriptExecutor] SetNpcActionFile: name="${npcName}", state=${stateType}, file="${asfFile}"`
   );
+  // Fire and forget: ASF 在后台加载，加载完成后自动刷新贴图
+  // 如果此时已有 NpcSpecialAction 设置了 isInSpecialAction，则跳过刷新
   helpers.context.setNpcActionFile(npcName, stateType, asfFile);
   return true;
 };
@@ -186,25 +175,18 @@ const setNpcActionFileCommand: CommandHandler = (params, _result, helpers) => {
 const npcSpecialActionCommand: CommandHandler = (params, _result, helpers) => {
   const npcName = helpers.resolveString(params[0] || "");
   const asfFile = helpers.resolveString(params[1] || "");
-  helpers.context.npcSpecialAction(npcName, asfFile);
+  helpers.context.npcSpecialActionNonBlocking(npcName, asfFile);
   return true;
 };
 
 /**
  * NpcSpecialActionEx - Play NPC special animation (BLOCKING)
  */
-const npcSpecialActionExCommand: CommandHandler = (params, _result, helpers) => {
+const npcSpecialActionExCommand: CommandHandler = async (params, _result, helpers) => {
   const npcName = helpers.resolveString(params[0] || "");
   const asfFile = helpers.resolveString(params[1] || "");
-  helpers.context.npcSpecialAction(npcName, asfFile);
-
-  if (helpers.context.isNpcSpecialActionEnd(npcName)) {
-    return true;
-  }
-
-  helpers.state.waitingForNpcSpecialAction = true;
-  helpers.state.npcSpecialActionName = npcName;
-  return false;
+  await helpers.context.npcSpecialAction(npcName, asfFile);
+  return true;
 };
 
 /**

@@ -7,11 +7,12 @@
 
 import type { AudioManager } from "../../audio";
 import type { Character } from "../../character/character";
-import { getEngineContext } from "../../core/engineContext";
+import { EngineAccess } from "../../core/engineAccess";
 import { logger } from "../../core/logger";
 import type { Vector2 } from "../../core/types";
 import type { ScreenEffects } from "../../effects";
 import type { GuiManager } from "../../gui/guiManager";
+import type { NpcManager } from "../../npc";
 import type { Player } from "../../player/player";
 import { pixelToTile, tileToPixel } from "../../utils";
 import {
@@ -20,9 +21,9 @@ import {
   getPosition as getCharPosition,
   getEffect,
 } from "../effects";
-import { getCachedMagic, getMagicAtLevel } from "../magicLoader";
+import { getMagic, getMagicAtLevel } from "../magicLoader";
 import type { WorkItem } from "../magicSprite";
-import { MagicSprite } from "../magicSprite";
+import { MagicSprite, MINIMAL_DAMAGE } from "../magicSprite";
 import type { MagicData } from "../types";
 import { MAGIC_BASE_SPEED, MagicMoveKind } from "../types";
 import type {
@@ -61,7 +62,7 @@ export interface ISpriteUpdaterCallbacks {
 /**
  * 武功精灵更新器
  */
-export class SpriteUpdater {
+export class SpriteUpdater extends EngineAccess {
   private player: Player;
   private guiManager: GuiManager;
   private screenEffects: ScreenEffects;
@@ -78,6 +79,7 @@ export class SpriteUpdater {
     callbacks: ISpriteUpdaterCallbacks,
     state: MagicManagerState
   ) {
+    super();
     this.player = deps.player;
     this.guiManager = deps.guiManager;
     this.screenEffects = deps.screenEffects;
@@ -326,13 +328,9 @@ export class SpriteUpdater {
     // Reference: MagicSprite.Update() - 动画结束后直接处理，不依赖 velocity
     if (!sprite.isInPlaying) {
       if (sprite.isSuperMode || sprite.magic.moveKind === MagicMoveKind.SuperMode) {
-        // logger.log(`[SpriteUpdater] SuperMode animation ended, calling startDestroyAnimation`);
         this.startDestroyAnimation(sprite);
         return;
       }
-      // logger.log(
-      //   `[SpriteUpdater] Sprite ${sprite.magic.name} animation ended: leftFrameToPlay=${sprite.leftFrameToPlay}, frameCountsPerDirection=${sprite.frameCountsPerDirection}, lifeFrame=${sprite.magic.lifeFrame}, movedDistance=${sprite.movedDistance.toFixed(0)}`
-      // );
       this.handleSpriteLifeEnd(sprite);
       return;
     }
@@ -359,9 +357,6 @@ export class SpriteUpdater {
    * 处理精灵生命结束
    */
   private handleSpriteLifeEnd(sprite: MagicSprite): void {
-    // logger.log(
-    //   `[SpriteUpdater] handleSpriteLifeEnd: ${sprite.magic.name}, destroyOnEnd=${sprite.destroyOnEnd}`
-    // );
     if (sprite.destroyOnEnd) {
       this.startDestroyAnimation(sprite);
     } else {
@@ -374,7 +369,6 @@ export class SpriteUpdater {
    */
   startDestroyAnimation(sprite: MagicSprite): void {
     if (sprite.isInDestroy) return;
-    logger.log(`[SpriteUpdater] startDestroyAnimation: ${sprite.magic.name}`);
     sprite.isInDestroy = true;
 
     // SuperMode 全屏攻击
@@ -547,7 +541,7 @@ export class SpriteUpdater {
     const targetPos = this.charHelper.getCharacterPosition(targetId);
     if (!targetPos) return;
 
-    const magic = getCachedMagic(magicName);
+    const magic = getMagic(magicName);
     if (!magic) {
       logger.warn(`[SpriteUpdater] ParasiticMagic not preloaded: ${magicName}`);
       return;
@@ -627,7 +621,7 @@ export class SpriteUpdater {
           const destination = sprite.destination;
           let targetTile = pixelToTile(destination.x, destination.y);
 
-          const map = getEngineContext().map;
+          const map = this.engine.map;
           if (!map.isTileWalkable(targetTile)) {
               const neighbors = [
                 { x: targetTile.x - 1, y: targetTile.y },
@@ -759,7 +753,7 @@ export class SpriteUpdater {
     character: { positionInWorld: Vector2 },
     userId: string
   ): void {
-    const magic = getCachedMagic(magicFile);
+    const magic = getMagic(magicFile);
     if (!magic) {
       logger.warn(`[SpriteUpdater] JumpEndMagic not preloaded: ${magicFile}`);
       return;
@@ -819,8 +813,8 @@ export class SpriteUpdater {
           friend.addThew(magic.rangeAddThew);
         }
         // if (BelongMagic.RangeSpeedUp > 0 && target.SppedUpByMagicSprite == null)
-        if (magic.rangeSpeedUp > 0 && friend.speedUpByMagicSprite === null) {
-          friend.speedUpByMagicSprite = sprite;
+        if (magic.rangeSpeedUp > 0 && friend.statusEffects.speedUpByMagicSprite === null) {
+          friend.statusEffects.speedUpByMagicSprite = sprite;
         }
       }
     }
@@ -846,12 +840,12 @@ export class SpriteUpdater {
         // if (BelongMagic.RangeFreeze > 0)
         //       target.SetFrozenSeconds(BelongMagic.RangeFreeze/1000.0f, BelongMagic.NoSpecialKindEffect == 0);
         if (magic.rangeFreeze > 0) {
-          enemy.setFrozenSeconds(magic.rangeFreeze / 1000, magic.noSpecialKindEffect === 0);
+          enemy.statusEffects.setFrozenSeconds(magic.rangeFreeze / 1000, magic.noSpecialKindEffect === 0);
         }
 
         // if (BelongMagic.RangePoison > 0) { ... }
         if (magic.rangePoison > 0) {
-          enemy.setPoisonSeconds(magic.rangePoison / 1000, magic.noSpecialKindEffect === 0);
+          enemy.statusEffects.setPoisonSeconds(magic.rangePoison / 1000, magic.noSpecialKindEffect === 0);
           if (belongCharacter.isPlayer || belongCharacter.isPartner) {
             enemy.poisonByCharacterName = belongCharacter.name;
           }
@@ -860,13 +854,13 @@ export class SpriteUpdater {
         // if (BelongMagic.RangePetrify > 0)
         //       target.SetPetrifySeconds(BelongMagic.RangePetrify/1000.0f, BelongMagic.NoSpecialKindEffect == 0);
         if (magic.rangePetrify > 0) {
-          enemy.setPetrifySeconds(magic.rangePetrify / 1000, magic.noSpecialKindEffect === 0);
+          enemy.statusEffects.setPetrifySeconds(magic.rangePetrify / 1000, magic.noSpecialKindEffect === 0);
         }
 
         // if (BelongMagic.RangeDamage > 0) { CharacterHited(...); AddDestroySprite(...); }
         if (magic.rangeDamage > 0) {
           // 使用简化的伤害计算
-          const damage = Math.max(magic.rangeDamage - enemy.realDefend, MagicSprite.MinimalDamage);
+          const damage = Math.max(magic.rangeDamage - enemy.realDefend, MINIMAL_DAMAGE);
           enemy.takeDamage(damage, belongCharacter);
 
           // 播放特效
@@ -877,105 +871,34 @@ export class SpriteUpdater {
   }
 
   /**
-   * 查找范围内的友军
+   * 查找范围内的友军 — 委托给 NpcManager
    */
   private findFriendsInTileDistance(
     finder: Character,
     centerTile: Vector2,
     tileDistance: number
   ): Character[] {
-    const friends: Character[] = [];
-    const ctx = getEngineContext();
-    if (!ctx) return friends;
-
-    // 检查玩家
-    if (!finder.isOpposite(this.player)) {
-      const dist = this.getViewTileDistance(centerTile, this.player.tilePosition);
-      if (dist <= tileDistance) {
-        friends.push(this.player);
-      }
-    }
-
-    // 检查 NPC
-    for (const [, npc] of ctx.npcManager.getAllNpcs()) {
-      const npcChar = npc as Character;
-      if (!finder.isOpposite(npcChar)) {
-        const dist = this.getViewTileDistance(centerTile, npcChar.tilePosition);
-        if (dist <= tileDistance) {
-          friends.push(npcChar);
-        }
-      }
-    }
-
-    return friends;
+    const npcManager = this.engine.npcManager as NpcManager;
+    return npcManager.findFriendsInTileDistance(finder, centerTile, tileDistance);
   }
 
   /**
-   * 查找范围内的敌人
+   * 查找范围内的敌人 — 委托给 NpcManager
    */
   private findEnemiesInTileDistance(
     finder: Character,
     centerTile: Vector2,
     tileDistance: number
   ): Character[] {
-    const enemies: Character[] = [];
-    const ctx = getEngineContext();
-    if (!ctx) return enemies;
-
-    // 检查玩家
-    if (finder.isOpposite(this.player)) {
-      const dist = this.getViewTileDistance(centerTile, this.player.tilePosition);
-      if (dist <= tileDistance) {
-        enemies.push(this.player);
-      }
-    }
-
-    // 检查 NPC
-    for (const [, npc] of ctx.npcManager.getAllNpcs()) {
-      const npcChar = npc as Character;
-      if (finder.isOpposite(npcChar)) {
-        const dist = this.getViewTileDistance(centerTile, npcChar.tilePosition);
-        if (dist <= tileDistance) {
-          enemies.push(npcChar);
-        }
-      }
-    }
-
-    return enemies;
+    const npcManager = this.engine.npcManager as NpcManager;
+    return npcManager.findEnemiesInTileDistance(finder, centerTile, tileDistance);
   }
 
   /**
-   * 查找范围内的所有战斗单位
+   * 查找范围内的所有战斗单位 — 委托给 NpcManager
    */
   private findFightersInTileDistance(centerTile: Vector2, tileDistance: number): Character[] {
-    const fighters: Character[] = [];
-    const ctx = getEngineContext();
-    if (!ctx) return fighters;
-
-    // 检查玩家
-    const playerDist = this.getViewTileDistance(centerTile, this.player.tilePosition);
-    if (playerDist <= tileDistance) {
-      fighters.push(this.player);
-    }
-
-    // 检查 NPC
-    for (const [, npc] of ctx.npcManager.getAllNpcs()) {
-      const npcChar = npc as Character;
-      if (npcChar.isFighter) {
-        const dist = this.getViewTileDistance(centerTile, npcChar.tilePosition);
-        if (dist <= tileDistance) {
-          fighters.push(npcChar);
-        }
-      }
-    }
-
-    return fighters;
-  }
-
-  /**
-   * 计算视野格子距离（最大值）
-   */
-  private getViewTileDistance(tile1: Vector2, tile2: Vector2): number {
-    return Math.max(Math.abs(tile1.x - tile2.x), Math.abs(tile1.y - tile2.y));
+    const npcManager = this.engine.npcManager as NpcManager;
+    return npcManager.findFightersInTileDistance(centerTile, tileDistance);
   }
 }

@@ -5,9 +5,28 @@
     "docs": "ドキュメント",
     "github": "GitHub"
   },
+  "errors": {
+    "auth": {
+      "invalidCredentials": "メールアドレスまたはパスワードが正しくありません",
+      "emailAlreadyRegistered": "このメールアドレスは既に登録されています",
+      "passwordMismatch": "パスワードが一致しません"
+    },
+    "common": {
+      "unauthorized": "ログインしてください",
+      "forbidden": "この操作を実行する権限がありません",
+      "notFound": "リソースが見つかりません",
+      "badRequest": "リクエストパラメータが無効です",
+      "serverError": "サーバーエラーが発生しました。後でもう一度お試しください",
+      "networkError": "ネットワーク接続に失敗しました。接続を確認してください",
+      "unknownError": "不明なエラーが発生しました",
+      "operationFailed": "操作に失敗しました"
+    }
+  },
   "hero": {
     "title": "Miu2D Engine",
     "slogan": "AI駆動、5分でWeb RPGゲームを作成し、世界中と共有",
+    "webglBadge": "⚡ WebGL 高性能レンダリング",
+    "nativeBadge": "🔧 ゼロ依存 · 完全ネイティブ実装",
     "mobileBadge": "📱 モバイルネイティブ対応 · どこでもプレイ",
     "cta": {
       "start": "始める",
@@ -45,7 +64,7 @@
   },
   "features": {
     "title": "強力なエンジン機能",
-    "subtitle": "TypeScript + React + Canvasで構築されたモダンな2D RPGエンジン"
+    "subtitle": "TypeScript + React + WebGLで構築されたモダンな2D RPGエンジン"
   },
   "feature": {
     "map": {
@@ -86,7 +105,7 @@
     }
   },
   "techStack": {
-    "canvas": "Canvas描画",
+    "canvas": "WebGL描画",
     "react": "React駆動",
     "typescript": "TypeScript",
     "ai": "AI支援"

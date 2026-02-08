@@ -13,7 +13,7 @@ import { DefaultPaths } from "@miu2d/engine/config";
 import { logger } from "@miu2d/engine/core/logger";
 import type { JxqyMapData } from "@miu2d/engine/core/mapTypes";
 import type { Vector2 } from "@miu2d/engine/core/types";
-import type { GameEngine } from "@miu2d/engine/game/gameEngine";
+import type { GameEngine } from "@miu2d/engine/runtime/gameEngine";
 import type { ShopItemInfo } from "@miu2d/engine/gui/buyManager";
 import type { MagicItemInfo } from "@miu2d/engine/magic";
 import type { Npc } from "@miu2d/engine/npc";
@@ -21,7 +21,7 @@ import type { Good } from "@miu2d/engine/player/goods";
 import { GoodKind } from "@miu2d/engine/player/goods";
 import { resourceLoader } from "@miu2d/engine/resource/resourceLoader";
 import type { TimerState } from "@miu2d/engine/timer";
-import type { UIEquipSlotName } from "@miu2d/engine/ui/contract";
+import type { UIEquipSlotName } from "@miu2d/engine/gui/contract";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useUIBridge } from "../adapters";
 import type { DragData, EquipSlotType } from "../ui/classic";
@@ -45,6 +45,7 @@ export interface TooltipState {
   isVisible: boolean;
   good: Good | null;
   isRecycle: boolean;
+  shopPrice?: number; // 商店自定义价格（已含 buyPercent），用于覆盖 good.cost 显示
   position: { x: number; y: number };
 }
 
@@ -169,6 +170,8 @@ export function useGameUILogic({ engine }: UseGameUILogicOptions) {
       return { items: [], equips: {}, bottomGoods: [], money: 0 };
     }
 
+    void updateTrigger;
+
     const goodsManager = engine.getGoodsListManager();
     if (!goodsManager) {
       return { items: [], equips: {}, bottomGoods: [], money: 0 };
@@ -209,9 +212,8 @@ export function useGameUILogic({ engine }: UseGameUILogicOptions) {
       }
     });
 
-    const playerMoney = engine.getPlayer()?.money ?? 0;
+    const playerMoney = engine.getPlayer().money;
     return { items, equips, bottomGoods, money: playerMoney };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [engine, updateTrigger]);
 
   // 获取武功数据
@@ -220,13 +222,14 @@ export function useGameUILogic({ engine }: UseGameUILogicOptions) {
       return { storeMagics: [], bottomMagics: [], xiuLianMagic: null };
     }
 
+    void updateTrigger;
+
     const bottomMagics = engine.getBottomMagics();
     const storeMagics = engine.getStoreMagics();
     const gameManager = engine.getGameManager();
-    const xiuLianMagic = gameManager?.getMagicListManager().getItemInfo(49) ?? null;
+    const xiuLianMagic = gameManager.getMagicListManager().getItemInfo(49) ?? null;
 
     return { storeMagics, bottomMagics, xiuLianMagic };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [engine, updateTrigger]);
 
   // 获取商店数据
@@ -240,11 +243,11 @@ export function useGameUILogic({ engine }: UseGameUILogicOptions) {
 
     if (!engine) return defaultData;
 
-    const gameManager = engine.getGameManager();
-    if (!gameManager) return defaultData;
+    void updateTrigger;
 
+    const gameManager = engine.getGameManager();
     const buyManager = gameManager.getBuyManager();
-    if (!buyManager || !buyManager.isOpen()) return defaultData;
+    if (!buyManager.isOpen()) return defaultData;
 
     return {
       items: buyManager.getGoodsArray(),
@@ -252,7 +255,6 @@ export function useGameUILogic({ engine }: UseGameUILogicOptions) {
       numberValid: buyManager.isNumberValid(),
       canSellSelfGoods: buyManager.getCanSellSelfGoods(),
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [engine, updateTrigger]);
 
   // ============= NPC Hover State =============
@@ -269,27 +271,25 @@ export function useGameUILogic({ engine }: UseGameUILogicOptions) {
 
     const updateHoveredNpc = () => {
       const gameManager = engine.getGameManager();
-      if (gameManager) {
-        const interactionManager = (
-          gameManager as unknown as {
-            interactionManager?: { getHoverTarget: () => { npc: Npc | null } };
-          }
-        ).interactionManager;
-        if (interactionManager) {
-          const hoverTarget = interactionManager.getHoverTarget();
-          const currentNpc = hoverTarget.npc;
+      const interactionManager = (
+        gameManager as unknown as {
+          interactionManager?: { getHoverTarget: () => { npc: Npc | null } };
+        }
+      ).interactionManager;
+      if (interactionManager) {
+        const hoverTarget = interactionManager.getHoverTarget();
+        const currentNpc = hoverTarget.npc;
 
-          const currentNpcId = currentNpc?.id ?? null;
-          const currentLife = currentNpc?.life ?? -1;
+        const currentNpcId = currentNpc?.id ?? null;
+        const currentLife = currentNpc?.life ?? -1;
 
-          if (currentNpcId !== lastNpcId) {
-            lastNpcId = currentNpcId;
-            lastLife = currentLife;
-            setHoveredNpc(currentNpc);
-          } else if (currentNpc && currentLife !== lastLife) {
-            lastLife = currentLife;
-            setNpcUpdateKey((k) => k + 1);
-          }
+        if (currentNpcId !== lastNpcId) {
+          lastNpcId = currentNpcId;
+          lastLife = currentLife;
+          setHoveredNpc(currentNpc);
+        } else if (currentNpc && currentLife !== lastLife) {
+          lastLife = currentLife;
+          setNpcUpdateKey((k) => k + 1);
         }
       }
 
@@ -625,8 +625,8 @@ export function useGameUILogic({ engine }: UseGameUILogicOptions) {
 
   const handleBottomGoodsDragStart = useCallback(
     (bottomSlot: number) => {
-      const goodsManager = engine?.getGoodsListManager();
-      if (!goodsManager) return;
+      if (!engine) return;
+      const goodsManager = engine.getGoodsListManager();
 
       const actualIndex = 221 + bottomSlot;
       const entry = goodsManager.getItemInfo(actualIndex);
@@ -657,8 +657,9 @@ export function useGameUILogic({ engine }: UseGameUILogicOptions) {
 
   const handleBottomMagicDragStart = useCallback(
     (bottomSlot: number) => {
+      if (!engine) return;
       const listIndex =
-        engine?.getGameManager()?.getMagicListManager()?.bottomIndexToListIndex(bottomSlot) ??
+        engine.getGameManager().getMagicListManager().bottomIndexToListIndex(bottomSlot) ??
         bottomSlot + 41;
       setBottomMagicDragData({ bottomSlot, listIndex });
       setMagicDragData(null);
@@ -697,10 +698,11 @@ export function useGameUILogic({ engine }: UseGameUILogicOptions) {
           bottomSlot: targetBottomSlot,
         });
       } else if (bottomMagicDragData) {
+        if (!engine) return;
         const targetListIndex = engine
-          ?.getGameManager()
-          ?.getMagicListManager()
-          ?.bottomIndexToListIndex(targetBottomSlot);
+          .getGameManager()
+          .getMagicListManager()
+          .bottomIndexToListIndex(targetBottomSlot);
         if (targetListIndex !== undefined) {
           dispatch({
             type: "SWAP_MAGIC",
@@ -755,6 +757,7 @@ export function useGameUILogic({ engine }: UseGameUILogicOptions) {
           isVisible: true,
           good,
           isRecycle: false,
+          shopPrice: undefined,
           position: { x: rect.right + 10, y: rect.top },
         });
       }
@@ -798,15 +801,21 @@ export function useGameUILogic({ engine }: UseGameUILogicOptions) {
   const handleShopItemMouseEnter = useCallback(
     (_index: number, good: Good | null, rect: DOMRect) => {
       if (good) {
+        // 查找当前商店物品的自定义价格
+        const shopItem = buyData.items[_index];
+        const rawPrice = shopItem?.price ?? 0;
+        const basePrice = rawPrice > 0 ? rawPrice : good.cost;
+        const effectivePrice = Math.floor((basePrice * buyData.buyPercent) / 100);
         setTooltip({
           isVisible: true,
           good,
           isRecycle: false,
+          shopPrice: effectivePrice,
           position: { x: rect.right + 10, y: rect.top },
         });
       }
     },
-    []
+    [buyData]
   );
 
   const handleShopItemRightClick = useCallback(

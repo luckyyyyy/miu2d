@@ -74,8 +74,6 @@ export { SystemGui } from "./SystemGui";
 export { TimerGui } from "./TimerGui";
 // Title GUI
 export { TitleGui } from "./TitleGui";
-export type { TitleSettingsModalProps } from "./TitleSettingsModal";
-export { TitleSettingsModal } from "./TitleSettingsModal";
 // Top GUI
 export { TopGui } from "./TopGui";
 // Video Player

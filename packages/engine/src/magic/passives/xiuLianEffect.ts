@@ -10,7 +10,7 @@
 
 import { logger } from "../../core/logger";
 import { CharacterState } from "../../core/types";
-import { getCachedMagic, loadMagic } from "../magicLoader";
+import { getMagic, preloadMagicAsf } from "../magicLoader";
 import type { MagicData, MagicItemInfo } from "../types";
 import type { AttackContext, KillContext, PassiveEffect } from "./types";
 import { PassiveTrigger } from "./types";
@@ -50,7 +50,7 @@ export const xiuLianAttackEffect: PassiveEffect = {
     }
 
     // 同步获取缓存（已在 addMagic 时预加载）
-    const attackMagic = getCachedMagic(magic.attackFile);
+    const attackMagic = getMagic(magic.attackFile);
     if (!attackMagic) {
       logger.warn(`[XiuLian] AttackFile not preloaded: ${magic.attackFile}`);
       return null;
@@ -68,7 +68,10 @@ export async function preloadXiuLianAttackMagic(xiuLianMagic: MagicItemInfo): Pr
   const magic = xiuLianMagic.magic;
   if (!magic?.attackFile) return;
 
-  await loadMagic(magic.attackFile, { preloadAsf: true });
+  const attackMagic = getMagic(magic.attackFile);
+  if (attackMagic) {
+    await preloadMagicAsf(attackMagic);
+  }
 }
 
 /**

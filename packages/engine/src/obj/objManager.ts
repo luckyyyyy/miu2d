@@ -38,17 +38,20 @@
 
 import type { AudioManager } from "../audio";
 import { ResourcePath } from "../config/resourcePaths";
-import { getEngineContext } from "../core/engineContext";
+import { EngineAccess } from "../core/engineAccess";
 import { logger } from "../core/logger";
 import type { Vector2 } from "../core/types";
 import { resourceLoader } from "../resource/resourceLoader";
-import { loadAsf } from "../sprite/asf";
+import { loadAsf } from "../resource/asf";
+import type { ObjSaveItem } from "../runtime/storage";
 import { parseIni } from "../utils";
-import { getTextDecoder } from "../utils/encoding";
-import { Obj, type ObjKind, type ObjResInfo, ObjState } from "./obj";
+import type { IRenderer } from "../webgl/iRenderer";
+import { Obj, type ObjKind, ObjState } from "./obj";
+import { getObjConfigFromCache, getObjResFromCache, type ObjResInfo } from "./objConfigLoader";
 
 // Re-export types
-export { Obj, ObjKind, type ObjResInfo, ObjState } from "./obj";
+export { Obj, ObjKind, ObjState } from "./obj";
+export type { ObjResInfo } from "./objConfigLoader";
 
 /**
  * Saved state for an Obj (persists across map changes)
@@ -60,29 +63,18 @@ interface ObjSavedState {
   currentFrameIndex: number; // Current animation frame (e.g., opened box)
 }
 
-/**
- * Parse ObjRes INI content to ObjResInfo
- */
-function parseObjResIni(content: string): ObjResInfo | null {
-  const sections = parseIni(content);
-
-  // Get the Common section (or first available state)
-  const commonSection = sections.Common || sections.Open || Object.values(sections)[0];
-  if (!commonSection) {
-    return null;
-  }
-
-  return {
-    imagePath: commonSection.Image || "",
-    soundPath: commonSection.Sound || "",
-  };
-}
-
-export class ObjManager {
+export class ObjManager extends EngineAccess {
   // private static LinkedList<Obj> _list = new LinkedList<Obj>();
   // 使用数组而不是 Map，，允许多个对象（包括同类尸体）
   private objects: Obj[] = [];
   private fileName: string = "";
+
+  /**
+   * Obj 分组存储
+   * 模拟 C# 原版的 save/game/{fileName} 文件系统
+   * 脚本调用 SaveObj() 时将当前 Obj 列表序列化存入，LoadObj() 时优先从此读取
+   */
+  private objGroups: Map<string, ObjSaveItem[]> = new Map();
 
   // === 性能优化：预计算视野内物体 ===
   // ObjManager._objInView, UpdateObjsInView()
@@ -90,12 +82,8 @@ export class ObjManager {
   private _objsInView: Obj[] = [];
   private _objsByRow: Map<number, Obj[]> = new Map();
 
-  /**
-   * 获取 AudioManager（通过 IEngineContext）
-   */
   private get audioManager(): AudioManager {
-    const ctx = getEngineContext();
-    return ctx.audio;
+    return this.engine.audio;
   }
 
   /**
@@ -161,30 +149,38 @@ export class ObjManager {
 
   /**
    * Load objects from an .obj file
-   *  - tries save/game/ first, then ini/save/
+   *  - tries groups store first (saved by SaveObj), then save/game/, then ini/save/
    */
   async load(fileName: string): Promise<boolean> {
     logger.log(`[ObjManager] Loading obj file: ${fileName}`);
     this.clearAll();
     this.fileName = fileName;
 
-    // Try multiple paths
+    // 1. 优先从 Obj 分组存储加载（模拟 C# 的 save/game/ 目录）
+    const storedData = this.objGroups.get(fileName);
+    if (storedData) {
+      logger.log(`[ObjManager] Loading ${storedData.length} Objs from groups: ${fileName}`);
+      for (const objData of storedData) {
+        if (objData.isRemoved) continue;
+        await this.createObjFromSaveData(objData);
+      }
+      logger.log(`[ObjManager] Loaded ${this.objects.length} objects from groups`);
+      return true;
+    }
+
+    // 2. Fallback: 从文件系统加载
     const paths = [ResourcePath.saveGame(fileName), ResourcePath.iniSave(fileName)];
 
     for (const filePath of paths) {
       try {
-        // .obj files are still GBK encoded - load as binary and decode with GBK
-        const buffer = await resourceLoader.loadBinary(filePath);
+        // .obj files are now UTF-8 encoded
+        const content = await resourceLoader.loadText(filePath);
 
-        if (!buffer) {
+        if (!content) {
           continue;
         }
 
-        // Decode GBK content
-        const content = getTextDecoder().decode(buffer);
-
-        // Note: Unlike loadText, loadBinary doesn't detect HTML fallback
-        // Check for Vite's HTML fallback manually
+        // Check for Vite's HTML fallback
         if (content.trim().startsWith("<!DOCTYPE") || content.trim().startsWith("<html")) {
           continue;
         }
@@ -270,9 +266,8 @@ export class ObjManager {
   private async loadObjResources(obj: Obj): Promise<void> {
     if (!obj.objFileName) return;
 
-    // 加载 objres 配置文件
-    const filePath = ResourcePath.objRes(obj.objFileName);
-    const resInfo = await resourceLoader.loadIni<ObjResInfo>(filePath, parseObjResIni, "objRes");
+    // 从 API 缓存加载 objres 配置
+    const resInfo = getObjResFromCache(obj.objFileName);
     if (!resInfo) return;
 
     obj.objFile.set(ObjState.Common, resInfo);
@@ -303,7 +298,7 @@ export class ObjManager {
   }
 
   /**
-   * 从 ini/obj/ 文件创建 Obj 并添加到指定位置
+   * 从 API 缓存创建 Obj 并添加到指定位置
    * 用于脚本命令 AddObj
    */
   async addObjByFile(
@@ -313,22 +308,35 @@ export class ObjManager {
     direction: number
   ): Promise<void> {
     try {
-      const filePath = ResourcePath.obj(fileName);
-      const content = await resourceLoader.loadText(filePath);
-      if (!content) return;
-
-      const sections = parseIni(content);
-      const initSection = sections.INIT || sections.Init || Object.values(sections)[0];
-      if (!initSection) return;
+      const config = getObjConfigFromCache(fileName);
+      if (!config) {
+        logger.warn(`[ObjManager] addObjByFile: config not found in cache for ${fileName}`);
+        return;
+      }
 
       const obj = new Obj();
-      obj.loadFromSection(initSection);
+      obj.loadFromConfig(config);
       obj.setTilePosition(tileX, tileY);
       obj.dir = direction;
       obj.id = `added_${fileName}_${tileX}_${tileY}_${Date.now()}`;
       obj.fileName = fileName;
 
-      await this.loadObjResources(obj);
+      // 从 config 中直接加载资源（API 缓存已合并 objres）
+      if (config.image) {
+        const resInfo: ObjResInfo = { imagePath: config.image, soundPath: config.sound };
+        obj.objFile.set(ObjState.Common, resInfo);
+
+        const asfPath = ResourcePath.asfObject(config.image);
+        const asf = await loadAsf(asfPath);
+        if (asf) {
+          obj.setAsfTexture(asf);
+        }
+      }
+
+      if (config.sound && !obj.wavFile) {
+        obj.wavFile = config.sound;
+      }
+
       this.objects.push(obj);
     } catch (error) {
       logger.error(`Error adding obj from file ${fileName}:`, error);
@@ -659,10 +667,11 @@ export class ObjManager {
     obj.objFileName = objData.objFile;
 
     await this.loadObjResources(obj);
+
+    // 纹理加载后再设置帧号，避免 setter 的边界检查在 _frameEnd=0 时将帧号重置为 0
+    obj.currentFrameIndex = objData.frame;
+
     this.objects.push(obj);
-    // logger.log(
-    //   `[ObjManager] Created obj from save: ${objData.objName} at (${objData.mapX}, ${objData.mapY})`
-    // );
   }
 
   /**
@@ -749,28 +758,29 @@ export class ObjManager {
   /**
    * Draw a single object
    */
-  drawObj(ctx: CanvasRenderingContext2D, obj: Obj, cameraX: number, cameraY: number): void {
+  drawObj(renderer: IRenderer, obj: Obj, cameraX: number, cameraY: number): void {
     if (!obj.isShow || obj.isRemoved) return;
 
-    obj.draw(ctx, cameraX, cameraY);
+    obj.draw(renderer, cameraX, cameraY);
   }
 
   /**
    * Draw all objects in view
    * 使用预计算的 _objsInView 列表
    */
-  drawAllObjs(ctx: CanvasRenderingContext2D, cameraX: number, cameraY: number): void {
+  drawAllObjs(renderer: IRenderer, cameraX: number, cameraY: number): void {
     // 使用预计算的视野内物体列表（已在 updateViewCache 中排序）
     for (const obj of this._objsInView) {
-      this.drawObj(ctx, obj, cameraX, cameraY);
+      this.drawObj(renderer, obj, cameraX, cameraY);
     }
   }
 
   /**
-   * Save object state to file
-   * saves current objects to save file
-   * Note: Web version uses JSON-based save system in Loader.collectObjData()
-   * This method is a stub actual save is done through Loader
+   * Save object state to memory file store
+   * 将当前 Obj 列表序列化到内存文件存储中
+   * 对应 C# 原版: ObjManager.Save(fileName) -> File.WriteAllText("save/game/" + fileName)
+   *
+   * 脚本流程: SaveObj() -> LoadMap() -> LoadObj(同文件名) -> 读到刚存的数据
    */
   async saveObj(fileName?: string): Promise<void> {
     const saveFileName = fileName || this.fileName;
@@ -778,8 +788,70 @@ export class ObjManager {
       logger.warn("[ObjManager] SaveObj: No file name provided and no file loaded");
       return;
     }
-    // Web 版使用 JSON 存档系统，不需要单独保存 obj 文件
-    // 实际保存通过 Loader.collectObjData() 完成
-    logger.log(`[ObjManager] SaveObj: ${saveFileName} (Web版使用 JSON 存档)`);
+
+    this.fileName = saveFileName;
+
+    // 序列化当前所有 Obj 到分组存储
+    const items = this.collectSnapshot();
+    this.objGroups.set(saveFileName, items);
+
+    logger.log(`[ObjManager] SaveObj: ${saveFileName} (${items.length} Objs saved to groups)`);
+  }
+
+  /**
+   * 收集当前 Obj 快照为 ObjSaveItem[]
+   */
+  collectSnapshot(): ObjSaveItem[] {
+    const items: ObjSaveItem[] = [];
+    for (const obj of this.objects) {
+      if (obj.isRemoved) continue;
+      items.push({
+        objName: obj.objName,
+        kind: obj.kind,
+        dir: obj.dir,
+        mapX: obj.mapX,
+        mapY: obj.mapY,
+        damage: obj.damage,
+        frame: obj.currentFrameIndex,
+        height: obj.height,
+        lum: obj.lum,
+        objFile: obj.objFileName,
+        offX: obj.offX,
+        offY: obj.offY,
+        scriptFile: obj.scriptFile || undefined,
+        scriptFileRight: obj.scriptFileRight || undefined,
+        timerScriptFile: obj.timerScriptFile || undefined,
+        timerScriptInterval: obj.timerScriptInterval,
+        scriptFileJustTouch: obj.scriptFileJustTouch,
+        wavFile: obj.wavFile || undefined,
+        millisecondsToRemove: obj.millisecondsToRemove,
+        isRemoved: obj.isRemoved,
+      });
+    }
+    return items;
+  }
+
+  /**
+   * 获取 Obj 分组存储（用于 Loader 存档时持久化）
+   */
+  getObjGroups(): Map<string, ObjSaveItem[]> {
+    return this.objGroups;
+  }
+
+  /**
+   * 设置 Obj 分组存储（用于 Loader 读档时恢复）
+   */
+  setObjGroups(store: Record<string, ObjSaveItem[]>): void {
+    this.objGroups.clear();
+    for (const [key, value] of Object.entries(store)) {
+      this.objGroups.set(key, value);
+    }
+  }
+
+  /**
+   * 清空 Obj 分组存储
+   */
+  clearObjGroups(): void {
+    this.objGroups.clear();
   }
 }

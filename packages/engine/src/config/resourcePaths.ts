@@ -4,9 +4,14 @@
  * 统一管理所有资源路径，方便后期修改资源根目录。
  * 所有资源加载都应该通过这个配置来获取完整路径。
  *
- * 支持通过环境变量 VITE_DEMO_RESOURCES_DOMAIN 配置外部资源域名（如 R2 CDN）
- * - 配置后: https://cdn.example.com/resources/...
- * - 未配置: /resources/... (当前域名)
+ * 资源路径由 gameSlug 动态确定：
+ * - 格式: /game/[gameSlug]/resources
+ * - 由 GameScreen 组件调用 setResourcePaths({ root: '/game/${gameSlug}/resources' }) 设置
+ *
+ * 环境变量：
+ * - VITE_DEMO_RESOURCES_DOMAIN: 外部资源域名（如 R2 CDN）
+ *   - 配置后: https://cdn.example.com/game/xxx/resources/...
+ *   - 未配置: /game/[gameSlug]/resources/... (当前域名)
  */
 
 // =============================================================================
@@ -46,63 +51,19 @@ export function getResourceUrl(path: string): string {
 }
 
 // =============================================================================
-// 游戏定义
+// 资源根目录配置
 // =============================================================================
 
-/** 游戏 ID 类型 */
-export type GameId = "yueying" | "canghai";
-
-/** 游戏信息 */
-export interface GameInfo {
-  id: GameId;
-  name: string;
-  resourceRoot: string;
-  icon: string;
-}
-
-/** 可用游戏列表 */
-export const AVAILABLE_GAMES: GameInfo[] = [
-  {
-    id: "yueying",
-    name: "月影传说",
-    resourceRoot: "/resources",
-    icon: "/icons/yueying.png",
-  },
-  // {
-  //   id: "canghai",
-  //   name: "沧海",
-  //   resourceRoot: "/canghai",
-  //   icon: "/icons/canghai.png",
-  // },
-];
-
-/** localStorage key for game selection */
-const GAME_SELECTION_KEY = "jxqy_selected_game";
-
 /**
- * 获取当前选择的游戏 ID
+ * 获取默认资源根目录
+ * 默认值: "/resources"（向后兼容，实际由前端动态设置）
+ *
+ * @returns 资源根目录（带前导斜杠），如 "/game/xxx/resources"
  */
-export function getSelectedGameId(): GameId {
-  const saved = localStorage.getItem(GAME_SELECTION_KEY);
-  if (saved === "yueying" || saved === "canghai") {
-    return saved;
-  }
-  return "yueying"; // 默认月影传说
-}
-
-/**
- * 设置当前选择的游戏
- */
-export function setSelectedGameId(gameId: GameId): void {
-  localStorage.setItem(GAME_SELECTION_KEY, gameId);
-}
-
-/**
- * 获取当前选择的游戏信息
- */
-export function getSelectedGame(): GameInfo {
-  const gameId = getSelectedGameId();
-  return AVAILABLE_GAMES.find((g) => g.id === gameId) || AVAILABLE_GAMES[0];
+function getDefaultResourceRoot(): string {
+  // 默认返回 /resources，实际由 GameScreen 通过 setResourcePaths 设置为
+  // /game/[gameSlug]/resources
+  return "/resources";
 }
 
 // =============================================================================
@@ -113,16 +74,16 @@ export function getSelectedGame(): GameInfo {
  * 资源路径配置接口
  */
 export interface ResourcePathsConfig {
-  /** 资源根目录，默认 "/resources" */
+  /** 资源根目录，如 "/game/xxx/resources" */
   root: string;
 }
 
 /**
- * 获取默认配置（基于当前选择的游戏）
+ * 获取默认配置（基于环境变量）
  */
 function getDefaultConfig(): ResourcePathsConfig {
   return {
-    root: getSelectedGame().resourceRoot,
+    root: getDefaultResourceRoot(),
   };
 }
 
@@ -154,25 +115,10 @@ export function getResourceRoot(): string {
 }
 
 /**
- * 重置为默认配置（基于当前选择的游戏）
+ * 重置为默认配置
  */
 export function resetResourcePaths(): void {
   currentConfig = getDefaultConfig();
-}
-
-/**
- * 切换游戏并重置资源路径
- * @param gameId 游戏 ID
- * @returns 是否需要刷新页面
- */
-export function switchGame(gameId: GameId): boolean {
-  const currentGameId = getSelectedGameId();
-  if (currentGameId === gameId) {
-    return false; // 没有变化
-  }
-  setSelectedGameId(gameId);
-  resetResourcePaths();
-  return true;
 }
 
 // =============================================================================
@@ -203,9 +149,7 @@ export const ResourceDirs = {
   ini: {
     root: "ini",
     npc: "ini/npc",
-    npcres: "ini/npcres",
     obj: "ini/obj",
-    objres: "ini/objres",
     goods: "ini/goods",
     magic: "ini/magic",
     level: "ini/level",
@@ -324,17 +268,9 @@ export const ResourcePath = {
   npc(fileName: string): string {
     return buildPath(`${ResourceDirs.ini.npc}/${fileName}`);
   },
-  /** NPC 资源配置路径 */
-  npcRes(fileName: string): string {
-    return buildPath(`${ResourceDirs.ini.npcres}/${fileName}`);
-  },
   /** 物体配置文件路径 */
   obj(fileName: string): string {
     return buildPath(`${ResourceDirs.ini.obj}/${fileName}`);
-  },
-  /** 物体资源配置路径 */
-  objRes(fileName: string): string {
-    return buildPath(`${ResourceDirs.ini.objres}/${fileName}`);
   },
   /** 物品配置文件路径 */
   goods(fileName: string): string {
@@ -460,10 +396,6 @@ export const DefaultPaths = {
   get magicExp(): string {
     return ResourcePath.level("MagicExp.ini");
   },
-  /** 新游戏脚本 */
-  get newGameScript(): string {
-    return ResourcePath.scriptCommon("NewGame.txt");
-  },
   /** 对话索引文件 */
   get talkIndex(): string {
     return ResourcePath.content("TalkIndex.txt");
@@ -511,4 +443,57 @@ export function ensureResourcePath(path: string): string {
     return path;
   }
   return buildPath(path);
+}
+
+/**
+ * 解析脚本路径：如果 scriptFile 是绝对路径（以 "/" 开头）则直接使用，
+ * 否则拼接 basePath + "/" + scriptFile
+ *
+ * 统一了引擎中 7+ 处重复的脚本路径拼接逻辑，
+ * 修复了部分调用点缺少 startsWith("/") 检查的问题
+ */
+export function resolveScriptPath(basePath: string, scriptFile: string): string {
+  if (scriptFile.startsWith("/")) {
+    return scriptFile;
+  }
+  return `${basePath}/${scriptFile}`;
+}
+
+// =============================================================================
+// 缓存键规范化（统一所有 ConfigLoader 的 normalizeKey 模式）
+// =============================================================================
+
+/**
+ * 规范化缓存键 - 统一的配置文件路径规范化
+ *
+ * 所有 ConfigLoader（npc, obj, magic, goods, level）共用此函数，
+ * 替代各 Loader 内部的 normalizeKey / normalizeKeyForCache。
+ *
+ * 处理步骤：
+ * 1. 反斜杠 → 正斜杠
+ * 2. 移除资源根目录前缀（如 /game/xxx/resources/）
+ * 3. 移除开头的 /
+ * 4. 移除匹配的 ini 子目录前缀（如 ini/npc/、ini/magic/）
+ * 5. 转小写
+ *
+ * @param fileName 原始文件名或路径
+ * @param prefixes 需要剥离的 ini 子目录前缀列表（如 ["ini/npc/", "ini/partner/"]）
+ */
+export function normalizeCacheKey(fileName: string, prefixes: readonly string[]): string {
+  let key = fileName.replace(/\\/g, "/");
+
+  const root = getResourceRoot();
+  if (key.startsWith(root)) {
+    key = key.slice(root.length);
+  }
+  if (key.startsWith("/")) {
+    key = key.slice(1);
+  }
+  for (const prefix of prefixes) {
+    if (key.startsWith(prefix)) {
+      key = key.slice(prefix.length);
+      break;
+    }
+  }
+  return key.toLowerCase();
 }

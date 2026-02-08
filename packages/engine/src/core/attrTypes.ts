@@ -14,6 +14,8 @@
  *   - 加权列表: "a[2],b[1],c[3]" → 按权重随机（a=2/6, b=1/6, c=3/6）
  */
 
+import { logger } from "./logger";
+
 /**
  * 随机数生成器
  */
@@ -292,7 +294,7 @@ export class AttrString {
    */
   getValue(): string {
     if (this.isRandom) {
-      console.warn(`[AttrString] Accessing random attribute as fixed value: ${this.getString()}`);
+      logger.warn(`[AttrString] Accessing random attribute as fixed value: ${this.getString()}`);
     }
     return this.value;
   }
@@ -318,47 +320,3 @@ export class AttrString {
 }
 
 // ============= 工具函数 =============
-
-/**
- * 解析 INI 值为 AttrInt
- * 如果值为空或无效，返回默认值
- */
-export function parseAttrInt(value: string | undefined | null, defaultValue: number = 0): AttrInt {
-  if (!value || value.trim() === "") {
-    return new AttrInt(defaultValue);
-  }
-  return new AttrInt(value);
-}
-
-/**
- * 解析 INI 值为 AttrString
- * 如果值为空，返回空字符串的 AttrString
- */
-export function parseAttrString(value: string | undefined | null): AttrString {
-  if (!value) {
-    return new AttrString("");
-  }
-  return new AttrString(value);
-}
-
-/**
- * 解析 INI 值，直接获取一个整数（适用于只需要单次取值的场景）
- * 支持随机值格式
- */
-export function parseIntValue(value: string | undefined | null, defaultValue: number = 0): number {
-  if (!value || value.trim() === "") {
-    return defaultValue;
-  }
-  return new AttrInt(value).getOneValue();
-}
-
-/**
- * 解析 INI 值，直接获取一个字符串（适用于只需要单次取值的场景）
- * 支持随机值格式
- */
-export function parseStringValue(value: string | undefined | null): string {
-  if (!value) {
-    return "";
-  }
-  return new AttrString(value).getOneValue();
-}

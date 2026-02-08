@@ -2,7 +2,7 @@
  * GUI 管理器 - 事件驱动架构，通过 EventEmitter 发送状态变化事件
  */
 
-import { getEngineContext } from "../core/engineContext";
+import { EngineAccess } from "../core/engineAccess";
 import type { EventEmitter } from "../core/eventEmitter";
 import {
   GameEvents,
@@ -22,7 +22,7 @@ import type { MemoListManager } from "../listManager";
 import type { GuiManagerState, SelectionOptionData } from "./types";
 import { createDefaultGuiState } from "./types";
 
-export class GuiManager {
+export class GuiManager extends EngineAccess {
   private state: GuiManagerState;
   private typewriterSpeed: number = 50; // ms per character
   private isMoviePlaying: boolean = false; // Track movie playback state
@@ -32,6 +32,7 @@ export class GuiManager {
     private events: EventEmitter,
     private memoListManager: MemoListManager
   ) {
+    super();
     this.state = createDefaultGuiState();
 
     // Listen for video end event
@@ -414,7 +415,7 @@ export class GuiManager {
     for (const key of panelKeys) this.state.panels[key] = false;
 
     if (wasBuyOpen) {
-      getEngineContext().getManager("buy").endBuy();
+      this.buy.endBuy();
     }
     this.emitPanelChange(null, false);
   }
@@ -603,8 +604,7 @@ export class GuiManager {
     if (this.state.panels.buy) {
       if (code === "Escape") {
         // 结束购物会话
-        const engineContext = getEngineContext();
-        engineContext.getManager("buy").endBuy();
+        this.buy.endBuy();
         // 关闭商店和背包
         this.closeBuyGui();
         return true;
@@ -712,8 +712,8 @@ export class GuiManager {
 
   private isScriptRunning(): boolean {
     try {
-      return getEngineContext().getManager("script").isRunning();
-    } catch {
+      return this.script.isRunning();
+    } catch { // script manager not ready
       return false;
     }
   }

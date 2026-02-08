@@ -2,7 +2,7 @@
  * GameScreen - 游戏页面
  *
  * 特点:
- * - 游戏逻辑在单例引擎中运行
+ * - 游戏逻辑在引擎实例中运行
  * - React只负责画布和UI
  * - 窗口调整时只更新尺寸
  * - 所有调试功能通过 DebugManager 访问
@@ -12,10 +12,12 @@
  */
 
 import { logger } from "@miu2d/engine/core/logger";
-import { GameEngine } from "@miu2d/engine/game/gameEngine";
+import { setResourcePaths } from "@miu2d/engine/config";
+import { loadGameData, loadGameConfig, reloadGameData } from "@miu2d/engine/resource";
+import { setLevelConfigGameSlug, initNpcLevelConfig } from "@miu2d/engine/character/level";
 import { resourceLoader } from "@miu2d/engine/resource/resourceLoader";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import type { GameHandle } from "../components";
 import {
   DebugPanel,
@@ -104,6 +106,9 @@ type GamePhase = "title" | "playing";
 const MOBILE_SCALE = 0.75;
 
 export default function GameScreen() {
+  // 从 URL 获取 gameSlug
+  const { gameSlug } = useParams<{ gameSlug: string }>();
+
   const gameRef = useRef<GameHandle>(null);
   const gameAreaRef = useRef<HTMLDivElement>(null);
   const [gamePhase, setGamePhase] = useState<GamePhase>("title");
@@ -113,6 +118,8 @@ export default function GameScreen() {
   const [isResizing, setIsResizing] = useState(false);
   const [gameResolution, setGameResolution] = useState(getStoredResolution);
   const [, forceUpdate] = useState({});
+  // API 数据（gameConfig + gameData）是否已加载完成
+  const [isDataReady, setIsDataReady] = useState(false);
   // UI 主题状态
   const [uiTheme, setUITheme] = useState<UITheme>(loadUITheme);
   // 标题界面读档弹窗状态
@@ -122,6 +129,36 @@ export default function GameScreen() {
   const { isMobile, isLandscape, screenWidth, screenHeight } = useMobile();
   // 标记是否已经处理过 URL 参数（防止从游戏返回标题后再次自动进入）
   const urlLoadHandledRef = useRef(false);
+
+  // 设置资源路径（基于 gameSlug）并加载游戏数据，设置等级配置 gameSlug
+  useEffect(() => {
+    if (gameSlug) {
+      setResourcePaths({ root: `/game/${gameSlug}/resources` });
+      logger.info(`[GameScreen] Resource root set to /game/${gameSlug}/resources`);
+
+      // 设置等级配置的 gameSlug（按需加载时使用）
+      setLevelConfigGameSlug(gameSlug);
+
+      // 初始化 NPC 等级配置（从 API 按需加载）
+      initNpcLevelConfig().catch((error) => {
+        logger.warn(`[GameScreen] Failed to load NPC level config:`, error);
+      });
+
+      // 先加载游戏全局配置，再加载游戏数据（阻塞引擎初始化）
+      setIsDataReady(false);
+      loadGameConfig(gameSlug)
+        .then(() => loadGameData(gameSlug))
+        .then(() => {
+          setIsDataReady(true);
+          logger.info(`[GameScreen] Game config and data loaded for ${gameSlug}`);
+        })
+        .catch((error) => {
+          logger.warn(`[GameScreen] Failed to load game config/data from API:`, error);
+          // 即使失败也标记就绪，避免永远卡住
+          setIsDataReady(true);
+        });
+    }
+  }, [gameSlug]);
 
   // 获取 URL 参数
   const [searchParams, setSearchParams] = useSearchParams();
@@ -250,7 +287,7 @@ export default function GameScreen() {
     logger.log("[GameScreen] Returning to title...");
 
     // 销毁引擎
-    GameEngine.destroy();
+    gameRef.current?.getEngine()?.dispose();
 
     // 清除 URL 中的 load 参数，防止自动重新进入游戏
     if (searchParams.has("load")) {
@@ -445,6 +482,7 @@ export default function GameScreen() {
         {gamePhase === "title" && (
           <div className="w-full h-full">
             <TitleGui
+              gameSlug={gameSlug}
               screenWidth={window.innerWidth}
               screenHeight={window.innerHeight}
               onNewGame={handleNewGame}
@@ -596,6 +634,12 @@ export default function GameScreen() {
                       }}
                       onXiuLianLevelUp={() => getDebugManager()?.xiuLianLevelUp()}
                       onXiuLianLevelDown={() => getDebugManager()?.xiuLianLevelDown()}
+                      onReloadMagicConfig={async () => {
+                        if (gameSlug) {
+                          // 一键重载：清除所有缓存（API + resourceLoader + NPC）并重新加载
+                          await reloadGameData(gameSlug);
+                        }
+                      }}
                     />
                   </div>
                 )}
@@ -660,14 +704,20 @@ export default function GameScreen() {
                     : undefined
                 }
               >
-                <Game
-                  ref={gameRef}
-                  width={windowSize.width}
-                  height={windowSize.height}
-                  loadSlot={loadSlot}
-                  onReturnToTitle={handleReturnToTitle}
-                  uiTheme={uiTheme}
-                />
+                {isDataReady ? (
+                  <Game
+                    ref={gameRef}
+                    width={windowSize.width}
+                    height={windowSize.height}
+                    loadSlot={loadSlot}
+                    onReturnToTitle={handleReturnToTitle}
+                    uiTheme={uiTheme}
+                  />
+                ) : (
+                  <div className="flex items-center justify-center w-full h-full text-gray-400">
+                    加载游戏数据...
+                  </div>
+                )}
               </div>
 
               {/* 移动端控制层 */}

@@ -7,13 +7,13 @@
  * 设计原则：
  * 1. 核心服务用只读属性（player, npcManager, map, audio）
  * 2. 便捷方法用于高频操作（runScript, queueScript）
- * 3. 低频管理器通过 getManager() 获取
+ * 3. 低频管理器通过直接属性访问
  */
 
 import type { AudioManager } from "../audio";
 import type { DebugManager } from "../debug/debugManager";
-import type { InteractionManager } from "../game/interactionManager";
-import type { MagicHandler } from "../game/magicHandler";
+import type { InteractionManager } from "../runtime/interactionManager";
+import type { MagicHandler } from "../runtime/magicHandler";
 import type { BuyManager } from "../gui/buyManager";
 import type { GuiManager } from "../gui/guiManager";
 import type { MagicManager } from "../magic";
@@ -65,7 +65,10 @@ export interface IPlayer extends ICharacter {
  * 脚本执行器接口
  */
 export interface IScriptExecutor {
-  runScript(scriptPath: string): Promise<void>;
+  runScript(
+    scriptPath: string,
+    belongObject?: { type: "npc" | "obj" | "good"; id: string }
+  ): Promise<void>;
   isRunning(): boolean;
 }
 
@@ -113,41 +116,10 @@ export interface INpcManager {
   /**
    * 清除所有 NPC 对指定角色的追踪目标
    */
-  cleartFollowTargetIfEqual(target: ICharacter): void;
+  clearFollowTargetIfEqual(target: ICharacter): void;
 }
 
 // IMapService 已删除，直接使用 MapBase
-
-/**
- * 管理器类型枚举
- */
-export type ManagerType =
-  | "magic"
-  | "obj"
-  | "gui"
-  | "debug"
-  | "weather"
-  | "buy"
-  | "interaction"
-  | "magicHandler"
-  | "mapRenderer"
-  | "script";
-
-/**
- * 管理器类型映射
- */
-export interface ManagerMap {
-  magic: MagicManager;
-  obj: ObjManager;
-  gui: GuiManager;
-  debug: DebugManager;
-  weather: WeatherManager;
-  buy: BuyManager;
-  interaction: InteractionManager;
-  magicHandler: MagicHandler;
-  mapRenderer: MapRenderer | null;
-  script: IScriptExecutor;
-}
 
 /**
  * 引擎上下文接口 - Sprite 及其子类通过此接口访问引擎服务
@@ -167,12 +139,32 @@ export interface IEngineContext {
   readonly map: MapBase;
   /** 音频管理器（完整实例，支持 3D 音效等） */
   readonly audio: AudioManager;
+  /** Obj 管理器 */
+  readonly objManager: ObjManager;
+  /** GUI 管理器 */
+  readonly guiManager: GuiManager;
+  /** Debug 管理器 */
+  readonly debugManager: DebugManager;
+  /** 天气管理器 */
+  readonly weatherManager: WeatherManager;
+  /** 商店管理器 */
+  readonly buyManager: BuyManager;
+  /** 交互管理器 */
+  readonly interactionManager: InteractionManager;
+  /** 武功处理器 */
+  readonly magicHandler: MagicHandler;
+  /** 武功管理器 */
+  readonly magicManager: MagicManager;
+  /** 地图渲染器 */
+  readonly mapRenderer: MapRenderer;
+  /** 脚本执行器 */
+  readonly scriptExecutor: IScriptExecutor;
 
   // ===== 便捷方法（高频操作）=====
   /**
    * 运行脚本（等待完成）
    */
-  runScript(scriptPath: string, belongObject?: { type: string; id: string }): Promise<void>;
+  runScript(scriptPath: string, belongObject?: { type: "npc" | "obj" | "good"; id: string }): Promise<void>;
 
   /**
    * 将脚本加入队列（不等待）
@@ -207,13 +199,6 @@ export interface IEngineContext {
    */
   notifyPlayerStateChanged(): void;
 
-  // ===== 低频管理器（按需获取）=====
-  /**
-   * 获取指定类型的管理器
-   * @example engine.getManager('magic')
-   * @example engine.getManager('gui')
-   */
-  getManager<T extends ManagerType>(type: T): ManagerMap[T];
 }
 
 /**

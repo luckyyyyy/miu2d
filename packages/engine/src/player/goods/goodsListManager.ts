@@ -3,9 +3,8 @@
  * Manages player's inventory and equipment
  */
 
-import { getEngineContext } from "../../core/engineContext";
+import { EngineAccess } from "../../core/engineAccess";
 import { logger } from "../../core/logger";
-import { resourceLoader } from "../../resource/resourceLoader";
 import { EquipPosition, Good, GoodKind, getGood } from "./good";
 
 // ============= Constants =============
@@ -42,20 +41,6 @@ export function getEquipSlotIndex(position: EquipPosition): number {
   }
 }
 
-export function getEquipPositionFromIndex(index: number): EquipPosition {
-  if (index < EQUIP_INDEX_BEGIN || index > EQUIP_INDEX_END) return EquipPosition.None;
-  const positions = [
-    EquipPosition.Head,
-    EquipPosition.Neck,
-    EquipPosition.Body,
-    EquipPosition.Back,
-    EquipPosition.Hand,
-    EquipPosition.Wrist,
-    EquipPosition.Foot,
-  ];
-  return positions[index - EQUIP_INDEX_BEGIN];
-}
-
 // ============= Types =============
 export interface GoodsItemInfo {
   good: Good;
@@ -72,7 +57,7 @@ export type EquipingCallback = (
 export type UnEquipingCallback = (equip: Good | null, justEffectType?: boolean) => void;
 
 // ============= GoodsListManager =============
-export class GoodsListManager {
+export class GoodsListManager extends EngineAccess {
   private goodsList: (GoodsItemInfo | null)[] = new Array(MAX_GOODS + 1).fill(null);
 
   // Callbacks for equipment changes
@@ -82,6 +67,7 @@ export class GoodsListManager {
   private onShowMessage: ((msg: string) => void) | null = null;
 
   constructor() {
+    super();
     this.renewList();
   }
 
@@ -138,97 +124,6 @@ export class GoodsListManager {
   }
 
   /**
-   * Load goods list from file
-   * Uses unified resourceLoader for text data fetching
-   */
-  async loadList(filePath: string): Promise<boolean> {
-    this.renewList();
-
-    try {
-      const content = await resourceLoader.loadText(filePath);
-      if (!content) {
-        logger.error(`[GoodsListManager] Failed to load: ${filePath}`);
-        return false;
-      }
-
-      // Parse INI content
-      const lines = content.split(/\r?\n/);
-      let currentSection = "";
-      let currentIndex = -1;
-      let iniFile = "";
-      let number = 1;
-
-      for (const line of lines) {
-        const trimmed = line.trim();
-
-        // Section header
-        if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
-          // Process previous section
-          if (currentIndex > 0 && iniFile) {
-            const good = await getGood(iniFile);
-            if (good) {
-              this.goodsList[currentIndex] = {
-                good,
-                count: number,
-                remainColdMilliseconds: 0,
-              };
-            }
-          }
-
-          currentSection = trimmed.slice(1, -1);
-          currentIndex = parseInt(currentSection, 10);
-          if (Number.isNaN(currentIndex)) currentIndex = -1;
-          iniFile = "";
-          number = 1;
-          continue;
-        }
-
-        // Key=Value
-        const eqIndex = trimmed.indexOf("=");
-        if (eqIndex === -1) continue;
-
-        const key = trimmed.substring(0, eqIndex).trim().toLowerCase();
-        const value = trimmed.substring(eqIndex + 1).trim();
-
-        if (key === "inifile") {
-          iniFile = value;
-        } else if (key === "number") {
-          number = parseInt(value, 10) || 1;
-        }
-      }
-
-      // Process last section
-      if (currentIndex > 0 && iniFile) {
-        const good = await getGood(iniFile);
-        if (good) {
-          this.goodsList[currentIndex] = {
-            good,
-            count: number,
-            remainColdMilliseconds: 0,
-          };
-        }
-      }
-
-      // Debug: Log all loaded items
-      let loadedCount = 0;
-      for (let i = LIST_INDEX_BEGIN; i <= LIST_INDEX_END; i++) {
-        if (this.goodsList[i]) {
-          loadedCount++;
-          logger.log(
-            `[GoodsListManager] Slot ${i}: ${this.goodsList[i]?.good.name} x${this.goodsList[i]?.count}`
-          );
-        }
-      }
-      logger.log(`[GoodsListManager] Loaded ${loadedCount} items from ${filePath}`);
-      this.onUpdateView?.();
-      return true;
-    } catch (error) {
-      logger.error(`[GoodsListManager] Error loading ${filePath}:`, error);
-      return false;
-    }
-  }
-
-  /**
    * Apply equipment effects from loaded list
    */
   applyEquipSpecialEffectFromList(): void {
@@ -268,10 +163,10 @@ export class GoodsListManager {
   /**
    * Set item at specific index (for loading saves)
    */
-  async setItemAtIndex(index: number, fileName: string, count: number = 1): Promise<boolean> {
+  setItemAtIndex(index: number, fileName: string, count: number = 1): boolean {
     if (!this.indexInRange(index)) return false;
 
-    const good = await getGood(fileName);
+    const good = getGood(fileName);
     if (!good) {
       logger.warn(`[GoodsListManager] Failed to load good: ${fileName}`);
       return false;
@@ -294,11 +189,11 @@ export class GoodsListManager {
   /**
    * Add good to list (with count parameter)
    */
-  async addGoodToListWithCount(
+  addGoodToListWithCount(
     fileName: string,
     count: number
-  ): Promise<{ success: boolean; index: number; good: Good | null }> {
-    const result = await this.addGoodToList(fileName);
+  ): { success: boolean; index: number; good: Good | null } {
+    const result = this.addGoodToList(fileName);
     if (result.success && result.index !== -1 && count > 1) {
       const info = this.goodsList[result.index];
       if (info) {
@@ -310,17 +205,17 @@ export class GoodsListManager {
 
   /**
    * Add good to list
-   * 
+   *
    *
    * Key logic:
    * - Equipment with random attributes (hasRandAttr) should NOT stack,
    *   each instance gets unique attribute values via getOneNonRandom()
    * - Regular items (drugs, event items) can stack by fileName
    */
-  async addGoodToList(
+  addGoodToList(
     fileName: string
-  ): Promise<{ success: boolean; index: number; good: Good | null }> {
-    let good = await getGood(fileName);
+  ): { success: boolean; index: number; good: Good | null } {
+    let good = getGood(fileName);
     if (!good) {
       return { success: false, index: -1, good: null };
     }
@@ -418,13 +313,16 @@ export class GoodsListManager {
 
   /**
    * Delete good by name and count
+   * Supports both display name (e.g., "羊皮") and fileName (e.g., "Goods-e22-羊皮.ini")
    */
   deleteGoodByName(name: string, count: number): void {
     let totalDeleted = 0;
+    const lowerName = name.toLowerCase();
 
     for (let i = LIST_INDEX_BEGIN; i <= LIST_INDEX_END; i++) {
       const info = this.goodsList[i];
-      if (info && info.good.name === name) {
+      // Match by display name or fileName (case-insensitive)
+      if (info && (info.good.name === name || info.good.fileName.toLowerCase() === lowerName)) {
         const good = info.good;
         let deleteCount = 0;
 
@@ -503,7 +401,7 @@ export class GoodsListManager {
       const temp = this.goodsList[index1];
       this.goodsList[index1] = this.goodsList[index2];
       this.goodsList[index2] = temp;
-      console.log(
+      logger.debug(
         "[GoodsListManager] exchangeListItem: calling onUpdateView, callback exists:",
         !!this.onUpdateView
       );
@@ -700,16 +598,17 @@ export class GoodsListManager {
 
       case GoodKind.Event:
         // ScriptManager.RunScript(good.Script)
-        // 使用 IEngineContext 运行脚本
+        // C# 参考: Utils.cs line 493-494 - Good 脚本路径固定为 script/goods/
         if (good.script) {
-          const engine = getEngineContext();
+          const engine = this.engine;
           if (engine) {
-            const basePath = engine.getScriptBasePath();
+            // 物品脚本路径固定在 script/goods/ 目录下
             const fullPath = good.script.startsWith("/")
               ? good.script
-              : `${basePath}/${good.script}`;
+              : `script/goods/${good.script}`;
             logger.log(`[GoodsListManager] Running event script: ${fullPath}`);
-            engine.runScript(fullPath);
+            // Pass the good's fileName as belongObject so DelGoods() can find it
+            engine.runScript(fullPath, { type: "good", id: good.fileName });
           }
         }
         break;

@@ -7,7 +7,7 @@
 
 import { logger } from "@miu2d/engine/core/logger";
 import { GoodKind } from "@miu2d/engine/player/goods";
-import type { UIEquipSlotName } from "@miu2d/engine/ui/contract";
+import type { UIEquipSlotName } from "@miu2d/engine/gui/contract";
 import type React from "react";
 import { useCallback } from "react";
 import type { TouchDragData } from "@/contexts";
@@ -510,7 +510,12 @@ export const ClassicGameUI: React.FC<ClassicGameUIProps> = ({ logic, width, heig
       {panels?.buy && buyData.items.length > 0 && (
         <BuyGui
           isVisible={true}
-          items={buyData.items}
+          items={buyData.items.map((item) => {
+            if (!item) return null;
+            const basePrice = item.price > 0 ? item.price : item.good.cost;
+            const effectivePrice = Math.floor((basePrice * buyData.buyPercent) / 100);
+            return { good: item.good, count: item.count, price: effectivePrice };
+          })}
           screenWidth={width}
           buyPercent={buyData.buyPercent}
           numberValid={buyData.numberValid}
@@ -542,7 +547,7 @@ export const ClassicGameUI: React.FC<ClassicGameUIProps> = ({ logic, width, heig
           isVisible={true}
           screenWidth={width}
           screenHeight={height}
-          canSave={engine?.getGameManager()?.isSaveEnabled() ?? false}
+          canSave={engine ? engine.getGameManager().isSaveEnabled() : false}
           onSave={async (index) => {
             dispatch({ type: "SAVE_GAME", slotIndex: index });
             return true;
@@ -584,7 +589,7 @@ export const ClassicGameUI: React.FC<ClassicGameUIProps> = ({ logic, width, heig
       />
 
       {/* Item Tooltip */}
-      <ItemTooltip isVisible={tooltip.isVisible} good={tooltip.good} position={tooltip.position} />
+      <ItemTooltip isVisible={tooltip.isVisible} good={tooltip.good} shopPrice={tooltip.shopPrice} position={tooltip.position} />
 
       {/* Magic Tooltip */}
       <MagicTooltip
@@ -594,7 +599,6 @@ export const ClassicGameUI: React.FC<ClassicGameUIProps> = ({ logic, width, heig
       />
 
       {/* Video Player */}
-      <VideoPlayer engine={engine} />
 
       {/* Engine Watermark */}
       <div

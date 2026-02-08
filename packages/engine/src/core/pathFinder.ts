@@ -2,7 +2,7 @@
  * PathFinder - A* and other pathfinding algorithms
  * Reference: JxqyHD/Engine/PathFinder.cs
  *
- * This module implements multiple pathfinding strategies to match 
+ * This module implements multiple pathfinding strategies to match
  * - PathOneStep: Simple greedy algorithm, walks ~10 steps
  * - SimpleMaxNpcTry: Greedy best-first search, maxTry=100
  * - PerfectMaxNpcTry: A* algorithm for NPCs, maxTry=100
@@ -357,9 +357,6 @@ export function findPathPerfect(
 
   // 检查目标位置是否是障碍物
   if (isMapObstacle(endTile)) {
-    logger.debug(
-      `[PathFinder.findPathPerfect] 目标位置是障碍物: endTile=(${endTile.x}, ${endTile.y})`
-    );
     return [];
   }
 
@@ -391,17 +388,12 @@ export function findPathPerfect(
   while (frontier.length > 0) {
     if (maxTryCount !== -1 && tryCount++ > maxTryCount) {
       // 计算探索范围与目标的关系
-      const exploredInTargetDirection =
-        (endTile.y < startTile.y && minY < startTile.y) || // 目标在北，有向北探索
-        (endTile.y > startTile.y && maxY > startTile.y) || // 目标在南，有向南探索
-        (endTile.x < startTile.x && minX < startTile.x) || // 目标在西，有向西探索
-        (endTile.x > startTile.x && maxX > startTile.x); // 目标在东，有向东探索
+      // const exploredInTargetDirection =
+      //   (endTile.y < startTile.y && minY < startTile.y) || // 目标在北，有向北探索
+      //   (endTile.y > startTile.y && maxY > startTile.y) || // 目标在南，有向南探索
+      //   (endTile.x < startTile.x && minX < startTile.x) || // 目标在西，有向西探索
+      //   (endTile.x > startTile.x && maxX > startTile.x); // 目标在东，有向东探索
 
-      logger.debug(
-        `[PathFinder.findPathPerfect] 超过最大尝试次数: maxTryCount=${maxTryCount}, from=(${startTile.x}, ${startTile.y}) to=(${endTile.x}, ${endTile.y}), ` +
-          `exploredRange=[(${minX},${minY})-(${maxX},${maxY})], exploredNodes=${costSoFar.size}, frontierSize=${frontier.length}, ` +
-          `exploredTowardTarget=${exploredInTargetDirection}, lastExplored=${lastExplored ? `(${lastExplored.x},${lastExplored.y})` : "null"}`
-      );
       break;
     }
 
@@ -459,9 +451,6 @@ export function findPathPerfect(
   const path = getPath(cameFrom, startTile, endTile);
 
   if (path.length === 0 && tryCount > 0) {
-    logger.debug(
-      `[PathFinder.findPathPerfect] 寻路完成但无路径: from=(${startTile.x}, ${startTile.y}) to=(${endTile.x}, ${endTile.y}), tryCount=${tryCount}, frontierExhausted=${frontier.length === 0}, noNeighborsCount=${noNeighborsCount}`
-    );
   }
 
   return path;
@@ -624,26 +613,6 @@ export function findDistanceTileInDirection(
   return neighbor;
 }
 
-/**
- * Check if there are map obstacles in a tile position list
- */
-export function hasMapObstacleInTilePositionList(
-  tilePositionList: Vector2[],
-  isMapObstacle: (tile: Vector2) => boolean
-): boolean {
-  if (!tilePositionList || tilePositionList.length === 0) {
-    return true;
-  }
-
-  for (const tilePosition of tilePositionList) {
-    if (isMapObstacle(tilePosition)) {
-      return true;
-    }
-  }
-
-  return false;
-}
-
 // ============= Ball 弹跳计算 =============
 
 /**
@@ -736,9 +705,6 @@ export function bouncingAtWall(
     return bouncingAtPoint(direction, worldPosition, targetPixel);
   }
 
-  // var normal = MapBase.ToPixelPosition(targetTilePosition) - MapBase.ToPixelPosition(neighbors[get]);
-  //     normal = Vector2.Normalize(new Vector2(-normal.Y, normal.X));
-  //     return Vector2.Reflect(direction, normal);
   const targetPixel = tileToPixel(targetTilePosition.x, targetTilePosition.y);
   const neighborPixel = tileToPixel(neighbors[foundIndex].x, neighbors[foundIndex].y);
 
@@ -763,46 +729,6 @@ export function bouncingAtWall(
     x: direction.x - 2 * dot * nx,
     y: direction.y - 2 * dot * ny,
   };
-}
-
-/**
- * Find the farthest walkable tile in the direction from start to target.
- * Used when pathfinding fails - we try to move towards that direction as far as possible.
- *
- * **New Strategy (for better mouse-hold experience):**
- * Walk FROM the player's position TOWARDS the target direction, step by step.
- * When the main direction is blocked, try adjacent directions (±1, ±2).
- * Return the farthest reachable point in that general direction.
- *
- * This ensures that when clicking on an obstacle, the character walks as far
- * as possible toward that direction instead of not moving at all.
- *
- * @param startTile Starting tile position (player's position)
- * @param targetTile Target tile position (clicked position, used to calculate direction)
- * @param isMapObstacle Function to check if a tile is a map obstacle
- * @param isHardObstacle Function to check if a tile is a hard obstacle (for diagonal blocking)
- * @param maxSteps Maximum steps to search (default 50)
- * @returns The farthest walkable tile in that direction, or null if can't move at all
- */
-export function findNearestWalkableTileInDirection(
-  startTile: Vector2,
-  targetTile: Vector2,
-  isMapObstacle: (tile: Vector2) => boolean,
-  isHardObstacle: (tile: Vector2) => boolean,
-  maxSteps: number = 50
-): Vector2 | null {
-  const result = findPathInDirection(
-    startTile,
-    targetTile,
-    isMapObstacle,
-    isHardObstacle,
-    maxSteps
-  );
-  // 如果找到了路径（长度大于1，不只是起点），返回终点
-  if (result.path.length > 1) {
-    return result.destination;
-  }
-  return null;
 }
 
 /**

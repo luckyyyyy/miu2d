@@ -9,11 +9,16 @@ import { ResourcePath } from "../../config/resourcePaths";
 import { logger } from "../../core/logger";
 import type { Vector2 } from "../../core/types";
 import { CharacterState } from "../../core/types";
-import { getEffectAmount } from "../../magic/effects/common";
-import { type AsfData, getCachedAsf, loadAsf } from "../../sprite/asf";
+import { getEffectAmount, getCharacterDeathExp } from "../../core/effectCalc";
+import { type AsfData, getCachedAsf, loadAsf } from "../../resource/asf";
 import { tileToPixel } from "../../utils";
 import type { CharacterBase, MagicToUseInfoItem } from "./characterBase";
 import { CharacterMovement } from "./characterMovement";
+
+// Module-level cached death animation ASF data
+let _frozenDie: AsfData | null = null;
+let _poisonDie: AsfData | null = null;
+let _petrifiedDie: AsfData | null = null;
 
 /**
  * CharacterCombat - 战斗功能层
@@ -87,7 +92,7 @@ export abstract class CharacterCombat extends CharacterMovement {
     this.exp += amount;
     if (this.exp > this.levelUpExp) {
       // Reference: GuiManager.ShowMessage(Name + "的等级提升了");
-      const gui = this.engine.getManager("gui") as { showMessage?: (msg: string) => void };
+      const gui = this.gui as { showMessage?: (msg: string) => void };
       gui.showMessage?.(`${this.name}的等级提升了`);
       this.toLevelByExp(this.exp);
     }
@@ -173,18 +178,6 @@ export abstract class CharacterCombat extends CharacterMovement {
   // === Damage Methods ===
   // =============================================
 
-  /**
-   * 计算击杀经验
-   * 或类似逻辑
-   */
-  static getCharacterDeathExp(
-    killer: { level: number },
-    dead: { level: number; expBonus?: number }
-  ): number {
-    if (!killer || !dead) return 1;
-    const exp = killer.level * dead.level + (dead.expBonus ?? 0);
-    return exp < 4 ? 4 : exp;
-  }
 
   /**
    * 受到伤害
@@ -193,7 +186,7 @@ export abstract class CharacterCombat extends CharacterMovement {
     if (this.isDeathInvoked || this.isDeath) return;
 
     // 调试无敌模式
-    if (this.isPlayer && this.engine.getManager("debug").isGodMode()) {
+    if (this.isPlayer && this.debug.isGodMode()) {
       return;
     }
 
@@ -271,7 +264,7 @@ export abstract class CharacterCombat extends CharacterMovement {
       if (attacker && (attacker.isPlayer || attacker.isFighterFriend)) {
         const player = this.engine.player;
         if (player) {
-          const exp = CharacterCombat.getCharacterDeathExp(player, this);
+          const exp = getCharacterDeathExp(player, this);
           player.addExp(exp, true);
         }
       }
@@ -294,7 +287,7 @@ export abstract class CharacterCombat extends CharacterMovement {
   ): number {
     if (this.isDeathInvoked || this.isDeath) return 0;
 
-    if (this.isPlayer && this.engine.getManager("debug").isGodMode()) {
+    if (this.isPlayer && this.debug.isGodMode()) {
       return 0;
     }
 
@@ -429,11 +422,6 @@ export abstract class CharacterCombat extends CharacterMovement {
   // === Death Methods ===
   // =============================================
 
-  // private static Asf FrozenDie/PoisonDie/PetrifiedDie
-  private static FrozenDie: AsfData | null = null;
-  private static PoisonDie: AsfData | null = null;
-  private static PetrifiedDie: AsfData | null = null;
-
   /**
    * 角色死亡处理
    * Reference: Character.Death()
@@ -448,19 +436,19 @@ export abstract class CharacterCombat extends CharacterMovement {
     }
 
     // InvisibleByMagicTime = 0
-    this.invisibleByMagicTime = 0;
+    this.statusEffects.invisibleByMagicTime = 0;
 
     // SppedUpByMagicSprite = null (取消加速效果)
-    this.speedUpByMagicSprite = null;
+    this.statusEffects.speedUpByMagicSprite = null;
 
     // if (ControledMagicSprite != null) - 处理被控制状态
     // 原版代码: var player = ControledMagicSprite.BelongCharacter as Player; player.EndControlCharacter();
-    if (this._controledMagicSprite !== null) {
+    if (this.statusEffects.controledMagicSprite !== null) {
       // TypeScript 中通过 belongCharacterId 判断是否是玩家控制
-      if (this._controledMagicSprite.belongCharacterId === "player") {
+      if (this.statusEffects.controledMagicSprite.belongCharacterId === "player") {
         this.engine.player.endControlCharacter();
       }
-      this._controledMagicSprite = null;
+      this.statusEffects.controledMagicSprite = null;
     }
 
     // if (SummonedByMagicSprite != null) - 召唤物死亡处理
@@ -491,7 +479,7 @@ export abstract class CharacterCombat extends CharacterMovement {
 
       // Reference: Character.Death() - 状态效果死亡动画
       // 冰冻死亡 -> 冰碎动画
-      if (this.isFrozened && this.isFrozenVisualEffect) {
+      if (this.isFrozen && this.isFrozenVisualEffect) {
         this.applySpecialDeathAnimation("frozen");
       }
       // 中毒死亡 -> 毒气动画
@@ -504,7 +492,7 @@ export abstract class CharacterCombat extends CharacterMovement {
       }
 
       // 清除冰冻、中毒、石化状态
-      this._statusEffects.toNormalState();
+      this.statusEffects.toNormalState();
       this.playCurrentDirOnce();
     } else {
       this.isDeath = true;
@@ -522,11 +510,11 @@ export abstract class CharacterCombat extends CharacterMovement {
     switch (type) {
       case "frozen":
         asfPath = ResourcePath.asfInterlude("die-冰.asf");
-        asf = CharacterCombat.FrozenDie || getCachedAsf(asfPath);
+        asf = _frozenDie || getCachedAsf(asfPath);
         if (!asf) {
           // 异步加载并缓存
           loadAsf(asfPath).then((loaded) => {
-            CharacterCombat.FrozenDie = loaded;
+            _frozenDie = loaded;
             if (loaded && this.isInDeathing) {
               this.texture = loaded;
               this.currentDirection = 0;
@@ -536,10 +524,10 @@ export abstract class CharacterCombat extends CharacterMovement {
         break;
       case "poison":
         asfPath = ResourcePath.asfInterlude("die-毒.asf");
-        asf = CharacterCombat.PoisonDie || getCachedAsf(asfPath);
+        asf = _poisonDie || getCachedAsf(asfPath);
         if (!asf) {
           loadAsf(asfPath).then((loaded) => {
-            CharacterCombat.PoisonDie = loaded;
+            _poisonDie = loaded;
             if (loaded && this.isInDeathing) {
               this.texture = loaded;
               this.currentDirection = 0;
@@ -549,10 +537,10 @@ export abstract class CharacterCombat extends CharacterMovement {
         break;
       case "petrified":
         asfPath = ResourcePath.asfInterlude("die-石.asf");
-        asf = CharacterCombat.PetrifiedDie || getCachedAsf(asfPath);
+        asf = _petrifiedDie || getCachedAsf(asfPath);
         if (!asf) {
           loadAsf(asfPath).then((loaded) => {
-            CharacterCombat.PetrifiedDie = loaded;
+            _petrifiedDie = loaded;
             if (loaded && this.isInDeathing) {
               this.texture = loaded;
               this.currentDirection = 0;

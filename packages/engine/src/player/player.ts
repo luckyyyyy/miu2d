@@ -11,33 +11,32 @@
  * - 本文件包含状态机、存档/加载、等级、遮挡等 (~800行)
  */
 
-import { Character } from "../character";
-import type { CharacterBase } from "../character/base";
-import { applyConfigToPlayer, parseCharacterIni } from "../character/iniParser";
-import { getEngineContext } from "../core/engineContext";
+import type { Character } from "../character";
+import { resolveScriptPath } from "../config/resourcePaths";
 import { logger } from "../core/logger";
 import type { Vector2 } from "../core/types";
 import { CharacterState, RUN_SPEED_FOLD } from "../core/types";
-import type { PlayerSaveData } from "../game/storage";
-import { getEffectAmount } from "../magic/effects/common";
+import type { PlayerSaveData } from "../runtime/storage";
+import { getEffectAmount } from "../core/effectCalc";
 import type { MagicSprite } from "../magic/magicSprite";
 import type { MagicData } from "../magic/types";
 import { MagicMoveKind, MagicSpecialKind } from "../magic/types";
+import { Sprite } from "../sprite/sprite";
+import type { IRenderer } from "../webgl/iRenderer";
 import { getTileTextureRegion } from "../map/renderer";
 import { resourceLoader } from "../resource/resourceLoader";
+import type { ApiPlayerData } from "../resource/resourceLoader";
 import { isBoxCollide, pixelToTile } from "../utils";
-import type { Good } from "./goods";
 import {
   LIFE_RESTORE_PERCENT,
   MANA_RESTORE_PERCENT,
-  type PlayerAction,
   PlayerCombat,
   RESTORE_INTERVAL_MS,
   SITTING_MANA_RESTORE_INTERVAL,
   THEW_RESTORE_PERCENT,
 } from "./base";
 
-export { type PlayerAction } from "./base";
+export type { PlayerAction } from "./base";
 
 /**
  * Player - 完整的玩家类
@@ -83,7 +82,7 @@ export class Player extends PlayerCombat {
    * 自动运行该物体的脚本（通常用于陷阱、机关等）
    */
   private updateTouchObj(): void {
-    const objManager = this.engine.getManager("obj");
+    const objManager = this.obj;
     if (!objManager) return;
 
     const objs = objManager.getObjsAtPosition({ x: this.mapX, y: this.mapY });
@@ -110,11 +109,7 @@ export class Player extends PlayerCombat {
       if (!this.consumeRunningThew()) {
         // Not enough thew, switch to walking
         // Use FightWalk if in fighting mode
-        if (this._isInFighting && this.isStateImageOk(CharacterState.FightWalk)) {
-          this.state = CharacterState.FightWalk;
-        } else {
-          this.state = CharacterState.Walk;
-        }
+        this.state = this.selectFightOrNormalState(CharacterState.FightWalk, CharacterState.Walk);
       }
     }
 
@@ -224,34 +219,10 @@ export class Player extends PlayerCombat {
   }
 
   /**
-   * Update animation (calls Sprite.update directly)
+   * Update animation (calls Sprite.update directly, skipping Character.update state machine)
    */
   private updateAnimation(deltaTime: number): void {
-    // Call Sprite.update directly (not Character.update to avoid recursion)
-    if (this._texture && this.isShow) {
-      const deltaMs = deltaTime * 1000;
-      this._elapsedMilliSecond += deltaMs;
-
-      const frameInterval = this._texture.interval || 100;
-
-      // Only advance if elapsed > interval
-      if (this._elapsedMilliSecond > frameInterval) {
-        this._elapsedMilliSecond -= frameInterval;
-
-        // Advance frame based on reverse flag
-        if (this.isInPlaying && this._isPlayReverse) {
-          this.currentFrameIndex--;
-        } else {
-          this.currentFrameIndex++;
-        }
-        this.frameAdvanceCount = 1;
-
-        // Decrement frames left to play
-        if (this._leftFrameToPlay > 0) {
-          this._leftFrameToPlay--;
-        }
-      }
-    }
+    Sprite.prototype.update.call(this, deltaTime);
   }
 
   // =============================================
@@ -270,13 +241,10 @@ export class Player extends PlayerCombat {
 
     // Run death script if set
     if (this.deathScript) {
-      const engine = getEngineContext();
-      const basePath = engine.getScriptBasePath();
-      const fullPath = this.deathScript.startsWith("/")
-        ? this.deathScript
-        : `${basePath}/${this.deathScript}`;
+      const basePath = this.engine.getScriptBasePath();
+      const fullPath = resolveScriptPath(basePath, this.deathScript);
       logger.log(`[Player] Running death script: ${fullPath}`);
-      engine.runScript(fullPath);
+      this.engine.runScript(fullPath);
     }
 
     // Globals.IsInputDisabled = true
@@ -294,6 +262,33 @@ export class Player extends PlayerCombat {
       logger.log(`[Player] Revived - input should be re-enabled`);
     }
     super.fullLife();
+  }
+
+  // =============================================
+  // === Sprite Loading (SetNpcRes) ===
+  // =============================================
+
+  /**
+   * Override loadSpritesFromNpcIni to update NpcIniIndex and SpecialAttackTexture
+   * Reference: Player.SetNpcIni() - 当通过 SetNpcRes 脚本命令改变玩家资源时，
+   * 需要更新 NpcIniIndex 和刷新修炼武功的 SpecialAttackTexture
+   *
+   * C# 原版: Player.SetNpcIni(fileName) 调用 base.SetNpcIni 后执行：
+   *   NpcIniIndex = value;  // 从文件名提取数字
+   *   XiuLianMagic = XiuLianMagic;  // 触发 setter 刷新 SpecialAttackTexture
+   */
+  override async loadSpritesFromNpcIni(npcIni?: string): Promise<boolean> {
+    const result = await super.loadSpritesFromNpcIni(npcIni);
+
+    if (result && npcIni) {
+      // 调用 setNpcIni 来更新 _npcIniIndex 和刷新 SpecialAttackTexture
+      // 注意：super.loadSpritesFromNpcIni 已经设置了 this.npcIni = iniFile
+      // 这里调用 setNpcIni 会再次设置 npcIni，但主要目的是更新 _npcIniIndex
+      await this.setNpcIni(npcIni);
+      logger.log(`[Player] loadSpritesFromNpcIni: updated NpcIniIndex for ${npcIni}`);
+    }
+
+    return result;
   }
 
   // =============================================
@@ -466,7 +461,7 @@ export class Player extends PlayerCombat {
 
   /**
    * 设置等级配置文件
-   * SetLevelFile 脚本命令
+   * SetLevelFile 脚本命令（从 API 按需加载，自动转小写）
    */
   async setLevelFile(filePath: string): Promise<void> {
     await this.levelManager.setLevelFile(filePath);
@@ -554,27 +549,68 @@ export class Player extends PlayerCombat {
   // === Save/Load ===
   // =============================================
 
-  async loadFromFile(filePath: string): Promise<boolean> {
-    // 确保等级配置已初始化
+  /**
+   * 从 API 玩家数据加载
+   * 用于初始存档 (index=0) 加载，数据来自 /api/data 的 players 数组
+   */
+  async loadFromApiData(data: ApiPlayerData): Promise<boolean> {
     await this.levelManager.initialize();
 
     try {
-      const content = await resourceLoader.loadText(filePath);
-      if (!content) return false;
+      // 基本信息
+      this.name = data.name;
+      if (data.npcIni) {
+        this.setNpcIni(data.npcIni);
+      }
+      this.kind = data.kind;
+      this.relation = data.relation;
+      this.pathFinder = data.pathFinder;
 
-      // 1. 解析 INI 为 CharacterConfig
-      const config = parseCharacterIni(content);
-      if (!config) return false;
+      // 配置字符串
+      if (data.bodyIni) this.bodyIni = data.bodyIni;
+      if (data.flyIni) this.setFlyIni(data.flyIni);
+      if (data.flyIni2) this.setFlyIni2(data.flyIni2);
+      if (data.deathScript) this.deathScript = data.deathScript;
+      if (data.scriptFile) this.scriptFile = data.scriptFile;
+      if (data.levelIni) this.levelIniFile = data.levelIni;
+      if (data.timeScript) this.timerScript = data.timeScript;
 
-      // 2. 应用配置到 Player（纯赋值）
-      applyConfigToPlayer(config, this);
+      // 位置
+      this.setPosition(data.mapX, data.mapY);
+      this.setDirection(data.dir);
 
-      // 3. 调用 setXXX 方法触发副作用（包括 setPosition/setDirection）
-      this.applyConfigSetters();
+      // 范围
+      this.idle = data.idle;
+      this.visionRadius = data.visionRadius;
+      this.dialogRadius = data.dialogRadius;
+      this.attackRadius = data.attackRadius;
 
+      // 属性 - 先设置 Max 再设置当前值
+      this.level = data.level;
+      this.exp = data.exp;
+      this.levelUpExp = data.levelUpExp;
+      this.lifeMax = data.lifeMax;
+      this.life = data.life;
+      this.thewMax = data.thewMax;
+      this.thew = data.thew;
+      this.manaMax = data.manaMax;
+      this.mana = data.mana;
+      this.attack = data.attack;
+      this.attackLevel = data.attackLevel;
+      this.defend = data.defend;
+      this.evade = data.evade;
+      this.lum = data.lum;
+      this.walkSpeed = data.walkSpeed;
+
+      // Player 特有
+      this.money = data.money;
+      this.manaLimit = data.manaLimit !== 0;
+      this.expBonus = data.expBonus;
+
+      logger.info(`[Player] Loaded from API data: ${data.name} at (${data.mapX}, ${data.mapY})`);
       return true;
     } catch (error) {
-      logger.error(`[Player] Error loading:`, error);
+      logger.error(`[Player] Error loading from API data:`, error);
       return false;
     }
   }
@@ -869,11 +905,8 @@ export class Player extends PlayerCombat {
    * 中检测 layer2, layer3 和 NPC 碰撞
    */
   private checkOcclusionTransparency(): boolean {
-    const engine = this.engine;
-    if (!engine) return false;
-
-    const mapRenderer = engine.getManager("mapRenderer");
-    if (!mapRenderer || !mapRenderer.mapData || mapRenderer.isLoading) return false;
+    const mapRenderer = this.mapRenderer;
+    if (!mapRenderer.mapData || mapRenderer.isLoading) return false;
 
     const playerRegion = this.regionInWorld;
     const playerMapY = this.tilePosition.y;
@@ -902,18 +935,15 @@ export class Player extends PlayerCombat {
 
     // 检测与视野内 NPC 的碰撞
     // 性能优化：使用 Update 阶段预计算的 npcsInView，已经过滤了视野外的 NPC
-    const npcManager = engine.npcManager;
-    if (npcManager) {
-      const npcsInView = npcManager.npcsInView;
+    const npcsInView = this.engine.npcManager.npcsInView;
 
-      for (const npc of npcsInView) {
-        if (!npc.isVisible || npc.isHide) continue;
-        // 只检测在玩家前面的 NPC（mapY > playerMapY）
-        if (npc.tilePosition.y > playerMapY) {
-          const npcRegion = npc.regionInWorld;
-          if (isBoxCollide(playerRegion, npcRegion)) {
-            return true;
-          }
+    for (const npc of npcsInView) {
+      if (!npc.isVisible || npc.isHide) continue;
+      // 只检测在玩家前面的 NPC（mapY > playerMapY）
+      if (npc.tilePosition.y > playerMapY) {
+        const npcRegion = npc.regionInWorld;
+        if (isBoxCollide(playerRegion, npcRegion)) {
+          return true;
         }
       }
     }
@@ -930,7 +960,7 @@ export class Player extends PlayerCombat {
    * 注意：半透明遮挡效果在 gameEngine.ts 中绘制（在所有地图层之后）
    */
   override draw(
-    ctx: CanvasRenderingContext2D,
+    renderer: IRenderer,
     cameraX: number,
     cameraY: number,
     offX: number = 0,
@@ -952,7 +982,7 @@ export class Player extends PlayerCombat {
     }
 
     // 正常绘制玩家
-    this.drawWithColor(ctx, cameraX, cameraY, drawColor, offX, offY);
+    this.drawWithColor(renderer, cameraX, cameraY, drawColor, offX, offY);
     // 注意：半透明遮挡效果不在这里绘制，而是在 gameEngine.ts 中
     // 在所有地图层渲染完成后单独绘制半透明玩家叠加层
   }
@@ -997,7 +1027,12 @@ export class Player extends PlayerCombat {
    * for (var node = MagicSpritesInEffect.First; ...)
    */
   cleanupDestroyedMagicSprites(): void {
-    this._magicSpritesInEffect = this._magicSpritesInEffect.filter((s) => !s.isDestroyed);
+    // 原地删除已销毁的精灵，避免创建新数组减少 GC 压力
+    for (let i = this._magicSpritesInEffect.length - 1; i >= 0; i--) {
+      if (this._magicSpritesInEffect[i].isDestroyed) {
+        this._magicSpritesInEffect.splice(i, 1);
+      }
+    }
   }
 
   /**

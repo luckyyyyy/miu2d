@@ -14,7 +14,8 @@
  * 注意：渲染由 renderer.ts 处理，MapBase 专注于逻辑
  */
 
-import { getEngineContext } from "../core/engineContext";
+import { resolveScriptPath } from "../config/resourcePaths";
+import { EngineAccess } from "../core/engineAccess";
 import { logger } from "../core/logger";
 import type { JxqyMapData, MapTileInfo } from "../core/mapTypes";
 import type { Vector2 } from "../core/types";
@@ -51,12 +52,12 @@ export const LAYER_INDEX = {
  * 地图基类 - 单例模式
  *
  *
- * 所有状态都在实例上，通过 MapBase.Instance 或 engine.map 访问
+ * 所有状态都在实例上，通过 engine.map 访问
  */
-export class MapBase {
-  /** 单例实例 () */
-  private static _instance: MapBase | null = null;
-
+export class MapBase extends EngineAccess {
+  constructor() {
+    super();
+  }
   // ============= 地图数据 =============
   private _mapData: JxqyMapData | null = null;
   private _isOk: boolean = false;
@@ -83,19 +84,6 @@ export class MapBase {
   private _ignoredTrapsIndex: Set<number> = new Set();
   /** 是否正在执行陷阱脚本 */
   private _isInRunMapTrap: boolean = false;
-
-  // ============= 构造函数（私有，使用单例） =============
-  private constructor() {}
-
-  /**
-   * 获取单例实例
-   */
-  static get Instance(): MapBase {
-    if (!MapBase._instance) {
-      MapBase._instance = new MapBase();
-    }
-    return MapBase._instance;
-  }
 
   /**
    * 设置地图数据（由外部加载后设置）
@@ -217,7 +205,7 @@ export class MapBase {
    *
    * 内部使用 core/utils.ts 的实现
    */
-  static ToTilePosition(pixelX: number, pixelY: number, boundCheck: boolean = true): Vector2 {
+  static toTilePosition(pixelX: number, pixelY: number, boundCheck: boolean = true): Vector2 {
     if (boundCheck && (pixelX < 0 || pixelY < 0)) {
       return { x: 0, y: 0 };
     }
@@ -225,59 +213,24 @@ export class MapBase {
   }
 
   /**
-   * 像素坐标 → 瓦片坐标（Vector2 重载）
-   */
-  static ToTilePositionFromVector(pixelPosition: Vector2, boundCheck: boolean = true): Vector2 {
-    return MapBase.ToTilePosition(pixelPosition.x, pixelPosition.y, boundCheck);
-  }
-
-  /**
    * 瓦片坐标 → 像素坐标（瓦片中心）
    *
    * 内部使用 core/utils.ts 的实现
    */
-  static ToPixelPosition(col: number, row: number, boundCheck: boolean = true): Vector2 {
+  static toPixelPosition(col: number, row: number, boundCheck: boolean = true): Vector2 {
     if (boundCheck && (col < 0 || row < 0)) {
       return { x: 0, y: 0 };
     }
     return tileToPixel(col, row);
   }
 
-  /**
-   * 瓦片坐标 → 像素坐标（Vector2 重载）
-   */
-  static ToPixelPositionFromVector(tilePosition: Vector2, boundCheck: boolean = true): Vector2 {
-    return MapBase.ToPixelPosition(tilePosition.x, tilePosition.y, boundCheck);
-  }
-
   // ============= 视图范围计算 =============
-
-  /**
-   * 获取当前视图内的起始瓦片
-   *
-   */
-  getStartTileInView(): Vector2 {
-    return MapBase.GetStartTileInViewStatic(this.viewBeginX, this.viewBeginY);
-  }
-
-  /**
-   * 获取当前视图内的结束瓦片
-   *
-   */
-  getEndTileInView(): Vector2 {
-    return MapBase.GetEndTileInViewStatic(
-      this.viewBeginX + this._viewWidth,
-      this.viewBeginY + this._viewHeight,
-      this.mapColumnCounts,
-      this.mapRowCounts
-    );
-  }
 
   /**
    * 静态方法：获取视图内的起始瓦片
    */
-  static GetStartTileInViewStatic(viewBeginX: number, viewBeginY: number): Vector2 {
-    const start = MapBase.ToTilePosition(viewBeginX, viewBeginY);
+  static getStartTileInViewStatic(viewBeginX: number, viewBeginY: number): Vector2 {
+    const start = MapBase.toTilePosition(viewBeginX, viewBeginY);
     start.x = Math.max(0, start.x - 20);
     start.y = Math.max(0, start.y - 20);
     return start;
@@ -286,13 +239,13 @@ export class MapBase {
   /**
    * 静态方法：获取视图内的结束瓦片
    */
-  static GetEndTileInViewStatic(
+  static getEndTileInViewStatic(
     viewEndX: number,
     viewEndY: number,
     mapColumnCounts: number,
     mapRowCounts: number
   ): Vector2 {
-    const end = MapBase.ToTilePosition(viewEndX, viewEndY);
+    const end = MapBase.toTilePosition(viewEndX, viewEndY);
     end.x = Math.min(mapColumnCounts, end.x + 20);
     end.y = Math.min(mapRowCounts, end.y + 20);
     return end;
@@ -307,13 +260,6 @@ export class MapBase {
   isTileInMapRange(x: number, y: number): boolean {
     if (!this._mapData) return false;
     return x >= 0 && x < this._mapData.mapColumnCounts && y >= 0 && y < this._mapData.mapRowCounts;
-  }
-
-  /**
-   * 检查瓦片是否在地图范围内（Vector2 重载）
-   */
-  isTileInMapRangeVector(tilePosition: Vector2): boolean {
-    return this.isTileInMapRange(tilePosition.x, tilePosition.y);
   }
 
   /**
@@ -364,13 +310,6 @@ export class MapBase {
   }
 
   /**
-   * 检查是否为障碍物（Vector2 重载）
-   */
-  isObstacleVector(tilePosition: Vector2): boolean {
-    return this.isObstacle(tilePosition.x, tilePosition.y);
-  }
-
-  /**
    * 检查是否为角色障碍（检查 Obstacle + Trans）
    *
    *
@@ -411,13 +350,6 @@ export class MapBase {
   }
 
   /**
-   * 检查是否为角色障碍（Vector2 重载）
-   */
-  isObstacleForCharacterVector(tilePosition: Vector2): boolean {
-    return this.isObstacleForCharacter(tilePosition.x, tilePosition.y);
-  }
-
-  /**
    * 检查是否为角色跳跃障碍
    *
    *
@@ -436,13 +368,6 @@ export class MapBase {
       }
     }
     return true;
-  }
-
-  /**
-   * 检查是否为角色跳跃障碍（Vector2 重载）
-   */
-  isObstacleForCharacterJumpVector(tilePosition: Vector2): boolean {
-    return this.isObstacleForCharacterJump(tilePosition.x, tilePosition.y);
   }
 
   /**
@@ -466,13 +391,6 @@ export class MapBase {
     return true;
   }
 
-  /**
-   * 检查是否为武功障碍（Vector2 重载）
-   */
-  isObstacleForMagicVector(tilePosition: Vector2): boolean {
-    return this.isObstacleForMagic(tilePosition.x, tilePosition.y);
-  }
-
   // ============= 聚合碰撞检测 =============
 
   /**
@@ -489,16 +407,16 @@ export class MapBase {
 
     // NPC 障碍
     try {
-      const ctx = getEngineContext();
-      if (ctx.npcManager.isObstacle(tile.x, tile.y)) {
+      const engine = this.engine;
+      if (engine.npcManager.isObstacle(tile.x, tile.y)) {
         return false;
       }
       // Obj 障碍
-      const objManager = ctx.getManager("obj");
+      const objManager = this.obj;
       if (objManager.isObstacle(tile.x, tile.y)) {
         return false;
       }
-    } catch {
+    } catch { // engine not initialized
       // 引擎未初始化，只检查地图障碍
     }
 
@@ -506,20 +424,6 @@ export class MapBase {
   }
 
   // ============= 坐标转换（实例方法，兼容接口）=============
-
-  /**
-   * 像素坐标 → 瓦片坐标（实例方法）
-   */
-  toTilePosition(pixelX: number, pixelY: number): Vector2 {
-    return MapBase.ToTilePosition(pixelX, pixelY);
-  }
-
-  /**
-   * 瓦片坐标 → 像素坐标（实例方法）
-   */
-  toPixelPosition(tileX: number, tileY: number): Vector2 {
-    return MapBase.ToPixelPosition(tileX, tileY);
-  }
 
   /**
    * 检查瓦片是否为跳跃障碍（别名，兼容接口）
@@ -629,7 +533,7 @@ export class MapBase {
 
   /**
    * 清空已忽略的陷阱列表（加载新地图时调用）
-   * 中的 _ingnoredTrapsIndex.Clear()
+   * 中的 _ignoredTrapsIndex.Clear()
    */
   clearIgnoredTraps(): void {
     this._ignoredTrapsIndex.clear();
@@ -741,7 +645,7 @@ export class MapBase {
 
     // 运行脚本
     const basePath = getScriptBasePath();
-    const scriptPath = `${basePath}/${trapScriptName}`;
+    const scriptPath = resolveScriptPath(basePath, trapScriptName);
     logger.log(`[MapBase] Running trap script: ${scriptPath}`);
     runScript(scriptPath);
 
@@ -877,7 +781,7 @@ export class MapBase {
 
       // 运行脚本
       const basePath = getScriptBasePath();
-      const scriptPath = `${basePath}/${trapScriptName}`;
+      const scriptPath = resolveScriptPath(basePath, trapScriptName);
       logger.log(`[MapBase] Running trap script: ${scriptPath}`);
       runScript(scriptPath);
 
@@ -976,7 +880,7 @@ export class MapBase {
       maxTry--;
       randPosition.x = tilePosition.x + Math.floor(Math.random() * (2 * max + 1)) - max;
       randPosition.y = tilePosition.y + Math.floor(Math.random() * (2 * max + 1)) - max;
-    } while (!this.isTileInMapRangeVector(randPosition) && maxTry >= 0);
+    } while (!this.isTileInMapRange(randPosition.x, randPosition.y) && maxTry >= 0);
 
     return maxTry < 0 ? { x: 0, y: 0 } : randPosition;
   }
@@ -999,16 +903,18 @@ export class MapBase {
 
   /**
    * 从存档数据恢复陷阱状态
+   * @param groups 陷阱分组（地图名 → { trapIndex → scriptFile }）
+   * @param snapshot 陷阱快照（已触发的陷阱索引列表）
    */
   loadTrapsFromSave(
-    mapTraps: Record<string, Record<number, string>> | undefined,
-    ignoreList: number[]
+    groups: Record<string, Record<number, string>> | undefined,
+    snapshot: number[]
   ): void {
-    // 恢复陷阱配置
-    if (mapTraps) {
+    // 恢复陷阱分组配置
+    if (groups) {
       this._traps.clear();
-      for (const mapName in mapTraps) {
-        const trapObj = mapTraps[mapName];
+      for (const mapName in groups) {
+        const trapObj = groups[mapName];
         const traps = new Map<number, string>();
         for (const trapIndexStr in trapObj) {
           const trapIndex = parseInt(trapIndexStr, 10);
@@ -1021,23 +927,24 @@ export class MapBase {
           this._traps.set(mapName, traps);
         }
       }
-      logger.debug(`[MapBase] Restored trap config for ${this._traps.size} maps`);
+      logger.debug(`[MapBase] Restored trap groups for ${this._traps.size} maps`);
     }
 
-    // 恢复已忽略的陷阱索引
+    // 恢复陷阱快照（已触发的陷阱索引）
     this._ignoredTrapsIndex.clear();
-    for (const index of ignoreList) {
+    for (const index of snapshot) {
       this._ignoredTrapsIndex.add(index);
     }
-    logger.debug(`[MapBase] Restored ${ignoreList.length} ignored trap indices`);
+    logger.debug(`[MapBase] Restored ${snapshot.length} ignored trap indices`);
   }
 
   /**
    * 收集陷阱数据用于存档
+   * @returns snapshot: 已触发的陷阱索引, groups: 按地图名分组的陷阱配置
    */
   collectTrapDataForSave(): {
-    mapTraps: Record<string, Record<number, string>>;
     ignoreList: number[];
+    mapTraps: Record<string, Record<number, string>>;
   } {
     const mapTraps: Record<string, Record<number, string>> = {};
     for (const [mapName, traps] of this._traps) {

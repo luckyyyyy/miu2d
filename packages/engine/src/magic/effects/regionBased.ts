@@ -65,5 +65,3 @@ export const regionBasedEffect: MagicEffect = {
 export function createRegionBasedEffect(): MagicEffect {
   return { ...regionBasedEffect };
 }
-
-export default regionBasedEffect;

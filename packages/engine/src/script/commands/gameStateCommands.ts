@@ -121,12 +121,10 @@ const getRandNumCommand: CommandHandler = (params, _result, helpers) => {
 /**
  * Sleep - Pause execution
  */
-const sleepCommand: CommandHandler = (params, _result, helpers) => {
+const sleepCommand: CommandHandler = async (params, _result, helpers) => {
   const ms = helpers.resolveNumber(params[0] || "0");
-  helpers.state.waitTime = ms;
-  helpers.context.sleep(ms);
-  helpers.state.currentLine++;
-  return false;
+  await helpers.context.sleep(ms);
+  return true;
 };
 
 /**
@@ -213,6 +211,7 @@ const enableRunCommand: CommandHandler = (_params, _result, helpers) => {
 
 /**
  * SetLevelFile - Set level file
+ * 从 API 按需加载等级配置，自动转小写请求
  */
 const setLevelFileCommand: CommandHandler = async (params, _result, helpers) => {
   const file = helpers.resolveString(params[0] || "");

@@ -17,6 +17,7 @@
  */
 
 import { getResourceRoot, getResourceUrl } from "../config/resourcePaths";
+import { parseXnbAudio, xnbToAudioBuffer } from "./xnb";
 /**
  * 资源类型
  * - text/binary/audio: 原始资源类型
@@ -164,7 +165,7 @@ class ResourceLoaderImpl {
       try {
         const url = new URL(normalized);
         normalized = url.pathname;
-      } catch {
+      } catch { // URL parse failed
         // 解析失败，保持原样
       }
     }
@@ -172,6 +173,12 @@ class ResourceLoaderImpl {
     // 确保以 / 开头
     if (!normalized.startsWith("/")) {
       normalized = `/${normalized}`;
+    }
+
+    // 如果路径已经包含 /game/ 前缀（编辑器场景），说明是完整路径，直接返回
+    // 例如: /game/william-chan/resources/mpc/map/...
+    if (normalized.startsWith("/game/")) {
+      return normalized;
     }
 
     // 使用配置的资源根目录
@@ -189,26 +196,38 @@ class ResourceLoaderImpl {
     return normalized;
   }
 
+  // ==================== 通用加载模板方法 ====================
+
   /**
-   * 加载文本资源（UTF-8）
+   * 通用资源加载模板方法
+   * 统一处理：缓存检查、失败缓存、去重、统计更新
+   * @param normalizedPath 规范化后的路径
+   * @param resourceType 资源类型
+   * @param cache 缓存 Map
+   * @param fetcher 实际获取数据的函数
    */
-  async loadText(path: string): Promise<string | null> {
-    const normalizedPath = this.normalizePath(path);
+  private async loadWithCache<T>(
+    normalizedPath: string,
+    resourceType: "text" | "binary" | "audio",
+    cache: Map<string, CacheEntry<T>>,
+    fetcher: (path: string) => Promise<T | null>
+  ): Promise<T | null> {
+    const typeStats = this.stats.byType[resourceType];
     this.stats.totalRequests++;
-    this.stats.byType.text.requests++;
+    typeStats.requests++;
 
     // 检查失败缓存（避免重复请求不存在的资源）
     if (this.failedPaths.has(normalizedPath)) {
       this.stats.cacheHits++;
-      this.stats.byType.text.hits++;
+      typeStats.hits++;
       return null;
     }
 
     // 检查缓存
-    const cached = this.textCache.get(normalizedPath);
+    const cached = cache.get(normalizedPath);
     if (cached) {
       this.stats.cacheHits++;
-      this.stats.byType.text.hits++;
+      typeStats.hits++;
       cached.lastAccess = Date.now();
       cached.accessCount++;
       return cached.data;
@@ -218,12 +237,12 @@ class ResourceLoaderImpl {
     const pending = this.pendingLoads.get(normalizedPath);
     if (pending) {
       this.stats.dedupeHits++;
-      this.stats.byType.text.dedupeHits++;
-      return (await pending) as string | null;
+      typeStats.dedupeHits++;
+      return (await pending) as T | null;
     }
 
     // 开始加载
-    const loadPromise = this.fetchText(normalizedPath);
+    const loadPromise = fetcher(normalizedPath);
     this.pendingLoads.set(normalizedPath, loadPromise);
 
     try {
@@ -232,6 +251,51 @@ class ResourceLoaderImpl {
     } finally {
       this.pendingLoads.delete(normalizedPath);
     }
+  }
+
+  /**
+   * 缓存加载结果的通用方法
+   */
+  private cacheResult<T>(
+    cache: Map<string, CacheEntry<T>>,
+    path: string,
+    data: T,
+    size: number,
+    resourceType: ResourceType
+  ): void {
+    const entry: CacheEntry<T> = {
+      data,
+      size,
+      loadTime: Date.now(),
+      lastAccess: Date.now(),
+      accessCount: 1,
+    };
+    cache.set(path, entry);
+    this.updateCacheStats();
+    this.recordRecentLoad(path, resourceType, size);
+  }
+
+  /**
+   * 记录加载失败
+   */
+  private recordFailure(path: string): void {
+    this.stats.failures++;
+    this.failedPaths.add(path);
+  }
+
+  // ==================== 文本资源 ====================
+
+  /**
+   * 加载文本资源（UTF-8）
+   */
+  async loadText(path: string): Promise<string | null> {
+    const normalizedPath = this.normalizePath(path);
+    return this.loadWithCache(
+      normalizedPath,
+      "text",
+      this.textCache,
+      (p) => this.fetchText(p)
+    );
   }
 
   /**
@@ -245,9 +309,7 @@ class ResourceLoaderImpl {
       const url = getResourceUrl(path);
       const response = await fetch(url);
       if (!response.ok) {
-        this.stats.failures++;
-        // 缓存失败的路径，避免重复请求
-        this.failedPaths.add(path);
+        this.recordFailure(path);
         return null;
       }
 
@@ -261,79 +323,33 @@ class ResourceLoaderImpl {
         trimmed.startsWith("<HTML")
       ) {
         // Not a real resource, Vite returned HTML fallback
-        this.stats.failures++;
-        // 缓存失败的路径，避免重复请求
-        this.failedPaths.add(path);
+        this.recordFailure(path);
         return null;
       }
 
       const size = new Blob([text]).size;
-
-      // 缓存
-      const entry: CacheEntry<string> = {
-        data: text,
-        size,
-        loadTime: Date.now(),
-        lastAccess: Date.now(),
-        accessCount: 1,
-      };
-      this.textCache.set(path, entry);
-      this.updateCacheStats();
-      this.recordRecentLoad(path, "text", size);
-
+      this.cacheResult(this.textCache, path, text, size, "text");
       return text;
     } catch (error) {
       logger.warn(`[ResourceLoader] Failed to load text: ${path}`, error);
-      this.stats.failures++;
-      // 缓存失败的路径，避免重复请求
-      this.failedPaths.add(path);
+      this.recordFailure(path);
       return null;
     }
   }
+
+  // ==================== 二进制资源 ====================
 
   /**
    * 加载二进制资源
    */
   async loadBinary(path: string): Promise<ArrayBuffer | null> {
     const normalizedPath = this.normalizePath(path);
-    this.stats.totalRequests++;
-    this.stats.byType.binary.requests++;
-
-    // 检查失败缓存（避免重复请求不存在的资源）
-    if (this.failedPaths.has(normalizedPath)) {
-      this.stats.cacheHits++;
-      this.stats.byType.binary.hits++;
-      return null;
-    }
-
-    // 检查缓存
-    const cached = this.binaryCache.get(normalizedPath);
-    if (cached) {
-      this.stats.cacheHits++;
-      this.stats.byType.binary.hits++;
-      cached.lastAccess = Date.now();
-      cached.accessCount++;
-      return cached.data;
-    }
-
-    // 检查是否正在加载（去重：等待已有请求完成，不发起新网络请求）
-    const pending = this.pendingLoads.get(normalizedPath);
-    if (pending) {
-      this.stats.dedupeHits++;
-      this.stats.byType.binary.dedupeHits++;
-      return (await pending) as ArrayBuffer | null;
-    }
-
-    // 开始加载
-    const loadPromise = this.fetchBinary(normalizedPath);
-    this.pendingLoads.set(normalizedPath, loadPromise);
-
-    try {
-      const result = await loadPromise;
-      return result;
-    } finally {
-      this.pendingLoads.delete(normalizedPath);
-    }
+    return this.loadWithCache(
+      normalizedPath,
+      "binary",
+      this.binaryCache,
+      (p) => this.fetchBinary(p)
+    );
   }
 
   /**
@@ -350,79 +366,33 @@ class ResourceLoaderImpl {
         logger.warn(
           `[ResourceLoader] Failed to load binary: ${path} (HTTP ${response.status} ${response.statusText})`
         );
-        this.stats.failures++;
-        // 缓存失败的路径，避免重复请求
-        this.failedPaths.add(path);
+        this.recordFailure(path);
         return null;
       }
 
       const buffer = await response.arrayBuffer();
-
-      // 缓存
-      const entry: CacheEntry<ArrayBuffer> = {
-        data: buffer,
-        size: buffer.byteLength,
-        loadTime: Date.now(),
-        lastAccess: Date.now(),
-        accessCount: 1,
-      };
-      this.binaryCache.set(path, entry);
-      this.updateCacheStats();
-      this.recordRecentLoad(path, "binary", buffer.byteLength);
-
+      this.cacheResult(this.binaryCache, path, buffer, buffer.byteLength, "binary");
       return buffer;
     } catch (error) {
       logger.warn(`[ResourceLoader] Failed to load binary: ${path}`, error);
-      this.stats.failures++;
-      // 缓存失败的路径，避免重复请求
-      this.failedPaths.add(path);
+      this.recordFailure(path);
       return null;
     }
   }
+
+  // ==================== 音频资源 ====================
 
   /**
    * 加载音频资源（返回 AudioBuffer）
    */
   async loadAudio(path: string): Promise<AudioBuffer | null> {
     const normalizedPath = this.normalizePath(path);
-    this.stats.totalRequests++;
-    this.stats.byType.audio.requests++;
-
-    // 检查失败缓存（避免重复请求不存在的资源）
-    if (this.failedPaths.has(normalizedPath)) {
-      this.stats.cacheHits++;
-      this.stats.byType.audio.hits++;
-      return null;
-    }
-
-    // 检查缓存
-    const cached = this.audioCache.get(normalizedPath);
-    if (cached) {
-      this.stats.cacheHits++;
-      this.stats.byType.audio.hits++;
-      cached.lastAccess = Date.now();
-      cached.accessCount++;
-      return cached.data;
-    }
-
-    // 检查是否正在加载（去重：等待已有请求完成，不发起新网络请求）
-    const pending = this.pendingLoads.get(normalizedPath);
-    if (pending) {
-      this.stats.dedupeHits++;
-      this.stats.byType.audio.dedupeHits++;
-      return (await pending) as AudioBuffer | null;
-    }
-
-    // 开始加载
-    const loadPromise = this.fetchAudio(normalizedPath);
-    this.pendingLoads.set(normalizedPath, loadPromise);
-
-    try {
-      const result = await loadPromise;
-      return result;
-    } finally {
-      this.pendingLoads.delete(normalizedPath);
-    }
+    return this.loadWithCache(
+      normalizedPath,
+      "audio",
+      this.audioCache,
+      (p) => this.fetchAudio(p)
+    );
   }
 
   /**
@@ -436,38 +406,42 @@ class ResourceLoaderImpl {
       const url = getResourceUrl(path);
       const response = await fetch(url);
       if (!response.ok) {
-        this.stats.failures++;
-        // 缓存失败的路径，避免重复请求
-        this.failedPaths.add(path);
+        this.recordFailure(path);
         return null;
       }
 
       const arrayBuffer = await response.arrayBuffer();
       const audioContext = this.getAudioContext();
-      const audioBuffer = await audioContext.decodeAudioData(arrayBuffer.slice(0));
+
+      let audioBuffer: AudioBuffer;
+
+      // 检查是否是 XNB 格式
+      if (path.toLowerCase().endsWith(".xnb")) {
+        // XNB 格式：使用自定义解析器
+        const xnbResult = parseXnbAudio(arrayBuffer);
+        if (!xnbResult.success || !xnbResult.data) {
+          logger.warn(`[ResourceLoader] XNB parse failed: ${path} - ${xnbResult.error}`);
+          this.recordFailure(path);
+          return null;
+        }
+        audioBuffer = xnbToAudioBuffer(xnbResult.data, audioContext);
+      } else {
+        // 标准音频格式：使用浏览器解码
+        audioBuffer = await audioContext.decodeAudioData(arrayBuffer.slice(0));
+      }
 
       // 缓存
       const estimatedSize = audioBuffer.length * audioBuffer.numberOfChannels * 4; // Float32
-      const entry: CacheEntry<AudioBuffer> = {
-        data: audioBuffer,
-        size: estimatedSize,
-        loadTime: Date.now(),
-        lastAccess: Date.now(),
-        accessCount: 1,
-      };
-      this.audioCache.set(path, entry);
-      this.updateCacheStats();
-      this.recordRecentLoad(path, "audio", estimatedSize);
-
+      this.cacheResult(this.audioCache, path, audioBuffer, estimatedSize, "audio");
       return audioBuffer;
     } catch (error) {
       logger.warn(`[ResourceLoader] Failed to load audio: ${path}`, error);
-      this.stats.failures++;
-      // 缓存失败的路径，避免重复请求
-      this.failedPaths.add(path);
+      this.recordFailure(path);
       return null;
     }
   }
+
+  // ==================== INI/配置资源 ====================
 
   /**
    * 加载并解析配置文件（缓存解析后的结果）
@@ -797,6 +771,29 @@ class ResourceLoaderImpl {
   }
 
   /**
+   * 同步设置缓存（用于外部预加载的数据）
+   * 例如：从 API 获取的武功配置数据
+   */
+  setCache<T>(path: string, data: T, type: ResourceType): void {
+    const normalizedPath = this.normalizePath(path);
+    const now = Date.now();
+
+    // 估算数据大小
+    const size = JSON.stringify(data).length;
+
+    const cacheKey = `${type}:${normalizedPath}`;
+    this.iniCache.set(cacheKey, {
+      data,
+      size,
+      loadTime: now,
+      lastAccess: now,
+      accessCount: 0,
+    });
+
+    this.updateCacheStats();
+  }
+
+  /**
    * 预加载资源
    */
   async preload(paths: string[], type: ResourceType): Promise<void> {
@@ -982,12 +979,596 @@ class ResourceLoaderImpl {
  */
 export const resourceLoader = new ResourceLoaderImpl();
 
+// ==================== 游戏数据加载器 ====================
+
 /**
- * 导出便捷函数
+ * API 返回的武功等级数据
  */
-export const loadText = resourceLoader.loadText.bind(resourceLoader);
-export const loadBinary = resourceLoader.loadBinary.bind(resourceLoader);
-export const loadAudio = resourceLoader.loadAudio.bind(resourceLoader);
-export const loadIni = resourceLoader.loadIni.bind(resourceLoader);
-export const getResourceStats = resourceLoader.getStats.bind(resourceLoader);
-export const getResourceDebugSummary = resourceLoader.getDebugSummary.bind(resourceLoader);
+export interface ApiMagicLevel {
+  level: number;
+  effect: number;
+  manaCost: number;
+  levelupExp: number | null;
+  speed?: number;
+  moveKind?: string;
+  lifeFrame?: number;
+}
+
+/**
+ * API 返回的攻击文件数据（嵌套武功）
+ */
+export interface ApiAttackFile {
+  name: string;
+  intro?: string;
+  speed: number;
+  bounce: boolean;
+  region: number;
+  moveKind: string;
+  attackAll: boolean;
+  flyingLum: number;
+  lifeFrame: number;
+  vanishLum: number;
+  waitFrame: number;
+  alphaBlend: boolean;
+  bounceHurt: number;
+  traceEnemy: boolean;
+  traceSpeed: number;
+  flyingImage: string | null;
+  flyingSound: string | null;
+  passThrough: boolean;
+  rangeRadius: number;
+  specialKind?: string;
+  vanishImage: string | null;
+  vanishSound: string | null;
+  passThroughWall: boolean;
+  vibratingScreen: boolean;
+  specialKindValue: number;
+  specialKindMilliSeconds: number;
+}
+
+/**
+ * API 返回的单个武功数据
+ */
+export interface ApiMagicData {
+  id: string;
+  gameId: string;
+  key: string;
+  userType: "player" | "npc";
+  name: string;
+  intro?: string;
+  icon: string | null;
+  image: string | null;
+  speed: number;
+  belong?: string;
+  bounce: boolean;
+  levels: ApiMagicLevel[] | null;
+  region: number;
+  npcFile: string | null;
+  flyMagic: string | null;
+  moveKind?: string;
+  attackAll: boolean;
+  flyingLum: number;
+  lifeFrame: number;
+  parasitic: boolean;
+  vanishLum: number;
+  waitFrame: number;
+  actionFile: string | null;
+  alphaBlend: boolean;
+  attackFile: ApiAttackFile | null;
+  bounceHurt: number;
+  traceEnemy: boolean;
+  traceSpeed: number;
+  beginAtUser: boolean;
+  flyInterval: number;
+  flyingImage: string | null;
+  flyingSound: string | null;
+  passThrough: boolean;
+  rangeRadius: number;
+  specialKind?: string;
+  vanishImage: string | null;
+  vanishSound: string | null;
+  beginAtMouse: boolean;
+  parasiticMagic: string | null;
+  superModeImage: string | null;
+  passThroughWall: boolean;
+  vibratingScreen: boolean;
+  coldMilliSeconds: number;
+  explodeMagicFile: string | null;
+  specialKindValue: number;
+  parasiticInterval: number;
+  specialKindMilliSeconds: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** 物品种类 */
+type ApiGoodsKind = "Consumable" | "Equipment" | "Quest";
+
+/** 装备部位 */
+type ApiGoodsPart = "Hand" | "Head" | "Body" | "Foot" | "Neck" | "Back" | "Wrist";
+
+/**
+ * API 返回的物品数据
+ */
+export interface ApiGoodsData {
+  id: string;
+  gameId: string;
+  key: string;
+  kind: ApiGoodsKind;
+  name: string;
+  intro?: string;
+  cost?: number | null;
+  image?: string | null;
+  icon?: string | null;
+  effect?: string | null;
+  life?: number | null;
+  thew?: number | null;
+  mana?: number | null;
+  part?: ApiGoodsPart | null;
+  lifeMax?: number | null;
+  thewMax?: number | null;
+  manaMax?: number | null;
+  attack?: number | null;
+  defend?: number | null;
+  evade?: number | null;
+  effectType?: number | null;
+  script?: string | null;
+}
+
+/** NPC 类型 */
+type ApiNpcKind = "Normal" | "Fighter" | "Flyer" | "GroundAnimal" | "WaterAnimal" | "Decoration" | "Intangible";
+
+/** NPC 关系 */
+type ApiNpcRelation = "Friendly" | "Neutral" | "Hostile" | "Partner";
+
+/** NPC 资源（动画/音效）*/
+interface ApiNpcResource {
+  image: string | null;
+  sound: string | null;
+}
+
+/** NPC 资源集合 */
+export interface ApiNpcResources {
+  stand?: ApiNpcResource;
+  stand1?: ApiNpcResource;
+  walk?: ApiNpcResource;
+  run?: ApiNpcResource;
+  jump?: ApiNpcResource;
+  fightStand?: ApiNpcResource;
+  fightWalk?: ApiNpcResource;
+  fightRun?: ApiNpcResource;
+  fightJump?: ApiNpcResource;
+  sit?: ApiNpcResource;
+  hurt?: ApiNpcResource;
+  death?: ApiNpcResource;
+  attack?: ApiNpcResource;
+  attack1?: ApiNpcResource;
+  attack2?: ApiNpcResource;
+  special1?: ApiNpcResource;
+  special2?: ApiNpcResource;
+}
+
+/**
+ * API 返回的 NPC 数据
+ */
+export interface ApiNpcData {
+  id: string;
+  gameId: string;
+  key: string;
+  kind: ApiNpcKind;
+  name: string;
+  relation?: ApiNpcRelation | null;
+  level?: number | null;
+  life?: number | null;
+  lifeMax?: number | null;
+  thew?: number | null;
+  thewMax?: number | null;
+  mana?: number | null;
+  manaMax?: number | null;
+  attack?: number | null;
+  defend?: number | null;
+  evade?: number | null;
+  exp?: number | null;
+  lum?: number | null;
+  dir?: number | null;
+  walkSpeed?: number | null;
+  pathFinder?: number | null;
+  attackRadius?: number | null;
+  flyIni?: string | null;
+  bodyIni?: string | null;
+  scriptFile?: string | null;
+  deathScript?: string | null;
+  resources?: ApiNpcResources | null;
+  resourceId?: string | null;
+  resourceKey?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+/** 物体类型 */
+type ApiObjKind = "Dynamic" | "Static" | "Body" | "LoopingSound" | "RandSound" | "Door" | "Trap" | "Drop";
+
+/** Obj 资源状态 */
+export interface ApiObjResourceState {
+  image?: string | null;
+  sound?: string | null;
+}
+
+/** Obj 资源映射（状态 -> 资源） */
+export interface ApiObjResources {
+  common?: ApiObjResourceState | null;
+  open?: ApiObjResourceState | null;
+  opened?: ApiObjResourceState | null;
+  closed?: ApiObjResourceState | null;
+}
+
+/**
+ * API 返回的物体数据
+ */
+export interface ApiObjData {
+  id: string;
+  gameId: string;
+  key: string;
+  kind: ApiObjKind;
+  name?: string;
+  /** 关联的资源 ID */
+  resourceId?: string | null;
+  /** 关联的 objres 文件名（如 body-卓非凡.ini） */
+  resourceKey?: string | null;
+  /** 内联的资源配置 */
+  resources?: ApiObjResources | null;
+  scriptFile?: string | null;
+  scriptFileRight?: string | null;
+  switchSound?: string | null;
+  triggerRadius?: number | null;
+  interval?: number | null;
+  level?: number | null;
+  height?: number | null;
+  dir?: number | null;
+  frame?: number | null;
+  offX?: number | null;
+  offY?: number | null;
+  damage?: number | null;
+  lum?: number | null;
+  canInteractDirectly?: number | null;
+  scriptFileJustTouch?: number | null;
+  timerScriptFile?: string | null;
+  timerScriptInterval?: number | null;
+  reviveNpcIni?: string | null;
+  wavFile?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+/** Obj 资源文件数据（objres） */
+export interface ApiObjResData {
+  id: string;
+  gameId: string;
+  key: string;
+  name: string;
+  resources: ApiObjResources;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface ApiMagicResponse {
+  player: ApiMagicData[];
+  npc: ApiMagicData[];
+}
+
+/** NPC 资源文件数据（npcres） */
+export interface ApiNpcResData {
+  id: string;
+  gameId: string;
+  key: string;
+  name: string;
+  resources: ApiNpcResources;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface ApiNpcResponse {
+  npcs: ApiNpcData[];
+  resources: ApiNpcResData[];
+}
+
+export interface ApiObjResponse {
+  objs: ApiObjData[];
+  resources: ApiObjResData[];
+}
+
+/**
+ * API 返回的商店商品项
+ */
+export interface ApiShopItemData {
+  goodsKey: string;
+  count: number;
+  price: number;
+}
+
+/**
+ * API 返回的商店数据
+ */
+export interface ApiShopData {
+  id: string;
+  gameId: string;
+  key: string;
+  name: string;
+  numberValid: boolean;
+  buyPercent: number;
+  recyclePercent: number;
+  items: ApiShopItemData[];
+}
+
+/**
+ * API 返回的玩家角色数据
+ */
+export interface ApiPlayerData {
+  id: string;
+  gameId: string;
+  key: string;
+  name: string;
+  index: number;
+  npcIni: string;
+  bodyIni: string;
+  flyIni: string;
+  flyIni2: string;
+  levelIni: string;
+  deathScript: string;
+  scriptFile: string;
+  secondAttack: string;
+  timeScript: string;
+  mapX: number;
+  mapY: number;
+  desX: number;
+  desY: number;
+  dir: number;
+  kind: number;
+  relation: number;
+  pathFinder: number;
+  idle: number;
+  walkSpeed: number;
+  visionRadius: number;
+  attackRadius: number;
+  dialogRadius: number;
+  attackLevel: number;
+  life: number;
+  lifeMax: number;
+  mana: number;
+  manaMax: number;
+  thew: number;
+  thewMax: number;
+  attack: number;
+  defend: number;
+  evade: number;
+  exp: number;
+  levelUpExp: number;
+  level: number;
+  money: number;
+  lum: number;
+  action: number;
+  state: number;
+  doing: number;
+  fight: number;
+  magic: number;
+  belong: number;
+  expBonus: number;
+  manaLimit: number;
+  timeCount: number;
+  timeLimit: number;
+  timeTrigger: number;
+  /** 初始武功列表（从 API 配置） */
+  initialMagics: Array<{ iniFile: string; level: number; exp: number }>;
+  /** 初始物品列表（从 API 配置） */
+  initialGoods: Array<{ iniFile: string; number: number }>;
+}
+
+/**
+ * API 返回的游戏全局配置
+ */
+export interface ApiConfigResponse {
+  gameName: string;
+  gameVersion: string;
+  gameDescription: string;
+  playerKey: string;
+  newGameScript: string;
+  portraitAsf: string;
+  player: {
+    thewCost: {
+      runCost: number;
+      attackCost: number;
+      jumpCost: number;
+      useThewWhenNormalRun: boolean;
+    };
+    restore: {
+      lifeRestorePercent: number;
+      thewRestorePercent: number;
+      manaRestorePercent: number;
+      restoreIntervalMs: number;
+      sittingManaRestoreInterval: number;
+    };
+    speed: {
+      baseSpeed: number;
+      runSpeedFold: number;
+      minChangeMoveSpeedPercent: number;
+    };
+    combat: {
+      maxNonFightSeconds: number;
+      dialogRadius: number;
+    };
+  };
+  drop: unknown;
+}
+
+export interface ApiDataResponse {
+  magics: ApiMagicResponse;
+  goods: ApiGoodsData[];
+  shops: ApiShopData[];
+  npcs: ApiNpcResponse;
+  objs: ApiObjResponse;
+  players: ApiPlayerData[];
+  portraits: Array<{ index: number; asfFile: string }>;
+}
+
+// ========== 共享状态 ==========
+
+let currentGameSlug = "";
+
+// ========== 游戏配置缓存 ==========
+
+let cachedGameConfig: ApiConfigResponse | null = null;
+let isGameConfigLoadedFlag = false;
+let configLoadingPromise: Promise<void> | null = null;
+
+/**
+ * 从 API 加载游戏全局配置
+ */
+export async function loadGameConfig(gameSlug: string, force = false): Promise<void> {
+  if (!force && isGameConfigLoadedFlag && currentGameSlug === gameSlug) {
+    return;
+  }
+
+  if (configLoadingPromise && currentGameSlug === gameSlug) {
+    await configLoadingPromise;
+    return;
+  }
+
+  configLoadingPromise = (async () => {
+    const apiUrl = `/game/${gameSlug}/api/config?_t=${Date.now()}`;
+    logger.info(`[ResourceLoader] Loading game config from ${apiUrl}`);
+
+    try {
+      const response = await fetch(apiUrl);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      cachedGameConfig = await response.json();
+      isGameConfigLoadedFlag = true;
+      currentGameSlug = gameSlug;
+
+      logger.info(
+        `[ResourceLoader] Loaded config: playerKey=${cachedGameConfig?.playerKey}, gameName=${cachedGameConfig?.gameName}`
+      );
+    } catch (error) {
+      logger.error(`[ResourceLoader] Failed to load game config:`, error);
+      throw error;
+    } finally {
+      configLoadingPromise = null;
+    }
+  })();
+
+  await configLoadingPromise;
+}
+
+export function isGameConfigLoaded(): boolean {
+  return isGameConfigLoadedFlag;
+}
+
+export function getGameConfig(): ApiConfigResponse | null {
+  return cachedGameConfig;
+}
+
+// ========== 游戏数据缓存 ==========
+
+let cachedGameData: ApiDataResponse | null = null;
+let isGameDataLoadedFlag = false;
+let loadingPromise: Promise<void> | null = null;
+const cacheBuilders: Array<() => void | Promise<void>> = [];
+
+/**
+ * 注册缓存构建回调（数据加载完成后自动调用）
+ */
+export function registerCacheBuilder(builder: () => void | Promise<void>): void {
+  cacheBuilders.push(builder);
+}
+
+/**
+ * 从 API 加载所有游戏数据
+ */
+export async function loadGameData(gameSlug: string, force = false): Promise<void> {
+  if (!force && isGameDataLoadedFlag && currentGameSlug === gameSlug) {
+    return;
+  }
+
+  if (loadingPromise && currentGameSlug === gameSlug) {
+    await loadingPromise;
+    return;
+  }
+
+  loadingPromise = (async () => {
+    const apiUrl = `/game/${gameSlug}/api/data?_t=${Date.now()}`;
+    logger.info(`[ResourceLoader] Loading game data from ${apiUrl}`);
+
+    try {
+      const response = await fetch(apiUrl);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      cachedGameData = await response.json();
+      isGameDataLoadedFlag = true;
+      currentGameSlug = gameSlug;
+
+      // 构建所有模块的缓存
+      for (const builder of cacheBuilders) {
+        await builder();
+      }
+
+      const magicCount = (cachedGameData?.magics.player.length ?? 0) + (cachedGameData?.magics.npc.length ?? 0);
+      const goodsCount = cachedGameData?.goods.length ?? 0;
+      const shopCount = cachedGameData?.shops.length ?? 0;
+      const npcCount = cachedGameData?.npcs.npcs.length ?? 0;
+      const npcResCount = cachedGameData?.npcs.resources.length ?? 0;
+      const objCount = cachedGameData?.objs.objs.length ?? 0;
+      const objResCount = cachedGameData?.objs.resources.length ?? 0;
+
+      logger.info(
+        `[ResourceLoader] Loaded: ${magicCount} magics, ${goodsCount} goods, ${shopCount} shops, ${npcCount} npcs, ${npcResCount} npcres, ${objCount} objs, ${objResCount} objres`
+      );
+    } catch (error) {
+      logger.error(`[ResourceLoader] Failed to load game data:`, error);
+      throw error;
+    } finally {
+      loadingPromise = null;
+    }
+  })();
+
+  await loadingPromise;
+}
+
+export async function reloadGameData(gameSlug: string): Promise<void> {
+  await loadGameData(gameSlug, true);
+}
+
+export function isGameDataLoaded(): boolean {
+  return isGameDataLoadedFlag;
+}
+
+export function getMagicsData(): ApiMagicResponse | null {
+  return cachedGameData?.magics ?? null;
+}
+
+export function getGoodsData(): ApiGoodsData[] | null {
+  return cachedGameData?.goods ?? null;
+}
+
+export function getNpcsData(): ApiNpcResponse | null {
+  return cachedGameData?.npcs ?? null;
+}
+
+export function getObjsData(): ApiObjResponse | null {
+  return cachedGameData?.objs ?? null;
+}
+
+export function getShopsData(): ApiShopData[] | null {
+  return cachedGameData?.shops ?? null;
+}
+
+export function getPlayersData(): ApiPlayerData[] | null {
+  return cachedGameData?.players ?? null;
+}
+
+export function getPortraitsData(): Array<{ index: number; asfFile: string }> | null {
+  return cachedGameData?.portraits ?? null;
+}

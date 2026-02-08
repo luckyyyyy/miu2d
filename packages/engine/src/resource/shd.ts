@@ -10,7 +10,7 @@
 
 import { logger } from "../core/logger";
 import type { MpcHead } from "../core/mapTypes";
-import { getLittleEndianInt } from "../utils/binaryUtils";
+import { getLittleEndianInt } from "./binaryUtils";
 import { resourceLoader } from "./resourceLoader";
 
 /**
@@ -55,8 +55,8 @@ export function parseShdBuffer(buffer: ArrayBuffer): Shd | null {
 
     const head: MpcHead = {
       framesDataLengthSum: getLittleEndianInt(data, offset),
-      globleWidth: getLittleEndianInt(data, offset + 4),
-      globleHeight: getLittleEndianInt(data, offset + 8),
+      globalWidth: getLittleEndianInt(data, offset + 4),
+      globalHeight: getLittleEndianInt(data, offset + 8),
       frameCounts: getLittleEndianInt(data, offset + 12),
       direction: getLittleEndianInt(data, offset + 16),
       colourCounts: getLittleEndianInt(data, offset + 20),
@@ -66,11 +66,11 @@ export function parseShdBuffer(buffer: ArrayBuffer): Shd | null {
     };
 
     // Transform to asf offset type (same as MPC)
-    head.left = Math.floor(head.globleWidth / 2);
-    if (head.globleHeight >= 16) {
-      head.bottom = head.globleHeight - 16 - head.bottom;
+    head.left = Math.floor(head.globalWidth / 2);
+    if (head.globalHeight >= 16) {
+      head.bottom = head.globalHeight - 16 - head.bottom;
     } else {
-      head.bottom = 16 - head.globleHeight - head.bottom;
+      head.bottom = 16 - head.globalHeight - head.bottom;
     }
 
     // Skip header (no palette in SHD files!)
@@ -177,22 +177,4 @@ export function parseShdBuffer(buffer: ArrayBuffer): Shd | null {
  */
 export async function loadShd(url: string): Promise<Shd | null> {
   return resourceLoader.loadParsedBinary<Shd>(url, parseShdBuffer, "shd");
-}
-
-/**
- * Get frame data from parsed SHD
- * ()
- */
-export function getShdFrameData(shd: Shd, index: number): Uint8ClampedArray | null {
-  if (index >= 0 && index < shd.frames.length) {
-    return shd.frames[index].data;
-  }
-  return null;
-}
-
-/**
- * Clear the SHD cache
- */
-export function clearShdCache(): void {
-  resourceLoader.clearCache("shd");
 }
