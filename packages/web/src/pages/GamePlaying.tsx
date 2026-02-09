@@ -131,11 +131,15 @@ export function GamePlaying({
         return;
       }
 
-      // 没有阻塞性 UI → 打开存档菜单
-      // 先让引擎关闭可能打开的普通面板（F1-F7）
+      // 有普通面板打开（F1状态/F2装备等）→ 只关闭面板，不打开菜单
       if (gui.isAnyPanelOpen()) {
+        e.stopPropagation();
+        e.preventDefault();
         gui.closeAllPanels();
+        return;
       }
+
+      // 没有任何面板/对话 → 打开存档菜单
       e.stopPropagation();
       e.preventDefault();
       setMenuTab("save");
