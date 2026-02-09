@@ -33,7 +33,6 @@ export { ModernGameUI } from "./ModernGameUI";
 export { NpcLifeBar } from "./NpcLifeBar";
 export { SelectionMultipleUI } from "./SelectionMultipleUI";
 export { SelectionUI } from "./SelectionUI";
-export { SettingsPanel } from "./SettingsPanel";
 export { StatePanel } from "./StatePanel";
 export { SystemPanel } from "./SystemPanel";
 export {

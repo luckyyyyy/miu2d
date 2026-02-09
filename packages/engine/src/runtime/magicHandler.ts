@@ -156,10 +156,10 @@ export class MagicHandler extends EngineAccess {
       // Reference: UseMagic(CurrentMagicInUse.TheMagic, Globals.OutEdgeNpc.TilePosition, Globals.OutEdgeNpc)
       const npcTilePos = hoverTarget.npc.tilePosition;
       destination = tileToPixel(npcTilePos.x, npcTilePos.y);
-      targetId = hoverTarget.npc.name; // Use NPC name as ID
+      targetId = hoverTarget.npc.id; // Use NPC internal ID (matches getNpcById)
 
       logger.log(
-        `[Magic] Targeting hovered NPC: ${hoverTarget.npc.name} at tile (${npcTilePos.x}, ${npcTilePos.y})`
+        `[Magic] Targeting hovered NPC: ${hoverTarget.npc.name} (id=${hoverTarget.npc.id}) at tile (${npcTilePos.x}, ${npcTilePos.y})`
       );
     } else {
       // No hovered NPC, use mouse position

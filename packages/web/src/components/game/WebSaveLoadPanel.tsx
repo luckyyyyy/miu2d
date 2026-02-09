@@ -277,7 +277,7 @@ export function WebSaveLoadPanel({
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
 
       <div
-        className="relative w-[520px] max-h-[80vh] flex flex-col rounded-2xl overflow-hidden
+        className="relative w-[520px] h-[520px] flex flex-col rounded-2xl overflow-hidden
           bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >

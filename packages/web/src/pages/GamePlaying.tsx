@@ -29,8 +29,8 @@ import type { MenuTab } from "../components/game/GameMenuPanel";
 import type { UITheme } from "../components/game/ui";
 import { useAuth } from "../contexts";
 
-// 当前展开的面板类型
-type ActivePanel = "none" | "debug" | "menu";
+// 当前展开的面板类型（不含调试面板，调试面板独立管理）
+type ActivePanel = "none" | "menu";
 
 export interface GamePlayingProps {
   gameSlug: string;
@@ -68,6 +68,7 @@ export function GamePlaying({
   const gameRef = useRef<GameHandle>(null);
   const gameAreaRef = useRef<HTMLDivElement>(null);
   const [activePanel, setActivePanel] = useState<ActivePanel>("none");
+  const [showDebug, setShowDebug] = useState(false);
   const [menuTab, setMenuTab] = useState<MenuTab>("save");
   const [, forceUpdate] = useState({});
   const { isAuthenticated } = useAuth();
@@ -156,6 +157,7 @@ export function GamePlaying({
     gameRef.current?.getEngine()?.dispose();
     // 重置面板
     setActivePanel("none");
+    setShowDebug(false);
     // 通知父组件切换到 title
     onReturnToTitle();
     logger.log("[GamePlaying] Returned to title");
@@ -167,9 +169,9 @@ export function GamePlaying({
     setActivePanel("menu");
   }, []);
 
-  // 切换面板
-  const togglePanel = useCallback((panel: ActivePanel) => {
-    setActivePanel((prev) => (prev === panel ? "none" : panel));
+  // 切换调试面板
+  const toggleDebug = useCallback(() => {
+    setShowDebug((prev) => !prev);
   }, []);
 
   // ===== 存档 =====
@@ -261,8 +263,8 @@ export function GamePlaying({
       id: "debug",
       icon: <span className="text-base">🔧</span>,
       tooltip: "调试",
-      onClick: () => togglePanel("debug"),
-      active: activePanel === "debug",
+      onClick: toggleDebug,
+      active: showDebug,
     },
     {
       id: "saveload",
@@ -297,7 +299,7 @@ export function GamePlaying({
       tooltip: "GitHub",
       onClick: () => window.open("https://github.com/luckyyyyy/miu2d", "_blank"),
     },
-  ], [activePanel, menuTab, handleSaveClick, takeScreenshot, togglePanel]);
+  ], [activePanel, showDebug, menuTab, handleSaveClick, takeScreenshot, toggleDebug]);
 
   // 推送 toolbar 按钮给父组件
   useEffect(() => {
@@ -368,8 +370,8 @@ export function GamePlaying({
       {/* 调试面板 */}
       <FloatingPanel
         panelId="debug"
-        visible={activePanel === "debug"}
-        onClose={() => setActivePanel("none")}
+        visible={showDebug}
+        onClose={() => setShowDebug(false)}
         title="调试面板"
         defaultWidth={480}
       >
