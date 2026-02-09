@@ -446,118 +446,37 @@ export class Npc extends Character {
 
   /**
    * Attacking(destinationTilePosition)
-   * Set up attack against a target position
-   * For casting NPCs: checks distance, may move away if too close
+   * C# Reference: Character.Attacking(Vector2 destinationTilePosition, bool isRun = false)
+   *
+   * C# 中 Attacking 统一调用 AttackingIsOk → PerformeAttack，
+   * 始终使用 Attack/Attack1/Attack2 状态（而非 Magic 状态）。
+   * 武功在攻击动画结束时通过 _magicToUseWhenAttack 发射。
+   *
+   * CharacterState.Magic 仅用于玩家手动释放武功（UseMagic），NPC 不应使用。
    */
   attacking(destinationTilePosition: Vector2): void {
+    // C#: if (PerformActionOk() &&
+    //         (IsStateImageOk(CharacterState.Attack) ||
+    //          IsStateImageOk(CharacterState.Attack1) ||
+    //          IsStateImageOk(CharacterState.Attack2)))
+    if (
+      !this.canPerformAction() ||
+      !(
+        this.isStateImageOk(CharacterState.Attack) ||
+        this.isStateImageOk(CharacterState.Attack1) ||
+        this.isStateImageOk(CharacterState.Attack2)
+      )
+    ) {
+      return;
+    }
+
     this._destinationAttackTilePosition = destinationTilePosition;
 
-    // Reference: AttackingIsOk(out Magic magicToUse)
-    // For NPCs with FlyInis (casting NPCs), this handles distance management
-    if (this.hasMagicConfigured()) {
-      // Use full AttackingIsOk logic for casting NPCs
-      const result = this.attackingIsOk();
-      if (result.isOk && result.magicIni) {
-        // Ready to cast - perform magic attack
-        if (this.canPerformAction()) {
-          this.performMagicAttack(destinationTilePosition, result.magicIni);
-        }
-      }
-      // If not isOk, attackingIsOk already started moving (towards or away)
-      return;
+    // C#: AttackingIsOk(out magicToUse) → PerformeAttack(magicToUse)
+    const result = this.attackingIsOk();
+    if (result.isOk) {
+      this.performAttack(destinationTilePosition, result.magicIni ?? undefined);
     }
-
-    // Melee NPC - simple distance check
-    const tileDistance = this.getViewTileDistance(
-      { x: this._mapX, y: this._mapY },
-      destinationTilePosition
-    );
-
-    // Check if attack distance is ok (using attackRadius as melee range)
-    const attackRadius = this.attackRadius || 1;
-
-    if (tileDistance <= attackRadius) {
-      // In attack range - perform attack
-      // Use inherited canPerformAction() from Character
-      if (this.canPerformAction()) {
-        this.performAttack(destinationTilePosition);
-      }
-    } else {
-      // Not in range - walk to target
-      this.walkTo(destinationTilePosition);
-    }
-  }
-
-  /**
-   * Perform a magic attack (for casting NPCs)
-   * with MagicManager
-   */
-  private performMagicAttack(targetTilePosition: Vector2, magicIni: string): void {
-    // Face the target
-    const dx = targetTilePosition.x - this._mapX;
-    const dy = targetTilePosition.y - this._mapY;
-    this._currentDirection = getDirectionFromVector({ x: dx, y: dy });
-
-    // StateInitialize(); ToFightingState();
-    this.toFightingState();
-
-    // Set magic state
-    this.state = CharacterState.Magic;
-    this.playCurrentDirOnce();
-
-    // Store magic to use when animation completes
-    this._pendingMagicIni = magicIni;
-  }
-
-  // Pending magic to cast when animation completes
-  private _pendingMagicIni: string | null = null;
-
-  /**
-   * Override: Called when magic animation completes
-   * case CharacterState.Magic
-   *
-   * 逻辑:
-   * PlaySoundEffect(NpcIni[(int)CharacterState.Magic].Sound);
-   * MagicManager.UseMagic(this, MagicUse, PositionInWorld, _magicDestination, _magicTarget);
-   */
-  override onMagicCast(): void {
-    // Play magic state sound
-    this.playStateSound(CharacterState.Magic);
-
-    if (!this._pendingMagicIni || !this._destinationAttackTilePosition) {
-      this._pendingMagicIni = null;
-      return;
-    }
-
-    // 获取缓存的武功数据
-    const magic = this.getCachedMagic(this._pendingMagicIni);
-
-    if (magic) {
-      // 计算目标位置（像素坐标）
-      const destPixel = tileToPixel(
-        this._destinationAttackTilePosition.x,
-        this._destinationAttackTilePosition.y
-      );
-
-      // MagicManager.UseMagic(this, magic, PositionInWorld, destination)
-      this.magicManager.useMagic({
-        userId: this._id,
-        magic: magic,
-        origin: this._positionInWorld,
-        destination: destPixel,
-      });
-    } else {
-      // 武功未加载，回退到直接伤害
-      logger.warn(
-        `[NPC Combat] ${this.name}: Magic ${this._pendingMagicIni} not cached, using direct damage`
-      );
-      if (this.followTarget && !this.followTarget.isDeathInvoked) {
-        const attackDamage = this.attack || 10;
-        this.followTarget.takeDamage(attackDamage, this);
-      }
-    }
-
-    this._pendingMagicIni = null;
   }
 
   /**
