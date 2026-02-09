@@ -28,7 +28,6 @@ import {
   MemoGui,
   MessageGui,
   NpcLifeBar,
-  SaveLoadGui,
   SelectionMultipleUI,
   SelectionUI,
   StateGui,
@@ -538,25 +537,6 @@ export const ClassicGameUI: React.FC<ClassicGameUIProps> = ({ logic, width, heig
             dispatch({ type: "SHOW_SYSTEM", visible: false });
           }}
           onReturn={() => dispatch({ type: "SHOW_SYSTEM", visible: false })}
-        />
-      )}
-
-      {/* SaveLoad Panel */}
-      {panels?.saveLoad && (
-        <SaveLoadGui
-          isVisible={true}
-          screenWidth={width}
-          screenHeight={height}
-          canSave={engine ? engine.getGameManager().isSaveEnabled() : false}
-          onSave={async (index) => {
-            dispatch({ type: "SAVE_GAME", slotIndex: index });
-            return true;
-          }}
-          onLoad={async (index) => {
-            dispatch({ type: "LOAD_GAME", slotIndex: index });
-            return true;
-          }}
-          onClose={() => dispatch({ type: "SHOW_SAVE_LOAD", visible: false })}
         />
       )}
 

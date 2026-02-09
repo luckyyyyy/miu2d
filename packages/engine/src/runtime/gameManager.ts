@@ -676,22 +676,6 @@ export class GameManager {
   }
 
   /**
-   * 从 localStorage 槽位加载存档 (JSON)
-   *
-   * @param index 存档槽位索引 (1-7)
-   */
-  async loadGameFromSlot(index: number): Promise<boolean> {
-    // 清空脚本历史和当前脚本状态
-    this.debugManager.clearScriptHistory();
-    const result = await this.loader.loadGameFromSlot(index);
-    if (result) {
-      // 通知 UI 刷新
-      this.notifyPlayerStateChanged();
-    }
-    return result;
-  }
-
-  /**
    * 设置加载进度回调
    *
    * 用于在加载存档时向 UI 报告进度
@@ -705,15 +689,6 @@ export class GameManager {
    */
   setLoadCompleteCallback(callback: (() => void) | undefined): void {
     this.loader.setLoadCompleteCallback(callback);
-  }
-
-  /**
-   * 保存游戏到指定槽位 (JSON -> localStorage)
-   *
-   * @param index 存档槽位索引 (1-7)
-   */
-  async saveGame(index: number): Promise<boolean> {
-    return await this.loader.saveGame(index);
   }
 
   /**

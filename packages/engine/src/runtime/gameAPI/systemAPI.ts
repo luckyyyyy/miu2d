@@ -4,7 +4,6 @@
 
 import type { DialogAPI, VariableAPI, InputAPI, SaveAPI, ScriptRunnerAPI } from "../../core/gameAPI";
 import type { ScriptCommandContext } from "../scriptContext/types";
-import { deleteAllSaves } from "../storage";
 import { logger } from "../../core/logger";
 import { resolveScriptPath } from "../../config/resourcePaths";
 import { BlockingResolver, BlockingEvent } from "../../script/blockingResolver";
@@ -111,7 +110,7 @@ export function createSaveAPI(ctx: ScriptCommandContext): SaveAPI {
     setEnabled: (enabled) => {
       if (enabled) ctx.enableSave(); else ctx.disableSave();
     },
-    clearAll: () => { deleteAllSaves(); },
+    clearAll: () => { /* cloud saves are managed by server */ },
   };
 }
 

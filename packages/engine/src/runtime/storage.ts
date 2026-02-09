@@ -546,55 +546,16 @@ export interface SaveGroups {
   trap?: Record<string, TrapGroupValue>;
 }
 
-/**
- * 存档槽位信息 (用于显示存档列表)
- */
-export interface SaveSlotInfo {
-  /** 槽位索引 (1-7) */
-  index: number;
-  /** 是否有存档 */
-  exists: boolean;
-  /** 存档时间 */
-  time?: string;
-  /** 地图名称 */
-  mapName?: string;
-  /** 玩家等级 */
-  level?: number;
-  /** 截图预览 (base64) */
-  screenshot?: string;
-}
-
 // ============= 常量 =============
 
 /** 存档版本号 */
 export const SAVE_VERSION = 2;
-
-/** 存档索引范围 */
-const SAVE_INDEX_BEGIN = 1;
-const SAVE_INDEX_END = 7;
-
-/** localStorage key 前缀 */
-const STORAGE_KEY_PREFIX = "jxqy_save_";
 
 /** 截图宽高 */
 const SCREENSHOT_WIDTH = 320;
 const SCREENSHOT_HEIGHT = 240;
 
 // ============= 工具函数 =============
-
-/**
- * 获取存档的 localStorage key
- */
-function getSaveKey(index: number): string {
-  return `${STORAGE_KEY_PREFIX}${index}`;
-}
-
-/**
- * 检查索引是否有效
- */
-function isIndexInRange(index: number): boolean {
-  return index >= SAVE_INDEX_BEGIN && index <= SAVE_INDEX_END;
-}
 
 /**
  * 格式化当前时间为存档时间字符串
@@ -607,111 +568,6 @@ export function formatSaveTime(date: Date = new Date()): string {
   const minute = String(date.getMinutes()).padStart(2, "0");
   const second = String(date.getSeconds()).padStart(2, "0");
   return `${year}年${month}月${day}日 ${hour}时${minute}分${second}秒`;
-}
-
-// ============= Storage Manager =============
-
-// ============= 存档操作函数 =============
-
-/** 获取所有存档槽位信息 */
-export function getSaveSlots(): SaveSlotInfo[] {
-  const slots: SaveSlotInfo[] = [];
-
-  for (let i = SAVE_INDEX_BEGIN; i <= SAVE_INDEX_END; i++) {
-    const slot: SaveSlotInfo = {
-      index: i,
-      exists: false,
-    };
-
-    try {
-      const key = getSaveKey(i);
-      const data = localStorage.getItem(key);
-      if (data) {
-        const saveData = JSON.parse(data) as SaveData;
-        slot.exists = true;
-        slot.time = saveData.state.time;
-        slot.mapName = saveData.state.map;
-        slot.level = saveData.player.level;
-        slot.screenshot = saveData.screenshot;
-      }
-    } catch (error) {
-      logger.warn(`[Storage] Error reading save slot ${i}:`, error);
-    }
-
-    slots.push(slot);
-  }
-
-  return slots;
-}
-
-/** 保存游戏到指定槽位 */
-export function saveGame(index: number, data: SaveData): boolean {
-  if (!isIndexInRange(index)) {
-    logger.error(`[Storage] Invalid save index: ${index}`);
-    return false;
-  }
-
-  try {
-    const key = getSaveKey(index);
-    const json = JSON.stringify(data);
-    localStorage.setItem(key, json);
-    logger.log(`[Storage] Game saved to slot ${index}`);
-    return true;
-  } catch (error) {
-    logger.error(`[Storage] Error saving game to slot ${index}:`, error);
-    return false;
-  }
-}
-
-/** 加载指定槽位的存档 */
-export function loadGame(index: number): SaveData | null {
-  if (!isIndexInRange(index)) {
-    logger.error(`[Storage] Invalid load index: ${index}`);
-    return null;
-  }
-
-  try {
-    const key = getSaveKey(index);
-    const data = localStorage.getItem(key);
-    if (!data) {
-      logger.warn(`[Storage] No save data found at slot ${index}`);
-      return null;
-    }
-
-    const saveData = JSON.parse(data) as SaveData;
-    logger.log(`[Storage] Game loaded from slot ${index}`);
-    return saveData;
-  } catch (error) {
-    logger.error(`[Storage] Error loading game from slot ${index}:`, error);
-    return null;
-  }
-}
-
-/** 删除指定槽位的存档 */
-export function deleteSave(index: number): boolean {
-  if (!isIndexInRange(index)) {
-    logger.error(`[Storage] Invalid delete index: ${index}`);
-    return false;
-  }
-
-  try {
-    const key = getSaveKey(index);
-    localStorage.removeItem(key);
-    logger.log(`[Storage] Save slot ${index} deleted`);
-    return true;
-  } catch (error) {
-    logger.error(`[Storage] Error deleting save slot ${index}:`, error);
-    return false;
-  }
-}
-
-/** 删除所有存档 */
-export function deleteAllSaves(): void {
-  for (let i = SAVE_INDEX_BEGIN; i <= SAVE_INDEX_END; i++) {
-    const key = getSaveKey(i);
-    localStorage.removeItem(key);
-  }
-  logger.log(`[Storage] All saves deleted`);
 }
 
 /** 从 canvas 生成截图 */

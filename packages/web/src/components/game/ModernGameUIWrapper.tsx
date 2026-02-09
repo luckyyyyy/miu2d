@@ -10,7 +10,7 @@ import type { Good } from "@miu2d/engine/player/goods";
 import { GoodKind } from "@miu2d/engine/player/goods";
 import type { UIEquipSlotName } from "@miu2d/engine/gui/contract";
 import type React from "react";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo } from "react";
 import type { TouchDragData } from "@/contexts";
 import type { GameUILogic } from "./hooks";
 import type { EquipSlotType, GoodItemData } from "./ui/classic";
@@ -30,7 +30,6 @@ import {
   MemoPanel,
   MessageBox,
   NpcLifeBar,
-  SaveLoadPanel,
   SelectionMultipleUI,
   SelectionUI,
   StatePanel,
@@ -117,8 +116,7 @@ export const ModernGameUIWrapper: React.FC<ModernGameUIWrapperProps> = ({
     handleShopClose,
   } = logic;
 
-  // SaveLoad 面板内部状态
-  const [saveLoadVisible, setSaveLoadVisible] = useState(false);
+
 
   // 玩家状态 - 直接内联计算，与老面板保持一致
   // 不使用 useMemo，确保每次渲染都读取最新值
@@ -493,7 +491,6 @@ export const ModernGameUIWrapper: React.FC<ModernGameUIWrapperProps> = ({
         screenHeight={height}
         onSaveLoad={() => {
           dispatch({ type: "SHOW_SAVE_LOAD", visible: true });
-          setSaveLoadVisible(true);
         }}
         onOption={() => dispatch({ type: "SHOW_MESSAGE", text: "请用游戏设置程序进行设置" })}
         onExit={() => dispatch({ type: "SHOW_SYSTEM", visible: false })}
@@ -591,29 +588,6 @@ export const ModernGameUIWrapper: React.FC<ModernGameUIWrapperProps> = ({
           onItemMouseEnter={handleShopItemMouseEnter}
           onItemMouseLeave={handleMouseLeave}
           onClose={handleShopClose}
-        />
-      )}
-
-      {/* 存档/读档面板 */}
-      {(panels?.saveLoad || saveLoadVisible) && (
-        <SaveLoadPanel
-          isVisible={true}
-          screenWidth={width}
-          screenHeight={height}
-          canSave={engine ? engine.getGameManager().isSaveEnabled() : false}
-          onSave={async (index) => {
-            dispatch({ type: "SAVE_GAME", slotIndex: index });
-            return true;
-          }}
-          onLoad={async (index) => {
-            dispatch({ type: "LOAD_GAME", slotIndex: index });
-            setSaveLoadVisible(false);
-            return true;
-          }}
-          onClose={() => {
-            dispatch({ type: "SHOW_SAVE_LOAD", visible: false });
-            setSaveLoadVisible(false);
-          }}
         />
       )}
 

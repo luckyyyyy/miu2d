@@ -6,9 +6,8 @@
  * Loader 负责「游戏初始化和存档」：
  * 1. newGame() - 开始新游戏，运行 NewGame.txt 脚本
  * 2. loadGame(index) - 读取存档（从文件或 JSON），加载地图/NPC/物品/武功/玩家等
- * 3. saveGame(index) - 保存存档到 localStorage (JSON格式)
- * 4. loadGameFromJSON(data) - 从 JSON 数据加载存档
- * 5. collectSaveData() - 收集当前游戏状态用于保存
+ * 3. loadGameFromJSON(data) - 从 JSON 数据加载存档
+ * 4. collectSaveData() - 收集当前游戏状态用于云端保存
  *
  * 参考实现：
  * - JxqyHD/Engine/Storage/Loader.cs
@@ -37,7 +36,7 @@ import type { Player } from "../player/player";
 import { resourceLoader } from "../resource/resourceLoader";
 import { getGameConfig, getPlayersData } from "../resource/resourceLoader";
 import type { ScriptExecutor } from "../script/executor";
-import { type CharacterSaveSlot, formatSaveTime, type GoodsItemData, type MagicItemData, type NpcSaveItem, type ObjSaveItem, type PlayerSaveData, SAVE_VERSION, type SaveData, type TrapGroupValue, saveGame, loadGame, captureScreenshot } from "./storage";
+import { type CharacterSaveSlot, formatSaveTime, type GoodsItemData, type MagicItemData, type NpcSaveItem, type ObjSaveItem, type PlayerSaveData, SAVE_VERSION, type SaveData, type TrapGroupValue } from "./storage";
 
 /**
  * 加载进度回调
@@ -70,7 +69,6 @@ export interface LoaderDependencies {
   getVariables: () => Record<string, number>;
   setVariables: (vars: Record<string, number>) => void;
   getCurrentMapName: () => string;
-  getCanvas: () => HTMLCanvasElement | null;
   // 进度回调（可选，用于报告加载进度）
   onProgress?: LoadProgressCallback;
   // 加载完成回调（可选，用于通知核心加载完成）
@@ -146,19 +144,6 @@ interface CharacterMemoryData {
  */
 export class Loader {
   private deps: LoaderDependencies;
-
-  /**
-   * 当前存档槽位索引
-   * -1 表示新游戏（从未保存过）
-   * 0 表示从初始存档加载（资源文件）
-   * 1-7 表示用户存档槽位
-   */
-  private _currentSaveSlot: number = -1;
-
-  /** 获取当前存档槽位 */
-  get currentSaveSlot(): number {
-    return this._currentSaveSlot;
-  }
 
   /**
    * 多角色内存存储
@@ -255,9 +240,6 @@ export class Loader {
     clearVariables();
     resetEventId();
     resetGameTime();
-
-    // 重置存档槽位为 -1（新游戏状态）
-    this._currentSaveSlot = -1;
 
     // 清空多角色内存存储（新游戏从资源文件加载初始数据）
     this.clearCharacterMemory();
@@ -682,7 +664,6 @@ export class Loader {
 
   /**
    * 加载同伴 (partner)
-   * filePath)
    */
   private async loadPartner(
     filePath: string,
@@ -745,7 +726,6 @@ export class Loader {
 
   /**
    * 加载陷阱忽略列表
-   * filePath)
    *
    * 格式：
    * [Init]
@@ -808,41 +788,6 @@ export class Loader {
   }
 
   // ============= JSON 存档系统 =============
-
-  /**
-   * 保存存档到 localStorage
-   *
-   * 参考Saver.SaveGame(int index, Texture2D snapShot)
-   *
-   * @param index 存档索引 (1-7)
-   * @returns 是否保存成功
-   */
-  async saveGame(index: number): Promise<boolean> {
-    logger.log(`[Loader] Saving game to slot ${index}...`);
-
-    try {
-      // 收集存档数据
-      const saveData = this.collectSaveData();
-
-      // 截图预览
-      const canvas = this.deps.getCanvas();
-      if (canvas) {
-        saveData.screenshot = captureScreenshot(canvas);
-      }
-
-      // 保存到 localStorage
-      const success = saveGame(index, saveData);
-      if (success) {
-        // 更新当前存档槽位
-        this._currentSaveSlot = index;
-        logger.log(`[Loader] Game saved to slot ${index} successfully`);
-      }
-      return success;
-    } catch (error) {
-      logger.error(`[Loader] Error saving game:`, error);
-      return false;
-    }
-  }
 
   // ============= 多主角切换 =============
 
@@ -1465,29 +1410,6 @@ export class Loader {
       logger.error(`[Loader] Error loading game from JSON:`, error);
       throw error;
     }
-  }
-
-  /**
-   * 从 localStorage 加载存档
-   *
-   * @param index 存档索引 (1-7)
-   */
-  async loadGameFromSlot(index: number): Promise<boolean> {
-    this.reportProgress(0, `读取存档 ${index}...`);
-    logger.log(`[Loader] Loading game from slot ${index}...`);
-
-    const data = loadGame(index);
-    if (!data) {
-      logger.error(`[Loader] No save data found at slot ${index}`);
-      return false;
-    }
-
-    await this.loadGameFromJSON(data);
-
-    // 记录当前存档槽位
-    this._currentSaveSlot = index;
-
-    return true;
   }
 
   /**

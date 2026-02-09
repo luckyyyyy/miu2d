@@ -9,7 +9,7 @@
  * 初始化流程:
  * 1. initialize() - 加载全局资源（对话文本、等级配置等），只执行一次
  * 2. newGame() - 运行 NewGame.txt 脚本开始新游戏
- *    或 loadGameFromSlot(index) - 从存档槽位加载
+ *    或 loadGameFromJSON(data) - 从云存档加载
  * 3. start() - 启动游戏循环
  */
 
@@ -28,8 +28,6 @@ export interface UseGameEngineOptions {
   width: number;
   height: number;
   autoStart?: boolean;
-  /** 可选：从存档槽位加载 (1-7) */
-  loadSlot?: number;
   /** 可选：从 JSON 存档数据加载（分享存档、标题界面读档） */
   initialSaveData?: SaveData;
 }
@@ -48,7 +46,7 @@ export interface UseGameEngineResult {
  * 游戏引擎 Hook
  */
 export function useGameEngine(options: UseGameEngineOptions): UseGameEngineResult {
-  const { width, height, autoStart = true, loadSlot, initialSaveData } = options;
+  const { width, height, autoStart = true, initialSaveData } = options;
 
   const engineRef = useRef<GameEngine | null>(null);
   const [state, setState] = useState<GameEngineState>("uninitialized");
@@ -118,9 +116,6 @@ export function useGameEngine(options: UseGameEngineOptions): UseGameEngineResul
           if (initialSaveData) {
             // 从 JSON 存档数据加载（分享存档、标题界面读档）
             await engine.initializeAndLoadFromJSON(initialSaveData);
-          } else if (loadSlot && loadSlot >= 1 && loadSlot <= 7) {
-            // 从存档槽位加载
-            await engine.initializeAndLoadGame(loadSlot);
           } else {
             // 开始新游戏
             await engine.initializeAndStartNewGame();
@@ -147,7 +142,7 @@ export function useGameEngine(options: UseGameEngineOptions): UseGameEngineResul
       }
       unsubscribersRef.current = [];
     };
-  }, [autoStart, height, initialSaveData, loadSlot, width]);
+  }, [autoStart, height, initialSaveData, width]);
 
   useEffect(() => {
     return () => {

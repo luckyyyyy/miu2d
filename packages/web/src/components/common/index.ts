@@ -26,12 +26,11 @@ export type {
 // Grid Background - 改用 @miu2d/ui 包
 export { FloatingOrb, GridBackground, GridLine, GridNode, GridPattern } from "@miu2d/ui";
 
-// Side Panel - 侧边面板组件（存档/设置等）
-export type { SaveLoadPanelProps, SettingsPanelProps } from "./SidePanel";
+// Side Panel - 侧边面板组件（设置等）
+export type { SettingsPanelProps } from "./SidePanel";
 export {
   loadAudioSettings,
   loadUITheme,
-  SaveLoadPanel,
   SettingsPanel,
   saveAudioSettings,
   saveUITheme,

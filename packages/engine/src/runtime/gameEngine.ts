@@ -57,6 +57,7 @@ import type { MagicItemInfo, MagicManager } from "../magic";
 import { MagicRenderer } from "../magic/magicRenderer";
 import { MapBase } from "../map";
 import { loadMap } from "../resource";
+import { resourceLoader } from "../resource/resourceLoader";
 import {
   createMapRenderer,
   loadMapMpcs,
@@ -316,15 +317,46 @@ export class GameEngine implements IEngineContext {
 
   /**
    * 释放引擎资源（用于完全重置）
+   *
+   * 清理顺序：
+   * 1. 停止游戏循环（cancelAnimationFrame）
+   * 2. 音频系统（停止所有音乐/音效，关闭 AudioContext）
+   * 3. 天气系统（停止雨雪粒子）
+   * 4. 计时器系统（清除时间限制）
+   * 5. 渲染器（释放 WebGL/Canvas2D 资源）
+   * 6. 资源缓存（释放内存）
+   * 7. 事件系统（移除所有监听器）
+   * 8. 全局引擎上下文
    */
   dispose(): void {
+    // 1. 停止游戏循环
     this.stop();
+
+    // 2. 音频系统 - 停止所有音乐/音效，关闭 AudioContext
+    this.audio.dispose();
+
+    // 3. 天气系统 - 停止雨雪粒子
+    this.weatherManager.dispose();
+
+    // 4. 计时器系统 - 清除时间限制
+    this.timerManager.closeTimeLimit();
+
+    // 5. 渲染器 - 释放 WebGL/Canvas2D 资源（纹理、着色器、缓冲区）
     this._renderer?.dispose();
     this._renderer = null;
+
+    // 6. 资源缓存 - 释放内存
+    resourceLoader.clearCache();
+
+    // 7. 事件系统
     this.events.clear();
+
+    // 8. 重置状态
     this.state = "uninitialized";
     this.hasEmittedReady = false;
     setEngineContext(null);
+
+    logger.info("[GameEngine] Engine disposed - all resources released");
   }
 
   private emitInitialized(success: boolean): void {
@@ -551,16 +583,6 @@ export class GameEngine implements IEngineContext {
   }
 
   /**
-   * 初始化并从存档加载游戏
-   *
-   * @param index 存档槽位索引 (1-7)
-   */
-  async initializeAndLoadGame(index: number): Promise<void> {
-    await this.initialize();
-    await this.loadGameFromSlot(index);
-  }
-
-  /**
    * 初始化并从 JSON 数据加载存档（便捷方法）
    *
    * 用于分享存档加载、标题界面读档等场景，
@@ -572,88 +594,7 @@ export class GameEngine implements IEngineContext {
   }
 
   /**
-   * 从 localStorage 存档槽位加载游戏
-   *
-   * @param index 存档槽位索引 (1-7)
-   */
-  async loadGameFromSlot(index: number): Promise<void> {
-    if (this.state === "uninitialized") {
-      logger.error("[GameEngine] Cannot load game: engine not initialized");
-      throw new Error("Engine not initialized. Call initialize() first.");
-    }
-
-    // 记录加载前是否已有游戏循环在运行（mid-game reload vs initial load）
-    const wasAlreadyRunning = this.isRunning;
-
-    this.state = "loading";
-    this.emitLoadProgress(0, `读取存档 ${index}...`);
-
-    // 设置进度回调，将 Loader 的进度转发到 UI
-    this.gameManager.setLoadProgressCallback((progress, text) => {
-      this.emitLoadProgress(progress, text);
-    });
-
-    // 设置地图加载进度回调
-    // Loader 会在 15-70% 范围内加载地图，MPC 进度 (0-1) 需要映射到这个范围
-    this.mapLoadProgressCallback = (mpcProgress, text) => {
-      // mpcProgress: 0-1，映射到 15-70% 范围
-      const mappedProgress = Math.round(15 + mpcProgress * 55);
-      this.emitLoadProgress(mappedProgress, text);
-    };
-
-    try {
-      // JSON 存档加载会恢复武功数据，不需要额外初始化
-      const success = await this.gameManager.loadGameFromSlot(index);
-      if (!success) {
-        throw new Error(`存档 ${index} 不存在`);
-      }
-
-      // 先恢复 running 状态，再发送 100% 进度，让进度处理器能正确检测到完成
-      this.state = "running";
-      this.emitLoadProgress(100, "存档加载完成");
-
-      // 仅在初次加载时发送 GAME_INITIALIZED 事件（触发 UI 层启动游戏循环）
-      // mid-game reload 时游戏循环已在运行，不需要再次触发 start()
-      if (!wasAlreadyRunning) {
-        this.emitInitialized(true);
-      }
-
-      logger.log(`[GameEngine] Game loaded from slot ${index}`);
-    } catch (error) {
-      logger.error(`[GameEngine] Failed to load game from slot ${index}:`, error);
-      if (!wasAlreadyRunning) {
-        this.emitInitialized(false);
-      }
-      throw error;
-    } finally {
-      // 清除进度回调
-      this.gameManager.setLoadProgressCallback(undefined);
-      this.mapLoadProgressCallback = null;
-    }
-  }
-
-  /**
-   * 保存游戏到指定槽位
-   *
-   * @param index 存档槽位索引 (1-7)
-   * @returns 是否保存成功
-   */
-  async saveGameToSlot(index: number): Promise<boolean> {
-    if (this.state === "uninitialized") {
-      logger.error("[GameEngine] Cannot save game: not initialized");
-      throw new Error("Engine not initialized. Call initialize() first.");
-    }
-
-    try {
-      return await this.gameManager.saveGame(index);
-    } catch (error) {
-      logger.error(`[GameEngine] Failed to save game to slot ${index}:`, error);
-      return false;
-    }
-  }
-
-  /**
-   * 收集当前游戏状态用于保存（不写入 localStorage）
+   * 收集当前游戏状态用于保存
    */
   collectSaveData(): SaveData {
     return this.gameManager.collectSaveData();
@@ -1839,18 +1780,15 @@ export class GameEngine implements IEngineContext {
         },
       },
 
-      // ===== 存档操作 =====
+      // ===== 存档操作（已迁移到云存档，保留接口兼容） =====
       save: {
-        saveGame: async (slotIndex: number) => {
-          return this.saveGameToSlot(slotIndex);
+        saveGame: async (_slotIndex: number) => {
+          logger.warn("[GameEngine] saveGameToSlot is deprecated, use cloud save instead");
+          return false;
         },
-        loadGame: async (slotIndex: number) => {
-          try {
-            await this.loadGameFromSlot(slotIndex);
-            return true;
-          } catch { // load failed
-            return false;
-          }
+        loadGame: async (_slotIndex: number) => {
+          logger.warn("[GameEngine] loadGameFromSlot is deprecated, use cloud save instead");
+          return false;
         },
         showSaveLoad: (visible: boolean) => {
           this.gameManager.getGuiManager().showSaveLoad(visible);
