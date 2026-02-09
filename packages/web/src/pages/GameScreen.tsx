@@ -18,7 +18,7 @@ import { setLevelConfigGameSlug, initNpcLevelConfig } from "@miu2d/engine/charac
 import { resourceLoader } from "@miu2d/engine/resource/resourceLoader";
 import type { SaveData } from "@miu2d/engine/runtime";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import type { GameHandle } from "../components";
 import {
   DebugPanel,
@@ -112,6 +112,8 @@ const MOBILE_SCALE = 0.75;
 export default function GameScreen() {
   // 从 URL 获取 gameSlug 和 shareCode
   const { gameSlug, shareCode } = useParams<{ gameSlug: string; shareCode?: string }>();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const loadSaveId = searchParams.get("loadSave");
   const { user, isAuthenticated } = useAuth();
 
   const gameRef = useRef<GameHandle>(null);
@@ -137,6 +139,37 @@ export default function GameScreen() {
 
   // 移动端检测
   const { isMobile, isLandscape, screenWidth, screenHeight } = useMobile();
+
+  // 通过 URL ?loadSave=<saveId> 自动读档
+  const loadSaveTriggeredRef = useRef(false);
+  useEffect(() => {
+    if (!loadSaveId || !isDataReady || !gameSlug || loadSaveTriggeredRef.current) return;
+    loadSaveTriggeredRef.current = true;
+
+    // 从服务端获取存档数据，然后自动进入游戏
+    const fetchAndLoad = async () => {
+      try {
+        logger.info(`[GameScreen] Auto-loading save ${loadSaveId}`);
+        const result = await utils.save.adminGet.fetch({ saveId: loadSaveId });
+        setInitialSaveData(result.data as unknown as SaveData);
+        setGamePhase("playing");
+        setActivePanel("debug");
+        logger.info(`[GameScreen] Save loaded successfully, starting game`);
+      } catch (error) {
+        logger.error(`[GameScreen] Auto-load save failed:`, error);
+      }
+      // 清除 URL 中的 loadSave 参数
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete("loadSave");
+        return next;
+      }, { replace: true });
+    };
+
+    fetchAndLoad();
+  }, [loadSaveId, isDataReady, gameSlug, setSearchParams]);
+
+  const utils = trpc.useUtils();
 
   // 设置资源路径（基于 gameSlug）并加载游戏数据，设置等级配置 gameSlug
   useEffect(() => {

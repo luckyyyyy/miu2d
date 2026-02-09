@@ -13,6 +13,10 @@ name = "mpc2msf"
 path = "src/bin/mpc2msf.rs"
 
 [[bin]]
+name = "verify"
+path = "src/bin/verify.rs"
+
+[[bin]]
 name = "verify_mpc"
 path = "src/bin/verify_mpc.rs"
 

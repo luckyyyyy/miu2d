@@ -57,7 +57,6 @@ export class MsfHeader {
     pixel_format: number;
     /**
      * Total RGBA bytes for all frames when decoded individually
-     * (sum of width*height*4 per frame, with empty frames counted as 1×1)
      */
     total_individual_pixel_bytes: number;
 }
@@ -198,27 +197,12 @@ export function decode_asf_frames(data: Uint8Array, output: Uint8Array): number;
 export function decode_mpc_frames(data: Uint8Array, pixel_output: Uint8Array, frame_sizes_output: Uint8Array, frame_offsets_output: Uint8Array): number;
 
 /**
- * Decode all MSF frames into RGBA pixel data
- *
- * Output buffer: canvas_width * canvas_height * 4 * frame_count bytes
- * Each frame is rendered at its full canvas size with the tight bbox composited in
- *
- * Returns: number of frames decoded, or 0 on failure
+ * Decode all frames into canvas-sized RGBA (for ASF sprites)
  */
 export function decode_msf_frames(data: Uint8Array, output: Uint8Array): number;
 
 /**
- * Decode MSF frames as individual images (for MPC-style per-frame varying sizes)
- *
- * Unlike decode_msf_frames which composites into a global canvas,
- * this returns each frame at its own dimensions.
- *
- * Output buffers (matching decode_mpc_frames signature):
- * - pixel_output: RGBA pixels for all frames concatenated
- * - frame_sizes_output: [width, height] u32 pairs per frame
- * - frame_offsets_output: byte offset of each frame in pixel_output
- *
- * Returns: frame count, or 0 on failure
+ * Decode frames as individual images (for MPC per-frame varying sizes)
  */
 export function decode_msf_individual_frames(data: Uint8Array, pixel_output: Uint8Array, frame_sizes_output: Uint8Array, frame_offsets_output: Uint8Array): number;
 
@@ -239,7 +223,7 @@ export function parse_asf_header(data: Uint8Array): AsfHeader | undefined;
 export function parse_mpc_header(data: Uint8Array): MpcHeader | undefined;
 
 /**
- * Parse MSF header from raw data
+ * Parse MSF v2 header from raw data
  */
 export function parse_msf_header(data: Uint8Array): MsfHeader | undefined;
 

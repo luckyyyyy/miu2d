@@ -589,6 +589,232 @@ export class FileService {
 		const path = await this.buildFilePath(file.id);
 		return toFileNodeOutput(file, path);
 	}
+
+	/**
+	 * 批量准备上传（获取预签名 URL）
+	 * 一次性处理多个文件，显著减少网络往返
+	 */
+	async batchPrepareUpload(
+		gameId: string,
+		fileItems: Array<{
+			clientId: string;
+			parentId: string | null | undefined;
+			name: string;
+			size: number;
+			mimeType: string | undefined;
+		}>,
+		skipExisting: boolean,
+		userId: string,
+		language: Language
+	): Promise<Array<{
+		clientId: string;
+		fileId: string;
+		uploadUrl: string;
+		storageKey: string;
+		skipped: boolean;
+	}>> {
+		await this.verifyGameAccess(gameId, userId, language);
+
+		const results: Array<{
+			clientId: string;
+			fileId: string;
+			uploadUrl: string;
+			storageKey: string;
+			skipped: boolean;
+		}> = [];
+
+		// 按 parentId 分组，批量检查同名冲突
+		const byParent = new Map<string, typeof fileItems>();
+		for (const item of fileItems) {
+			const key = item.parentId ?? "__root__";
+			const group = byParent.get(key) ?? [];
+			group.push(item);
+			byParent.set(key, group);
+		}
+
+		for (const [parentKey, items] of byParent) {
+			const parentId = parentKey === "__root__" ? null : parentKey;
+			const names = items.map(i => i.name);
+
+			// 批量查询该目录下已存在的文件名
+			const condition = parentId
+				? and(
+					eq(files.gameId, gameId),
+					eq(files.parentId, parentId),
+					isNull(files.deletedAt),
+					inArray(files.name, names)
+				)
+				: and(
+					eq(files.gameId, gameId),
+					isNull(files.parentId),
+					isNull(files.deletedAt),
+					inArray(files.name, names)
+				);
+
+			const existingFiles = await db
+				.select({ id: files.id, name: files.name, storageKey: files.storageKey })
+				.from(files)
+				.where(condition);
+
+			const existingByName = new Map(existingFiles.map(f => [f.name, f]));
+
+			for (const item of items) {
+				const existing = existingByName.get(item.name);
+
+				if (existing) {
+					if (skipExisting) {
+						// 跳过已存在的文件
+						results.push({
+							clientId: item.clientId,
+							fileId: existing.id,
+							uploadUrl: "",
+							storageKey: existing.storageKey ?? "",
+							skipped: true
+						});
+						continue;
+					}
+					throw new TRPCError({
+						code: "CONFLICT",
+						message: getMessage(language, "errors.file.nameConflict")
+					});
+				}
+
+				// 创建文件记录
+				const [file] = await db
+					.insert(files)
+					.values({
+						gameId,
+						parentId: parentId,
+						name: item.name,
+						type: "file",
+						size: item.size.toString(),
+						mimeType: item.mimeType ?? "application/octet-stream"
+					})
+					.returning();
+
+				const storageKey = s3.generateStorageKey(gameId, file.id);
+				await db.update(files).set({ storageKey }).where(eq(files.id, file.id));
+
+				const uploadUrl = await s3.getUploadUrl(storageKey, item.mimeType);
+
+				results.push({
+					clientId: item.clientId,
+					fileId: file.id,
+					uploadUrl,
+					storageKey,
+					skipped: false
+				});
+			}
+		}
+
+		return results;
+	}
+
+	/**
+	 * 批量确认上传完成
+	 * 一次性确认多个文件，减少网络往返
+	 */
+	async batchConfirmUpload(
+		fileIds: string[],
+		userId: string,
+		language: Language
+	): Promise<number> {
+		if (fileIds.length === 0) return 0;
+
+		// 验证所有文件存在且用户有权限
+		const fileRecords = await db
+			.select()
+			.from(files)
+			.where(and(
+				inArray(files.id, fileIds),
+				isNull(files.deletedAt)
+			));
+
+		if (fileRecords.length === 0) return 0;
+
+		// 验证对所有涉及的游戏有权限（通常只有一个）
+		const gameIds = [...new Set(fileRecords.map(f => f.gameId))];
+		for (const gid of gameIds) {
+			await this.verifyGameAccess(gid, userId, language);
+		}
+
+		// 批量验证 S3 中文件存在（并行检查）
+		const validFileIds: string[] = [];
+		const checks = fileRecords.map(async (file) => {
+			if (file.storageKey && await s3.fileExists(file.storageKey)) {
+				validFileIds.push(file.id);
+			}
+		});
+		await Promise.all(checks);
+
+		if (validFileIds.length === 0) return 0;
+
+		// 批量更新 updatedAt
+		await db
+			.update(files)
+			.set({ updatedAt: new Date() })
+			.where(inArray(files.id, validFileIds));
+
+		return validFileIds.length;
+	}
+
+	/**
+	 * 服务端创建文件夹路径（递归创建所有中间文件夹）
+	 * 如果文件夹已存在则复用，避免客户端逐级查询
+	 */
+	async ensureFolderPath(
+		gameId: string,
+		parentId: string | null | undefined,
+		pathParts: string[],
+		userId: string,
+		language: Language
+	): Promise<string> {
+		await this.verifyGameAccess(gameId, userId, language);
+
+		let currentParentId: string | null = parentId ?? null;
+
+		for (const folderName of pathParts) {
+			// 检查此层是否已存在
+			const condition = currentParentId
+				? and(
+					eq(files.gameId, gameId),
+					eq(files.parentId, currentParentId),
+					eq(files.name, folderName),
+					eq(files.type, "folder"),
+					isNull(files.deletedAt)
+				)
+				: and(
+					eq(files.gameId, gameId),
+					isNull(files.parentId),
+					eq(files.name, folderName),
+					eq(files.type, "folder"),
+					isNull(files.deletedAt)
+				);
+
+			const [existing] = await db
+				.select({ id: files.id })
+				.from(files)
+				.where(condition)
+				.limit(1);
+
+			if (existing) {
+				currentParentId = existing.id;
+			} else {
+				const [folder] = await db
+					.insert(files)
+					.values({
+						gameId,
+						parentId: currentParentId,
+						name: folderName,
+						type: "folder"
+					})
+					.returning();
+				currentParentId = folder.id;
+			}
+		}
+
+		return currentParentId!;
+	}
 }
 
 export const fileService = new FileService();

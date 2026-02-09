@@ -60,6 +60,8 @@ offset++; // Alpha (通常为 0xFF 或忽略)
 
 ASF (Animation Sprite File) 是角色、NPC、特效等精灵动画的存储格式。
 
+> 📦 Web 版本已将 ASF 转换为 [MSF 格式](msf-format.md#asf--msf-v2-转换)（Indexed8Alpha8 2bpp + zstd），运行时自动 `.asf` → `.msf` URL 重写。后台浏览器仍支持解码原始 ASF 格式。
+
 ### 文件结构总览
 
 ```
@@ -184,7 +186,7 @@ function getFrameIndex(direction: number, animFrame: number): number {
 
 MPC (Map Picture Container) 存储地图瓦片图片，每个 MPC 文件包含多帧图片（通常用于地图动画）。
 
-> 📦 Web 版本已将 MPC 转换为 [MSF 格式](msf-format.md#mpc--msf-转换)（Indexed8Alpha8 + zstd），运行时自动 `.mpc` → `.msf` URL 重写。
+> 📦 Web 版本已将 MPC 转换为 [MSF 格式](msf-format.md#mpc--msf-v2-转换)（Indexed8 1bpp + zstd），运行时自动 `.mpc` → `.msf` URL 重写。后台浏览器仍支持解码原始 MPC 格式。
 
 ### 文件结构总览
 

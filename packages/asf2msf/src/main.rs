@@ -1,11 +1,10 @@
-//! ASF → MSF batch conversion tool
+//! ASF → MSF v2 batch conversion tool
 //!
 //! Usage:
 //!   asf2msf <input_dir> <output_dir>
 //!
-//! Recursively converts all .asf files to .msf format.
-//! Uses per-frame tight bounding box + zstd compression to minimize file size.
-//! Output is zstd-compressed MSF (flags bit 0 = 1).
+//! Recursively converts all .asf files to MSF v2 format.
+//! MSF v2: Indexed8Alpha8 (2bpp) + zstd compression, no row filters.
 
 use rayon::prelude::*;
 use std::path::PathBuf;
@@ -13,20 +12,10 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use walkdir::WalkDir;
 
 mod msf {
-    pub const MSF_MAGIC: &[u8; 4] = b"MSF1";
-    pub const MSF_VERSION: u16 = 1;
+    pub const MSF_MAGIC: &[u8; 4] = b"MSF2";
+    pub const MSF_VERSION: u16 = 2;
     pub const CHUNK_END: &[u8; 4] = b"END\0";
     const FRAME_ENTRY_SIZE: usize = 16;
-
-    #[repr(u8)]
-    #[derive(Clone, Copy)]
-    pub enum PixelFormat {
-        #[allow(dead_code)]
-        Rgba8 = 0,
-        #[allow(dead_code)]
-        Indexed8 = 1,
-        Indexed8Alpha8 = 2,
-    }
 
     struct FrameEntry {
         offset_x: i16,
@@ -89,18 +78,19 @@ mod msf {
         out
     }
 
+    /// Convert RGBA pixels to Indexed8Alpha8 (2bpp): [palette_index, alpha] per pixel.
     fn rgba_to_indexed_alpha(pixels: &[u8], palette: &[[u8; 4]]) -> Vec<u8> {
         let pixel_count = pixels.len() / 4;
         let mut data = Vec::with_capacity(pixel_count * 2);
         for i in 0..pixel_count {
-            let r = pixels[i * 4];
-            let g = pixels[i * 4 + 1];
-            let b = pixels[i * 4 + 2];
             let a = pixels[i * 4 + 3];
             if a == 0 {
-                data.push(0); // index
-                data.push(0); // alpha
+                data.push(0);
+                data.push(0);
             } else {
+                let r = pixels[i * 4];
+                let g = pixels[i * 4 + 1];
+                let b = pixels[i * 4 + 2];
                 let mut best_idx = 0u8;
                 let mut best_dist = u32::MAX;
                 for (j, entry) in palette.iter().enumerate() {
@@ -116,8 +106,8 @@ mod msf {
                         }
                     }
                 }
-                data.push(best_idx); // palette index
-                data.push(a); // original alpha preserved
+                data.push(best_idx);
+                data.push(a);
             }
         }
         data
@@ -176,7 +166,7 @@ mod msf {
         }
     }
 
-    /// Convert a single ASF file to zstd-compressed MSF bytes
+    /// Convert a single ASF file to MSF v2 (Indexed8 1bpp + zstd)
     pub fn convert_asf_to_msf(asf_data: &[u8]) -> Option<Vec<u8>> {
         if asf_data.len() < 80 {
             return None;
@@ -240,9 +230,9 @@ mod msf {
         let w = width as usize;
         let h = height as usize;
 
-        // Process frames: decode RLE → compute bbox → extract → indexed
-        let mut frame_entries: Vec<FrameEntry> = Vec::with_capacity(frame_count as usize);
-        let mut raw_frame_data: Vec<Vec<u8>> = Vec::with_capacity(frame_count as usize);
+        // Phase 1: Decode frames → RGBA → tight bbox
+        let mut frames_rgba: Vec<(Vec<u8>, i16, i16, u16, u16)> =
+            Vec::with_capacity(frame_count as usize);
 
         for i in 0..frame_count as usize {
             let mut pixels = vec![0u8; w * h * 4];
@@ -260,6 +250,26 @@ mod msf {
 
             let (ox, oy, bw, bh) = compute_tight_bbox(&pixels, w, h);
             if bw == 0 || bh == 0 {
+                frames_rgba.push((Vec::new(), 0, 0, 0, 0));
+            } else {
+                let cropped = extract_bbox_pixels(
+                    &pixels,
+                    w,
+                    ox as usize,
+                    oy as usize,
+                    bw as usize,
+                    bh as usize,
+                );
+                frames_rgba.push((cropped, ox, oy, bw, bh));
+            }
+        }
+
+        // Phase 2: Convert to Indexed8Alpha8 (2bpp)
+        let mut frame_entries: Vec<FrameEntry> = Vec::with_capacity(frame_count as usize);
+        let mut raw_frame_data: Vec<Vec<u8>> = Vec::with_capacity(frame_count as usize);
+
+        for (pixels, ox, oy, bw, bh) in &frames_rgba {
+            if *bw == 0 || *bh == 0 {
                 frame_entries.push(FrameEntry {
                     offset_x: 0,
                     offset_y: 0,
@@ -270,28 +280,20 @@ mod msf {
                 });
                 raw_frame_data.push(Vec::new());
             } else {
-                let cropped = extract_bbox_pixels(
-                    &pixels,
-                    w,
-                    ox as usize,
-                    oy as usize,
-                    bw as usize,
-                    bh as usize,
-                );
-                let frame_data = rgba_to_indexed_alpha(&cropped, &palette);
+                let indexed = rgba_to_indexed_alpha(pixels, &palette);
                 frame_entries.push(FrameEntry {
-                    offset_x: ox,
-                    offset_y: oy,
-                    width: bw,
-                    height: bh,
+                    offset_x: *ox,
+                    offset_y: *oy,
+                    width: *bw,
+                    height: *bh,
                     data_offset: 0,
                     data_length: 0,
                 });
-                raw_frame_data.push(frame_data);
+                raw_frame_data.push(indexed);
             }
         }
 
-        // Concatenate and compute offsets
+        // Concatenate frame data
         let mut concat_raw = Vec::new();
         for (i, data) in raw_frame_data.iter().enumerate() {
             frame_entries[i].data_offset = concat_raw.len() as u32;
@@ -299,9 +301,7 @@ mod msf {
             concat_raw.extend_from_slice(data);
         }
 
-        let flags: u16 = 1; // bit 0: zstd compressed blob
-
-        // Compress the frame data blob with zstd (level 3 = good balance)
+        let flags: u16 = 1; // bit 0: zstd
         let compressed_blob = zstd::bulk::compress(&concat_raw, 3).ok()?;
 
         let palette_bytes = palette.len() * 4;
@@ -316,7 +316,7 @@ mod msf {
             + compressed_blob.len();
         let mut out = Vec::with_capacity(total);
 
-        // Magic + Version + Flags
+        // Preamble
         out.extend_from_slice(MSF_MAGIC);
         out.extend_from_slice(&MSF_VERSION.to_le_bytes());
         out.extend_from_slice(&flags.to_le_bytes());
@@ -329,14 +329,14 @@ mod msf {
         out.push(fps);
         out.extend_from_slice(&left.to_le_bytes());
         out.extend_from_slice(&bottom.to_le_bytes());
-        out.extend_from_slice(&[0u8; 4]); // reserved
+        out.extend_from_slice(&[0u8; 4]);
 
-        // Pixel format + palette size
-        out.push(PixelFormat::Indexed8Alpha8 as u8);
+        // Pixel format: Indexed8Alpha8 (2)
+        out.push(2);
         out.extend_from_slice(&(palette.len() as u16).to_le_bytes());
         out.push(0);
 
-        // Palette
+        // Palette (RGBA)
         for entry in &palette {
             out.extend_from_slice(entry);
         }
@@ -355,7 +355,7 @@ mod msf {
         out.extend_from_slice(CHUNK_END);
         out.extend_from_slice(&0u32.to_le_bytes());
 
-        // Zstd-compressed frame data blob
+        // Compressed blob
         out.extend_from_slice(&compressed_blob);
 
         Some(out)
@@ -366,7 +366,6 @@ fn main() {
     let args: Vec<String> = std::env::args().collect();
     if args.len() < 3 {
         eprintln!("Usage: asf2msf <input_dir> <output_dir>");
-        eprintln!("  Recursively converts all .asf files to .msf format");
         std::process::exit(1);
     }
 
@@ -391,7 +390,7 @@ fn main() {
         .collect();
 
     let total = asf_files.len();
-    println!("Found {} ASF files to convert", total);
+    println!("Found {} ASF files (MSF v2: Indexed8Alpha8 + zstd)", total);
 
     let converted = AtomicUsize::new(0);
     let failed = AtomicUsize::new(0);
@@ -414,19 +413,15 @@ fn main() {
                 match msf::convert_asf_to_msf(&asf_data) {
                     Some(msf_data) => {
                         let msf_size = msf_data.len();
-                        match std::fs::write(&msf_path, &msf_data) {
-                            Ok(()) => {
-                                let n = converted.fetch_add(1, Ordering::Relaxed) + 1;
-                                total_asf_bytes.fetch_add(asf_size, Ordering::Relaxed);
-                                total_msf_bytes.fetch_add(msf_size, Ordering::Relaxed);
-                                if n % 100 == 0 || n == total {
-                                    println!("  [{}/{}] converted", n, total);
-                                }
+                        if std::fs::write(&msf_path, &msf_data).is_ok() {
+                            let n = converted.fetch_add(1, Ordering::Relaxed) + 1;
+                            total_asf_bytes.fetch_add(asf_size, Ordering::Relaxed);
+                            total_msf_bytes.fetch_add(msf_size, Ordering::Relaxed);
+                            if n % 100 == 0 || n == total {
+                                println!("  [{}/{}]", n, total);
                             }
-                            Err(e) => {
-                                eprintln!("  WRITE ERROR {:?}: {}", msf_path, e);
-                                failed.fetch_add(1, Ordering::Relaxed);
-                            }
+                        } else {
+                            failed.fetch_add(1, Ordering::Relaxed);
                         }
                     }
                     None => {
@@ -452,10 +447,11 @@ fn main() {
         0.0
     };
 
-    println!();
-    println!("=== Conversion Complete ===");
+    println!("\n=== Done ===");
     println!("  Converted: {}/{}", c, total);
     println!("  Failed:    {}", f);
-    println!("  ASF total: {:.1} MB", asf_mb);
-    println!("  MSF total: {:.1} MB ({:.1}% of original)", msf_mb, ratio);
+    println!(
+        "  ASF: {:.1} MB → MSF: {:.1} MB ({:.1}%)",
+        asf_mb, msf_mb, ratio
+    );
 }

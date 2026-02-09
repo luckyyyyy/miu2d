@@ -7,7 +7,7 @@ import { TRPCError } from "@trpc/server";
 import { and, eq, desc, sql, count } from "drizzle-orm";
 import { randomBytes } from "node:crypto";
 import { db } from "../../db/client";
-import { saves, games, users } from "../../db/schema";
+import { saves, games, users, gameMembers } from "../../db/schema";
 
 function generateShareCode(): string {
 	return randomBytes(6).toString("base64url"); // 8 chars
@@ -212,6 +212,31 @@ export class SaveService {
 	// ============= 管理员接口 =============
 
 	/**
+	 * 验证用户是否为游戏成员或全局管理员
+	 */
+	private async verifyGameAccess(gameId: string, userId: string) {
+		// 检查是否为全局管理员
+		const [user] = await db
+			.select({ role: users.role })
+			.from(users)
+			.where(eq(users.id, userId))
+			.limit(1);
+
+		if (user?.role === "admin") return;
+
+		// 检查是否为游戏成员
+		const [membership] = await db
+			.select({ id: gameMembers.id })
+			.from(gameMembers)
+			.where(and(eq(gameMembers.gameId, gameId), eq(gameMembers.userId, userId)))
+			.limit(1);
+
+		if (!membership) {
+			throw new TRPCError({ code: "FORBIDDEN", message: "无权管理此游戏的存档" });
+		}
+	}
+
+	/**
 	 * 管理员列出所有存档
 	 */
 	async adminList(input: {
@@ -219,11 +244,12 @@ export class SaveService {
 		userId?: string;
 		page: number;
 		pageSize: number;
-	}) {
+	}, operatorId: string) {
 		const conditions = [];
 
 		if (input.gameSlug) {
 			const game = await this.resolveGame(input.gameSlug);
+			await this.verifyGameAccess(game.id, operatorId);
 			conditions.push(eq(saves.gameId, game.id));
 		}
 
@@ -264,7 +290,7 @@ export class SaveService {
 	/**
 	 * 管理员获取完整存档数据（可读取任何用户的存档）
 	 */
-	async adminGet(saveId: string) {
+	async adminGet(saveId: string, operatorId: string) {
 		const [row] = await db
 			.select({
 				save: saves,
@@ -279,11 +305,33 @@ export class SaveService {
 			throw new TRPCError({ code: "NOT_FOUND", message: "存档不存在" });
 		}
 
+		await this.verifyGameAccess(row.save.gameId, operatorId);
+
 		return {
 			...this.toOutput(row.save),
 			userName: row.userName,
 			data: row.save.data as Record<string, unknown>,
 		};
+	}
+
+	/**
+	 * 管理员删除存档（可删除任何用户的存档）
+	 */
+	async adminDelete(saveId: string, operatorId: string) {
+		const [existing] = await db
+			.select({ id: saves.id, gameId: saves.gameId })
+			.from(saves)
+			.where(eq(saves.id, saveId))
+			.limit(1);
+
+		if (!existing) {
+			throw new TRPCError({ code: "NOT_FOUND", message: "存档不存在" });
+		}
+
+		await this.verifyGameAccess(existing.gameId, operatorId);
+
+		await db.delete(saves).where(eq(saves.id, saveId));
+		return { id: saveId };
 	}
 
 	// ============= 内部工具 =============

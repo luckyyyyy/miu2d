@@ -38,7 +38,15 @@ export {
   DeleteFileInputSchema,
   GetFilePathInputSchema,
   PathNodeSchema,
-  GetFilePathOutputSchema
+  GetFilePathOutputSchema,
+  BatchPrepareUploadFileSchema,
+  BatchPrepareUploadInputSchema,
+  BatchPrepareUploadResultSchema,
+  BatchPrepareUploadOutputSchema,
+  BatchConfirmUploadInputSchema,
+  BatchConfirmUploadOutputSchema,
+  EnsureFolderPathInputSchema,
+  EnsureFolderPathOutputSchema
 } from "./file.js";
 export type {
   FileType,
@@ -57,7 +65,13 @@ export type {
   DeleteFileInput,
   GetFilePathInput,
   PathNode,
-  GetFilePathOutput
+  GetFilePathOutput,
+  BatchPrepareUploadInput,
+  BatchPrepareUploadOutput,
+  BatchConfirmUploadInput,
+  BatchConfirmUploadOutput,
+  EnsureFolderPathInput,
+  EnsureFolderPathOutput
 } from "./file.js";
 
 // 武功类型
@@ -493,6 +507,7 @@ export {
   SaveDataResponseSchema,
   AdminListSavesInputSchema,
   AdminListSavesOutputSchema,
+  AdminDeleteSaveInputSchema,
 } from "./save.js";
 export type {
   SaveSlot,
@@ -505,4 +520,5 @@ export type {
   SaveDataResponse,
   AdminListSavesInput,
   AdminListSavesOutput,
+  AdminDeleteSaveInput,
 } from "./save.js";

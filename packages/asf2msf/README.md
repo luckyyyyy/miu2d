@@ -8,7 +8,7 @@ ASF → MSF 精灵格式批量转换器（Rust CLI）。
 
 ## 特性
 
-- **无损转换** — Indexed8Alpha8 像素格式，完整保留 per-pixel alpha（经 96.25 亿像素逐像素验证）
+- **无损转换** — ASF 使用 Indexed8Alpha8 (2bpp)，MPC 使用 Indexed8 (1bpp)，经 4,934 文件逐像素验证零差异
 - **并行处理** — 基于 [rayon](https://crates.io/crates/rayon) 的多线程批量转换
 - **Tight Bounding Box** — 裁剪每帧的透明边距，减少数据量
 - **内置验证** — `verify` 工具逐像素比对 ASF 与 MSF 的解码结果
@@ -102,12 +102,12 @@ verify <directory>
 ```
 [PASS] char/hero/walk — 136 帧, 12480 像素, 0 差异
 ...
-ALL 2086 FILES PIXEL-PERFECT — 96.25 billion pixels, 0 differences
+ALL 2086 FILES PIXEL-PERFECT — 0 differences
 ```
 
 ### scan_alpha（Alpha 扫描）
 
-分析 ASF 文件中的 per-pixel alpha 使用情况，帮助确认 Indexed8Alpha8 格式的必要性。
+分析 ASF 文件中的 per-pixel alpha 使用情况，帮助确认像素格式选择（ASF 需要 Indexed8Alpha8；MPC 无半透明，使用 Indexed8）。
 
 ```
 scan_alpha <asf_directory>
@@ -122,7 +122,15 @@ ASF 文件                          MSF 文件
 ┌────────────────┐               ┌────────────────┐
 │ BGRA 调色板    │  → 翻转 →     │ RGBA 调色板    │
 │ RLE 压缩帧     │  → 解码 →     │ Indexed8Alpha8 │
-│ 固定 canvas    │  → 裁剪 →     │ Tight BBox     │
+│ 固定 canvas    │  → 裁剪 →     │ (2bpp) + zstd  │
+│ 单帧结构       │  → 拼接 →     │ Frame Table    │
+└────────────────┘               └────────────────┘
+
+MPC 文件                          MSF 文件
+┌────────────────┐               ┌────────────────┐
+│ BGRA 调色板    │  → 翻转 →     │ RGBA 调色板    │
+│ RLE 压缩帧     │  → 解码 →     │ Indexed8        │
+│ 每帧独立尺寸   │  → 保留 →     │ (1bpp) + zstd  │
 │ 单帧结构       │  → 拼接 →     │ Frame Table    │
 └────────────────┘               └────────────────┘
 ```
@@ -132,8 +140,8 @@ ASF 文件                          MSF 文件
 1. 解码 ASF RLE 流 → 得到 canvas 大小的 RGBA + 索引数据
 2. 计算 tight bounding box（最小非透明矩形）
 3. 裁剪帧数据到 bbox 范围
-4. 将每像素编码为 2 字节：`[palette_index, alpha]`
-5. 记录帧的 offset / size 到 Frame Table
+4. ASF：将每像素编码为 2 字节 `[palette_index, alpha]`（Indexed8Alpha8）；MPC：仅 1 字节 `[palette_index]`（Indexed8）
+5. zstd 压缩帧数据，记录帧的 offset / size 到 Frame Table
 
 ---
 

@@ -128,3 +128,10 @@ export const AdminListSavesOutputSchema = z.object({
 });
 
 export type AdminListSavesOutput = z.infer<typeof AdminListSavesOutputSchema>;
+
+/** 管理员删除存档 */
+export const AdminDeleteSaveInputSchema = z.object({
+  saveId: z.string(),
+});
+
+export type AdminDeleteSaveInput = z.infer<typeof AdminDeleteSaveInputSchema>;

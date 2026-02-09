@@ -18,7 +18,13 @@ import {
 	MoveFileInputSchema,
 	DeleteFileInputSchema,
 	GetFilePathInputSchema,
-	GetFilePathOutputSchema
+	GetFilePathOutputSchema,
+	BatchPrepareUploadInputSchema,
+	BatchPrepareUploadOutputSchema,
+	BatchConfirmUploadInputSchema,
+	BatchConfirmUploadOutputSchema,
+	EnsureFolderPathInputSchema,
+	EnsureFolderPathOutputSchema
 } from "@miu2d/types";
 import type { Context } from "../../trpc/context";
 import { Ctx, Mutation, Query, Router, UseMiddlewares } from "../../trpc/decorators";
@@ -176,5 +182,58 @@ export class FileRouter {
 	})
 	async delete(input: z.infer<typeof DeleteFileInputSchema>, @Ctx() ctx: Context) {
 		return fileService.delete(input.fileId, ctx.userId!, ctx.language);
+	}
+
+	/**
+	 * 批量准备上传（获取预签名 URL）
+	 * 一次处理最多 200 个文件，减少网络往返
+	 */
+	@UseMiddlewares(requireUser)
+	@Mutation({ input: BatchPrepareUploadInputSchema, output: BatchPrepareUploadOutputSchema })
+	async batchPrepareUpload(input: z.infer<typeof BatchPrepareUploadInputSchema>, @Ctx() ctx: Context) {
+		const results = await fileService.batchPrepareUpload(
+			input.gameId,
+			input.files.map(f => ({
+				clientId: f.clientId,
+				parentId: f.parentId ?? null,
+				name: f.name,
+				size: f.size,
+				mimeType: f.mimeType
+			})),
+			input.skipExisting ?? false,
+			ctx.userId!,
+			ctx.language
+		);
+		return { results };
+	}
+
+	/**
+	 * 批量确认上传完成
+	 */
+	@UseMiddlewares(requireUser)
+	@Mutation({ input: BatchConfirmUploadInputSchema, output: BatchConfirmUploadOutputSchema })
+	async batchConfirmUpload(input: z.infer<typeof BatchConfirmUploadInputSchema>, @Ctx() ctx: Context) {
+		const confirmed = await fileService.batchConfirmUpload(
+			input.fileIds,
+			ctx.userId!,
+			ctx.language
+		);
+		return { confirmed };
+	}
+
+	/**
+	 * 服务端创建文件夹路径
+	 */
+	@UseMiddlewares(requireUser)
+	@Mutation({ input: EnsureFolderPathInputSchema, output: EnsureFolderPathOutputSchema })
+	async ensureFolderPath(input: z.infer<typeof EnsureFolderPathInputSchema>, @Ctx() ctx: Context) {
+		const folderId = await fileService.ensureFolderPath(
+			input.gameId,
+			input.parentId ?? null,
+			input.pathParts,
+			ctx.userId!,
+			ctx.language
+		);
+		return { folderId };
 	}
 }

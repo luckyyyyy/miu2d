@@ -1,29 +1,23 @@
 /**
  * WASM MPC 解码器
- * 使用 Rust 实现的高性能 RLE 解码，大文件约 1.5x 加速
- * 自动检测 MSF 格式（magic "MSF1"）并使用 MSF 解码路径
+ *
+ * 支持两种格式：
+ * - MSF v2 (Miu Sprite Format): zstd 压缩 + 调色板索引
+ * - MPC (原始格式): RLE 压缩
  *
  * 使用前需要 await initWasm()
  */
 
+import { logger } from "../core/logger";
 import type { Mpc, MpcFrame, MpcHead } from "../core/mapTypes";
 import { getWasmModule } from "./wasmManager";
+import type { WasmModule } from "./wasmManager";
 
-/** MSF magic bytes: "MSF1" */
-const MSF_MAGIC = 0x3146534d; // little-endian "MSF1"
-
-/**
- * 检测数据是否为 MSF 格式
- */
-function isMsfData(data: Uint8Array): boolean {
-  if (data.length < 4) return false;
-  const magic = data[0] | (data[1] << 8) | (data[2] << 16) | (data[3] << 24);
-  return magic === MSF_MAGIC;
-}
+/** MSF v2 magic bytes: "MSF2" */
+const MSF_MAGIC = 0x3246534d; // little-endian "MSF2"
 
 /**
- * 使用 WASM 解码 MPC 或 MSF 文件
- * 自动检测格式：MSF 优先使用 MSF 解码路径
+ * 使用 WASM 解码 MPC 文件（支持 MSF v2 和原始 MPC 格式）
  * 返回 null 如果 WASM 不可用或解码失败
  */
 export function decodeMpcWasm(buffer: ArrayBuffer): Mpc | null {
@@ -34,11 +28,75 @@ export function decodeMpcWasm(buffer: ArrayBuffer): Mpc | null {
 
   const data = new Uint8Array(buffer);
 
-  if (isMsfData(data)) {
+  if (data.length < 8) {
+    return null;
+  }
+
+  // 检测格式：MSF v2 or 原始 MPC
+  const magic = data[0] | (data[1] << 8) | (data[2] << 16) | (data[3] << 24);
+  if (magic === MSF_MAGIC) {
     return decodeMsfAsMpc(data, wasmModule);
   }
 
-  return decodeMpcNative(data, wasmModule);
+  // 尝试原始 MPC 格式
+  return decodeOriginalMpc(data, wasmModule);
+}
+
+/** 解码原始 MPC 格式 */
+function decodeOriginalMpc(
+  data: Uint8Array,
+  wasmModule: WasmModule,
+): Mpc | null {
+  const header = wasmModule.parse_mpc_header(data);
+  if (!header) {
+    return null;
+  }
+
+  const pixelOutput = new Uint8Array(header.total_pixel_bytes);
+  const frameSizesOutput = new Uint8Array(header.frame_count * 2 * 4);
+  const frameOffsetsOutput = new Uint8Array(header.frame_count * 4);
+
+  const frameCount = wasmModule.decode_mpc_frames(
+    data,
+    pixelOutput,
+    frameSizesOutput,
+    frameOffsetsOutput,
+  );
+
+  if (frameCount === 0) {
+    return null;
+  }
+
+  const frameSizes = new Uint32Array(frameSizesOutput.buffer);
+  const frameOffsets = new Uint32Array(frameOffsetsOutput.buffer);
+
+  const frames: MpcFrame[] = [];
+  for (let i = 0; i < frameCount; i++) {
+    const width = frameSizes[i * 2];
+    const height = frameSizes[i * 2 + 1];
+    const offset = frameOffsets[i];
+    const frameSize = width * height * 4;
+
+    const pixelData = new Uint8ClampedArray(frameSize);
+    pixelData.set(pixelOutput.subarray(offset, offset + frameSize));
+
+    const imageData = new ImageData(pixelData, width, height);
+    frames.push({ width, height, imageData });
+  }
+
+  const head: MpcHead = {
+    framesDataLengthSum: header.frames_data_length_sum,
+    globalWidth: header.global_width,
+    globalHeight: header.global_height,
+    frameCounts: header.frame_count,
+    direction: header.direction,
+    colourCounts: header.color_count,
+    interval: header.interval,
+    bottom: header.bottom,
+    left: header.left,
+  };
+
+  return { head, frames, palette: [] };
 }
 
 /**
@@ -102,83 +160,4 @@ function decodeMsfAsMpc(
   return { head, frames, palette: [] };
 }
 
-/**
- * 解码原始 MPC 格式数据
- */
-function decodeMpcNative(
-  data: Uint8Array,
-  wasmModule: ReturnType<typeof getWasmModule> & object,
-): Mpc | null {
-  const wasm = wasmModule as import("./wasmManager").WasmModule;
-  const header = wasm.parse_mpc_header(data);
-  if (!header) {
-    return null;
-  }
 
-  // Pre-allocate buffers
-  const pixelOutput = new Uint8Array(header.total_pixel_bytes);
-  const frameSizesOutput = new Uint8Array(header.frame_count * 2 * 4); // 2 u32 per frame
-  const frameOffsetsOutput = new Uint8Array(header.frame_count * 4); // 1 u32 per frame
-
-  const frameCount = wasm.decode_mpc_frames(
-    data,
-    pixelOutput,
-    frameSizesOutput,
-    frameOffsetsOutput,
-  );
-
-  if (frameCount === 0) {
-    return null;
-  }
-
-  // Parse frame sizes and offsets from bytes
-  const frameSizes = new Uint32Array(frameSizesOutput.buffer);
-  const frameOffsets = new Uint32Array(frameOffsetsOutput.buffer);
-
-  // Read palette from original data
-  const palette: Uint8ClampedArray[] = [];
-  const paletteStart = 128;
-  for (let i = 0; i < header.color_count; i++) {
-    const offset = paletteStart + i * 4;
-    if (offset + 4 > data.length) break;
-    const b = data[offset];
-    const g = data[offset + 1];
-    const r = data[offset + 2];
-    palette.push(new Uint8ClampedArray([r, g, b, 255]));
-  }
-
-  // Build frames from result
-  const frames: MpcFrame[] = [];
-  for (let i = 0; i < frameCount; i++) {
-    const width = frameSizes[i * 2];
-    const height = frameSizes[i * 2 + 1];
-    const offset = frameOffsets[i];
-    const frameSize = width * height * 4;
-
-    // Create ImageData from pixel data
-    const pixelData = new Uint8ClampedArray(frameSize);
-    pixelData.set(pixelOutput.subarray(offset, offset + frameSize));
-
-    const imageData = new ImageData(pixelData, width, height);
-
-    frames.push({
-      width,
-      height,
-      imageData,
-    });
-  }
-
-  const head: MpcHead = {
-    framesDataLengthSum: header.frames_data_length_sum,
-    globalWidth: header.global_width,
-    globalHeight: header.global_height,
-    frameCounts: header.frame_count,
-    direction: header.direction,
-    colourCounts: header.color_count,
-    interval: header.interval,
-    bottom: header.bottom,
-    left: header.left,
-  };
-
-  return { head, frames, palette };
-}

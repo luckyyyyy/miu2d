@@ -1,11 +1,10 @@
-//! MPC → MSF batch conversion tool
+//! MPC → MSF v2 batch conversion tool
 //!
 //! Usage:
 //!   mpc2msf <input_dir> <output_dir>
 //!
-//! Recursively converts all .mpc files to .msf format.
-//! MPC frames use Indexed8 (1 byte/pixel, no per-pixel alpha).
-//! Output is zstd-compressed MSF (flags bit 0 = 1).
+//! Recursively converts all .mpc files to MSF v2 format.
+//! MSF v2: Indexed8 (1bpp) + zstd compression, no row filters.
 
 use rayon::prelude::*;
 use std::path::PathBuf;
@@ -13,8 +12,8 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use walkdir::WalkDir;
 
 mod msf {
-    pub const MSF_MAGIC: &[u8; 4] = b"MSF1";
-    pub const MSF_VERSION: u16 = 1;
+    pub const MSF_MAGIC: &[u8; 4] = b"MSF2";
+    pub const MSF_VERSION: u16 = 2;
     pub const CHUNK_END: &[u8; 4] = b"END\0";
     const FRAME_ENTRY_SIZE: usize = 16;
 
@@ -53,17 +52,18 @@ mod msf {
         ])
     }
 
-    /// Decode MPC RLE frame to Indexed8Alpha8 (2 bytes per pixel: index, alpha)
-    /// MPC RLE: byte > 0x80 → (byte - 0x80) transparent pixels, else byte = count of color indices
-    fn decode_mpc_rle_to_indexed_alpha(
+    /// Decode MPC RLE to Indexed8 (1bpp).
+    /// transparent_idx is used for skipped (transparent) pixels.
+    fn decode_mpc_rle_to_indexed(
         data: &[u8],
         rle_start: usize,
         rle_end: usize,
         width: usize,
         height: usize,
+        transparent_idx: u8,
     ) -> Vec<u8> {
         let total = width * height;
-        let mut buf = vec![0u8; total * 2]; // [index, alpha] pairs, all zero = transparent
+        let mut buf = vec![transparent_idx; total]; // fill with transparent
         let mut data_offset = rle_start;
         let mut pixel_idx = 0usize;
 
@@ -72,19 +72,16 @@ mod msf {
             data_offset += 1;
 
             if byte > 0x80 {
-                // Transparent pixels — skip (already [0, 0])
+                // Skip (transparent) — already filled with transparent_idx
                 let count = (byte - 0x80) as usize;
                 pixel_idx += count;
             } else {
-                // Colored pixels
                 let count = byte as usize;
                 for _ in 0..count {
                     if pixel_idx >= total || data_offset >= data.len() {
                         break;
                     }
-                    let dst = pixel_idx * 2;
-                    buf[dst] = data[data_offset]; // palette index
-                    buf[dst + 1] = 255; // alpha = fully opaque
+                    buf[pixel_idx] = data[data_offset];
                     data_offset += 1;
                     pixel_idx += 1;
                 }
@@ -93,19 +90,71 @@ mod msf {
         buf
     }
 
-    /// Convert a single MPC file to zstd-compressed MSF bytes
+    /// Scan MPC frames to find which palette indices are used by opaque pixels.
+    fn find_transparent_index_mpc(
+        mpc_data: &[u8],
+        frame_data_start: usize,
+        data_offsets: &[usize],
+    ) -> u8 {
+        let mut used = [false; 256];
+
+        for &off in data_offsets {
+            let ds = frame_data_start + off;
+            if ds + 12 > mpc_data.len() {
+                continue;
+            }
+            let data_len = get_u32_le(mpc_data, ds) as usize;
+            let width = get_u32_le(mpc_data, ds + 4) as usize;
+            let height = get_u32_le(mpc_data, ds + 8) as usize;
+            if width == 0 || height == 0 || width > 2048 || height > 2048 {
+                continue;
+            }
+
+            let rle_start = ds + 20;
+            let rle_end = ds + data_len;
+            let total = width * height;
+            let mut data_offset = rle_start;
+            let mut pixel_idx = 0usize;
+
+            while data_offset < rle_end && data_offset < mpc_data.len() && pixel_idx < total {
+                let byte = mpc_data[data_offset];
+                data_offset += 1;
+
+                if byte > 0x80 {
+                    pixel_idx += (byte - 0x80) as usize;
+                } else {
+                    let count = byte as usize;
+                    for _ in 0..count {
+                        if pixel_idx >= total || data_offset >= mpc_data.len() {
+                            break;
+                        }
+                        used[mpc_data[data_offset] as usize] = true;
+                        data_offset += 1;
+                        pixel_idx += 1;
+                    }
+                }
+            }
+        }
+
+        for i in 0..256u16 {
+            if !used[i as usize] {
+                return i as u8;
+            }
+        }
+        0 // fallback
+    }
+
+    /// Convert a single MPC file to MSF v2 (Indexed8 1bpp + zstd)
     pub fn convert_mpc_to_msf(mpc_data: &[u8]) -> Option<Vec<u8>> {
         if mpc_data.len() < 160 {
             return None;
         }
 
-        // Check signature
         let sig = std::str::from_utf8(&mpc_data[0..12]).ok()?;
         if !sig.starts_with("MPC File Ver") {
             return None;
         }
 
-        // Parse metadata header at offset 64
         let off = 64;
         let _frames_data_length_sum = get_u32_le(mpc_data, off);
         let global_width = get_u32_le(mpc_data, off + 4) as u16;
@@ -116,7 +165,6 @@ mod msf {
         let interval = get_u32_le(mpc_data, off + 24) as u16;
         let raw_bottom = get_i32_le(mpc_data, off + 28);
 
-        // Convert anchor (matching MPC.cs logic)
         let left = (global_width / 2) as i16;
         let bottom = if global_height >= 16 {
             (global_height as i32 - 16 - raw_bottom) as i16
@@ -157,7 +205,18 @@ mod msf {
 
         let frame_data_start = offsets_start + frame_count as usize * 4;
 
-        // Process each frame
+        // Find transparent index
+        let transparent_idx = find_transparent_index_mpc(mpc_data, frame_data_start, &data_offsets);
+        if (transparent_idx as usize) < palette.len() {
+            palette[transparent_idx as usize][3] = 0;
+        } else {
+            while palette.len() <= transparent_idx as usize {
+                palette.push([0, 0, 0, 255]);
+            }
+            palette[transparent_idx as usize] = [0, 0, 0, 0];
+        }
+
+        // Process frames
         let mut frame_entries: Vec<FrameEntry> = Vec::with_capacity(frame_count as usize);
         let mut raw_frame_data: Vec<Vec<u8>> = Vec::with_capacity(frame_count as usize);
 
@@ -206,15 +265,15 @@ mod msf {
                 continue;
             }
 
-            let rle_start = ds + 20; // dataLen(4) + width(4) + height(4) + reserved(8)
+            let rle_start = ds + 20;
             let rle_end = ds + data_len;
-
-            let indexed = decode_mpc_rle_to_indexed_alpha(
+            let indexed = decode_mpc_rle_to_indexed(
                 mpc_data,
                 rle_start,
                 rle_end,
                 width as usize,
                 height as usize,
+                transparent_idx,
             );
 
             frame_entries.push(FrameEntry {
@@ -228,7 +287,7 @@ mod msf {
             raw_frame_data.push(indexed);
         }
 
-        // Concatenate and compute offsets
+        // Concatenate frame data
         let mut concat_raw = Vec::new();
         for (i, data) in raw_frame_data.iter().enumerate() {
             frame_entries[i].data_offset = concat_raw.len() as u32;
@@ -236,11 +295,9 @@ mod msf {
             concat_raw.extend_from_slice(data);
         }
 
-        // Compress with zstd
-        let flags: u16 = 1; // bit 0: zstd compressed
+        let flags: u16 = 1; // zstd
         let compressed_blob = zstd::bulk::compress(&concat_raw, 3).ok()?;
 
-        // Build output
         let palette_bytes = palette.len() * 4;
         let frame_table_bytes = frame_count as usize * FRAME_ENTRY_SIZE;
         let end_chunk_bytes = 8;
@@ -253,12 +310,12 @@ mod msf {
             + compressed_blob.len();
         let mut out = Vec::with_capacity(total);
 
-        // Magic + Version + Flags
+        // Preamble
         out.extend_from_slice(MSF_MAGIC);
         out.extend_from_slice(&MSF_VERSION.to_le_bytes());
         out.extend_from_slice(&flags.to_le_bytes());
 
-        // Header (16 bytes)
+        // Header
         out.extend_from_slice(&global_width.to_le_bytes());
         out.extend_from_slice(&global_height.to_le_bytes());
         out.extend_from_slice(&frame_count.to_le_bytes());
@@ -266,10 +323,10 @@ mod msf {
         out.push(fps);
         out.extend_from_slice(&left.to_le_bytes());
         out.extend_from_slice(&bottom.to_le_bytes());
-        out.extend_from_slice(&[0u8; 4]); // reserved
+        out.extend_from_slice(&[0u8; 4]);
 
-        // Pixel format: Indexed8Alpha8 (2 bytes per pixel: index + alpha)
-        out.push(2); // PixelFormat::Indexed8Alpha8
+        // Pixel format: Indexed8 (1)
+        out.push(1);
         out.extend_from_slice(&(palette.len() as u16).to_le_bytes());
         out.push(0);
 
@@ -292,7 +349,7 @@ mod msf {
         out.extend_from_slice(CHUNK_END);
         out.extend_from_slice(&0u32.to_le_bytes());
 
-        // Compressed frame data blob
+        // Compressed blob
         out.extend_from_slice(&compressed_blob);
 
         Some(out)
@@ -303,7 +360,6 @@ fn main() {
     let args: Vec<String> = std::env::args().collect();
     if args.len() < 3 {
         eprintln!("Usage: mpc2msf <input_dir> <output_dir>");
-        eprintln!("  Recursively converts all .mpc files to .msf format");
         std::process::exit(1);
     }
 
@@ -328,7 +384,7 @@ fn main() {
         .collect();
 
     let total = mpc_files.len();
-    println!("Found {} MPC files to convert", total);
+    println!("Found {} MPC files (MSF v2: Indexed8 + zstd)", total);
 
     let converted = AtomicUsize::new(0);
     let failed = AtomicUsize::new(0);
@@ -351,19 +407,15 @@ fn main() {
                 match msf::convert_mpc_to_msf(&mpc_data) {
                     Some(msf_data) => {
                         let msf_size = msf_data.len();
-                        match std::fs::write(&msf_path, &msf_data) {
-                            Ok(()) => {
-                                let n = converted.fetch_add(1, Ordering::Relaxed) + 1;
-                                total_mpc_bytes.fetch_add(mpc_size, Ordering::Relaxed);
-                                total_msf_bytes.fetch_add(msf_size, Ordering::Relaxed);
-                                if n % 200 == 0 || n == total {
-                                    println!("  [{}/{}] converted", n, total);
-                                }
+                        if std::fs::write(&msf_path, &msf_data).is_ok() {
+                            let n = converted.fetch_add(1, Ordering::Relaxed) + 1;
+                            total_mpc_bytes.fetch_add(mpc_size, Ordering::Relaxed);
+                            total_msf_bytes.fetch_add(msf_size, Ordering::Relaxed);
+                            if n % 100 == 0 || n == total {
+                                println!("  [{}/{}]", n, total);
                             }
-                            Err(e) => {
-                                eprintln!("  WRITE ERROR {:?}: {}", msf_path, e);
-                                failed.fetch_add(1, Ordering::Relaxed);
-                            }
+                        } else {
+                            failed.fetch_add(1, Ordering::Relaxed);
                         }
                     }
                     None => {
@@ -389,10 +441,11 @@ fn main() {
         0.0
     };
 
-    println!();
-    println!("=== Conversion Complete ===");
+    println!("\n=== Done ===");
     println!("  Converted: {}/{}", c, total);
     println!("  Failed:    {}", f);
-    println!("  MPC total: {:.1} MB", mpc_mb);
-    println!("  MSF total: {:.1} MB ({:.1}% of original)", msf_mb, ratio);
+    println!(
+        "  MPC: {:.1} MB → MSF: {:.1} MB ({:.1}%)",
+        mpc_mb, msf_mb, ratio
+    );
 }

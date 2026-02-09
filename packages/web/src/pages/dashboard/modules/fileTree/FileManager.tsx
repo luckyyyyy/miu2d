@@ -72,6 +72,9 @@ export function FileManager() {
   const moveMutation = trpc.file.move.useMutation();
   const prepareUploadMutation = trpc.file.prepareUpload.useMutation();
   const confirmUploadMutation = trpc.file.confirmUpload.useMutation();
+  const batchPrepareUploadMutation = trpc.file.batchPrepareUpload.useMutation();
+  const batchConfirmUploadMutation = trpc.file.batchConfirmUpload.useMutation();
+  const ensureFolderPathMutation = trpc.file.ensureFolderPath.useMutation();
 
   // 加载根目录
   const { data: rootFiles, isLoading, refetch: refetchRootFiles } = trpc.file.list.useQuery(
@@ -415,43 +418,39 @@ export function FileManager() {
     return results;
   }, [readEntries]);
 
-  // 用于节流刷新树的最后刷新时间
-  const lastRefreshTimeRef = useRef(0);
-
-  // 节流刷新树（至少间隔 500ms）
-  const throttledRefreshTree = useCallback(async () => {
-    const now = Date.now();
-    if (now - lastRefreshTimeRef.current >= 500) {
-      lastRefreshTimeRef.current = now;
-      await refreshTree();
-    }
-  }, [refreshTree]);
+  /** S3 并发上传数量限制 */
+  const S3_CONCURRENCY = 8;
+  /** 批量 prepare/confirm 每批大小 */
+  const BATCH_SIZE = 100;
 
   /**
-   * 上传单个文件（带进度）
+   * 并发池：限制同时运行的 Promise 数量
    */
-  const uploadSingleFile = useCallback(async (
-    file: File,
-    parentId: string | null,
-    uploadItemId: string
+  const asyncPool = useCallback(async <T,>(
+    items: T[],
+    concurrency: number,
+    fn: (item: T, index: number) => Promise<void>
   ): Promise<void> => {
-    if (!currentGame?.id) return;
+    const executing = new Set<Promise<void>>();
+    for (let i = 0; i < items.length; i++) {
+      const p = fn(items[i], i).then(() => { executing.delete(p); });
+      executing.add(p);
+      if (executing.size >= concurrency) {
+        await Promise.race(executing);
+      }
+    }
+    await Promise.all(executing);
+  }, []);
 
+  /**
+   * 上传单个文件到 S3（仅 PUT，不含 prepare/confirm）
+   */
+  const uploadFileToS3 = useCallback(async (
+    file: File,
+    uploadUrl: string,
+    uploadItemId: string
+  ): Promise<boolean> => {
     try {
-      setUploads((prev) =>
-        prev.map((u) => (u.id === uploadItemId ? { ...u, status: "uploading" } : u))
-      );
-
-      // 准备上传
-      const { fileId, uploadUrl } = await prepareUploadMutation.mutateAsync({
-        gameId: currentGame.id,
-        parentId,
-        name: normalizeFileName(file.name),
-        size: file.size,
-        mimeType: file.type || "application/octet-stream",
-      });
-
-      // 使用 XMLHttpRequest 以获取进度
       await new Promise<void>((resolve, reject) => {
         const xhr = new XMLHttpRequest();
         xhr.upload.addEventListener("progress", (e) => {
@@ -474,16 +473,275 @@ export function FileManager() {
         xhr.setRequestHeader("Content-Type", file.type || "application/octet-stream");
         xhr.send(file);
       });
-
-      // 确认上传
-      await confirmUploadMutation.mutateAsync({ fileId });
-
+      return true;
+    } catch (error) {
       setUploads((prev) =>
-        prev.map((u) => (u.id === uploadItemId ? { ...u, status: "completed", progress: 100 } : u))
+        prev.map((u) =>
+          u.id === uploadItemId
+            ? { ...u, status: "error", error: (error as Error).message }
+            : u
+        )
+      );
+      return false;
+    }
+  }, []);
+
+  /**
+   * 批量上传核心流程
+   * 1. 收集唯一文件夹路径，通过 ensureFolderPath 在服务端创建
+   * 2. 分批 batchPrepareUpload（跳过已存在文件）
+   * 3. 并发上传到 S3（8 并发）
+   * 4. 分批 batchConfirmUpload
+   * 5. 上传完毕统一刷新树
+   */
+  const batchUploadFiles = useCallback(async (
+    fileItems: Array<{ relativePath: string; file: File }>,
+    rootParentId: string | null
+  ) => {
+    if (!currentGame?.id || fileItems.length === 0) return;
+
+    // --- 1. 创建上传任务 UI ---
+    const newUploads: UploadItem[] = fileItems.map((f, i) => ({
+      id: `upload-${Date.now()}-${i}`,
+      fileName: f.relativePath,
+      progress: 0,
+      status: "pending" as const,
+    }));
+    setUploads((prev) => [...prev, ...newUploads]);
+
+    // --- 2. 收集唯一文件夹路径，服务端批量创建 ---
+    const folderPaths = new Set<string>();
+    for (const { relativePath } of fileItems) {
+      const parts = relativePath.split("/");
+      if (parts.length > 1) {
+        // 收集所有中间路径: "a/b/c.txt" → "a", "a/b"
+        const folderParts = parts.slice(0, -1);
+        folderPaths.add(folderParts.join("/"));
+      }
+    }
+
+    // 调用 ensureFolderPath（并发，4个一组）
+    const folderIdCache = new Map<string, string>(); // "a/b" → folderId
+    const uniquePaths = [...folderPaths].sort(); // 排序确保父目录先创建
+    for (const folderPath of uniquePaths) {
+      if (folderIdCache.has(folderPath)) continue;
+
+      const pathParts = folderPath.split("/");
+
+      // 检查是否有已缓存的padre前缀
+      let bestParentId = rootParentId;
+      let startIdx = 0;
+      for (let i = pathParts.length - 1; i >= 1; i--) {
+        const prefix = pathParts.slice(0, i).join("/");
+        const cached = folderIdCache.get(prefix);
+        if (cached) {
+          bestParentId = cached;
+          startIdx = i;
+          break;
+        }
+      }
+
+      const remainingParts = pathParts.slice(startIdx);
+      if (remainingParts.length === 0) continue;
+
+      try {
+        const result = await ensureFolderPathMutation.mutateAsync({
+          gameId: currentGame.id,
+          parentId: bestParentId,
+          pathParts: remainingParts,
+        });
+        folderIdCache.set(folderPath, result.folderId);
+
+        // 也缓存所有中间路径
+        for (let i = startIdx + 1; i < pathParts.length; i++) {
+          // 中间路径的 folderId 无法从当前 API 获取，但最终路径是准确的
+          // 不影响正确性，因为后续 ensureFolderPath 会在服务端检查
+        }
+      } catch (error) {
+        console.error(`Failed to create folder path: ${folderPath}`, error);
+      }
+    }
+
+    // --- 3. 为每个文件确定 parentId ---
+    interface FileWithMeta {
+      file: File;
+      fileName: string;
+      parentId: string | null;
+      uploadItemId: string;
+    }
+    const filesToUpload: FileWithMeta[] = [];
+
+    for (let i = 0; i < fileItems.length; i++) {
+      const { relativePath, file } = fileItems[i];
+      const parts = relativePath.split("/");
+      const fileName = parts[parts.length - 1];
+      let parentId = rootParentId;
+
+      if (parts.length > 1) {
+        const folderPath = parts.slice(0, -1).join("/");
+        parentId = folderIdCache.get(folderPath) ?? rootParentId;
+      }
+
+      filesToUpload.push({
+        file,
+        fileName,
+        parentId,
+        uploadItemId: newUploads[i].id,
+      });
+    }
+
+    // --- 4. 分批 batchPrepareUpload ---
+    interface PreparedFile {
+      meta: FileWithMeta;
+      fileId: string;
+      uploadUrl: string;
+    }
+    const preparedFiles: PreparedFile[] = [];
+    let skippedCount = 0;
+
+    for (let batchStart = 0; batchStart < filesToUpload.length; batchStart += BATCH_SIZE) {
+      const batch = filesToUpload.slice(batchStart, batchStart + BATCH_SIZE);
+
+      try {
+        const { results } = await batchPrepareUploadMutation.mutateAsync({
+          gameId: currentGame.id,
+          files: batch.map((f) => ({
+            clientId: f.uploadItemId,
+            parentId: f.parentId,
+            name: f.fileName,
+            size: f.file.size,
+            mimeType: f.file.type || "application/octet-stream",
+          })),
+          skipExisting: true,
+        });
+
+        for (const result of results) {
+          const meta = batch.find((f) => f.uploadItemId === result.clientId);
+          if (!meta) continue;
+
+          if (result.skipped) {
+            skippedCount++;
+            setUploads((prev) =>
+              prev.map((u) =>
+                u.id === result.clientId
+                  ? { ...u, status: "completed", progress: 100 }
+                  : u
+              )
+            );
+          } else {
+            preparedFiles.push({
+              meta,
+              fileId: result.fileId,
+              uploadUrl: result.uploadUrl,
+            });
+            setUploads((prev) =>
+              prev.map((u) =>
+                u.id === result.clientId
+                  ? { ...u, status: "uploading" }
+                  : u
+              )
+            );
+          }
+        }
+      } catch (error) {
+        // 标记整批失败
+        for (const f of batch) {
+          setUploads((prev) =>
+            prev.map((u) =>
+              u.id === f.uploadItemId
+                ? { ...u, status: "error", error: (error as Error).message }
+                : u
+            )
+          );
+        }
+      }
+    }
+
+    // --- 5. 并发上传到 S3 ---
+    const confirmedFileIds: string[] = [];
+    const pendingConfirm: string[] = [];
+
+    await asyncPool(preparedFiles, S3_CONCURRENCY, async (prepared) => {
+      const success = await uploadFileToS3(
+        prepared.meta.file,
+        prepared.uploadUrl,
+        prepared.meta.uploadItemId
       );
 
-      // 上传成功后触发节流刷新树
-      throttledRefreshTree();
+      if (success) {
+        setUploads((prev) =>
+          prev.map((u) =>
+            u.id === prepared.meta.uploadItemId
+              ? { ...u, status: "completed", progress: 100 }
+              : u
+          )
+        );
+        pendingConfirm.push(prepared.fileId);
+
+        // 每累积 BATCH_SIZE 个就批量确认一次
+        if (pendingConfirm.length >= BATCH_SIZE) {
+          const toConfirm = pendingConfirm.splice(0, BATCH_SIZE);
+          try {
+            await batchConfirmUploadMutation.mutateAsync({ fileIds: toConfirm });
+            confirmedFileIds.push(...toConfirm);
+          } catch (error) {
+            console.error("Batch confirm failed:", error);
+          }
+        }
+      }
+    });
+
+    // --- 6. 确认剩余文件 ---
+    if (pendingConfirm.length > 0) {
+      try {
+        await batchConfirmUploadMutation.mutateAsync({ fileIds: pendingConfirm });
+        confirmedFileIds.push(...pendingConfirm);
+      } catch (error) {
+        console.error("Final batch confirm failed:", error);
+      }
+    }
+
+    // --- 7. 完成后统一刷新树 ---
+    setTimeout(() => {
+      setUploads((prev) => prev.filter((u) => u.status !== "completed"));
+    }, 2000);
+
+    await refreshTree();
+  }, [currentGame?.id, asyncPool, uploadFileToS3, batchPrepareUploadMutation, batchConfirmUploadMutation, ensureFolderPathMutation, refreshTree]);
+
+  /**
+   * 上传单个文件（兼容旧的单文件上传场景，如新建文件）
+   */
+  const uploadSingleFile = useCallback(async (
+    file: File,
+    parentId: string | null,
+    uploadItemId: string
+  ): Promise<void> => {
+    if (!currentGame?.id) return;
+
+    try {
+      setUploads((prev) =>
+        prev.map((u) => (u.id === uploadItemId ? { ...u, status: "uploading" } : u))
+      );
+
+      const { fileId, uploadUrl } = await prepareUploadMutation.mutateAsync({
+        gameId: currentGame.id,
+        parentId,
+        name: normalizeFileName(file.name),
+        size: file.size,
+        mimeType: file.type || "application/octet-stream",
+      });
+
+      const success = await uploadFileToS3(file, uploadUrl, uploadItemId);
+
+      if (success) {
+        await confirmUploadMutation.mutateAsync({ fileId });
+        setUploads((prev) =>
+          prev.map((u) => (u.id === uploadItemId ? { ...u, status: "completed", progress: 100 } : u))
+        );
+      }
+
+      await refreshTree();
     } catch (error) {
       setUploads((prev) =>
         prev.map((u) =>
@@ -493,64 +751,10 @@ export function FileManager() {
         )
       );
     }
-  }, [currentGame?.id, prepareUploadMutation, confirmUploadMutation, throttledRefreshTree]);
+  }, [currentGame?.id, prepareUploadMutation, confirmUploadMutation, uploadFileToS3, refreshTree]);
 
   /**
-   * 创建文件夹路径（递归创建父文件夹），带本地缓存
-   * 用于批量上传时避免重复创建同一个文件夹
-   */
-  const ensureFolderPathWithCache = useCallback(async (
-    pathParts: string[],
-    rootParentId: string | null,
-    createdFoldersCache: Map<string, string> // key: "parentId|folderName", value: folderId
-  ): Promise<string | null> => {
-    if (!currentGame?.id || pathParts.length === 0) return rootParentId;
-
-    let currentParentId = rootParentId;
-
-    for (const folderName of pathParts) {
-      const normalizedName = normalizeFileName(folderName);
-      const cacheKey = `${currentParentId ?? "null"}|${normalizedName}`;
-
-      // 首先检查本地缓存（本次上传会话中已创建的文件夹）
-      const cachedFolderId = createdFoldersCache.get(cacheKey);
-      if (cachedFolderId) {
-        currentParentId = cachedFolderId;
-        continue;
-      }
-
-      // 检查服务器上是否已存在（绕过 tRPC 缓存，直接查询）
-      const existingFiles = await utils.client.file.list.query({
-        gameId: currentGame.id,
-        parentId: currentParentId,
-      });
-
-      const existingFolder = existingFiles.find(
-        (f) => f.type === "folder" && f.name === normalizedName
-      );
-
-      if (existingFolder) {
-        currentParentId = existingFolder.id;
-        // 也存入本地缓存
-        createdFoldersCache.set(cacheKey, existingFolder.id);
-      } else {
-        // 创建文件夹
-        const newFolder = await createFolderMutation.mutateAsync({
-          gameId: currentGame.id,
-          parentId: currentParentId,
-          name: normalizedName,
-        });
-        currentParentId = newFolder.id;
-        // 存入本地缓存
-        createdFoldersCache.set(cacheKey, newFolder.id);
-      }
-    }
-
-    return currentParentId;
-  }, [currentGame?.id, utils.client.file.list, createFolderMutation]);
-
-  /**
-   * 处理拖拽上传（支持文件夹）
+   * 处理拖拽上传（支持文件夹，批量并发）
    */
   const handleDropUpload = useCallback(async (dataTransfer: DataTransfer, targetParentId: string | null) => {
     if (!currentGame?.id) return;
@@ -564,72 +768,20 @@ export function FileManager() {
     }
     if (files.length === 0) return;
 
-    // 创建上传任务
-    const newUploads: UploadItem[] = files.map((f, i) => ({
-      id: `upload-${Date.now()}-${i}`,
-      fileName: f.relativePath,
-      progress: 0,
-      status: "pending" as const,
-    }));
-
-    setUploads((prev) => [...prev, ...newUploads]);
-
-    // 本地缓存：记录本次上传会话中已创建的文件夹
-    // key: "parentId|folderName", value: folderId
-    const createdFoldersCache = new Map<string, string>();
-
-    // 逐个上传
-    for (let i = 0; i < files.length; i++) {
-      const { relativePath, file } = files[i];
-      const uploadItem = newUploads[i];
-
-      // 解析路径，创建必要的文件夹
-      const pathParts = relativePath.split("/");
-      const fileName = pathParts.pop()!;
-
-      // 创建父文件夹路径（使用带缓存的版本）
-      const finalParentId = await ensureFolderPathWithCache(pathParts, targetParentId, createdFoldersCache);
-
-      // 创建一个带正确名称的文件对象
-      const renamedFile = new File([file], fileName, { type: file.type });
-
-      await uploadSingleFile(renamedFile, finalParentId, uploadItem.id);
-    }
-
-    // 清理已完成的上传
-    setTimeout(() => {
-      setUploads((prev) => prev.filter((u) => u.status !== "completed"));
-    }, 2000);
-
-    await refreshTree();
-  }, [currentGame?.id, processDataTransfer, ensureFolderPathWithCache, uploadSingleFile, refreshTree]);
+    await batchUploadFiles(files, targetParentId);
+  }, [currentGame?.id, processDataTransfer, batchUploadFiles]);
 
   // 上传文件（通过文件选择器）
   const handleUpload = useCallback(async (files: FileList, parentId: string | null = null) => {
     if (!currentGame?.id) return;
 
-    const newUploads: UploadItem[] = Array.from(files).map((file, i) => ({
-      id: `upload-${Date.now()}-${i}`,
-      fileName: normalizeFileName(file.name),
-      progress: 0,
-      status: "pending" as const,
+    const fileItems = Array.from(files).map((file) => ({
+      relativePath: normalizeFileName(file.name),
+      file,
     }));
 
-    setUploads((prev) => [...prev, ...newUploads]);
-
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      const uploadItem = newUploads[i];
-      await uploadSingleFile(file, parentId, uploadItem.id);
-    }
-
-    // 清理已完成的上传
-    setTimeout(() => {
-      setUploads((prev) => prev.filter((u) => u.status !== "completed"));
-    }, 2000);
-
-    await refreshTree();
-  }, [currentGame?.id, uploadSingleFile, refreshTree]);
+    await batchUploadFiles(fileItems, parentId);
+  }, [currentGame?.id, batchUploadFiles]);
 
   // 拖拽状态（用于左侧目录树）
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);

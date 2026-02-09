@@ -169,3 +169,84 @@ export const GetFilePathOutputSchema = z.object({
   path: z.array(PathNodeSchema)
 });
 export type GetFilePathOutput = z.infer<typeof GetFilePathOutputSchema>;
+
+// ===== 批量上传相关（性能优化） =====
+
+/**
+ * 批量准备上传中的单个文件描述
+ */
+export const BatchPrepareUploadFileSchema = z.object({
+  /** 客户端提供的临时 ID，用于关联结果 */
+  clientId: z.string(),
+  parentId: z.string().uuid().nullable().optional(),
+  name: z.string().min(1).max(255),
+  size: z.number().int().nonnegative(),
+  mimeType: z.string().optional()
+});
+
+/**
+ * 批量准备上传请求
+ */
+export const BatchPrepareUploadInputSchema = z.object({
+  gameId: z.string().uuid(),
+  files: z.array(BatchPrepareUploadFileSchema).min(1).max(200),
+  /** 如果为 true，同名文件跳过而不报错 */
+  skipExisting: z.boolean().optional()
+});
+export type BatchPrepareUploadInput = z.infer<typeof BatchPrepareUploadInputSchema>;
+
+/**
+ * 批量准备上传中单个文件的结果
+ */
+export const BatchPrepareUploadResultSchema = z.object({
+  clientId: z.string(),
+  fileId: z.string().uuid(),
+  uploadUrl: z.string(),
+  storageKey: z.string(),
+  /** 文件已存在，被跳过 */
+  skipped: z.boolean()
+});
+
+/**
+ * 批量准备上传响应
+ */
+export const BatchPrepareUploadOutputSchema = z.object({
+  results: z.array(BatchPrepareUploadResultSchema)
+});
+export type BatchPrepareUploadOutput = z.infer<typeof BatchPrepareUploadOutputSchema>;
+
+/**
+ * 批量确认上传请求
+ */
+export const BatchConfirmUploadInputSchema = z.object({
+  fileIds: z.array(z.string().uuid()).min(1).max(200)
+});
+export type BatchConfirmUploadInput = z.infer<typeof BatchConfirmUploadInputSchema>;
+
+/**
+ * 批量确认上传响应
+ */
+export const BatchConfirmUploadOutputSchema = z.object({
+  confirmed: z.number().int().nonnegative()
+});
+export type BatchConfirmUploadOutput = z.infer<typeof BatchConfirmUploadOutputSchema>;
+
+/**
+ * 服务端创建文件夹路径请求
+ */
+export const EnsureFolderPathInputSchema = z.object({
+  gameId: z.string().uuid(),
+  parentId: z.string().uuid().nullable().optional(),
+  /** 路径段列表，如 ["asf", "hero"] */
+  pathParts: z.array(z.string().min(1).max(255)).min(1).max(50)
+});
+export type EnsureFolderPathInput = z.infer<typeof EnsureFolderPathInputSchema>;
+
+/**
+ * 服务端创建文件夹路径响应
+ */
+export const EnsureFolderPathOutputSchema = z.object({
+  /** 最终（最深层）文件夹的 ID */
+  folderId: z.string().uuid()
+});
+export type EnsureFolderPathOutput = z.infer<typeof EnsureFolderPathOutputSchema>;

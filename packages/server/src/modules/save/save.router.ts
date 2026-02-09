@@ -14,10 +14,11 @@ import {
 	SaveDataResponseSchema,
 	AdminListSavesInputSchema,
 	AdminListSavesOutputSchema,
+	AdminDeleteSaveInputSchema,
 } from "@miu2d/types";
 import type { Context } from "../../trpc/context";
 import { Ctx, Mutation, Query, Router, UseMiddlewares } from "../../trpc/decorators";
-import { requireUser, requireAdmin } from "../../trpc/middlewares";
+import { requireUser } from "../../trpc/middlewares";
 import { saveService } from "./save.service";
 
 @Router({ alias: "save" })
@@ -86,18 +87,27 @@ export class SaveRouter {
 	/**
 	 * 管理员列出所有存档
 	 */
-	@UseMiddlewares(requireAdmin)
+	@UseMiddlewares(requireUser)
 	@Query({ input: AdminListSavesInputSchema, output: AdminListSavesOutputSchema })
-	async adminList(input: z.infer<typeof AdminListSavesInputSchema>) {
-		return saveService.adminList(input);
+	async adminList(input: z.infer<typeof AdminListSavesInputSchema>, @Ctx() ctx: Context) {
+		return saveService.adminList(input, ctx.userId!);
 	}
 
 	/**
 	 * 管理员获取完整存档数据
 	 */
-	@UseMiddlewares(requireAdmin)
+	@UseMiddlewares(requireUser)
 	@Query({ input: GetSaveInputSchema, output: SaveDataResponseSchema.extend({ userName: z.string().optional() }) })
-	async adminGet(input: z.infer<typeof GetSaveInputSchema>) {
-		return saveService.adminGet(input.saveId);
+	async adminGet(input: z.infer<typeof GetSaveInputSchema>, @Ctx() ctx: Context) {
+		return saveService.adminGet(input.saveId, ctx.userId!);
+	}
+
+	/**
+	 * 管理员删除存档
+	 */
+	@UseMiddlewares(requireUser)
+	@Mutation({ input: AdminDeleteSaveInputSchema, output: z.object({ id: z.string() }) })
+	async adminDelete(input: z.infer<typeof AdminDeleteSaveInputSchema>, @Ctx() ctx: Context) {
+		return saveService.adminDelete(input.saveId, ctx.userId!);
 	}
 }
