@@ -82,6 +82,69 @@ export function GamePlaying({
     return () => clearInterval(interval);
   }, []);
 
+  // ESC 键全局处理（capture 阶段，优先于引擎和面板自身的 ESC 监听）
+  // - 面板打开时：关闭面板，阻止事件传播
+  // - 面板关闭时：检查引擎是否有阻塞性 UI（对话框、选择、商店）
+  //   - 有 → 转发给引擎处理
+  //   - 无 → 直接打开存档菜单，阻止事件传播
+  useEffect(() => {
+    const handleEscCapture = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+
+      if (activePanel !== "none") {
+        // 关闭已打开的面板
+        e.stopPropagation();
+        e.preventDefault();
+        setActivePanel("none");
+        // 恢复游戏容器焦点
+        setTimeout(() => {
+          gameAreaRef.current?.querySelector<HTMLDivElement>('[role="application"]')?.focus();
+        }, 0);
+        return;
+      }
+
+      // 没有 Web 面板打开 → 检查引擎状态
+      const engine = getEngine();
+      if (!engine) return;
+
+      const gui = engine.getGameManager()?.getGuiManager();
+      if (!gui) return;
+
+      const guiState = gui.getState();
+      // 如果引擎有阻塞性 UI（对话框、选择、商店等），让事件自然流向引擎处理
+      const hasBlockingUI =
+        guiState.dialog.isVisible ||
+        guiState.selection.isVisible ||
+        guiState.multiSelection.isVisible ||
+        guiState.panels.buy ||
+        guiState.panels.littleMap;
+
+      if (hasBlockingUI) {
+        // 让事件正常传播到引擎
+        // 但如果游戏容器没有焦点，手动转发给引擎
+        const gameContainer = gameAreaRef.current?.querySelector<HTMLDivElement>('[role="application"]');
+        if (document.activeElement !== gameContainer) {
+          e.stopPropagation();
+          e.preventDefault();
+          engine.handleKeyDown("Escape", false);
+        }
+        return;
+      }
+
+      // 没有阻塞性 UI → 打开存档菜单
+      // 先让引擎关闭可能打开的普通面板（F1-F7）
+      if (gui.isAnyPanelOpen()) {
+        gui.closeAllPanels();
+      }
+      e.stopPropagation();
+      e.preventDefault();
+      setMenuTab("save");
+      setActivePanel("menu");
+    };
+    window.addEventListener("keydown", handleEscCapture, true);
+    return () => window.removeEventListener("keydown", handleEscCapture, true);
+  }, [activePanel, getEngine]);
+
   // 返回标题界面
   const handleReturnToTitle = useCallback(() => {
     logger.log("[GamePlaying] Returning to title...");

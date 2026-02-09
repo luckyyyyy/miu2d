@@ -8,6 +8,7 @@
  */
 
 import { useEffect } from "react";
+import { useAnimatedVisibility } from "@/hooks";
 
 export interface GlassModalProps {
   visible: boolean;
@@ -28,6 +29,8 @@ export function GlassModal({
   maxHeight = "80vh",
   children,
 }: GlassModalProps) {
+  const { shouldRender, transitionStyle } = useAnimatedVisibility(visible);
+
   // ESC 关闭
   useEffect(() => {
     if (!visible) return;
@@ -38,16 +41,19 @@ export function GlassModal({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [visible, onClose]);
 
-  if (!visible) return null;
+  if (!shouldRender) return null;
 
   return (
     <div className="fixed inset-0 z-[1200] flex items-center justify-center" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+      <div
+        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        style={{ opacity: transitionStyle.opacity, transition: transitionStyle.transition }}
+      />
 
       <div
         className={`relative ${widthClass} flex flex-col rounded-2xl overflow-hidden
           bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl`}
-        style={{ maxHeight }}
+        style={{ maxHeight, ...transitionStyle }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* 头部 */}

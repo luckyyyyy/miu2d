@@ -310,6 +310,10 @@ export default function GameScreen() {
     setToolbarButtons(buttons);
   }, []);
 
+  const handleLoginRequest = useCallback(() => {
+    setShowAuthModal(true);
+  }, []);
+
   // ===== 顶栏显示 =====
   const showTopBar = !isEmbed && (gamePhase === "title" || gamePhase === "playing");
 
@@ -407,7 +411,7 @@ export default function GameScreen() {
             windowSize={windowSize}
             isMobile={isMobile}
             onReturnToTitle={handleReturnToTitle}
-            onLoginRequest={() => setShowAuthModal(true)}
+            onLoginRequest={handleLoginRequest}
             onToolbarButtons={handleToolbarButtons}
           />
         )}

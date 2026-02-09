@@ -5,6 +5,7 @@
  */
 
 import { useEffect } from "react";
+import { useAnimatedVisibility } from "@/hooks";
 import { WebSaveLoadPanel } from "./WebSaveLoadPanel";
 import { SettingsPanel, type SettingsPanelProps } from "../common/SidePanel";
 
@@ -48,6 +49,8 @@ export function GameMenuPanel({
   onLoadSaveData,
   settingsProps,
 }: GameMenuPanelProps) {
+  const { shouldRender, transitionStyle } = useAnimatedVisibility(visible);
+
   // ESC 关闭
   useEffect(() => {
     if (!visible) return;
@@ -58,15 +61,19 @@ export function GameMenuPanel({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [visible, onClose]);
 
-  if (!visible) return null;
+  if (!shouldRender) return null;
 
   return (
     <div className="fixed inset-0 z-[1200] flex items-center justify-center" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+      <div
+        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        style={{ opacity: transitionStyle.opacity, transition: transitionStyle.transition }}
+      />
 
       <div
         className="relative w-[520px] max-h-[80vh] flex flex-col rounded-2xl overflow-hidden
           bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl"
+        style={transitionStyle}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Tab 头部 */}

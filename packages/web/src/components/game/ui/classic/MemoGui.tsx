@@ -105,9 +105,8 @@ export const MemoGui: React.FC<MemoGuiProps> = ({ isVisible, memos, screenWidth 
               color: "#000",
               lineHeight: `${16 + config.text.lineSpace}px`,
               letterSpacing: config.text.charSpace,
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
+              whiteSpace: "pre-wrap",
+              wordBreak: "break-all",
             }}
           >
             {memo}

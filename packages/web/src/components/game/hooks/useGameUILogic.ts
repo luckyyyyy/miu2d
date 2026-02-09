@@ -344,7 +344,18 @@ export function useGameUILogic({ engine }: UseGameUILogicOptions) {
     const updateTimerState = () => {
       const timerManager = engine.getTimerManager();
       const state = timerManager.getState();
-      setTimerState({ ...state });
+      setTimerState((prev) => {
+        if (
+          prev.isRunning === state.isRunning &&
+          prev.seconds === state.seconds &&
+          prev.isHidden === state.isHidden &&
+          prev.elapsedMilliseconds === state.elapsedMilliseconds &&
+          prev.timeScripts.length === state.timeScripts.length
+        ) {
+          return prev;
+        }
+        return { ...state };
+      });
       animationFrameId = requestAnimationFrame(updateTimerState);
     };
 

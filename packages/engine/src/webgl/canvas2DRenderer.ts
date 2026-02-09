@@ -114,6 +114,8 @@ export class Canvas2DRenderer implements IRenderer {
     this.stateStack = [];
     this.ctx = null;
     this.canvas = null;
+    this.tmpCanvas = null;
+    this.tmpCtx = null;
   }
 
   resize(width: number, height: number): void {

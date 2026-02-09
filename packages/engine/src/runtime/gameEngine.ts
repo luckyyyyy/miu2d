@@ -62,6 +62,7 @@ import {
   createMapRenderer,
   loadMapMpcs,
   releaseMapTextures,
+  clearMpcAtlasCache,
   type MapRenderer,
   renderMapInterleaved,
 } from "../map/renderer";
@@ -71,6 +72,7 @@ import { GoodKind, type GoodsListManager, getEquipSlotIndex } from "../player/go
 import type { GoodsItemInfo } from "../player/goods/goodsListManager";
 import type { Player } from "../player/player";
 import { Sprite, setSpriteDrawColor } from "../sprite/sprite";
+import { clearAsfCache } from "../resource/asf";
 import { TimerManager } from "../timer";
 import type { IUIBridge, UIPanelName } from "../gui/contract";
 import { UIBridge, type UIBridgeDeps } from "../gui/uiBridge";
@@ -347,6 +349,11 @@ export class GameEngine implements IEngineContext {
 
     // 6. 资源缓存 - 释放内存
     resourceLoader.clearCache();
+
+    // 6.5 模块级缓存 - 需要单独清理，否则跨引擎实例泄漏
+    Sprite.clearCache();
+    clearAsfCache();
+    clearMpcAtlasCache();
 
     // 7. 事件系统
     this.events.clear();

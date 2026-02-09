@@ -884,6 +884,12 @@ class ResourceLoaderImpl {
       this.binaryCache.clear();
       this.audioCache.clear();
       this.iniCache.clear();
+      this.failedPaths.clear();
+      // 关闭用于解码音频的 AudioContext，释放 OS 音频线程
+      if (this.audioContext) {
+        this.audioContext.close().catch(() => {});
+        this.audioContext = null;
+      }
     } else if (type === "text") {
       this.textCache.clear();
     } else if (type === "binary") {

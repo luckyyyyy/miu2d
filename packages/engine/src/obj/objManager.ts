@@ -585,6 +585,7 @@ export class ObjManager extends EngineAccess {
     this.stopAllObjSounds();
     this.objects.length = 0;
     this.fileName = "";
+    this.savedObjStates.clear();
   }
 
   /**

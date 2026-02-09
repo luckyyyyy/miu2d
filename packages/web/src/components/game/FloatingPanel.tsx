@@ -9,6 +9,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useAnimatedVisibility } from "@/hooks";
 
 // localStorage key
 const LS_KEY = "jxqy_floating_panel_";
@@ -138,6 +139,8 @@ export function FloatingPanel({
   const dragStartRef = useRef({ mouseX: 0, mouseY: 0, rect: { ...rect } });
   const rectRef = useRef(rect);
   rectRef.current = rect;
+
+  const { shouldRender, transitionStyle } = useAnimatedVisibility(visible);
 
   // 每次 visible 切换为 true 时检测位置
   useEffect(() => {
@@ -271,7 +274,7 @@ export function FloatingPanel({
     document.body.style.userSelect = "none";
   }, []);
 
-  if (!visible) return null;
+  if (!shouldRender) return null;
 
   const EDGE_SIZE = 5;
 
@@ -284,6 +287,7 @@ export function FloatingPanel({
         width: rect.width,
         height: rect.height,
         zIndex,
+        ...transitionStyle,
       }}
     >
       {/* 调整大小 边缘热区 */}

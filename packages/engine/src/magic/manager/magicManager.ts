@@ -224,6 +224,7 @@ export class MagicManager {
     resetMagicSpriteIdCounter();
     this.state.isInSuperMagicMode = false;
     this.state.superModeMagicSprite = null;
+    this.onSpriteDestroyedListeners.length = 0;
   }
 
   /**
