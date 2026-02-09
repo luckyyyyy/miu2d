@@ -85,7 +85,7 @@ const MOBILE_SCALE = 0.75;
 export default function GameScreen() {
   // 从 URL 获取 gameSlug 和 shareCode
   const { gameSlug, shareCode } = useParams<{ gameSlug: string; shareCode?: string }>();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const searchParams = useSearchParams()[0];
   const loadSaveId = searchParams.get("loadSave");
   const isEmbed = searchParams.get("embed") === "1";
   const { user, isAuthenticated } = useAuth();
@@ -132,17 +132,13 @@ export default function GameScreen() {
         logger.info(`[GameScreen] Save loaded successfully, starting game`);
       } catch (error) {
         logger.error(`[GameScreen] Auto-load save failed:`, error);
+        // 加载失败回退到 title
+        setGamePhase("title");
       }
-      // 清除 URL 中的 loadSave 参数
-      setSearchParams((prev) => {
-        const next = new URLSearchParams(prev);
-        next.delete("loadSave");
-        return next;
-      }, { replace: true });
     };
 
     fetchAndLoad();
-  }, [loadSaveId, isDataReady, gameSlug, setSearchParams]);
+  }, [loadSaveId, isDataReady, gameSlug]);
 
   const utils = trpc.useUtils();
 
@@ -198,7 +194,10 @@ export default function GameScreen() {
         if (cancelled) return;
 
         setIsDataReady(true);
-        setGamePhase("title");
+        // 有 loadSave 参数时跳过 title，保持 loading 等待存档加载
+        if (!loadSaveId) {
+          setGamePhase("title");
+        }
         logger.info(`[GameScreen] Game config and data loaded for ${gameSlug}`);
       } catch (error) {
         if (cancelled) return;

@@ -139,7 +139,7 @@ export const Game = forwardRef<GameHandle, GameProps>(
       ref,
       () => ({
         getEngine: () => engine,
-        getDebugManager: () => (engine ? engine.getGameManager().getDebugManager() : null),
+        getDebugManager: () => engine?.getGameManager()?.getDebugManager() ?? null,
         getError: () => error,
       }),
       [engine, error]
