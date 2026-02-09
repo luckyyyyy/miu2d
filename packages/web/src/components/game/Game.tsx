@@ -112,12 +112,12 @@ export const Game = forwardRef<GameHandle, GameProps>(
         // 拦截系统菜单和存档面板，替换为 Web 菜单面板
         if (onOpenMenu && event.isOpen) {
           if (event.panel === "system") {
-            engine.getGameManager().getGuiManager().showSystem(false);
+            engine?.getGameManager().getGuiManager().showSystem(false);
             onOpenMenu("save");
             return;
           }
           if (event.panel === "saveLoad") {
-            engine.getGameManager().getGuiManager().showSaveLoad(false);
+            engine?.getGameManager().getGuiManager().showSaveLoad(false);
             onOpenMenu("save");
             return;
           }
