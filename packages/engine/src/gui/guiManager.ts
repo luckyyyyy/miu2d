@@ -710,7 +710,7 @@ export class GuiManager extends EngineAccess {
     return this.state.dialog.isVisible || this.state.selection.isVisible || this.state.menu.isOpen;
   }
 
-  private isScriptRunning(): boolean {
+  isScriptRunning(): boolean {
     try {
       return this.script.isRunning();
     } catch { // script manager not ready

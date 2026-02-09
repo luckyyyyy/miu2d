@@ -140,6 +140,11 @@ export function GamePlaying({
         return;
       }
 
+      // 脚本运行期间禁止打开菜单
+      if (gui.isScriptRunning()) {
+        return;
+      }
+
       // 没有任何面板/对话 → 打开存档菜单
       e.stopPropagation();
       e.preventDefault();
