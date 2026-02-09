@@ -1,10 +1,13 @@
 /**
  * 数据统计页面
  */
-import { useState } from "react";
+import { lazy, Suspense, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { DashboardIcons } from "../icons";
 import { trpc } from "../../../lib/trpc";
+import { ResponsiveGrid } from "../../../components/ui/ResponsiveGrid";
+
+const MonacoEditor = lazy(() => import("@monaco-editor/react").then((m) => ({ default: m.default })));
 
 export function StatisticsHomePage() {
   const { gameId } = useParams();
@@ -54,80 +57,24 @@ export function StatisticsHomePage() {
 }
 
 export function PlayerDataPage() {
-  // 模拟玩家数据
-  const players = [
-    { id: "p001", name: "玩家A", level: 25, playtime: "12小时", lastLogin: "2小时前" },
-    { id: "p002", name: "玩家B", level: 18, playtime: "8小时", lastLogin: "1天前" },
-    { id: "p003", name: "玩家C", level: 42, playtime: "36小时", lastLogin: "30分钟前" },
-    { id: "p004", name: "玩家D", level: 12, playtime: "4小时", lastLogin: "3天前" },
-  ];
-
   return (
     <div className="h-full overflow-auto p-6">
       <div className="max-w-4xl">
         <h1 className="text-xl font-bold text-white mb-6">玩家数据</h1>
-
-        {/* 搜索和筛选 */}
-        <div className="flex items-center gap-4 mb-4">
-          <div className="relative flex-1">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#858585]">
-              {DashboardIcons.search}
-            </span>
-            <input
-              type="text"
-              placeholder="搜索玩家..."
-              className="w-full pl-10 pr-4 py-2 bg-[#3c3c3c] border border-[#454545] rounded text-white placeholder-[#858585] focus:outline-none focus:border-[#0098ff]"
-            />
-          </div>
-          <select className="px-4 py-2 bg-[#3c3c3c] border border-[#454545] rounded text-white focus:outline-none focus:border-[#0098ff]">
-            <option value="">全部等级</option>
-            <option value="1-10">1-10级</option>
-            <option value="11-20">11-20级</option>
-            <option value="21-30">21-30级</option>
-            <option value="30+">30级以上</option>
-          </select>
-        </div>
-
-        {/* 玩家列表 */}
-        <div className="bg-[#252526] border border-[#454545] rounded-lg overflow-hidden">
-          <table className="w-full">
-            <thead>
-              <tr className="text-left text-sm text-[#858585] border-b border-[#454545]">
-                <th className="px-4 py-3">玩家名</th>
-                <th className="px-4 py-3">等级</th>
-                <th className="px-4 py-3">游戏时长</th>
-                <th className="px-4 py-3">最后登录</th>
-                <th className="px-4 py-3">操作</th>
-              </tr>
-            </thead>
-            <tbody>
-              {players.map((player) => (
-                <tr
-                  key={player.id}
-                  className="border-b border-[#454545] last:border-0 hover:bg-[#2a2d2e] transition-colors"
-                >
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[#858585]">{DashboardIcons.user}</span>
-                      <span className="text-[#cccccc]">{player.name}</span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-[#4ec9b0]">Lv.{player.level}</td>
-                  <td className="px-4 py-3 text-[#858585]">{player.playtime}</td>
-                  <td className="px-4 py-3 text-[#858585]">{player.lastLogin}</td>
-                  <td className="px-4 py-3">
-                    <button className="text-[#0098ff] hover:underline text-sm">
-                      查看详情
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="bg-[#252526] border border-[#454545] rounded-lg p-12 text-center">
+          <div className="text-[#858585] text-4xl mb-3">🚧</div>
+          <p className="text-[#cccccc] font-medium">功能开发中</p>
+          <p className="text-[#555] text-sm mt-1">玩家数据分析功能正在开发中，敬请期待</p>
         </div>
       </div>
     </div>
   );
+}
+
+/* eslint-disable @typescript-eslint/no-unused-vars -- placeholder for future */
+function _PlayerDataPageOld() {
+  const _placeholder = DashboardIcons.search; // keep import used
+  return null;
 }
 
 export function PlayerSavesPage() {
@@ -136,6 +83,7 @@ export function PlayerSavesPage() {
   const [search, setSearch] = useState("");
   const [selectedSaveId, setSelectedSaveId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   const utils = trpc.useUtils();
 
@@ -154,6 +102,20 @@ export function PlayerSavesPage() {
       utils.save.adminList.invalidate();
       setConfirmDelete(null);
       setSelectedSaveId(null);
+    },
+  });
+
+  const createMutation = trpc.save.adminCreate.useMutation({
+    onSuccess: () => {
+      utils.save.adminList.invalidate();
+      setShowCreateModal(false);
+    },
+  });
+
+  const shareMutation = trpc.save.adminShare.useMutation({
+    onSuccess: () => {
+      utils.save.adminList.invalidate();
+      if (selectedSaveId) utils.save.adminGet.invalidate({ saveId: selectedSaveId });
     },
   });
 
@@ -199,7 +161,7 @@ export function PlayerSavesPage() {
 
   return (
     <div className="h-full overflow-auto p-6">
-      <div className="max-w-6xl">
+      <div>
         {/* 标题和统计 */}
         <div className="flex items-center justify-between mb-6">
           <div>
@@ -235,11 +197,17 @@ export function PlayerSavesPage() {
           >
             刷新
           </button>
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="px-3 py-2 text-sm bg-[#0e639c] hover:bg-[#1177bb] text-white rounded transition-colors"
+          >
+            创建存档
+          </button>
         </div>
 
         {/* 存档卡片网格 */}
         {savesQuery.isLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <ResponsiveGrid minColWidth={280} gap={4}>
             {[1, 2, 3, 4, 5, 6].map((i) => (
               <div key={i} className="bg-[#252526] border border-[#454545] rounded-lg p-4 animate-pulse">
                 <div className="h-32 bg-[#3c3c3c] rounded mb-3" />
@@ -247,7 +215,7 @@ export function PlayerSavesPage() {
                 <div className="h-3 bg-[#3c3c3c] rounded w-1/2" />
               </div>
             ))}
-          </div>
+          </ResponsiveGrid>
         ) : filteredItems?.length === 0 ? (
           <div className="bg-[#252526] border border-[#454545] rounded-lg p-12 text-center">
             <div className="text-[#858585] text-4xl mb-3">📂</div>
@@ -257,7 +225,7 @@ export function PlayerSavesPage() {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          <ResponsiveGrid minColWidth={280} gap={4}>
             {filteredItems?.map((save) => (
               <div
                 key={save.id}
@@ -348,11 +316,23 @@ export function PlayerSavesPage() {
                     >
                       {DashboardIcons.delete}
                     </button>
+                    <button
+                      onClick={() => shareMutation.mutate({ saveId: save.id, isShared: !save.isShared })}
+                      disabled={shareMutation.isPending}
+                      className={`px-2 py-1.5 text-xs rounded transition-colors ${
+                        save.isShared
+                          ? "bg-green-600/30 text-green-400 hover:bg-red-500/20 hover:text-red-300"
+                          : "bg-[#3c3c3c] text-[#858585] hover:bg-green-600/20 hover:text-green-400"
+                      }`}
+                      title={save.isShared ? "取消分享" : "分享"}
+                    >
+                      🔗
+                    </button>
                   </div>
                 </div>
               </div>
             ))}
-          </div>
+          </ResponsiveGrid>
         )}
 
         {/* 分页 */}
@@ -409,7 +389,7 @@ export function PlayerSavesPage() {
             onClick={() => setSelectedSaveId(null)}
           >
             <div
-              className="bg-[#1e1e1e] border border-[#454545] rounded-lg w-full max-w-4xl max-h-[85vh] flex flex-col"
+              className="bg-[#1e1e1e] border border-[#454545] rounded-lg w-full max-w-5xl h-[75vh] flex flex-col"
               onClick={(e) => e.stopPropagation()}
             >
               {/* 弹窗头部 */}
@@ -431,51 +411,39 @@ export function PlayerSavesPage() {
               </div>
 
               {/* 弹窗内容 */}
-              <div className="flex-1 overflow-auto p-5">
+              <div className="flex-1 overflow-hidden flex flex-col">
                 {saveDetailQuery.isLoading ? (
                   <div className="text-[#858585] text-center py-8">加载中...</div>
                 ) : saveDetailQuery.data ? (
-                  <div className="space-y-4">
-                    {/* 摘要信息 */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                      <div className="bg-[#252526] border border-[#454545] rounded p-3">
-                        <p className="text-[#858585] text-xs mb-1">玩家</p>
-                        <p className="text-[#cccccc] text-sm font-medium">{saveDetailQuery.data.userName ?? "未知"}</p>
-                      </div>
-                      <div className="bg-[#252526] border border-[#454545] rounded p-3">
-                        <p className="text-[#858585] text-xs mb-1">角色名</p>
-                        <p className="text-[#cccccc] text-sm font-medium">{saveDetailQuery.data.playerName ?? "-"}</p>
-                      </div>
-                      <div className="bg-[#252526] border border-[#454545] rounded p-3">
-                        <p className="text-[#858585] text-xs mb-1">等级</p>
-                        <p className="text-[#4ec9b0] text-sm font-medium">{saveDetailQuery.data.level ? `Lv.${saveDetailQuery.data.level}` : "-"}</p>
-                      </div>
-                      <div className="bg-[#252526] border border-[#454545] rounded p-3">
-                        <p className="text-[#858585] text-xs mb-1">地图</p>
-                        <p className="text-[#cccccc] text-sm font-medium">{saveDetailQuery.data.mapName ?? "-"}</p>
-                      </div>
-                    </div>
-
-                    {/* 截图 */}
-                    {saveDetailQuery.data.screenshot && (
-                      <div>
-                        <p className="text-[#858585] text-xs mb-2">截图</p>
+                  <>
+                    {/* 摘要信息条 - 紧凑单行 */}
+                    <div className="flex items-center gap-3 px-4 py-2 border-b border-[#333] shrink-0">
+                      {saveDetailQuery.data.screenshot && (
                         <img
                           src={saveDetailQuery.data.screenshot}
-                          alt="存档截图"
-                          className="max-w-md rounded border border-[#454545]"
+                          alt=""
+                          className="w-16 h-10 rounded object-cover border border-[#454545] shrink-0"
                         />
+                      )}
+                      <div className="flex items-center gap-3 text-xs text-[#858585] min-w-0 flex-wrap">
+                        <span>玩家 <span className="text-[#4ec9b0]">{saveDetailQuery.data.userName ?? "未知"}</span></span>
+                        {saveDetailQuery.data.playerName && (
+                          <span>角色 <span className="text-[#cccccc]">{saveDetailQuery.data.playerName}</span></span>
+                        )}
+                        {saveDetailQuery.data.level != null && (
+                          <span className="text-[#4ec9b0]">Lv.{saveDetailQuery.data.level}</span>
+                        )}
+                        {saveDetailQuery.data.mapName && (
+                          <span>地图 <span className="text-[#cccccc]">{saveDetailQuery.data.mapName}</span></span>
+                        )}
                       </div>
-                    )}
-
-                    {/* JSON 数据 */}
-                    <div>
-                      <p className="text-[#858585] text-xs mb-2">完整存档数据</p>
-                      <pre className="text-xs text-[#cccccc] bg-[#1a1a1a] p-4 rounded border border-[#333] overflow-auto max-h-[40vh] whitespace-pre-wrap font-mono">
-                        {JSON.stringify(saveDetailQuery.data.data, null, 2)}
-                      </pre>
                     </div>
-                  </div>
+
+                    {/* JSON 数据 - 填满剩余空间 */}
+                    <div className="flex-1 min-h-0">
+                      <SaveDataEditor data={saveDetailQuery.data.data} />
+                    </div>
+                  </>
                 ) : (
                   <div className="text-[#858585] text-center py-8">加载失败</div>
                 )}
@@ -503,6 +471,17 @@ export function PlayerSavesPage() {
                     >
                       读档测试
                     </a>
+                    <button
+                      onClick={() => shareMutation.mutate({ saveId: saveDetailQuery.data!.id, isShared: !saveDetailQuery.data!.isShared })}
+                      disabled={shareMutation.isPending}
+                      className={`px-3 py-1.5 text-sm rounded transition-colors ${
+                        saveDetailQuery.data.isShared
+                          ? "bg-green-600/30 text-green-400 hover:bg-red-500/20 hover:text-red-300"
+                          : "bg-[#3c3c3c] text-[#858585] hover:bg-green-600/20 hover:text-green-400"
+                      }`}
+                    >
+                      {saveDetailQuery.data.isShared ? "取消分享" : "分享"}
+                    </button>
                     <button
                       onClick={() => setConfirmDelete(saveDetailQuery.data!.id)}
                       className="px-3 py-1.5 text-sm bg-[#5a1d1d] hover:bg-[#742a2a] text-[#f48771] rounded transition-colors"
@@ -548,7 +527,199 @@ export function PlayerSavesPage() {
             </div>
           </div>
         )}
+
+        {/* 创建存档弹窗 */}
+        {showCreateModal && gameSlug && (
+          <AdminCreateSaveModal
+            gameSlug={gameSlug}
+            isPending={createMutation.isPending}
+            error={createMutation.error?.message}
+            onSubmit={(input) => createMutation.mutate(input)}
+            onClose={() => { setShowCreateModal(false); createMutation.reset(); }}
+          />
+        )}
       </div>
+    </div>
+  );
+}
+
+/**
+ * 管理员创建存档弹窗 - 输入 JSON 数据创建存档
+ */
+function AdminCreateSaveModal({
+  gameSlug,
+  isPending,
+  error,
+  onSubmit,
+  onClose,
+}: {
+  gameSlug: string;
+  isPending: boolean;
+  error?: string;
+  onSubmit: (input: { gameSlug: string; name: string; mapName?: string; level?: number; playerName?: string; data: Record<string, unknown> }) => void;
+  onClose: () => void;
+}) {
+  const [name, setName] = useState("");
+  const [jsonText, setJsonText] = useState("");
+  const [parseError, setParseError] = useState("");
+
+  const handleSubmit = () => {
+    setParseError("");
+
+    const trimmed = jsonText.trim();
+    if (!trimmed) {
+      setParseError("请输入存档 JSON 数据");
+      return;
+    }
+
+    let data: Record<string, unknown>;
+    try {
+      data = JSON.parse(trimmed);
+    } catch {
+      setParseError("JSON 格式不正确");
+      return;
+    }
+
+    if (typeof data !== "object" || data === null || Array.isArray(data)) {
+      setParseError("JSON 必须是一个对象");
+      return;
+    }
+
+    const saveName = name.trim() || `管理员存档 ${new Date().toLocaleString("zh-CN")}`;
+
+    onSubmit({
+      gameSlug,
+      name: saveName,
+      data,
+    });
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-[#1e1e1e] border border-[#454545] rounded-lg w-full max-w-2xl max-h-[85vh] flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* 头部 */}
+        <div className="flex items-center justify-between px-5 py-3 border-b border-[#454545] shrink-0">
+          <h3 className="text-white font-medium">创建存档</h3>
+          <button
+            onClick={onClose}
+            className="text-[#858585] hover:text-white transition-colors p-1"
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* 内容 */}
+        <div className="flex-1 overflow-auto p-5 space-y-4">
+          {/* 存档名称 */}
+          <div>
+            <label className="text-[#858585] text-xs mb-1.5 block">存档名称（可选）</label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="留空则自动生成"
+              maxLength={100}
+              className="w-full px-3 py-2 bg-[#3c3c3c] border border-[#454545] rounded text-white text-sm placeholder-[#858585] focus:outline-none focus:border-[#0098ff]"
+            />
+          </div>
+
+          {/* JSON 数据 */}
+          <div>
+            <label className="text-[#858585] text-xs mb-1.5 block">存档 JSON 数据</label>
+            <div className="border border-[#454545] rounded overflow-hidden">
+              <Suspense fallback={<div className="h-[400px] bg-[#1a1a1a] flex items-center justify-center text-[#858585] text-sm">加载编辑器...</div>}>
+                <MonacoEditor
+                  height="400px"
+                  language="json"
+                  theme="vs-dark"
+                  value={jsonText}
+                  onChange={(v) => { setJsonText(v ?? ""); setParseError(""); }}
+                  options={{
+                    minimap: { enabled: false },
+                    fontSize: 12,
+                    lineNumbers: "on",
+                    scrollBeyondLastLine: false,
+                    automaticLayout: true,
+                    tabSize: 2,
+                    wordWrap: "on",
+                  }}
+                />
+              </Suspense>
+            </div>
+          </div>
+
+          {/* 错误提示 */}
+          {(parseError || error) && (
+            <p className="text-[#f48771] text-sm">{parseError || error}</p>
+          )}
+        </div>
+
+        {/* 底部操作 */}
+        <div className="flex items-center justify-end gap-2 px-5 py-3 border-t border-[#454545] shrink-0">
+          <button
+            onClick={onClose}
+            className="px-3 py-1.5 text-sm bg-[#3c3c3c] hover:bg-[#454545] text-[#cccccc] rounded transition-colors"
+          >
+            取消
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={isPending}
+            className="px-4 py-1.5 text-sm bg-[#0e639c] hover:bg-[#1177bb] text-white rounded transition-colors disabled:opacity-50"
+          >
+            {isPending ? "创建中..." : "创建存档"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * 存档数据查看器 - 使用 Monaco Editor 渲染 JSON
+ * 过滤掉 screenshot 等超大 base64 字段避免卡顿
+ */
+function SaveDataEditor({ data }: { data: Record<string, unknown> }) {
+  const jsonString = useMemo(() => {
+    // 过滤掉 screenshot 等超大 base64 字段，避免渲染卡死
+    const filtered = Object.fromEntries(
+      Object.entries(data).map(([key, value]) => {
+        if (key === "screenshot" && typeof value === "string" && value.length > 1000) {
+          return [key, `[base64 image, ${(value.length / 1024).toFixed(0)}KB]`];
+        }
+        return [key, value];
+      }),
+    );
+    return JSON.stringify(filtered, null, 2);
+  }, [data]);
+
+  return (
+    <div className="h-full">
+      <Suspense fallback={<div className="h-full bg-[#1a1a1a] flex items-center justify-center text-[#858585] text-sm">加载编辑器...</div>}>
+        <MonacoEditor
+          height="100%"
+          language="json"
+          theme="vs-dark"
+          value={jsonString}
+          options={{
+            readOnly: true,
+            minimap: { enabled: false },
+            fontSize: 12,
+            lineNumbers: "on",
+            scrollBeyondLastLine: false,
+            automaticLayout: true,
+            tabSize: 2,
+            wordWrap: "on",
+            folding: true,
+          }}
+        />
+      </Suspense>
     </div>
   );
 }

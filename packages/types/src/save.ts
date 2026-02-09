@@ -129,6 +129,19 @@ export const AdminListSavesOutputSchema = z.object({
 
 export type AdminListSavesOutput = z.infer<typeof AdminListSavesOutputSchema>;
 
+/** 管理员创建存档（通过 JSON） */
+export const AdminCreateSaveInputSchema = z.object({
+  gameSlug: z.string(),
+  name: z.string().max(100),
+  mapName: z.string().optional(),
+  level: z.number().optional(),
+  playerName: z.string().optional(),
+  screenshot: z.string().optional(),
+  data: z.record(z.string(), z.unknown()),
+});
+
+export type AdminCreateSaveInput = z.infer<typeof AdminCreateSaveInputSchema>;
+
 /** 管理员删除存档 */
 export const AdminDeleteSaveInputSchema = z.object({
   saveId: z.string(),

@@ -1212,9 +1212,7 @@ export class Loader {
       if (data.memo) {
         logger.debug(`[Loader] Loading memo...`);
         memoListManager.renewList();
-        for (const item of data.memo.items) {
-          memoListManager.addItem(item);
-        }
+        memoListManager.bulkLoadItems(data.memo.items);
       }
 
       // Step 9: 加载玩家 (80-85%)

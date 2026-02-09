@@ -208,12 +208,16 @@ export type PlayerConfig = z.infer<typeof PlayerConfigSchema>;
  * 游戏全局配置 Schema
  */
 export const GameConfigDataSchema = z.object({
+  /** 游戏是否开放（关闭后 /api/data 不可访问，游戏无法启动） */
+  gameEnabled: z.boolean().default(false),
   /** 游戏名称 */
   gameName: z.string().default("月影传说"),
   /** 游戏版本 */
   gameVersion: z.string().default("1.0.0"),
   /** 游戏描述 */
   gameDescription: z.string().default(""),
+  /** 游戏 Logo 路径（上传后由服务端填充） */
+  logoUrl: z.string().default(""),
   /** 游戏主角（players 表中的 key，如 Player0.ini） */
   playerKey: z.string().default(""),
   /** 新游戏触发脚本内容 */
@@ -356,9 +360,11 @@ export function createDefaultPlayerConfig(): PlayerConfig {
 
 export function createDefaultGameConfig(): GameConfigData {
   return {
+    gameEnabled: false,
     gameName: "月影传说",
     gameVersion: "1.0.0",
     gameDescription: "",
+    logoUrl: "",
     playerKey: "",
     newGameScript: "",
     portraitAsf: "",

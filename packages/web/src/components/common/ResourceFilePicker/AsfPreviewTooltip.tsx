@@ -209,7 +209,9 @@ interface MiniAsfPreviewProps {
 }
 
 export function MiniAsfPreview({ gameSlug, path, size = 48, onPathResolved }: MiniAsfPreviewProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [isVisible, setIsVisible] = useState(false);
   const [asf, setAsf] = useState<AsfData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -220,8 +222,28 @@ export function MiniAsfPreview({ gameSlug, path, size = 48, onPathResolved }: Mi
   // 路径数组（统一处理）
   const paths = Array.isArray(path) ? path : [path];
 
-  // 加载 ASF（支持多路径尝试）
+  // IntersectionObserver 懒加载：进入视口后才开始加载 ASF
   useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "200px" }
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  // 加载 ASF（支持多路径尝试）— 仅在可见后触发
+  useEffect(() => {
+    if (!isVisible) return;
     let cancelled = false;
 
     const loadAsf = async () => {
@@ -279,7 +301,7 @@ export function MiniAsfPreview({ gameSlug, path, size = 48, onPathResolved }: Mi
     return () => {
       cancelled = true;
     };
-  }, [gameSlug, paths.join(",")]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isVisible, gameSlug, paths.join(",")]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 动画循环
   useEffect(() => {
@@ -343,9 +365,23 @@ export function MiniAsfPreview({ gameSlug, path, size = 48, onPathResolved }: Mi
     ctx.drawImage(frameCanvas, x, y, w, h);
   }, [asf, currentFrame, size]);
 
+  // 未进入视口时显示占位符
+  if (!isVisible) {
+    return (
+      <div
+        ref={containerRef}
+        className="flex items-center justify-center bg-[#2d2d2d] rounded"
+        style={{ width: size, height: size }}
+      >
+        <span className="text-[#555] text-[10px]">...</span>
+      </div>
+    );
+  }
+
   if (isLoading) {
     return (
       <div
+        ref={containerRef}
         className="flex items-center justify-center bg-[#2d2d2d] rounded"
         style={{ width: size, height: size }}
       >
@@ -357,6 +393,7 @@ export function MiniAsfPreview({ gameSlug, path, size = 48, onPathResolved }: Mi
   if (error || !asf) {
     return (
       <div
+        ref={containerRef}
         className="flex items-center justify-center bg-[#2d2d2d] rounded text-[#808080]"
         style={{ width: size, height: size }}
         title={error || "无法加载"}

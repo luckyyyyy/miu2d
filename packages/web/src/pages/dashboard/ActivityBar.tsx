@@ -71,28 +71,15 @@ export function ActivityBar() {
 
       {/* 底部图标 */}
       <div className="flex flex-col border-t border-[#252526]">
-        <NavLink
-          to={`${basePath}/settings`}
-          title="设置"
-          className={({ isActive }) =>
-            `group relative flex h-12 w-full flex-col items-center justify-center gap-0.5 transition-colors ${
-              isActive
-                ? "bg-[#252526] text-white"
-                : "text-[#858585] hover:bg-[#2a2d2e] hover:text-white"
-            }`
-          }
-        >
-          {DashboardIcons.settings}
-          <span className="text-[9px] leading-none">设置</span>
-        </NavLink>
-
         <a
-          href="/"
-          title="返回首页"
+          href={gameId ? `/game/${gameId}` : "/"}
+          target="_blank"
+          rel="noopener noreferrer"
+          title="进入游戏"
           className="group relative flex h-12 w-full flex-col items-center justify-center gap-0.5 text-[#858585] transition-colors hover:bg-[#2a2d2e] hover:text-white"
         >
-          {DashboardIcons.back}
-          <span className="text-[9px] leading-none">首页</span>
+          {DashboardIcons.game}
+          <span className="text-[9px] leading-none">游戏</span>
         </a>
       </div>
     </div>

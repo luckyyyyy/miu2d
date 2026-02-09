@@ -259,7 +259,7 @@ export function EmailFooter({ appName = "Miu2D Engine" }: { appName?: string }) 
       <Section style={{ textAlign: "center", marginTop: "16px" }}>
         {/* 社交链接 */}
         <Link
-          href="https://github.com/luckyyyyy/JXQY-WEB"
+          href="https://github.com/luckyyyyy/miu2d"
           style={{
             color: colors.textMuted,
             fontSize: "12px",

@@ -9,6 +9,7 @@ export const toGameOutput = (dbGame: typeof games.$inferSelect) => ({
 	slug: dbGame.slug,
 	name: dbGame.name,
 	description: dbGame.description,
+	isPublic: dbGame.isPublic,
 	ownerId: dbGame.ownerId,
 	createdAt: dbGame.createdAt?.toISOString()
 });
@@ -52,6 +53,19 @@ export class GameService {
 			.select()
 			.from(games)
 			.where(eq(games.id, id))
+			.limit(1);
+
+		return game ?? null;
+	}
+
+	/**
+	 * 公开查询：通过 slug 查找已开放的游戏（不需要登录）
+	 */
+	async getPublicBySlug(slug: string) {
+		const [game] = await db
+			.select()
+			.from(games)
+			.where(and(eq(games.slug, slug), eq(games.isPublic, true)))
 			.limit(1);
 
 		return game ?? null;
@@ -105,7 +119,7 @@ export class GameService {
 
 	async update(
 		id: string,
-		input: { name?: string; slug?: string; description?: string | null },
+		input: { name?: string; slug?: string; description?: string | null; isPublic?: boolean },
 		userId: string,
 		language: Language
 	) {
@@ -147,7 +161,8 @@ export class GameService {
 			.set({
 				name: input.name ?? game.name,
 				slug: newSlug,
-				description: input.description !== undefined ? input.description : game.description
+				description: input.description !== undefined ? input.description : game.description,
+				isPublic: input.isPublic !== undefined ? input.isPublic : game.isPublic
 			})
 			.where(eq(games.id, id))
 			.returning();

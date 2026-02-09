@@ -40,7 +40,7 @@ const highlightCode = (code: string): React.ReactNode => {
         </span>
       );
       tokens.push(
-        <span key={keyIndex++} className="text-zinc-400">
+        <span key={keyIndex++} className="text-white/50">
           {funcMatch[2]}
         </span>
       );
@@ -88,7 +88,7 @@ const highlightCode = (code: string): React.ReactNode => {
     const commentMatch = remaining.match(/^(\/\/.*|;.*)/);
     if (commentMatch) {
       tokens.push(
-        <span key={keyIndex++} className="text-zinc-500 italic">
+        <span key={keyIndex++} className="text-white/40 italic">
           {commentMatch[0]}
         </span>
       );
@@ -110,7 +110,7 @@ const highlightCode = (code: string): React.ReactNode => {
 
     // 普通字符
     tokens.push(
-      <span key={keyIndex++} className="text-zinc-300">
+      <span key={keyIndex++} className="text-white/70">
         {remaining[0]}
       </span>
     );
@@ -162,7 +162,7 @@ export const ScriptCodeView: React.FC<ScriptCodeViewProps> = ({
                 : isExecuted
                   ? "bg-green-900/10 hover:bg-green-900/20"
                   : isSkipped
-                    ? "bg-zinc-800/30 hover:bg-zinc-800/50"
+                    ? "bg-white/5 hover:bg-white/10"
                     : "hover:bg-white/10"
             }`}
             title={isSkipped ? `[跳过] ${code}` : code}
@@ -176,10 +176,10 @@ export const ScriptCodeView: React.FC<ScriptCodeViewProps> = ({
                       ? "text-green-500 group-hover:text-cyan-400 cursor-pointer"
                       : "text-green-500"
                     : isSkipped
-                      ? "text-zinc-700"
+                      ? "text-white/20"
                       : canExecute
-                        ? "text-zinc-600 group-hover:text-cyan-400 cursor-pointer"
-                        : "text-zinc-600"
+                        ? "text-white/25 group-hover:text-cyan-400 cursor-pointer"
+                        : "text-white/25"
               }`}
               onClick={() => canExecute && onExecuteLine(code)}
               title={
@@ -206,7 +206,7 @@ export const ScriptCodeView: React.FC<ScriptCodeViewProps> = ({
               {canExecute && !isCurrentLine && <span className="hidden group-hover:inline">▶</span>}
             </span>
             <span
-              className={`w-5 text-right mr-2 select-none flex-shrink-0 ${isSkipped ? "text-zinc-700" : "text-zinc-600"}`}
+              className={`w-5 text-right mr-2 select-none flex-shrink-0 ${isSkipped ? "text-white/20" : "text-white/25"}`}
             >
               {idx + 1}
             </span>

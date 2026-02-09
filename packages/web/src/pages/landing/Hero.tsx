@@ -143,7 +143,7 @@ export function Hero() {
           className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4"
         >
           <motion.a
-            href="/game"
+            href="/game/demo"
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.98 }}
             className="px-8 py-3.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 text-white font-semibold shadow-lg shadow-orange-500/25 hover:shadow-orange-500/40 transition-shadow"

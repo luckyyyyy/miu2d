@@ -25,6 +25,11 @@ export { ModernGameUIWrapper } from "./ModernGameUIWrapper";
 export { WebSaveLoadPanel } from "./WebSaveLoadPanel";
 export { ShareOverlay } from "./ShareOverlay";
 export { GameTopBar } from "./GameTopBar";
+export type { ToolbarButton } from "./GameTopBar";
+export { GlassModal } from "./GlassModal";
+export { AuthModal } from "./AuthModal";
+export { GameMenuPanel, type MenuTab } from "./GameMenuPanel";
+export { FloatingPanel } from "./FloatingPanel";
 // UI 组件
 export * from "./ui";
 // Note: TooltipState, MagicTooltipState, MagicDragData 已经从 ./ui 导出

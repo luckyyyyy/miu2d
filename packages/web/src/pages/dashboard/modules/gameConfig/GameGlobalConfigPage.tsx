@@ -3,7 +3,7 @@
  * 根据路由参数 :configTab 渲染对应的配置面板
  * 侧边栏导航由 SidebarContent 提供
  */
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, memo } from "react";
 import { useParams } from "react-router-dom";
 import { NumberInput, ResourceFilePicker, ScriptEditor } from "@/components/common";
 import { MiniAsfPreview } from "@/components/common/ResourceFilePicker/AsfPreviewTooltip";
@@ -262,11 +262,77 @@ function BossLevelBonusEditor({ bonuses, onChange }: { bonuses: BossLevelBonus[]
 
 // ========== 各分类面板 ==========
 
-function BasicInfoPanel({ config, updateConfig, gameId }: {
+function BasicInfoPanel({ config, updateConfig, gameId, gameSlug }: {
   config: GameConfigDataFull;
   updateConfig: <K extends keyof GameConfigDataFull>(k: K, v: GameConfigDataFull[K]) => void;
   gameId: string;
+  gameSlug: string;
 }) {
+  const toast = useToast();
+  const [logoPreview, setLogoPreview] = useState<string>(config.logoUrl || "");
+  const [isUploading, setIsUploading] = useState(false);
+  const logoInputRef = useRef<HTMLInputElement>(null);
+
+  // 同步外部 config 变化
+  useEffect(() => {
+    setLogoPreview(config.logoUrl || "");
+  }, [config.logoUrl]);
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !gameSlug) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Logo 文件不能超过 5MB");
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const res = await fetch(`/game/${gameSlug}/api/logo`, {
+        method: "POST",
+        headers: { "Content-Type": file.type },
+        body: file,
+        credentials: "include",
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Upload failed" }));
+        throw new Error(err.error || "Upload failed");
+      }
+
+      const data = await res.json();
+      const logoUrl = `${data.logoUrl}?_t=${Date.now()}`;
+      setLogoPreview(logoUrl);
+      updateConfig("logoUrl", data.logoUrl);
+      toast.success("Logo 上传成功");
+    } catch (err) {
+      toast.error(`Logo 上传失败: ${err instanceof Error ? err.message : "Unknown error"}`);
+    } finally {
+      setIsUploading(false);
+      if (logoInputRef.current) logoInputRef.current.value = "";
+    }
+  };
+
+  const handleLogoDelete = async () => {
+    if (!gameSlug) return;
+    setIsUploading(true);
+    try {
+      const res = await fetch(`/game/${gameSlug}/api/logo`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Delete failed");
+      setLogoPreview("");
+      updateConfig("logoUrl", "");
+      toast.success("Logo 已删除");
+    } catch (err) {
+      toast.error("Logo 删除失败");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   // 从 players 表获取主角候选列表
   const { data: players } = trpc.player.list.useQuery(
     { gameId },
@@ -278,6 +344,27 @@ function BasicInfoPanel({ config, updateConfig, gameId }: {
       <SectionTitle />
       <FormCard>
         <div className="space-y-4">
+          <div className="flex items-center justify-between py-2 border-b border-[#333] mb-2">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-[#cccccc]">开放游戏</span>
+              <HelpTip text="开启后玩家可以访问游戏并加载数据。关闭后 /api/data 接口将不可用，游戏无法启动" />
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={config.gameEnabled}
+              onClick={() => updateConfig("gameEnabled", !config.gameEnabled)}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                config.gameEnabled ? "bg-[#0e639c]" : "bg-[#3c3c3c]"
+              }`}
+            >
+              <span
+                className={`inline-block h-4 w-4 rounded-full bg-white transition-transform ${
+                  config.gameEnabled ? "translate-x-6" : "translate-x-1"
+                }`}
+              />
+            </button>
+          </div>
           <Field label="游戏名称">
             <input type="text" value={config.gameName} onChange={(e) => updateConfig("gameName", e.target.value)} className={inputCls} />
           </Field>
@@ -286,6 +373,48 @@ function BasicInfoPanel({ config, updateConfig, gameId }: {
           </Field>
           <Field label="游戏描述">
             <textarea rows={3} value={config.gameDescription} onChange={(e) => updateConfig("gameDescription", e.target.value)} className={`${inputCls} resize-none`} />
+          </Field>
+          <Field label="游戏 Logo" desc="上传游戏 Logo，将作为网页图标和游戏左上角标识显示。支持 PNG、JPG、WebP 等格式，最大 5MB">
+            <div className="flex items-center gap-4">
+              {/* 预览 */}
+              <div className="w-16 h-16 rounded-lg border border-[#454545] bg-[#1a1a1a] flex items-center justify-center overflow-hidden flex-shrink-0">
+                {logoPreview ? (
+                  <img src={logoPreview} alt="Logo" className="w-full h-full object-contain" />
+                ) : (
+                  <svg viewBox="0 0 24 24" fill="currentColor" className="w-8 h-8 text-[#444]">
+                    <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z" />
+                  </svg>
+                )}
+              </div>
+              {/* 操作按钮 */}
+              <div className="flex flex-col gap-2">
+                <input
+                  ref={logoInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleLogoUpload}
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  onClick={() => logoInputRef.current?.click()}
+                  disabled={isUploading}
+                  className="px-3 py-1.5 text-xs bg-[#0e639c] hover:bg-[#1177bb] text-white rounded-lg transition-colors disabled:opacity-50"
+                >
+                  {isUploading ? "上传中..." : logoPreview ? "更换 Logo" : "上传 Logo"}
+                </button>
+                {logoPreview && (
+                  <button
+                    type="button"
+                    onClick={handleLogoDelete}
+                    disabled={isUploading}
+                    className="px-3 py-1.5 text-xs bg-[#3c3c3c] hover:bg-[#5a1d1d] text-[#858585] hover:text-[#f48771] rounded-lg transition-colors disabled:opacity-50"
+                  >
+                    删除 Logo
+                  </button>
+                )}
+              </div>
+            </div>
           </Field>
           <Field label="游戏主角" desc="新游戏开始时使用的主角角色配置">
             <select
@@ -509,6 +638,79 @@ function DropBossPanel({ config, updateDrop }: {
 
 // ========== 对话头像面板 ==========
 
+/**
+ * 单条头像映射行（memo 减少重渲染）
+ */
+const PortraitEntryRow = memo(function PortraitEntryRow({
+  entry,
+  index,
+  gameSlug,
+  gameId,
+  onUpdate,
+  onRemove,
+}: {
+  entry: PortraitEntry;
+  index: number;
+  gameSlug: string;
+  gameId: string;
+  onUpdate: (index: number, field: "idx" | "file", value: string | number) => void;
+  onRemove: (index: number) => void;
+}) {
+  return (
+    <div className="flex items-center gap-3 px-4 py-3 bg-[#2a2d2e] rounded-lg group hover:bg-[#2f3233] transition-colors">
+      {/* 预览 */}
+      <div className="w-12 h-12 flex-shrink-0 rounded bg-[#1e1e1e] border border-[#333] flex items-center justify-center overflow-hidden">
+        {entry.file ? (
+          <MiniAsfPreview
+            gameSlug={gameSlug}
+            path={buildResourcePath("portrait_image", entry.file)}
+            size={48}
+          />
+        ) : (
+          <span className="text-[#555] text-lg">🖼</span>
+        )}
+      </div>
+
+      {/* 索引 */}
+      <div className="flex flex-col gap-0.5 flex-shrink-0">
+        <span className="text-[10px] text-[#858585]">索引</span>
+        <NumberInput
+          min={0}
+          value={entry.idx}
+          onChange={(val) => onUpdate(index, "idx", val ?? 0)}
+          className="w-16"
+        />
+      </div>
+
+      {/* 文件选择器 */}
+      <div className="flex-1 min-w-0">
+        <ResourceFilePicker
+          label="文件"
+          value={entry.file || null}
+          onChange={(val) => onUpdate(index, "file", val ?? "")}
+          fieldName="portrait_image"
+          gameId={gameId}
+          gameSlug={gameSlug}
+          extensions={[".asf"]}
+          placeholder="选择头像文件..."
+        />
+      </div>
+
+      {/* 删除 */}
+      <button
+        type="button"
+        onClick={() => onRemove(index)}
+        className="w-7 h-7 flex items-center justify-center rounded opacity-0 group-hover:opacity-100 hover:bg-[#3c3c3c] text-[#808080] hover:text-red-400 transition-all flex-shrink-0"
+        title="删除"
+      >
+        <svg className="w-4 h-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+          <path d="M4 4l8 8M12 4l-8 8" />
+        </svg>
+      </button>
+    </div>
+  );
+});
+
 function PortraitMappingPanel({ gameId }: { gameId: string }) {
   const toast = useToast();
   const utils = trpc.useUtils();
@@ -563,21 +765,23 @@ function PortraitMappingPanel({ gameId }: { gameId: string }) {
     setIsDirty(true);
   };
 
-  const handleRemove = (index: number) => {
-    setEntries(entries.filter((_, i) => i !== index));
+  const handleRemove = useCallback((index: number) => {
+    setEntries(prev => prev.filter((_, i) => i !== index));
     setIsDirty(true);
-  };
+  }, []);
 
-  const handleUpdate = (index: number, field: "idx" | "file", value: string | number) => {
-    const updated = [...entries];
-    if (field === "idx") {
-      updated[index] = { ...updated[index], idx: value as number };
-    } else {
-      updated[index] = { ...updated[index], file: value as string };
-    }
-    setEntries(updated);
+  const handleUpdate = useCallback((index: number, field: "idx" | "file", value: string | number) => {
+    setEntries(prev => {
+      const updated = [...prev];
+      if (field === "idx") {
+        updated[index] = { ...updated[index], idx: value as number };
+      } else {
+        updated[index] = { ...updated[index], file: value as string };
+      }
+      return updated;
+    });
     setIsDirty(true);
-  };
+  }, []);
 
   const handleImportIni = async () => {
     const input = document.createElement("input");
@@ -698,57 +902,15 @@ function PortraitMappingPanel({ gameId }: { gameId: string }) {
       ) : (
         <div className="space-y-2">
           {entries.map((entry, index) => (
-            <div key={`${entry.idx}-${index}`} className="flex items-center gap-3 px-4 py-3 bg-[#2a2d2e] rounded-lg group hover:bg-[#2f3233] transition-colors">
-              {/* 预览 */}
-              <div className="w-12 h-12 flex-shrink-0 rounded bg-[#1e1e1e] border border-[#333] flex items-center justify-center overflow-hidden">
-                {entry.file ? (
-                  <MiniAsfPreview
-                    gameSlug={gameSlug}
-                    path={buildResourcePath("portrait_image", entry.file)}
-                    size={48}
-                  />
-                ) : (
-                  <span className="text-[#555] text-lg">🖼</span>
-                )}
-              </div>
-
-              {/* 索引 */}
-              <div className="flex flex-col gap-0.5 flex-shrink-0">
-                <span className="text-[10px] text-[#858585]">索引</span>
-                <NumberInput
-                  min={0}
-                  value={entry.idx}
-                  onChange={(val) => handleUpdate(index, "idx", val ?? 0)}
-                  className="w-16"
-                />
-              </div>
-
-              {/* 文件选择器 */}
-              <div className="flex-1 min-w-0">
-                <ResourceFilePicker
-                  label="文件"
-                  value={entry.file || null}
-                  onChange={(val) => handleUpdate(index, "file", val ?? "")}
-                  fieldName="portrait_image"
-                  gameId={gameId}
-                  gameSlug={gameSlug}
-                  extensions={[".asf"]}
-                  placeholder="选择头像文件..."
-                />
-              </div>
-
-              {/* 删除 */}
-              <button
-                type="button"
-                onClick={() => handleRemove(index)}
-                className="w-7 h-7 flex items-center justify-center rounded opacity-0 group-hover:opacity-100 hover:bg-[#3c3c3c] text-[#808080] hover:text-red-400 transition-all flex-shrink-0"
-                title="删除"
-              >
-                <svg className="w-4 h-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <path d="M4 4l8 8M12 4l-8 8" />
-                </svg>
-              </button>
-            </div>
+            <PortraitEntryRow
+              key={`${entry.idx}-${index}`}
+              entry={entry}
+              index={index}
+              gameSlug={gameSlug}
+              gameId={gameId}
+              onUpdate={handleUpdate}
+              onRemove={handleRemove}
+            />
           ))}
         </div>
       )}
@@ -768,6 +930,7 @@ export function GameGlobalConfigPage() {
   const { configTab } = useParams();
   const toast = useToast();
   const gameId = currentGame?.id ?? "";
+  const gameSlug = currentGame?.slug ?? "";
 
   const [config, setConfig] = useState<GameConfigDataFull>(mergeGameConfig());
   const [isDirty, setIsDirty] = useState(false);
@@ -854,7 +1017,7 @@ export function GameGlobalConfigPage() {
   function renderPanel() {
     switch (activeCategory) {
       case "basic":
-        return <BasicInfoPanel config={config} updateConfig={updateConfig} gameId={gameId} />;
+        return <BasicInfoPanel config={config} updateConfig={updateConfig} gameId={gameId} gameSlug={gameSlug} />;
       case "newgame":
         return <NewGameScriptPanel config={config} updateConfig={updateConfig} />;
       case "portrait":

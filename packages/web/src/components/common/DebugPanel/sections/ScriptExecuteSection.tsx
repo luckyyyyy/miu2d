@@ -161,26 +161,26 @@ export const ScriptExecuteSection: React.FC<ScriptExecuteSectionProps> = ({
         {userScriptHistory.length > 0 && (
           <div className="mt-2">
             <div className="flex items-center justify-between mb-1">
-              <span className="text-[10px] text-zinc-500">
+              <span className="text-[10px] text-white/40">
                 历史记录 ({userScriptHistory.length})
               </span>
               <button
                 type="button"
                 onClick={clearHistory}
-                className="text-[9px] text-zinc-600 hover:text-red-400 transition-colors"
+                className="text-[9px] text-white/25 hover:text-red-400 transition-colors"
               >
                 清空
               </button>
             </div>
             <div
-              className="max-h-24 overflow-y-auto bg-zinc-900 border border-zinc-700 rounded"
+              className="max-h-24 overflow-y-auto bg-white/5 border border-white/10 rounded"
               style={{ scrollbarWidth: "thin", scrollbarColor: "#52525b transparent" }}
             >
               {userScriptHistory.map((script, idx) => (
                 <div
                   key={`history-${idx}-${script.slice(0, 20)}`}
                   onClick={() => restoreFromHistory(script)}
-                  className="px-2 py-1 text-[10px] font-mono text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200 cursor-pointer border-b border-zinc-800 last:border-b-0 truncate"
+                  className="px-2 py-1 text-[10px] font-mono text-white/50 hover:bg-white/10 hover:text-white/70 cursor-pointer border-b border-white/10 last:border-b-0 truncate"
                   title={script}
                 >
                   {script.length > 50 ? `${script.slice(0, 50)}...` : script}
@@ -194,7 +194,7 @@ export const ScriptExecuteSection: React.FC<ScriptExecuteSectionProps> = ({
       {/* Toast 通知 */}
       {toastMessage && (
         <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[9999] animate-fade-in">
-          <div className="bg-zinc-800 text-green-400 px-4 py-2 rounded-lg shadow-lg border border-zinc-600 text-sm font-medium">
+          <div className="bg-white/5 text-green-400 px-4 py-2 rounded-lg shadow-lg border border-white/10 text-sm font-medium">
             {toastMessage}
           </div>
         </div>

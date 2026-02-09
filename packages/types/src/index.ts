@@ -507,6 +507,7 @@ export {
   SaveDataResponseSchema,
   AdminListSavesInputSchema,
   AdminListSavesOutputSchema,
+  AdminCreateSaveInputSchema,
   AdminDeleteSaveInputSchema,
 } from "./save.js";
 export type {
@@ -520,5 +521,6 @@ export type {
   SaveDataResponse,
   AdminListSavesInput,
   AdminListSavesOutput,
+  AdminCreateSaveInput,
   AdminDeleteSaveInput,
 } from "./save.js";

@@ -2,44 +2,34 @@
  * Memo List Manager - based on JxqyHD Engine/ListManager/MemoListManager.cs
  * Manages game memo/quest log entries
  *
- * uses LinkedList<string> to store memos
- * Memos are prefixed with "●" bullet point
- * Text is split into lines of 10 characters max (Chinese)
+ * Memos are prefixed with "●" bullet point.
+ * Unlike the original C# code which splits text into 10-char-wide lines for
+ * fixed-width pixel rendering, we store each memo as a complete string and
+ * let CSS handle text wrapping.
  */
 
 import { logger } from "../core/logger";
 import type { TalkTextListManager } from "./talkTextList";
 
 /**
- * Split string into lines based on character count (for Chinese text display)
- * 
+ * Merge split memo lines back into complete entries.
+ * Old save data (from original C# engine or earlier TS versions) stored each
+ * 10-char-wide line as a separate entry. Lines that don't start with "●" are
+ * continuations of the previous "●" entry and should be merged.
  */
-function splitStringInCharCount(text: string, charCount: number): string[] {
-  const lines: string[] = [];
-  let currentLine = "";
-  let currentCount = 0;
+function mergeSplitMemoLines(lines: string[]): string[] {
+  const merged: string[] = [];
 
-  for (let i = 0; i < text.length; i++) {
-    const char = text[i];
-    // Chinese characters count as 2, others as 1
-    const charWidth = char.charCodeAt(0) > 127 ? 2 : 1;
-
-    if (currentCount + charWidth > charCount * 2) {
-      // Line is full, start new line
-      lines.push(currentLine);
-      currentLine = char;
-      currentCount = charWidth;
+  for (const line of lines) {
+    if (line.startsWith("●") || merged.length === 0) {
+      merged.push(line);
     } else {
-      currentLine += char;
-      currentCount += charWidth;
+      // Continuation of previous entry — merge
+      merged[merged.length - 1] += line;
     }
   }
 
-  if (currentLine) {
-    lines.push(currentLine);
-  }
-
-  return lines;
+  return merged;
 }
 
 export class MemoListManager {
@@ -66,18 +56,21 @@ export class MemoListManager {
   /**
    * Load memo list from save data
    * Format: [Memo] section with Count and numbered keys
+   * Merges split lines from old saves for backward compatibility
    */
   loadList(data: Record<string, string>): void {
     this.renewList();
 
     const count = parseInt(data.Count || "0", 10);
+    const rawLines: string[] = [];
     for (let i = 0; i < count; i++) {
       const memo = data[i.toString()];
       if (memo) {
-        this.memoList.push(memo);
+        rawLines.push(memo);
       }
     }
 
+    this.memoList = mergeSplitMemoLines(rawLines);
     this.notifyUpdate();
   }
 
@@ -137,51 +130,24 @@ export class MemoListManager {
 
   /**
    * Add memo text
-   * Based on:prepends "●", splits into lines, adds to front
+   * Prepends "●" bullet point and adds to front of list
    */
   addMemo(text: string): void {
-    // Prepend bullet point
     const prefixedText = `●${text}`;
-
-    // Split into lines (10 Chinese characters per line)
-    const lines = splitStringInCharCount(prefixedText, 10);
-
-    // Add lines in reverse order to front (so they appear in reading order)
-    for (let i = lines.length - 1; i >= 0; i--) {
-      this.memoList.unshift(lines[i]);
-    }
-
+    this.memoList.unshift(prefixedText);
     this.notifyUpdate();
   }
 
   /**
    * Delete memo text
-   * Based on:finds and removes matching lines
+   * Finds and removes the matching entry
    */
   delMemo(text: string): void {
     const prefixedText = `●${text}`;
-    const lines = splitStringInCharCount(prefixedText, 10);
-
-    if (lines.length === 0) return;
-
-    // Find matching sequence in memo list
-    for (let i = 0; i <= this.memoList.length - lines.length; i++) {
-      if (this.memoList[i] === lines[0]) {
-        let found = true;
-        for (let j = 1; j < lines.length; j++) {
-          if (this.memoList[i + j] !== lines[j]) {
-            found = false;
-            break;
-          }
-        }
-
-        if (found) {
-          // Remove the matching lines
-          this.memoList.splice(i, lines.length);
-          this.notifyUpdate();
-          return;
-        }
-      }
+    const index = this.memoList.indexOf(prefixedText);
+    if (index !== -1) {
+      this.memoList.splice(index, 1);
+      this.notifyUpdate();
     }
   }
 
@@ -194,10 +160,21 @@ export class MemoListManager {
   }
 
   /**
-   * Add a raw item (for loading from save)
+   * Add a raw item (for loading from save).
+   * Does NOT merge — caller should use bulkLoadItems() for old saves
+   * that may have split lines.
    */
   addItem(text: string): void {
     this.memoList.push(text);
+    this.notifyUpdate();
+  }
+
+  /**
+   * Bulk load items from save data, merging any split lines
+   * for backward compatibility with old saves.
+   */
+  bulkLoadItems(items: string[]): void {
+    this.memoList.push(...mergeSplitMemoLines(items));
     this.notifyUpdate();
   }
 

@@ -6,12 +6,12 @@
  * - React只负责画布和UI
  * - 窗口调整时只更新尺寸
  * - 所有调试功能通过 DebugManager 访问
- * - 左侧图标菜单栏 + 面板展开（类似 VS Code 侧边栏）
+ * - 顶栏工具按钮 + GlassModal 弹窗（设置/调试/存档）
  * - 支持移动端：虚拟摇杆 + 技能按钮（类似王者荣耀）
+ * - 资源路径全局管理：slug 确定后立即设置 /game/{slug}/resources
  */
 
 import { logger } from "@miu2d/engine/core/logger";
-import { GameEvents, type UIPanelChangeEvent } from "@miu2d/engine/core/gameEvents";
 import { setResourcePaths } from "@miu2d/engine/config";
 import { loadGameData, loadGameConfig, reloadGameData, getGameConfig } from "@miu2d/engine/resource";
 import { setLevelConfigGameSlug, initNpcLevelConfig } from "@miu2d/engine/character/level";
@@ -21,59 +21,32 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import type { GameHandle } from "../components";
 import {
+  AuthModal,
   DebugPanel,
+  FloatingPanel,
   Game,
   GameCursor,
+  GameMenuPanel,
   GameTopBar,
   loadUITheme,
   MobileControls,
-  SettingsPanel,
   ShareOverlay,
   TitleGui,
   TouchDragIndicator,
-  WebSaveLoadPanel,
 } from "../components";
+import type { ToolbarButton } from "../components";
+import type { MenuTab } from "../components/game/GameMenuPanel";
 import type { UITheme } from "../components/game/ui";
 import { TouchDragProvider, useAuth } from "../contexts";
 import { useMobile } from "../hooks";
 import { trpc } from "../lib/trpc";
 
-// 侧边栏宽度常量
-const SIDEBAR_WIDTH = 48;
-const PANEL_MIN_WIDTH = 200;
-const PANEL_MAX_WIDTH = 600;
-const PANEL_DEFAULT_WIDTH = 280;
+// 布局常量
 const TOP_BAR_HEIGHT = 40;
-const PANEL_WIDTH_STORAGE_KEY = "jxqy_panel_width";
 const RESOLUTION_STORAGE_KEY = "jxqy_resolution";
 
 // 默认分辨率（0x0 表示自适应）
 const DEFAULT_RESOLUTION = { width: 0, height: 0 };
-
-// 从 localStorage 读取面板宽度
-const getStoredPanelWidth = (): number => {
-  try {
-    const stored = localStorage.getItem(PANEL_WIDTH_STORAGE_KEY);
-    if (stored) {
-      const width = parseInt(stored, 10);
-      if (width >= PANEL_MIN_WIDTH && width <= PANEL_MAX_WIDTH) {
-        return width;
-      }
-    }
-  } catch (e) {
-    logger.warn("Failed to read panel width from localStorage:", e);
-  }
-  return PANEL_DEFAULT_WIDTH;
-};
-
-// 保存面板宽度到 localStorage
-const savePanelWidth = (width: number) => {
-  try {
-    localStorage.setItem(PANEL_WIDTH_STORAGE_KEY, String(width));
-  } catch (e) {
-    logger.warn("Failed to save panel width to localStorage:", e);
-  }
-};
 
 // 从 localStorage 读取分辨率
 const getStoredResolution = (): { width: number; height: number } => {
@@ -100,11 +73,11 @@ const saveResolution = (width: number, height: number) => {
   }
 };
 
-// 当前展开的面板类型（存档已移至全屏 WebSaveLoadPanel）
-type ActivePanel = "none" | "debug" | "settings";
+// 当前展开的面板类型
+type ActivePanel = "none" | "debug" | "menu";
 
-// 游戏阶段：title = 标题界面，playing = 游戏中
-type GamePhase = "title" | "playing";
+// 游戏阶段：loading = 验证中，error = 游戏不存在，title = 标题界面，playing = 游戏中
+type GamePhase = "loading" | "error" | "title" | "playing";
 
 // 移动端画面缩放比例
 const MOBILE_SCALE = 0.75;
@@ -114,26 +87,29 @@ export default function GameScreen() {
   const { gameSlug, shareCode } = useParams<{ gameSlug: string; shareCode?: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const loadSaveId = searchParams.get("loadSave");
+  const isEmbed = searchParams.get("embed") === "1";
   const { user, isAuthenticated } = useAuth();
 
   const gameRef = useRef<GameHandle>(null);
   const gameAreaRef = useRef<HTMLDivElement>(null);
-  const [gamePhase, setGamePhase] = useState<GamePhase>("title");
-  const [activePanel, setActivePanel] = useState<ActivePanel>("none"); // 标题界面时默认不显示面板
-  const [panelWidth, setPanelWidth] = useState(getStoredPanelWidth);
-  const [isResizing, setIsResizing] = useState(false);
+  const [gamePhase, setGamePhase] = useState<GamePhase>("loading");
+  const [gameError, setGameError] = useState("");
+  const [activePanel, setActivePanel] = useState<ActivePanel>("none"); // 弹窗面板状态
+  const [menuTab, setMenuTab] = useState<MenuTab>("save"); // 菜单面板当前 Tab
   const [gameResolution, setGameResolution] = useState(getStoredResolution);
   const [, forceUpdate] = useState({});
   // API 数据（gameConfig + gameData）是否已加载完成
   const [isDataReady, setIsDataReady] = useState(false);
   // UI 主题状态
   const [uiTheme, setUITheme] = useState<UITheme>(loadUITheme);
-  // 新的 Web 存档面板（全屏半透明）
-  const [showWebSaveLoad, setShowWebSaveLoad] = useState(false);
+  // 登录弹窗
+  const [showAuthModal, setShowAuthModal] = useState(false);
   // 分享存档 overlay 状态
   const [showShareOverlay, setShowShareOverlay] = useState(!!shareCode);
   // 游戏名（从 config 获取）
   const [gameName, setGameName] = useState("");
+  // 游戏 Logo URL
+  const [gameLogoUrl, setGameLogoUrl] = useState("");
   // 初始存档数据（分享存档加载、标题界面读档时传入 Game 组件）
   const [initialSaveData, setInitialSaveData] = useState<SaveData | undefined>(undefined);
 
@@ -153,7 +129,6 @@ export default function GameScreen() {
         const result = await utils.save.adminGet.fetch({ saveId: loadSaveId });
         setInitialSaveData(result.data as unknown as SaveData);
         setGamePhase("playing");
-        setActivePanel("debug");
         logger.info(`[GameScreen] Save loaded successfully, starting game`);
       } catch (error) {
         logger.error(`[GameScreen] Auto-load save failed:`, error);
@@ -171,49 +146,74 @@ export default function GameScreen() {
 
   const utils = trpc.useUtils();
 
-  // 设置资源路径（基于 gameSlug）并加载游戏数据，设置等级配置 gameSlug
+  // 全局资源路径：slug 已知时立即设置
   useEffect(() => {
     if (gameSlug) {
       setResourcePaths({ root: `/game/${gameSlug}/resources` });
-      logger.info(`[GameScreen] Resource root set to /game/${gameSlug}/resources`);
-
-      // 设置等级配置的 gameSlug（按需加载时使用）
       setLevelConfigGameSlug(gameSlug);
-
-      // 初始化 NPC 等级配置（从 API 按需加载）
-      initNpcLevelConfig().catch((error) => {
-        logger.warn(`[GameScreen] Failed to load NPC level config:`, error);
-      });
-
-      // 先加载游戏全局配置，再加载游戏数据（阻塞引擎初始化）
-      setIsDataReady(false);
-      loadGameConfig(gameSlug)
-        .then(() => {
-          // 读取游戏名
-          const config = getGameConfig();
-          if (config?.gameName) {
-            setGameName(config.gameName);
-          }
-          return loadGameData(gameSlug);
-        })
-        .then(() => {
-          setIsDataReady(true);
-          logger.info(`[GameScreen] Game config and data loaded for ${gameSlug}`);
-        })
-        .catch((error) => {
-          logger.warn(`[GameScreen] Failed to load game config/data from API:`, error);
-          // 即使失败也标记就绪，避免永远卡住
-          setIsDataReady(true);
-        });
+      logger.info(`[GameScreen] Resource root set to /game/${gameSlug}/resources`);
     }
+  }, [gameSlug]);
+
+  // 通过 /api/config 验证游戏是否存在 + 加载配置和数据（一步完成，无需 tRPC game.validate）
+  useEffect(() => {
+    if (!gameSlug) {
+      setGamePhase("error");
+      setGameError("缺少游戏标识");
+      return;
+    }
+
+    let cancelled = false;
+    setGamePhase("loading");
+    setIsDataReady(false);
+
+    (async () => {
+      try {
+        // 1. 加载游戏配置（/api/config）—— 404 表示游戏不存在
+        await loadGameConfig(gameSlug, true);
+        if (cancelled) return;
+
+        // 从 config 更新游戏名和 logo
+        const config = getGameConfig();
+        if (config?.gameName) {
+          setGameName(config.gameName);
+          document.title = config.gameName;
+        }
+        if (config?.logoUrl) {
+          setGameLogoUrl(config.logoUrl);
+          const link = document.querySelector<HTMLLinkElement>("link[rel~='icon']")
+            || document.createElement("link");
+          link.rel = "icon";
+          link.href = config.logoUrl;
+          if (!link.parentNode) document.head.appendChild(link);
+        }
+
+        // 2. 并行加载游戏数据 + NPC 等级配置
+        await Promise.all([
+          loadGameData(gameSlug),
+          initNpcLevelConfig().catch((error) => {
+            logger.warn(`[GameScreen] Failed to load NPC level config:`, error);
+          }),
+        ]);
+        if (cancelled) return;
+
+        setIsDataReady(true);
+        setGamePhase("title");
+        logger.info(`[GameScreen] Game config and data loaded for ${gameSlug}`);
+      } catch (error) {
+        if (cancelled) return;
+        logger.error(`[GameScreen] Failed to load game:`, error);
+        setGamePhase("error");
+        setGameError(`游戏 "${gameSlug}" 不存在或未开放`);
+      }
+    })();
+
+    return () => { cancelled = true; };
   }, [gameSlug]);
 
   // 获取 DebugManager（稳定引用，通过 ref 访问）
   const getDebugManager = useCallback(() => gameRef.current?.getDebugManager(), []);
   const getEngine = useCallback(() => gameRef.current?.getEngine(), []);
-
-  // 计算当前面板占用宽度（移动端不显示侧边栏和面板）
-  const _currentPanelWidth = !isMobile && activePanel !== "none" ? panelWidth : 0;
 
   // 计算窗口尺寸的函数
   // 0x0 表示自适应模式，使用最大可用空间
@@ -231,10 +231,10 @@ export default function GameScreen() {
         };
       }
 
-      // 桌面端：考虑侧边栏、面板和顶栏
-      const activePanelWidth = activePanel !== "none" ? panelWidth : 0;
-      const maxWidth = window.innerWidth - SIDEBAR_WIDTH - activePanelWidth;
-      const maxHeight = window.innerHeight - TOP_BAR_HEIGHT;
+      // 桌面端：考虑顶栏（embed 模式无顶栏）
+      const topBarOffset = isEmbed ? 0 : TOP_BAR_HEIGHT;
+      const maxWidth = window.innerWidth;
+      const maxHeight = window.innerHeight - topBarOffset;
 
       // 自适应模式：使用最大可用空间
       if (resolution.width === 0 || resolution.height === 0) {
@@ -248,7 +248,7 @@ export default function GameScreen() {
         scale: 1,
       };
     },
-    [activePanel, panelWidth, isMobile, screenWidth, screenHeight]
+    [isMobile, isEmbed, screenWidth, screenHeight]
   );
 
   // 窗口尺寸 - 受游戏分辨率和窗口大小共同限制
@@ -281,30 +281,6 @@ export default function GameScreen() {
     [calculateWindowSize]
   );
 
-  // 拖拽调整面板宽度
-  useEffect(() => {
-    if (!isResizing) return;
-
-    const handleMouseMove = (e: MouseEvent) => {
-      const newWidth = e.clientX - SIDEBAR_WIDTH;
-      const clampedWidth = Math.max(PANEL_MIN_WIDTH, Math.min(PANEL_MAX_WIDTH, newWidth));
-      setPanelWidth(clampedWidth);
-    };
-
-    const handleMouseUp = () => {
-      setIsResizing(false);
-      savePanelWidth(panelWidth);
-    };
-
-    document.addEventListener("mousemove", handleMouseMove);
-    document.addEventListener("mouseup", handleMouseUp);
-
-    return () => {
-      document.removeEventListener("mousemove", handleMouseMove);
-      document.removeEventListener("mouseup", handleMouseUp);
-    };
-  }, [isResizing, panelWidth]);
-
   // 返回标题界面（需要在 useEffect 之前定义）
   const handleReturnToTitle = useCallback(() => {
     logger.log("[GameScreen] Returning to title...");
@@ -315,7 +291,6 @@ export default function GameScreen() {
     // 重置状态
     setGamePhase("title");
     setActivePanel("none");
-    setShowWebSaveLoad(false);
     setInitialSaveData(undefined);
 
     logger.log("[GameScreen] Returned to title");
@@ -335,30 +310,19 @@ export default function GameScreen() {
   const handleNewGame = useCallback(() => {
     logger.log("[GameScreen] Starting new game...");
     setGamePhase("playing");
-    setActivePanel("debug"); // 游戏中默认显示调试面板
   }, []);
 
-  // 标题界面 - 读取存档（显示 WebSaveLoadPanel）
+  // 标题界面 - 读取存档（显示存档面板）
   const handleLoadGame = useCallback(() => {
-    setShowWebSaveLoad(true);
+    setMenuTab("save");
+    setActivePanel("menu");
   }, []);
 
-  // 拦截游戏内存档界面：当引擎试图打开存档面板时，替换为 WebSaveLoadPanel
-  useEffect(() => {
-    if (gamePhase !== "playing") return;
-    const engine = gameRef.current?.getEngine();
-    if (!engine) return;
-
-    const unsub = engine.getEvents().on(GameEvents.UI_PANEL_CHANGE, (event: UIPanelChangeEvent) => {
-      if (event.panel === "saveLoad" && event.isOpen) {
-        // 拦截：关闭引擎内的存档面板，打开 Web 存档面板
-        engine.getGameManager().getGuiManager().showSaveLoad(false);
-        setShowWebSaveLoad(true);
-      }
-    });
-
-    return () => unsub();
-  }, [gamePhase]);
+  // 引擎系统菜单/存档面板 → 打开 Web 透明模态窗
+  const handleOpenMenu = useCallback((tab: "save" | "settings") => {
+    setMenuTab(tab);
+    setActivePanel("menu");
+  }, []);
 
   // 切换面板
   const togglePanel = (panel: ActivePanel) => {
@@ -487,35 +451,69 @@ export default function GameScreen() {
   // 获取调试数据（从 DebugManager）
   const debugManager = getDebugManager();
 
-  // 侧边栏按钮配置
-  const sidebarButtons = [
-    {
-      id: "debug" as const,
-      icon: "🔧",
-      tooltip: "调试",
-    },
-    {
-      id: "saveload" as const,
-      icon: "💾",
-      tooltip: "存档",
-      action: () => setShowWebSaveLoad(true), // 打开全屏WebSaveLoadPanel
-    },
-    {
-      id: "settings" as const,
-      icon: "⚙️",
-      tooltip: "设置",
-    },
-    {
-      id: "screenshot" as const,
-      icon: "📷",
-      tooltip: "截图",
-      action: takeScreenshot, // 截图不展开面板，直接执行
-    },
-  ];
+  // 存档按钮点击：未登录时弹登录弹窗，已登录时打开菜单存档面板
+  const handleSaveClick = useCallback(() => {
+    if (!isAuthenticated) {
+      setShowAuthModal(true);
+    } else {
+      setMenuTab("save");
+      setActivePanel("menu");
+    }
+  }, [isAuthenticated]);
+
+  // 顶栏工具栏按钮（仅在游戏中显示）
+  const toolbarButtons: ToolbarButton[] = useMemo(() => {
+    if (gamePhase !== "playing") return [];
+    return [
+      {
+        id: "debug",
+        icon: <span className="text-base">🔧</span>,
+        tooltip: "调试",
+        onClick: () => togglePanel("debug"),
+        active: activePanel === "debug",
+      },
+      {
+        id: "saveload",
+        icon: <span className="text-base">💾</span>,
+        tooltip: "存档",
+        onClick: handleSaveClick,
+        active: activePanel === "menu" && menuTab === "save",
+      },
+      {
+        id: "settings",
+        icon: <span className="text-base">⚙️</span>,
+        tooltip: "设置",
+        onClick: () => {
+          setMenuTab("settings");
+          setActivePanel(activePanel === "menu" && menuTab === "settings" ? "none" : "menu");
+        },
+        active: activePanel === "menu" && menuTab === "settings",
+      },
+      {
+        id: "screenshot",
+        icon: <span className="text-base">📷</span>,
+        tooltip: "截图",
+        onClick: takeScreenshot,
+      },
+      {
+        id: "github",
+        icon: (
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+            <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
+          </svg>
+        ),
+        tooltip: "GitHub",
+        onClick: () => window.open("https://github.com/luckyyyyy/miu2d", "_blank"),
+      },
+    ];
+  }, [gamePhase, activePanel, menuTab, handleSaveClick]);
+
+  // 是否显示顶栏（title 和 playing 都显示；embed 模式隐藏）
+  const showTopBar = !isEmbed && (gamePhase === "title" || gamePhase === "playing");
 
   return (
     <TouchDragProvider>
-      <div className="w-full h-full flex">
+      <div className="w-full h-full flex flex-col overflow-hidden">
         {/* 移动端竖屏提示 */}
         {isMobile && !isLandscape && (
           <div className="mobile-landscape-hint">
@@ -523,13 +521,72 @@ export default function GameScreen() {
           </div>
         )}
 
+        {/* 顶栏 - 统一渲染，避免 phase 切换时重新挂载导致闪烁 */}
+        {showTopBar && (
+          <div className={`flex-shrink-0 z-[1100] ${gamePhase === "title" ? "absolute top-0 left-0 right-0" : "relative"}`}>
+            <GameTopBar
+              gameName={gameName}
+              logoUrl={gameLogoUrl}
+              toolbarButtons={gamePhase === "playing" ? toolbarButtons : undefined}
+              onLoginClick={() => setShowAuthModal(true)}
+            />
+          </div>
+        )}
+
+        {/* 加载中 - 酷炫动画 */}
+        {gamePhase === "loading" && (
+          <div className="w-full flex-1 flex flex-col items-center justify-center bg-black relative overflow-hidden">
+            {/* 背景粒子光效 */}
+            <div className="absolute inset-0 overflow-hidden">
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-blue-500/5 rounded-full blur-[120px] animate-pulse" />
+              <div className="absolute top-1/3 left-1/3 w-[300px] h-[300px] bg-purple-500/5 rounded-full blur-[80px] animate-[pulse_3s_ease-in-out_infinite_0.5s]" />
+              <div className="absolute bottom-1/3 right-1/3 w-[400px] h-[400px] bg-cyan-500/5 rounded-full blur-[100px] animate-[pulse_4s_ease-in-out_infinite_1s]" />
+            </div>
+
+            {/* 旋转环 */}
+            <div className="relative w-20 h-20 mb-8">
+              <div className="absolute inset-0 rounded-full border-2 border-white/5" />
+              <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-blue-400/60 animate-spin" />
+              <div className="absolute inset-2 rounded-full border-2 border-transparent border-b-cyan-400/40 animate-[spin_1.5s_linear_infinite_reverse]" />
+              <div className="absolute inset-4 rounded-full border border-transparent border-t-purple-400/30 animate-[spin_2s_linear_infinite]" />
+              {/* 中心光点 */}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-2 h-2 rounded-full bg-blue-400/80 shadow-[0_0_12px_rgba(96,165,250,0.6)] animate-pulse" />
+              </div>
+            </div>
+
+            {/* 文字 */}
+            <div className="relative z-10 flex flex-col items-center gap-3">
+              <div className="text-white/40 text-sm tracking-[0.3em] uppercase animate-[pulse_2s_ease-in-out_infinite]">
+                正在连接
+              </div>
+              {/* 加载点动画 */}
+              <div className="flex gap-1.5">
+                <div className="w-1.5 h-1.5 rounded-full bg-blue-400/60 animate-[bounce_1s_ease-in-out_infinite]" />
+                <div className="w-1.5 h-1.5 rounded-full bg-blue-400/60 animate-[bounce_1s_ease-in-out_infinite_0.15s]" />
+                <div className="w-1.5 h-1.5 rounded-full bg-blue-400/60 animate-[bounce_1s_ease-in-out_infinite_0.3s]" />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 游戏不存在 */}
+        {gamePhase === "error" && (
+          <div className="w-full flex-1 flex flex-col items-center justify-center bg-black gap-4">
+            <div className="text-red-400 text-lg font-semibold">游戏不可用</div>
+            <div className="text-white/50 text-sm">{gameError}</div>
+            <a
+              href="/"
+              className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white/70 hover:text-white text-sm rounded-lg transition-colors"
+            >
+              返回首页
+            </a>
+          </div>
+        )}
+
         {/* 标题界面 */}
         {gamePhase === "title" && (
-          <div className="w-full h-full relative">
-            {/* 顶栏 */}
-            <div className="absolute top-0 left-0 right-0 z-[1100]">
-              <GameTopBar gameName={gameName} />
-            </div>
+          <div className="w-full flex-1 relative">
             <TitleGui
               gameSlug={gameSlug}
               screenWidth={window.innerWidth}
@@ -537,24 +594,6 @@ export default function GameScreen() {
               onNewGame={handleNewGame}
               onLoadGame={handleLoadGame}
             />
-            {/* Web 存档面板（标题界面读档 - 只能读不能存） */}
-            {showWebSaveLoad && gameSlug && (
-              <WebSaveLoadPanel
-                gameSlug={gameSlug}
-                visible={showWebSaveLoad}
-                canSave={false}
-                onCollectSaveData={() => null}
-                onLoadSaveData={async (data) => {
-                  // 标题界面读档：设置初始存档数据，进入游戏时直接加载（不会运行 NewGame.txt）
-                  setShowWebSaveLoad(false);
-                  setInitialSaveData(data as unknown as SaveData);
-                  setGamePhase("playing");
-                  setActivePanel("debug");
-                  return true;
-                }}
-                onClose={() => setShowWebSaveLoad(false)}
-              />
-            )}
             {/* 分享存档 overlay */}
             {showShareOverlay && shareCode && gameSlug && (
               <ShareOverlayWithFetch
@@ -563,10 +602,8 @@ export default function GameScreen() {
                 onDone={(data) => {
                   setShowShareOverlay(false);
                   if (data) {
-                    // 设置初始存档数据，进入游戏时直接加载（不会运行 NewGame.txt）
                     setInitialSaveData(data as unknown as SaveData);
                     setGamePhase("playing");
-                    setActivePanel("debug");
                   }
                 }}
               />
@@ -576,176 +613,8 @@ export default function GameScreen() {
 
         {/* 游戏界面 */}
         {gamePhase === "playing" && (
-          <div className="flex h-full w-full flex-col overflow-hidden">
-            {/* 顶栏 - 正常流布局，不遮挡游戏画面 */}
-            <GameTopBar gameName={gameName} />
-
-            {/* 主体区域 */}
-            <div className="flex flex-1 overflow-hidden">
-            {/* 左侧图标菜单栏 - 移动端隐藏 */}
-            {!isMobile && (
-              <div className="w-12 bg-[#1a1a2e] flex flex-col items-center py-2 gap-1 border-r border-gray-700/50 z-10">
-                {sidebarButtons.map((btn) => (
-                  <button
-                    key={btn.id}
-                    onClick={() => {
-                      if ("action" in btn && btn.action) {
-                        btn.action();
-                      } else {
-                        togglePanel(btn.id as ActivePanel);
-                      }
-                    }}
-                    className={`
-                  w-10 h-10 flex items-center justify-center rounded-lg text-xl
-                  transition-all duration-200 relative group
-                  ${
-                    activePanel === btn.id
-                      ? "bg-blue-600 text-white shadow-lg shadow-blue-500/30"
-                      : "bg-transparent text-gray-400 hover:bg-gray-700/50 hover:text-white"
-                  }
-                `}
-                    title={btn.tooltip}
-                  >
-                    {btn.icon}
-                    {/* Tooltip */}
-                    <span
-                      className="
-                  absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-xs
-                  rounded whitespace-nowrap opacity-0 pointer-events-none
-                  group-hover:opacity-100 transition-opacity z-50
-                "
-                    >
-                      {btn.tooltip}
-                    </span>
-                  </button>
-                ))}
-
-                {/* 底部填充区域 */}
-                <div className="flex-1" />
-
-                {/* GitHub 按钮固定在底部 */}
-                <a
-                  href="https://github.com/luckyyyyy/JXQY-WEB"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="
-                w-10 h-10 flex items-center justify-center rounded-lg
-                transition-all duration-200 relative group
-                bg-transparent text-gray-400 hover:bg-gray-700/50 hover:text-white
-              "
-                  title="GitHub"
-                >
-                  <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
-                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
-                  </svg>
-                  {/* Tooltip */}
-                  <span
-                    className="
-                absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-xs
-                rounded whitespace-nowrap opacity-0 pointer-events-none
-                group-hover:opacity-100 transition-opacity z-50
-              "
-                  >
-                    GitHub
-                  </span>
-                </a>
-              </div>
-            )}
-
-            {/* 展开的面板区域 - 移动端隐藏 */}
-            {!isMobile && activePanel !== "none" && (
-              <div
-                className="border-r border-gray-700/50 flex-shrink-0 relative"
-                style={
-                  {
-                    width: panelWidth,
-                    height: "100%",
-                    "--panel-width": `${panelWidth}px`,
-                  } as React.CSSProperties
-                }
-              >
-                {/* 调试面板 */}
-                {activePanel === "debug" && (
-                  <div className="h-full bg-[#0d0d1a] overflow-y-auto">
-                    <DebugPanel
-                      onClose={() => setActivePanel("none")}
-                      isGodMode={debugManager?.isGodMode() ?? false}
-                      playerStats={debugManager?.getPlayerStats() ?? undefined}
-                      playerPosition={debugManager?.getPlayerPosition() ?? undefined}
-                      loadedResources={debugManager?.getLoadedResources() ?? undefined}
-                      resourceStats={resourceLoader.getStats()}
-                      performanceStats={getEngine()?.getPerformanceStats()}
-                      gameVariables={debugManager?.getGameVariables()}
-                      xiuLianMagic={debugManager?.getXiuLianMagic() ?? undefined}
-                      triggeredTrapIds={debugManager?.getTriggeredTrapIds()}
-                      currentScriptInfo={debugManager?.getCurrentScriptInfo() ?? undefined}
-                      scriptHistory={debugManager?.getScriptHistory()}
-                      onFullAll={() => debugManager?.fullAll()}
-                      onSetLevel={(level) => debugManager?.setLevel(level)}
-                      onAddMoney={(amount) => debugManager?.addMoney(amount)}
-                      onToggleGodMode={() => debugManager?.toggleGodMode()}
-                      onReduceLife={() => debugManager?.reduceLife()}
-                      onKillAllEnemies={() => debugManager?.killAllEnemies()}
-                      onExecuteScript={async (script) => {
-                        // 在回调时重新获取 debugManager，避免闭包捕获到 undefined
-                        const dm = getDebugManager();
-                        if (!dm) return "DebugManager not initialized";
-                        return await dm.executeScript(script);
-                      }}
-                      onAddItem={async (itemFile) => {
-                        await getDebugManager()?.addItem(itemFile);
-                      }}
-                      onAddMagic={async (magicFile) => {
-                        await getDebugManager()?.addMagic(magicFile);
-                      }}
-                      onAddAllMagics={async () => {
-                        await getDebugManager()?.addAllMagics();
-                      }}
-                      onXiuLianLevelUp={() => getDebugManager()?.xiuLianLevelUp()}
-                      onXiuLianLevelDown={() => getDebugManager()?.xiuLianLevelDown()}
-                      onReloadMagicConfig={async () => {
-                        if (gameSlug) {
-                          // 一键重载：清除所有缓存（API + resourceLoader + NPC）并重新加载
-                          await reloadGameData(gameSlug);
-                        }
-                      }}
-                    />
-                  </div>
-                )}
-
-                {/* 存档/读档面板 - 已移至全屏 WebSaveLoadPanel */}
-
-                {/* 设置面板 */}
-                {activePanel === "settings" && (
-                  <SettingsPanel
-                    getMusicVolume={getMusicVolume}
-                    setMusicVolume={setMusicVolume}
-                    getSoundVolume={getSoundVolume}
-                    setSoundVolume={setSoundVolume}
-                    getAmbientVolume={getAmbientVolume}
-                    setAmbientVolume={setAmbientVolume}
-                    isAutoplayAllowed={isAutoplayAllowed}
-                    requestAutoplayPermission={requestAutoplayPermission}
-                    currentResolution={gameResolution}
-                    setResolution={handleSetResolution}
-                    currentTheme={uiTheme}
-                    setTheme={setUITheme}
-                    onClose={() => setActivePanel("none")}
-                  />
-                )}
-
-                {/* 拖拽调整宽度手柄 */}
-                <div
-                  className="absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-blue-500/50 active:bg-blue-500/70 z-20"
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    setIsResizing(true);
-                  }}
-                />
-              </div>
-            )}
-
-            {/* Game Area */}
+          <div className="flex-1 flex flex-col overflow-hidden">
+            {/* Game Area - 全宽，无侧边栏 */}
             <div
               ref={gameAreaRef}
               className={`flex-1 flex items-center justify-center relative bg-black ${isMobile ? "overflow-hidden" : ""}`}
@@ -774,6 +643,7 @@ export default function GameScreen() {
                     initialSaveData={initialSaveData}
                     onReturnToTitle={handleReturnToTitle}
                     uiTheme={uiTheme}
+                    onOpenMenu={handleOpenMenu}
                   />
                 ) : (
                   <div className="flex items-center justify-center w-full h-full text-gray-400">
@@ -783,37 +653,108 @@ export default function GameScreen() {
               </div>
 
               {/* 移动端控制层 */}
-              {isMobile && gamePhase === "playing" && (
+              {isMobile && (
                 <MobileControls
                   engine={getEngine() ?? null}
                   canvasSize={{ width: windowSize.width, height: windowSize.height }}
                   scale={windowSize.scale}
-                  onOpenMenu={() => {
-                    // 移动端打开菜单可以返回标题
-                    handleReturnToTitle();
-                  }}
+                  onOpenMenu={() => handleReturnToTitle()}
                 />
               )}
 
               {/* 触摸拖拽指示器（移动端） */}
               {isMobile && <TouchDragIndicator />}
             </div>
-
-            </div>{/* end 主体区域 */}
-
-            {/* Web 存档/读档面板（全屏覆盖） */}
-            {showWebSaveLoad && gameSlug && (
-              <WebSaveLoadPanel
-                gameSlug={gameSlug}
-                visible={showWebSaveLoad}
-                canSave={gamePhase === "playing"}
-                onCollectSaveData={collectSaveData}
-                onLoadSaveData={loadSaveData}
-                onClose={() => setShowWebSaveLoad(false)}
-              />
-            )}
           </div>
         )}
+
+        {/* ===== 共享弹窗层（所有 phase 共用，避免 phase 切换时重新挂载） ===== */}
+
+        {/* 调试面板 - 可拖拽浮动面板，无背景遮罩 */}
+        <FloatingPanel
+          panelId="debug"
+          visible={activePanel === "debug"}
+          onClose={() => setActivePanel("none")}
+          title="调试面板"
+          defaultWidth={480}
+        >
+              <DebugPanel
+                isGodMode={debugManager?.isGodMode() ?? false}
+                playerStats={debugManager?.getPlayerStats() ?? undefined}
+                playerPosition={debugManager?.getPlayerPosition() ?? undefined}
+                loadedResources={debugManager?.getLoadedResources() ?? undefined}
+                resourceStats={resourceLoader.getStats()}
+                performanceStats={getEngine()?.getPerformanceStats()}
+                gameVariables={debugManager?.getGameVariables()}
+                xiuLianMagic={debugManager?.getXiuLianMagic() ?? undefined}
+                triggeredTrapIds={debugManager?.getTriggeredTrapIds()}
+                currentScriptInfo={debugManager?.getCurrentScriptInfo() ?? undefined}
+                scriptHistory={debugManager?.getScriptHistory()}
+                onFullAll={() => debugManager?.fullAll()}
+                onSetLevel={(level) => debugManager?.setLevel(level)}
+                onAddMoney={(amount) => debugManager?.addMoney(amount)}
+                onToggleGodMode={() => debugManager?.toggleGodMode()}
+                onReduceLife={() => debugManager?.reduceLife()}
+                onKillAllEnemies={() => debugManager?.killAllEnemies()}
+                onExecuteScript={async (script) => {
+                  const dm = getDebugManager();
+                  if (!dm) return "DebugManager not initialized";
+                  return await dm.executeScript(script);
+                }}
+                onAddItem={async (itemFile) => {
+                  await getDebugManager()?.addItem(itemFile);
+                }}
+                onAddMagic={async (magicFile) => {
+                  await getDebugManager()?.addMagic(magicFile);
+                }}
+                onAddAllMagics={async () => {
+                  await getDebugManager()?.addAllMagics();
+                }}
+                onXiuLianLevelUp={() => getDebugManager()?.xiuLianLevelUp()}
+                onXiuLianLevelDown={() => getDebugManager()?.xiuLianLevelDown()}
+                onReloadMagicConfig={async () => {
+                  if (gameSlug) {
+                    await reloadGameData(gameSlug);
+                  }
+                }}
+              />
+        </FloatingPanel>
+
+        {/* 游戏菜单面板（存档 + 设置） */}
+        {gameSlug && (
+          <GameMenuPanel
+            visible={activePanel === "menu"}
+            onClose={() => setActivePanel("none")}
+            activeTab={menuTab}
+            onTabChange={setMenuTab}
+            gameSlug={gameSlug}
+            canSave={gamePhase === "playing"}
+            onCollectSaveData={gamePhase === "playing" ? collectSaveData : () => null}
+            onLoadSaveData={gamePhase === "playing" ? loadSaveData : async (data) => {
+              setActivePanel("none");
+              setInitialSaveData(data as unknown as SaveData);
+              setGamePhase("playing");
+              return true;
+            }}
+            settingsProps={{
+              getMusicVolume,
+              setMusicVolume,
+              getSoundVolume,
+              setSoundVolume,
+              getAmbientVolume,
+              setAmbientVolume,
+              isAutoplayAllowed,
+              requestAutoplayPermission,
+              currentResolution: gameResolution,
+              setResolution: handleSetResolution,
+              currentTheme: uiTheme,
+              setTheme: setUITheme,
+            }}
+          />
+        )}
+
+        {/* 登录弹窗 */}
+        <AuthModal visible={showAuthModal} onClose={() => setShowAuthModal(false)} />
       </div>
     </TouchDragProvider>
   );

@@ -49,24 +49,10 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({
   const isScriptRunning = !!(currentScriptInfo && !currentScriptInfo.isCompleted);
 
   return (
-    <div className="w-full h-full flex flex-col bg-[#0d0d1a] text-gray-300 text-xs font-sans">
-      {/* 标题栏 */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-gray-700/50">
-        <h2 className="text-sm font-medium text-gray-200">调试面板</h2>
-        {onClose && (
-          <button
-            type="button"
-            onClick={onClose}
-            className="w-6 h-6 flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-700/50 rounded"
-          >
-            ✕
-          </button>
-        )}
-      </div>
-
+    <div className="w-full h-full flex flex-col text-white/80 text-xs font-sans">
       <div
-        className="flex-1 overflow-y-auto"
-        style={{ scrollbarWidth: "thin", scrollbarColor: "#52525b transparent" }}
+        className="flex-1 overflow-y-auto px-1"
+        style={{ scrollbarWidth: "thin", scrollbarColor: "rgba(255,255,255,0.2) transparent" }}
       >
         {/* 性能统计 */}
         {performanceStats && <PerformanceSection performanceStats={performanceStats} />}

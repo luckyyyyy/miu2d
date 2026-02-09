@@ -436,7 +436,6 @@ export class GameEngine implements IEngineContext {
           onMapChange: async (mapPath) => {
             return this.handleMapChange(mapPath);
           },
-          getCanvas: () => this.getCanvas(),
           // 加载存档后立即将摄像机居中到玩家位置（避免摄像机飞过去）
           centerCameraOnPlayer: () => this.centerCameraOnPlayer(),
         }

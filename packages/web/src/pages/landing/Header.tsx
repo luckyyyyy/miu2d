@@ -61,7 +61,7 @@ export function Header() {
               {t("nav.demo")}
             </button>
             <a
-              href="https://github.com/luckyyyyy/JXQY-WEB"
+              href="https://github.com/luckyyyyy/miu2d"
               target="_blank"
               rel="noreferrer"
               className="text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors flex items-center gap-1"

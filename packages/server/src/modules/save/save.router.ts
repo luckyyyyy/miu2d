@@ -14,6 +14,7 @@ import {
 	SaveDataResponseSchema,
 	AdminListSavesInputSchema,
 	AdminListSavesOutputSchema,
+	AdminCreateSaveInputSchema,
 	AdminDeleteSaveInputSchema,
 } from "@miu2d/types";
 import type { Context } from "../../trpc/context";
@@ -100,6 +101,24 @@ export class SaveRouter {
 	@Query({ input: GetSaveInputSchema, output: SaveDataResponseSchema.extend({ userName: z.string().optional() }) })
 	async adminGet(input: z.infer<typeof GetSaveInputSchema>, @Ctx() ctx: Context) {
 		return saveService.adminGet(input.saveId, ctx.userId!);
+	}
+
+	/**
+	 * 管理员设置存档分享状态
+	 */
+	@UseMiddlewares(requireUser)
+	@Mutation({ input: ShareSaveInputSchema, output: SaveSlotSchema })
+	async adminShare(input: z.infer<typeof ShareSaveInputSchema>, @Ctx() ctx: Context) {
+		return saveService.adminSetShared(input.saveId, input.isShared, ctx.userId!);
+	}
+
+	/**
+	 * 管理员创建存档
+	 */
+	@UseMiddlewares(requireUser)
+	@Mutation({ input: AdminCreateSaveInputSchema, output: SaveSlotSchema })
+	async adminCreate(input: z.infer<typeof AdminCreateSaveInputSchema>, @Ctx() ctx: Context) {
+		return saveService.adminCreate(input, ctx.userId!);
 	}
 
 	/**

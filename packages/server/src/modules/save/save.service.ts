@@ -272,7 +272,7 @@ export class SaveService {
 			.from(saves)
 			.innerJoin(users, eq(saves.userId, users.id))
 			.where(where)
-			.orderBy(desc(saves.updatedAt))
+			.orderBy(desc(saves.createdAt))
 			.limit(input.pageSize)
 			.offset((input.page - 1) * input.pageSize);
 
@@ -312,6 +312,68 @@ export class SaveService {
 			userName: row.userName,
 			data: row.save.data as Record<string, unknown>,
 		};
+	}
+
+	/**
+	 * 管理员创建存档（以管理员身份创建，通过 JSON 输入）
+	 */
+	async adminCreate(input: {
+		gameSlug: string;
+		name: string;
+		mapName?: string;
+		level?: number;
+		playerName?: string;
+		screenshot?: string;
+		data: Record<string, unknown>;
+	}, operatorId: string) {
+		const game = await this.resolveGame(input.gameSlug);
+		await this.verifyGameAccess(game.id, operatorId);
+
+		const values = {
+			gameId: game.id,
+			userId: operatorId,
+			name: input.name,
+			mapName: input.mapName ?? null,
+			level: input.level ?? null,
+			playerName: input.playerName ?? null,
+			screenshot: input.screenshot ?? null,
+			data: input.data,
+			updatedAt: new Date(),
+		};
+
+		const [created] = await db
+			.insert(saves)
+			.values(values)
+			.returning();
+
+		return this.toOutput(created);
+	}
+
+	/**
+	 * 管理员设置存档分享状态（可操作任何用户的存档）
+	 */
+	async adminSetShared(saveId: string, isShared: boolean, operatorId: string) {
+		const [existing] = await db
+			.select({ id: saves.id, gameId: saves.gameId, shareCode: saves.shareCode })
+			.from(saves)
+			.where(eq(saves.id, saveId))
+			.limit(1);
+
+		if (!existing) {
+			throw new TRPCError({ code: "NOT_FOUND", message: "存档不存在" });
+		}
+
+		await this.verifyGameAccess(existing.gameId, operatorId);
+
+		const shareCode = isShared ? (existing.shareCode ?? generateShareCode()) : existing.shareCode;
+
+		const [updated] = await db
+			.update(saves)
+			.set({ isShared, shareCode, updatedAt: new Date() })
+			.where(eq(saves.id, saveId))
+			.returning();
+
+		return this.toOutput(updated);
 	}
 
 	/**

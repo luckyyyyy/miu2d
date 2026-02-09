@@ -45,7 +45,7 @@ export const CharacterSection: React.FC<CharacterSectionProps> = ({
         <DataRow
           label="状态"
           value={`${playerStats.state} ${getStateName(playerStats.state)}`}
-          valueColor={playerStats.isInFighting ? "text-red-400" : "text-zinc-300"}
+          valueColor={playerStats.isInFighting ? "text-red-400" : "text-white/70"}
         />
         <DataRow
           label="战斗中"

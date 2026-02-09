@@ -221,23 +221,21 @@ export function SettingsPanel({
   };
 
   return (
-    <div className="h-full flex flex-col bg-[#0d0d1a]">
-      <PanelHeader title="设置" onClose={onClose} />
-
-      <div className="flex-1 overflow-y-auto p-3 space-y-4">
+    <div className="h-full flex flex-col">
+      <div className="flex-1 overflow-y-auto p-4 space-y-5">
         {/* 音频设置 */}
         <div>
-          <h3 className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-3">音频</h3>
+          <h3 className="text-xs font-medium text-white/40 uppercase tracking-wider mb-3">音频</h3>
 
           {/* 自动播放权限 */}
           {!autoplayAllowed && (
-            <div className="mb-3 p-2 bg-yellow-900/30 border border-yellow-700/50 rounded">
-              <div className="text-xs text-yellow-200 mb-2">
+            <div className="mb-3 p-2 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+              <div className="text-xs text-yellow-200/80 mb-2">
                 由于浏览器安全策略，需要先与页面交互才能播放音频
               </div>
               <button
                 onClick={handleRequestAutoplay}
-                className="w-full px-2 py-1 text-xs bg-yellow-600 text-white rounded hover:bg-yellow-500 transition-colors"
+                className="w-full px-2 py-1 text-xs bg-yellow-500/20 text-yellow-200 rounded-lg hover:bg-yellow-500/30 transition-colors border border-yellow-500/20"
               >
                 点击启用音频
               </button>
@@ -247,8 +245,8 @@ export function SettingsPanel({
           {/* 音乐音量 */}
           <div className="mb-3">
             <div className="flex items-center justify-between mb-1">
-              <span className="text-xs text-gray-400">🎵 音乐音量</span>
-              <span className="text-xs text-gray-500">{Math.round(musicVolume * 100)}%</span>
+              <span className="text-xs text-white/50">🎵 音乐音量</span>
+              <span className="text-xs text-white/30">{Math.round(musicVolume * 100)}%</span>
             </div>
             <input
               type="range"
@@ -257,15 +255,15 @@ export function SettingsPanel({
               step="0.05"
               value={musicVolume}
               onChange={handleMusicVolumeChange}
-              className="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer"
+              className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer"
             />
           </div>
 
           {/* 音效音量 */}
           <div className="mb-3">
             <div className="flex items-center justify-between mb-1">
-              <span className="text-xs text-gray-400">🔈 音效音量</span>
-              <span className="text-xs text-gray-500">{Math.round(soundVolume * 100)}%</span>
+              <span className="text-xs text-white/50">🔈 音效音量</span>
+              <span className="text-xs text-white/30">{Math.round(soundVolume * 100)}%</span>
             </div>
             <input
               type="range"
@@ -274,15 +272,15 @@ export function SettingsPanel({
               step="0.05"
               value={soundVolume}
               onChange={handleSoundVolumeChange}
-              className="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer"
+              className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer"
             />
           </div>
 
           {/* 环境音音量 */}
           <div>
             <div className="flex items-center justify-between mb-1">
-              <span className="text-xs text-gray-400">🌲 环境音音量</span>
-              <span className="text-xs text-gray-500">{Math.round(ambientVolume * 100)}%</span>
+              <span className="text-xs text-white/50">🌲 环境音音量</span>
+              <span className="text-xs text-white/30">{Math.round(ambientVolume * 100)}%</span>
             </div>
             <input
               type="range"
@@ -291,30 +289,30 @@ export function SettingsPanel({
               step="0.05"
               value={ambientVolume}
               onChange={handleAmbientVolumeChange}
-              className="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer"
+              className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer"
             />
           </div>
         </div>
 
         {/* 显示设置 */}
         <div>
-          <h3 className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-3">显示</h3>
+          <h3 className="text-xs font-medium text-white/40 uppercase tracking-wider mb-3">显示</h3>
 
           {/* UI 主题切换 */}
           <div className="mb-4">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-gray-400">🎨 界面风格</span>
-              <span className="text-xs text-gray-500">
+              <span className="text-xs text-white/50">🎨 界面风格</span>
+              <span className="text-xs text-white/30">
                 {uiTheme === "classic" ? "经典" : "现代"}
               </span>
             </div>
             <div className="flex gap-2">
               <button
                 onClick={() => handleThemeChange("classic")}
-                className={`flex-1 px-2 py-2 text-xs rounded border transition-all ${
+                className={`flex-1 px-2 py-2 text-xs rounded-lg border transition-all ${
                   uiTheme === "classic"
-                    ? "bg-amber-600/30 border-amber-500 text-amber-200"
-                    : "bg-gray-800 border-gray-700 text-gray-400 hover:border-gray-600"
+                    ? "bg-amber-500/15 border-amber-500/40 text-amber-200"
+                    : "bg-white/5 border-white/10 text-white/40 hover:border-white/20"
                 }`}
               >
                 <div className="text-lg mb-1">🏯</div>
@@ -322,17 +320,17 @@ export function SettingsPanel({
               </button>
               <button
                 onClick={() => handleThemeChange("modern")}
-                className={`flex-1 px-2 py-2 text-xs rounded border transition-all ${
+                className={`flex-1 px-2 py-2 text-xs rounded-lg border transition-all ${
                   uiTheme === "modern"
-                    ? "bg-blue-600/30 border-blue-500 text-blue-200"
-                    : "bg-gray-800 border-gray-700 text-gray-400 hover:border-gray-600"
+                    ? "bg-blue-500/15 border-blue-500/40 text-blue-200"
+                    : "bg-white/5 border-white/10 text-white/40 hover:border-white/20"
                 }`}
               >
                 <div className="text-lg mb-1">✨</div>
                 <div>现代风格</div>
               </button>
             </div>
-            <div className="text-xs text-gray-600 mt-1">
+            <div className="text-xs text-white/25 mt-1">
               {uiTheme === "classic"
                 ? "复古像素风，还原经典游戏体验"
                 : "毛玻璃效果，清新简洁的视觉设计"}
@@ -342,8 +340,8 @@ export function SettingsPanel({
           {/* 分辨率选择 */}
           <div>
             <div className="flex items-center justify-between mb-1">
-              <span className="text-xs text-gray-400">🖥️ 分辨率</span>
-              <span className="text-xs text-gray-500">
+              <span className="text-xs text-white/50">🖥️ 分辨率</span>
+              <span className="text-xs text-white/30">
                 {currentResolution
                   ? currentResolution.width === 0
                     ? "自适应"
@@ -354,8 +352,8 @@ export function SettingsPanel({
             <select
               value={currentResValue}
               onChange={handleResolutionChange}
-              className="w-full px-2 py-1.5 text-xs bg-gray-800 text-gray-200 border border-gray-700 rounded cursor-pointer
-                hover:border-gray-600 focus:border-blue-500 focus:outline-none transition-colors"
+              className="w-full px-2 py-1.5 text-xs bg-white/5 text-white/80 border border-white/10 rounded-lg cursor-pointer
+                hover:border-white/20 focus:border-blue-400/50 focus:outline-none transition-colors [&>option]:text-black [&>option]:bg-white"
             >
               {RESOLUTION_PRESETS.map((preset) => (
                 <option
@@ -366,27 +364,27 @@ export function SettingsPanel({
                 </option>
               ))}
             </select>
-            <div className="text-xs text-gray-600 mt-1">调整游戏画面大小</div>
+            <div className="text-xs text-white/25 mt-1">调整游戏画面大小</div>
           </div>
         </div>
 
         {/* 开发者设置 */}
         <div>
-          <h3 className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-3">
+          <h3 className="text-xs font-medium text-white/40 uppercase tracking-wider mb-3">
             开发者
           </h3>
 
           {/* 日志级别选择 */}
           <div>
             <div className="flex items-center justify-between mb-1">
-              <span className="text-xs text-gray-400">📋 日志级别</span>
-              <span className="text-xs text-gray-500">{logLevel.toUpperCase()}</span>
+              <span className="text-xs text-white/50">📋 日志级别</span>
+              <span className="text-xs text-white/30">{logLevel.toUpperCase()}</span>
             </div>
             <select
               value={logLevel}
               onChange={handleLogLevelChange}
-              className="w-full px-2 py-1.5 text-xs bg-gray-800 text-gray-200 border border-gray-700 rounded cursor-pointer
-                hover:border-gray-600 focus:border-blue-500 focus:outline-none transition-colors"
+              className="w-full px-2 py-1.5 text-xs bg-white/5 text-white/80 border border-white/10 rounded-lg cursor-pointer
+                hover:border-white/20 focus:border-blue-400/50 focus:outline-none transition-colors [&>option]:text-black [&>option]:bg-white"
             >
               {LOG_LEVELS.map((level) => (
                 <option key={level} value={level}>
@@ -401,7 +399,7 @@ export function SettingsPanel({
                 </option>
               ))}
             </select>
-            <div className="text-xs text-gray-600 mt-1">控制控制台日志输出级别</div>
+            <div className="text-xs text-white/25 mt-1">控制控制台日志输出级别</div>
           </div>
         </div>
       </div>

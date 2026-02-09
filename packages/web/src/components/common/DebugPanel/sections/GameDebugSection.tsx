@@ -149,7 +149,7 @@ export const GameDebugSection: React.FC<GameDebugSectionProps> = ({
             className={`flex-1 px-2 py-1 text-[11px] border ${
               isGodMode
                 ? "bg-orange-600 hover:bg-orange-500 text-white border-orange-500"
-                : "bg-zinc-700 hover:bg-zinc-600 text-zinc-200 border-zinc-600"
+                : "bg-white/5 hover:bg-white/10 text-white/70 border-white/10"
             }`}
           >
             {isGodMode ? "无敌中" : "无敌"}
@@ -285,7 +285,7 @@ export const GameDebugSection: React.FC<GameDebugSectionProps> = ({
         {/* 分隔线 + 武功配置重载 */}
         {onReloadMagicConfig && (
           <>
-            <hr className="border-zinc-700 my-2" />
+            <hr className="border-white/10 my-2" />
             <button
               type="button"
               onClick={handleReloadMagicConfig}

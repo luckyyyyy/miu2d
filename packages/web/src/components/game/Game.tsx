@@ -40,13 +40,15 @@ export interface GameProps {
   onReturnToTitle?: () => void;
   /** UI 主题 */
   uiTheme?: "classic" | "modern";
+  /** 打开菜单面板回调（拦截引擎的系统菜单和存档面板） */
+  onOpenMenu?: (tab: "save" | "settings") => void;
 }
 
 /**
  * Game Component
  */
 export const Game = forwardRef<GameHandle, GameProps>(
-  ({ width = 800, height = 600, initialSaveData, onReturnToTitle, uiTheme = "classic" }, ref) => {
+  ({ width = 800, height = 600, initialSaveData, onReturnToTitle, uiTheme = "classic", onOpenMenu }, ref) => {
     const canvasRef = useRef<GameCanvasHandle>(null);
     const containerRef = useRef<HTMLDivElement>(null);
 
@@ -101,13 +103,25 @@ export const Game = forwardRef<GameHandle, GameProps>(
       containerRef.current?.focus();
     }, []);
 
-    // 监听面板关闭事件，自动恢复焦点到游戏容器
-    // 这样关闭小地图后，Tab 键能继续被捕获
+    // 监听面板事件：恢复焦点 + 拦截系统菜单/存档面板
     useEffect(() => {
       const events = engine?.getEvents();
       if (!events) return;
 
       const unsub = events.on(GameEvents.UI_PANEL_CHANGE, (event: UIPanelChangeEvent) => {
+        // 拦截系统菜单和存档面板，替换为 Web 菜单面板
+        if (onOpenMenu && event.isOpen) {
+          if (event.panel === "system") {
+            engine.getGameManager().getGuiManager().showSystem(false);
+            onOpenMenu("save");
+            return;
+          }
+          if (event.panel === "saveLoad") {
+            engine.getGameManager().getGuiManager().showSaveLoad(false);
+            onOpenMenu("save");
+            return;
+          }
+        }
         // 面板关闭时恢复焦点
         if (!event.isOpen) {
           // 使用 setTimeout 确保 React 渲染完成后再 focus
@@ -118,7 +132,7 @@ export const Game = forwardRef<GameHandle, GameProps>(
       });
 
       return () => unsub();
-    }, [engine]);
+    }, [engine, onOpenMenu]);
 
     // Expose methods via ref for external control (DebugPanel)
     useImperativeHandle(

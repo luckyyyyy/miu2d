@@ -44,11 +44,11 @@ export const GameInfoSection: React.FC<GameInfoSectionProps> = ({
       )}
 
       {/* 游戏变量 */}
-      <div className="text-[10px] text-zinc-500 mb-1">
+      <div className="text-[10px] text-white/40 mb-1">
         游戏变量 {variableCount > 0 && `(${variableCount})`}
       </div>
       <div
-        className="max-h-40 overflow-y-auto bg-zinc-900 border border-zinc-700 font-mono text-[10px]"
+        className="max-h-40 overflow-y-auto bg-white/5 border border-white/10 font-mono text-[10px]"
         style={{ scrollbarWidth: "thin", scrollbarColor: "#52525b transparent" }}
       >
         {gameVariables && variableCount > 0 ? (
@@ -57,14 +57,14 @@ export const GameInfoSection: React.FC<GameInfoSectionProps> = ({
             .map(([k, v]) => (
               <div
                 key={k}
-                className="flex justify-between px-2 py-0.5 hover:bg-zinc-800 border-b border-zinc-800 last:border-b-0"
+                className="flex justify-between px-2 py-0.5 hover:bg-white/10 border-b border-white/10 last:border-b-0"
               >
-                <span className="text-zinc-500 truncate mr-2">{k}</span>
+                <span className="text-white/40 truncate mr-2">{k}</span>
                 <span className="text-green-400">{v}</span>
               </div>
             ))
         ) : (
-          <div className="text-center text-zinc-600 py-2">暂无变量</div>
+          <div className="text-center text-white/25 py-2">暂无变量</div>
         )}
       </div>
     </Section>

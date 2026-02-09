@@ -131,17 +131,19 @@ export class GameConfigService {
 	}
 	/**
 	 * 公开接口：通过 slug 获取游戏配置（无需认证）
-	 * 不存在则返回默认配置
+	 * 游戏不存在或未开放 → 仅返回 { gameEnabled: false }
+	 * 游戏存在且已开放 → 返回完整配置
 	 */
 	async getPublicBySlug(gameSlug: string): Promise<GameConfigData> {
 		const [game] = await db
-			.select({ id: games.id })
+			.select({ id: games.id, isPublic: games.isPublic })
 			.from(games)
 			.where(eq(games.slug, gameSlug))
 			.limit(1);
 
-		if (!game) {
-			throw new Error("Game not found");
+		// 游戏不存在或未公开 → 返回 gameEnabled: false（不暴露是否存在）
+		if (!game || !game.isPublic) {
+			return { gameEnabled: false } as GameConfigData;
 		}
 
 		const [row] = await db
@@ -152,6 +154,10 @@ export class GameConfigService {
 
 		if (row) {
 			const config = this.toGameConfig(row).data;
+			// gameEnabled 为 false → 也只返回 { gameEnabled: false }
+			if (!config.gameEnabled) {
+				return { gameEnabled: false } as GameConfigData;
+			}
 			// playerKey 未设置时，不返回 player/drop 配置
 			if (!config.playerKey) {
 				const { player: _, drop: __, ...rest } = config;
@@ -160,8 +166,8 @@ export class GameConfigService {
 			return config;
 		}
 
-		// 不存在则返回默认配置
-		return createDefaultGameConfig();
+		// 无配置记录 → 默认未开放
+		return { gameEnabled: false } as GameConfigData;
 	}
 }
 

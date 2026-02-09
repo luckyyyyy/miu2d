@@ -33,7 +33,6 @@ import {
   SelectionMultipleUI,
   SelectionUI,
   StatePanel,
-  SystemPanel,
   TimerDisplay,
   TopBar,
   XiuLianPanel,
@@ -484,18 +483,7 @@ export const ModernGameUIWrapper: React.FC<ModernGameUIWrapperProps> = ({
         onClose={() => togglePanel("memo")}
       />
 
-      {/* 系统面板 */}
-      <SystemPanel
-        isVisible={panels?.system ?? false}
-        screenWidth={width}
-        screenHeight={height}
-        onSaveLoad={() => {
-          dispatch({ type: "SHOW_SAVE_LOAD", visible: true });
-        }}
-        onOption={() => dispatch({ type: "SHOW_MESSAGE", text: "请用游戏设置程序进行设置" })}
-        onExit={() => dispatch({ type: "SHOW_SYSTEM", visible: false })}
-        onReturn={() => togglePanel("system")}
-      />
+      {/* 系统面板 - 已由 GameScreen 的 GameMenuPanel 替代 */}
 
       {/* 对话框 */}
       {dialog?.isVisible && (

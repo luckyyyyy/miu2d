@@ -76,7 +76,6 @@ import { SpecialActionHandler } from "./specialActionHandler";
 
 export interface GameManagerConfig {
   onMapChange: (mapPath: string) => Promise<JxqyMapData>;
-  getCanvas: () => HTMLCanvasElement | null;
   // 立即将摄像机居中到玩家位置（用于加载存档后避免摄像机飞过去）
   centerCameraOnPlayer: () => void;
 }
@@ -332,7 +331,6 @@ export class GameManager {
         );
       },
       getCurrentMapName: () => this.currentMapName,
-      getCanvas: () => this.config.getCanvas(),
       // 加载存档后立即居中摄像机（避免摄像机飞过去）
       centerCameraOnPlayer: () => this.config.centerCameraOnPlayer(),
 

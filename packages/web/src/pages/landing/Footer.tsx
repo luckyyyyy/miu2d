@@ -13,7 +13,7 @@ export function Footer() {
   const links = {
     project: [
       { label: t("nav.features"), href: "#features" },
-      { label: t("nav.demo"), href: "/game" },
+      { label: t("nav.demo"), href: "/game/demo" },
       { label: "Roadmap", href: "#" },
     ],
     resources: [
@@ -22,7 +22,7 @@ export function Footer() {
       { label: "Examples", href: "#" },
     ],
     community: [
-      { label: "GitHub", href: "https://github.com/luckyyyyy/JXQY-WEB", external: true },
+      { label: "GitHub", href: "https://github.com/luckyyyyy/miu2d", external: true },
       { label: "Discord", href: "#" },
       { label: "Twitter", href: "#" },
     ],
@@ -51,7 +51,7 @@ export function Footer() {
             {/* 社交链接 */}
             <div className="mt-6 flex items-center gap-4">
               <motion.a
-                href="https://github.com/luckyyyyy/JXQY-WEB"
+                href="https://github.com/luckyyyyy/miu2d"
                 target="_blank"
                 rel="noreferrer"
                 whileHover={{ scale: 1.1 }}

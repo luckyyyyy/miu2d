@@ -19,6 +19,25 @@ export class GameRouter {
 		this.logger.log("GameRouter registered");
 	}
 
+	/**
+	 * 公开查询：验证游戏是否存在且已开放（不需要登录）
+	 */
+	@Query({
+		input: z.object({ slug: z.string() }),
+		output: z.object({
+			exists: z.boolean(),
+			name: z.string().optional(),
+			description: z.string().nullable().optional()
+		})
+	})
+	async validate(input: { slug: string }) {
+		const game = await gameService.getPublicBySlug(input.slug);
+		if (!game) {
+			return { exists: false };
+		}
+		return { exists: true, name: game.name, description: game.description };
+	}
+
 	@UseMiddlewares(requireUser)
 	@Query({ output: z.array(GameSchema) })
 	async list(@Ctx() ctx: Context) {

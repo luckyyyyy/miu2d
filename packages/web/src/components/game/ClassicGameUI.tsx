@@ -31,7 +31,6 @@ import {
   SelectionMultipleUI,
   SelectionUI,
   StateGui,
-  SystemGui,
   slotTypeToEquipPosition,
   TimerGui,
   TopGui,
@@ -525,20 +524,7 @@ export const ClassicGameUI: React.FC<ClassicGameUIProps> = ({ logic, width, heig
         />
       )}
 
-      {/* System Menu */}
-      {panels?.system && (
-        <SystemGui
-          isVisible={true}
-          screenWidth={width}
-          screenHeight={height}
-          onSaveLoad={() => dispatch({ type: "SHOW_SAVE_LOAD", visible: true })}
-          onOption={() => dispatch({ type: "SHOW_MESSAGE", text: "请用游戏设置程序进行设置" })}
-          onExit={() => {
-            dispatch({ type: "SHOW_SYSTEM", visible: false });
-          }}
-          onReturn={() => dispatch({ type: "SHOW_SYSTEM", visible: false })}
-        />
-      )}
+      {/* System Menu - 已由 GameScreen 的 GameMenuPanel 替代 */}
 
       {/* LittleMap */}
       {panels?.littleMap && (

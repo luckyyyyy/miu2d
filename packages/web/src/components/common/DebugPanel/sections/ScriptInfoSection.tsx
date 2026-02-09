@@ -5,6 +5,7 @@
 import { logger } from "@miu2d/engine/core/logger";
 import type React from "react";
 import { useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { DataRow } from "../DataRow";
 import { ScriptCodeView } from "../ScriptCodeView";
 import { Section } from "../Section";
@@ -38,6 +39,7 @@ export const ScriptInfoSection: React.FC<ScriptInfoSectionProps> = ({
 }) => {
   const [hoveredScriptIndex, setHoveredScriptIndex] = useState<number | null>(null);
   const [tooltipVisible, setTooltipVisible] = useState(false);
+  const [tooltipX, setTooltipX] = useState(0);
   const [tooltipY, setTooltipY] = useState(0);
   const hoverTimeoutRef = useRef<number | null>(null);
   const fadeTimeoutRef = useRef<number | null>(null);
@@ -61,6 +63,9 @@ export const ScriptInfoSection: React.FC<ScriptInfoSectionProps> = ({
     }
     setHoveredScriptIndex(idx);
     setTooltipVisible(true);
+    // 获取触发元素的右边界位置
+    const rect = e.currentTarget.getBoundingClientRect();
+    setTooltipX(rect.right + 8);
     setTooltipY(e.clientY);
   };
 
@@ -92,7 +97,7 @@ export const ScriptInfoSection: React.FC<ScriptInfoSectionProps> = ({
               onClick={() =>
                 copyScriptContent(currentScriptInfo.filePath, currentScriptInfo.allCodes)
               }
-              className="text-zinc-500 hover:text-zinc-300 flex-shrink-0 p-0.5"
+              className="text-white/40 hover:text-white/70 flex-shrink-0 p-0.5"
               title="复制脚本内容"
             >
               📋
@@ -116,17 +121,17 @@ export const ScriptInfoSection: React.FC<ScriptInfoSectionProps> = ({
             isCompleted={currentScriptInfo.isCompleted}
             executedLines={currentScriptInfo.executedLines}
             onExecuteLine={handleExecuteLine}
-            className="mt-1 bg-zinc-900 border border-zinc-700"
+            className="mt-1 bg-white/5 border border-white/10"
           />
         </div>
       ) : (
-        <div className="text-[11px] text-zinc-500 mb-2">无脚本执行中</div>
+        <div className="text-[11px] text-white/40 mb-2">无脚本执行中</div>
       )}
 
       {/* 脚本历史 */}
       {hasHistory && (
         <>
-          <div className="text-[10px] text-zinc-500 mt-3 mb-1 border-t border-zinc-700/50 pt-2">
+          <div className="text-[10px] text-white/40 mt-3 mb-1 border-t border-white/10 pt-2">
             历史记录
           </div>
           <div
@@ -136,22 +141,23 @@ export const ScriptInfoSection: React.FC<ScriptInfoSectionProps> = ({
             {scriptHistory.map((item, idx) => (
               <div
                 key={`${item.filePath}-${item.timestamp}`}
-                className="flex items-center text-[10px] font-mono py-0.5 text-zinc-400 hover:bg-zinc-800/50 cursor-default"
+                className="flex items-center text-[10px] font-mono py-0.5 text-white/50 hover:bg-white/10 cursor-default"
                 onMouseEnter={(e) => handleScriptMouseEnter(idx, e)}
                 onMouseLeave={handleScriptMouseLeave}
               >
-                <span className="w-4 text-center text-zinc-600 mr-1">{idx + 1}</span>
+                <span className="w-4 text-center text-white/25 mr-1">{idx + 1}</span>
                 <span className="flex-1 break-all text-cyan-400/70">{item.filePath}</span>
-                <span className="text-zinc-600 ml-1">
+                <span className="text-white/25 ml-1">
                   ({item.executedLines?.size ?? 0}/{item.totalLines})
                 </span>
               </div>
             ))}
           </div>
-          {/* 悬浮提示框 */}
+          {/* 悬浮提示框 - 通过 Portal 渲染到 body 避免被父容器 overflow/backdrop-filter 裁剪 */}
           {hoveredScriptIndex !== null &&
             scriptHistory[hoveredScriptIndex] &&
-            (() => {
+            createPortal(
+              (() => {
               const tooltipHeight = Math.min(
                 scriptHistory[hoveredScriptIndex].allCodes.length * 20 + 50,
                 window.innerHeight * 0.6
@@ -164,9 +170,9 @@ export const ScriptInfoSection: React.FC<ScriptInfoSectionProps> = ({
               const historyItem = scriptHistory[hoveredScriptIndex];
               return (
                 <div
-                  className="fixed z-[9999] bg-zinc-900/50 backdrop-blur-2xl border border-white/20 shadow-2xl shadow-black/50 max-w-lg max-h-[60vh] overflow-auto rounded-xl transition-opacity duration-150 ring-1 ring-white/10"
+                  className="fixed z-[9999] bg-white/5 backdrop-blur-2xl border border-white/20 shadow-2xl shadow-black/50 max-w-lg max-h-[60vh] overflow-auto rounded-xl transition-opacity duration-150 ring-1 ring-white/10"
                   style={{
-                    left: "calc(48px + var(--panel-width, 280px) + 8px)",
+                    left: Math.min(tooltipX, window.innerWidth - 520),
                     top,
                     opacity: tooltipVisible ? 1 : 0,
                     transition: "opacity 150ms ease-out",
@@ -184,11 +190,11 @@ export const ScriptInfoSection: React.FC<ScriptInfoSectionProps> = ({
                   }}
                   onMouseLeave={handleScriptMouseLeave}
                 >
-                  <div className="flex items-center px-3 py-2 border-b border-white/10 sticky top-0 bg-zinc-800/20 backdrop-blur-2xl">
+                  <div className="flex items-center px-3 py-2 border-b border-white/10 sticky top-0 bg-white/5 backdrop-blur-2xl">
                     <span className="text-[11px] text-cyan-400 select-text flex-1 font-medium">
                       {historyItem.filePath}
                     </span>
-                    <span className="text-[10px] text-zinc-500 ml-2">
+                    <span className="text-[10px] text-white/40 ml-2">
                       (执行 {historyItem.executedLines?.size ?? 0}/{historyItem.totalLines} 行)
                     </span>
                     <button
@@ -197,7 +203,7 @@ export const ScriptInfoSection: React.FC<ScriptInfoSectionProps> = ({
                         e.stopPropagation();
                         copyScriptContent(historyItem.filePath, historyItem.allCodes);
                       }}
-                      className="text-zinc-500 hover:text-zinc-300 p-1 ml-2 hover:bg-zinc-700 rounded"
+                      className="text-white/40 hover:text-white/70 p-1 ml-2 hover:bg-white/10 rounded"
                       title="复制脚本内容"
                     >
                       📋
@@ -212,7 +218,9 @@ export const ScriptInfoSection: React.FC<ScriptInfoSectionProps> = ({
                   />
                 </div>
               );
-            })()}
+            })(),
+              document.body,
+            )}
         </>
       )}
     </Section>

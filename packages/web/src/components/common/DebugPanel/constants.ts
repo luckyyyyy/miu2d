@@ -30,10 +30,10 @@ export const MAX_HISTORY = 20;
 
 // 样式类
 export const inputClass =
-  "px-2 py-1 text-[11px] bg-zinc-800 border border-zinc-600 text-zinc-200 focus:outline-none focus:border-blue-500";
+  "px-2 py-1 text-[11px] bg-white/5 border border-white/10 text-white/70 focus:outline-none focus:border-white/20";
 export const selectClass =
-  "px-2 py-1 text-[11px] bg-zinc-800 border border-zinc-600 text-zinc-200 focus:outline-none focus:border-blue-500 cursor-pointer";
+  "px-2 py-1 text-[11px] bg-white/5 border border-white/10 text-white/70 focus:outline-none focus:border-white/20 cursor-pointer [&>option]:text-black [&>option]:bg-white";
 export const btnClass =
-  "px-2 py-1 text-[11px] bg-zinc-700 hover:bg-zinc-600 text-zinc-200 border border-zinc-600 disabled:opacity-50 disabled:cursor-not-allowed";
+  "px-2 py-1 text-[11px] bg-white/5 hover:bg-white/10 text-white/70 border border-white/10 disabled:opacity-50 disabled:cursor-not-allowed";
 export const btnPrimary =
   "px-2 py-1 text-[11px] bg-blue-600 hover:bg-blue-500 text-white border border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed";

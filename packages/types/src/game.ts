@@ -8,6 +8,7 @@ export const GameSchema = z.object({
   slug: z.string(),
   name: z.string(),
   description: z.string().nullable(),
+  isPublic: z.boolean(),
   ownerId: z.string().nullable().optional(),
   createdAt: z.string().optional() // ISO 8601 string
 });
@@ -30,7 +31,8 @@ export const UpdateGameInputSchema = z.object({
     .min(1)
     .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "标识只能包含小写字母、数字和连字符，且不能以连字符开头或结尾")
     .optional(),
-  description: z.string().nullable().optional()
+  description: z.string().nullable().optional(),
+  isPublic: z.boolean().optional()
 });
 
 export const DeleteGameInputSchema = z.object({

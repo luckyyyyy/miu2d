@@ -1367,9 +1367,11 @@ export interface ApiPlayerData {
  * API 返回的游戏全局配置
  */
 export interface ApiConfigResponse {
+  gameEnabled: boolean;
   gameName: string;
   gameVersion: string;
   gameDescription: string;
+  logoUrl: string;
   playerKey: string;
   newGameScript: string;
   portraitAsf: string;
@@ -1444,6 +1446,13 @@ export async function loadGameConfig(gameSlug: string, force = false): Promise<v
       }
 
       cachedGameConfig = await response.json();
+
+      // 游戏未开放（不存在/未公开/未启用均返回 gameEnabled: false）
+      if (!cachedGameConfig?.gameEnabled) {
+        cachedGameConfig = null;
+        throw new Error("GAME_NOT_AVAILABLE");
+      }
+
       isGameConfigLoadedFlag = true;
       currentGameSlug = gameSlug;
 

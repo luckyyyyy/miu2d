@@ -13,6 +13,7 @@ import { npcService, npcResourceService } from "../npc";
 import { objService, objResourceService } from "../obj";
 import { playerService } from "../player";
 import { portraitService } from "../portrait";
+import { gameConfigService } from "../gameConfig/gameConfig.service";
 
 @Controller("game")
 export class DataController {
@@ -39,6 +40,13 @@ export class DataController {
 	) {
 		try {
 			this.logger.debug(`[getData] gameSlug=${gameSlug}`);
+
+			// 检查游戏是否已开放（不存在/未公开/未启用均返回 404）
+			const config = await gameConfigService.getPublicBySlug(gameSlug);
+			if (!config.gameEnabled) {
+				res.status(HttpStatus.NOT_FOUND).json({ error: "Not found" });
+				return;
+			}
 
 			// 并行加载所有数据
 			const [magics, goods, shops, npcs, npcResources, objs, objResources, playersList, portraitEntries] = await Promise.all([
@@ -119,13 +127,7 @@ export class DataController {
 			res.status(HttpStatus.OK).json(result);
 		} catch (error) {
 			this.logger.error(`[getData] Error:`, error);
-
-			if (error instanceof Error && error.message === "Game not found") {
-				res.status(HttpStatus.NOT_FOUND).json({ error: "Game not found" });
-				return;
-			}
-
-			res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: "Internal server error" });
+			res.status(HttpStatus.NOT_FOUND).json({ error: "Not found" });
 		}
 	}
 }

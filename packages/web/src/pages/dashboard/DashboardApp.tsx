@@ -66,20 +66,6 @@ import {
 } from "./modules/StatisticsPages";
 
 /**
- * 设置页面占位符
- */
-function SettingsPage() {
-  return (
-    <div className="h-full overflow-auto p-6">
-      <div className="max-w-4xl">
-        <h1 className="text-xl font-bold text-white mb-6">设置</h1>
-        <p className="text-[#858585]">Dashboard 设置页面（开发中）</p>
-      </div>
-    </div>
-  );
-}
-
-/**
  * Dashboard 应用路由
  * 在 /dashboard/* 路径下渲染
  */
@@ -179,8 +165,6 @@ export function DashboardApp() {
           <Route path="player-saves" element={<PlayerSavesPage />} />
         </Route>
 
-        {/* 设置 */}
-        <Route path="settings" element={<SettingsPage />} />
         </Route>
       </Route>
     </Routes>
