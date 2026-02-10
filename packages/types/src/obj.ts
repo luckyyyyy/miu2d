@@ -439,7 +439,7 @@ export const ObjResourcePaths = {
   /** 备用 ASF 路径 */
   imageFallback: "asf/effect/",
   /** 音效默认路径 */
-  sound: "Content/sound/",
+  sound: "content/sound/",
 } as const;
 
 /**
@@ -474,8 +474,8 @@ export function normalizeObjImagePath(imagePath: string | null | undefined): str
 
 /**
  * 规范化 Object 音效路径
- * - 绝对路径（以 Content/ 或 sound/ 开头）：保持不变
- * - 相对路径：添加 Content/sound/ 前缀
+ * - 绝对路径（以 content/ 或 sound/ 开头）：保持不变
+ * - 相对路径：添加 content/sound/ 前缀
  * - 扩展名：wav -> xnb
  */
 export function normalizeObjSoundPath(soundPath: string | null | undefined): string | null {

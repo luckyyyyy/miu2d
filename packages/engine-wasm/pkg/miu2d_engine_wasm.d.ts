@@ -242,6 +242,11 @@ export function point_in_rect(px: number, py: number, rx: number, ry: number, rw
  */
 export function version(): string;
 
+/**
+ * Zstd 解压（暴露给 JS，用于 MMF 地图格式解压）
+ */
+export function zstd_decompress(data: Uint8Array): Uint8Array;
+
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 
 export interface InitOutput {
@@ -320,6 +325,7 @@ export interface InitOutput {
     readonly pathfinder_find_path_with_dynamic: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number) => [number, number];
     readonly pathfinder_find_path: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => [number, number];
     readonly version: () => [number, number];
+    readonly zstd_decompress: (a: number, b: number) => [number, number, number, number];
     readonly init: () => void;
     readonly __wbg_set_mpcheader_frames_data_length_sum: (a: number, b: number) => void;
     readonly __wbg_set_mpcheader_global_width: (a: number, b: number) => void;
@@ -345,6 +351,7 @@ export interface InitOutput {
     readonly __wbindgen_malloc: (a: number, b: number) => number;
     readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
     readonly __wbindgen_externrefs: WebAssembly.Table;
+    readonly __externref_table_dealloc: (a: number) => void;
     readonly __wbindgen_start: () => void;
 }
 

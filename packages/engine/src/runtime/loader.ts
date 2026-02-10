@@ -628,15 +628,9 @@ export class Loader {
       const partnerPath = `${basePath}/partner${chrIndex}.ini`;
       await this.loadPartner(partnerPath, npcManager, parseIni);
 
-      // Step 6: 加载陷阱 (92-94%)
-      // Reference: Loader.LoadTraps() -> MapBase.loadTrap(StorageBase.TrapsFilePath)
-      this.reportProgress(92, "加载陷阱...");
-      await this.deps.map.loadTrap(`${basePath}/Traps.ini`);
-
-      // Step 7: 加载陷阱忽略列表（可选，如果存在）(94-96%)
-      // Reference: Loader.LoadTrapIgnoreList() -> MapBase.Instance.loadTrapIndexIgnoreList()
-      // 注意：初始存档可能没有这个文件
-      this.reportProgress(94, "加载陷阱配置...");
+      // Step 6: 陷阱已从 MMF 地图数据内嵌加载（无需外部 Traps.ini）
+      // 加载陷阱忽略列表（可选，如果存在）(92-96%)
+      this.reportProgress(92, "加载陷阱配置...");
       try {
         const trapIgnorePath = `${basePath}/TrapIndexIgnore.ini`;
         const trapIgnoreContent = await resourceLoader.loadText(trapIgnorePath);
@@ -1242,17 +1236,15 @@ export class Loader {
       player.loadMagicEffect();
 
       // Step 10: 加载陷阱 (88-90%)
+      // 陷阱基础配置已从 MMF 地图数据内嵌加载（在 handleMapChange 中初始化）
+      // 这里只恢复存档中的运行时陷阱修改（脚本动态设置的陷阱）
       this.reportProgress(88, "加载陷阱...");
       if (data.groups?.trap) {
         logger.debug(`[Loader] Loading traps from save data...`);
         this.loadTrapsFromSave(data.snapshot.trap, data.groups.trap);
-      } else {
-        logger.debug(`[Loader] Loading traps from initial Traps.ini...`);
-        const trapBasePath = ResourcePath.saveBase(0);
-        await this.deps.map.loadTrap(`${trapBasePath}/Traps.ini`);
-        if (data.snapshot?.trap) {
-          this.loadTrapsFromSave(data.snapshot.trap, undefined);
-        }
+      } else if (data.snapshot?.trap) {
+        // 没有 trap groups，只恢复已触发列表
+        this.loadTrapsFromSave(data.snapshot.trap, undefined);
       }
 
       // Step 11: 从快照恢复 NPC (90-93%)
@@ -1954,7 +1946,8 @@ export class Loader {
 
   /**
    * 从存档数据恢复陷阱快照和分组
-   * 陷阱基础配置应该在此之前通过 LoadTrap() 从 Traps.ini 加载
+   * 陷阱基础配置已从 MMF 地图数据内嵌加载
+   * 这里恢复运行时修改（脚本动态设置的陷阱）和已触发列表
    */
   private loadTrapsFromSave(
     snapshot: number[],

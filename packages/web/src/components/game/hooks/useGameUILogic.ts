@@ -11,7 +11,7 @@
 
 import { DefaultPaths } from "@miu2d/engine/config";
 import { logger } from "@miu2d/engine/core/logger";
-import type { JxqyMapData } from "@miu2d/engine/core/mapTypes";
+import type { MiuMapData } from "@miu2d/engine/core/mapTypes";
 import type { Vector2 } from "@miu2d/engine/core/types";
 import type { GameEngine } from "@miu2d/engine/runtime/gameEngine";
 import type { ShopItemInfo } from "@miu2d/engine/gui/buyManager";
@@ -56,7 +56,7 @@ export interface MagicTooltipState {
 }
 
 export interface MinimapState {
-  mapData: JxqyMapData | null;
+  mapData: MiuMapData | null;
   mapName: string;
   mapDisplayName: string;
   playerPosition: Vector2;

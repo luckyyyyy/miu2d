@@ -337,11 +337,28 @@ export const players = pgTable("players", {
  * 存储 HeadFile.ini 中的 idx -> ASF 文件名映射
  * 每个游戏一条记录，data 字段存 PortraitEntry[] 数组
  */
-export const portraits = pgTable("portraits", {
+export const talkPortraits = pgTable("talk_portraits", {
   id: uuid("id").defaultRandom().primaryKey(),
   /** 所属游戏（唯一，每个游戏只有一条记录） */
   gameId: uuid("game_id").references(() => games.id, { onDelete: "cascade" }).notNull().unique(),
   /** 头像映射数据（JSONB，存储 PortraitEntry[] 数组） */
+  data: jsonb("data").notNull(),
+  /** 创建时间 */
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  /** 更新时间 */
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow()
+});
+
+/**
+ * 对话数据表（原 TalkIndex.txt）
+ * 每个游戏一条记录，data 字段存 TalkEntry[] 数组
+ * 格式: [talkId, portraitIndex] 对话文本
+ */
+export const talks = pgTable("talks", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  /** 所属游戏（唯一，每个游戏只有一条记录） */
+  gameId: uuid("game_id").references(() => games.id, { onDelete: "cascade" }).notNull().unique(),
+  /** 对话数据（JSONB，存储 TalkEntry[] 数组） */
   data: jsonb("data").notNull(),
   /** 创建时间 */
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),

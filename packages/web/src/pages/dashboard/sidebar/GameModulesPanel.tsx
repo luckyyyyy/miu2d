@@ -36,6 +36,14 @@ const gameModuleSections: ModuleNavSection[] = [
       { id: "levels", label: "等级配置", path: "levels" },
     ],
   },
+  {
+    label: "对话系统",
+    accent: "violet",
+    items: [
+      { id: "talks", label: "对话管理", path: "talks/list" },
+      { id: "talk-portrait", label: "对话头像", path: "talks/portrait" },
+    ],
+  },
 ];
 
 /** 游戏模块面板 - 左侧分组导航 + 右侧子模块列表面板 */
@@ -60,6 +68,8 @@ export function GameModulesPanel({ basePath }: { basePath: string }) {
         return <ShopListPanel basePath={`${basePath}/shops`} />;
       case "levels":
         return <LevelListPanel basePath={`${basePath}/levels`} />;
+      case "talks":
+        return null;
       default:
         return null;
     }

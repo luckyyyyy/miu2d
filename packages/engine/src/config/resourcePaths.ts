@@ -162,13 +162,13 @@ export const ResourceDirs = {
     common: "script/common",
     map: "script/map",
   },
-  /** Content 资源目录（音频、UI等） */
+  /** content 资源目录（音频、UI等） */
   content: {
-    root: "Content",
-    music: "Content/music",
-    sound: "Content/sound",
-    ui: "Content/ui",
-    video: "Content/video",
+    root: "content",
+    music: "content/music",
+    sound: "content/sound",
+    ui: "content/ui",
+    video: "content/video",
   },
   /** 存档目录 */
   save: {
@@ -395,10 +395,6 @@ export const DefaultPaths = {
   /** 武功经验配置 */
   get magicExp(): string {
     return ResourcePath.level("MagicExp.ini");
-  },
-  /** 对话索引文件 */
-  get talkIndex(): string {
-    return ResourcePath.content("TalkIndex.txt");
   },
   /** UI 设置文件 (Content) */
   get uiSettingsContent(): string {

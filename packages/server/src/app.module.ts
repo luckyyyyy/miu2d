@@ -13,7 +13,8 @@ import { MagicModule } from "./modules/magic";
 import { NpcModule } from "./modules/npc/npc.module";
 import { ObjModule } from "./modules/obj/obj.module";
 import { PlayerModule } from "./modules/player/player.module";
-import { PortraitModule } from "./modules/portrait/portrait.module";
+import { TalkModule } from "./modules/talk/talk.module";
+import { TalkPortraitModule } from "./modules/talkPortrait/talkPortrait.module";
 import { ShopModule } from "./modules/shop/shop.module";
 import { SaveModule } from "./modules/save";
 import { UserModule } from "./modules/user";
@@ -34,7 +35,8 @@ import { UserModule } from "./modules/user";
     NpcModule,
     ObjModule,
     PlayerModule,
-    PortraitModule,
+    TalkModule,
+    TalkPortraitModule,
     SaveModule,
     ShopModule,
     UserModule

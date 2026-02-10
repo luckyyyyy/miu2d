@@ -29,7 +29,6 @@ import { mergeGameConfig, exportPortraitIni } from "@miu2d/types";
 type ConfigCategory =
   | "basic"
   | "newgame"
-  | "portrait"
   | "player-speed"
   | "player-thew"
   | "player-restore"
@@ -711,7 +710,7 @@ const PortraitEntryRow = memo(function PortraitEntryRow({
   );
 });
 
-function PortraitMappingPanel({ gameId }: { gameId: string }) {
+export function PortraitMappingPanel({ gameId }: { gameId: string }) {
   const toast = useToast();
   const utils = trpc.useUtils();
   const [isDragging, setIsDragging] = useState(false);
@@ -719,7 +718,7 @@ function PortraitMappingPanel({ gameId }: { gameId: string }) {
   const gameSlug = currentGame?.slug ?? "";
 
   // 查询
-  const { data: portraitData, isLoading } = trpc.portrait.get.useQuery(
+  const { data: portraitData, isLoading } = trpc.talkPortrait.get.useQuery(
     { gameId },
     { enabled: !!gameId }
   );
@@ -735,22 +734,22 @@ function PortraitMappingPanel({ gameId }: { gameId: string }) {
   }, [portraitData]);
 
   // 保存
-  const updateMutation = trpc.portrait.update.useMutation({
+  const updateMutation = trpc.talkPortrait.update.useMutation({
     onSuccess: () => {
       toast.success("对话头像配置已保存");
       setIsDirty(false);
-      utils.portrait.get.invalidate({ gameId });
+      utils.talkPortrait.get.invalidate({ gameId });
     },
     onError: (err) => toast.error(`保存失败: ${err.message}`),
   });
 
   // 从 INI 导入
-  const importMutation = trpc.portrait.importFromIni.useMutation({
+  const importMutation = trpc.talkPortrait.importFromIni.useMutation({
     onSuccess: (result) => {
       setEntries(result.entries);
       setIsDirty(false);
       toast.success(`成功导入 ${result.entries.length} 个头像映射`);
-      utils.portrait.get.invalidate({ gameId });
+      utils.talkPortrait.get.invalidate({ gameId });
     },
     onError: (err) => toast.error(`导入失败: ${err.message}`),
   });
@@ -1020,8 +1019,6 @@ export function GameGlobalConfigPage() {
         return <BasicInfoPanel config={config} updateConfig={updateConfig} gameId={gameId} gameSlug={gameSlug} />;
       case "newgame":
         return <NewGameScriptPanel config={config} updateConfig={updateConfig} />;
-      case "portrait":
-        return <PortraitMappingPanel gameId={gameId} />;
       case "player-speed":
         return (
           <PlayerSpeedPanel
@@ -1066,7 +1063,6 @@ export function GameGlobalConfigPage() {
   const CATEGORY_TITLES: Record<ConfigCategory, string> = {
     basic: "基础信息",
     newgame: "新游戏脚本",
-    portrait: "对话头像",
     "player-speed": "移动速度",
     "player-thew": "体力消耗",
     "player-restore": "自然恢复",
@@ -1078,38 +1074,43 @@ export function GameGlobalConfigPage() {
     "drop-boss": "Boss 加成",
   };
 
+  // 独立面板（自己管理保存逻辑的 tab）
+  const isSelfManaged = false;
+
   return (
     <div className="h-full flex flex-col">
       {/* 固定顶部栏 */}
       <div className="flex-shrink-0 flex items-center gap-3 px-6 py-3 border-b border-[#333]">
         <h2 className="text-base font-semibold text-white tracking-tight">{CATEGORY_TITLES[activeCategory]}</h2>
-        {isDirty && (
+        {!isSelfManaged && isDirty && (
           <span className="flex items-center gap-1.5 text-xs text-yellow-500">
             <span className="w-1.5 h-1.5 rounded-full bg-yellow-500 animate-pulse" />
             有未保存的更改
           </span>
         )}
-        <div className="ml-auto flex items-center gap-3">
-          <button
-            type="button"
-            onClick={handleResetToDefault}
-            className="px-3 py-1.5 text-xs text-[#858585] hover:text-white hover:bg-[#3c3c3c] rounded-lg transition-all"
-          >
-            恢复默认
-          </button>
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={!isDirty || updateMutation.isPending}
-            className="px-4 py-1.5 bg-[#0e639c] hover:bg-[#1177bb] rounded-lg text-sm font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
-          >
-            {updateMutation.isPending ? "保存中..." : "保存"}
-          </button>
-        </div>
+        {!isSelfManaged && (
+          <div className="ml-auto flex items-center gap-3">
+            <button
+              type="button"
+              onClick={handleResetToDefault}
+              className="px-3 py-1.5 text-xs text-[#858585] hover:text-white hover:bg-[#3c3c3c] rounded-lg transition-all"
+            >
+              恢复默认
+            </button>
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={!isDirty || updateMutation.isPending}
+              className="px-4 py-1.5 bg-[#0e639c] hover:bg-[#1177bb] rounded-lg text-sm font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
+            >
+              {updateMutation.isPending ? "保存中..." : "保存"}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* 内容区域 */}
-      <div ref={contentRef} className={`flex-1 p-6 ${activeCategory === "newgame" ? "flex flex-col overflow-hidden" : "overflow-y-auto"}`}>
+      <div ref={contentRef} className={`flex-1 ${activeCategory === "newgame" ? "flex flex-col overflow-hidden" : ""} ${activeCategory !== "newgame" ? "p-6 overflow-y-auto" : ""}`}>
         <div className={activeCategory === "newgame" ? "flex flex-col flex-1 min-h-0" : ""}>
           {renderPanel()}
         </div>

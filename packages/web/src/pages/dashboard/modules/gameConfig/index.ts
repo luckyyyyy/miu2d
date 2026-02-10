@@ -1,1 +1,2 @@
-export { GameGlobalConfigPage } from "./GameGlobalConfigPage";
+export { GameGlobalConfigPage, PortraitMappingPanel } from "./GameGlobalConfigPage";
+export { TalkManagementPanel } from "./TalkManagementPanel";

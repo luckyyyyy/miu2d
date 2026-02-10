@@ -2,7 +2,7 @@
 
 import { ResourcePath } from "../config/resourcePaths";
 import { logger } from "../core/logger";
-import type { Camera, JxqyMapData, Mpc } from "../core/mapTypes";
+import type { Camera, MiuMapData, Mpc } from "../core/mapTypes";
 import { loadMpc } from "../resource/mpc";
 import type { IRenderer } from "../webgl/iRenderer";
 import { MapBase } from "./mapBase";
@@ -14,7 +14,7 @@ export interface MpcAtlas {
 }
 
 export interface MapRenderer {
-  mapData: JxqyMapData | null;
+  mapData: MiuMapData | null;
   mpcs: (Mpc | null)[];
   /** MPC 图集（每个 MPC 文件一张 atlas） */
   mpcAtlases: (MpcAtlas | null)[];
@@ -125,10 +125,10 @@ export function releaseMapTextures(mapRenderer: MapRenderer, renderer: IRenderer
   }
 }
 
-/** 加载地图的所有 MPC 文件 */
+/** 加载地图的所有 MSF/MPC 文件 */
 export async function loadMapMpcs(
   renderer: MapRenderer,
-  mapData: JxqyMapData,
+  mapData: MiuMapData,
   mapNameWithoutExt: string,
   onProgress?: (progress: number) => void,
   /** 可选的资源根目录，用于编辑器等场景覆盖默认路径 */
@@ -146,46 +146,35 @@ export async function loadMapMpcs(
   renderer.maxTileHeight = 0;
   renderer.maxTileWidth = 0;
 
-  // 确定 MPC 基础路径
-  let mpcBasePath = mapData.mpcDirPath;
-  if (!mpcBasePath || mpcBasePath.trim() === "") {
-    mpcBasePath = `mpc/map/${mapNameWithoutExt}`;
+  // MSF/MPC 基础路径: msf/map/{mapName}/
+  let msfBasePath = `msf/map/${mapNameWithoutExt}`;
+  if (resourceRoot) {
+    msfBasePath = `${resourceRoot}/${msfBasePath}`;
   } else {
-    mpcBasePath = mpcBasePath.replace(/\\/g, "/");
-  }
-  if (!mpcBasePath.startsWith("/")) {
-    // 如果提供了 resourceRoot，使用它；否则使用全局配置
-    if (resourceRoot) {
-      const normalized = mpcBasePath.startsWith("/") ? mpcBasePath.slice(1) : mpcBasePath;
-      mpcBasePath = `${resourceRoot}/${normalized}`;
-    } else {
-      mpcBasePath = ResourcePath.from(mpcBasePath);
-    }
+    msfBasePath = ResourcePath.from(msfBasePath);
   }
 
-  // 收集需要加载的 MPC 任务
-  interface MpcLoadTask {
+  // 收集需要加载的 MSF 任务
+  interface MsfLoadTask {
     slotIndex: number;
     url: string;
   }
-  const tasks: MpcLoadTask[] = [];
-  const totalSlots = mapData.mpcFileNames.length;
+  const tasks: MsfLoadTask[] = [];
+  const totalSlots = mapData.msfEntries.length;
 
   // 预填充 null 占位
   const resultMpcs: (Mpc | null)[] = new Array<Mpc | null>(totalSlots).fill(null);
   const resultAtlases: (MpcAtlas | null)[] = new Array<MpcAtlas | null>(totalSlots).fill(null);
 
   for (let i = 0; i < totalSlots; i++) {
-    const mpcFileName = mapData.mpcFileNames[i];
-    if (mpcFileName !== null) {
-      tasks.push({ slotIndex: i, url: `${mpcBasePath}/${mpcFileName}` });
-    }
+    const entry = mapData.msfEntries[i];
+    tasks.push({ slotIndex: i, url: `${msfBasePath}/${entry.name}` });
   }
 
   const totalMpcs = tasks.length;
   let loadedCount = 0;
 
-  // 并行加载所有 MPC 文件（resourceLoader 内部有请求去重和缓存）
+  // 并行加载所有 MSF 文件（resourceLoader 内部有请求去重和缓存）
   await Promise.all(
     tasks.map(async (task) => {
       try {
@@ -195,7 +184,7 @@ export async function loadMapMpcs(
           resultAtlases[task.slotIndex] = getOrCreateMpcAtlas(task.url, mpc);
         }
       } catch (error) {
-        logger.warn(`Failed to load MPC: ${task.url}`, error);
+        logger.warn(`Failed to load MSF: ${task.url}`, error);
       }
       loadedCount++;
       renderer.loadProgress = totalMpcs > 0 ? loadedCount / totalMpcs : 1;
@@ -235,7 +224,7 @@ export async function loadMapMpcs(
 /** 获取当前视图的瓦片范围（动态 padding，基于实际瓦片尺寸） */
 export function getViewTileRange(
   camera: Camera,
-  mapData: JxqyMapData,
+  mapData: MiuMapData,
   maxTileHeight = 320,
   maxTileWidth = 320
 ): { startX: number; startY: number; endX: number; endY: number } {
@@ -268,18 +257,22 @@ function drawTileLayer(
   const mapData = mapRenderer.mapData;
   if (!mapData) return;
   const tileIndex = col + row * mapData.mapColumnCounts;
+  const byteOffset = tileIndex * 2;
+  const layerData = mapData[layer];
 
-  if (tileIndex < 0 || tileIndex >= mapData[layer].length) return;
+  if (byteOffset < 0 || byteOffset + 1 >= layerData.length) return;
 
-  const tileData = mapData[layer][tileIndex];
-  if (tileData.mpcIndex === 0) return;
+  const msfIdx = layerData[byteOffset];
+  const frame = layerData[byteOffset + 1];
+  if (msfIdx === 0) return;
 
-  const mpcIndex = tileData.mpcIndex - 1;
+  // msfIdx is 1-based in tile data, maps to 0-based mpcAtlases index
+  const atlasIndex = msfIdx - 1;
 
-  const atlas = mapRenderer.mpcAtlases[mpcIndex];
-  if (!atlas || tileData.frame >= atlas.rects.length) return;
+  const atlas = mapRenderer.mpcAtlases[atlasIndex];
+  if (!atlas || frame >= atlas.rects.length) return;
 
-  const rect = atlas.rects[tileData.frame];
+  const rect = atlas.rects[frame];
   const pixelPos = MapBase.toPixelPosition(col, row);
   const drawX = Math.floor(pixelPos.x - rect.w / 2 - mapRenderer.camera.x);
   const drawY = Math.floor(pixelPos.y - (rect.h - 16) - mapRenderer.camera.y);
@@ -330,15 +323,18 @@ export function getTileTextureRegion(
   if (!mapData || renderer.isLoading) return null;
 
   const tileIndex = col + row * mapData.mapColumnCounts;
-  if (tileIndex < 0 || tileIndex >= mapData[layer].length) return null;
+  const byteOffset = tileIndex * 2;
+  const layerData = mapData[layer];
+  if (byteOffset < 0 || byteOffset + 1 >= layerData.length) return null;
 
-  const tileData = mapData[layer][tileIndex];
-  if (tileData.mpcIndex === 0) return null;
+  const msfIdx = layerData[byteOffset];
+  const frame = layerData[byteOffset + 1];
+  if (msfIdx === 0) return null;
 
-  const atlas = renderer.mpcAtlases[tileData.mpcIndex - 1];
-  if (!atlas || tileData.frame >= atlas.rects.length) return null;
+  const atlas = renderer.mpcAtlases[msfIdx - 1];
+  if (!atlas || frame >= atlas.rects.length) return null;
 
-  const rect = atlas.rects[tileData.frame];
+  const rect = atlas.rects[frame];
   const pixelPos = MapBase.toPixelPosition(col, row);
   return {
     x: pixelPos.x - rect.w / 2,

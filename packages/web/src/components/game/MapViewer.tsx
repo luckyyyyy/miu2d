@@ -1,5 +1,6 @@
 import { createMapRenderer, loadMapMpcs, type MapRenderer, renderMap, setCameraSize, updateCamera, Canvas2DRenderer } from "@miu2d/engine";
 import { loadMap } from "@miu2d/engine/resource";
+import { jxqyToMiuMapData } from "@miu2d/engine/core/mapTypes";
 import { logger } from "@miu2d/engine/core/logger";
 import { useEffect, useRef, useState } from "react";
 
@@ -109,10 +110,13 @@ export function MapViewer({ mapPath, onMapLoaded, width = 1440, height = 900 }: 
           return;
         }
 
+        // Convert to MiuMapData for engine renderer
+        const miuMapData = jxqyToMiuMapData(mapData);
+
         // Load all MPC textures
         const success = await loadMapMpcs(
           rendererRef.current,
-          mapData,
+          miuMapData,
           mapNameWithoutExt,
           (progress) => {
             if (!cancelled) setLoadProgress(progress);

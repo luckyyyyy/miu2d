@@ -26,7 +26,6 @@ const gameEditSections: ModuleNavSection[] = [
     items: [
       { id: "basic", label: "基础信息", path: "basic" },
       { id: "newgame", label: "新游戏脚本", path: "newgame" },
-      { id: "portrait", label: "对话头像", path: "portrait" },
     ],
   },
   {
@@ -80,6 +79,7 @@ export function SidebarContent() {
     case "objs":
     case "shops":
     case "levels":
+    case "talks":
       return <GameModulesPanel basePath={basePath} />;
 
     case "scenes":

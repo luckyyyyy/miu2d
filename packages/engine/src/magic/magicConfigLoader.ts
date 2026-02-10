@@ -92,7 +92,7 @@ function normalizeResourcePath(
   const prefixMap: Record<string, string> = {
     effect: "asf/effect/",
     magic: "asf/magic/",
-    sound: "Content/sound/",
+    sound: "content/sound/",
     character: "asf/character/",
   };
 

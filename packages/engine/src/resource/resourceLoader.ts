@@ -1416,6 +1416,7 @@ export interface ApiDataResponse {
   objs: ApiObjResponse;
   players: ApiPlayerData[];
   portraits: Array<{ index: number; asfFile: string }>;
+  talks: Array<{ id: number; portraitIndex: number; text: string }>;
 }
 
 // ========== 共享状态 ==========
@@ -1537,9 +1538,11 @@ export async function loadGameData(gameSlug: string, force = false): Promise<voi
       const npcResCount = cachedGameData?.npcs.resources.length ?? 0;
       const objCount = cachedGameData?.objs.objs.length ?? 0;
       const objResCount = cachedGameData?.objs.resources.length ?? 0;
+      const portraitCount = cachedGameData?.portraits?.length ?? 0;
+      const talkCount = cachedGameData?.talks?.length ?? 0;
 
       logger.info(
-        `[ResourceLoader] Loaded: ${magicCount} magics, ${goodsCount} goods, ${shopCount} shops, ${npcCount} npcs, ${npcResCount} npcres, ${objCount} objs, ${objResCount} objres`
+        `[ResourceLoader] Loaded: ${magicCount} magics, ${goodsCount} goods, ${shopCount} shops, ${npcCount} npcs, ${npcResCount} npcres, ${objCount} objs, ${objResCount} objres, ${portraitCount} portraits, ${talkCount} talks`
       );
     } catch (error) {
       logger.error(`[ResourceLoader] Failed to load game data:`, error);
@@ -1586,4 +1589,8 @@ export function getPlayersData(): ApiPlayerData[] | null {
 
 export function getPortraitsData(): Array<{ index: number; asfFile: string }> | null {
   return cachedGameData?.portraits ?? null;
+}
+
+export function getTalksData(): Array<{ id: number; portraitIndex: number; text: string }> | null {
+  return cachedGameData?.talks ?? null;
 }

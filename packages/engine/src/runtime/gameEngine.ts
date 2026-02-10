@@ -45,7 +45,7 @@ import { type IEngineContext, setEngineContext } from "../core/engineContext";
 import { EventEmitter } from "../core/eventEmitter";
 import { GameEvents, type GameLoadProgressEvent } from "../core/gameEvents";
 import { logger } from "../core/logger";
-import type { JxqyMapData } from "../core/mapTypes";
+import type { MiuMapData } from "../core/mapTypes";
 import { createDefaultInputState, type InputState, type Vector2 } from "../core/types";
 import { CharacterState, type Direction } from "../core/types";
 import { DebugManager, type PlayerStatsInfo } from "../debug";
@@ -56,7 +56,7 @@ import { MemoListManager, PartnerListManager, TalkTextListManager } from "../lis
 import type { MagicItemInfo, MagicManager } from "../magic";
 import { MagicRenderer } from "../magic/magicRenderer";
 import { MapBase } from "../map";
-import { loadMap } from "../resource";
+import { loadMMF } from "../resource/mmf";
 import { resourceLoader } from "../resource/resourceLoader";
 import {
   createMapRenderer,
@@ -659,18 +659,13 @@ export class GameEngine implements IEngineContext {
    * - 初始加载时：外部流程已设置 state="loading"，此函数不改变状态
    * - 游戏内切换：当前 state="running"，临时切换到 loading 显示进度，完成后恢复
    */
-  private async handleMapChange(mapPath: string): Promise<JxqyMapData> {
+  private async handleMapChange(mapPath: string): Promise<MiuMapData> {
     // 确保屏幕是黑的，防止在地图加载过程中看到摄像机移动
-    // 如果脚本已经执行了 FadeOut，这里只是确保；如果没有，这会立即设置黑屏
     if (!this.screenEffects.isScreenBlack()) {
       this.screenEffects.setFadeTransparency(1);
     }
 
-    // 记录调用前的状态
-    // - 如果是 running：游戏内切换地图，需要自己管理加载状态和进度
-    // - 如果是 loading：初始加载/存档加载流程，使用外部传入的进度回调
     const wasRunning = this.state === "running";
-    // 使用外部进度回调（存档加载时）或内部进度（游戏内切换地图时）
     const progressCallback = this.mapLoadProgressCallback;
 
     if (wasRunning) {
@@ -680,45 +675,43 @@ export class GameEngine implements IEngineContext {
       progressCallback(0, "加载地图...");
     }
 
-    // 构建完整地图路径
+    // 构建完整地图路径（MMF 格式）
     let fullMapPath = mapPath;
     if (!mapPath.startsWith("/")) {
-      const mapName = mapPath.replace(".map", "");
-      fullMapPath = ResourcePath.map(`${mapName}.map`);
+      const mapName = mapPath.replace(/\.(map|mmf)$/i, "");
+      fullMapPath = ResourcePath.map(`${mapName}.mmf`);
     }
 
     logger.debug(`[GameEngine] Loading map: ${fullMapPath}`);
 
     try {
-      const mapData = await loadMap(fullMapPath);
+      const mapData = await loadMMF(fullMapPath);
       if (mapData) {
-        const mapName = fullMapPath.split("/").pop()?.replace(".map", "") || "";
+        const mapName = fullMapPath.split("/").pop()?.replace(/\.(map|mmf)$/i, "") || "";
 
         // 加载新地图时清空已触发的陷阱列表
-        // 参考 JxqyMap.LoadMapFromBuffer() 中的 _ignoredTrapsIndex.Clear()
         this._map.clearIgnoredTraps();
 
         // 让 GameManager 在摄像机计算前就拥有 mapData
         this.gameManager.setMapData(mapData);
 
+        // 从 MMF 内嵌的 trapTable 初始化陷阱配置
+        this._map.initTrapsFromMapData(mapName);
+
         // 更新地图渲染器
         this.mapRenderer.mapData = mapData;
 
-        // 释放旧地图的 GPU 纹理，防止切换地图后泄漏
+        // 释放旧地图的 GPU 纹理
         if (this._renderer) {
           releaseMapTextures(this.mapRenderer, this._renderer);
         }
 
-        // 加载地图MPC资源
-        // 进度：MPC 加载进度 (0-1)
-        // - 游戏内切换地图：映射到 0-100%
-        // - 存档加载：通过 progressCallback 映射到正确范围
+        // 加载地图 MSF 资源
         await loadMapMpcs(this.mapRenderer, mapData, mapName, (progress) => {
           if (wasRunning) {
             const mappedProgress = Math.round(progress * 100);
             this.emitLoadProgress(mappedProgress, "加载地图资源...");
           } else if (progressCallback) {
-            // progress 是 0-1，传给外部回调处理映射
             progressCallback(progress, "加载地图资源...");
           }
         });
@@ -727,7 +720,6 @@ export class GameEngine implements IEngineContext {
         this.gameManager.setCurrentMapName(mapName);
 
         // 地图加载后立即居中摄像机到玩家位置
-        // 这样在后续 SetPlayerPos + FadeIn 时摄像机已经准备好
         this.centerCameraOnPlayer();
 
         // 发送地图加载事件
@@ -738,8 +730,6 @@ export class GameEngine implements IEngineContext {
 
         logger.log(`[GameEngine] Map loaded: ${mapName}`);
 
-        // 只有游戏内切换地图时才恢复状态
-        // 初始加载时，外部流程会在所有加载完成后设置 running
         if (wasRunning) {
           this.state = "running";
           this.emitLoadProgress(100, "地图加载完成");
@@ -748,7 +738,6 @@ export class GameEngine implements IEngineContext {
         return mapData;
       }
 
-      // 地图加载失败，恢复状态并抛错
       if (wasRunning) {
         this.state = "running";
         this.emitLoadProgress(100, "");
@@ -756,7 +745,6 @@ export class GameEngine implements IEngineContext {
       throw new Error(`Failed to load map: ${fullMapPath}`);
     } catch (error) {
       logger.error(`[GameEngine] Failed to load map: ${fullMapPath}`, error);
-      // 出错时也要恢复状态
       if (wasRunning) {
         this.state = "running";
         this.emitLoadProgress(100, "");
@@ -1323,7 +1311,9 @@ export class GameEngine implements IEngineContext {
     this._renderer?.resize(width, height);
 
     // 重新居中镜头到玩家，确保尺寸变化时玩家始终保持在屏幕中心
-    this.centerCameraOnPlayer();
+    if (this.gameManager.isMapLoaded()) {
+      this.centerCameraOnPlayer();
+    }
 
     this.events.emit(GameEvents.SCREEN_RESIZE, { width, height });
   }
@@ -2059,7 +2049,7 @@ export class GameEngine implements IEngineContext {
   /**
    * 获取当前地图数据
    */
-  getMapData(): JxqyMapData {
+  getMapData(): MiuMapData {
     return this.gameManager.getMapData();
   }
 

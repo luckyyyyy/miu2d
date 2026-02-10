@@ -35,7 +35,7 @@ import { ResourcePath } from "../config/resourcePaths";
 import type { EventEmitter } from "../core/eventEmitter";
 import { GameEvents } from "../core/gameEvents";
 import { logger } from "../core/logger";
-import type { JxqyMapData } from "../core/mapTypes";
+import type { MiuMapData } from "../core/mapTypes";
 import type { GameVariables, InputState, Vector2 } from "../core/types";
 import type { DebugManager } from "../debug";
 import type { ScreenEffects } from "../effects";
@@ -75,7 +75,7 @@ import type { BlockingResolver } from "../script/blockingResolver";
 import { SpecialActionHandler } from "./specialActionHandler";
 
 export interface GameManagerConfig {
-  onMapChange: (mapPath: string) => Promise<JxqyMapData>;
+  onMapChange: (mapPath: string) => Promise<MiuMapData>;
   // 立即将摄像机居中到玩家位置（用于加载存档后避免摄像机飞过去）
   centerCameraOnPlayer: () => void;
 }
@@ -141,7 +141,7 @@ export class GameManager {
   private variables: GameVariables = {};
   private currentMapPath: string = "";
   private currentMapName: string = "";
-  private mapData!: JxqyMapData;
+  private mapData!: MiuMapData;
   private hasMapData: boolean = false;
   private saveEnabled: boolean = true;
   private dropEnabled: boolean = true;
@@ -717,7 +717,7 @@ export class GameManager {
    * Set map data
    * 同时更新 MapBase 单例
    */
-  setMapData(mapData: JxqyMapData): void {
+  setMapData(mapData: MiuMapData): void {
     this.mapData = mapData;
     this.hasMapData = true;
     this.map.setMapData(mapData);
@@ -1006,11 +1006,15 @@ export class GameManager {
     return this.currentMapPath;
   }
 
-  getMapData(): JxqyMapData {
+  getMapData(): MiuMapData {
     return this.requireMapData();
   }
 
-  private requireMapData(): JxqyMapData {
+  isMapLoaded(): boolean {
+    return this.hasMapData;
+  }
+
+  private requireMapData(): MiuMapData {
     if (!this.hasMapData) {
       throw new Error("Map data not loaded. Call loadMap() first.");
     }

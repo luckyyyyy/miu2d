@@ -12,7 +12,8 @@ import { shopService } from "../shop/shop.service";
 import { npcService, npcResourceService } from "../npc";
 import { objService, objResourceService } from "../obj";
 import { playerService } from "../player";
-import { portraitService } from "../portrait";
+import { talkPortraitService } from "../talkPortrait";
+import { talkService } from "../talk";
 import { gameConfigService } from "../gameConfig/gameConfig.service";
 
 @Controller("game")
@@ -49,16 +50,17 @@ export class DataController {
 			}
 
 			// 并行加载所有数据
-			const [magics, goods, shops, npcs, npcResources, objs, objResources, playersList, portraitEntries] = await Promise.all([
-				magicService.listPublicBySlug(gameSlug),
-				goodsService.listPublicBySlug(gameSlug),
-				shopService.listPublicBySlug(gameSlug),
-				npcService.listPublicBySlug(gameSlug),
-				npcResourceService.listPublicBySlug(gameSlug),
-				objService.listPublicBySlug(gameSlug),
-				objResourceService.listPublicBySlug(gameSlug),
-				playerService.listPublicBySlug(gameSlug),
-				portraitService.getPublicBySlug(gameSlug),
+const [magics, goods, shops, npcs, npcResources, objs, objResources, playersList, portraitEntries, talkEntries] = await Promise.all([
+        magicService.listPublicBySlug(gameSlug),
+        goodsService.listPublicBySlug(gameSlug),
+        shopService.listPublicBySlug(gameSlug),
+        npcService.listPublicBySlug(gameSlug),
+        npcResourceService.listPublicBySlug(gameSlug),
+        objService.listPublicBySlug(gameSlug),
+        objResourceService.listPublicBySlug(gameSlug),
+        playerService.listPublicBySlug(gameSlug),
+        talkPortraitService.getPublicBySlug(gameSlug),
+        talkService.getPublicBySlug(gameSlug),
 			]);
 
 			// 构建 objResources 的 id -> { resources, key } 映射
@@ -116,6 +118,8 @@ export class DataController {
 				players: playersList,
 				// 对话头像映射
 				portraits: portraitEntries,
+				// 对话数据
+				talks: talkEntries,
 			};
 
 			// 设置缓存头（5 分钟）

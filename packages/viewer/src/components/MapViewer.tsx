@@ -3,7 +3,7 @@
  * 参考 AsfViewer 实现，复用 engine 中的 map 渲染逻辑
  */
 
-import type { JxqyMapData } from "@miu2d/engine/core/mapTypes";
+import { type JxqyMapData, jxqyToMiuMapData, type MiuMapData } from "@miu2d/engine/core/mapTypes";
 import {
   createMapRenderer,
   getViewTileRange,
@@ -15,7 +15,7 @@ import {
   updateCamera,
 } from "@miu2d/engine/map";
 import { Canvas2DRenderer } from "@miu2d/engine/webgl";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 interface MapViewerProps {
   /** 地图数据 */
@@ -95,6 +95,12 @@ export function MapViewer({
     }
   }, []);
 
+  // Convert JxqyMapData to MiuMapData for engine renderer functions
+  const miuMapData = useMemo(
+    () => (mapData ? jxqyToMiuMapData(mapData) : null),
+    [mapData]
+  );
+
   // 地图加载后计算合适的初始缩放，并重置相机位置
   useEffect(() => {
     if (!mapData) return;
@@ -118,7 +124,7 @@ export function MapViewer({
 
   // 加载 MPC 资源
   useEffect(() => {
-    if (!mapData || !mapName) return;
+    if (!miuMapData || !mapName) return;
 
     // 立刻设置加载状态，防止显示旧地图
     setIsMapLoading(true);
@@ -133,7 +139,7 @@ export function MapViewer({
         // 使用 engine 的 loadMapMpcs
         const success = await loadMapMpcs(
           renderer,
-          mapData,
+          miuMapData,
           mapName,
           (progress: number) => setLoadProgress(progress),
           resourceRoot
@@ -150,7 +156,7 @@ export function MapViewer({
     };
 
     loadMpcs();
-  }, [mapData, mapName, resourceRoot]);
+  }, [miuMapData, mapName, resourceRoot]);
 
   // 设置 canvas 大小
   useEffect(() => {
@@ -205,7 +211,7 @@ export function MapViewer({
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     // 如果没有地图数据，显示提示
-    if (!mapData) {
+    if (!mapData || !miuMapData) {
       ctx.fillStyle = "#808080";
       ctx.font = "16px Arial";
       ctx.textAlign = "center";
@@ -253,7 +259,7 @@ export function MapViewer({
 
     // 获取视图范围
     const { startX, startY, endX, endY } = getViewTileRange(
-      renderer.camera, mapData, renderer.maxTileHeight, renderer.maxTileWidth
+      renderer.camera, miuMapData, renderer.maxTileHeight, renderer.maxTileWidth
     );
 
     // 绘制网格背景
@@ -377,6 +383,7 @@ export function MapViewer({
     ctx.restore();
   }, [
     mapData,
+    miuMapData,
     isMapLoading,
     loadProgress,
     zoom,

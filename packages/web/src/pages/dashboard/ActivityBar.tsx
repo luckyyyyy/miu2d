@@ -24,7 +24,7 @@ const activityBarItems: ActivityBarItem[] = [
     icon: "gameModules",
     label: "模块",
     path: "game-modules",
-    childPaths: ["npcs", "magic", "goods", "objs", "shops", "levels"],
+    childPaths: ["npcs", "magic", "goods", "objs", "shops", "levels", "talks"],
   },
   { id: "scenes", icon: "map", label: "场景", path: "scenes" },
   { id: "resources", icon: "folder", label: "资源", path: "resources" },

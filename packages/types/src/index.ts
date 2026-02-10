@@ -413,7 +413,7 @@ export {
   ImportPortraitMapInputSchema,
   parsePortraitIni,
   exportPortraitIni,
-} from "./portrait.js";
+} from "./talkPortrait.js";
 export type {
   PortraitEntry,
   PortraitMap,
@@ -421,7 +421,7 @@ export type {
   GetPortraitMapInput,
   UpdatePortraitMapInput,
   ImportPortraitMapInput,
-} from "./portrait.js";
+} from "./talkPortrait.js";
 
 // Object 类型
 export {
@@ -494,6 +494,22 @@ export type {
   BatchImportObjInput,
   BatchImportObjResult,
 } from "./obj.js";
+
+// --- talk ---
+export {
+  TalkEntrySchema, TalkDataSchema,
+  GetTalkDataInputSchema, UpdateTalkDataInputSchema, ImportTalkDataInputSchema,
+  TalkDataResultSchema,
+  CreateTalkEntryInputSchema, UpdateTalkEntryInputSchema, DeleteTalkEntryInputSchema,
+  SearchTalkInputSchema, SearchTalkResultSchema,
+  parseTalkIndexTxt, exportTalkIndexTxt, extractSpeakerName,
+} from "./talk.js";
+export type {
+  TalkEntry, TalkData,
+  GetTalkDataInput, UpdateTalkDataInput, ImportTalkDataInput, TalkDataResult,
+  CreateTalkEntryInput, UpdateTalkEntryInput, DeleteTalkEntryInput,
+  SearchTalkInput, SearchTalkResult,
+} from "./talk.js";
 
 // 存档类型
 export {

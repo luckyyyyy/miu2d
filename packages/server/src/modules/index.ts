@@ -11,4 +11,5 @@ import "./npc";
 import "./obj";
 import "./save";
 import "./shop";
+import "./talk";
 import "./user";

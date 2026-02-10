@@ -17,10 +17,9 @@
 import { resolveScriptPath } from "../config/resourcePaths";
 import { EngineAccess } from "../core/engineAccess";
 import { logger } from "../core/logger";
-import type { JxqyMapData, MapTileInfo } from "../core/mapTypes";
+import type { MiuMapData } from "../core/mapTypes";
 import type { Vector2 } from "../core/types";
-import { resourceLoader } from "../resource/resourceLoader";
-import { parseIni, pixelToTile, tileToPixel } from "../utils";
+import { pixelToTile, tileToPixel } from "../utils";
 
 // ============= 障碍类型常量 =============
 /** 无障碍 */
@@ -59,7 +58,7 @@ export class MapBase extends EngineAccess {
     super();
   }
   // ============= 地图数据 =============
-  private _mapData: JxqyMapData | null = null;
+  private _mapData: MiuMapData | null = null;
   private _isOk: boolean = false;
 
   // ============= 文件信息（实例字段） =============
@@ -88,7 +87,7 @@ export class MapBase extends EngineAccess {
   /**
    * 设置地图数据（由外部加载后设置）
    */
-  setMapData(mapData: JxqyMapData | null): void {
+  setMapData(mapData: MiuMapData | null): void {
     this._mapData = mapData;
     this._isOk = mapData !== null;
   }
@@ -99,7 +98,7 @@ export class MapBase extends EngineAccess {
     return this._isOk;
   }
 
-  get mapData(): JxqyMapData | null {
+  get mapData(): MiuMapData | null {
     return this._mapData;
   }
 
@@ -285,12 +284,21 @@ export class MapBase extends EngineAccess {
   // ============= 障碍检测 =============
 
   /**
-   * 获取瓦片信息
+   * 获取瓦片的障碍类型
    */
-  private getTileInfo(col: number, row: number): MapTileInfo | null {
-    if (!this._mapData) return null;
+  private getBarrierType(col: number, row: number): number {
+    if (!this._mapData) return 0xff;
     const tileIndex = col + row * this._mapData.mapColumnCounts;
-    return this._mapData.tileInfos[tileIndex] ?? null;
+    return this._mapData.barriers[tileIndex] ?? 0xff;
+  }
+
+  /**
+   * 获取瓦片的陷阱索引
+   */
+  private getTrapIndex(col: number, row: number): number {
+    if (!this._mapData) return 0;
+    const tileIndex = col + row * this._mapData.mapColumnCounts;
+    return this._mapData.traps[tileIndex] ?? 0;
   }
 
   /**
@@ -301,12 +309,8 @@ export class MapBase extends EngineAccess {
     if (!this.isTileInMapViewRange(col, row)) {
       return true; // 越界视为障碍
     }
-    const tileInfo = this.getTileInfo(col, row);
-    if (tileInfo) {
-      // if ((type & Obstacle) == 0) return false;
-      return (tileInfo.barrierType & OBSTACLE) !== 0;
-    }
-    return true;
+    const barrier = this.getBarrierType(col, row);
+    return (barrier & OBSTACLE) !== 0;
   }
 
   /**
@@ -319,13 +323,8 @@ export class MapBase extends EngineAccess {
     if (!this.isTileInMapViewRange(col, row)) {
       return true; // 越界视为障碍
     }
-    const tileInfo = this.getTileInfo(col, row);
-    if (tileInfo) {
-      // if ((type & (Obstacle + Trans)) == 0) return false;
-      const isObstacle = (tileInfo.barrierType & (OBSTACLE + TRANS)) !== 0;
-      return isObstacle;
-    }
-    return true;
+    const barrier = this.getBarrierType(col, row);
+    return (barrier & (OBSTACLE + TRANS)) !== 0;
   }
 
   /**
@@ -335,11 +334,7 @@ export class MapBase extends EngineAccess {
     if (!this.isTileInMapViewRange(col, row)) {
       return `tile(${col},${row}) 越界`;
     }
-    const tileInfo = this.getTileInfo(col, row);
-    if (!tileInfo) {
-      return `tile(${col},${row}) 无tileInfo`;
-    }
-    const bt = tileInfo.barrierType;
+    const bt = this.getBarrierType(col, row);
     const flags: string[] = [];
     if (bt === NONE) flags.push("NONE");
     if ((bt & OBSTACLE) !== 0) flags.push("OBSTACLE");
@@ -359,13 +354,9 @@ export class MapBase extends EngineAccess {
     if (!this.isTileInMapViewRange(col, row)) {
       return true; // 越界视为障碍
     }
-    const tileInfo = this.getTileInfo(col, row);
-    if (tileInfo) {
-      // if (type == None || (type & CanOver) != 0) return false;
-      const barrier = tileInfo.barrierType;
-      if (barrier === NONE || (barrier & CAN_OVER) !== 0) {
-        return false; // 可跳过
-      }
+    const barrier = this.getBarrierType(col, row);
+    if (barrier === NONE || (barrier & CAN_OVER) !== 0) {
+      return false; // 可跳过
     }
     return true;
   }
@@ -380,13 +371,9 @@ export class MapBase extends EngineAccess {
     if (!this.isTileInMapViewRange(col, row)) {
       return true; // 越界视为障碍
     }
-    const tileInfo = this.getTileInfo(col, row);
-    if (tileInfo) {
-      // if (type == None || (type & Trans) != 0) return false;
-      const barrier = tileInfo.barrierType;
-      if (barrier === NONE || (barrier & TRANS) !== 0) {
-        return false; // 武功可通过
-      }
+    const barrier = this.getBarrierType(col, row);
+    if (barrier === NONE || (barrier & TRANS) !== 0) {
+      return false; // 武功可通过
     }
     return true;
   }
@@ -443,8 +430,7 @@ export class MapBase extends EngineAccess {
     if (!this.isTileInMapViewRange(col, row)) {
       return 0;
     }
-    const tileInfo = this.getTileInfo(col, row);
-    return tileInfo?.trapIndex ?? 0;
+    return this.getTrapIndex(col, row);
   }
 
   /**
@@ -455,44 +441,31 @@ export class MapBase extends EngineAccess {
   }
 
   /**
-   * 从文件加载陷阱配置
+   * 从 MMF 地图数据初始化陷阱配置
    *
+   * 取代原来的 loadTrap()（从外部 Traps.ini 加载）。
+   * 现在陷阱表直接内嵌在 MMF 文件中。
+   *
+   * @param mapName 当前地图名（不含扩展名）
    */
-  async loadTrap(filePath: string): Promise<void> {
+  initTrapsFromMapData(mapName: string): void {
     // 清空已忽略的陷阱列表
     this._ignoredTrapsIndex.clear();
-    this._traps.clear();
 
-    try {
-      const content = await resourceLoader.loadText(filePath);
-      if (!content) {
-        logger.warn(`[MapBase] Traps config not found: ${filePath}`);
-        return;
-      }
-
-      const sections = parseIni(content);
-
-      for (const mapName in sections) {
-        const trapMapping = new Map<number, string>();
-        const section = sections[mapName];
-
-        for (const key in section) {
-          const trapIndex = parseInt(key, 10);
-          const scriptFile = section[key];
-          if (!Number.isNaN(trapIndex)) {
-            trapMapping.set(trapIndex, scriptFile);
-          }
-        }
-
-        if (trapMapping.size > 0) {
-          this._traps.set(mapName, trapMapping);
-        }
-      }
-
-      logger.log(`[MapBase] Loaded trap config for ${this._traps.size} maps`);
-    } catch (error) {
-      logger.error(`[MapBase] Error loading traps:`, error);
+    if (!this._mapData || this._mapData.trapTable.length === 0) {
+      return;
     }
+
+    const trapMapping = new Map<number, string>();
+    for (const entry of this._mapData.trapTable) {
+      trapMapping.set(entry.trapIndex, entry.scriptPath);
+    }
+
+    if (trapMapping.size > 0) {
+      this._traps.set(mapName, trapMapping);
+    }
+
+    logger.log(`[MapBase] Initialized ${trapMapping.size} traps from MMF for map "${mapName}"`);
   }
 
   /**
@@ -681,17 +654,15 @@ export class MapBase extends EngineAccess {
    */
   hasTrapScriptWithMapData(
     tile: Vector2,
-    mapData: JxqyMapData | null,
+    mapData: MiuMapData | null,
     currentMapName: string
   ): boolean {
     if (!mapData) return false;
 
     const tileIndex = tile.x + tile.y * mapData.mapColumnCounts;
-    const tileInfo = mapData.tileInfos[tileIndex];
+    const trapIndex = mapData.traps[tileIndex];
 
-    if (tileInfo && tileInfo.trapIndex > 0) {
-      const trapIndex = tileInfo.trapIndex;
-
+    if (trapIndex > 0) {
       // 检查是否在忽略列表中
       if (this._ignoredTrapsIndex.has(trapIndex)) {
         return false;
@@ -723,7 +694,7 @@ export class MapBase extends EngineAccess {
    */
   checkTrap(
     tile: Vector2,
-    mapData: JxqyMapData | null,
+    mapData: MiuMapData | null,
     currentMapName: string,
     _isScriptRunning: () => boolean,
     isWaitingForInput: () => boolean,
@@ -746,10 +717,9 @@ export class MapBase extends EngineAccess {
     }
 
     const tileIndex = tile.x + tile.y * mapData.mapColumnCounts;
-    const tileInfo = mapData.tileInfos[tileIndex];
+    const trapIndex = mapData.traps[tileIndex];
 
-    if (tileInfo && tileInfo.trapIndex > 0) {
-      const trapIndex = tileInfo.trapIndex;
+    if (trapIndex > 0) {
 
       // 检查是否在忽略列表中
       if (this._ignoredTrapsIndex.has(trapIndex)) {
@@ -794,17 +764,18 @@ export class MapBase extends EngineAccess {
   /**
    * 调试输出陷阱信息
    */
-  debugLogTraps(mapData: JxqyMapData | null, currentMapName: string): void {
+  debugLogTraps(mapData: MiuMapData | null, currentMapName: string): void {
     if (!mapData) return;
 
     // 显示地图文件中的陷阱瓦片
     const trapsInMap: { tile: string; trapIndex: number }[] = [];
-    for (let i = 0; i < mapData.tileInfos.length; i++) {
-      const tileInfo = mapData.tileInfos[i];
-      if (tileInfo.trapIndex > 0) {
+    const totalTiles = mapData.mapColumnCounts * mapData.mapRowCounts;
+    for (let i = 0; i < totalTiles; i++) {
+      const trapIndex = mapData.traps[i];
+      if (trapIndex > 0) {
         const x = i % mapData.mapColumnCounts;
         const y = Math.floor(i / mapData.mapColumnCounts);
-        trapsInMap.push({ tile: `(${x},${y})`, trapIndex: tileInfo.trapIndex });
+        trapsInMap.push({ tile: `(${x},${y})`, trapIndex });
       }
     }
 

@@ -18,8 +18,8 @@ export const ResourceBasePaths: Record<string, string> = {
   actionFile: "asf/character",  // 动作文件
 
   // 音频文件
-  flyingSound: "Content/sound", // 飞行音效
-  vanishSound: "Content/sound", // 消失音效
+  flyingSound: "content/sound", // 飞行音效
+  vanishSound: "content/sound", // 消失音效
 
   // NPC 动画资源（asf/character/）
   npc_stand_image: "asf/character",
@@ -58,42 +58,42 @@ export const ResourceBasePaths: Record<string, string> = {
   npcResource_special1_image: "asf/character",
   npcResource_special2_image: "asf/character",
 
-  // NPC 音效资源（Content/sound/）
-  npc_stand_sound: "Content/sound",
-  npc_stand1_sound: "Content/sound",
-  npc_walk_sound: "Content/sound",
-  npc_run_sound: "Content/sound",
-  npc_jump_sound: "Content/sound",
-  npc_fightStand_sound: "Content/sound",
-  npc_fightWalk_sound: "Content/sound",
-  npc_fightRun_sound: "Content/sound",
-  npc_fightJump_sound: "Content/sound",
-  npc_attack_sound: "Content/sound",
-  npc_attack1_sound: "Content/sound",
-  npc_attack2_sound: "Content/sound",
-  npc_hurt_sound: "Content/sound",
-  npc_death_sound: "Content/sound",
-  npc_sit_sound: "Content/sound",
-  npc_special1_sound: "Content/sound",
-  npc_special2_sound: "Content/sound",
+  // NPC 音效资源（content/sound/）
+  npc_stand_sound: "content/sound",
+  npc_stand1_sound: "content/sound",
+  npc_walk_sound: "content/sound",
+  npc_run_sound: "content/sound",
+  npc_jump_sound: "content/sound",
+  npc_fightStand_sound: "content/sound",
+  npc_fightWalk_sound: "content/sound",
+  npc_fightRun_sound: "content/sound",
+  npc_fightJump_sound: "content/sound",
+  npc_attack_sound: "content/sound",
+  npc_attack1_sound: "content/sound",
+  npc_attack2_sound: "content/sound",
+  npc_hurt_sound: "content/sound",
+  npc_death_sound: "content/sound",
+  npc_sit_sound: "content/sound",
+  npc_special1_sound: "content/sound",
+  npc_special2_sound: "content/sound",
   // NpcResource 页面使用的字段名（npcResource_xxx_sound）
-  npcResource_stand_sound: "Content/sound",
-  npcResource_stand1_sound: "Content/sound",
-  npcResource_walk_sound: "Content/sound",
-  npcResource_run_sound: "Content/sound",
-  npcResource_jump_sound: "Content/sound",
-  npcResource_fightStand_sound: "Content/sound",
-  npcResource_fightWalk_sound: "Content/sound",
-  npcResource_fightRun_sound: "Content/sound",
-  npcResource_fightJump_sound: "Content/sound",
-  npcResource_attack_sound: "Content/sound",
-  npcResource_attack1_sound: "Content/sound",
-  npcResource_attack2_sound: "Content/sound",
-  npcResource_hurt_sound: "Content/sound",
-  npcResource_death_sound: "Content/sound",
-  npcResource_sit_sound: "Content/sound",
-  npcResource_special1_sound: "Content/sound",
-  npcResource_special2_sound: "Content/sound",
+  npcResource_stand_sound: "content/sound",
+  npcResource_stand1_sound: "content/sound",
+  npcResource_walk_sound: "content/sound",
+  npcResource_run_sound: "content/sound",
+  npcResource_jump_sound: "content/sound",
+  npcResource_fightStand_sound: "content/sound",
+  npcResource_fightWalk_sound: "content/sound",
+  npcResource_fightRun_sound: "content/sound",
+  npcResource_fightJump_sound: "content/sound",
+  npcResource_attack_sound: "content/sound",
+  npcResource_attack1_sound: "content/sound",
+  npcResource_attack2_sound: "content/sound",
+  npcResource_hurt_sound: "content/sound",
+  npcResource_death_sound: "content/sound",
+  npcResource_sit_sound: "content/sound",
+  npcResource_special1_sound: "content/sound",
+  npcResource_special2_sound: "content/sound",
 
   // Obj 动画资源（asf/object/）
   obj_common_image: "asf/object",
@@ -106,19 +106,19 @@ export const ResourceBasePaths: Record<string, string> = {
   objResource_opened_image: "asf/object",
   objResource_closed_image: "asf/object",
 
-  // Obj 音效资源（Content/sound/）
-  obj_common_sound: "Content/sound",
-  obj_open_sound: "Content/sound",
-  obj_opened_sound: "Content/sound",
-  obj_closed_sound: "Content/sound",
+  // Obj 音效资源（content/sound/）
+  obj_common_sound: "content/sound",
+  obj_open_sound: "content/sound",
+  obj_opened_sound: "content/sound",
+  obj_closed_sound: "content/sound",
 
   // 头像资源（asf/portrait/）
   portrait_image: "asf/portrait",
   // ObjResource 页面使用的字段名（objResource_xxx_sound）
-  objResource_common_sound: "Content/sound",
-  objResource_open_sound: "Content/sound",
-  objResource_opened_sound: "Content/sound",
-  objResource_closed_sound: "Content/sound",
+  objResource_common_sound: "content/sound",
+  objResource_open_sound: "content/sound",
+  objResource_opened_sound: "content/sound",
+  objResource_closed_sound: "content/sound",
 
   // 脚本文件（仅存储文件名，引擎根据地图动态查找）
   // 路径查找优先级：script/map/{mapName}/ -> script/common/

@@ -39,6 +39,9 @@ import { LevelListPage, LevelDetailPage, StrengthConfigPage } from "./modules/le
 
 
 
+// 对话系统
+import { TalkListPage, TalkPortraitPage } from "./modules/talk";
+
 // 场景编辑
 import {
   ScenesHomePage,
@@ -136,6 +139,13 @@ export function DashboardApp() {
           <Route index element={<MagicListPage />} />
           <Route path=":magicId" element={<Navigate to="basic" replace />} />
           <Route path=":magicId/:tab" element={<MagicDetailPage />} />
+        </Route>
+
+        {/* 对话系统 */}
+        <Route path="talks">
+          <Route index element={<Navigate to="list" replace />} />
+          <Route path="list" element={<TalkListPage />} />
+          <Route path="portrait" element={<TalkPortraitPage />} />
         </Route>
 
         {/* 场景编辑 */}

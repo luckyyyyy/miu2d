@@ -13,11 +13,11 @@ import type {
 import { parsePortraitIni } from "@miu2d/types";
 import { and, eq } from "drizzle-orm";
 import { db } from "../../db/client";
-import { gameMembers, games, portraits } from "../../db/schema";
+import { gameMembers, games, talkPortraits } from "../../db/schema";
 import type { Language } from "../../i18n";
 import { getMessage } from "../../i18n";
 
-export class PortraitService {
+export class TalkPortraitService {
 	/**
 	 * 验证用户是否有权访问游戏
 	 */
@@ -53,8 +53,8 @@ export class PortraitService {
 
 		const [row] = await db
 			.select()
-			.from(portraits)
-			.where(eq(portraits.gameId, gameId))
+			.from(talkPortraits)
+			.where(eq(talkPortraits.gameId, gameId))
 			.limit(1);
 
 		return {
@@ -79,8 +79,8 @@ export class PortraitService {
 
 		const [row] = await db
 			.select()
-			.from(portraits)
-			.where(eq(portraits.gameId, game.id))
+			.from(talkPortraits)
+			.where(eq(talkPortraits.gameId, game.id))
 			.limit(1);
 
 		return row ? (row.data as PortraitEntry[]) : [];
@@ -100,21 +100,21 @@ export class PortraitService {
 
 		const [existing] = await db
 			.select()
-			.from(portraits)
-			.where(eq(portraits.gameId, input.gameId))
+			.from(talkPortraits)
+			.where(eq(talkPortraits.gameId, input.gameId))
 			.limit(1);
 
 		if (existing) {
 			await db
-				.update(portraits)
+				.update(talkPortraits)
 				.set({
 					data: sorted,
 					updatedAt: new Date(),
 				})
-				.where(eq(portraits.gameId, input.gameId));
+				.where(eq(talkPortraits.gameId, input.gameId));
 		} else {
 			await db
-				.insert(portraits)
+				.insert(talkPortraits)
 				.values({
 					gameId: input.gameId,
 					data: sorted,
@@ -143,4 +143,4 @@ export class PortraitService {
 	}
 }
 
-export const portraitService = new PortraitService();
+export const talkPortraitService = new TalkPortraitService();

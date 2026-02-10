@@ -6,6 +6,7 @@
  */
 
 import { logger } from "../core/logger";
+import { setZstdDecompressor } from "../resource/mmf";
 
 // WASM 模块类型定义
 interface WasmAsfHeader {
@@ -72,6 +73,8 @@ export interface WasmModule {
   PathFinder: new (width: number, height: number) => WasmPathFinder;
   // 碰撞检测
   SpatialHash?: new (cellSize: number, width: number, height: number) => WasmSpatialHash;
+  // Zstd 解压
+  zstd_decompress?(data: Uint8Array): Uint8Array;
 }
 
 interface WasmPathFinder {
@@ -123,6 +126,12 @@ export async function initWasm(): Promise<boolean> {
 
       wasmModule = wasm as unknown as WasmModule;
       isInitialized = true;
+
+      // 注册 zstd 解压器（用于 MMF 地图格式解压）
+      if (wasmModule.zstd_decompress) {
+        setZstdDecompressor((data: Uint8Array) => wasmModule!.zstd_decompress!(data));
+        logger.debug("[Wasm] zstd decompressor registered");
+      }
 
       logger.info("[Wasm] Module initialized");
       return true;

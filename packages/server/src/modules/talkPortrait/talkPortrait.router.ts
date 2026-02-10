@@ -12,14 +12,14 @@ import {
 import type { Context } from "../../trpc/context";
 import { Ctx, Mutation, Query, Router, UseMiddlewares } from "../../trpc/decorators";
 import { requireUser } from "../../trpc/middlewares";
-import { portraitService } from "./portrait.service";
+import { talkPortraitService } from "./talkPortrait.service";
 
-@Router({ alias: "portrait" })
-export class PortraitRouter {
-	private readonly logger = new Logger(PortraitRouter.name);
+@Router({ alias: "talkPortrait" })
+export class TalkPortraitRouter {
+	private readonly logger = new Logger(TalkPortraitRouter.name);
 
 	constructor() {
-		this.logger.log("PortraitRouter registered");
+		this.logger.log("TalkPortraitRouter registered");
 	}
 
 	/**
@@ -28,7 +28,7 @@ export class PortraitRouter {
 	@UseMiddlewares(requireUser)
 	@Query({ input: GetPortraitMapInputSchema, output: PortraitMapResultSchema })
 	async get(input: z.infer<typeof GetPortraitMapInputSchema>, @Ctx() ctx: Context) {
-		return portraitService.get(input.gameId, ctx.userId!, ctx.language);
+		return talkPortraitService.get(input.gameId, ctx.userId!, ctx.language);
 	}
 
 	/**
@@ -37,7 +37,7 @@ export class PortraitRouter {
 	@UseMiddlewares(requireUser)
 	@Mutation({ input: UpdatePortraitMapInputSchema, output: PortraitMapResultSchema })
 	async update(input: z.infer<typeof UpdatePortraitMapInputSchema>, @Ctx() ctx: Context) {
-		return portraitService.update(input, ctx.userId!, ctx.language);
+		return talkPortraitService.update(input, ctx.userId!, ctx.language);
 	}
 
 	/**
@@ -46,6 +46,6 @@ export class PortraitRouter {
 	@UseMiddlewares(requireUser)
 	@Mutation({ input: ImportPortraitMapInputSchema, output: PortraitMapResultSchema })
 	async importFromIni(input: z.infer<typeof ImportPortraitMapInputSchema>, @Ctx() ctx: Context) {
-		return portraitService.importFromIni(input, ctx.userId!, ctx.language);
+		return talkPortraitService.importFromIni(input, ctx.userId!, ctx.language);
 	}
 }

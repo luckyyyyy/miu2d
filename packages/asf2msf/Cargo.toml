@@ -2,7 +2,7 @@
 name = "asf2msf"
 version = "0.1.0"
 edition = "2021"
-description = "ASF/MPC → MSF sprite format converter"
+description = "All-in-one game resource converter: ASF/MPC→MSF, MAP→MMF, encoding, video, cleanup"
 
 [[bin]]
 name = "asf2msf"
@@ -11,6 +11,14 @@ path = "src/main.rs"
 [[bin]]
 name = "mpc2msf"
 path = "src/bin/mpc2msf.rs"
+
+[[bin]]
+name = "map2mmf"
+path = "src/bin/map2mmf.rs"
+
+[[bin]]
+name = "convert-all"
+path = "src/bin/convert_all.rs"
 
 [[bin]]
 name = "verify"
@@ -24,3 +32,4 @@ path = "src/bin/verify_mpc.rs"
 walkdir = "2"
 rayon = "1.10"
 zstd = "0.13"
+encoding_rs = "0.8"
