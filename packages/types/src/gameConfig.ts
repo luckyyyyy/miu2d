@@ -202,6 +202,34 @@ export const PlayerConfigSchema = z.object({
 
 export type PlayerConfig = z.infer<typeof PlayerConfigSchema>;
 
+// ========== 武功经验配置 ==========
+
+/**
+ * 武功经验等级条目
+ */
+export const MagicExpLevelEntrySchema = z.object({
+  /** 敌人等级 */
+  level: z.number().int().min(0),
+  /** 命中获得经验值 */
+  exp: z.number().int().min(0),
+});
+
+export type MagicExpLevelEntry = z.infer<typeof MagicExpLevelEntrySchema>;
+
+/**
+ * 武功经验配置（原 MagicExp.ini）
+ */
+export const MagicExpConfigSchema = z.object({
+  /** 根据敌人等级获得的武功经验值列表 */
+  expByLevel: z.array(MagicExpLevelEntrySchema),
+  /** 修炼武功经验倍率 (0-1)，默认 0.2222 */
+  xiuLianMagicExpFraction: z.number().min(0).max(1).default(0.2222),
+  /** 使用武功经验倍率 (0-1)，默认 0.0333 */
+  useMagicExpFraction: z.number().min(0).max(1).default(0.0333),
+});
+
+export type MagicExpConfig = z.infer<typeof MagicExpConfigSchema>;
+
 // ========== 游戏全局配置 ==========
 
 /**
@@ -220,6 +248,14 @@ export const GameConfigDataSchema = z.object({
   logoUrl: z.string().default(""),
   /** 游戏主角（players 表中的 key，如 Player0.ini） */
   playerKey: z.string().default(""),
+  /** 初始地图（新游戏加载的地图文件名，如 map_002_凌绝峰峰顶.map） */
+  initialMap: z.string().default(""),
+  /** 初始 NPC 文件（新游戏加载的 NPC 文件名，如 map002.npc） */
+  initialNpc: z.string().default(""),
+  /** 初始物体文件（新游戏加载的 OBJ 文件名，如 map002_obj.obj） */
+  initialObj: z.string().default(""),
+  /** 初始背景音乐（新游戏加载的 BGM 文件名，留空则无背景音乐） */
+  initialBgm: z.string().default(""),
   /** 新游戏触发脚本内容 */
   newGameScript: z.string().default(""),
   /** 对话头像 ASF 路径 */
@@ -228,6 +264,8 @@ export const GameConfigDataSchema = z.object({
   player: PlayerConfigSchema.optional(),
   /** 掉落系统配置（设置 playerKey 后生效） */
   drop: DropConfigSchema.optional(),
+  /** 武功经验配置（原 MagicExp.ini） */
+  magicExp: MagicExpConfigSchema.optional(),
 });
 
 export type GameConfigData = z.infer<typeof GameConfigDataSchema>;
@@ -236,9 +274,10 @@ export type GameConfigData = z.infer<typeof GameConfigDataSchema>;
  * Dashboard 前端用的完整配置类型（player/drop 始终存在）
  * 用于编辑界面，保证字段总是有值
  */
-export type GameConfigDataFull = Omit<GameConfigData, "player" | "drop"> & {
+export type GameConfigDataFull = Omit<GameConfigData, "player" | "drop" | "magicExp"> & {
   player: PlayerConfig;
   drop: DropConfig;
+  magicExp: MagicExpConfig;
 };
 
 /**
@@ -256,6 +295,10 @@ export function mergeGameConfig(data?: Partial<GameConfigData>): GameConfigDataF
     drop: {
       ...createDefaultDropConfig(),
       ...(data?.drop ?? {}),
+    },
+    magicExp: {
+      ...createDefaultMagicExpConfig(),
+      ...(data?.magicExp ?? {}),
     },
   };
 }
@@ -366,7 +409,43 @@ export function createDefaultGameConfig(): GameConfigData {
     gameDescription: "",
     logoUrl: "",
     playerKey: "",
+    initialMap: "",
+    initialNpc: "",
+    initialObj: "",
+    initialBgm: "",
     newGameScript: "",
     portraitAsf: "",
+  };
+}
+
+/**
+ * 创建默认的武功经验配置（与原 MagicExp.ini 一致）
+ */
+export function createDefaultMagicExpConfig(): MagicExpConfig {
+  const expByLevel: MagicExpLevelEntry[] = [
+    { level: 0, exp: 3 }, { level: 1, exp: 3 }, { level: 2, exp: 3 }, { level: 3, exp: 3 },
+    { level: 4, exp: 3 }, { level: 5, exp: 3 }, { level: 6, exp: 4 }, { level: 7, exp: 4 },
+    { level: 8, exp: 4 }, { level: 9, exp: 4 }, { level: 10, exp: 5 }, { level: 11, exp: 5 },
+    { level: 12, exp: 5 }, { level: 13, exp: 6 }, { level: 14, exp: 6 }, { level: 15, exp: 6 },
+    { level: 16, exp: 7 }, { level: 17, exp: 7 }, { level: 18, exp: 8 }, { level: 19, exp: 8 },
+    { level: 20, exp: 9 }, { level: 21, exp: 9 }, { level: 22, exp: 10 }, { level: 23, exp: 11 },
+    { level: 24, exp: 11 }, { level: 25, exp: 12 }, { level: 26, exp: 13 }, { level: 27, exp: 13 },
+    { level: 28, exp: 14 }, { level: 29, exp: 15 }, { level: 30, exp: 16 }, { level: 31, exp: 17 },
+    { level: 32, exp: 18 }, { level: 33, exp: 19 }, { level: 34, exp: 21 }, { level: 35, exp: 22 },
+    { level: 36, exp: 23 }, { level: 37, exp: 25 }, { level: 38, exp: 26 }, { level: 39, exp: 28 },
+    { level: 40, exp: 30 }, { level: 41, exp: 32 }, { level: 42, exp: 33 }, { level: 43, exp: 36 },
+    { level: 44, exp: 38 }, { level: 45, exp: 40 }, { level: 46, exp: 43 }, { level: 47, exp: 45 },
+    { level: 48, exp: 48 }, { level: 49, exp: 51 }, { level: 50, exp: 54 }, { level: 51, exp: 57 },
+    { level: 52, exp: 61 }, { level: 53, exp: 65 }, { level: 54, exp: 69 }, { level: 55, exp: 73 },
+    { level: 56, exp: 77 }, { level: 57, exp: 82 }, { level: 58, exp: 87 }, { level: 59, exp: 93 },
+    { level: 60, exp: 98 }, { level: 61, exp: 104 }, { level: 62, exp: 111 }, { level: 63, exp: 117 },
+    { level: 64, exp: 125 }, { level: 65, exp: 132 }, { level: 66, exp: 140 }, { level: 67, exp: 149 },
+    { level: 68, exp: 158 }, { level: 69, exp: 169 }, { level: 70, exp: 178 }, { level: 71, exp: 189 },
+    { level: 72, exp: 200 }, { level: 73, exp: 213 },
+  ];
+  return {
+    expByLevel,
+    xiuLianMagicExpFraction: 0.2222,
+    useMagicExpFraction: 0.0333,
   };
 }

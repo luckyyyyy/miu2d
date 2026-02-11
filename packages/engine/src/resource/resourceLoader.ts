@@ -1379,6 +1379,10 @@ export interface ApiConfigResponse {
   gameDescription: string;
   logoUrl: string;
   playerKey: string;
+  initialMap: string;
+  initialNpc: string;
+  initialObj: string;
+  initialBgm: string;
   newGameScript: string;
   portraitAsf: string;
   player: {

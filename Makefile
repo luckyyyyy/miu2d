@@ -1,6 +1,6 @@
 # Miu2D Engine - Makefile
 
-.PHONY: init dev dev-web dev-server build install db-migrate db-seed db-up db-down docker tsc test lint format help convert convert-verify
+.PHONY: init dev dev-web dev-server build install db-migrate db-seed db-studio db-up db-down docker tsc test lint format help convert convert-verify
 
 # 读取环境变量（如果存在）
 -include .env
@@ -26,6 +26,7 @@ help: ## 显示帮助信息
 	@printf "  $(YELLOW)make docker$(NC)     - 构建 Docker 镜像\n"
 	@printf "  $(YELLOW)make test$(NC)       - 运行引擎测试\n"
 	@printf "  $(YELLOW)make tsc$(NC)        - 类型检查\n"
+	@printf "  $(YELLOW)make db-studio$(NC) - 数据库可视化 (Web)\n"
 	@printf "  $(YELLOW)make convert$(NC)    - 一键转换所有资源\n"
 	@printf "  $(YELLOW)make convert-verify$(NC) - 验证无损转换\n"
 	@printf "$(BLUE)═══════════════════════════════════════$(NC)\n"
@@ -121,6 +122,11 @@ db-migrate:
 # 数据库种子数据
 db-seed:
 	pnpm db:seed
+
+# 数据库可视化（Drizzle Studio）
+db-studio: db-up
+	@printf "$(GREEN)🗃️  启动 Drizzle Studio: http://localhost:4983$(NC)\n"
+	pnpm --filter @miu2d/server db:studio
 
 # 运行引擎测试
 test:

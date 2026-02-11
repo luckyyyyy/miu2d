@@ -37,6 +37,7 @@ const gameEditSections: ModuleNavSection[] = [
       { id: "player-thew", label: "体力消耗", path: "player-thew" },
       { id: "player-restore", label: "自然恢复", path: "player-restore" },
       { id: "player-combat", label: "战斗参数", path: "player-combat" },
+      { id: "magic-exp", label: "武功经验", path: "magic-exp" },
     ],
   },
   {

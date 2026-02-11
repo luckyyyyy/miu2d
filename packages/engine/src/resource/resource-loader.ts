@@ -1377,6 +1377,10 @@ export interface ApiConfigResponse {
   gameDescription: string;
   logoUrl: string;
   playerKey: string;
+  initialMap: string;
+  initialNpc: string;
+  initialObj: string;
+  initialBgm: string;
   newGameScript: string;
   portraitAsf: string;
   player: {
@@ -1404,6 +1408,11 @@ export interface ApiConfigResponse {
     };
   };
   drop: unknown;
+  magicExp?: {
+    expByLevel: Array<{ level: number; exp: number }>;
+    xiuLianMagicExpFraction: number;
+    useMagicExpFraction: number;
+  };
 }
 
 export interface ApiDataResponse {

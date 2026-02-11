@@ -95,7 +95,7 @@ pnpm --filter @miu2d/server dev # 只运行 server 包
 | `@miu2d/engine` | `packages/engine/` | 纯 TypeScript 游戏引擎，**不依赖 React** |
 | `@miu2d/engine-wasm` | `packages/engine-wasm/` | Rust 实现的高性能 WASM 模块 |
 | `@miu2d/ui` | `packages/ui/` | **超级通用 UI 组件**，不依赖任何业务包 |
-| `@miu2d/viewer` | `packages/viewer/` | 资源查看器（ASF/Map/Magic）和编辑器 |
+| `@miu2d/viewer` | `packages/viewer/` | 资源查看器（ASF/Map/MPC/XnbAudio）|
 | `@miu2d/web` | `packages/web/` | React 前端应用，游戏界面和用户认证 |
 | `@miu2d/server` | `packages/server/` | NestJS 后端服务，tRPC API |
 | `@miu2d/types` | `packages/types/` | **共享 Zod Schema 和 TypeScript 类型** |
@@ -117,6 +117,17 @@ pnpm --filter @miu2d/server dev # 只运行 server 包
 | `game.ts` | 游戏/项目相关类型（GameSchema, CRUD 输入） |
 | `file.ts` | 文件系统类型（FileNode, 上传/下载/重命名等） |
 | `magic.ts` | 武功系统类型（MagicSchema, 枚举, 等级配置） |
+| `goods.ts` | 物品系统类型（GoodsSchema, GoodsKindEnum, 批量导入） |
+| `level.ts` | 等级系统类型（LevelConfigSchema, CRUD + 导入） |
+| `gameConfig.ts` | 游戏全局配置（DropConfigSchema, PlayerConfigSchema） |
+| `npc.ts` | NPC 类型（NpcSchema, NpcResourceSchema, 资源路径） |
+| `obj.ts` | 物体类型（ObjSchema, ObjResourceSchema, ObjKindEnum） |
+| `player.ts` | 玩家类型（PlayerSchema, CRUD + 批量导入） |
+| `shop.ts` | 商店类型（ShopSchema, ShopItemSchema, CRUD） |
+| `talk.ts` | 对话类型（TalkDataSchema, 解析/导出 talk.txt） |
+| `talkPortrait.ts` | 对话头像（PortraitEntrySchema, 解析/导出 portrait.ini） |
+| `save.ts` | 存档类型（SaveSlotSchema, 管理接口） |
+| `scene.ts` | 场景类型（SceneSchema, SceneItemKindEnum, 地图解析） |
 
 ### 使用方式
 
@@ -169,34 +180,25 @@ createDefaultLevels(count: number): MagicLevel[]            // 创建等级数�
 
 | 分类 | 组件 | 说明 |
 |------|------|------|
-| **Icons** | `GitHubIcon`, `TwitterIcon`, `DiscordIcon`, `SunIcon`, `MoonIcon`, `GlobeIcon`, `CloseIcon`, `SearchIcon`, `LoadingIcon` 等 | 通用 SVG 图标 |
-| **Button** | `Button`, `IconButton` | 按钮组件，支持多种变体 |
-| **Card** | `Card`, `CardHeader`, `CardTitle`, `CardContent`, `CardFooter` | 卡片布局组件 |
-| **Modal** | `Modal`, `ConfirmDialog` | 模态框/对话框 |
-| **Input** | `Input`, `Textarea` | 输入框组件 |
-| **ProgressBar** | `ProgressBar`, `LabeledProgressBar` | 进度条 |
-| **Badge** | `Badge`, `StatusBadge` | 标签/状态徽章 |
-| **Tooltip** | `Tooltip` | 悬浮提示 |
-| **Skeleton** | `Skeleton`, `SkeletonText`, `SkeletonCard` | 骨架屏加载 |
-| **Animations** | `FadeIn`, `FadeInView`, `ScaleIn`, `Stagger`, `HoverScale`, `Pulse`, `Slide` | 动画封装 |
-| **Background** | `GridBackground`, `GridPattern`, `FloatingOrb`, `GridLine`, `GridNode` | 背景效果 |
+| **Avatar** | `Avatar` | 头像组件 |
+| **Icons** | `GitHubIcon`, `TwitterIcon`, `DiscordIcon`, `SunIcon`, `MoonIcon`, `GlobeIcon`, `BookIcon`, `CloseIcon`, `MenuIcon`, `ChevronDownIcon`, `ChevronRightIcon`, `SearchIcon`, `LoadingIcon`, `CheckIcon`, `PlayIcon`, `PauseIcon` | 通用 SVG 图标 |
+| **Animations** | `FadeIn`, `FadeInView`, `ScaleIn`, `Stagger`, `StaggerItem`, `HoverScale`, `Pulse`, `Slide` | 动画封装（landing/） |
+| **Background** | `GridBackground`, `GridPattern`, `FloatingOrb`, `GridLine`, `GridNode` | 背景效果（landing/） |
 
 ### 使用方式
 
 ```typescript
 import {
-  Button, Card, Modal, Input, Badge, Tooltip,
-  FadeIn, GridBackground, GitHubIcon, LoadingIcon
+  Avatar, FadeIn, GridBackground, GitHubIcon, LoadingIcon
 } from "@miu2d/ui";
 
 function MyPage() {
   return (
     <GridBackground className="min-h-screen">
-      <Card>
-        <Button variant="primary" icon={<GitHubIcon size={16} />}>
-          View on GitHub
-        </Button>
-      </Card>
+      <FadeIn>
+        <Avatar name="user" />
+        <GitHubIcon size={16} />
+      </FadeIn>
     </GridBackground>
   );
 }
@@ -226,28 +228,22 @@ function MyPage() {
 packages/engine/src/
 ├── audio/          # 音频管理（Web Audio API）
 ├── character/      # 角色系统（base/ 继承链, modules/, level/）
-├── config/         # 配置管理（资源路径等）
-├── constants/      # 常量定义
-├── core/           # 核心类型和工具（types.ts, logger.ts, engineContext.ts）
-├── debug/          # 调试系统
-├── drop/           # 物品掉落
-├── effects/        # 屏幕特效
-├── game/           # 游戏引擎主类
-├── gui/            # GUI 管理器
-├── listManager/    # 列表管理器（伙伴、物品等）
+├── core/           # 核心类型和工具（types.ts, logger.ts, engine-context.ts, game-api.ts）
+├── gui/            # GUI 管理器（gui-manager, buy-manager, ui-bridge）
 ├── magic/          # 武功系统（effects/, manager/, passives/）
-├── map/            # 地图系统
-├── npc/            # NPC 系统
-├── obj/            # 物体系统
-├── player/         # 玩家系统（goods/, magic/）
-├── resource/       # 资源加载器
+├── map/            # 地图系统（map-base, map-renderer）
+├── npc/            # NPC 系统（modules/npc-ai, npc-magic-cache）
+├── obj/            # 物体系统（obj-manager, obj-renderer）
+├── player/         # 玩家系统（base/, goods/, magic/）
+├── renderer/       # 渲染器（WebGL + Canvas2D, sprite-batcher, screen-effects）
+├── resource/       # 资源加载器（asf, mpc, shd, xnb, mmf 解析）
+├── runtime/        # 运行时（GameEngine, GameManager, InputHandler, CameraController）
+│   └── script-api/ # 结构化脚本 API（player-api, npc-api, world-api 等）
 ├── script/         # 脚本系统（commands/, parser.ts, executor.ts）
-├── sprite/         # 精灵基类（sprite.ts, asf.ts）
-├── timer/          # 计时器系统
-├── ui/             # UI 桥接层
-├── utils/          # 工具函数
+├── sprite/         # 精灵基类（sprite.ts, edge-detection.ts）
+├── utils/          # 工具函数（direction, distance, collision, ini-parser）
 ├── wasm/           # WASM 集成
-└── weather/        # 天气系统
+└── weather/        # 天气系统（rain, snow, screen-droplet）
 ```
 
 ### 导入方式
@@ -305,14 +301,15 @@ const pixels = decoder.decode_frame(0);  // RGBA 数据
 ### 查看器组件
 
 ```typescript
-import { AsfViewer, MapViewer, MagicViewer } from "@miu2d/viewer/components";
+import { AsfViewer, MapViewer, MpcViewer, XnbAudioViewer } from "@miu2d/viewer/components";
 ```
 
 | 组件 | 说明 |
 |------|------|
 | `AsfViewer` | 精灵动画查看器 |
-| `MapViewer` | 地图查看器 |
-| `MagicViewer` | 武功查看器 |
+| `MapViewer` | 地图查看器（导出 MapMarker, MapViewerHandle, MapInfo, SidePanelTab 类型） |
+| `MpcViewer` | MPC 资源包查看器 |
+| `XnbAudioViewer` | XNB 音频查看器 |
 
 ---
 
@@ -325,18 +322,24 @@ React 19 前端应用，整合游戏引擎和编辑器。
 ```
 packages/web/src/
 ├── components/
-│   ├── common/         # 通用组件（GridBackground, SidePanel）
-│   ├── game/           # 游戏组件（GameCanvas, GameUI, ClassicGameUI）
+│   ├── common/         # 通用组件（SidePanel, DebugPanel, ResourceFilePicker）
+│   ├── game/           # 游戏组件（adapters/, hooks/, mobile/, ui/classic|mobile|modern）
 │   └── ui/             # UI 组件
 ├── contexts/           # React Context
 ├── hooks/              # 自定义 Hooks
 ├── i18n/               # 前端 i18n 配置
-├── lib/                # 工具库（trpc 客户端）
+├── lib/                # 工具库（trpc 客户端, monaco 配置）
 ├── pages/              # 页面组件
-│   ├── dashboard/      # 仪表盘
+│   ├── dashboard/      # 仪表盘（编辑器）
+│   │   ├── components/ # 仪表盘通用组件
+│   │   ├── modules/   # 模块编辑页（magic, npc, obj, goods, player, talk, level, shop, scene）
+│   │   ├── sidebar/   # 侧边栏列表面板
+│   │   └── utils/     # 工具函数
 │   ├── landing/        # 首页
 │   ├── GameScreen.tsx  # 游戏界面
-│   └── LoginPage.tsx   # 登录页
+│   ├── GamePlaying.tsx # 游戏进行中
+│   ├── LoginPage.tsx   # 登录页
+│   └── RegisterPage.tsx # 注册页
 └── styles/             # 样式文件
 ```
 
@@ -357,11 +360,27 @@ NestJS + tRPC 后端，端口 4000。
 
 ```typescript
 // packages/server/src/db/schema.ts
-- users        // 用户表
-- sessions     // 会话表
-- games        // 游戏/项目表
-- gameMembers  // 游戏成员表
-- files        // 文件系统表（元数据存 PG，内容存 S3）
+- users           // 用户表
+- sessions        // 会话表
+- emailTokens     // 邮件验证令牌
+- games           // 游戏/项目表
+- gameMembers     // 游戏成员表
+- files           // 文件系统表（元数据存 PG，内容存 S3，支持软删除）
+- gameConfigs     // 游戏全局配置（JSONB，每游戏一条）
+- magics          // 武功表（JSONB data）
+- levelConfigs    // 等级配置表（JSONB data）
+- goods           // 物品表（JSONB data）
+- shops           // 商店表（JSONB data）
+- npcs            // NPC 表（JSONB data）
+- npcResources    // NPC 资源表（JSONB data）
+- objs            // 物体表（JSONB data）
+- objResources    // 物体资源表（JSONB data）
+- players         // 玩家表（JSONB data）
+- talkPortraits   // 对话头像表（JSONB data）
+- talks           // 对话表（JSONB data）
+- saves           // 存档表（JSONB data，支持分享）
+- scenes          // 场景表
+- sceneItems      // 场景元素表（script/trap/npc/obj）
 ```
 
 ### tRPC 路由结构
@@ -369,33 +388,22 @@ NestJS + tRPC 后端，端口 4000。
 ```
 modules/
 ├── auth/           # 认证模块
-│   ├── auth.login
-│   ├── auth.register
-│   └── auth.logout
 ├── user/           # 用户模块
-│   ├── user.getProfile
-│   └── user.updateProfile
 ├── game/           # 游戏/项目模块
-│   ├── game.list
-│   ├── game.create
-│   ├── game.update
-│   └── game.delete
 ├── file/           # 文件系统模块
-│   ├── file.list
-│   ├── file.createFolder
-│   ├── file.prepareUpload
-│   ├── file.confirmUpload
-│   ├── file.getDownloadUrl
-│   ├── file.rename
-│   ├── file.move
-│   └── file.delete
-└── magic/          # 武功编辑模块
-    ├── magic.list
-    ├── magic.get
-    ├── magic.create
-    ├── magic.update
-    ├── magic.delete
-    └── magic.import
+├── data/           # 数据导入导出
+├── magic/          # 武功编辑模块
+├── goods/          # 物品编辑模块
+├── level/          # 等级配置模块
+├── gameConfig/     # 游戏全局配置模块
+├── npc/            # NPC 模块（+ npcResource 子路由）
+├── obj/            # 物体模块（+ objResource 子路由）
+├── player/         # 玩家模块
+├── shop/           # 商店模块
+├── talk/           # 对话模块
+├── talkPortrait/   # 对话头像模块
+├── save/           # 存档模块
+└── scene/          # 场景模块
 ```
 
 ### 添加新的 tRPC 路由
@@ -470,11 +478,14 @@ function Component() {
 
 ```
 Sprite (packages/engine/src/sprite/sprite.ts)
-└── CharacterBase (character/base/characterBase.ts)
-    └── CharacterMovement (character/base/characterMovement.ts)
-        └── CharacterCombat (character/base/characterCombat.ts)
+└── CharacterBase (character/base/character-base.ts)
+    └── CharacterMovement (character/base/character-movement.ts)
+        └── CharacterCombat (character/base/character-combat.ts)
             └── Character (character/character.ts) [abstract]
-                ├── Player (player/player.ts)
+                ├── PlayerBase (player/base/player-base.ts)
+                │   └── PlayerInput (player/base/player-input.ts)
+                │       └── PlayerCombat (player/base/player-combat.ts)
+                │           └── Player (player/player.ts)
                 └── Npc (npc/npc.ts)
 ```
 
@@ -487,10 +498,20 @@ Sprite 及其子类通过 `this.engine` 访问引擎服务：
 ```typescript
 interface IEngineContext {
   // ===== 核心服务（只读属性）=====
-  readonly player: IPlayer;           // 玩家实例
-  readonly npcManager: INpcManager;   // NPC 管理器
-  readonly map: MapBase;              // 地图（障碍检测、陷阱、坐标转换）
-  readonly audio: AudioManager;       // 音频管理器
+  readonly player: IPlayer;               // 玩家实例
+  readonly npcManager: INpcManager;       // NPC 管理器
+  readonly map: MapBase;                  // 地图（障碍检测、陷阱、坐标转换）
+  readonly audio: AudioManager;           // 音频管理器
+  readonly objManager: ObjManager;        // 物体管理器
+  readonly guiManager: GuiManager;        // GUI 管理器
+  readonly debugManager: DebugManager;    // 调试管理器
+  readonly weatherManager: WeatherManager; // 天气管理器
+  readonly buyManager: BuyManager;        // 购买管理器
+  readonly interactionManager: InteractionManager; // 交互管理器
+  readonly magicHandler: MagicHandler;    // 武功处理器
+  readonly magicManager: MagicManager;    // 武功管理器
+  readonly mapRenderer: MapRenderer;      // 地图渲染器
+  readonly scriptExecutor: IScriptExecutor; // 脚本执行器
 
   // ===== 便捷方法（高频操作）=====
   runScript(path: string, belongObject?: { type: string; id: string }): Promise<void>;
@@ -500,12 +521,7 @@ interface IEngineContext {
   isDropEnabled(): boolean;
   getScriptVariable(name: string): number;
   notifyPlayerStateChanged(): void;   // 通知 UI 刷新
-
-  // ===== 低频管理器 =====
-  getManager<T extends ManagerType>(type: T): ManagerMap[T];
 }
-
-// ManagerType: "magic" | "obj" | "gui" | "debug" | "weather" | "buy" | "interaction" | "magicHandler" | "mapRenderer" | "script"
 ```
 
 **使用示例：**
@@ -513,14 +529,11 @@ interface IEngineContext {
 ```typescript
 class Obj extends Sprite {
   async interact() {
-    // 核心服务直接访问
+    // 所有管理器都是直接属性，无需 getManager
     const player = this.engine.player;
     const isBlocked = this.engine.map.isObstacleForCharacter(x, y);
     this.engine.audio.playSound("click.wav");
-
-    // 低频管理器通过 getManager（类型安全）
-    const gui = this.engine.getManager("gui");
-    gui.showDialog("Hello");
+    this.engine.guiManager.showDialog("Hello");
   }
 }
 ```
@@ -614,6 +627,6 @@ logger.error("[Module] 错误");
 - 类: `PascalCase`
 - 函数/变量: `camelCase`
 - 常量: `UPPER_SNAKE_CASE`
-- 文件: TS `camelCase.ts`, React `PascalCase.tsx`
+- 文件: TS `kebab-case.ts`, React `PascalCase.tsx`
 
 ---

@@ -61,7 +61,6 @@ import { clearMpcCache } from "../resource/mpc";
 import { clearMpcAtlasCache } from "../map/map-renderer";
 import { type ScriptContext, ScriptExecutor } from "../script/executor";
 import type { TimerManager } from "../core/timer-manager";
-import { parseIni } from "../utils";
 import type { WeatherManager } from "../weather";
 import { CameraController } from "./camera-controller";
 import { InputHandler } from "./input-handler";
@@ -297,7 +296,6 @@ export class GameManager {
       map: this.map,
       getScriptExecutor: () => this.scriptExecutor,
       loadMap: (mapPath) => this.loadMap(mapPath),
-      parseIni: parseIni,
       clearScriptCache: () => this.scriptExecutor.clearCache(),
       clearResourceCaches: () => {
         // 清理精灵缓存（SpriteSet 持有 AsfData 和 atlas canvas）

@@ -106,12 +106,19 @@
 
 ### 项目组成
 
-本项目采用 **pnpm monorepo** 架构，包含两个独立的包：
+本项目采用 **pnpm monorepo** 架构：
 
 | 包名 | 目录 | 说明 |
 |------|------|------|
 | **@miu2d/engine** | `packages/engine/` | 纯 TypeScript 2D RPG 引擎，**不依赖 React**，可独立使用 |
+| **@miu2d/engine-wasm** | `packages/engine-wasm/` | Rust + WebAssembly 高性能模块 |
+| **@miu2d/ui** | `packages/ui/` | **超级通用 UI 组件**，不依赖任何业务包 |
+| **@miu2d/viewer** | `packages/viewer/` | 资源查看器（ASF/Map/MPC/XnbAudio） |
 | **@miu2d/web** | `packages/web/` | React 应用，提供 UI 界面、页面路由和用户交互 |
+| **@miu2d/server** | `packages/server/` | NestJS 后端服务，tRPC API |
+| **@miu2d/types** | `packages/types/` | **共享 Zod Schema 和 TypeScript 类型** |
+| **@miu2d/i18n** | `packages/i18n/` | 国际化资源包（前后端共用） |
+| **@miu2d/asf2msf** | `packages/asf2msf/` | Rust CLI: ASF → [MSF](docs/msf-format.md) 精灵转换器 |
 
 **导入引擎模块：**
 ```typescript
@@ -132,9 +139,9 @@ import type { MagicData } from "@miu2d/engine/magic";
 ┌─────────────────────────────────────────────────────────────┐
 │                    React UI Layer                           │
 │  ┌─────────────────────────────────────────────────────┐   │
-│  │  pages/          GameScreen, TitleScreen, Landing    │   │
-│  │  components/game/ Game, GameCanvas, GameUI           │   │
-│  │  components/ui/   对话框, 背包, 装备, 武功, 调试面板等  │   │
+│  │  pages/          GameScreen, GamePlaying, Landing   │   │
+│  │  components/game/ adapters/, hooks/, ui/classic|modern │   │
+│  │  components/common/ SidePanel, DebugPanel 等          │   │
 │  └─────────────────────────────────────────────────────┘   │
 └─────────────────────────────┬───────────────────────────────┘
                               │ 事件订阅 / API 调用
@@ -217,298 +224,115 @@ await engine.loadGame(saveIndex);
 game-jxqy/
 ├── packages/
 │   ├── engine/                  # @miu2d/engine - 游戏引擎（~47k 行）
-│   │   ├── src/
-│   │   │   ├── index.ts         # 主导出文件
-│   │   │   │
-│   │   │   ├── core/            # 核心模块
-│   │   │   │   ├── types.ts     # 核心类型定义
-│   │   │   │   ├── mapTypes.ts  # 地图相关类型
-│   │   │   │   ├── pathFinder.ts # A* 寻路算法
-│   │   │   │   ├── eventEmitter.ts # 事件系统
-│   │   │   │   ├── gameEvents.ts # 游戏事件定义
-│   │   │   │   └── logger.ts    # 日志系统
-│   │   │   │
-│   │   │   ├── game/            # 游戏管理
-│   │   │   │   ├── gameEngine.ts # 引擎单例（入口）
-│   │   │   │   ├── gameManager.ts # 游戏逻辑控制器
-│   │   │   │   ├── inputHandler.ts # 输入处理
-│   │   │   │   ├── loader.ts    # 存档加载器
-│   │   │   │   └── storage.ts   # 存档存储
-│   │   │   │
-│   │   │   ├── resource/        # 资源管理
-│   │   │   ├── map/             # 地图系统
-│   │   │   ├── sprite/          # 精灵系统
-│   │   │   ├── character/       # 角色系统
-│   │   │   ├── player/          # 玩家系统
-│   │   │   ├── npc/             # NPC 系统
-│   │   │   ├── obj/             # 物体系统
-│   │   │   ├── script/          # 剧本系统（180+ 命令）
-│   │   │   ├── magic/           # 武功系统（12 种特效）
-│   │   │   ├── gui/             # 界面状态管理
-│   │   │   ├── audio/           # 音效系统
-│   │   │   ├── effects/         # 屏幕特效
-│   │   │   ├── weather/         # 天气系统
-│   │   │   ├── timer/           # 计时器系统
-│   │   │   ├── config/          # 配置管理
-│   │   │   ├── constants/       # 常量定义
-│   │   │   └── utils/           # 工具模块
-│   │   │
-│   │   ├── package.json
-│   │   └── tsconfig.json
+│   │   └── src/
+│   │       ├── index.ts         # 主导出文件
+│   │       ├── audio/           # 音频管理（Web Audio API）
+│   │       ├── character/       # 角色系统
+│   │       │   ├── base/        # 继承链（character-base → movement → combat）
+│   │       │   ├── modules/     # 功能模块（贝塞尔移动、状态效果等）
+│   │       │   └── level/       # 等级系统
+│   │       ├── core/            # 核心模块
+│   │       │   ├── types.ts     # 核心类型定义
+│   │       │   ├── engine-context.ts # 引擎上下文接口
+│   │       │   ├── game-api.ts  # 结构化脚本 API（16 个子 API）
+│   │       │   ├── event-emitter.ts # 事件系统
+│   │       │   ├── game-events.ts   # 游戏事件定义
+│   │       │   ├── path-finder.ts   # A* 寻路算法
+│   │       │   ├── timer-manager.ts # 计时器系统
+│   │       │   ├── debug-manager.ts # 调试管理器
+│   │       │   └── logger.ts    # 日志系统
+│   │       ├── gui/             # 界面状态管理
+│   │       │   ├── gui-manager.ts
+│   │       │   ├── buy-manager.ts   # 商店管理器
+│   │       │   ├── ui-bridge.ts     # UI 桥接层
+│   │       │   └── ui-config.ts     # UI 配置
+│   │       ├── magic/           # 武功系统（12 种特效）
+│   │       │   ├── manager/     # 武功管理器
+│   │       │   ├── effects/     # 武功特效（12 种 MoveKind）
+│   │       │   └── passives/    # 被动效果
+│   │       ├── map/             # 地图系统（map-base, map-renderer）
+│   │       ├── npc/             # NPC 系统（npc-ai, npc-magic-cache）
+│   │       ├── obj/             # 物体系统（obj-manager, obj-renderer）
+│   │       ├── player/          # 玩家系统
+│   │       │   ├── base/        # 继承链（player-base → input → combat）
+│   │       │   ├── goods/       # 物品系统
+│   │       │   └── magic/       # 玩家武功
+│   │       ├── renderer/        # 渲染器（WebGL + Canvas2D 回退）
+│   │       │   ├── webgl-renderer.ts    # WebGL 主渲染器
+│   │       │   ├── canvas2d-renderer.ts # Canvas 2D 回退
+│   │       │   ├── sprite-batcher.ts    # 精灵批量渲染
+│   │       │   └── screen-effects.ts    # 屏幕特效
+│   │       ├── resource/        # 资源管理
+│   │       │   ├── resource-loader.ts   # 统一资源加载器
+│   │       │   ├── asf.ts, mpc.ts, shd.ts, xnb.ts, mmf.ts  # 格式解析
+│   │       │   └── resource-paths.ts    # 资源路径管理
+│   │       ├── runtime/         # 运行时
+│   │       │   ├── game-engine.ts       # 引擎主类（入口）
+│   │       │   ├── game-manager.ts      # 游戏逻辑控制器
+│   │       │   ├── input-handler.ts     # 输入处理
+│   │       │   ├── interaction-manager.ts # 交互管理
+│   │       │   ├── magic-handler.ts     # 武功处理
+│   │       │   ├── camera-controller.ts # 镜头控制
+│   │       │   ├── loader.ts            # 存档加载器
+│   │       │   ├── storage.ts           # 存档存储
+│   │       │   ├── performance-stats.ts # 性能统计
+│   │       │   └── script-api/          # 结构化脚本 API
+│   │       ├── script/          # 剧本系统（180+ 命令）
+│   │       │   ├── parser.ts, executor.ts
+│   │       │   └── commands/    # 命令处理器
+│   │       ├── sprite/          # 精灵基类
+│   │       ├── utils/           # 工具模块
+│   │       ├── wasm/            # WASM 集成
+│   │       └── weather/         # 天气系统（rain, snow, screen-droplet）
 │   │
-│   └── web/                     # @miu2d/web - React 应用（~12k 行）
-│       ├── src/
-│       │   ├── components/      # React 组件
-│       │   │   ├── game/        # 游戏核心组件
-│       │   │   │   ├── Game.tsx
-│       │   │   │   ├── GameCanvas.tsx
-│       │   │   │   └── GameUI.tsx
-│       │   │   │
-│       │   │   └── game/ui/     # UI 组件（29 个）
-│       │   │       ├── classic/ # 经典 ASF 风格
-│       │   │       └── modern/  # 现代风格
-│       │   │
-│       │   ├── pages/           # 页面组件
-│       │   ├── hooks/           # React Hooks
-│       │   ├── styles/          # 样式文件
-│       │   ├── App.tsx
-│       │   └── main.tsx
-│       │
-│       ├── public/              # 静态资源
-│       ├── resources -> ../../resources  # 游戏资源（符号链接）
-│       ├── index.html
-│       ├── package.json
-│       ├── tsconfig.json
-│       └── vite.config.ts
+│   ├── engine-wasm/             # @miu2d/engine-wasm - Rust WASM 模块
+│   │   └── src/                 # PathFinder, AsfDecoder, SpatialHash, MpcDecoder
+│   │
+│   ├── web/                     # @miu2d/web - React 应用（~12k 行）
+│   │   └── src/
+│   │       ├── components/
+│   │       │   ├── common/      # 通用组件（SidePanel, DebugPanel, ResourceFilePicker）
+│   │       │   ├── game/        # 游戏组件
+│   │       │   │   ├── adapters/    # 引擎适配器
+│   │       │   │   ├── hooks/       # 游戏 Hooks
+│   │       │   │   ├── mobile/      # 移动端组件
+│   │       │   │   └── ui/          # UI 组件
+│   │       │   │       ├── classic/ # 经典 ASF 风格
+│   │       │   │       ├── mobile/  # 移动端 UI
+│   │       │   │       └── modern/  # 现代风格
+│   │       │   └── ui/          # 基础 UI 组件
+│   │       ├── pages/
+│   │       │   ├── dashboard/   # 仪表盘（编辑器）
+│   │       │   │   ├── modules/ # 模块编辑页（magic, npc, obj, goods, player, talk, level, shop, scene）
+│   │       │   │   └── sidebar/ # 侧边栏列表面板
+│   │       │   ├── landing/     # 首页
+│   │       │   ├── GameScreen.tsx, GamePlaying.tsx
+│   │       │   ├── LoginPage.tsx, RegisterPage.tsx
+│   │       │   └── NotFoundPage.tsx
+│   │       ├── contexts/, hooks/, i18n/, lib/, styles/
+│   │       └── main.tsx
+│   │
+│   ├── server/                  # @miu2d/server - NestJS + tRPC 后端
+│   │   └── src/
+│   │       ├── db/schema.ts     # 数据库表（21 张表）
+│   │       ├── modules/         # tRPC 路由（17 个模块）
+│   │       ├── storage/         # MinIO/S3 存储
+│   │       ├── trpc/            # tRPC 框架
+│   │       └── email/           # 邮件服务
+│   │
+│   ├── types/                   # @miu2d/types - 共享类型（16 个领域文件）
+│   ├── ui/                      # @miu2d/ui - 通用 UI 组件
+│   ├── viewer/                  # @miu2d/viewer - 资源查看器（ASF/Map/MPC/XnbAudio）
+│   ├── i18n/                    # @miu2d/i18n - 国际化资源
+│   └── asf2msf/                 # @miu2d/asf2msf - Rust CLI 转换工具
 │
 ├── resources/                   # 游戏资源
-│   ├── map/                     # 地图文件 (.map)
-│   ├── asf/                     # 精灵动画 (.asf)
-│   ├── mpc/                     # 资源包 (.mpc)
-│   ├── ini/                     # 配置文件 (.ini)
-│   ├── script/                  # 游戏剧本 (.txt)
-│   ├── save/                    # 存档目录
-│   └── Content/                 # 媒体资源
-│       ├── music/               # 背景音乐 (.ogg)
-│       ├── sound/               # 音效文件 (.ogg)
-│       └── video/               # 视频文件
+│   ├── map/, asf/, mpc/, ini/, script/, save/
+│   └── content/                 # 媒体资源（音乐/音效/视频）
 │
-├── scripts/                     # 工具脚本
-├── docs/                        # 文档
 ├── JxqyHD/                      # C# 参考代码
-│
-├── pnpm-workspace.yaml          # pnpm 工作区配置
-├── package.json                 # 根 package.json
-└── biome.json                   # 代码风格配置
-```
-│   │   │   ├── inputHandler.ts  # 输入处理
-│   │   │   ├── interactionManager.ts  # 交互管理
-│   │   │   ├── magicHandler.ts  # 武功处理
-│   │   │   ├── specialActionHandler.ts  # 特殊动作
-│   │   │   ├── cameraController.ts    # 镜头控制
-│   │   │   ├── collisionChecker.ts    # 碰撞检测
-│   │   │   ├── mapTrapManager.ts      # 地图陷阱
-│   │   │   ├── loader.ts        # 存档加载器
-│   │   │   ├── storage.ts       # 存档存储
-│   │   │   └── scriptContextFactory.ts  # 脚本上下文（130+ 方法）
-│   │   │
-│   │   ├── resource/            # 资源管理
-│   │   │   ├── globalResourceManager.ts  # 全局资源
-│   │   │   ├── resourceLoader.ts # 统一资源加载器（缓存+去重）
-│   │   │   ├── mpc.ts           # MPC 资源包解析
-│   │   │   └── resFile.ts       # 资源文件解析
-│   │   │
-│   │   ├── map/                 # 地图系统
-│   │   │   ├── map.ts           # 地图解析
-│   │   │   ├── renderer.ts      # 地图渲染
-│   │   │   └── mapTrapManager.ts # 陷阱管理
-│   │   │
-│   │   ├── sprite/              # 精灵系统
-│   │   │   ├── sprite.ts        # 精灵类（状态着色）
-│   │   │   └── asf.ts           # ASF 动画加载
-│   │   │
-│   │   ├── character/           # 角色系统
-│   │   │   ├── character.ts     # 角色基类
-│   │   │   ├── npc.ts           # NPC
-│   │   │   ├── npcManager.ts    # NPC 管理
-│   │   │   ├── iniParser.ts     # INI 配置解析
-│   │   │   ├── resFile.ts       # 资源文件解析
-│   │   │   └── level/           # 等级系统
-│   │   │
-│   │   ├── player/              # 玩家系统
-│   │   │   ├── player.ts        # 玩家角色
-│   │   │   ├── goods/           # 物品系统
-│   │   │   │   ├── good.ts
-│   │   │   │   └── goodsListManager.ts
-│   │   │   └── magic/           # 玩家武功
-│   │   │       └── magicListManager.ts
-│   │   │
-│   │   ├── script/              # 剧本系统（3000+ 行）
-│   │   │   ├── parser.ts        # 解析器
-│   │   │   ├── executor.ts      # 执行器
-│   │   │   └── commands/        # 命令处理器（180+ 命令）
-│   │   │       ├── types.ts      # ScriptContext 接口（130+ 方法）
-│   │   │       ├── dialogCommands.ts    # 对话命令
-│   │   │       ├── npcCommands.ts       # NPC 命令
-│   │   │       ├── playerCommands.ts    # 玩家命令
-│   │   │       ├── gameStateCommands.ts # 游戏状态命令
-│   │   │       └── miscCommands.ts      # 杂项命令（商品/镜头/存档/变量/特效）
-│   │   │
-│   │   ├── magic/               # 武功系统
-│   │   │   ├── magicManager.ts  # 武功逻辑管理
-│   │   │   ├── magicSprite.ts   # 武功精灵
-│   │   │   ├── magicRenderer.ts # 武功渲染
-│   │   │   ├── magicLoader.ts   # 武功配置加载
-│   │   │   ├── magicUtils.ts    # 工具函数
-│   │   │   ├── types.ts         # 类型定义（MoveKind/SpecialKind）
-│   │   │   ├── effects/         # 武功特效（12 种 MoveKind）
-│   │   │   │   ├── normalAttack.ts    # 普通飞行攻击
-│   │   │   │   ├── throw.ts           # 投掷
-│   │   │   │   ├── followCharacter.ts # 跟随角色（BUFF）
-│   │   │   │   ├── followEnemy.ts     # 追踪敌人
-│   │   │   │   ├── fixedPosition.ts   # 固定位置
-│   │   │   │   ├── regionBased.ts     # 区域攻击
-│   │   │   │   ├── superMode.ts       # 全屏攻击
-│   │   │   │   ├── specialMoveKinds.ts # 特殊类型（传送/召唤/控制）
-│   │   │   │   └── registry.ts        # 特效注册表
-│   │   │   └── passives/        # 被动效果
-│   │   │       ├── passiveManager.ts
-│   │   │       └── xiuLianEffect.ts   # 修炼效果
-│   │   │
-│   │   ├── obj/                 # 物体系统
-│   │   │   ├── obj.ts
-│   │   │   ├── objManager.ts
-│   │   │   └── objRenderer.ts
-│   │   │
-│   │   ├── gui/                 # 界面状态管理
-│   │   │   ├── guiManager.ts
-│   │   │   ├── buyManager.ts    # 商店管理器
-│   │   │   ├── fonts.ts
-│   │   │   ├── uiSettings.ts
-│   │   │   └── uiConfig.ts      # UI 配置
-│   │   │
-│   │   ├── audio/               # 音效系统
-│   │   │   └── audioManager.ts  # Web Audio API 实现
-│   │   │
-│   │   ├── effects/             # 屏幕特效系统
-│   │   │   └── screenEffects.ts # 淡入淡出/颜色渲染/闪屏/水波纹
-│   │   │
-│   │   ├── weather/             # 天气系统
-│   │   │   ├── weatherManager.ts # 天气管理器
-│   │   │   ├── rain.ts          # 雨（含闪电）
-│   │   │   ├── raindrop.ts
-│   │   │   ├── snow.ts          # 雪
-│   │   │   └── snowflake.ts
-│   │   │
-│   │   ├── timer/               # 计时器系统
-│   │   │   └── timerManager.ts  # 限时任务
-│   │   │
-│   │   ├── listManager/         # 列表管理
-│   │   │   ├── memoListManager.ts   # 任务记录
-│   │   │   ├── talkTextList.ts      # 对话文本
-│   │   │   └── partnerList.ts       # 伙伴名单
-│   │   │
-│   │   ├── utils/               # 工具模块
-│   │   │
-│   │   └── debug/               # 调试系统
-│   │       └── debugManager.ts
-│   │
-│   ├── components/              # React 组件（~12k 行）
-│   │   ├── game/                # 游戏核心组件
-│   │   │   ├── Game.tsx         # 游戏主组件（Canvas + UI）
-│   │   │   ├── GameCanvas.tsx   # Canvas 渲染
-│   │   │   ├── GameUI.tsx       # 游戏内 UI 层
-│   │   │   ├── LoadingOverlay.tsx
-│   │   │   └── MapViewer.tsx    # 地图查看器（开发工具）
-│   │   │
-│   │   └── game/ui/             # UI 组件（29 个）
-│   │       ├── DialogUI.tsx     # 对话框
-│   │       ├── SelectionUI.tsx  # 选项菜单
-│   │       ├── SelectionMultipleUI.tsx # 多选菜单
-│   │       ├── GoodsGui.tsx     # 物品栏
-│   │       ├── EquipGui.tsx     # 装备界面
-│   │       ├── NpcEquipGui.tsx  # NPC 装备
-│   │       ├── MagicGui.tsx     # 武功界面
-│   │       ├── StateGui.tsx     # 状态界面
-│   │       ├── MemoGui.tsx      # 任务记录
-│   │       ├── XiuLianGui.tsx   # 修炼界面
-│   │       ├── BuyGui.tsx       # 商店界面
-│   │       ├── LittleMapGui.tsx # 小地图
-│   │       ├── SystemGui.tsx    # 系统菜单
-│   │       ├── SaveLoadGui.tsx  # 存读档界面
-│   │       ├── TopGui.tsx       # 顶部状态栏
-│   │       ├── BottomGui.tsx    # 底部快捷栏
-│   │       ├── BottomStateGui.tsx # 底部状态
-│   │       ├── SidePanel.tsx    # 侧边面板
-│   │       ├── MessageGui.tsx   # 消息提示
-│   │       ├── NpcLifeBar.tsx   # NPC 血条
-│   │       ├── GameCursor.tsx   # 游戏光标
-│   │       ├── ItemTooltip.tsx  # 物品提示
-│   │       ├── MagicTooltip.tsx # 武功提示
-│   │       ├── TimerGui.tsx     # 计时器显示
-│   │       ├── VideoPlayer.tsx  # 视频播放器
-│   │       ├── TitleGui.tsx     # 标题界面
-│   │       ├── TitleSettingsModal.tsx # 设置弹窗
-│   │       ├── AsfAnimatedSprite.tsx # ASF 动画组件
-│   │       ├── ScrollBar.tsx    # 滚动条
-│   │       └── DebugPanel/      # 调试面板（模块化，10 个区块）
-│   │           ├── DebugPanel.tsx
-│   │           ├── sections/    # 各区块组件
-│   │           │   ├── CharacterSection.tsx
-│   │           │   ├── MapSection.tsx
-│   │           │   ├── ScriptSection.tsx
-│   │           │   ├── ScriptHistorySection.tsx
-│   │           │   ├── ScriptExecuteSection.tsx
-│   │           │   ├── VariablesSection.tsx
-│   │           │   ├── ItemMagicSection.tsx
-│   │           │   ├── ResourceSection.tsx
-│   │           │   ├── XiuLianSection.tsx
-│   │           │   └── QuickActionsSection.tsx
-│   │           └── ...
-│   │
-│   ├── pages/                   # 页面组件
-│   │   ├── GameScreen.tsx       # 游戏主页面
-│   │   ├── TitleScreen.tsx      # 标题页面
-│   │   ├── MapViewerScreen.tsx  # 地图查看器
-│   │   ├── NotFoundPage.tsx     # 404 页面
-│   │   └── landing/             # 落地页（13 个组件）
-│   │       ├── LandingPage.tsx
-│   │       ├── Hero.tsx
-│   │       ├── Features.tsx
-│   │       ├── TechStack.tsx
-│   │       └── ...
-│   │
-│   ├── hooks/                   # React Hooks
-│   │   └── useGameEngine.ts
-│   │
-│   ├── styles/                  # 样式文件
-│   │   └── index.css
-│   │
-│   ├── constants/               # 常量定义
-│   │
-│   ├── App.tsx                  # 应用入口（页面路由）
-│   └── main.tsx                 # 主入口
-│
-├── resources/                   # 游戏资源
-│   ├── map/                     # 地图文件 (.map)
-│   ├── asf/                     # 精灵动画 (.asf)
-│   ├── mpc/                     # 资源包 (.mpc)
-│   ├── ini/                     # 配置文件 (.ini)
-│   ├── script/                  # 游戏剧本 (.txt)
-│   ├── save/                    # 存档目录
-│   └── Content/                 # 媒体资源
-│       ├── music/               # 背景音乐 (.ogg)
-│       ├── sound/               # 音效文件 (.ogg)
-│       └── video/               # 视频文件
-│
-├── scripts/                     # 工具脚本
-│   ├── convert-encoding.sh      # 文本编码转换 (GBK → UTF-8)
-│   └── convert-sound.py         # 音效转换 (XNB → OGG)
-│
-├── docs/                        # 文档和截图
-│
-└── JxqyHD/                      # C# 参考代码
-    └── Engine/                  # 引擎源码参考
+├── docs/                        # 文档
+└── scripts/                     # 工具脚本
 ```
 
 ---

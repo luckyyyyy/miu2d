@@ -679,7 +679,10 @@ export const MapViewer = memo(
       if (!webglCanvas || !mapRenderer || !container) return;
 
       // 懒初始化 IRenderer（Canvas 挂载后首次绘制时创建）
-      if (!tileRendererRef.current) {
+      // 当 canvas 元素因条件渲染被卸载/重新挂载后，旧 renderer 的上下文已失效，
+      // 需要检测 canvas 变化并重建 renderer（修复场景切换黑屏问题）
+      if (!tileRendererRef.current || tileRendererRef.current.getCanvas() !== webglCanvas) {
+        tileRendererRef.current?.dispose();
         tileRendererRef.current = createRenderer(webglCanvas, rendererBackend);
       }
       const tileRenderer = tileRendererRef.current;

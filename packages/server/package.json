@@ -14,7 +14,8 @@
     "start": "node dist/main.js",
     "tsc": "tsc --noEmit",
     "db:seed": "tsx src/seed.ts",
-    "db:migrate": "drizzle-kit push"
+    "db:migrate": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio --port 4983"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.982.0",

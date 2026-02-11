@@ -285,6 +285,7 @@ export function SceneDetailPage() {
   } | null>(null);
 
   // 场景切换时清除旧地图数据和标记选中
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally reset all state when sceneId changes
   useEffect(() => {
     setMapData(null);
     setMapError(null);
@@ -293,7 +294,7 @@ export function SceneDetailPage() {
     setSelectedObjIdx(null);
     setLocalNpcEntries(null);
     setLocalObjEntries(null);
-  }, []);
+  }, [sceneId]);
 
   // 加载地图 MMF
   useEffect(() => {

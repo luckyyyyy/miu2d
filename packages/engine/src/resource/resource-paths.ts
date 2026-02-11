@@ -392,10 +392,6 @@ export const DefaultPaths = {
   get levelNpc(): string {
     return ResourcePath.level("level-npc.ini");
   },
-  /** 武功经验配置 */
-  get magicExp(): string {
-    return ResourcePath.level("MagicExp.ini");
-  },
   /** UI 设置文件 (Content) */
   get uiSettingsContent(): string {
     return ResourcePath.ui("UI_Settings.ini");

@@ -22,7 +22,6 @@
  */
 
 import type { AudioManager } from "../audio";
-import { ResourcePath } from "../resource/resource-paths";
 import { logger } from "../core/logger";
 import type { ScreenEffects } from "../renderer/screen-effects";
 import type { GuiManager } from "../gui/gui-manager";
@@ -33,7 +32,6 @@ import type { ObjManager } from "../obj";
 import type { GoodsListManager } from "../player/goods";
 import type { MagicListManager } from "../player/magic/magic-list-manager";
 import type { Player } from "../player/player";
-import { resourceLoader } from "../resource/resource-loader";
 import { getGameConfig, getPlayersData } from "../resource/resource-loader";
 import type { ScriptExecutor } from "../script/executor";
 import { type CharacterSaveSlot, formatSaveTime, type GoodsItemData, type MagicItemData, type NpcSaveItem, type ObjSaveItem, type PlayerSaveData, SAVE_VERSION, type SaveData, type TrapGroupValue } from "./storage";
@@ -57,7 +55,6 @@ export interface LoaderDependencies {
   map: MapBase;
   getScriptExecutor: () => ScriptExecutor;
   loadMap: (mapPath: string) => Promise<void>;
-  parseIni: (content: string) => Record<string, Record<string, string>>;
   clearScriptCache: () => void;
   clearVariables: () => void;
   /** 清理精灵/ASF/武功等资源缓存（新游戏/读档时调用，释放 JS 堆和 GPU 纹理） */
@@ -266,21 +263,16 @@ export class Loader {
   }
 
   /**
-   * 读取存档
+   * 加载初始存档（由 NewGame.txt 脚本调用 LoadGame(0)）
    *
    * 加载流程：
-   * 1. 清理 managers（index != 0 时）
-   * 2. 加载 Game.ini（地图、NPC、物体、BGM）
-   * 3. 加载 Magic.ini、Goods.ini、memo.ini
-   * 4. 加载 Player.ini
-   * 5. 加载 Traps.ini
-   *
-   * @param index 存档索引 (0 = 初始存档, 1-7 = 用户存档)
+   * 1. 从 /api/config 获取初始地图和 BGM
+   * 2. 加载地图和物体
+   * 3. 从 /api/data 加载武功、物品、玩家数据
    */
   async loadGame(index: number): Promise<void> {
-    // index 0 时不清理 managers（由 NewGame.txt 调用）
-    // index 1-7 时先清理 managers
-    const isInitializeGame = index !== 0;
+    // index 0 = 初始存档（由 NewGame.txt 脚本调用 LoadGame(0)）
+    // 用户存档通过 loadGameFromJSON（云存档）加载，不再走此路径
 
     const {
       player,
@@ -289,288 +281,88 @@ export class Loader {
       audioManager,
       memoListManager,
       loadMap,
-      parseIni,
-      clearScriptCache,
-      clearVariables,
     } = this.deps;
 
     // 从 Player 获取 GoodsListManager 和 MagicListManager
     const goodsListManager = player.getGoodsListManager();
     const magicListManager = player.getMagicListManager();
 
-    logger.log(`[Loader] Loading game save index: ${index}, isInitializeGame: ${isInitializeGame}`);
-
-    const { getScriptExecutor, guiManager } = this.deps;
+    logger.log(`[Loader] Loading initial game save (index=${index})`);
 
     // 进度报告：地图加载前 0-5%
     this.reportProgress(0, "准备加载...");
 
     try {
-      // Step 1: 清理 managers
-      // Reference: Loader.LoadGame(bool isInitializeGame)
-      if (isInitializeGame) {
-        this.reportProgress(2, "清理数据...");
-        logger.debug(`[Loader] Clearing all managers...`);
-        // 停止所有脚本
-        const scriptExecutor = getScriptExecutor();
-        scriptExecutor.stopAllScripts();
-        // 重置脚本执行器状态
-        // Utils.ClearScriptParserCache()
-        clearScriptCache();
-        // 清理变量
-        clearVariables();
-        // 清理精灵/ASF/武功等资源缓存，释放 JS 堆和 GPU 纹理
-        this.deps.clearResourceCaches();
-        // 由 MagicManager 自己管理清理
-        // NpcManager.ClearAllNpc()
-        npcManager.clearAllNpc();
-        // ObjManager.ClearAllObjAndFileName()
-        objManager.clearAll();
-        // 释放地图（会在 loadMap 时重新加载）
-        // GuiManager.CloseTimeLimit()
-        guiManager.closeTimeLimit();
-        // GuiManager.EndDialog()
-        guiManager.endDialog();
-        // BackgroundMusic.Stop()
-        audioManager.stopMusic();
-        // Globals.IsInputDisabled = false
-        // Globals.IsSaveDisabled = false
-        this.deps.setSaveEnabled(true);
-        // 重置绘制颜色为白色（参考 C#: LoadGameFile() 总是显式设置颜色）
-        this.deps.screenEffects.resetColors();
-        // 启用 NPC AI
-      }
-
-      // 确定存档路径
-      // index 0 = resources/save/game/Game.ini (初始存档)
-      // index 1-7 = resources/save/rpgN/Game.ini (用户存档)
-      const basePath = ResourcePath.saveBase(index);
-
-      // Step 2: 加载 Game.ini (5%)
+      // Step 1: 从 /api/config 获取初始地图和 BGM
       this.reportProgress(5, "读取配置...");
-      const gameIniPath = `${basePath}/Game.ini`;
-      const content = await resourceLoader.loadText(gameIniPath);
-      if (!content) {
-        logger.error(`[Loader] Failed to load Game.ini: ${gameIniPath}`);
-        return;
-      }
-
-      const sections = parseIni(content);
-      const stateSection = sections.State;
-      const optionSection = sections.Option;
-      const timerSection = sections.Timer;
-      const varSection = sections.Var;
-      const parallelScriptSection = sections.ParallelScript;
+      const config = getGameConfig();
+      const initialMap = config?.initialMap || "map002";
+      const initialNpc = config?.initialNpc || "";
+      const initialObj = config?.initialObj || "";
+      const initialBgm = config?.initialBgm || "";
+      logger.debug(`[Loader] Initial save: map=${initialMap}, npc=${initialNpc}, obj=${initialObj}, bgm=${initialBgm}`);
 
       // 玩家角色索引 - 默认 0
       let chrIndex = 0;
 
-      // ========== [State] Section ==========
-      if (stateSection) {
-        // 加载地图 (注意：地图 MPC 进度由 mapLoadProgressCallback 报告)
-        const mapName = stateSection.Map;
-        if (mapName) {
-          this.reportProgress(10, "加载地图...");
-          logger.debug(`[Loader] Loading map: ${mapName}`);
-          await loadMap(mapName);
-        }
-
-        // 加载 NPC (注意：会保留 partners)
-        const npcFile = stateSection.Npc;
-        if (npcFile) {
-          this.reportProgress(92, "加载 NPC...");
-          logger.debug(`[Loader] Loading NPC file: ${npcFile}`);
-          await npcManager.loadNpcFile(npcFile);
-        }
-
-        // 加载物体
-        const objFile = stateSection.Obj;
-        if (objFile) {
-          this.reportProgress(94, "加载物体...");
-          logger.debug(`[Loader] Loading Obj file: ${objFile}`);
-          await objManager.load(objFile);
-        }
-
-        // 加载背景音乐
-        const bgm = stateSection.Bgm;
-        if (bgm) {
-          audioManager.playMusic(bgm);
-        }
-
-        // 玩家角色索引（支持多主角）
-        // Globals.PlayerIndex = int.Parse(state["Chr"]);
-        chrIndex = parseInt(stateSection.Chr || "0", 10);
-        player.setPlayerIndex(chrIndex);
-
-        // 脚本显示地图坐标
-        if (stateSection.ScriptShowMapPos) {
-          const showMapPos = parseInt(stateSection.ScriptShowMapPos, 10) > 0;
-          this.deps.setScriptShowMapPos(showMapPos);
-          logger.debug(`[Loader] ScriptShowMapPos: ${showMapPos}`);
-        }
+      // 加载地图
+      if (initialMap) {
+        this.reportProgress(10, "加载地图...");
+        logger.debug(`[Loader] Loading map: ${initialMap}`);
+        await loadMap(initialMap);
       }
 
-      // ========== [Option] Section ==========
-      // LoadGameFile() option section
-      if (optionSection) {
-        // MapTime
-        if (optionSection.MapTime) {
-          const mapTime = parseInt(optionSection.MapTime, 10);
-          this.deps.setMapTime(mapTime);
-          this.deps.map.mapTime = mapTime;
-          logger.debug(`[Loader] MapTime: ${mapTime}`);
-        }
-
-        // SnowShow - 雪效果
-        if (optionSection.SnowShow) {
-          const snowShow = parseInt(optionSection.SnowShow, 10) !== 0;
-          this.deps.setWeatherState({
-            snowShow,
-            rainFile: optionSection.RainFile || "",
-          });
-          logger.debug(`[Loader] SnowShow: ${snowShow}`);
-        }
-
-        // Water - 水波效果
-        if (optionSection.Water) {
-          const waterEnabled = parseInt(optionSection.Water, 10) !== 0;
-          this.deps.setWaterEffectEnabled(waterEnabled);
-          logger.debug(`[Loader] Water effect: ${waterEnabled}`);
-        }
-
-        // MpcStyle - 地图绘制颜色
-        // MapBase.DrawColor = StorageBase.GetColorFromString(option["MpcStyle"])
-        // 格式: BBGGRR00
-        // 参考 C#: 总是显式设置颜色（有值则解析，无值则重置为白色）
-        if (optionSection.MpcStyle && optionSection.MpcStyle !== "FFFFFF00") {
-          const hex = optionSection.MpcStyle;
-          // 格式是 BBGGRR00，需要转换
-          const b = parseInt(hex.substring(0, 2), 16) || 255;
-          const g = parseInt(hex.substring(2, 4), 16) || 255;
-          const r = parseInt(hex.substring(4, 6), 16) || 255;
-          this.deps.screenEffects.setMapColor(r, g, b);
-          logger.debug(`[Loader] MpcStyle: R=${r} G=${g} B=${b}`);
-        } else {
-          this.deps.screenEffects.setMapColor(255, 255, 255);
-        }
-
-        // AsfStyle - 精灵绘制颜色
-        if (optionSection.AsfStyle && optionSection.AsfStyle !== "FFFFFF00") {
-          const hex = optionSection.AsfStyle;
-          const b = parseInt(hex.substring(0, 2), 16) || 255;
-          const g = parseInt(hex.substring(2, 4), 16) || 255;
-          const r = parseInt(hex.substring(4, 6), 16) || 255;
-          this.deps.screenEffects.setSpriteColor(r, g, b);
-          logger.debug(`[Loader] AsfStyle: R=${r} G=${g} B=${b}`);
-        } else {
-          this.deps.screenEffects.setSpriteColor(255, 255, 255);
-        }
-
-        // SaveDisabled - 禁止存档
-        if (optionSection.SaveDisabled) {
-          const saveDisabled = parseInt(optionSection.SaveDisabled, 10) > 0;
-          this.deps.setSaveEnabled(!saveDisabled);
-          logger.debug(`[Loader] SaveDisabled: ${saveDisabled}`);
-        }
-
-        // IsDropGoodWhenDefeatEnemyDisabled - 禁止掉落
-        if (optionSection.IsDropGoodWhenDefeatEnemyDisabled) {
-          const dropDisabled = parseInt(optionSection.IsDropGoodWhenDefeatEnemyDisabled, 10) > 0;
-          this.deps.setDropEnabled(!dropDisabled);
-          logger.debug(`[Loader] DropDisabled: ${dropDisabled}`);
-        }
+      // 加载 NPC
+      if (initialNpc) {
+        this.reportProgress(92, "加载 NPC...");
+        logger.debug(`[Loader] Loading NPC file: ${initialNpc}`);
+        await npcManager.loadNpcFile(initialNpc);
       }
 
-      // ========== [Timer] Section ==========
-      // LoadGameFile() timer section
-      if (timerSection) {
-        const isOn = timerSection.IsOn !== "0";
-        if (isOn) {
-          const totalSecond = parseInt(timerSection.TotalSecond || "0", 10);
-          const isTimerWindowShow = timerSection.IsTimerWindowShow === "1";
-          const isScriptSet = timerSection.IsScriptSet !== "0";
-          const triggerTime = parseInt(timerSection.TriggerTime || "0", 10);
-          const timerScript = timerSection.TimerScript || "";
-
-          this.deps.setTimerState({
-            isOn: true,
-            totalSecond,
-            isHidden: !isTimerWindowShow,
-            isScriptSet,
-            timerScript,
-            triggerTime,
-          });
-          logger.debug(`[Loader] Timer: ${totalSecond}s, script=${timerScript}@${triggerTime}s`);
-        }
+      // 加载物体
+      if (initialObj) {
+        this.reportProgress(94, "加载物体...");
+        logger.debug(`[Loader] Loading Obj file: ${initialObj}`);
+        await objManager.load(initialObj);
       }
 
-      // ========== [Var] Section - 脚本变量 ==========
-      // Reference: ScriptExecuter.LoadVariables(data["Var"])
-      if (varSection && this.deps.setVariables) {
-        const variables: Record<string, number> = {};
-        for (const [key, value] of Object.entries(varSection)) {
-          // 保存时去掉了 $ 前缀，加载时要加回来
-          const varName = `$${key}`;
-          variables[varName] = parseInt(value, 10) || 0;
-        }
-        this.deps.setVariables(variables);
-        logger.debug(`[Loader] Loaded ${Object.keys(variables).length} variables from [Var]`);
+      // 加载背景音乐
+      if (initialBgm) {
+        audioManager.playMusic(initialBgm);
       }
 
-      // ========== [ParallelScript] Section - 并行脚本 ==========
-      // Reference: ScriptManager.LoadParallelScript(data["ParallelScript"])
-      if (parallelScriptSection && this.deps.loadParallelScripts) {
-        const scripts: Array<{ filePath: string; waitMilliseconds: number }> = [];
-        for (const [, value] of Object.entries(parallelScriptSection)) {
-          // 格式: "scriptPath:delayMs"
-          const parts = value.split(":");
-          if (parts.length >= 2) {
-            scripts.push({
-              filePath: parts[0],
-              waitMilliseconds: parseInt(parts[1], 10) || 0,
-            });
-          }
-        }
-        if (scripts.length > 0) {
-          this.deps.loadParallelScripts(scripts);
-          logger.debug(`[Loader] Loaded ${scripts.length} parallel scripts`);
-        }
-      }
-
-      // Step 2.5: 预读玩家 npcIni 以设置 NpcIniIndex
+      // Step 2: 预读玩家 npcIni 以设置 NpcIniIndex
       // 必须在加载武功列表之前设置，否则 SpecialAttackTexture 预加载会使用错误的索引
-      // 例如 z-杨影枫2.ini -> NpcIniIndex=2 -> 云生结海攻击2.asf（而非默认的1）
 
-      // 初始存档 (index=0) 优先使用 /api/config 的 playerKey，而非从 chrIndex 推导
-      // 这样配置 playerKey: "Player1.ini" 时能正确加载对应角色数据
+      // 优先使用 /api/config 的 playerKey
       let playerKey = `Player${chrIndex}.ini`;
-      if (index === 0) {
-        const configPlayerKey = getGameConfig()?.playerKey;
-        if (configPlayerKey) {
-          playerKey = configPlayerKey;
-          // 从 playerKey 提取 chrIndex（如 "Player1.ini" → 1）
-          const match = configPlayerKey.match(/Player(\d+)\.ini/i);
-          if (match) {
-            chrIndex = parseInt(match[1], 10);
-            player.setPlayerIndex(chrIndex);
-            logger.debug(`[Loader] Using config playerKey: ${configPlayerKey}, chrIndex=${chrIndex}`);
-          }
+      const configPlayerKey = getGameConfig()?.playerKey;
+      if (configPlayerKey) {
+        playerKey = configPlayerKey;
+        // 从 playerKey 提取 chrIndex（如 "Player1.ini" → 1）
+        const match = configPlayerKey.match(/Player(\d+)\.ini/i);
+        if (match) {
+          chrIndex = parseInt(match[1], 10);
+          player.setPlayerIndex(chrIndex);
+          logger.debug(`[Loader] Using config playerKey: ${configPlayerKey}, chrIndex=${chrIndex}`);
         }
       }
 
-      // 初始存档 (index=0) 从 API 数据加载玩家
-      const apiPlayerData = index === 0 ? this.findApiPlayer(playerKey) : null;
+      // 从 API 数据加载玩家
+      const apiPlayerData = this.findApiPlayer(playerKey);
 
       if (apiPlayerData?.npcIni) {
         await player.setNpcIni(apiPlayerData.npcIni);
         logger.debug(`[Loader] Pre-set NpcIni from API: ${apiPlayerData.npcIni} (index=${player.npcIniIndex})`);
       }
 
-      // Step 3: 加载 Magic、Goods、Memo (72-78%)
-      // 先停止替换并清理替换列表
+      // Step 3: 加载 Magic、Goods (72-78%)
       this.reportProgress(72, "加载武功...");
       magicListManager.stopReplace();
       magicListManager.clearReplaceList();
+
+      // 初始化武功经验配置（从 /api/config 读取）
+      magicListManager.initializeMagicExp();
 
       // 从 API 数据加载武功
       if (apiPlayerData?.initialMagics && apiPlayerData.initialMagics.length > 0) {
@@ -595,10 +387,9 @@ export class Loader {
         logger.debug(`[Loader] Loaded ${goodsItems.length} goods from API data`);
       }
 
+      // 初始存档的备忘为空
       this.reportProgress(76, "加载备忘...");
-      const memoPath = `${basePath}/memo.ini`;
-      logger.debug(`[Loader] Loading memo from: ${memoPath}`);
-      await this.loadMemoList(memoPath, memoListManager, parseIni);
+      memoListManager.renewList();
 
       // Step 4: 加载玩家 (78-88%)
       this.reportProgress(78, "加载玩家...");
@@ -615,31 +406,10 @@ export class Loader {
 
       this.reportProgress(88, "应用装备特效...");
       // 应用装备特效
-      // Reference: Loader.LoadPlayer() -> GoodsListManager.ApplyEquipSpecialEffectFromList
       goodsListManager.applyEquipSpecialEffectFromList();
 
       // 应用武功效果（FlyIni 替换等）
-      // Reference: Loader.LoadPlayer() -> Globals.ThePlayer.LoadMagicEffect()
       player.loadMagicEffect();
-
-      // Step 5: 加载同伴 (partner) (90-92%)
-      // Reference: Loader.LoadPartner() -> NpcManager.LoadPartner(StorageBase.PartnerFilePath)
-      this.reportProgress(90, "加载伙伴...");
-      const partnerPath = `${basePath}/partner${chrIndex}.ini`;
-      await this.loadPartner(partnerPath, npcManager, parseIni);
-
-      // Step 6: 陷阱已从 MMF 地图数据内嵌加载（无需外部 Traps.ini）
-      // 加载陷阱忽略列表（可选，如果存在）(92-96%)
-      this.reportProgress(92, "加载陷阱配置...");
-      try {
-        const trapIgnorePath = `${basePath}/TrapIndexIgnore.ini`;
-        const trapIgnoreContent = await resourceLoader.loadText(trapIgnorePath);
-        if (trapIgnoreContent) {
-          this.loadTrapIndexIgnoreList(trapIgnoreContent, parseIni);
-        }
-      } catch { // file may not exist
-        // 忽略加载失败（文件可能不存在）
-      }
 
       // 摄像机居中到玩家 (96-98%)
       this.reportProgress(96, "初始化摄像机...");
@@ -653,49 +423,6 @@ export class Loader {
       objManager.debugPrintObstacleObjs();
     } catch (error) {
       logger.error(`[Loader] Error loading game save:`, error);
-    }
-  }
-
-  /**
-   * 加载同伴 (partner)
-   */
-  private async loadPartner(
-    filePath: string,
-    npcManager: NpcManager,
-    parseIni: (content: string) => Record<string, Record<string, string>>
-  ): Promise<void> {
-    try {
-      const content = await resourceLoader.loadText(filePath);
-      if (!content) {
-        logger.debug(`[Loader] No partner file found: ${filePath}`);
-        return;
-      }
-
-      const sections = parseIni(content);
-      const headSection = sections.Head;
-      const count = parseInt(headSection?.Count || "0", 10);
-
-      if (count === 0) {
-        logger.debug(`[Loader] Partner file has no partners: ${filePath}`);
-        return;
-      }
-
-      // Reference: 先移除所有现有的 partner
-      npcManager.removeAllPartner();
-
-      // 加载每个 NPC section
-      for (let i = 0; i < count; i++) {
-        const sectionName = `NPC${i.toString().padStart(3, "0")}`;
-        const npcSection = sections[sectionName];
-        if (npcSection) {
-          logger.debug(`[Loader] Loading partner: ${sectionName}`);
-          await npcManager.createNpcFromData(npcSection);
-        }
-      }
-
-      logger.debug(`[Loader] Loaded ${count} partners from ${filePath}`);
-    } catch (error) {
-      logger.warn(`[Loader] Error loading partner file:`, error);
     }
   }
 
@@ -716,69 +443,6 @@ export class Loader {
     const players = getPlayersData();
     if (!players) return null;
     return players.find(p => p.index === index) ?? null;
-  }
-
-  /**
-   * 加载陷阱忽略列表
-   *
-   * 格式：
-   * [Init]
-   * 0=5
-   * 1=3
-   * 值是被忽略的陷阱索引
-   */
-  private loadTrapIndexIgnoreList(
-    content: string,
-    parseIni: (content: string) => Record<string, Record<string, string>>
-  ): void {
-    const sections = parseIni(content);
-    // 使用第一个 section (通常是 [Init])
-    const initSection = sections.Init || Object.values(sections)[0];
-    if (!initSection) return;
-
-    const ignoredIndices: number[] = [];
-    for (const [, value] of Object.entries(initSection)) {
-      const trapIndex = parseInt(value, 10);
-      if (!Number.isNaN(trapIndex)) {
-        ignoredIndices.push(trapIndex);
-      }
-    }
-
-    if (ignoredIndices.length > 0) {
-      this.deps.map.loadTrapIndexIgnoreList(ignoredIndices);
-      logger.debug(`[Loader] Loaded ${ignoredIndices.length} ignored trap indices`);
-    }
-  }
-
-  /**
-   * 加载备忘录列表
-   * Uses unified resourceLoader for text data fetching
-   */
-  private async loadMemoList(
-    path: string,
-    memoListManager: MemoListManager,
-    parseIni: (content: string) => Record<string, Record<string, string>>
-  ): Promise<void> {
-    try {
-      const content = await resourceLoader.loadText(path);
-      if (!content) {
-        logger.warn(`[Loader] No memo file found: ${path}`);
-        memoListManager.renewList();
-        return;
-      }
-
-      const sections = parseIni(content);
-      const memoSection = sections.Memo;
-
-      if (memoSection) {
-        memoListManager.loadList(memoSection);
-      } else {
-        memoListManager.renewList();
-      }
-    } catch (error) {
-      logger.warn(`[Loader] Error loading memo list:`, error);
-      memoListManager.renewList();
-    }
   }
 
   // ============= JSON 存档系统 =============

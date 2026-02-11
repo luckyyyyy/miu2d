@@ -229,9 +229,12 @@ export {
   GameConfigSchema,
   GetGameConfigInputSchema,
   UpdateGameConfigInputSchema,
+  MagicExpLevelEntrySchema,
+  MagicExpConfigSchema,
   createDefaultDropConfig,
   createDefaultPlayerConfig,
   createDefaultGameConfig,
+  createDefaultMagicExpConfig,
   mergeGameConfig,
 } from "./gameConfig.js";
 export type {
@@ -252,6 +255,8 @@ export type {
   GameConfig,
   GetGameConfigInput,
   UpdateGameConfigInput,
+  MagicExpLevelEntry,
+  MagicExpConfig,
 } from "./gameConfig.js";
 
 // 商店类型

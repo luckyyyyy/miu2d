@@ -3,14 +3,13 @@
  * 管理玩家的武功列表和武功经验配置
  */
 
-import { DefaultPaths, ResourcePath } from "../../resource/resource-paths";
+import { ResourcePath } from "../../resource/resource-paths";
 import { logger } from "../../core/logger";
 import { getMagic, getMagicAtLevel, preloadMagicAsf } from "../../magic/magic-loader";
 import type { MagicData, MagicItemInfo } from "../../magic/types";
 import { createDefaultMagicItemInfo } from "../../magic/types";
-import { resourceLoader } from "../../resource/resource-loader";
+import { getGameConfig } from "../../resource/resource-loader";
 import { loadAsf } from "../../resource/asf";
-import { parseIni } from "../../utils";
 
 /**
  * 武功经验配置
@@ -99,57 +98,27 @@ export class MagicListManager {
   // ============= 武功经验配置 =============
 
   /**
-   * 初始化武功经验配置
-   * ()
+   * 初始化武功经验配置（从 /api/config 加载）
    */
-  async initializeMagicExp(): Promise<void> {
+  initializeMagicExp(): void {
     if (this.magicExpInitialized) return;
 
-    const path = DefaultPaths.magicExp;
-    try {
-      const content = await resourceLoader.loadText(path);
-      if (!content) {
-        logger.warn(`[MagicListManager] MagicExp.ini not found`);
-        return;
-      }
-
-      this.parseMagicExpIni(content);
-      this.magicExpInitialized = true;
-      logger.log(
-        `[MagicListManager] MagicExp loaded: ${this.magicExpConfig.expByLevel.size} levels`
-      );
-    } catch (error) {
-      logger.error(`[MagicListManager] Error loading MagicExp.ini:`, error);
-    }
-  }
-
-  /**
-   * 解析武功经验配置文件
-   */
-  private parseMagicExpIni(content: string): void {
-    const sections = parseIni(content);
-
-    // Parse [Exp] section
-    if (sections.Exp) {
-      for (const [key, value] of Object.entries(sections.Exp)) {
-        const level = parseInt(key, 10);
-        const exp = parseInt(value, 10);
-        if (!Number.isNaN(level) && !Number.isNaN(exp)) {
-          this.magicExpConfig.expByLevel.set(level, exp);
-        }
-      }
+    const gameConfig = getGameConfig();
+    if (!gameConfig?.magicExp) {
+      logger.warn(`[MagicListManager] No magicExp in API config, using defaults`);
+      return;
     }
 
-    // Parse [XiuLianMagicExp] section
-    if (sections.XiuLianMagicExp?.Fraction) {
-      this.magicExpConfig.xiuLianMagicExpFraction =
-        parseFloat(sections.XiuLianMagicExp.Fraction) || 1.0;
+    const { expByLevel, xiuLianMagicExpFraction, useMagicExpFraction } = gameConfig.magicExp;
+    for (const entry of expByLevel) {
+      this.magicExpConfig.expByLevel.set(entry.level, entry.exp);
     }
-
-    // Parse [UseMagicExp] section
-    if (sections.UseMagicExp?.Fraction) {
-      this.magicExpConfig.useMagicExpFraction = parseFloat(sections.UseMagicExp.Fraction) || 1.0;
-    }
+    this.magicExpConfig.xiuLianMagicExpFraction = xiuLianMagicExpFraction;
+    this.magicExpConfig.useMagicExpFraction = useMagicExpFraction;
+    this.magicExpInitialized = true;
+    logger.log(
+      `[MagicListManager] MagicExp loaded from API: ${this.magicExpConfig.expByLevel.size} levels, xiuLian=${xiuLianMagicExpFraction}, useMagic=${useMagicExpFraction}`
+    );
   }
 
   /**

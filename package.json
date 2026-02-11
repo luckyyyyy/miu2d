@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "concurrently -n web,server \"pnpm --filter @miu2d/web dev\" \"pnpm --filter @miu2d/server dev\"",
+    "dev": "concurrently -n web,server,studio \"pnpm --filter @miu2d/web dev\" \"pnpm --filter @miu2d/server dev\" \"pnpm --filter @miu2d/server db:studio\"",
     "dev:web": "pnpm --filter @miu2d/web dev",
     "dev:server": "pnpm --filter @miu2d/server dev",
     "build": "pnpm -r build",

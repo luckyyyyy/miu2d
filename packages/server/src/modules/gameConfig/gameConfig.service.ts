@@ -133,9 +133,9 @@ export class GameConfigService {
 			if (!config.gameEnabled) {
 				return { gameEnabled: false } as GameConfigData;
 			}
-			// playerKey 未设置时，不返回 player/drop 配置
+			// playerKey 未设置时，不返回 player/drop/magicExp 配置
 			if (!config.playerKey) {
-				const { player: _, drop: __, ...rest } = config;
+				const { player: _, drop: __, magicExp: ___, ...rest } = config;
 				return rest;
 			}
 			return config;
