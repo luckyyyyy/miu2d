@@ -1,7 +1,7 @@
 /**
  * 右键菜单组件
  */
-import { useCallback, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 
 interface ContextMenuItem {
   label: string;
@@ -72,12 +72,12 @@ export function ContextMenu({ x, y, items, onClose }: ContextMenuProps) {
   return (
     <div
       ref={menuRef}
-      className="fixed z-50 bg-[#252526] border border-[#454545] rounded shadow-xl py-1 min-w-[180px]"
+      className="fixed z-50 bg-[#252526] border border-widget-border rounded shadow-xl py-1 min-w-[180px]"
       style={{ left: x, top: y }}
     >
       {items.map((item, index) =>
         item.divider ? (
-          <div key={index} className="my-1 border-t border-[#454545]" />
+          <div key={index} className="my-1 border-t border-widget-border" />
         ) : (
           <button
             key={index}

@@ -489,7 +489,7 @@ function ShareToast({
       clearTimeout(doneTimer);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps -- onDone 稳定性由调用方保证，不应触发重新计时
-  }, []);
+  }, [onDone]);
 
   return (
     <div

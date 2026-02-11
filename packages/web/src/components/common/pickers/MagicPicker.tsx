@@ -13,6 +13,7 @@ import { MagicPreview } from "../../../pages/dashboard/modules/magic/MagicPrevie
 import { initWasm } from "@miu2d/engine/wasm/wasmManager";
 import { decodeAsfWasm } from "@miu2d/engine/wasm/wasmAsfDecoder";
 import { getFrameCanvas } from "@miu2d/engine/resource/asf";
+import { buildResourceUrl } from "../../../pages/dashboard/utils";
 
 export interface MagicPickerProps {
   /** 字段标签 */
@@ -605,8 +606,7 @@ function MagicIcon({ iconPath, gameSlug, size = 32 }: MagicIconProps) {
         await initWasm();
         if (cancelled) return;
 
-        const encodedPath = resourcePath.split('/').map(encodeURIComponent).join('/');
-        const url = `/game/${gameSlug}/resources/${encodedPath}`;
+        const url = buildResourceUrl(gameSlug, resourcePath);
         const response = await fetch(url);
         if (!response.ok || cancelled) return;
 

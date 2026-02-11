@@ -99,7 +99,7 @@ export function GameListPage() {
               key={game.id}
               type="button"
               onClick={() => navigate(`/dashboard/${game.slug}`)}
-              className="flex items-center gap-4 p-4 bg-[#252526] hover:bg-[#2a2d2e] border border-[#454545] rounded-lg transition-colors text-left group"
+              className="flex items-center gap-4 p-4 bg-[#252526] hover:bg-[#2a2d2e] border border-widget-border rounded-lg transition-colors text-left group"
             >
               <div className="w-12 h-12 flex items-center justify-center bg-[#0e639c] rounded-lg text-white text-xl">
                 {DashboardIcons.game}
@@ -132,7 +132,7 @@ export function GameListPage() {
               }
             }}
             disabled={createGameMutation.isPending}
-            className="inline-flex items-center gap-2 px-6 py-3 bg-[#3c3c3c] hover:bg-[#4a4a4a] border border-[#454545] rounded-lg text-[#cccccc] transition-colors"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-[#3c3c3c] hover:bg-[#4a4a4a] border border-widget-border rounded-lg text-[#cccccc] transition-colors"
           >
             {DashboardIcons.add}
             <span>创建新游戏</span>

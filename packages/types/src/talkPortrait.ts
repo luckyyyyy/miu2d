@@ -83,7 +83,7 @@ export function parsePortraitIni(content: string): PortraitEntry[] {
     const value = trimmed.substring(eqIdx + 1).trim();
     const idx = parseInt(key, 10);
 
-    if (!isNaN(idx) && value) {
+    if (!Number.isNaN(idx) && value) {
       entries.push({ idx, file: value });
     }
   }

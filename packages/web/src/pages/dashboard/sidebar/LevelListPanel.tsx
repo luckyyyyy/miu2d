@@ -63,9 +63,9 @@ function CreateLevelConfigModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-[#252526] border border-[#454545] rounded-lg shadow-xl w-[420px] max-h-[90vh] overflow-auto">
+      <div className="bg-[#252526] border border-widget-border rounded-lg shadow-xl w-[420px] max-h-[90vh] overflow-auto">
         {/* 标题 */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-[#454545]">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-widget-border">
           <h2 className="text-base font-medium text-white">新建等级配置</h2>
           <button
             type="button"
@@ -221,7 +221,7 @@ export function LevelListPanel({ basePath }: { basePath: string }) {
 
   return (
     <div
-      className="flex h-full w-60 flex-col bg-[#252526] border-r border-[#1e1e1e]"
+      className="flex h-full w-60 flex-col bg-[#252526] border-r border-panel-border"
     >
       {/* 创建弹窗 */}
       {gameId && (
@@ -238,7 +238,7 @@ export function LevelListPanel({ basePath }: { basePath: string }) {
       )}
 
       {/* 标题栏 */}
-      <div className="flex h-9 items-center justify-between px-4 border-b border-[#1e1e1e]">
+      <div className="flex h-9 items-center justify-between px-4 border-b border-panel-border">
         <span className="text-xs font-medium uppercase tracking-wide text-[#bbbbbb]">
           等级配置
         </span>

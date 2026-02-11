@@ -41,7 +41,7 @@ export function DashboardHome() {
               <Link
                 key={link.path}
                 to={link.path}
-                className="flex items-center gap-3 p-4 bg-[#252526] hover:bg-[#2a2d2e] border border-[#454545] rounded-lg transition-colors group"
+                className="flex items-center gap-3 p-4 bg-[#252526] hover:bg-[#2a2d2e] border border-widget-border rounded-lg transition-colors group"
               >
                 <span style={{ color: link.color }}>
                   {DashboardIcons[link.icon]}
@@ -57,8 +57,8 @@ export function DashboardHome() {
         {/* 最近编辑 */}
         <div className="mb-8">
           <h2 className="text-lg font-medium text-[#bbbbbb] mb-4">最近编辑</h2>
-          <div className="bg-[#252526] border border-[#454545] rounded-lg overflow-hidden">
-            <div className="px-4 py-3 border-b border-[#454545] text-sm text-[#858585]">
+          <div className="bg-[#252526] border border-widget-border rounded-lg overflow-hidden">
+            <div className="px-4 py-3 border-b border-widget-border text-sm text-[#858585]">
               暂无最近编辑记录
             </div>
           </div>
@@ -76,7 +76,7 @@ export function DashboardHome() {
             ].map((stat) => (
               <div
                 key={stat.label}
-                className="p-4 bg-[#252526] border border-[#454545] rounded-lg"
+                className="p-4 bg-[#252526] border border-widget-border rounded-lg"
               >
                 <div className="flex items-center gap-2 mb-2 text-[#858585]">
                   {DashboardIcons[stat.icon as keyof typeof DashboardIcons]}

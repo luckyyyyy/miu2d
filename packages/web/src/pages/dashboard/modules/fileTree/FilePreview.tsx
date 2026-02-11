@@ -10,8 +10,9 @@
  * - 图片/音频预览
  */
 import type { AsfData } from "@miu2d/engine/resource/asf";
-import type { JxqyMapData, Mpc } from "@miu2d/engine/core/mapTypes";
+import type { JxqyMapData, MiuMapData, Mpc } from "@miu2d/engine/core/mapTypes";
 import { parseMap } from "@miu2d/engine/resource/map";
+import { parseMMF } from "@miu2d/engine/resource/mmf";
 import { initWasm } from "@miu2d/engine/wasm/wasmManager";
 import { decodeAsfWasm } from "@miu2d/engine/wasm/wasmAsfDecoder";
 import { decodeMpcWasm } from "@miu2d/engine/wasm/wasmMpcDecoder";
@@ -107,6 +108,7 @@ export function FilePreview({ file }: FilePreviewProps) {
 
   // MAP 状态
   const [mapData, setMapData] = useState<JxqyMapData | null>(null);
+  const [mmfData, setMmfData] = useState<MiuMapData | null>(null);
   const [mapName, setMapName] = useState<string | null>(null);
 
   // MPC 状态
@@ -147,6 +149,7 @@ export function FilePreview({ file }: FilePreviewProps) {
     setPreviewUrl(null);
     setAsfData(null);
     setMapData(null);
+    setMmfData(null);
     setMapName(null);
     setMpcData(null);
     setXnbData(null);
@@ -219,6 +222,19 @@ export function FilePreview({ file }: FilePreviewProps) {
           setMapName(name);
           setMapData(data);
         }
+        // MMF 文件
+        else if (ext === "mmf") {
+          const response = await fetch(downloadUrl);
+          const buffer = await response.arrayBuffer();
+          const data = parseMMF(buffer, file.name);
+          if (!data) {
+            setError("MMF 地图解析失败");
+            return;
+          }
+          const name = file.name.replace(/\.mmf$/i, "");
+          setMapName(name);
+          setMmfData(data);
+        }
         // 文本文件
         else if (TEXT_EXTENSIONS.has(ext)) {
           const response = await fetch(downloadUrl);
@@ -241,7 +257,7 @@ export function FilePreview({ file }: FilePreviewProps) {
     };
 
     loadFile();
-  }, [file?.id, wasmReady, mpcWasmReady]);
+  }, [file?.id, wasmReady, mpcWasmReady, file, getDownloadUrlMutation.mutateAsync, resetPreviewState]);
 
   // 保存文本文件
   const handleSave = useCallback(async () => {
@@ -364,6 +380,20 @@ export function FilePreview({ file }: FilePreviewProps) {
     );
   }
 
+  // MMF 预览
+  if (ext === "mmf" && mmfData) {
+    return (
+      <MapViewer
+        mmfData={mmfData}
+        mapName={mapName}
+        fileName={file.name}
+        isLoading={false}
+        error={null}
+        resourceRoot={resourceRoot}
+      />
+    );
+  }
+
   // MPC 预览
   if (ext === "mpc" && mpcData) {
     return (
@@ -393,7 +423,7 @@ export function FilePreview({ file }: FilePreviewProps) {
     return (
       <div className="flex flex-col h-full bg-[#1e1e1e]">
         {/* 工具栏 */}
-        <div className="flex items-center justify-between px-4 py-2 border-b border-[#3c3c3c] bg-[#252526]">
+        <div className="flex items-center justify-between px-4 py-2 border-b border-widget-border bg-[#252526]">
           <div className="flex items-center gap-2">
             <span className="text-sm text-[#cccccc]">{file.name}</span>
             {hasChanges && (

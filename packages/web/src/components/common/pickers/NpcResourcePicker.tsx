@@ -5,10 +5,10 @@
  * 支持列表悬停预览动画、选择弹窗侧边预览
  * 数据来源：npcResource tRPC 接口
  */
-import { useCallback, useState, useMemo, useEffect, useRef } from "react";
+import { useCallback, useState, useMemo, useEffect, useRef, memo } from "react";
 import { createPortal } from "react-dom";
 import { trpc } from "../../../lib/trpc";
-import type { NpcAppearanceListItem, NpcAppearance } from "@miu2d/types";
+import type { NpcAppearanceListItem, } from "@miu2d/types";
 import { LazyAsfIcon } from "../LazyAsfIcon";
 import { NpcPreview } from "../../../pages/dashboard/modules/npc/NpcPreview";
 
@@ -25,6 +25,8 @@ export interface NpcResourcePickerProps {
   gameSlug: string;
   /** 占位文本 */
   placeholder?: string;
+  /** label 显示为输入框内的 tag 徽章（而非外部文本） */
+  inlineLabel?: boolean;
 }
 
 export function NpcResourcePicker({
@@ -34,6 +36,7 @@ export function NpcResourcePicker({
   gameId,
   gameSlug,
   placeholder = "点击选择 NPC 资源",
+  inlineLabel = false,
 }: NpcResourcePickerProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
@@ -71,19 +74,25 @@ export function NpcResourcePicker({
   );
 
   return (
-    <div className="flex items-center gap-3 relative">
-      {/* 标签 */}
-      <label className="text-xs text-[#858585] w-20 flex-shrink-0">{label}</label>
+    <div className={`${inlineLabel ? '' : 'flex items-center gap-3'} relative`}>
+      {/* 外部标签（非 inlineLabel 时） */}
+      {!inlineLabel && <label className="text-xs text-[#858585] w-20 flex-shrink-0">{label}</label>}
 
       {/* 内容区 */}
       <div
-        className="flex-1 bg-[#2d2d2d] border border-[#454545] rounded h-9 flex items-center px-2 cursor-pointer hover:border-[#0098ff] transition-colors group"
+        className={`${inlineLabel ? '' : 'flex-1'} bg-[#2d2d2d] border border-[#454545] rounded h-9 flex items-center px-2 cursor-pointer hover:border-[#0098ff] transition-colors group`}
         onClick={handleOpenDialog}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
         {value ? (
           <div className="flex items-center gap-2 flex-1 min-w-0">
+            {/* 行内标签 tag */}
+            {inlineLabel && (
+              <span className="text-[10px] font-medium text-[#8a8a8a] bg-[#3c3c3c] px-1.5 py-0.5 rounded flex-shrink-0">
+                {label}
+              </span>
+            )}
             {/* NPC 图标 */}
             <LazyAsfIcon iconPath={selectedResource?.icon} gameSlug={gameSlug} size={20} prefix="asf/character/" fallback="👤" />
 
@@ -122,7 +131,14 @@ export function NpcResourcePicker({
             </div>
           </div>
         ) : (
-          <span className="text-xs text-[#606060]">{placeholder}</span>
+          <div className="flex items-center gap-2">
+            {inlineLabel && (
+              <span className="text-[10px] font-medium text-[#8a8a8a] bg-[#3c3c3c] px-1.5 py-0.5 rounded flex-shrink-0">
+                {label}
+              </span>
+            )}
+            <span className="text-xs text-[#606060]">{placeholder}</span>
+          </div>
         )}
       </div>
 
@@ -163,11 +179,10 @@ function NpcResourceSelectDialog({
 }: NpcResourceSelectDialogProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedResource, setSelectedResource] = useState<NpcAppearanceListItem | null>(null);
-  // 悬停预览
-  const [hoverResource, setHoverResource] = useState<{
-    resource: NpcAppearanceListItem;
-    position: { x: number; y: number };
-  } | null>(null);
+  // 悬停预览（使用防抖避免快速划过时频繁触发）
+  const [hoverResource, setHoverResource] = useState<NpcAppearanceListItem | null>(null);
+  const [hoverPosition, setHoverPosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // 获取 NPC 资源列表
   const { data: resourceList, isLoading } = trpc.npcResource.list.useQuery(
@@ -210,6 +225,10 @@ function NpcResourceSelectDialog({
       setSearchQuery("");
       setSelectedResource(null);
       setHoverResource(null);
+      if (hoverTimerRef.current) {
+        clearTimeout(hoverTimerRef.current);
+        hoverTimerRef.current = null;
+      }
     }
   }, [open]);
 
@@ -298,9 +317,21 @@ function NpcResourceSelectDialog({
                       onClick={() => setSelectedResource(r)}
                       onDoubleClick={() => handleDoubleClick(r)}
                       onMouseEnter={(e) => {
-                        setHoverResource({ resource: r, position: { x: e.clientX, y: e.clientY } });
+                        // 防抖：鼠标停留 150ms 后才显示 tooltip
+                        if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
+                        const pos = { x: e.clientX, y: e.clientY };
+                        hoverTimerRef.current = setTimeout(() => {
+                          setHoverResource(r);
+                          setHoverPosition(pos);
+                        }, 150);
                       }}
-                      onMouseLeave={() => setHoverResource(null)}
+                      onMouseLeave={() => {
+                        if (hoverTimerRef.current) {
+                          clearTimeout(hoverTimerRef.current);
+                          hoverTimerRef.current = null;
+                        }
+                        setHoverResource(null);
+                      }}
                     >
                       {/* 图标 */}
                       <div className="w-8 h-8 mr-2 flex-shrink-0 flex items-center justify-center">
@@ -378,14 +409,14 @@ function NpcResourceSelectDialog({
       </div>
 
       {/* 列表悬停预览 Tooltip */}
-      {hoverResource && hoverResource.resource.id !== selectedResource?.id && (
+      {hoverResource && hoverResource.id !== selectedResource?.id && (
         <NpcResourcePreviewTooltip
           gameId={gameId}
           gameSlug={gameSlug}
-          resourceId={hoverResource.resource.id}
-          resourceName={hoverResource.resource.name}
-          resourceKey={hoverResource.resource.key}
-          position={hoverResource.position}
+          resourceId={hoverResource.id}
+          resourceName={hoverResource.name}
+          resourceKey={hoverResource.key}
+          position={hoverPosition}
         />
       )}
     </div>,
@@ -393,9 +424,9 @@ function NpcResourceSelectDialog({
   );
 }
 
-// ========== 右侧预览面板 ==========
+// ========== 右侧预览面板（memo 避免父组件 hover 状态变化导致重渲染） ==========
 
-function NpcResourcePreviewPanel({
+const NpcResourcePreviewPanel = memo(function NpcResourcePreviewPanel({
   gameId,
   gameSlug,
   resourceId,
@@ -409,7 +440,20 @@ function NpcResourcePreviewPanel({
     { enabled: !!gameId && !!resourceId },
   );
 
-  if (isLoading) {
+  // 保留最后一次有效的 resource，避免 tRPC 查询切换时 NpcPreview 被卸载/重装（导致 WASM 重新初始化）
+  const lastResourceRef = useRef(resource);
+  if (resource) {
+    lastResourceRef.current = resource;
+  }
+  const displayResource = resource ?? lastResourceRef.current;
+
+  const npc = useMemo(() => {
+    if (!displayResource) return null;
+    return { name: displayResource.name, resources: displayResource.resources };
+  }, [displayResource]);
+
+  // 只有完全没有数据（首次加载）时才显示加载微调器
+  if (!displayResource || !npc) {
     return (
       <div className="flex items-center justify-center py-8 text-[#808080]">
         <div className="w-4 h-4 border-2 border-amber-500 border-t-transparent rounded-full animate-spin mr-2" />
@@ -418,20 +462,26 @@ function NpcResourcePreviewPanel({
     );
   }
 
-  if (!resource) return null;
-
   return (
-    <NpcPreview
-      gameSlug={gameSlug}
-      npc={{ name: resource.name, resources: resource.resources }}
-      resource={resource}
-    />
+    <div className="relative">
+      <NpcPreview
+        gameSlug={gameSlug}
+        npc={npc}
+        resource={displayResource}
+      />
+      {/* 切换资源时的加载遮罩 */}
+      {isLoading && (
+        <div className="absolute inset-0 flex items-center justify-center bg-[#252526]/60 rounded-lg">
+          <div className="w-4 h-4 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+        </div>
+      )}
+    </div>
   );
-}
+});
 
 // ========== 悬停预览 Tooltip ==========
 
-function NpcResourcePreviewTooltip({
+const NpcResourcePreviewTooltip = memo(function NpcResourcePreviewTooltip({
   gameId,
   gameSlug,
   resourceId,
@@ -469,7 +519,13 @@ function NpcResourcePreviewTooltip({
     if (y < 10) y = 10;
 
     return { left: x, top: y };
-  }, [position]);
+  }, [position.x, position.y]);
+
+  // 稳定 npc 引用
+  const npc = useMemo(() => {
+    if (!resource) return null;
+    return { name: resource.name, resources: resource.resources };
+  }, [resource]);
 
   if (isLoading) {
     return (
@@ -485,7 +541,7 @@ function NpcResourcePreviewTooltip({
     );
   }
 
-  if (!resource) return null;
+  if (!resource || !npc) return null;
 
   return (
     <div
@@ -503,11 +559,11 @@ function NpcResourcePreviewTooltip({
         <div style={{ transform: "scale(0.55)", transformOrigin: "top left", width: "182%", height: "182%" }}>
           <NpcPreview
             gameSlug={gameSlug}
-            npc={{ name: resource.name, resources: resource.resources }}
+            npc={npc}
             resource={resource}
           />
         </div>
       </div>
     </div>
   );
-}
+});

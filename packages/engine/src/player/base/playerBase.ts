@@ -6,14 +6,13 @@
  */
 
 import { Character } from "../../character";
-import type { CharacterBase } from "../../character/base";
 import { ResourcePath } from "../../config/resourcePaths";
 import { logger } from "../../core/logger";
 import { PathType } from "../../core/pathFinder";
 import type { Vector2 } from "../../core/types";
-import { CharacterKind, CharacterState, DEFAULT_PLAYER_STATS, Direction } from "../../core/types";
+import { CharacterKind, DEFAULT_PLAYER_STATS, } from "../../core/types";
 import type { GuiManager } from "../../gui/guiManager";
-import { getMagic, getMagicAtLevel } from "../../magic/magicLoader";
+import { getMagic, } from "../../magic/magicLoader";
 import type { MagicData, MagicItemInfo } from "../../magic/types";
 import { MagicAddonEffect } from "../../magic/types";
 import type { Npc, NpcManager } from "../../npc";

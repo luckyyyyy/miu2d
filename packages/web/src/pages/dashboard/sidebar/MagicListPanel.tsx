@@ -48,16 +48,16 @@ export function MagicListPanel({ basePath }: { basePath: string }) {
 
   return (
     <>
-      <div className="flex h-full w-60 flex-col bg-[#252526] border-r border-[#1e1e1e]">
+      <div className="flex h-full w-60 flex-col bg-[#252526] border-r border-panel-border">
         {/* 标题栏 */}
-        <div className="flex h-9 items-center justify-between px-4 border-b border-[#1e1e1e]">
+        <div className="flex h-9 items-center justify-between px-4 border-b border-panel-border">
           <span className="text-xs font-medium uppercase tracking-wide text-[#bbbbbb]">
             武功列表
           </span>
         </div>
 
         {/* 操作按钮 */}
-        <div className="flex flex-col gap-1 p-2 border-b border-[#1e1e1e]">
+        <div className="flex flex-col gap-1 p-2 border-b border-panel-border">
           <button
             type="button"
             onClick={() => setShowImportModal(true)}
@@ -77,7 +77,7 @@ export function MagicListPanel({ basePath }: { basePath: string }) {
         </div>
 
         {/* 类型过滤器 */}
-        <div className="flex gap-1 px-2 py-1.5 border-b border-[#1e1e1e]">
+        <div className="flex gap-1 px-2 py-1.5 border-b border-panel-border">
           <button
             type="button"
             onClick={() => setFilterType("all")}
@@ -394,8 +394,8 @@ function ImportMagicModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-[#252526] rounded-lg border border-[#454545] w-[600px] max-h-[85vh] overflow-auto">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-[#454545]">
+      <div className="bg-[#252526] rounded-lg border border-widget-border w-[600px] max-h-[85vh] overflow-auto">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-widget-border">
           <h3 className="font-medium text-white">从 INI 导入武功</h3>
           <button type="button" onClick={onClose} className="text-[#858585] hover:text-white">
             ✕
@@ -436,7 +436,7 @@ function ImportMagicModal({
                 <select
                   value={userType}
                   onChange={(e) => setUserType(e.target.value as "player" | "npc")}
-                  className="w-full px-3 py-2 bg-[#3c3c3c] border border-[#454545] rounded text-white"
+                  className="w-full px-3 py-2 bg-[#3c3c3c] border border-widget-border rounded text-white"
                 >
                   <option value="player">玩家武功</option>
                   <option value="npc">NPC 武功</option>
@@ -452,7 +452,7 @@ function ImportMagicModal({
                       ? "border-[#0098ff] bg-[#0098ff]/10"
                       : iniContent
                       ? "border-green-500/50 bg-green-500/5"
-                      : "border-[#454545] hover:border-[#0098ff]"
+                      : "border-widget-border hover:border-[#0098ff]"
                   }`}
                   onDragOver={(e) => handleDragOver(e, "main")}
                   onDragLeave={() => handleDragLeave("main")}
@@ -490,7 +490,7 @@ function ImportMagicModal({
                       ? "border-[#0098ff] bg-[#0098ff]/10"
                       : attackFileContent
                       ? "border-green-500/50 bg-green-500/5"
-                      : "border-[#454545] hover:border-[#0098ff]"
+                      : "border-widget-border hover:border-[#0098ff]"
                   }`}
                   onDragOver={(e) => handleDragOver(e, "attack")}
                   onDragLeave={() => handleDragLeave("attack")}
@@ -534,7 +534,7 @@ function ImportMagicModal({
                       ? "border-[#0098ff] bg-[#0098ff]/10"
                       : batchItems.length > 0
                       ? "border-green-500/50 bg-green-500/5"
-                      : "border-[#454545] hover:border-[#0098ff]"
+                      : "border-widget-border hover:border-[#0098ff]"
                   }`}
                   onDragOver={handleBatchDragOver}
                   onDragLeave={handleBatchDragLeave}
@@ -571,11 +571,11 @@ function ImportMagicModal({
 
               {/* 批量导入列表 */}
               {batchItems.length > 0 && (
-                <div className="max-h-48 overflow-y-auto border border-[#454545] rounded">
+                <div className="max-h-48 overflow-y-auto border border-widget-border rounded">
                   {batchItems.map((item, index) => (
                     <div
                       key={item.fileName}
-                      className="flex items-center justify-between px-3 py-2 border-b border-[#454545] last:border-b-0 hover:bg-[#2a2d2e]"
+                      className="flex items-center justify-between px-3 py-2 border-b border-widget-border last:border-b-0 hover:bg-[#2a2d2e]"
                     >
                       <div className="flex items-center gap-2">
                         <span className="text-sm text-white">{item.fileName}</span>
@@ -648,7 +648,7 @@ function ImportMagicModal({
             </>
           )}
         </div>
-        <div className="flex justify-end gap-2 px-4 py-3 border-t border-[#454545]">
+        <div className="flex justify-end gap-2 px-4 py-3 border-t border-widget-border">
           <button
             type="button"
             onClick={onClose}
@@ -719,9 +719,9 @@ function CreateMagicModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-[#252526] border border-[#454545] rounded-lg shadow-xl w-[480px]">
+      <div className="bg-[#252526] border border-widget-border rounded-lg shadow-xl w-[480px]">
         {/* 标题 */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-[#454545]">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-widget-border">
           <h2 className="text-base font-medium text-white">新建武功</h2>
           <button
             type="button"
@@ -772,7 +772,7 @@ function CreateMagicModal({
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="例如：降龙十八掌"
-              className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white focus:outline-none focus:border-[#0098ff]"
+              className="w-full px-3 py-2 bg-[#1e1e1e] border border-widget-border rounded-lg text-white focus:outline-none focus:border-focus-border"
             />
           </div>
 
@@ -784,7 +784,7 @@ function CreateMagicModal({
               value={key}
               onChange={(e) => setKey(e.target.value)}
               placeholder="例如：player-magic-降龙十八掌.ini（留空自动生成）"
-              className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white focus:outline-none focus:border-[#0098ff]"
+              className="w-full px-3 py-2 bg-[#1e1e1e] border border-widget-border rounded-lg text-white focus:outline-none focus:border-focus-border"
             />
           </div>
 
@@ -796,7 +796,7 @@ function CreateMagicModal({
               value={intro}
               onChange={(e) => setIntro(e.target.value)}
               placeholder="简单描述武功的效果..."
-              className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white focus:outline-none focus:border-[#0098ff] resize-none"
+              className="w-full px-3 py-2 bg-[#1e1e1e] border border-widget-border rounded-lg text-white focus:outline-none focus:border-focus-border resize-none"
             />
           </div>
 
@@ -809,7 +809,7 @@ function CreateMagicModal({
         </div>
 
         {/* 底部按钮 */}
-        <div className="flex justify-end gap-2 px-4 py-3 border-t border-[#454545]">
+        <div className="flex justify-end gap-2 px-4 py-3 border-t border-widget-border">
           <button
             type="button"
             onClick={onClose}

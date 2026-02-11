@@ -3,10 +3,6 @@
  * Parses INI configuration files for GUI layout
  */
 
-import { DefaultPaths } from "../config/resourcePaths";
-import { logger } from "../core/logger";
-import { resourceLoader } from "../resource/resourceLoader";
-import { parseIni } from "../utils";
 
 // UI配置结构定义
 export interface UiRect {

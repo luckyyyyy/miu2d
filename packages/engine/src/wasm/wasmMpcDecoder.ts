@@ -8,7 +8,6 @@
  * 使用前需要 await initWasm()
  */
 
-import { logger } from "../core/logger";
 import type { Mpc, MpcFrame, MpcHead } from "../core/mapTypes";
 import { getWasmModule } from "./wasmManager";
 import type { WasmModule } from "./wasmManager";

@@ -4,7 +4,7 @@
  */
 
 import type { CharacterConfig, Vector2 } from "../core/types";
-import { type CharacterKind, type RelationType } from "../core/types";
+import type { CharacterKind, RelationType } from "../core/types";
 import type { NpcSaveItem } from "../runtime/storage";
 import type { Npc } from "./npc";
 

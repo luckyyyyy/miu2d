@@ -535,8 +535,9 @@ class Obj extends Sprite {
 2. **参考 C# 实现** - 修改引擎功能先参考 `/JxqyHD/Engine/` 的实现
 3. **参考 TS 实现** - 网页用到引擎相关功能先参考 `/packages/engine` 的实现
 4. **每次修改后运行 `make tsc`** - 不提交有类型错误的代码
-5. **使用 `resourceLoader`** - 不直接使用 `fetch()`
-6. **使用 `logger`** - 不直接使用 `console.log`
+5. **每次修改后运行 `make lint`** - 不提交有 lint 错误的代码（`pnpm biome lint packages/`）
+6. **使用 `resourceLoader`** - 不直接使用 `fetch()`
+7. **使用 `logger`** - 不直接使用 `console.log`
 
 ### 禁止事项
 

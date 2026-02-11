@@ -15,25 +15,25 @@ import { z } from "zod";
  * 决定 NPC 的行为模式和 AI
  */
 export const NpcKindEnum = z.enum([
-  "Normal",       // C# Normal=0 - 普通 NPC（可对话）
-  "Fighter",      // C# Fighter=1 - 战斗型 NPC
-  "Flyer",        // C# Flyer=7 - 飞行类（如蝙蝠、蜜蜂）
+  "Normal", // C# Normal=0 - 普通 NPC（可对话）
+  "Fighter", // C# Fighter=1 - 战斗型 NPC
+  "Flyer", // C# Flyer=7 - 飞行类（如蝙蝠、蜜蜂）
   "GroundAnimal", // C# GroundAnimal=4 - 地面动物（如狼、蛙）
-  "WaterAnimal",  // 无 C# 对应 - 水中动物（如鱼）
-  "Decoration",   // C# Eventer=5 - 事件/装饰性 NPC
-  "Intangible",   // C# AfraidPlayerAnimal=6 - 怕玩家的动物
+  "WaterAnimal", // 无 C# 对应 - 水中动物（如鱼）
+  "Decoration", // C# Eventer=5 - 事件/装饰性 NPC
+  "Intangible", // C# AfraidPlayerAnimal=6 - 怕玩家的动物
 ]);
 
 export type NpcKind = z.infer<typeof NpcKindEnum>;
 
 export const NpcKindValues: Record<NpcKind, number> = {
-  Normal: 0,        // C# Normal=0
-  Fighter: 1,       // C# Fighter=1
-  GroundAnimal: 4,  // C# GroundAnimal=4
-  Decoration: 5,    // C# Eventer=5
-  Intangible: 6,    // C# AfraidPlayerAnimal=6
-  Flyer: 7,         // C# Flyer=7
-  WaterAnimal: 8,   // 无 C# 对应（.ini 中不会出现）
+  Normal: 0, // C# Normal=0
+  Fighter: 1, // C# Fighter=1
+  GroundAnimal: 4, // C# GroundAnimal=4
+  Decoration: 5, // C# Eventer=5
+  Intangible: 6, // C# AfraidPlayerAnimal=6
+  Flyer: 7, // C# Flyer=7
+  WaterAnimal: 8, // 无 C# 对应（.ini 中不会出现）
 };
 
 export const NpcKindFromValue: Record<number, NpcKind> = Object.fromEntries(
@@ -55,19 +55,19 @@ export const NpcKindLabels: Record<NpcKind, string> = {
  * 决定 NPC 与玩家的交互方式
  */
 export const NpcRelationEnum = z.enum([
-  "Friendly",   // C# Friend=0 - 友好（可对话、不可攻击）
-  "Hostile",    // C# Enemy=1 - 敌对（主动攻击玩家）
-  "Neutral",    // C# Neutral=2 - 中立（不主动攻击）
-  "Partner",    // C# None=3 - 攻击所有非同阵营
+  "Friendly", // C# Friend=0 - 友好（可对话、不可攻击）
+  "Hostile", // C# Enemy=1 - 敌对（主动攻击玩家）
+  "Neutral", // C# Neutral=2 - 中立（不主动攻击）
+  "Partner", // C# None=3 - 攻击所有非同阵营
 ]);
 
 export type NpcRelation = z.infer<typeof NpcRelationEnum>;
 
 export const NpcRelationValues: Record<NpcRelation, number> = {
-  Friendly: 0,  // C# Friend=0
-  Hostile: 1,   // C# Enemy=1
-  Neutral: 2,   // C# Neutral=2
-  Partner: 3,   // C# None=3 (攻击所有非同阵营)
+  Friendly: 0, // C# Friend=0
+  Hostile: 1, // C# Enemy=1
+  Neutral: 2, // C# Neutral=2
+  Partner: 3, // C# None=3 (攻击所有非同阵营)
 };
 
 export const NpcRelationFromValue: Record<number, NpcRelation> = Object.fromEntries(
@@ -86,23 +86,23 @@ export const NpcRelationLabels: Record<NpcRelation, string> = {
  * 用于资源配置（npcres）
  */
 export const NpcStateEnum = z.enum([
-  "Stand",      // 站立
-  "Stand1",     // 待机动画
-  "Walk",       // 行走
-  "Run",        // 奔跑
-  "Jump",       // 跳跃（轻功）
+  "Stand", // 站立
+  "Stand1", // 待机动画
+  "Walk", // 行走
+  "Run", // 奔跑
+  "Jump", // 跳跃（轻功）
   "FightStand", // 战斗站立
-  "FightWalk",  // 战斗行走
-  "FightRun",   // 战斗奔跑
-  "FightJump",  // 战斗跳跃
-  "Attack",     // 攻击
-  "Attack1",    // 攻击2
-  "Attack2",    // 攻击3
-  "Hurt",       // 受伤
-  "Death",      // 死亡
-  "Sit",        // 坐下
-  "Special1",   // 特殊动作1（原 Magic）
-  "Special2",   // 特殊动作2（原 Special）
+  "FightWalk", // 战斗行走
+  "FightRun", // 战斗奔跑
+  "FightJump", // 战斗跳跃
+  "Attack", // 攻击
+  "Attack1", // 攻击2
+  "Attack2", // 攻击3
+  "Hurt", // 受伤
+  "Death", // 死亡
+  "Sit", // 坐下
+  "Special1", // 特殊动作1（原 Magic）
+  "Special2", // 特殊动作2（原 Special）
 ]);
 
 export type NpcState = z.infer<typeof NpcStateEnum>;
@@ -321,8 +321,8 @@ export const NpcListItemSchema = z.object({
   kind: NpcKindEnum,
   relation: NpcRelationEnum,
   level: z.number().int().optional(),
-  /** 关联的资源配置 ID */
-  resourceId: z.string().uuid().nullable().optional(),
+  /** 资源文件名（npcRes key），与 SceneNpcEntry.npcIni 一致 */
+  npcIni: z.string(),
   /** 站立动画图标（用于列表展示） */
   icon: z.string().nullable().optional(),
   updatedAt: z.string().datetime(),
@@ -349,21 +349,25 @@ export const GetNpcInputSchema = z.object({
 
 export type GetNpcInput = z.infer<typeof GetNpcInputSchema>;
 
-export const CreateNpcInputSchema = z.object({
-  gameId: z.string().uuid(),
-  key: z.string(),
-  name: z.string(),
-  kind: NpcKindEnum.optional(),
-  relation: NpcRelationEnum.optional(),
-  resourceId: z.string().uuid().nullable().optional(),
-}).merge(NpcBaseSchema.partial());
+export const CreateNpcInputSchema = z
+  .object({
+    gameId: z.string().uuid(),
+    key: z.string(),
+    name: z.string(),
+    kind: NpcKindEnum.optional(),
+    relation: NpcRelationEnum.optional(),
+    resourceId: z.string().uuid().nullable().optional(),
+  })
+  .merge(NpcBaseSchema.partial());
 
 export type CreateNpcInput = z.infer<typeof CreateNpcInputSchema>;
 
-export const UpdateNpcInputSchema = z.object({
-  id: z.string().uuid(),
-  gameId: z.string().uuid(),
-}).merge(NpcBaseSchema.partial());
+export const UpdateNpcInputSchema = z
+  .object({
+    id: z.string().uuid(),
+    gameId: z.string().uuid(),
+  })
+  .merge(NpcBaseSchema.partial());
 
 export type UpdateNpcInput = z.infer<typeof UpdateNpcInputSchema>;
 
@@ -469,18 +473,22 @@ export const BatchImportNpcInputSchema = z.object({
 export type BatchImportNpcInput = z.infer<typeof BatchImportNpcInputSchema>;
 
 export const BatchImportNpcResultSchema = z.object({
-  success: z.array(z.object({
-    fileName: z.string(),
-    id: z.string().uuid(),
-    name: z.string(),
-    /** npc 或 resource */
-    type: z.enum(["npc", "resource"]),
-    hasResources: z.boolean(),
-  })),
-  failed: z.array(z.object({
-    fileName: z.string(),
-    error: z.string(),
-  })),
+  success: z.array(
+    z.object({
+      fileName: z.string(),
+      id: z.string().uuid(),
+      name: z.string(),
+      /** npc 或 resource */
+      type: z.enum(["npc", "resource"]),
+      hasResources: z.boolean(),
+    })
+  ),
+  failed: z.array(
+    z.object({
+      fileName: z.string(),
+      error: z.string(),
+    })
+  ),
 });
 
 export type BatchImportNpcResult = z.infer<typeof BatchImportNpcResultSchema>;
@@ -562,6 +570,36 @@ export const NpcResourcePaths = {
   /** 音效默认路径（XNB 格式） */
   sound: "content/sound/",
 } as const;
+
+/**
+ * 获取 NPC 图像的候选路径列表（含回退路径，与引擎 loadCharacterAsf 一致）
+ * - 已经是完整路径（asf/ 或 mpc/ 开头）：返回单个路径
+ * - 相对路径：返回 [asf/character/xxx, asf/interlude/xxx]
+ */
+export function getNpcImageCandidates(imagePath: string | null | undefined): string[] {
+  if (!imagePath) return [];
+
+  let path = imagePath.trim();
+  if (!path) return [];
+
+  // 规范化路径分隔符
+  path = path.replace(/\\/g, "/");
+
+  // 移除开头的斜杠
+  if (path.startsWith("/")) {
+    path = path.slice(1);
+  }
+
+  const lowerPath = path.toLowerCase();
+
+  // 已经是完整路径，直接返回
+  if (lowerPath.startsWith("asf/") || lowerPath.startsWith("mpc/")) {
+    return [lowerPath];
+  }
+
+  // 相对路径：尝试 character 和 interlude 两个目录
+  return [`${NpcResourcePaths.image}${lowerPath}`, `${NpcResourcePaths.imageFallback}${lowerPath}`];
+}
 
 /**
  * 规范化 NPC 图像路径
@@ -649,40 +687,61 @@ export function normalizeNpcResourcePaths(resource: NpcResource): NpcResource {
  */
 export function getVisibleFieldsByNpcKind(kind: NpcKind): string[] {
   const baseFields = [
-    "name", "intro", "kind", "relation", "level",
-    "life", "lifeMax", "walkSpeed", "dir", "scriptFile",
+    "name",
+    "intro",
+    "kind",
+    "relation",
+    "level",
+    "life",
+    "lifeMax",
+    "walkSpeed",
+    "dir",
+    "scriptFile",
   ];
 
   switch (kind) {
     case "Fighter":
       return [
         ...baseFields,
-        "thew", "thewMax", "mana", "manaMax",
-        "attack", "defend", "evade", "exp", "expBonus",
-        "attackRadius", "attackLevel", "pathFinder", "idle",
-        "flyIni", "bodyIni", "deathScript",
+        "thew",
+        "thewMax",
+        "mana",
+        "manaMax",
+        "attack",
+        "defend",
+        "evade",
+        "exp",
+        "expBonus",
+        "attackRadius",
+        "attackLevel",
+        "pathFinder",
+        "idle",
+        "flyIni",
+        "bodyIni",
+        "deathScript",
       ];
 
     case "Flyer":
     case "GroundAnimal":
       return [
         ...baseFields,
-        "attack", "defend", "evade", "exp",
-        "attackRadius", "pathFinder",
-        "flyIni", "bodyIni", "deathScript",
+        "attack",
+        "defend",
+        "evade",
+        "exp",
+        "attackRadius",
+        "pathFinder",
+        "flyIni",
+        "bodyIni",
+        "deathScript",
       ];
 
     case "WaterAnimal":
     case "Decoration":
     case "Intangible":
       return baseFields;
-
-    case "Normal":
     default:
-      return [
-        ...baseFields,
-        "thew", "thewMax", "mana", "manaMax",
-      ];
+      return [...baseFields, "thew", "thewMax", "mana", "manaMax"];
   }
 }
 

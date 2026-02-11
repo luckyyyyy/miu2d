@@ -131,7 +131,7 @@ export function LevelsConfigPage() {
 
         {/* 配置列表 */}
         {!levelConfigs || levelConfigs.length === 0 ? (
-          <div className="bg-[#252526] border border-[#454545] rounded-lg p-8 text-center">
+          <div className="bg-[#252526] border border-widget-border rounded-lg p-8 text-center">
             <div className="text-4xl mb-3">📊</div>
             <p className="text-[#858585]">暂无等级配置</p>
             <p className="text-xs text-[#666] mt-1">
@@ -171,7 +171,7 @@ function LevelConfigCard({
   onDelete: () => void;
 }) {
   return (
-    <div className="bg-[#252526] border border-[#454545] rounded-lg p-4 flex items-center justify-between hover:border-[#0098ff] transition-colors group">
+    <div className="bg-[#252526] border border-widget-border rounded-lg p-4 flex items-center justify-between hover:border-[#0098ff] transition-colors group">
       <Link
         to={`/dashboard/${gameSlug}/levels/config/${config.id}`}
         className="flex-1 flex items-center gap-4"
@@ -343,7 +343,7 @@ export function LevelConfigDetailPage() {
   return (
     <div className="h-full flex flex-col overflow-hidden">
       {/* 头部 */}
-      <div className="flex-shrink-0 bg-[#1e1e1e] border-b border-[#3c3c3c] px-6 py-4">
+      <div className="flex-shrink-0 bg-[#1e1e1e] border-b border-widget-border px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Link
@@ -381,7 +381,7 @@ export function LevelConfigDetailPage() {
       <div className="flex-1 overflow-auto p-6">
         <div className="max-w-6xl mx-auto space-y-6">
           {/* 基础信息 */}
-          <section className="bg-[#252526] border border-[#454545] rounded-lg p-4 space-y-4">
+          <section className="bg-[#252526] border border-widget-border rounded-lg p-4 space-y-4">
             <h2 className="text-sm font-medium text-[#cccccc]">基础信息</h2>
             <div className="grid grid-cols-4 gap-4">
               <div>
@@ -395,7 +395,7 @@ export function LevelConfigDetailPage() {
                     setFormData((prev) => ({ ...prev, key: e.target.value }))
                   }
                   placeholder="如: level-easy, level-hard"
-                  className="w-full px-3 py-2 bg-[#3c3c3c] border border-[#454545] rounded-lg text-white text-sm focus:outline-none focus:border-[#0098ff]"
+                  className="w-full px-3 py-2 bg-[#3c3c3c] border border-widget-border rounded-lg text-white text-sm focus:outline-none focus:border-focus-border"
                 />
               </div>
               <div>
@@ -409,7 +409,7 @@ export function LevelConfigDetailPage() {
                     setFormData((prev) => ({ ...prev, name: e.target.value }))
                   }
                   placeholder="如: 简单模式, 困难模式"
-                  className="w-full px-3 py-2 bg-[#3c3c3c] border border-[#454545] rounded-lg text-white text-sm focus:outline-none focus:border-[#0098ff]"
+                  className="w-full px-3 py-2 bg-[#3c3c3c] border border-widget-border rounded-lg text-white text-sm focus:outline-none focus:border-focus-border"
                 />
               </div>
               <div>
@@ -424,7 +424,7 @@ export function LevelConfigDetailPage() {
                       userType: e.target.value as LevelUserType,
                     }))
                   }
-                  className="w-full px-3 py-2 bg-[#3c3c3c] border border-[#454545] rounded-lg text-white text-sm focus:outline-none focus:border-[#0098ff]"
+                  className="w-full px-3 py-2 bg-[#3c3c3c] border border-widget-border rounded-lg text-white text-sm focus:outline-none focus:border-focus-border"
                 >
                   <option value="player">玩家</option>
                   <option value="npc">NPC</option>
@@ -453,8 +453,8 @@ export function LevelConfigDetailPage() {
           </section>
 
           {/* 等级数据表格 */}
-          <section className="bg-[#252526] border border-[#454545] rounded-lg overflow-hidden">
-            <div className="px-4 py-3 border-b border-[#454545] flex items-center justify-between">
+          <section className="bg-[#252526] border border-widget-border rounded-lg overflow-hidden">
+            <div className="px-4 py-3 border-b border-widget-border flex items-center justify-between">
               <h2 className="text-sm font-medium text-[#cccccc]">
                 等级数据 ({maxLevel} 级)
               </h2>
@@ -467,7 +467,7 @@ export function LevelConfigDetailPage() {
                     const [start, end] = e.target.value.split("-").map(Number);
                     setLevelRange({ start, end });
                   }}
-                  className="px-2 py-1 bg-[#3c3c3c] border border-[#454545] rounded text-xs text-white focus:outline-none"
+                  className="px-2 py-1 bg-[#3c3c3c] border border-widget-border rounded text-xs text-white focus:outline-none"
                 >
                   {Array.from(
                     { length: Math.ceil(maxLevel / 20) },
@@ -509,7 +509,7 @@ export function LevelConfigDetailPage() {
                     return (
                       <tr
                         key={levelData.level}
-                        className="border-t border-[#3c3c3c] hover:bg-[#2a2a2a]"
+                        className="border-t border-widget-border hover:bg-[#2a2a2a]"
                       >
                         <td className="px-3 py-1.5 text-[#cccccc] font-medium">
                           {levelData.level}
@@ -639,7 +639,7 @@ export function LevelConfigDetailPage() {
                                 )
                               }
                               placeholder="-"
-                              className="w-40 px-2 py-1 bg-[#3c3c3c] border border-[#454545] rounded text-white text-xs focus:outline-none focus:border-[#0098ff]"
+                              className="w-40 px-2 py-1 bg-[#3c3c3c] border border-widget-border rounded text-white text-xs focus:outline-none focus:border-focus-border"
                             />
                           </td>
                         )}

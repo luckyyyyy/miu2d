@@ -6,7 +6,7 @@ import { Ctx, Mutation, Router } from "../../trpc/decorators";
 import type { Context } from "../../trpc/context";
 import { getMessage } from "../../i18n";
 import { authService, toUserOutput } from "./auth.service";
-import { sendLoginNotification, sendWelcomeEmail, sendVerifyEmail } from "../../email";
+import { sendLoginNotification, sendWelcomeEmail, } from "../../email";
 import { emailTokenService } from "../user/emailToken.service";
 
 export const loginInput = z.object({

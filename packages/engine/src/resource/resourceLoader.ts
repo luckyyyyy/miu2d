@@ -1559,6 +1559,28 @@ export async function reloadGameData(gameSlug: string): Promise<void> {
   await loadGameData(gameSlug, true);
 }
 
+/**
+ * 直接注入游戏数据（跳过 REST fetch），用于 Dashboard 等已有 tRPC 数据的场景
+ *
+ * 注入后会自动运行 cacheBuilders，使各模块缓存就绪
+ */
+export async function setGameData(gameSlug: string, data: ApiDataResponse): Promise<void> {
+  cachedGameData = data;
+  isGameDataLoadedFlag = true;
+  currentGameSlug = gameSlug;
+
+  for (const builder of cacheBuilders) {
+    await builder();
+  }
+
+  const magicCount = (data.magics.player.length ?? 0) + (data.magics.npc.length ?? 0);
+  const npcCount = data.npcs.npcs.length ?? 0;
+  const objCount = data.objs.objs.length ?? 0;
+  logger.info(
+    `[ResourceLoader] setGameData: ${magicCount} magics, ${npcCount} npcs, ${objCount} objs`
+  );
+}
+
 export function isGameDataLoaded(): boolean {
   return isGameDataLoadedFlag;
 }

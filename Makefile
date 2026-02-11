@@ -1,6 +1,6 @@
 # Miu2D Engine - Makefile
 
-.PHONY: init dev dev-web dev-server build install db-migrate db-seed db-up db-down docker tsc lint format help convert convert-verify
+.PHONY: init dev dev-web dev-server build install db-migrate db-seed db-up db-down docker tsc test lint format help convert convert-verify
 
 # 读取环境变量（如果存在）
 -include .env
@@ -24,6 +24,7 @@ help: ## 显示帮助信息
 	@printf "  $(YELLOW)make dev-server$(NC) - 只启动 server\n"
 	@printf "  $(YELLOW)make build$(NC)      - 编译生产版本\n"
 	@printf "  $(YELLOW)make docker$(NC)     - 构建 Docker 镜像\n"
+	@printf "  $(YELLOW)make test$(NC)       - 运行引擎测试\n"
 	@printf "  $(YELLOW)make tsc$(NC)        - 类型检查\n"
 	@printf "  $(YELLOW)make convert$(NC)    - 一键转换所有资源\n"
 	@printf "  $(YELLOW)make convert-verify$(NC) - 验证无损转换\n"
@@ -121,6 +122,10 @@ db-migrate:
 db-seed:
 	pnpm db:seed
 
+# 运行引擎测试
+test:
+	pnpm --filter @miu2d/engine test
+
 # 类型检查
 tsc:
 	pnpm tsc
@@ -128,6 +133,7 @@ tsc:
 # 代码检查
 lint:
 	pnpm lint
+	@bash packages/server/scripts/check-router-providers.sh
 
 # 格式化代码
 format:

@@ -1,45 +1,17 @@
-/**
- * Portrait（对话头像映射）服务
- * 使用 PostgreSQL 数据库存储
- * 每个游戏一条记录，data 字段存 PortraitEntry[] 数组
- */
-import { TRPCError } from "@trpc/server";
+
 import type {
 	PortraitEntry,
-	PortraitMap,
 	UpdatePortraitMapInput,
 	ImportPortraitMapInput,
 } from "@miu2d/types";
 import { parsePortraitIni } from "@miu2d/types";
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { db } from "../../db/client";
-import { gameMembers, games, talkPortraits } from "../../db/schema";
+import { games, talkPortraits } from "../../db/schema";
 import type { Language } from "../../i18n";
-import { getMessage } from "../../i18n";
+import { verifyGameAccess } from "../../utils/gameAccess";
 
 export class TalkPortraitService {
-	/**
-	 * 验证用户是否有权访问游戏
-	 */
-	async verifyGameAccess(gameId: string, userId: string, language: Language): Promise<void> {
-		const [member] = await db
-			.select()
-			.from(gameMembers)
-			.where(
-				and(
-					eq(gameMembers.gameId, gameId),
-					eq(gameMembers.userId, userId)
-				)
-			)
-			.limit(1);
-
-		if (!member) {
-			throw new TRPCError({
-				code: "FORBIDDEN",
-				message: getMessage(language, "errors.file.noAccess")
-			});
-		}
-	}
 
 	/**
 	 * 获取头像映射（不存在则返回空数组）
@@ -49,7 +21,7 @@ export class TalkPortraitService {
 		userId: string,
 		language: Language
 	): Promise<{ gameId: string; entries: PortraitEntry[] }> {
-		await this.verifyGameAccess(gameId, userId, language);
+		await verifyGameAccess(gameId, userId, language);
 
 		const [row] = await db
 			.select()
@@ -94,7 +66,7 @@ export class TalkPortraitService {
 		userId: string,
 		language: Language
 	): Promise<{ gameId: string; entries: PortraitEntry[] }> {
-		await this.verifyGameAccess(input.gameId, userId, language);
+		await verifyGameAccess(input.gameId, userId, language);
 
 		const sorted = [...input.entries].sort((a, b) => a.idx - b.idx);
 
@@ -132,7 +104,7 @@ export class TalkPortraitService {
 		userId: string,
 		language: Language
 	): Promise<{ gameId: string; entries: PortraitEntry[] }> {
-		await this.verifyGameAccess(input.gameId, userId, language);
+		await verifyGameAccess(input.gameId, userId, language);
 
 		const entries = parsePortraitIni(input.iniContent);
 

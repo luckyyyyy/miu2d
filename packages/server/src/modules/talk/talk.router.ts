@@ -1,5 +1,5 @@
 import { Logger } from "@nestjs/common";
-import { z } from "zod";
+import type { z } from "zod";
 import {
 	TalkDataResultSchema,
 	GetTalkDataInputSchema,

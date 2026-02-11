@@ -2,8 +2,9 @@ import type { CreateExpressContextOptions } from "@trpc/server/adapters/express"
 import { and, eq, gt } from "drizzle-orm";
 import type { InferSelectModel } from "drizzle-orm";
 import { db } from "../db/client";
-import { sessions, games } from "../db/schema";
+import { sessions, type games } from "../db/schema";
 import { normalizeLanguage } from "../i18n";
+import { isDev, DEMO_DEV_USER_ID } from "../utils/demo";
 
 type Game = InferSelectModel<typeof games>;
 
@@ -39,6 +40,11 @@ export const createContext = async ({ req, res }: CreateExpressContextOptions) =
   const ip = typeof forwarded === "string"
     ? forwarded.split(",")[0].trim()
     : req.socket.remoteAddress || "unknown";
+
+  // 开发模式：未登录时注入虚拟 demo 用户，使 "demo" 空间无需登录即可操作
+  if (!userId && isDev()) {
+    userId = DEMO_DEV_USER_ID;
+  }
 
   return {
     db,

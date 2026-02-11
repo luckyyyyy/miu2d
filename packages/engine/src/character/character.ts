@@ -20,7 +20,6 @@ import { CharacterState, RUN_SPEED_FOLD, TILE_WIDTH } from "../core/types";
 import type { MagicSprite } from "../magic/magicSprite";
 import type { MagicData } from "../magic/types";
 import { Obj } from "../obj/obj";
-import type { AsfData } from "../resource/asf";
 import {
   createEmptySpriteSet,
   getAsfForState,
@@ -31,7 +30,6 @@ import {
 import { distance, getDirectionFromVector, pixelToTile, tileToPixel } from "../utils";
 import { CharacterCombat, MAX_NON_FIGHT_SECONDS } from "./base";
 import { applyConfigToCharacter } from "./iniParser";
-import { FlyIniManager } from "./modules";
 import { loadCharacterAsf, loadCharacterImage, loadNpcRes } from "./resFile";
 
 export {

@@ -81,6 +81,11 @@ export const zh = {
         notFound: "武功不存在",
         fileNameConflict: "武功文件名已存在",
         invalidIniFormat: "INI 文件格式无效"
+      },
+      scene: {
+        notFound: "场景不存在",
+        itemNotFound: "场景子项不存在",
+        keyConflict: "场景标识已存在"
       }
     },
     footer: {

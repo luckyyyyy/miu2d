@@ -80,7 +80,7 @@ export function DetailPageLayout({
   return (
     <div className="h-full flex flex-col overflow-hidden">
       {/* ====== 头部 ====== */}
-      <div className="flex-shrink-0 bg-[#1e1e1e] border-b border-[#3c3c3c]">
+      <div className="flex-shrink-0 bg-[#1e1e1e] border-b border-widget-border">
         {/* 标题行 */}
         <div className="flex items-center justify-between px-6 py-4">
           <div className="flex items-center gap-4">

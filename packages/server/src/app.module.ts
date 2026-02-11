@@ -15,6 +15,7 @@ import { ObjModule } from "./modules/obj/obj.module";
 import { PlayerModule } from "./modules/player/player.module";
 import { TalkModule } from "./modules/talk/talk.module";
 import { TalkPortraitModule } from "./modules/talkPortrait/talkPortrait.module";
+import { SceneModule } from "./modules/scene";
 import { ShopModule } from "./modules/shop/shop.module";
 import { SaveModule } from "./modules/save";
 import { UserModule } from "./modules/user";
@@ -35,6 +36,7 @@ import { UserModule } from "./modules/user";
     NpcModule,
     ObjModule,
     PlayerModule,
+    SceneModule,
     TalkModule,
     TalkPortraitModule,
     SaveModule,

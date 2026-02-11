@@ -40,11 +40,8 @@ export { LevelListPage, LevelDetailPage, StrengthConfigPage } from "./modules/le
 // 场景编辑
 export {
   ScenesHomePage,
-  MapEditorPage,
-  DialogsPage,
-  MapNpcsPage,
-  MapObjectsPage,
-  SceneScriptsPage,
+  SceneDetailPage,
+  ImportScenesModal,
 } from "./modules/ScenesPages";
 
 // 资源管理

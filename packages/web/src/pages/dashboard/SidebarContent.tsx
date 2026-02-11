@@ -13,10 +13,11 @@
  * - ModuleNav: 共享的分组导航组件（游戏编辑 + 游戏模块共用）
  */
 import { useParams, useLocation } from "react-router-dom";
-import { SidebarPanel, TreeView, ListPanel, scenesTree, statisticsTree } from "./sidebar/SidebarShared";
+import { SidebarPanel, TreeView, statisticsTree } from "./sidebar/SidebarShared";
 import { SectionedModuleNav, type ModuleNavSection } from "./sidebar/ModuleNav";
 import { GameModulesPanel } from "./sidebar/GameModulesPanel";
 import { PlayerListPanel } from "./sidebar/PlayerListPanel";
+import { SceneListPanel } from "./sidebar/SceneListPanel";
 
 /** 游戏编辑分组导航 */
 const gameEditSections: ModuleNavSection[] = [
@@ -83,11 +84,7 @@ export function SidebarContent() {
       return <GameModulesPanel basePath={basePath} />;
 
     case "scenes":
-      return (
-        <SidebarPanel title="场景编辑">
-          <TreeView nodes={scenesTree} basePath={`${basePath}/scenes`} />
-        </SidebarPanel>
-      );
+      return <SceneListPanel basePath={`${basePath}/scenes`} />;
 
     case "resources":
       // 资源管理器不需要子菜单，直接显示文件管理器

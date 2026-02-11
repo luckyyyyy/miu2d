@@ -164,7 +164,7 @@ function GoodsPreview({ goods, gameSlug }: GoodsPreviewProps) {
       <h3 className="text-sm font-medium text-[#888] mb-4 text-center">物品预览</h3>
 
       {/* 卡片容器 */}
-      <div className="bg-[#1e1e1e] border border-[#333] rounded-lg overflow-hidden">
+      <div className="bg-[#1e1e1e] border border-panel-border rounded-lg overflow-hidden">
         {/* 物品图片区域 */}
         <div className="bg-gradient-to-b from-[#252525] to-[#1a1a1a] p-6 flex items-center justify-center min-h-[140px]">
           {itemImage.dataUrl ? (
@@ -242,7 +242,7 @@ function GoodsPreview({ goods, gameSlug }: GoodsPreviewProps) {
 
           {/* 物品介绍 */}
           {goods.intro && (
-            <div className="pt-2 border-t border-[#333]">
+            <div className="pt-2 border-t border-panel-border">
               <p className="text-sm text-[#aaa] leading-relaxed whitespace-pre-wrap">
                 {goods.intro}
               </p>
@@ -251,7 +251,7 @@ function GoodsPreview({ goods, gameSlug }: GoodsPreviewProps) {
 
           {/* 任务物品脚本 */}
           {goods.kind === "Quest" && goods.script && (
-            <div className="text-xs text-[#555] pt-2 border-t border-[#333]">
+            <div className="text-xs text-[#555] pt-2 border-t border-panel-border">
               📜 脚本: {goods.script}
             </div>
           )}
@@ -430,15 +430,15 @@ export function GoodsDetailPage() {
       contentMaxWidth="max-w-3xl"
       sidePanel={
         <div className="flex-shrink-0 w-[420px]">
-          <div className="sticky top-0 bg-[#252526] border border-[#3c3c3c] rounded-xl p-6">
+          <div className="sticky top-0 bg-[#252526] border border-widget-border rounded-xl p-6">
             <GoodsPreview goods={formData} gameSlug={gameSlug} />
           </div>
         </div>
       }
     >
           {/* 基本信息 */}
-          <section className="bg-[#252526] border border-[#3c3c3c] rounded-xl overflow-hidden">
-            <div className="px-4 py-3 border-b border-[#3c3c3c]">
+          <section className="bg-[#252526] border border-widget-border rounded-xl overflow-hidden">
+            <div className="px-4 py-3 border-b border-widget-border">
               <h2 className="text-sm font-medium text-[#cccccc]">📝 基本信息</h2>
             </div>
             <div className="p-4 grid grid-cols-2 gap-4">
@@ -447,7 +447,7 @@ export function GoodsDetailPage() {
                 <select
                   value={formData.kind || "Consumable"}
                   onChange={(e) => updateField("kind", e.target.value as GoodsKind)}
-                  className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white focus:outline-none focus:border-[#0098ff]"
+                  className="w-full px-3 py-2 bg-[#1e1e1e] border border-widget-border rounded-lg text-white focus:outline-none focus:border-focus-border"
                 >
                   {Object.entries(GoodsKindLabels).map(([key, label]) => (
                     <option key={key} value={key}>{label}</option>
@@ -461,7 +461,7 @@ export function GoodsDetailPage() {
                   type="text"
                   value={formData.name || ""}
                   onChange={(e) => updateField("name", e.target.value)}
-                  className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white focus:outline-none focus:border-[#0098ff]"
+                  className="w-full px-3 py-2 bg-[#1e1e1e] border border-widget-border rounded-lg text-white focus:outline-none focus:border-focus-border"
                 />
               </div>
 
@@ -472,7 +472,7 @@ export function GoodsDetailPage() {
                   value={formData.key || ""}
                   onChange={(e) => updateField("key", e.target.value)}
                   placeholder="例如: goods-m00-金花.ini"
-                  className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white focus:outline-none focus:border-[#0098ff]"
+                  className="w-full px-3 py-2 bg-[#1e1e1e] border border-widget-border rounded-lg text-white focus:outline-none focus:border-focus-border"
                 />
               </div>
 
@@ -492,15 +492,15 @@ export function GoodsDetailPage() {
                   rows={3}
                   value={formData.intro || ""}
                   onChange={(e) => updateField("intro", e.target.value)}
-                  className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white focus:outline-none focus:border-[#0098ff] resize-none"
+                  className="w-full px-3 py-2 bg-[#1e1e1e] border border-widget-border rounded-lg text-white focus:outline-none focus:border-focus-border resize-none"
                 />
               </div>
             </div>
           </section>
 
           {/* 资源文件 */}
-          <section className="bg-[#252526] border border-[#3c3c3c] rounded-xl overflow-hidden">
-            <div className="px-4 py-3 border-b border-[#3c3c3c]">
+          <section className="bg-[#252526] border border-widget-border rounded-xl overflow-hidden">
+            <div className="px-4 py-3 border-b border-widget-border">
               <h2 className="text-sm font-medium text-[#cccccc]">🎨 资源文件</h2>
             </div>
             <div className="p-4 grid grid-cols-2 gap-4">
@@ -511,7 +511,7 @@ export function GoodsDetailPage() {
                   value={formData.image || ""}
                   onChange={(e) => updateField("image", e.target.value || null)}
                   placeholder="例如: tm050-金葵花.asf"
-                  className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white focus:outline-none focus:border-[#0098ff]"
+                  className="w-full px-3 py-2 bg-[#1e1e1e] border border-widget-border rounded-lg text-white focus:outline-none focus:border-focus-border"
                 />
               </div>
               <div>
@@ -521,7 +521,7 @@ export function GoodsDetailPage() {
                   value={formData.icon || ""}
                   onChange={(e) => updateField("icon", e.target.value || null)}
                   placeholder="例如: tm050-金葵花s.asf"
-                  className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white focus:outline-none focus:border-[#0098ff]"
+                  className="w-full px-3 py-2 bg-[#1e1e1e] border border-widget-border rounded-lg text-white focus:outline-none focus:border-focus-border"
                 />
               </div>
               <div>
@@ -530,7 +530,7 @@ export function GoodsDetailPage() {
                   type="text"
                   value={formData.effect || ""}
                   onChange={(e) => updateField("effect", e.target.value || null)}
-                  className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white focus:outline-none focus:border-[#0098ff]"
+                  className="w-full px-3 py-2 bg-[#1e1e1e] border border-widget-border rounded-lg text-white focus:outline-none focus:border-focus-border"
                 />
               </div>
             </div>
@@ -538,8 +538,8 @@ export function GoodsDetailPage() {
 
           {/* 消耗品属性 */}
           {formData.kind === "Consumable" && (
-            <section className="bg-[#252526] border border-[#3c3c3c] rounded-xl overflow-hidden">
-              <div className="px-4 py-3 border-b border-[#3c3c3c]">
+            <section className="bg-[#252526] border border-widget-border rounded-xl overflow-hidden">
+              <div className="px-4 py-3 border-b border-widget-border">
                 <h2 className="text-sm font-medium text-[#cccccc]">🍵 消耗效果</h2>
               </div>
               <div className="p-4 space-y-4">
@@ -576,8 +576,8 @@ export function GoodsDetailPage() {
                   <label className="block text-sm text-[#858585] mb-1">特殊效果</label>
                   <select
                     value={formData.effectType ?? 0}
-                    onChange={(e) => updateField("effectType", parseInt(e.target.value))}
-                    className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white focus:outline-none focus:border-[#0098ff]"
+                    onChange={(e) => updateField("effectType", parseInt(e.target.value, 10))}
+                    className="w-full px-3 py-2 bg-[#1e1e1e] border border-widget-border rounded-lg text-white focus:outline-none focus:border-focus-border"
                   >
                     {getEffectTypeOptions("Consumable", null).map(({ value, label }) => (
                       <option key={value} value={value}>{label}</option>
@@ -590,8 +590,8 @@ export function GoodsDetailPage() {
 
           {/* 装备属性 */}
           {formData.kind === "Equipment" && (
-            <section className="bg-[#252526] border border-[#3c3c3c] rounded-xl overflow-hidden">
-              <div className="px-4 py-3 border-b border-[#3c3c3c]">
+            <section className="bg-[#252526] border border-widget-border rounded-xl overflow-hidden">
+              <div className="px-4 py-3 border-b border-widget-border">
                 <h2 className="text-sm font-medium text-[#cccccc]">⚔️ 装备属性</h2>
               </div>
               <div className="p-4 space-y-4">
@@ -605,7 +605,7 @@ export function GoodsDetailPage() {
                         // 部位变化时，重置 effectType（因为可选项不同）
                         updateField("effectType", 0);
                       }}
-                      className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white focus:outline-none focus:border-[#0098ff]"
+                      className="w-full px-3 py-2 bg-[#1e1e1e] border border-widget-border rounded-lg text-white focus:outline-none focus:border-focus-border"
                     >
                       {Object.entries(GoodsPartLabels).map(([key, label]) => (
                         <option key={key} value={key}>{label}</option>
@@ -616,8 +616,8 @@ export function GoodsDetailPage() {
                     <label className="block text-sm text-[#858585] mb-1">特效类型</label>
                     <select
                       value={formData.effectType ?? 0}
-                      onChange={(e) => updateField("effectType", parseInt(e.target.value))}
-                      className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white focus:outline-none focus:border-[#0098ff]"
+                      onChange={(e) => updateField("effectType", parseInt(e.target.value, 10))}
+                      className="w-full px-3 py-2 bg-[#1e1e1e] border border-widget-border rounded-lg text-white focus:outline-none focus:border-focus-border"
                     >
                       {getEffectTypeOptions("Equipment", formData.part as GoodsPart).map(({ value, label }) => (
                         <option key={value} value={value}>{label}</option>
@@ -697,8 +697,8 @@ export function GoodsDetailPage() {
 
           {/* 任务道具属性 */}
           {formData.kind === "Quest" && (
-            <section className="bg-[#252526] border border-[#3c3c3c] rounded-xl overflow-hidden">
-              <div className="px-4 py-3 border-b border-[#3c3c3c]">
+            <section className="bg-[#252526] border border-widget-border rounded-xl overflow-hidden">
+              <div className="px-4 py-3 border-b border-widget-border">
                 <h2 className="text-sm font-medium text-[#cccccc]">📜 使用脚本</h2>
               </div>
               <div className="p-4">
@@ -709,7 +709,7 @@ export function GoodsDetailPage() {
                     value={formData.script || ""}
                     onChange={(e) => updateField("script", e.target.value || null)}
                     placeholder="例如: Book00-太极剑谱.txt"
-                    className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white focus:outline-none focus:border-[#0098ff]"
+                    className="w-full px-3 py-2 bg-[#1e1e1e] border border-widget-border rounded-lg text-white focus:outline-none focus:border-focus-border"
                   />
                 </div>
               </div>

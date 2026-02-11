@@ -331,6 +331,7 @@ export {
   npcStateToResourceKey,
   // 资源路径规范化
   NpcResourcePaths,
+  getNpcImageCandidates,
   normalizeNpcImagePath,
   normalizeNpcSoundPath,
   normalizeNpcResourcePaths,
@@ -540,3 +541,21 @@ export type {
   AdminCreateSaveInput,
   AdminDeleteSaveInput,
 } from "./save.js";
+
+// 场景类型
+export {
+  SceneItemKindEnum, SceneItemKindLabels,
+  SceneSchema, SceneListItemSchema,
+  ListSceneInputSchema, GetSceneInputSchema, CreateSceneInputSchema,
+  UpdateSceneInputSchema, DeleteSceneInputSchema,
+  ImportZoneEnum, ImportSceneFileInputSchema, ImportSceneFileResultSchema,
+  parseMapFileName, classifyScriptFile, classifySaveFile, extractDisplayName,
+  parseIniContent, parseNpcEntries, parseObjEntries, getSceneDataCounts,
+} from "./scene.js";
+export type {
+  SceneItemKind, Scene, SceneListItem,
+  SceneData, SceneNpcEntry, SceneObjEntry, SceneNpcData, SceneObjData,
+  ListSceneInput, GetSceneInput, CreateSceneInput,
+  UpdateSceneInput, DeleteSceneInput,
+  ImportZone, ImportSceneFileInput, ImportSceneFileResult,
+} from "./scene.js";

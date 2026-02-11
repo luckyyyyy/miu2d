@@ -24,6 +24,7 @@ import {
 } from "@miu2d/engine/utils";
 import type { Vector2 } from "@miu2d/engine/core/types";
 import { decodeAsfWasm } from "@miu2d/engine/wasm/wasmAsfDecoder";
+import { buildResourceUrl } from "../../utils";
 import type { Magic, MagicMoveKind } from "@miu2d/types";
 import { MagicMoveKindLabels, MagicMoveKindValues } from "@miu2d/types";
 
@@ -111,7 +112,7 @@ export function MagicPreview({ gameSlug, magic, level = 1 }: MagicPreviewProps) 
       if (!wasmReady || !gameSlug) return null;
 
       try {
-        const url = `/game/${gameSlug}/resources/${imagePath}`;
+        const url = buildResourceUrl(gameSlug, imagePath);
         const response = await fetch(url);
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const buffer = await response.arrayBuffer();
@@ -411,8 +412,8 @@ export function MagicPreview({ gameSlug, magic, level = 1 }: MagicPreviewProps) 
               const offsetRow = { x: 32, y: 16 };
               const offsetColumn = { x: 32, y: -16 };
               const halfCount = Math.floor(rowCount / 2);
-              let startX = centerX - halfCount * offsetRow.x;
-              let startY = centerY - halfCount * offsetRow.y;
+              const startX = centerX - halfCount * offsetRow.x;
+              const startY = centerY - halfCount * offsetRow.y;
 
               for (let row = 0; row < rowCount; row++) {
                 for (let col = 0; col < rowCount; col++) {
@@ -754,7 +755,7 @@ export function MagicPreview({ gameSlug, magic, level = 1 }: MagicPreviewProps) 
 
     spritesRef.current = createSprites(centerX, centerY, currentDirection);
     lastTimeRef.current = 0;
-  }, [createSprites, currentDirection, magic]);
+  }, [createSprites, currentDirection]);
 
   // ========== 动画循环 ==========
   useEffect(() => {
@@ -1056,7 +1057,7 @@ export function MagicPreview({ gameSlug, magic, level = 1 }: MagicPreviewProps) 
     if (!isLoading && (flyingAsf || vanishAsf || superModeAsf)) {
       resetSimulation();
     }
-  }, [isLoading, flyingAsf, vanishAsf, superModeAsf, currentDirection, resetSimulation, magic, level]);
+  }, [isLoading, flyingAsf, vanishAsf, superModeAsf, resetSimulation]);
 
   // ========== 获取当前等级的速度 ==========
   const getSpeed = () => {
@@ -1094,7 +1095,7 @@ export function MagicPreview({ gameSlug, magic, level = 1 }: MagicPreviewProps) 
   if (!hasAnyResource) {
     return (
       <div className="space-y-3">
-        <div className="flex items-center justify-center h-32 bg-[#1e1e1e] rounded border border-dashed border-[#454545]">
+        <div className="flex items-center justify-center h-32 bg-[#1e1e1e] rounded border border-dashed border-widget-border">
           <div className="text-center">
             <span className="text-3xl">🎯</span>
             <p className="text-[#858585] text-xs mt-2">未设置任何图像资源</p>
@@ -1212,7 +1213,7 @@ export function MagicPreview({ gameSlug, magic, level = 1 }: MagicPreviewProps) 
       )}
 
       {/* 资源信息 */}
-      <div className="text-xs text-[#858585] space-y-1 border-t border-[#454545] pt-2">
+      <div className="text-xs text-[#858585] space-y-1 border-t border-widget-border pt-2">
         {magic.flyingImage && (
           <div className="flex justify-between">
             <span>飞行:</span>

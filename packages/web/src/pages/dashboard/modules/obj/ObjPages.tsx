@@ -229,8 +229,8 @@ export function ObjDetailPage() {
       sidePanel={
         <div className="w-80 flex-shrink-0">
           <div className="sticky top-6">
-            <div className="bg-[#252526] border border-[#3c3c3c] rounded-xl overflow-hidden">
-              <div className="px-4 py-3 border-b border-[#3c3c3c]">
+            <div className="bg-[#252526] border border-widget-border rounded-xl overflow-hidden">
+              <div className="px-4 py-3 border-b border-widget-border">
                 <h3 className="text-sm font-medium text-[#cccccc]">📦 物体预览</h3>
               </div>
               <div className="p-4">
@@ -289,8 +289,8 @@ function BasicInfoSection({
   visibleFields: Set<string>;
 }) {
   return (
-    <section className="bg-[#252526] border border-[#3c3c3c] rounded-xl overflow-hidden">
-      <div className="px-4 py-3 border-b border-[#3c3c3c]">
+    <section className="bg-[#252526] border border-widget-border rounded-xl overflow-hidden">
+      <div className="px-4 py-3 border-b border-widget-border">
         <h2 className="text-sm font-medium text-[#cccccc]">📝 基本信息</h2>
       </div>
       <div className="p-4 grid grid-cols-2 gap-4">
@@ -300,7 +300,7 @@ function BasicInfoSection({
             type="text"
             value={formData.name || ""}
             onChange={(e) => updateField("name", e.target.value)}
-            className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white focus:outline-none focus:border-[#0098ff]"
+            className="w-full px-3 py-2 bg-[#1e1e1e] border border-widget-border rounded-lg text-white focus:outline-none focus:border-focus-border"
           />
         </div>
 
@@ -311,7 +311,7 @@ function BasicInfoSection({
             value={formData.key || ""}
             onChange={(e) => updateField("key", e.target.value)}
             placeholder="例如: 宝箱1.ini"
-            className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white focus:outline-none focus:border-[#0098ff]"
+            className="w-full px-3 py-2 bg-[#1e1e1e] border border-widget-border rounded-lg text-white focus:outline-none focus:border-focus-border"
           />
         </div>
 
@@ -320,7 +320,7 @@ function BasicInfoSection({
           <select
             value={formData.kind || "Static"}
             onChange={(e) => updateField("kind", e.target.value as ObjKind)}
-            className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white focus:outline-none focus:border-[#0098ff]"
+            className="w-full px-3 py-2 bg-[#1e1e1e] border border-widget-border rounded-lg text-white focus:outline-none focus:border-focus-border"
           >
             {Object.entries(ObjKindLabels).map(([key, label]) => (
               <option key={key} value={key}>
@@ -454,8 +454,8 @@ function ResourceSection({
   return (
     <div className="space-y-5">
       {/* 资源关联选择器（弹窗式） */}
-      <section className="bg-[#252526] border border-[#3c3c3c] rounded-xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-[#3c3c3c]">
+      <section className="bg-[#252526] border border-widget-border rounded-xl overflow-hidden">
+        <div className="px-4 py-3 border-b border-widget-border">
           <h2 className="text-sm font-medium text-[#cccccc]">🔗 关联 Object 资源</h2>
         </div>
         <div className="p-4">
@@ -495,7 +495,7 @@ function ResourceSection({
 
       {/* 未关联资源时的提示 */}
       {!hasLinkedResource && (
-        <section className="bg-[#252526] border border-[#3c3c3c] rounded-xl overflow-hidden">
+        <section className="bg-[#252526] border border-widget-border rounded-xl overflow-hidden">
           <div className="p-8 text-center">
             <div className="text-4xl mb-4">🎨</div>
             <p className="text-[#858585] text-sm">
@@ -529,8 +529,8 @@ function BehaviorSection({
   return (
     <div className="space-y-5">
       {/* 脚本配置 */}
-      <section className="bg-[#252526] border border-[#3c3c3c] rounded-xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-[#3c3c3c]">
+      <section className="bg-[#252526] border border-widget-border rounded-xl overflow-hidden">
+        <div className="px-4 py-3 border-b border-widget-border">
           <h2 className="text-sm font-medium text-[#cccccc]">📜 脚本配置</h2>
         </div>
         <div className="p-4 space-y-3">
@@ -614,8 +614,8 @@ function BehaviorSection({
       </section>
 
       {/* 交互配置 */}
-      <section className="bg-[#252526] border border-[#3c3c3c] rounded-xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-[#3c3c3c]">
+      <section className="bg-[#252526] border border-widget-border rounded-xl overflow-hidden">
+        <div className="px-4 py-3 border-b border-widget-border">
           <h2 className="text-sm font-medium text-[#cccccc]">🎮 交互配置</h2>
         </div>
         <div className="p-4 grid grid-cols-2 gap-4">
@@ -823,8 +823,8 @@ export function ObjResourceDetailPage() {
         </div>
 
         {/* 基本信息 */}
-        <section className="bg-[#252526] border border-[#3c3c3c] rounded-xl overflow-hidden mb-6">
-          <div className="px-4 py-3 border-b border-[#3c3c3c]">
+        <section className="bg-[#252526] border border-widget-border rounded-xl overflow-hidden mb-6">
+          <div className="px-4 py-3 border-b border-widget-border">
             <h2 className="text-sm font-medium text-[#cccccc]">📝 基本信息</h2>
           </div>
           <div className="p-4">
@@ -834,7 +834,7 @@ export function ObjResourceDetailPage() {
                 type="text"
                 value={formData.name ?? ""}
                 onChange={(e) => updateField("name", e.target.value)}
-                className="w-full px-3 py-2 bg-[#3c3c3c] border border-[#454545] rounded text-white text-sm focus:outline-none focus:border-[#007acc]"
+                className="w-full px-3 py-2 bg-[#3c3c3c] border border-widget-border rounded text-white text-sm focus:outline-none focus:border-focus-border"
                 placeholder="输入资源名称"
               />
             </div>

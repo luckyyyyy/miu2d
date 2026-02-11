@@ -10,7 +10,7 @@ import type { Vector2 } from "../core/types";
 import { type AsfData, getFrameCanvas, getFrameIndex, loadAsf } from "../resource/asf";
 import { Sprite } from "../sprite/sprite";
 import type { IRenderer } from "../webgl/iRenderer";
-import { getObjConfigFromCache, getObjResFromCache, type ObjConfig, type ObjResInfo } from "./objConfigLoader";
+import { getObjConfigFromCache, type ObjConfig, type ObjResInfo } from "./objConfigLoader";
 
 /**
  * Object Kind enum matching Obj.ObjKind

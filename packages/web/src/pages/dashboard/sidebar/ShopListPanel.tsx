@@ -47,16 +47,16 @@ export function ShopListPanel({ basePath }: { basePath: string }) {
 
   return (
     <>
-      <div className="flex h-full w-60 flex-col bg-[#252526] border-r border-[#1e1e1e]">
+      <div className="flex h-full w-60 flex-col bg-[#252526] border-r border-panel-border">
         {/* 标题栏 */}
-        <div className="flex h-9 items-center justify-between px-4 border-b border-[#1e1e1e]">
+        <div className="flex h-9 items-center justify-between px-4 border-b border-panel-border">
           <span className="text-xs font-medium uppercase tracking-wide text-[#bbbbbb]">
             商店列表
           </span>
         </div>
 
         {/* 操作按钮 */}
-        <div className="flex flex-col gap-1 p-2 border-b border-[#1e1e1e]">
+        <div className="flex flex-col gap-1 p-2 border-b border-panel-border">
           <button
             type="button"
             onClick={() => setShowImportModal(true)}
@@ -201,8 +201,8 @@ function ImportShopModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-[#252526] rounded-lg border border-[#454545] w-[550px] max-h-[80vh] overflow-auto">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-[#454545]">
+      <div className="bg-[#252526] rounded-lg border border-widget-border w-[550px] max-h-[80vh] overflow-auto">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-widget-border">
           <h3 className="font-medium text-white">从 INI 导入商店</h3>
           <button type="button" onClick={onClose} className="text-[#858585] hover:text-white">
             ✕
@@ -216,7 +216,7 @@ function ImportShopModal({
                 ? "border-[#0098ff] bg-[#0098ff]/10"
                 : batchItems.length > 0
                 ? "border-green-500/50 bg-green-500/5"
-                : "border-[#454545] hover:border-[#0098ff]"
+                : "border-widget-border hover:border-[#0098ff]"
             }`}
             onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
             onDragLeave={() => setIsDragging(false)}
@@ -254,11 +254,11 @@ function ImportShopModal({
 
           {/* 文件列表 */}
           {batchItems.length > 0 && (
-            <div className="max-h-48 overflow-y-auto border border-[#454545] rounded">
+            <div className="max-h-48 overflow-y-auto border border-widget-border rounded">
               {batchItems.map((item, index) => (
                 <div
                   key={`${item.fileName}-${index}`}
-                  className="flex items-center justify-between px-3 py-2 border-b border-[#454545] last:border-b-0 hover:bg-[#2a2d2e]"
+                  className="flex items-center justify-between px-3 py-2 border-b border-widget-border last:border-b-0 hover:bg-[#2a2d2e]"
                 >
                   <span className="text-sm text-white">{item.fileName}</span>
                   <button
@@ -303,7 +303,7 @@ function ImportShopModal({
             </div>
           )}
         </div>
-        <div className="flex justify-end gap-2 px-4 py-3 border-t border-[#454545]">
+        <div className="flex justify-end gap-2 px-4 py-3 border-t border-widget-border">
           <button
             type="button"
             onClick={onClose}

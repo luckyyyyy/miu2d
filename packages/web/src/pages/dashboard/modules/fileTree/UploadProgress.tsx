@@ -11,7 +11,7 @@ interface UploadProgressProps {
 
 export function UploadProgress({ fileName, progress, total, current }: UploadProgressProps) {
   return (
-    <div className="bg-[#1e1e1e] border-t border-[#454545] p-3">
+    <div className="bg-[#1e1e1e] border-t border-widget-border p-3">
       <div className="flex items-center justify-between mb-2">
         <span className="text-[13px] text-[#cccccc] truncate flex-1">{fileName}</span>
         <span className="text-[12px] text-[#858585] ml-2">
@@ -53,7 +53,7 @@ export function UploadQueue({ uploads }: UploadQueueProps) {
     : 0;
 
   return (
-    <div className="bg-[#1e1e1e] border-t border-[#454545] p-3">
+    <div className="bg-[#1e1e1e] border-t border-widget-border p-3">
       {/* 总体进度 */}
       <div className="flex items-center justify-between mb-2">
         <span className="text-[12px] text-[#858585]">

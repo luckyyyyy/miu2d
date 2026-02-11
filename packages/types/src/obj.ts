@@ -16,14 +16,14 @@ import { z } from "zod";
  * 参考 C# Engine/Obj.cs ObjKind 枚举
  */
 export const ObjKindEnum = z.enum([
-  "Dynamic",      // 0 - 动画物体，可阻挡（如篝火、喷泉）
-  "Static",       // 1 - 静态物体，可阻挡（如宝箱、门）
-  "Body",         // 2 - 尸体（NPC 死亡后生成）
+  "Dynamic", // 0 - 动画物体，可阻挡（如篝火、喷泉）
+  "Static", // 1 - 静态物体，可阻挡（如宝箱、门）
+  "Body", // 2 - 尸体（NPC 死亡后生成）
   "LoopingSound", // 3 - 循环音效发射器（不可见）
-  "RandSound",    // 4 - 随机音效发射器（不可见）
-  "Door",         // 5 - 门
-  "Trap",         // 6 - 陷阱（触发伤害或脚本）
-  "Drop",         // 7 - 掉落物品（可拾取）
+  "RandSound", // 4 - 随机音效发射器（不可见）
+  "Door", // 5 - 门
+  "Trap", // 6 - 陷阱（触发伤害或脚本）
+  "Drop", // 7 - 掉落物品（可拾取）
 ]);
 
 export type ObjKind = z.infer<typeof ObjKindEnum>;
@@ -59,10 +59,10 @@ export const ObjKindLabels: Record<ObjKind, string> = {
  * 参考 C# Engine/ResFile.cs
  */
 export const ObjResStateEnum = z.enum([
-  "Common",  // 通用/默认状态
-  "Open",    // 打开状态（门、宝箱）
-  "Opened",  // 已打开状态
-  "Closed",  // 关闭状态
+  "Common", // 通用/默认状态
+  "Open", // 打开状态（门、宝箱）
+  "Opened", // 已打开状态
+  "Closed", // 关闭状态
 ]);
 
 export type ObjResState = z.infer<typeof ObjResStateEnum>;
@@ -234,8 +234,8 @@ export const ObjListItemSchema = z.object({
   key: z.string(),
   name: z.string(),
   kind: ObjKindEnum,
-  /** 关联的资源配置 ID */
-  resourceId: z.string().uuid().nullable().optional(),
+  /** 资源文件名（objRes key），与 SceneObjEntry.objFile 一致 */
+  objFile: z.string(),
   /** 通用状态动画图标（用于列表展示） */
   icon: z.string().nullable().optional(),
   updatedAt: z.string().datetime(),
@@ -260,19 +260,23 @@ export const GetObjInputSchema = z.object({
 
 export type GetObjInput = z.infer<typeof GetObjInputSchema>;
 
-export const CreateObjInputSchema = z.object({
-  gameId: z.string().uuid(),
-  key: z.string(),
-  name: z.string(),
-  kind: ObjKindEnum.optional(),
-}).merge(ObjBaseSchema.partial());
+export const CreateObjInputSchema = z
+  .object({
+    gameId: z.string().uuid(),
+    key: z.string(),
+    name: z.string(),
+    kind: ObjKindEnum.optional(),
+  })
+  .merge(ObjBaseSchema.partial());
 
 export type CreateObjInput = z.infer<typeof CreateObjInputSchema>;
 
-export const UpdateObjInputSchema = z.object({
-  id: z.string().uuid(),
-  gameId: z.string().uuid(),
-}).merge(ObjBaseSchema.partial());
+export const UpdateObjInputSchema = z
+  .object({
+    id: z.string().uuid(),
+    gameId: z.string().uuid(),
+  })
+  .merge(ObjBaseSchema.partial());
 
 export type UpdateObjInput = z.infer<typeof UpdateObjInputSchema>;
 
@@ -360,18 +364,22 @@ export const BatchImportObjInputSchema = z.object({
 export type BatchImportObjInput = z.infer<typeof BatchImportObjInputSchema>;
 
 export const BatchImportObjResultSchema = z.object({
-  success: z.array(z.object({
-    fileName: z.string(),
-    id: z.string().uuid(),
-    name: z.string(),
-    /** obj 或 resource */
-    type: z.enum(["obj", "resource"]),
-    hasResources: z.boolean(),
-  })),
-  failed: z.array(z.object({
-    fileName: z.string(),
-    error: z.string(),
-  })),
+  success: z.array(
+    z.object({
+      fileName: z.string(),
+      id: z.string().uuid(),
+      name: z.string(),
+      /** obj 或 resource */
+      type: z.enum(["obj", "resource"]),
+      hasResources: z.boolean(),
+    })
+  ),
+  failed: z.array(
+    z.object({
+      fileName: z.string(),
+      error: z.string(),
+    })
+  ),
 });
 
 export type BatchImportObjResult = z.infer<typeof BatchImportObjResultSchema>;
@@ -528,59 +536,47 @@ export function normalizeObjResourcePaths(resource: ObjResource): ObjResource {
  * 根据 Object 类型获取可见字段列表
  */
 export function getVisibleFieldsByObjKind(kind: ObjKind): string[] {
-  const baseFields = [
-    "name", "kind", "dir", "lum", "scriptFile",
-  ];
+  const baseFields = ["name", "kind", "dir", "lum", "scriptFile"];
 
   switch (kind) {
     case "Dynamic":
-      return [
-        ...baseFields,
-        "frame", "height", "offX", "offY",
-        "wavFile",
-      ];
+      return [...baseFields, "frame", "height", "offX", "offY", "wavFile"];
 
     case "Static":
       return [
         ...baseFields,
-        "frame", "height", "offX", "offY",
-        "scriptFileRight", "canInteractDirectly",
+        "frame",
+        "height",
+        "offX",
+        "offY",
+        "scriptFileRight",
+        "canInteractDirectly",
       ];
 
     case "Body":
-      return [
-        ...baseFields,
-        "frame", "offX", "offY",
-        "reviveNpcIni", "millisecondsToRemove",
-      ];
+      return [...baseFields, "frame", "offX", "offY", "reviveNpcIni", "millisecondsToRemove"];
 
     case "LoopingSound":
     case "RandSound":
-      return [
-        "name", "kind",
-        "wavFile",
-      ];
+      return ["name", "kind", "wavFile"];
 
     case "Door":
-      return [
-        ...baseFields,
-        "frame", "height", "offX", "offY",
-        "scriptFileRight",
-      ];
+      return [...baseFields, "frame", "height", "offX", "offY", "scriptFileRight"];
 
     case "Trap":
       return [
         ...baseFields,
-        "damage", "frame", "offX", "offY",
+        "damage",
+        "frame",
+        "offX",
+        "offY",
         "scriptFileJustTouch",
-        "timerScriptFile", "timerScriptInterval",
+        "timerScriptFile",
+        "timerScriptInterval",
       ];
 
     case "Drop":
-      return [
-        ...baseFields,
-        "frame", "offX", "offY",
-      ];
+      return [...baseFields, "frame", "offX", "offY"];
 
     default:
       return baseFields;

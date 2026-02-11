@@ -23,7 +23,7 @@ import {
 } from "../effects";
 import { getMagic, getMagicAtLevel } from "../magicLoader";
 import type { WorkItem } from "../magicSprite";
-import { MagicSprite, MINIMAL_DAMAGE } from "../magicSprite";
+import { type MagicSprite, MINIMAL_DAMAGE } from "../magicSprite";
 import type { MagicData } from "../types";
 import { MAGIC_BASE_SPEED, MagicMoveKind } from "../types";
 import type {

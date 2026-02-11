@@ -8,6 +8,8 @@ import { useState, useEffect, useRef, type ReactNode } from "react";
 import { getFrameCanvas } from "@miu2d/engine/resource/asf";
 import { initWasm } from "@miu2d/engine/wasm/wasmManager";
 import { decodeAsfWasm } from "@miu2d/engine/wasm/wasmAsfDecoder";
+import { buildResourceUrl } from "../../pages/dashboard/utils";
+import { getNpcImageCandidates } from "@miu2d/types";
 
 // 全局 ASF 图标 dataURL 缓存
 const asfIconCache = new Map<string, string>();
@@ -95,11 +97,18 @@ export function LazyAsfIcon({
       return;
     }
 
-    let resourcePath = iconPath;
-    if (!resourcePath.includes("/")) {
-      resourcePath = `${prefix}${resourcePath}`;
+    // 构建候选路径（角色资源使用共享的回退策略，与引擎 loadCharacterAsf 一致）
+    const candidatePaths: string[] = [];
+    if (iconPath.includes("/")) {
+      candidatePaths.push(iconPath);
+    } else if (prefix === "asf/character/") {
+      // 使用共享的路径回退策略：character → interlude
+      candidatePaths.push(...getNpcImageCandidates(iconPath));
+    } else {
+      candidatePaths.push(`${prefix}${iconPath}`);
     }
-    const cacheKey = `${gameSlug}:${resourcePath}`;
+
+    const cacheKey = `${gameSlug}:${candidatePaths[0]}`;
 
     // 已经加载过相同的路径
     if (cacheKey === loadedKeyRef.current && dataUrl) {
@@ -123,33 +132,38 @@ export function LazyAsfIcon({
         const ready = await ensureWasmInit();
         if (!ready || cancelled) return;
 
-        const encodedPath = resourcePath
-          .split("/")
-          .map(encodeURIComponent)
-          .join("/");
-        const url = `/game/${gameSlug}/resources/${encodedPath}`;
-        const response = await fetch(url);
-        if (!response.ok || cancelled) return;
+        for (const resourcePath of candidatePaths) {
+          if (cancelled) return;
 
-        const buffer = await response.arrayBuffer();
-        if (cancelled) return;
+          const url = buildResourceUrl(gameSlug, resourcePath);
+          try {
+            const response = await fetch(url);
+            if (!response.ok || cancelled) continue;
 
-        const decodedAsf = decodeAsfWasm(buffer);
-        if (
-          !decodedAsf ||
-          !decodedAsf.frames ||
-          decodedAsf.frames.length === 0 ||
-          cancelled
-        )
-          return;
+            const buffer = await response.arrayBuffer();
+            if (cancelled) return;
 
-        const canvas = getFrameCanvas(decodedAsf.frames[0]);
-        if (!canvas || cancelled) return;
+            const decodedAsf = decodeAsfWasm(buffer);
+            if (
+              !decodedAsf ||
+              !decodedAsf.frames ||
+              decodedAsf.frames.length === 0 ||
+              cancelled
+            )
+              continue;
 
-        const result = canvas.toDataURL();
-        asfIconCache.set(cacheKey, result);
-        loadedKeyRef.current = cacheKey;
-        setDataUrl(result);
+            const canvas = getFrameCanvas(decodedAsf.frames[0]);
+            if (!canvas || cancelled) return;
+
+            const result = canvas.toDataURL();
+            asfIconCache.set(cacheKey, result);
+            loadedKeyRef.current = cacheKey;
+            setDataUrl(result);
+            return; // 成功，退出循环
+          } catch {
+            // 继续尝试下一个路径
+          }
+        }
       } catch {
         // ignore load errors
       } finally {

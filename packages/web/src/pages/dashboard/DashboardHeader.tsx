@@ -30,7 +30,7 @@ export function DashboardHeader() {
   }, [showUserMenu]);
 
   return (
-    <header className="flex h-10 items-center justify-between border-b border-[#1e1e1e] bg-[#3c3c3c] px-2">
+    <header className="flex h-10 items-center justify-between border-b border-panel-border bg-[#3c3c3c] px-2">
       <div className="flex items-center gap-2">
         {/* 游戏空间选择器 */}
         <GameSelectorWithData
@@ -67,8 +67,8 @@ export function DashboardHeader() {
           </button>
 
           {showUserMenu && (
-            <div className="absolute right-0 top-full mt-1 w-52 bg-[#252526] border border-[#454545] rounded-lg shadow-xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-1 duration-150">
-              <div className="px-4 py-3 border-b border-[#454545] flex items-center gap-3">
+            <div className="absolute right-0 top-full mt-1 w-52 bg-[#252526] border border-widget-border rounded-lg shadow-xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-1 duration-150">
+              <div className="px-4 py-3 border-b border-widget-border flex items-center gap-3">
                 <Avatar
                   name={user?.name || "?"}
                   avatarUrl={user?.settings?.avatarUrl}
@@ -91,7 +91,7 @@ export function DashboardHeader() {
                   {DashboardIcons.settings}
                   <span>{t("settings.title")}</span>
                 </button>
-                <div className="my-1 border-t border-[#454545]" />
+                <div className="my-1 border-t border-widget-border" />
                 <button
                   type="button"
                   onClick={() => {
@@ -149,8 +149,8 @@ function CreateGameModal({ onClose }: CreateGameModalProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="w-full max-w-md bg-[#252526] border border-[#454545] rounded-lg shadow-xl">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-[#454545]">
+      <div className="w-full max-w-md bg-[#252526] border border-widget-border rounded-lg shadow-xl">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-widget-border">
           <h2 className="text-lg font-medium">创建新游戏</h2>
           <button
             type="button"
@@ -171,7 +171,7 @@ function CreateGameModal({ onClose }: CreateGameModalProps) {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="输入游戏名称"
-              className="w-full px-3 py-2 bg-[#3c3c3c] border border-[#454545] rounded text-white placeholder-[#858585] focus:outline-none focus:border-[#0098ff]"
+              className="w-full px-3 py-2 bg-[#3c3c3c] border border-widget-border rounded text-white placeholder-[#858585] focus:outline-none focus:border-focus-border"
               required
             />
           </div>
@@ -185,7 +185,7 @@ function CreateGameModal({ onClose }: CreateGameModalProps) {
               onChange={(e) => setDescription(e.target.value)}
               placeholder="输入游戏描述（可选）"
               rows={3}
-              className="w-full px-3 py-2 bg-[#3c3c3c] border border-[#454545] rounded text-white placeholder-[#858585] focus:outline-none focus:border-[#0098ff] resize-none"
+              className="w-full px-3 py-2 bg-[#3c3c3c] border border-widget-border rounded text-white placeholder-[#858585] focus:outline-none focus:border-focus-border resize-none"
             />
           </div>
 

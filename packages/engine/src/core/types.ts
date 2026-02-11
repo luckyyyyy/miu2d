@@ -56,15 +56,19 @@ export enum CharacterState {
   Special = 16,
 }
 
+/**
+ * 8方向枚举，从 South 开始顺时针
+ * 与原版 C# 一致：direction 0 = (0,1) = South
+ */
 export enum Direction {
-  North = 0,
-  NorthEast = 1,
-  East = 2,
-  SouthEast = 3,
-  South = 4,
-  SouthWest = 5,
-  West = 6,
-  NorthWest = 7,
+  South = 0,
+  SouthWest = 1,
+  West = 2,
+  NorthWest = 3,
+  North = 4,
+  NorthEast = 5,
+  East = 6,
+  SouthEast = 7,
 }
 
 /**

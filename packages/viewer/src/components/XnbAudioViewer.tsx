@@ -93,7 +93,7 @@ export function XnbAudioViewer({ data, fileName, isLoading, error }: XnbAudioVie
       audio.removeEventListener("timeupdate", handleTimeUpdate);
       audio.removeEventListener("loadedmetadata", handleLoadedMetadata);
     };
-  }, [wavUrl]);
+  }, []);
 
   // 播放/暂停
   const togglePlay = useCallback(() => {

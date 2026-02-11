@@ -94,19 +94,11 @@ export function getDirectionFromVector(direction: Vector2): Direction {
 /**
  * Get direction vector for movement
  * 获取方向对应的移动向量
+ * 方向从 South (0,1) 开始，顺时针 0-7
  */
 export function getDirectionVector(direction: Direction): Vector2 {
-  const vectors: Vector2[] = [
-    { x: 0, y: -1 }, // North
-    { x: 1, y: -1 }, // NorthEast
-    { x: 1, y: 0 }, // East
-    { x: 1, y: 1 }, // SouthEast
-    { x: 0, y: 1 }, // South
-    { x: -1, y: 1 }, // SouthWest
-    { x: -1, y: 0 }, // West
-    { x: -1, y: -1 }, // NorthWest
-  ];
-  return vectors[direction] || { x: 0, y: 1 };
+  // 与 getDirection8 / DIRECTION_TILE_OFFSETS 一致
+  return DIRECTION_TILE_OFFSETS[direction] || { x: 0, y: 1 };
 }
 
 // ========== 8方向和32方向向量 ==========

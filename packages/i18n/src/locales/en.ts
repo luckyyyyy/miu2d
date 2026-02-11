@@ -83,6 +83,11 @@ export const en: TranslationSchema = {
         notFound: "Magic skill not found",
         fileNameConflict: "Magic file name already exists",
         invalidIniFormat: "Invalid INI file format"
+      },
+      scene: {
+        notFound: "Scene not found",
+        itemNotFound: "Scene item not found",
+        keyConflict: "Scene key already exists"
       }
     },
     footer: {

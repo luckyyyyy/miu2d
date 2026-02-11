@@ -24,7 +24,6 @@ import { MagicMoveKind, MagicSpecialKind } from "../magic/types";
 import { Sprite } from "../sprite/sprite";
 import type { IRenderer } from "../webgl/iRenderer";
 import { getTileTextureRegion } from "../map/renderer";
-import { resourceLoader } from "../resource/resourceLoader";
 import type { ApiPlayerData } from "../resource/resourceLoader";
 import { isBoxCollide, pixelToTile } from "../utils";
 import {

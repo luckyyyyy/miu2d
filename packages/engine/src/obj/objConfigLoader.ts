@@ -4,11 +4,8 @@
  * 替代原有的 INI 文件加载，从统一数据加载器获取配置。
  */
 
-import {
-  getObjsData,
-  type ApiObjData,
-} from "../resource/resourceLoader";
 import { createConfigCache } from "../resource/cacheRegistry";
+import { type ApiObjData, getObjsData } from "../resource/resourceLoader";
 
 // ========== 类型定义 ==========
 
@@ -136,6 +133,14 @@ const objResCacheStore = createConfigCache<ObjApiData, ObjResInfo>({
         imagePath: resData.resources?.common?.image ?? "",
         soundPath: resData.resources?.common?.sound ?? "",
       });
+    }
+    // 为有 resourceKey 的 OBJ 创建别名（使 obj.key 也能查到资源）
+    for (const api of data.objs) {
+      const objKey = normalizeKey(api.key);
+      if (!cache.has(objKey) && api.resourceKey) {
+        const res = cache.get(normalizeKey(api.resourceKey));
+        if (res) cache.set(objKey, res);
+      }
     }
   },
 });

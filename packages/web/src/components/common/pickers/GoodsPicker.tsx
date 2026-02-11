@@ -7,7 +7,6 @@
 import { useCallback, useState, useMemo, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { trpc } from "../../../lib/trpc";
-import type { GoodsListItem } from "@miu2d/types";
 import { LazyAsfIcon } from "../LazyAsfIcon";
 
 const GOODS_KIND_LABELS: Record<string, string> = {

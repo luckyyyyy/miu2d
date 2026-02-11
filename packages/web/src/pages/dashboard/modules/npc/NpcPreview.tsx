@@ -9,13 +9,14 @@
  * - Hurt (受伤)
  * - Death (死亡)
  */
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { AsfData } from "@miu2d/engine/resource/asf";
 import { getFrameCanvas } from "@miu2d/engine/resource/asf";
 import { initWasm } from "@miu2d/engine/wasm/wasmManager";
 import { decodeAsfWasm } from "@miu2d/engine/wasm/wasmAsfDecoder";
-import type { Npc, NpcState, NpcResource, NpcAppearance } from "@miu2d/types";
-import { NpcStateLabels, npcStateToResourceKey } from "@miu2d/types";
+import { buildResourceUrl } from "../../utils";
+import type { Npc, NpcState, NpcAppearance } from "@miu2d/types";
+import { NpcStateLabels, npcStateToResourceKey, getNpcImageCandidates } from "@miu2d/types";
 
 // ========== 类型定义 ==========
 
@@ -75,92 +76,99 @@ export function NpcPreview({ gameSlug, npc, resource }: NpcPreviewProps) {
       });
   }, []);
 
-  // ========== 规范化图像路径 ==========
-  const normalizeImagePath = useCallback((imagePath: string | null | undefined): string | null => {
-    if (!imagePath) return null;
-
-    let path = imagePath.trim();
-    if (!path) return null;
-
-    // 规范化路径分隔符
-    path = path.replace(/\\/g, "/");
-
-    // 移除开头的斜杠
-    if (path.startsWith("/")) {
-      path = path.slice(1);
-    }
-
-    // 判断是否是绝对路径
-    const lowerPath = path.toLowerCase();
-    if (lowerPath.startsWith("asf/") || lowerPath.startsWith("mpc/")) {
-      return path.toLowerCase();
-    }
-
-    // 相对路径：添加默认前缀
-    return `asf/character/${path}`.toLowerCase();
-  }, []);
-
-  // ========== 获取当前状态的资源路径 ==========
-  const getResourcePath = useCallback((state: NpcState): string | null => {
+  // ========== 当前状态的图片路径（纯字符串，稳定引用） ==========
+  const currentImagePath = useMemo(() => {
     if (!resources) return null;
+    const stateKey = npcStateToResourceKey(selectedState);
+    return resources[stateKey]?.image ?? null;
+  }, [resources, selectedState]);
 
-    const stateKey = npcStateToResourceKey(state);
-    const resource = resources[stateKey];
-
-    // 规范化路径（兼容旧数据）
-    return normalizeImagePath(resource?.image);
-  }, [resources, normalizeImagePath]);
-
-  // ========== 加载 ASF 文件 ==========
-  const loadAsf = useCallback(
-    async (imagePath: string): Promise<AsfData | null> => {
-      if (!wasmReady || !gameSlug) return null;
-
-      try {
-        const url = `/game/${gameSlug}/resources/${imagePath}`;
-        const response = await fetch(url);
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const buffer = await response.arrayBuffer();
-        return decodeAsfWasm(buffer);
-      } catch (err) {
-        console.error(`Failed to load ASF: ${imagePath}`, err);
-        return null;
-      }
-    },
-    [wasmReady, gameSlug]
+  // 候选路径列表（使用共享的路径回退策略）
+  const candidatePaths = useMemo(
+    () => getNpcImageCandidates(currentImagePath),
+    [currentImagePath],
   );
+
+  // 无资源时的错误提示
+  const noResourceError = candidatePaths.length === 0
+    ? `${NpcStateLabels[selectedState]} 状态未配置动画资源`
+    : null;
 
   // ========== 加载选中状态的资源 ==========
   useEffect(() => {
-    if (!wasmReady || !npc) return;
+    if (!wasmReady) return;
+
+    if (noResourceError) {
+      setAsfData(null);
+      setLoadError(noResourceError);
+      return;
+    }
+
+    // 快照当前候选路径（pathKey 变化时效果重新运行，此处闭包捕获正确值）
+    const paths = [...candidatePaths];
+    const firstPath = paths[0];
+
+    let cancelled = false;
+    setIsLoading(true);
+    setLoadError(null);
+    setAsfData(null); // 清除旧的动画数据，避免显示上一个资源的画面
 
     const loadSelectedState = async () => {
-      const path = getResourcePath(selectedState);
-      if (!path) {
-        setAsfData(null);
-        setLoadError(`${NpcStateLabels[selectedState]} 状态未配置动画资源`);
-        return;
-      }
-
-      setIsLoading(true);
-      setLoadError(null);
-      setAsfData(null);
       // 重置动画状态
       frameRef.current = 0;
       elapsedRef.current = 0;
       lastTimeRef.current = 0;
 
-      const data = await loadAsf(path);
-      if (data) {
-        setAsfData(data);
-      } else {
-        setLoadError(`无法加载 ${path}`);
+      for (const imagePath of paths) {
+        if (cancelled) return;
+        try {
+          const url = buildResourceUrl(gameSlug, imagePath);
+          const response = await fetch(url);
+          if (!response.ok) continue;
+          const buffer = await response.arrayBuffer();
+          if (cancelled) return;
+          const data = decodeAsfWasm(buffer);
+          if (data) {
+            setAsfData(data);
+            setIsLoading(false);
+            return;
+          }
+        } catch {
+          // 继续尝试下一个路径
+        }
       }
-      setIsLoading(false);
+
+      if (!cancelled) {
+        console.error(`[NpcPreview] All paths failed: ${paths.join(", ")}`);
+        setAsfData(null);
+        setLoadError(`无法加载 ${firstPath}`);
+        setIsLoading(false);
+      }
     };
 
     loadSelectedState();
-  }, [wasmReady, npc, selectedState, getResourcePath, loadAsf]);
+    return () => { cancelled = true; };
+    // candidatePaths 由 useMemo(currentImagePath) 稳定，仅路径变化时重新加载
+  }, [wasmReady, gameSlug, candidatePaths, noResourceError]);
+
+  // ========== 计算可用方向数和有效方向 ==========
+  const directionCount = asfData && asfData.framesPerDirection > 0
+    ? Math.floor(asfData.frames.length / asfData.framesPerDirection)
+    : 0;
+
+  // 将 direction 钳制到有效范围（避免超出方向数导致空白）
+  const validDirection = directionCount > 0 ? direction % directionCount : 0;
+
+  // ========== 清除画布（无数据或出错时） ==========
+  useEffect(() => {
+    if (asfData) return; // 有数据时由动画 effect 负责
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.fillStyle = "#1e1e1e";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }, [asfData]);
 
   // ========== 动画渲染 ==========
   useEffect(() => {
@@ -171,13 +179,18 @@ export function NpcPreview({ gameSlug, npc, resource }: NpcPreviewProps) {
     if (!ctx) return;
 
     const { frames, framesPerDirection, interval } = asfData;
-    if (frames.length === 0) return;
+    if (frames.length === 0 || framesPerDirection === 0) return;
 
-    // 计算帧索引
-    const directionOffset = direction * framesPerDirection;
+    // 使用钳制后的方向，确保不越界
+    const directionOffset = validDirection * framesPerDirection;
     const totalDirectionFrames = Math.min(framesPerDirection, frames.length - directionOffset);
 
-    if (totalDirectionFrames <= 0) return;
+    if (totalDirectionFrames <= 0) {
+      // 即便越界也清除画布，不残留旧帧
+      ctx.fillStyle = "#1e1e1e";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      return;
+    }
 
     // 重置动画状态
     frameRef.current = 0;
@@ -240,24 +253,29 @@ export function NpcPreview({ gameSlug, npc, resource }: NpcPreviewProps) {
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [asfData, direction]);
+  }, [asfData, validDirection]);
 
   // ========== 获取可用的状态列表 ==========
   const availableStates = PREVIEW_STATES.filter((state) => {
     const stateKey = npcStateToResourceKey(state);
-    return npc?.resources?.[stateKey]?.image;
+    return resources?.[stateKey]?.image;
   });
 
   // ========== 方向控制 ==========
   const handleDirectionChange = (delta: number) => {
-    setDirection((d) => (d + delta + 8) % 8);
+    // 用实际方向数限制范围（无数据时默认 8）
+    const maxDirs = directionCount > 0 ? directionCount : 8;
+    setDirection((d) => (d + delta + maxDirs) % maxDirs);
     // 重置帧
     frameRef.current = 0;
     elapsedRef.current = 0;
   };
 
-  // 方向标签
-  const directionLabels = ["↑", "↗", "→", "↘", "↓", "↙", "←", "↖"];
+  // 方向标签（只显示实际可用的方向数）
+  const allDirectionLabels = ["↑", "↗", "→", "↘", "↓", "↙", "←", "↖"];
+  const directionLabels = directionCount > 0
+    ? allDirectionLabels.slice(0, directionCount)
+    : allDirectionLabels;
 
   return (
     <div className="space-y-4">
@@ -295,7 +313,7 @@ export function NpcPreview({ gameSlug, npc, resource }: NpcPreviewProps) {
             ◀
           </button>
           <span className="w-6 h-6 flex items-center justify-center rounded bg-black/50 text-white text-sm">
-            {directionLabels[direction]}
+            {allDirectionLabels[validDirection]}
           </span>
           <button
             type="button"

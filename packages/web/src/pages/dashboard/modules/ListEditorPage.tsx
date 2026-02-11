@@ -3,7 +3,7 @@
  * 用于角色、NPC、物品、商店、武功等的 CRUD 操作
  */
 import { useState } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { DashboardIcons } from "../icons";
 
 interface ListItem {
@@ -71,13 +71,13 @@ export function ListEditorPage({
               placeholder={`搜索${itemName}...`}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-[#3c3c3c] border border-[#454545] rounded text-white placeholder-[#858585] focus:outline-none focus:border-[#0098ff]"
+              className="w-full pl-10 pr-4 py-2 bg-[#3c3c3c] border border-widget-border rounded text-white placeholder-[#858585] focus:outline-none focus:border-focus-border"
             />
           </div>
         </div>
 
         {/* 列表 */}
-        <div className="bg-[#252526] border border-[#454545] rounded-lg overflow-hidden">
+        <div className="bg-[#252526] border border-widget-border rounded-lg overflow-hidden">
           {isLoading ? (
             <div className="px-4 py-8 text-center text-[#858585]">加载中...</div>
           ) : filteredItems.length === 0 ? (
@@ -87,7 +87,7 @@ export function ListEditorPage({
           ) : (
             <table className="w-full">
               <thead>
-                <tr className="border-b border-[#454545] text-left text-sm text-[#858585]">
+                <tr className="border-b border-widget-border text-left text-sm text-[#858585]">
                   <th className="px-4 py-3 font-medium">名称</th>
                   <th className="px-4 py-3 font-medium">描述</th>
                   <th className="px-4 py-3 font-medium w-32">操作</th>
@@ -97,7 +97,7 @@ export function ListEditorPage({
                 {filteredItems.map((item) => (
                   <tr
                     key={item.id}
-                    className="border-b border-[#454545] last:border-b-0 hover:bg-[#2a2d2e] transition-colors"
+                    className="border-b border-widget-border last:border-b-0 hover:bg-[#2a2d2e] transition-colors"
                   >
                     <td className="px-4 py-3">
                       <Link
@@ -140,7 +140,7 @@ export function ListEditorPage({
         {/* 删除确认对话框 */}
         {deleteConfirm && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-            <div className="w-full max-w-sm bg-[#252526] border border-[#454545] rounded-lg shadow-xl p-4">
+            <div className="w-full max-w-sm bg-[#252526] border border-widget-border rounded-lg shadow-xl p-4">
               <h3 className="text-lg font-medium text-white mb-2">确认删除</h3>
               <p className="text-[#858585] text-sm mb-4">
                 确定要删除这个{itemName}吗？此操作无法撤销。
@@ -213,7 +213,7 @@ export function DetailEditorPage({
         {children}
 
         {/* 底部操作栏 */}
-        <div className="flex items-center justify-between mt-6 pt-4 border-t border-[#454545]">
+        <div className="flex items-center justify-between mt-6 pt-4 border-t border-widget-border">
           {onDelete && (
             <button
               type="button"

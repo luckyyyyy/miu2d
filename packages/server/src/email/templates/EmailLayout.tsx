@@ -14,13 +14,12 @@ import {
   Head,
   Hr,
   Html,
-  Img,
   Link,
   Preview,
   Section,
   Text,
 } from "@react-email/components";
-import * as React from "react";
+import type * as React from "react";
 
 // ==================== 色彩体系 ====================
 // 与首页 theme.ts / cssVars 保持一致

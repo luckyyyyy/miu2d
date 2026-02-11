@@ -27,7 +27,7 @@ export function StatisticsHomePage() {
           ].map((stat) => (
             <div
               key={stat.label}
-              className="p-4 bg-[#252526] border border-[#454545] rounded-lg"
+              className="p-4 bg-[#252526] border border-widget-border rounded-lg"
             >
               <p className="text-sm text-[#858585] mb-1">{stat.label}</p>
               <p className="text-2xl font-bold text-white">{stat.value}</p>
@@ -38,13 +38,13 @@ export function StatisticsHomePage() {
 
         {/* 图表区域 */}
         <div className="grid grid-cols-2 gap-6">
-          <div className="bg-[#252526] border border-[#454545] rounded-lg p-4">
+          <div className="bg-[#252526] border border-widget-border rounded-lg p-4">
             <h3 className="text-[#bbbbbb] font-medium mb-4">玩家活跃趋势</h3>
             <div className="h-48 flex items-center justify-center text-[#444]">
               图表区域
             </div>
           </div>
-          <div className="bg-[#252526] border border-[#454545] rounded-lg p-4">
+          <div className="bg-[#252526] border border-widget-border rounded-lg p-4">
             <h3 className="text-[#bbbbbb] font-medium mb-4">关卡完成分布</h3>
             <div className="h-48 flex items-center justify-center text-[#444]">
               图表区域
@@ -61,7 +61,7 @@ export function PlayerDataPage() {
     <div className="h-full overflow-auto p-6">
       <div className="max-w-4xl">
         <h1 className="text-xl font-bold text-white mb-6">玩家数据</h1>
-        <div className="bg-[#252526] border border-[#454545] rounded-lg p-12 text-center">
+        <div className="bg-[#252526] border border-widget-border rounded-lg p-12 text-center">
           <div className="text-[#858585] text-4xl mb-3">🚧</div>
           <p className="text-[#cccccc] font-medium">功能开发中</p>
           <p className="text-[#555] text-sm mt-1">玩家数据分析功能正在开发中，敬请期待</p>
@@ -188,12 +188,12 @@ export function PlayerSavesPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="搜索玩家名、存档名、角色名、地图..."
-              className="w-full pl-10 pr-4 py-2 bg-[#3c3c3c] border border-[#454545] rounded text-white text-sm placeholder-[#858585] focus:outline-none focus:border-[#0098ff]"
+              className="w-full pl-10 pr-4 py-2 bg-[#3c3c3c] border border-widget-border rounded text-white text-sm placeholder-[#858585] focus:outline-none focus:border-focus-border"
             />
           </div>
           <button
             onClick={() => savesQuery.refetch()}
-            className="px-3 py-2 text-sm bg-[#3c3c3c] border border-[#454545] rounded text-[#cccccc] hover:bg-[#454545] transition-colors"
+            className="px-3 py-2 text-sm bg-[#3c3c3c] border border-widget-border rounded text-[#cccccc] hover:bg-[#454545] transition-colors"
           >
             刷新
           </button>
@@ -209,7 +209,7 @@ export function PlayerSavesPage() {
         {savesQuery.isLoading ? (
           <ResponsiveGrid minColWidth={280} gap={4}>
             {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div key={i} className="bg-[#252526] border border-[#454545] rounded-lg p-4 animate-pulse">
+              <div key={i} className="bg-[#252526] border border-widget-border rounded-lg p-4 animate-pulse">
                 <div className="h-32 bg-[#3c3c3c] rounded mb-3" />
                 <div className="h-4 bg-[#3c3c3c] rounded w-3/4 mb-2" />
                 <div className="h-3 bg-[#3c3c3c] rounded w-1/2" />
@@ -217,7 +217,7 @@ export function PlayerSavesPage() {
             ))}
           </ResponsiveGrid>
         ) : filteredItems?.length === 0 ? (
-          <div className="bg-[#252526] border border-[#454545] rounded-lg p-12 text-center">
+          <div className="bg-[#252526] border border-widget-border rounded-lg p-12 text-center">
             <div className="text-[#858585] text-4xl mb-3">📂</div>
             <p className="text-[#858585]">{search ? "没有匹配的存档" : "暂无存档"}</p>
             <p className="text-[#555] text-sm mt-1">
@@ -229,7 +229,7 @@ export function PlayerSavesPage() {
             {filteredItems?.map((save) => (
               <div
                 key={save.id}
-                className="bg-[#252526] border border-[#454545] rounded-lg overflow-hidden hover:border-[#0098ff]/50 transition-colors group"
+                className="bg-[#252526] border border-widget-border rounded-lg overflow-hidden hover:border-[#0098ff]/50 transition-colors group"
               >
                 {/* 截图预览 */}
                 <div
@@ -277,17 +277,17 @@ export function PlayerSavesPage() {
                   {/* 角色信息标签 */}
                   <div className="flex flex-wrap gap-1.5 mb-3">
                     {save.playerName && (
-                      <span className="text-xs px-1.5 py-0.5 bg-[#1e1e1e] text-[#cccccc] rounded border border-[#454545]">
+                      <span className="text-xs px-1.5 py-0.5 bg-[#1e1e1e] text-[#cccccc] rounded border border-widget-border">
                         👤 {save.playerName}
                       </span>
                     )}
                     {save.level != null && (
-                      <span className="text-xs px-1.5 py-0.5 bg-[#1e1e1e] text-[#4ec9b0] rounded border border-[#454545]">
+                      <span className="text-xs px-1.5 py-0.5 bg-[#1e1e1e] text-[#4ec9b0] rounded border border-widget-border">
                         Lv.{save.level}
                       </span>
                     )}
                     {save.mapName && (
-                      <span className="text-xs px-1.5 py-0.5 bg-[#1e1e1e] text-[#858585] rounded border border-[#454545]">
+                      <span className="text-xs px-1.5 py-0.5 bg-[#1e1e1e] text-[#858585] rounded border border-widget-border">
                         📍 {save.mapName}
                       </span>
                     )}
@@ -389,11 +389,11 @@ export function PlayerSavesPage() {
             onClick={() => setSelectedSaveId(null)}
           >
             <div
-              className="bg-[#1e1e1e] border border-[#454545] rounded-lg w-full max-w-5xl h-[75vh] flex flex-col"
+              className="bg-[#1e1e1e] border border-widget-border rounded-lg w-full max-w-5xl h-[75vh] flex flex-col"
               onClick={(e) => e.stopPropagation()}
             >
               {/* 弹窗头部 */}
-              <div className="flex items-center justify-between px-5 py-3 border-b border-[#454545] shrink-0">
+              <div className="flex items-center justify-between px-5 py-3 border-b border-widget-border shrink-0">
                 <div>
                   <h3 className="text-white font-medium">存档详情</h3>
                   {saveDetailQuery.data && (
@@ -417,12 +417,12 @@ export function PlayerSavesPage() {
                 ) : saveDetailQuery.data ? (
                   <>
                     {/* 摘要信息条 - 紧凑单行 */}
-                    <div className="flex items-center gap-3 px-4 py-2 border-b border-[#333] shrink-0">
+                    <div className="flex items-center gap-3 px-4 py-2 border-b border-panel-border shrink-0">
                       {saveDetailQuery.data.screenshot && (
                         <img
                           src={saveDetailQuery.data.screenshot}
                           alt=""
-                          className="w-16 h-10 rounded object-cover border border-[#454545] shrink-0"
+                          className="w-16 h-10 rounded object-cover border border-widget-border shrink-0"
                         />
                       )}
                       <div className="flex items-center gap-3 text-xs text-[#858585] min-w-0 flex-wrap">
@@ -451,7 +451,7 @@ export function PlayerSavesPage() {
 
               {/* 弹窗底部操作 */}
               {saveDetailQuery.data && (
-                <div className="flex items-center justify-between px-5 py-3 border-t border-[#454545] shrink-0">
+                <div className="flex items-center justify-between px-5 py-3 border-t border-widget-border shrink-0">
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-[#858585]">
                       ID: {saveDetailQuery.data.id}
@@ -502,7 +502,7 @@ export function PlayerSavesPage() {
             onClick={() => setConfirmDelete(null)}
           >
             <div
-              className="bg-[#1e1e1e] border border-[#454545] rounded-lg w-full max-w-sm p-5"
+              className="bg-[#1e1e1e] border border-widget-border rounded-lg w-full max-w-sm p-5"
               onClick={(e) => e.stopPropagation()}
             >
               <h3 className="text-white font-medium mb-2">确认删除</h3>
@@ -600,11 +600,11 @@ function AdminCreateSaveModal({
       onClick={onClose}
     >
       <div
-        className="bg-[#1e1e1e] border border-[#454545] rounded-lg w-full max-w-2xl max-h-[85vh] flex flex-col"
+        className="bg-[#1e1e1e] border border-widget-border rounded-lg w-full max-w-2xl max-h-[85vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* 头部 */}
-        <div className="flex items-center justify-between px-5 py-3 border-b border-[#454545] shrink-0">
+        <div className="flex items-center justify-between px-5 py-3 border-b border-widget-border shrink-0">
           <h3 className="text-white font-medium">创建存档</h3>
           <button
             onClick={onClose}
@@ -625,14 +625,14 @@ function AdminCreateSaveModal({
               onChange={(e) => setName(e.target.value)}
               placeholder="留空则自动生成"
               maxLength={100}
-              className="w-full px-3 py-2 bg-[#3c3c3c] border border-[#454545] rounded text-white text-sm placeholder-[#858585] focus:outline-none focus:border-[#0098ff]"
+              className="w-full px-3 py-2 bg-[#3c3c3c] border border-widget-border rounded text-white text-sm placeholder-[#858585] focus:outline-none focus:border-focus-border"
             />
           </div>
 
           {/* JSON 数据 */}
           <div>
             <label className="text-[#858585] text-xs mb-1.5 block">存档 JSON 数据</label>
-            <div className="border border-[#454545] rounded overflow-hidden">
+            <div className="border border-widget-border rounded overflow-hidden">
               <Suspense fallback={<div className="h-[400px] bg-[#1a1a1a] flex items-center justify-center text-[#858585] text-sm">加载编辑器...</div>}>
                 <MonacoEditor
                   height="400px"
@@ -661,7 +661,7 @@ function AdminCreateSaveModal({
         </div>
 
         {/* 底部操作 */}
-        <div className="flex items-center justify-end gap-2 px-5 py-3 border-t border-[#454545] shrink-0">
+        <div className="flex items-center justify-end gap-2 px-5 py-3 border-t border-widget-border shrink-0">
           <button
             onClick={onClose}
             className="px-3 py-1.5 text-sm bg-[#3c3c3c] hover:bg-[#454545] text-[#cccccc] rounded transition-colors"

@@ -15,35 +15,14 @@ import type {
 	BatchImportPlayerResult,
 } from "@miu2d/types";
 import { createDefaultPlayer } from "@miu2d/types";
-import { and, eq, desc, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { db } from "../../db/client";
-import { gameMembers, games, players } from "../../db/schema";
+import { games, players } from "../../db/schema";
 import type { Language } from "../../i18n";
+import { verifyGameAccess } from "../../utils/gameAccess";
 import { getMessage } from "../../i18n";
 
 export class PlayerService {
-	/**
-	 * 验证用户是否有权访问游戏
-	 */
-	async verifyGameAccess(gameId: string, userId: string, language: Language): Promise<void> {
-		const [member] = await db
-			.select()
-			.from(gameMembers)
-			.where(
-				and(
-					eq(gameMembers.gameId, gameId),
-					eq(gameMembers.userId, userId)
-				)
-			)
-			.limit(1);
-
-		if (!member) {
-			throw new TRPCError({
-				code: "FORBIDDEN",
-				message: getMessage(language, "errors.file.noAccess")
-			});
-		}
-	}
 
 	/**
 	 * 将数据库记录转换为 Player 类型
@@ -95,7 +74,7 @@ export class PlayerService {
 		userId: string,
 		language: Language
 	): Promise<Player | null> {
-		await this.verifyGameAccess(gameId, userId, language);
+		await verifyGameAccess(gameId, userId, language);
 
 		const [row] = await db
 			.select()
@@ -115,7 +94,7 @@ export class PlayerService {
 		userId: string,
 		language: Language
 	): Promise<PlayerListItem[]> {
-		await this.verifyGameAccess(input.gameId, userId, language);
+		await verifyGameAccess(input.gameId, userId, language);
 
 		const rows = await db
 			.select()
@@ -146,7 +125,7 @@ export class PlayerService {
 		userId: string,
 		language: Language
 	): Promise<Player> {
-		await this.verifyGameAccess(input.gameId, userId, language);
+		await verifyGameAccess(input.gameId, userId, language);
 
 		const defaultPlayer = createDefaultPlayer(input.gameId, input.key);
 		const fullPlayer = {
@@ -189,7 +168,7 @@ export class PlayerService {
 		userId: string,
 		language: Language
 	): Promise<Player> {
-		await this.verifyGameAccess(input.gameId, userId, language);
+		await verifyGameAccess(input.gameId, userId, language);
 
 		const existing = await this.get(input.gameId, input.id, userId, language);
 		if (!existing) {
@@ -237,7 +216,7 @@ export class PlayerService {
 		userId: string,
 		language: Language
 	): Promise<{ id: string }> {
-		await this.verifyGameAccess(gameId, userId, language);
+		await verifyGameAccess(gameId, userId, language);
 
 		await db
 			.delete(players)
@@ -254,7 +233,7 @@ export class PlayerService {
 		userId: string,
 		language: Language
 	): Promise<Player> {
-		await this.verifyGameAccess(input.gameId, userId, language);
+		await verifyGameAccess(input.gameId, userId, language);
 
 		if (!input.iniContent) {
 			throw new Error("角色配置内容为空");
@@ -284,7 +263,7 @@ export class PlayerService {
 		userId: string,
 		language: Language
 	): Promise<BatchImportPlayerResult> {
-		await this.verifyGameAccess(input.gameId, userId, language);
+		await verifyGameAccess(input.gameId, userId, language);
 
 		const success: BatchImportPlayerResult["success"] = [];
 		const failed: BatchImportPlayerResult["failed"] = [];

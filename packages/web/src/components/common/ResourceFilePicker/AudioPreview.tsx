@@ -183,7 +183,7 @@ export function AudioPreview({ gameSlug, path, compact, autoPlay }: AudioPreview
       audio.removeEventListener("loadedmetadata", handleLoadedMetadata);
       audio.removeEventListener("error", handleError);
     };
-  }, [autoPlay, gameSlug, path, buildAudioUrl]);
+  }, [autoPlay, path, buildAudioUrl]);
 
   // 加载音频
   useEffect(() => {

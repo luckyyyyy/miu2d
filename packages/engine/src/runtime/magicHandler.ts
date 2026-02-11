@@ -5,7 +5,6 @@
  * MagicManager.UseMagic
  */
 
-import { ResourcePath } from "../config/resourcePaths";
 import { EngineAccess } from "../core/engineAccess";
 import { logger } from "../core/logger";
 import type { InputState, Vector2 } from "../core/types";
@@ -182,15 +181,16 @@ export class MagicHandler extends EngineAccess {
         logger.log(`[Magic] Targeting mouse position: tile (${mouseTilePos.x}, ${mouseTilePos.y})`);
       } else {
         // Fallback: use direction-based targeting if no mouse position
+        // Direction: 0=South, 1=SW, 2=W, 3=NW, 4=North, 5=NE, 6=E, 7=SE
         const directionOffsets: Record<number, { x: number; y: number }> = {
-          0: { x: 0, y: -100 }, // up
-          1: { x: 70, y: -50 }, // up-right
-          2: { x: 100, y: 0 }, // right
-          3: { x: 70, y: 50 }, // down-right
-          4: { x: 0, y: 100 }, // down
-          5: { x: -70, y: 50 }, // down-left
-          6: { x: -100, y: 0 }, // left
-          7: { x: -70, y: -50 }, // up-left
+          0: { x: 0, y: 100 }, // south (down)
+          1: { x: -70, y: 50 }, // southwest
+          2: { x: -100, y: 0 }, // west (left)
+          3: { x: -70, y: -50 }, // northwest
+          4: { x: 0, y: -100 }, // north (up)
+          5: { x: 70, y: -50 }, // northeast
+          6: { x: 100, y: 0 }, // east (right)
+          7: { x: 70, y: 50 }, // southeast
         };
         const offset = directionOffsets[player.direction] || { x: 0, y: 100 };
         destination = {

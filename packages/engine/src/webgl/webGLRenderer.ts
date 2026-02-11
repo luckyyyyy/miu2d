@@ -416,9 +416,9 @@ export class WebGLRenderer implements IRenderer {
     const texWidth = entry.width;
     const texHeight = entry.height;
 
-    let dx = params.x;
+    const dx = params.x;
     const dy = params.y;
-    let dw = params.dstWidth ?? params.srcWidth ?? texWidth;
+    const dw = params.dstWidth ?? params.srcWidth ?? texWidth;
     const dh = params.dstHeight ?? params.srcHeight ?? texHeight;
 
     // 归一化 UV 坐标

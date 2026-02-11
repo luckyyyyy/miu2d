@@ -20,33 +20,12 @@ import {
 } from "@miu2d/types";
 import { and, eq, desc } from "drizzle-orm";
 import { db } from "../../db/client";
-import { gameMembers, games, shops } from "../../db/schema";
+import { games, shops } from "../../db/schema";
 import type { Language } from "../../i18n";
+import { verifyGameAccess } from "../../utils/gameAccess";
 import { getMessage } from "../../i18n";
 
 export class ShopService {
-	/**
-	 * 验证用户是否有权访问游戏
-	 */
-	async verifyGameAccess(gameId: string, userId: string, language: Language): Promise<void> {
-		const [member] = await db
-			.select()
-			.from(gameMembers)
-			.where(
-				and(
-					eq(gameMembers.gameId, gameId),
-					eq(gameMembers.userId, userId)
-				)
-			)
-			.limit(1);
-
-		if (!member) {
-			throw new TRPCError({
-				code: "FORBIDDEN",
-				message: getMessage(language, "errors.file.noAccess")
-			});
-		}
-	}
 
 	/**
 	 * 将数据库记录转换为 Shop 类型
@@ -97,7 +76,7 @@ export class ShopService {
 		userId: string,
 		language: Language
 	): Promise<Shop | null> {
-		await this.verifyGameAccess(gameId, userId, language);
+		await verifyGameAccess(gameId, userId, language);
 
 		const [row] = await db
 			.select()
@@ -117,7 +96,7 @@ export class ShopService {
 		userId: string,
 		language: Language
 	): Promise<ShopListItem[]> {
-		await this.verifyGameAccess(input.gameId, userId, language);
+		await verifyGameAccess(input.gameId, userId, language);
 
 		const rows = await db
 			.select()
@@ -146,7 +125,7 @@ export class ShopService {
 		userId: string,
 		language: Language
 	): Promise<Shop> {
-		await this.verifyGameAccess(input.gameId, userId, language);
+		await verifyGameAccess(input.gameId, userId, language);
 
 		const defaultShop = createDefaultShop(input.gameId, input.key);
 		const fullShop = {
@@ -178,7 +157,7 @@ export class ShopService {
 		userId: string,
 		language: Language
 	): Promise<Shop> {
-		await this.verifyGameAccess(input.gameId, userId, language);
+		await verifyGameAccess(input.gameId, userId, language);
 
 		// 检查是否存在
 		const existing = await this.get(input.gameId, input.id, userId, language);
@@ -227,7 +206,7 @@ export class ShopService {
 		userId: string,
 		language: Language
 	): Promise<{ id: string }> {
-		await this.verifyGameAccess(gameId, userId, language);
+		await verifyGameAccess(gameId, userId, language);
 
 		await db
 			.delete(shops)
@@ -244,7 +223,7 @@ export class ShopService {
 		userId: string,
 		language: Language
 	): Promise<Shop> {
-		await this.verifyGameAccess(input.gameId, userId, language);
+		await verifyGameAccess(input.gameId, userId, language);
 
 		const parsed = this.parseIni(input.iniContent);
 
@@ -271,7 +250,7 @@ export class ShopService {
 		userId: string,
 		language: Language
 	): Promise<BatchImportShopResult> {
-		await this.verifyGameAccess(input.gameId, userId, language);
+		await verifyGameAccess(input.gameId, userId, language);
 
 		const success: BatchImportShopResult["success"] = [];
 		const failed: BatchImportShopResult["failed"] = [];

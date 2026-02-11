@@ -16,33 +16,11 @@ import type {
 import { createDefaultLevelConfigLevels } from "@miu2d/types";
 import { and, eq, desc } from "drizzle-orm";
 import { db } from "../../db/client";
-import { gameMembers, games, levelConfigs } from "../../db/schema";
+import { games, levelConfigs } from "../../db/schema";
 import type { Language } from "../../i18n";
-import { getMessage } from "../../i18n";
+import { verifyGameAccess } from "../../utils/gameAccess";
 
 export class LevelConfigService {
-  /**
-   * 验证用户是否有权访问游戏
-   */
-  async verifyGameAccess(gameId: string, userId: string, language: Language): Promise<void> {
-    const [member] = await db
-      .select()
-      .from(gameMembers)
-      .where(
-        and(
-          eq(gameMembers.gameId, gameId),
-          eq(gameMembers.userId, userId)
-        )
-      )
-      .limit(1);
-
-    if (!member) {
-      throw new TRPCError({
-        code: "FORBIDDEN",
-        message: getMessage(language, "errors.file.noAccess")
-      });
-    }
-  }
 
   /**
    * 将数据库记录转换为 LevelConfig 类型
@@ -118,7 +96,7 @@ export class LevelConfigService {
     userId: string,
     language: Language
   ): Promise<LevelConfig | null> {
-    await this.verifyGameAccess(gameId, userId, language);
+    await verifyGameAccess(gameId, userId, language);
 
     const [row] = await db
       .select()
@@ -138,7 +116,7 @@ export class LevelConfigService {
     userId: string,
     language: Language
   ): Promise<LevelConfigListItem[]> {
-    await this.verifyGameAccess(input.gameId, userId, language);
+    await verifyGameAccess(input.gameId, userId, language);
 
     const conditions = [eq(levelConfigs.gameId, input.gameId)];
     if (input.userType) {
@@ -169,7 +147,7 @@ export class LevelConfigService {
     userId: string,
     language: Language
   ): Promise<LevelConfig> {
-    await this.verifyGameAccess(input.gameId, userId, language);
+    await verifyGameAccess(input.gameId, userId, language);
 
     // 检查 key 是否已存在
     const [existing] = await db
@@ -211,7 +189,7 @@ export class LevelConfigService {
     userId: string,
     language: Language
   ): Promise<LevelConfig> {
-    await this.verifyGameAccess(input.gameId, userId, language);
+    await verifyGameAccess(input.gameId, userId, language);
 
     const existing = await this.get(input.gameId, input.id, userId, language);
     if (!existing) {
@@ -262,7 +240,7 @@ export class LevelConfigService {
     userId: string,
     language: Language
   ): Promise<{ id: string }> {
-    await this.verifyGameAccess(gameId, userId, language);
+    await verifyGameAccess(gameId, userId, language);
 
     await db
       .delete(levelConfigs)
@@ -279,7 +257,7 @@ export class LevelConfigService {
     userId: string,
     language: Language
   ): Promise<LevelConfig> {
-    await this.verifyGameAccess(input.gameId, userId, language);
+    await verifyGameAccess(input.gameId, userId, language);
 
     const levels = this.parseIni(input.iniContent, input.userType);
     const maxLevel = levels.length;

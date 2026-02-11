@@ -31,6 +31,10 @@ export interface FileSelectDialogProps {
   extensions?: string[];
   /** 标题 */
   title?: string;
+  /** 标题栏下方额外内容（如 tab 切换条） */
+  headerExtra?: React.ReactNode;
+  /** 替代主体内容（当自定义 tab 激活时，替换搜索+文件树+底部栏） */
+  customContent?: React.ReactNode;
 }
 
 export function FileSelectDialog({
@@ -43,6 +47,8 @@ export function FileSelectDialog({
   currentValue,
   extensions,
   title = "选择资源文件",
+  headerExtra,
+  customContent,
 }: FileSelectDialogProps) {
   // 展开状态
   const [expandedState, setExpandedState] = useState<ExpandedState>(new Set());
@@ -339,7 +345,7 @@ export function FileSelectDialog({
     }, 100);
 
     return () => clearTimeout(timer);
-  }, [selectedNode?.id, hasInitialized]);
+  }, [selectedNode?.id, hasInitialized, selectedNode]);
 
   if (!open) return null;
 
@@ -380,6 +386,11 @@ export function FileSelectDialog({
           </button>
         </div>
 
+        {/* Tab 栏（可选） */}
+        {headerExtra}
+
+        {/* 自定义内容 tab 激活时替换搜索+文件树+底部栏 */}
+        {customContent ? customContent : <>
         {/* 搜索栏 */}
         <div className="px-4 py-2 border-b border-[#454545]">
           <input
@@ -469,10 +480,11 @@ export function FileSelectDialog({
             </button>
           </div>
         </div>
+        </>}
       </div>
 
       {/* 悬停预览 */}
-      {hoverNode && hoverNode.node.path && (
+      {hoverNode?.node.path && (
         <>
           {getResourceFileType(fieldName, hoverNode.node.name) === "asf" && (
             <AsfPreviewTooltip

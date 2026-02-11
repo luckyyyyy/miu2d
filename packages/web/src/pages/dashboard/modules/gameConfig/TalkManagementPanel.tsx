@@ -18,7 +18,7 @@ import {
   memo,
   useMemo,
 } from "react";
-import type { TalkEntry, PortraitEntry } from "@miu2d/types";
+import type { TalkEntry, } from "@miu2d/types";
 import { exportTalkIndexTxt, extractSpeakerName } from "@miu2d/types";
 import { trpc } from "../../../../lib/trpc";
 import { useDashboard } from "../../DashboardContext";
@@ -42,7 +42,6 @@ function renderTalkText(text: string): React.ReactNode {
   let match: RegExpExecArray | null;
   let key = 0;
 
-  // biome-ignore lint/suspicious/noAssignInExpressions: regex exec loop
   while ((match = regex.exec(text)) !== null) {
     // 前序文本
     if (match.index > lastIndex) {
@@ -100,7 +99,7 @@ const PortraitPreview = memo(function PortraitPreview({
   if (!asfFile) {
     return (
       <div
-        className="flex-shrink-0 rounded bg-[#1e1e1e] border border-[#333] flex items-center justify-center text-[#555] text-xs font-mono"
+        className="flex-shrink-0 rounded bg-[#1e1e1e] border border-panel-border flex items-center justify-center text-[#555] text-xs font-mono"
         style={{ width: size, height: size }}
       >
         {portraitIndex}
@@ -110,7 +109,7 @@ const PortraitPreview = memo(function PortraitPreview({
 
   return (
     <div
-      className="flex-shrink-0 rounded bg-[#1e1e1e] border border-[#333] overflow-hidden"
+      className="flex-shrink-0 rounded bg-[#1e1e1e] border border-panel-border overflow-hidden"
       style={{ width: size, height: size }}
       title={`头像 #${portraitIndex}: ${asfFile}`}
     >
@@ -241,10 +240,10 @@ function TalkEditDialog({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
       <form
         onSubmit={handleSubmit}
-        className="bg-[#252526] rounded-lg shadow-2xl border border-[#3c3c3c] w-[640px] max-h-[90vh] flex flex-col"
+        className="bg-[#252526] rounded-lg shadow-2xl border border-widget-border w-[640px] max-h-[90vh] flex flex-col"
       >
         {/* 标题 */}
-        <div className="flex items-center justify-between px-5 py-3 border-b border-[#3c3c3c]">
+        <div className="flex items-center justify-between px-5 py-3 border-b border-widget-border">
           <h3 className="text-sm font-medium text-white">
             {isNew ? "新建对话" : `编辑对话 #${entry.id}`}
           </h3>
@@ -269,7 +268,7 @@ function TalkEditDialog({
                 value={id}
                 onChange={(e) => setId(parseInt(e.target.value, 10) || 0)}
                 disabled={!isNew}
-                className="w-24 px-2 py-1.5 bg-[#1e1e1e] border border-[#3c3c3c] rounded text-sm text-white disabled:opacity-50 focus:border-[#0078d4] outline-none"
+                className="w-24 px-2 py-1.5 bg-[#1e1e1e] border border-widget-border rounded text-sm text-white disabled:opacity-50 focus:border-[#0078d4] outline-none"
               />
             </div>
 
@@ -282,7 +281,7 @@ function TalkEditDialog({
                   min={0}
                   value={portraitIndex}
                   onChange={(e) => setPortraitIndex(parseInt(e.target.value, 10) || 0)}
-                  className="w-20 px-2 py-1.5 bg-[#1e1e1e] border border-[#3c3c3c] rounded text-sm text-white focus:border-[#0078d4] outline-none"
+                  className="w-20 px-2 py-1.5 bg-[#1e1e1e] border border-widget-border rounded text-sm text-white focus:border-[#0078d4] outline-none"
                 />
                 <PortraitPreview
                   portraitIndex={portraitIndex}
@@ -301,7 +300,7 @@ function TalkEditDialog({
               value={text}
               onChange={(e) => setText(e.target.value)}
               rows={4}
-              className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded text-sm text-white focus:border-[#0078d4] outline-none resize-y font-mono"
+              className="w-full px-3 py-2 bg-[#1e1e1e] border border-widget-border rounded text-sm text-white focus:border-[#0078d4] outline-none resize-y font-mono"
               placeholder="输入对话文本，支持 <color=Red>彩色文字<color=Black> 标签"
             />
           </div>
@@ -309,7 +308,7 @@ function TalkEditDialog({
           {/* 预览 */}
           <div className="flex flex-col gap-1">
             <label className="text-xs text-[#858585]">预览</label>
-            <div className="flex items-start gap-3 p-3 bg-[#1e1e1e] rounded border border-[#333]">
+            <div className="flex items-start gap-3 p-3 bg-[#1e1e1e] rounded border border-panel-border">
               <PortraitPreview
                 portraitIndex={portraitIndex}
                 portraitMap={portraitMap}
@@ -324,7 +323,7 @@ function TalkEditDialog({
         </div>
 
         {/* 按钮 */}
-        <div className="flex justify-end gap-2 px-5 py-3 border-t border-[#3c3c3c]">
+        <div className="flex justify-end gap-2 px-5 py-3 border-t border-widget-border">
           <button
             type="button"
             onClick={onCancel}
@@ -651,7 +650,7 @@ export function TalkManagementPanel({ gameId }: { gameId: string }) {
       )}
 
       {/* 工具栏 */}
-      <div className="flex-shrink-0 flex items-center gap-2 px-4 py-2 border-b border-[#333] bg-[#1e1e1e]">
+      <div className="flex-shrink-0 flex items-center gap-2 px-4 py-2 border-b border-panel-border bg-[#1e1e1e]">
         {/* 搜索框 */}
         <div className="flex-1 relative max-w-xs">
           <svg
@@ -666,7 +665,7 @@ export function TalkManagementPanel({ gameId }: { gameId: string }) {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="搜索内容/ID 或范围 Talk(14050,14090)"
-            className="w-full pl-8 pr-3 py-1.5 bg-[#2a2d2e] border border-[#3c3c3c] rounded text-xs text-white placeholder:text-[#666] focus:border-[#0078d4] outline-none"
+            className="w-full pl-8 pr-3 py-1.5 bg-[#2a2d2e] border border-widget-border rounded text-xs text-white placeholder:text-[#666] focus:border-[#0078d4] outline-none"
           />
         </div>
 
@@ -676,7 +675,7 @@ export function TalkManagementPanel({ gameId }: { gameId: string }) {
           onChange={(e) =>
             setPortraitFilter(e.target.value ? parseInt(e.target.value, 10) : null)
           }
-          className="px-2 py-1.5 bg-[#2a2d2e] border border-[#3c3c3c] rounded text-xs text-white focus:border-[#0078d4] outline-none"
+          className="px-2 py-1.5 bg-[#2a2d2e] border border-widget-border rounded text-xs text-white focus:border-[#0078d4] outline-none"
         >
           <option value="">全部角色</option>
           <option value="0">旁白 (0)</option>

@@ -2,7 +2,6 @@
  * 资源管理页面
  */
 import { useState } from "react";
-import { useParams } from "react-router-dom";
 import { DashboardIcons } from "../icons";
 import { FileManager } from "./fileTree";
 
@@ -38,7 +37,7 @@ export function ImagesPage() {
             {images.map((image) => (
               <div
                 key={image.id}
-                className="bg-[#252526] border border-[#454545] rounded-lg overflow-hidden hover:border-[#0098ff] transition-colors cursor-pointer"
+                className="bg-[#252526] border border-widget-border rounded-lg overflow-hidden hover:border-[#0098ff] transition-colors cursor-pointer"
               >
                 <div className="aspect-square bg-[#1a1a1a] flex items-center justify-center">
                   <span className="text-[#444]">{DashboardIcons.image}</span>
@@ -51,10 +50,10 @@ export function ImagesPage() {
             ))}
           </div>
         ) : (
-          <div className="bg-[#252526] border border-[#454545] rounded-lg overflow-hidden">
+          <div className="bg-[#252526] border border-widget-border rounded-lg overflow-hidden">
             <table className="w-full">
               <thead>
-                <tr className="text-left text-sm text-[#858585] border-b border-[#454545]">
+                <tr className="text-left text-sm text-[#858585] border-b border-widget-border">
                   <th className="px-4 py-3">名称</th>
                   <th className="px-4 py-3">大小</th>
                   <th className="px-4 py-3">操作</th>
@@ -62,7 +61,7 @@ export function ImagesPage() {
               </thead>
               <tbody>
                 {images.map((image) => (
-                  <tr key={image.id} className="border-b border-[#454545] last:border-0">
+                  <tr key={image.id} className="border-b border-widget-border last:border-0">
                     <td className="px-4 py-3 text-[#cccccc]">{image.name}</td>
                     <td className="px-4 py-3 text-[#858585]">{image.size}</td>
                     <td className="px-4 py-3">
@@ -104,7 +103,7 @@ export function MusicPage() {
           {tracks.map((track) => (
             <div
               key={track.id}
-              className="flex items-center gap-4 p-4 bg-[#252526] border border-[#454545] rounded-lg hover:bg-[#2a2d2e] transition-colors"
+              className="flex items-center gap-4 p-4 bg-[#252526] border border-widget-border rounded-lg hover:bg-[#2a2d2e] transition-colors"
             >
               <button className="p-2 rounded-full bg-[#0098ff] hover:bg-[#1177bb] transition-colors">
                 <svg viewBox="0 0 24 24" fill="currentColor" className="size-4">
@@ -149,7 +148,7 @@ export function SoundsPage() {
           {sounds.map((sound) => (
             <div
               key={sound.id}
-              className="flex items-center gap-4 p-4 bg-[#252526] border border-[#454545] rounded-lg hover:bg-[#2a2d2e] transition-colors"
+              className="flex items-center gap-4 p-4 bg-[#252526] border border-widget-border rounded-lg hover:bg-[#2a2d2e] transition-colors"
             >
               <button className="p-2 rounded-full bg-[#4a4a4a] hover:bg-[#5a5a5a] transition-colors">
                 <svg viewBox="0 0 24 24" fill="currentColor" className="size-4">
@@ -196,7 +195,7 @@ export function AsfResourcesPage() {
           {asfFiles.map((asf) => (
             <div
               key={asf.id}
-              className="bg-[#252526] border border-[#454545] rounded-lg overflow-hidden hover:border-[#0098ff] transition-colors cursor-pointer"
+              className="bg-[#252526] border border-widget-border rounded-lg overflow-hidden hover:border-[#0098ff] transition-colors cursor-pointer"
             >
               <div className="aspect-square bg-[#1a1a1a] flex items-center justify-center">
                 <span className="text-[#444] text-4xl">{DashboardIcons.asf}</span>

@@ -34,7 +34,6 @@ import {
   slotTypeToEquipPosition,
   TimerGui,
   TopGui,
-  VideoPlayer,
   XiuLianGui,
 } from "./ui/classic";
 

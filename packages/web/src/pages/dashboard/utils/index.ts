@@ -4,6 +4,7 @@
 
 export {
   getResourceRoot,
+  rewriteAsfToMsf,
   buildResourceUrl,
   buildGoodsImageUrl,
   buildMagicIconUrl,

@@ -101,16 +101,16 @@ export function GoodsListPanel({ basePath }: { basePath: string }) {
 
   return (
     <>
-      <div className="flex h-full w-60 flex-col bg-[#252526] border-r border-[#1e1e1e]">
+      <div className="flex h-full w-60 flex-col bg-[#252526] border-r border-panel-border">
         {/* 标题栏 */}
-        <div className="flex h-9 items-center justify-between px-4 border-b border-[#1e1e1e]">
+        <div className="flex h-9 items-center justify-between px-4 border-b border-panel-border">
           <span className="text-xs font-medium uppercase tracking-wide text-[#bbbbbb]">
             物品列表
           </span>
         </div>
 
         {/* 操作按钮 */}
-        <div className="flex flex-col gap-1 p-2 border-b border-[#1e1e1e]">
+        <div className="flex flex-col gap-1 p-2 border-b border-panel-border">
           <button
             type="button"
             onClick={() => setShowImportModal(true)}
@@ -355,8 +355,8 @@ function ImportGoodsModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-[#252526] rounded-lg border border-[#454545] w-[500px] max-h-[85vh] overflow-auto">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-[#454545]">
+      <div className="bg-[#252526] rounded-lg border border-widget-border w-[500px] max-h-[85vh] overflow-auto">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-widget-border">
           <h3 className="font-medium text-white">从 INI 导入物品</h3>
           <button type="button" onClick={onClose} className="text-[#858585] hover:text-white">
             ✕
@@ -368,7 +368,7 @@ function ImportGoodsModal({
             className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
               isDragging
                 ? "border-[#0098ff] bg-[#0098ff]/10"
-                : "border-[#454545] hover:border-[#666]"
+                : "border-widget-border hover:border-[#666]"
             }`}
             onDragOver={(e) => {
               e.preventDefault();
@@ -384,11 +384,11 @@ function ImportGoodsModal({
 
           {/* 待导入文件列表 */}
           {batchItems.length > 0 && (
-            <div className="max-h-48 overflow-y-auto border border-[#454545] rounded">
+            <div className="max-h-48 overflow-y-auto border border-widget-border rounded">
               {batchItems.map((item, index) => (
                 <div
                   key={item.fileName}
-                  className="flex items-center justify-between px-3 py-2 border-b border-[#454545] last:border-b-0 hover:bg-[#2a2d2e]"
+                  className="flex items-center justify-between px-3 py-2 border-b border-widget-border last:border-b-0 hover:bg-[#2a2d2e]"
                 >
                   <span className="text-sm text-white">{item.fileName}</span>
                   <button
@@ -435,7 +435,7 @@ function ImportGoodsModal({
             </div>
           )}
         </div>
-        <div className="flex justify-end gap-2 px-4 py-3 border-t border-[#454545]">
+        <div className="flex justify-end gap-2 px-4 py-3 border-t border-widget-border">
           <button
             type="button"
             onClick={onClose}
@@ -495,9 +495,9 @@ function CreateGoodsModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-[#252526] border border-[#454545] rounded-lg shadow-xl w-[480px]">
+      <div className="bg-[#252526] border border-widget-border rounded-lg shadow-xl w-[480px]">
         {/* 标题 */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-[#454545]">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-widget-border">
           <h2 className="text-base font-medium text-white">新建物品</h2>
           <button
             type="button"
@@ -560,7 +560,7 @@ function CreateGoodsModal({
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="例如：金创药"
-              className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white focus:outline-none focus:border-[#0098ff]"
+              className="w-full px-3 py-2 bg-[#1e1e1e] border border-widget-border rounded-lg text-white focus:outline-none focus:border-focus-border"
             />
           </div>
 
@@ -572,7 +572,7 @@ function CreateGoodsModal({
               value={key}
               onChange={(e) => setKey(e.target.value)}
               placeholder="例如：goods-m00-金创药.ini（留空自动生成）"
-              className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white focus:outline-none focus:border-[#0098ff]"
+              className="w-full px-3 py-2 bg-[#1e1e1e] border border-widget-border rounded-lg text-white focus:outline-none focus:border-focus-border"
             />
           </div>
 
@@ -584,7 +584,7 @@ function CreateGoodsModal({
               value={intro}
               onChange={(e) => setIntro(e.target.value)}
               placeholder="简单描述物品的用途..."
-              className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white focus:outline-none focus:border-[#0098ff] resize-none"
+              className="w-full px-3 py-2 bg-[#1e1e1e] border border-widget-border rounded-lg text-white focus:outline-none focus:border-focus-border resize-none"
             />
           </div>
 
@@ -597,7 +597,7 @@ function CreateGoodsModal({
         </div>
 
         {/* 底部按钮 */}
-        <div className="flex justify-end gap-2 px-4 py-3 border-t border-[#454545]">
+        <div className="flex justify-end gap-2 px-4 py-3 border-t border-widget-border">
           <button
             type="button"
             onClick={onClose}

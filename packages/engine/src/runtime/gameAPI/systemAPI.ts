@@ -6,7 +6,7 @@ import type { DialogAPI, VariableAPI, InputAPI, SaveAPI, ScriptRunnerAPI } from 
 import type { ScriptCommandContext } from "../scriptContext/types";
 import { logger } from "../../core/logger";
 import { resolveScriptPath } from "../../config/resourcePaths";
-import { BlockingResolver, BlockingEvent } from "../../script/blockingResolver";
+import { type BlockingResolver, BlockingEvent } from "../../script/blockingResolver";
 
 export function createDialogAPI(ctx: ScriptCommandContext, resolver: BlockingResolver): DialogAPI {
   const { guiManager, talkTextList } = ctx;

@@ -269,7 +269,7 @@ export class Rain {
       // 整个屏幕范围内随机生成，但上半部概率更高
       const dx = Math.random() * this.windowWidth;
       // 用平方分布让上半部更密集
-      const dy = Math.pow(Math.random(), 0.7) * this.windowHeight * 0.85;
+      const dy = Math.random() ** 0.7 * this.windowHeight * 0.85;
       this.screenDroplets.push(new ScreenDroplet(dx, dy));
     }
 

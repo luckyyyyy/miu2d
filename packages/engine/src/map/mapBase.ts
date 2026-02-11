@@ -25,11 +25,11 @@ import { pixelToTile, tileToPixel } from "../utils";
 /** 无障碍 */
 const NONE = 0x00;
 /** 完全障碍 */
-const OBSTACLE = 0x80;
+export const OBSTACLE = 0x80;
 /** 可跳过的障碍 */
 const _CAN_OVER_OBSTACLE = 0xa0;
 /** 透明障碍（武功可穿，人不能过） */
-const TRANS = 0x40;
+export const TRANS = 0x40;
 /** 可跳过的透明障碍 */
 const _CAN_OVER_TRANS = 0x60;
 /** 可跳过 */
@@ -54,9 +54,6 @@ export const LAYER_INDEX = {
  * 所有状态都在实例上，通过 engine.map 访问
  */
 export class MapBase extends EngineAccess {
-  constructor() {
-    super();
-  }
   // ============= 地图数据 =============
   private _mapData: MiuMapData | null = null;
   private _isOk: boolean = false;
@@ -325,6 +322,34 @@ export class MapBase extends EngineAccess {
     }
     const barrier = this.getBarrierType(col, row);
     return (barrier & (OBSTACLE + TRANS)) !== 0;
+  }
+
+  /**
+   * 纯函数版障碍检测（不依赖 MapBase 实例）
+   *
+   * 用于 Dashboard 场景编辑器等不启动引擎的场景
+   */
+  static isObstacleAt(mapData: MiuMapData, col: number, row: number): boolean {
+    if (col < 0 || row < 0 || col >= mapData.mapColumnCounts || row >= mapData.mapRowCounts) {
+      return true;
+    }
+    const idx = col + row * mapData.mapColumnCounts;
+    const barrier = mapData.barriers[idx] ?? 0xff;
+    return (barrier & (OBSTACLE + TRANS)) !== 0;
+  }
+
+  /**
+   * 纯函数版硬障碍检测（仅 OBSTACLE，不含 TRANS）
+   *
+   * 对应实例方法 isObstacle()，用于寻路算法的 isHardObstacle 回调
+   */
+  static isHardObstacleAt(mapData: MiuMapData, col: number, row: number): boolean {
+    if (col < 0 || row < 0 || col >= mapData.mapColumnCounts || row >= mapData.mapRowCounts) {
+      return true;
+    }
+    const idx = col + row * mapData.mapColumnCounts;
+    const barrier = mapData.barriers[idx] ?? 0xff;
+    return (barrier & OBSTACLE) !== 0;
   }
 
   /**

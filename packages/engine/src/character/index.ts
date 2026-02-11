@@ -15,6 +15,8 @@
 
 // Class-based exports
 export { Character } from "./character";
+// Standalone path generation utility (reusable outside class hierarchy)
+export { generateRandTilePath } from "./base/characterMovement";
 // INI Parser - data-driven config parsing (new, replaces verbose switch-case)
 export {
   applyConfigToCharacter,

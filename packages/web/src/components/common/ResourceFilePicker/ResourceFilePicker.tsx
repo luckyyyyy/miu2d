@@ -92,7 +92,7 @@ export function ResourceFilePicker({
   // 当 value 变化时重置解析路径
   useEffect(() => {
     setResolvedPath(null);
-  }, [value]);
+  }, []);
 
   // 打开选择器
   const handleOpenDialog = useCallback(() => {

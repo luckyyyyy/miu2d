@@ -11,7 +11,7 @@ import type { CharacterConfig, Vector2 } from "../core/types";
 import { CharacterKind, CharacterState } from "../core/types";
 import type { MagicData } from "../magic/types";
 import type { AsfData } from "../resource/asf";
-import { generateId, getDirectionFromVector, tileToPixel } from "../utils";
+import { generateId, tileToPixel } from "../utils";
 import { NpcAI, NpcMagicCache } from "./modules";
 import type { NpcManager } from "./npcManager";
 
@@ -656,35 +656,39 @@ export class Npc extends Character {
    * Parse FixedPos hex string to tile position list
    */
   private parseFixedPos(fixPos: string): Vector2[] | null {
-    // FixedPos string pattern xx000000yy000000xx000000yy000000
-    const steps = this.splitStringInCharCount(fixPos, 8);
-    const count = steps.length;
-    if (count < 4) return null; // Less than 2 positions
-
-    const path: Vector2[] = [];
-    try {
-      for (let i = 0; i < count - 1; i += 2) {
-        const xHex = steps[i].substring(0, 2);
-        const yHex = steps[i + 1].substring(0, 2);
-        const x = parseInt(xHex, 16);
-        const y = parseInt(yHex, 16);
-        if (x === 0 && y === 0) break;
-        path.push({ x, y });
-      }
-      return path.length >= 2 ? path : null;
-    } catch { // parse failed
-      return null;
-    }
+    return parseFixedPos(fixPos);
   }
+}
 
-  /**
-   * Split string into chunks of specified length
-   */
-  private splitStringInCharCount(str: string, charCount: number): string[] {
-    const result: string[] = [];
-    for (let i = 0; i < str.length; i += charCount) {
-      result.push(str.substring(i, i + charCount));
+/**
+ * Parse FixedPos hex string to tile position list.
+ *
+ * FixedPos string pattern: xx000000yy000000xx000000yy000000
+ * Each coordinate pair is encoded as 2 hex chars followed by 6 zero-padding
+ * chars, so each "step" is 8 chars.
+ *
+ * Reusable standalone version of Npc.parseFixedPos / splitStringInCharCount.
+ */
+export function parseFixedPos(fixPos: string): Vector2[] | null {
+  const steps: string[] = [];
+  for (let i = 0; i < fixPos.length; i += 8) {
+    steps.push(fixPos.substring(i, i + 8));
+  }
+  const count = steps.length;
+  if (count < 4) return null; // Less than 2 positions
+
+  const path: Vector2[] = [];
+  try {
+    for (let i = 0; i < count - 1; i += 2) {
+      const xHex = steps[i].substring(0, 2);
+      const yHex = steps[i + 1].substring(0, 2);
+      const x = parseInt(xHex, 16);
+      const y = parseInt(yHex, 16);
+      if (x === 0 && y === 0) break;
+      path.push({ x, y });
     }
-    return result;
+    return path.length >= 2 ? path : null;
+  } catch { // parse failed
+    return null;
   }
 }

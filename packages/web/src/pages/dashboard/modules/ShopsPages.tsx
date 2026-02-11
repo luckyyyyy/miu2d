@@ -115,8 +115,8 @@ function GoodsPickerModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-[#252526] rounded-lg border border-[#454545] w-[550px] max-h-[70vh] flex flex-col">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-[#454545]">
+      <div className="bg-[#252526] rounded-lg border border-widget-border w-[550px] max-h-[70vh] flex flex-col">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-widget-border">
           <h3 className="font-medium text-white">选择物品</h3>
           <button type="button" onClick={onClose} className="text-[#858585] hover:text-white">
             ✕
@@ -124,18 +124,18 @@ function GoodsPickerModal({
         </div>
 
         {/* 搜索栏 */}
-        <div className="px-4 py-2 border-b border-[#454545]">
+        <div className="px-4 py-2 border-b border-widget-border">
           <input
             type="text"
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="搜索物品名称或标识..."
-            className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded text-white text-sm focus:outline-none focus:border-[#0098ff]"
+            className="w-full px-3 py-2 bg-[#1e1e1e] border border-widget-border rounded text-white text-sm focus:outline-none focus:border-focus-border"
           />
         </div>
 
         {/* 分类 Tabs */}
-        <div className="flex gap-1 px-4 py-2 border-b border-[#454545]">
+        <div className="flex gap-1 px-4 py-2 border-b border-widget-border">
           {(["All", "Consumable", "Equipment", "Quest"] as const).map(kind => (
             <button
               key={kind}
@@ -170,7 +170,7 @@ function GoodsPickerModal({
                   type="button"
                   disabled={alreadyAdded}
                   onClick={() => onSelect(g.key, g.name)}
-                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors border-b border-[#333] ${
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors border-b border-panel-border ${
                     alreadyAdded
                       ? "opacity-40 cursor-not-allowed"
                       : "hover:bg-[#2a2d2e] cursor-pointer"
@@ -197,7 +197,7 @@ function GoodsPickerModal({
           )}
         </div>
 
-        <div className="px-4 py-3 border-t border-[#454545] flex justify-end">
+        <div className="px-4 py-3 border-t border-widget-border flex justify-end">
           <button
             type="button"
             onClick={onClose}
@@ -260,7 +260,7 @@ function ShopItemRow({
             onUpdate(index, { ...item, price: Number.isNaN(v) ? 0 : Math.max(0, v) });
           }}
           placeholder={String(autoPrice)}
-          className="w-20 px-2 py-1 bg-[#1e1e1e] border border-[#3c3c3c] rounded text-white text-sm text-center focus:outline-none focus:border-[#0098ff] placeholder:text-[#555]"
+          className="w-20 px-2 py-1 bg-[#1e1e1e] border border-widget-border rounded text-white text-sm text-center focus:outline-none focus:border-focus-border placeholder:text-[#555]"
           title={hasCustomPrice ? `自定义价格 (自动价: ${autoPrice})` : "留空则按属性自动计算"}
         />
         {buyPercent !== 100 && (
@@ -279,7 +279,7 @@ function ShopItemRow({
             type="number"
             value={item.count}
             onChange={e => onUpdate(index, { ...item, count: parseInt(e.target.value, 10) || 0 })}
-            className="w-16 px-2 py-1 bg-[#1e1e1e] border border-[#3c3c3c] rounded text-white text-sm text-center focus:outline-none focus:border-[#0098ff]"
+            className="w-16 px-2 py-1 bg-[#1e1e1e] border border-widget-border rounded text-white text-sm text-center focus:outline-none focus:border-focus-border"
           />
         </div>
       )}
@@ -511,7 +511,7 @@ export function ShopDetailPage() {
       contentMaxWidth="max-w-4xl"
     >
           {/* 基本信息 */}
-          <section className="bg-[#252526] border border-[#454545] rounded-lg p-5 mb-6">
+          <section className="bg-[#252526] border border-widget-border rounded-lg p-5 mb-6">
             <h2 className="text-base font-medium text-[#bbbbbb] mb-4 flex items-center gap-2">
               📝 基本信息
             </h2>
@@ -523,7 +523,7 @@ export function ShopDetailPage() {
                   value={formData.name ?? ""}
                   onChange={e => updateField("name", e.target.value)}
                   placeholder="例如：低级药品"
-                  className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded text-white text-sm focus:outline-none focus:border-[#0098ff]"
+                  className="w-full px-3 py-2 bg-[#1e1e1e] border border-widget-border rounded text-white text-sm focus:outline-none focus:border-focus-border"
                 />
               </div>
               <div>
@@ -534,14 +534,14 @@ export function ShopDetailPage() {
                   onChange={e => updateField("key", e.target.value)}
                   placeholder="例如：低级药品.ini"
                   disabled={!isNew}
-                  className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded text-white text-sm focus:outline-none focus:border-[#0098ff] disabled:opacity-50"
+                  className="w-full px-3 py-2 bg-[#1e1e1e] border border-widget-border rounded text-white text-sm focus:outline-none focus:border-focus-border disabled:opacity-50"
                 />
               </div>
             </div>
           </section>
 
           {/* 商店配置 */}
-          <section className="bg-[#252526] border border-[#454545] rounded-lg p-5 mb-6">
+          <section className="bg-[#252526] border border-widget-border rounded-lg p-5 mb-6">
             <h2 className="text-base font-medium text-[#bbbbbb] mb-4 flex items-center gap-2">
               ⚙️ 商店配置
             </h2>
@@ -555,7 +555,7 @@ export function ShopDetailPage() {
                     onChange={e => updateField("buyPercent", parseInt(e.target.value, 10) || 100)}
                     min={0}
                     max={1000}
-                    className="flex-1 px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded text-white text-sm focus:outline-none focus:border-[#0098ff]"
+                    className="flex-1 px-3 py-2 bg-[#1e1e1e] border border-widget-border rounded text-white text-sm focus:outline-none focus:border-focus-border"
                   />
                   <span className="text-sm text-[#858585]">%</span>
                 </div>
@@ -570,7 +570,7 @@ export function ShopDetailPage() {
                     onChange={e => updateField("recyclePercent", parseInt(e.target.value, 10) || 100)}
                     min={0}
                     max={1000}
-                    className="flex-1 px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded text-white text-sm focus:outline-none focus:border-[#0098ff]"
+                    className="flex-1 px-3 py-2 bg-[#1e1e1e] border border-widget-border rounded text-white text-sm focus:outline-none focus:border-focus-border"
                   />
                   <span className="text-sm text-[#858585]">%</span>
                 </div>
@@ -584,7 +584,7 @@ export function ShopDetailPage() {
                   className={`w-full px-3 py-2 rounded text-sm border transition-colors ${
                     formData.numberValid
                       ? "bg-[#094771] border-[#0098ff] text-[#0098ff]"
-                      : "bg-[#1e1e1e] border-[#3c3c3c] text-[#858585]"
+                      : "bg-[#1e1e1e] border-widget-border text-[#858585]"
                   }`}
                 >
                   {formData.numberValid ? "✓ 限制数量" : "✗ 不限数量"}
@@ -595,7 +595,7 @@ export function ShopDetailPage() {
           </section>
 
           {/* 商品列表 */}
-          <section className="bg-[#252526] border border-[#454545] rounded-lg p-5">
+          <section className="bg-[#252526] border border-widget-border rounded-lg p-5">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-base font-medium text-[#bbbbbb] flex items-center gap-2">
                 📦 商品列表

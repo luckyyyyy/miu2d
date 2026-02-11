@@ -1,42 +1,17 @@
-/**
- * 游戏全局配置服务
- */
-import { TRPCError } from "@trpc/server";
+
 import type {
 	GameConfig,
 	GameConfigData,
 	UpdateGameConfigInput,
 } from "@miu2d/types";
 import { createDefaultGameConfig, GameConfigDataSchema } from "@miu2d/types";
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { db } from "../../db/client";
-import { gameConfigs, gameMembers, games } from "../../db/schema";
+import { gameConfigs, games } from "../../db/schema";
 import type { Language } from "../../i18n";
-import { getMessage } from "../../i18n";
+import { verifyGameAccess } from "../../utils/gameAccess";
 
 export class GameConfigService {
-	/**
-	 * 验证用户是否有权访问游戏
-	 */
-	async verifyGameAccess(gameId: string, userId: string, language: Language): Promise<void> {
-		const [member] = await db
-			.select()
-			.from(gameMembers)
-			.where(
-				and(
-					eq(gameMembers.gameId, gameId),
-					eq(gameMembers.userId, userId)
-				)
-			)
-			.limit(1);
-
-		if (!member) {
-			throw new TRPCError({
-				code: "FORBIDDEN",
-				message: getMessage(language, "errors.file.noAccess")
-			});
-		}
-	}
 
 	/**
 	 * 将数据库记录转换为 GameConfig 类型
@@ -64,7 +39,7 @@ export class GameConfigService {
 		userId: string,
 		language: Language
 	): Promise<GameConfig> {
-		await this.verifyGameAccess(gameId, userId, language);
+		await verifyGameAccess(gameId, userId, language);
 
 		const [row] = await db
 			.select()
@@ -97,7 +72,7 @@ export class GameConfigService {
 		userId: string,
 		language: Language
 	): Promise<GameConfig> {
-		await this.verifyGameAccess(input.gameId, userId, language);
+		await verifyGameAccess(input.gameId, userId, language);
 
 		const [existing] = await db
 			.select()

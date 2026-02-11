@@ -57,8 +57,8 @@ export function ResourceConfigSection({
 }: ResourceConfigSectionProps) {
   const noop = () => {};
   return (
-    <section className="bg-[#252526] border border-[#3c3c3c] rounded-xl overflow-hidden">
-      <div className="px-4 py-3 border-b border-[#3c3c3c] flex items-center justify-between">
+    <section className="bg-[#252526] border border-widget-border rounded-xl overflow-hidden">
+      <div className="px-4 py-3 border-b border-widget-border flex items-center justify-between">
         <h2 className="text-sm font-medium text-[#cccccc]">{title}</h2>
         {titleExtra}
       </div>
@@ -68,7 +68,7 @@ export function ResourceConfigSection({
           return (
             <div
               key={s.stateName}
-              className="flex items-center gap-3 py-1.5 border-b border-[#3c3c3c]/50 last:border-b-0"
+              className="flex items-center gap-3 py-1.5 border-b border-widget-border/50 last:border-b-0"
             >
               {/* 状态标签 */}
               <div className="flex items-center gap-1.5 w-40 flex-shrink-0">

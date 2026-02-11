@@ -345,9 +345,6 @@ export function buildIniPreviewPath(value: string): string {
 
 /**
  * 获取资源的下载 URL
- * 注意：路径会自动转换为小写
+ * 注意：路径会自动转换为小写，.asf 扩展名会重写为 .msf
  */
-export function getResourceUrl(gameSlug: string, path: string): string {
-  if (!path) return "";
-  return `/game/${gameSlug}/resources/${path.toLowerCase()}`;
-}
+export { buildResourceUrl as getResourceUrl } from "../../../pages/dashboard/utils/resourcePath";

@@ -31,7 +31,7 @@ export function LevelListPage() {
 // ========== 战斗公式说明面板 ==========
 function CombatFormulaPanel() {
   return (
-    <div className="bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg p-4 mb-4">
+    <div className="bg-[#1e1e1e] border border-widget-border rounded-lg p-4 mb-4">
       <h3 className="text-white font-medium mb-3 flex items-center gap-2">
         <span>⚔️</span>
         <span>战斗计算公式</span>
@@ -43,14 +43,14 @@ function CombatFormulaPanel() {
           <h4 className="text-[#4ec9b0] font-medium mb-2">🎯 命中率（Miss计算）</h4>
           <div className="space-y-2 text-[#cccccc]">
             <p className="text-[#858585]">基础命中率 = <code className="bg-[#1e1e1e] px-1 rounded">5%</code></p>
-            <div className="border-l-2 border-[#3c3c3c] pl-3 space-y-1">
+            <div className="border-l-2 border-widget-border pl-3 space-y-1">
               <p><b>若 目标闪避 ≥ 攻击者闪避：</b></p>
               <code className="block bg-[#1e1e1e] p-2 rounded text-[#ce9178]">
                 命中率 = 5% + (攻击者闪避 / 目标闪避) × 50%
               </code>
               <p className="text-[#858585] mt-1">例：攻击者100闪避，目标200闪避 → 5% + 25% = <b>30%命中</b></p>
             </div>
-            <div className="border-l-2 border-[#3c3c3c] pl-3 space-y-1">
+            <div className="border-l-2 border-widget-border pl-3 space-y-1">
               <p><b>若 攻击者闪避 &gt; 目标闪避：</b></p>
               <code className="block bg-[#1e1e1e] p-2 rounded text-[#ce9178]">
                 命中率 = 55% + min((攻击者闪避 - 目标闪避) / 100, 1) × 45%
@@ -120,7 +120,7 @@ function FormulaTooltip({ isPlayer }: { isPlayer: boolean }) {
         📐 公式帮助
       </button>
       {show && (
-        <div className="absolute left-0 top-6 z-20 w-80 bg-[#1e1e1e] border border-[#454545] rounded-lg shadow-xl p-4 text-xs text-[#cccccc]">
+        <div className="absolute left-0 top-6 z-20 w-80 bg-[#1e1e1e] border border-widget-border rounded-lg shadow-xl p-4 text-xs text-[#cccccc]">
           <button
             type="button"
             onClick={() => setShow(false)}
@@ -140,11 +140,11 @@ function FormulaTooltip({ isPlayer }: { isPlayer: boolean }) {
             <p><b>闪避</b>：闪避值，影响躲避攻击概率</p>
           </div>
           {isPlayer && (
-            <div className="mt-3 pt-2 border-t border-[#3c3c3c]">
+            <div className="mt-3 pt-2 border-t border-widget-border">
               <p><b>新武功</b>：升级时自动学会的武功 INI 路径</p>
             </div>
           )}
-          <div className="mt-3 pt-2 border-t border-[#3c3c3c] text-[#858585]">
+          <div className="mt-3 pt-2 border-t border-widget-border text-[#858585]">
             <p>💡 NPC 使用 SetLevelTo 直接设置属性</p>
             <p>💡 玩家使用 LevelUpTo 累加属性</p>
           </div>
@@ -381,7 +381,7 @@ export function LevelDetailPage() {
   return (
     <div className="h-full flex flex-col overflow-hidden">
       {/* 顶部操作栏 */}
-      <div className="flex-shrink-0 bg-[#252526] border-b border-[#1e1e1e] px-4 py-2 flex items-center justify-between">
+      <div className="flex-shrink-0 bg-[#252526] border-b border-panel-border px-4 py-2 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <span className="text-lg">{isPlayerConfig ? "👤" : "🤖"}</span>
           <div className="flex items-center gap-3">
@@ -392,7 +392,7 @@ export function LevelDetailPage() {
                 setFormData((prev) => ({ ...prev, name: e.target.value }))
               }
               placeholder="配置名称"
-              className="px-2 py-1 bg-transparent border-b border-[#454545] text-white text-sm focus:outline-none focus:border-[#0098ff] w-40"
+              className="px-2 py-1 bg-transparent border-b border-widget-border text-white text-sm focus:outline-none focus:border-focus-border w-40"
             />
             <span className="text-[#858585] text-xs">|</span>
             <input
@@ -403,7 +403,7 @@ export function LevelDetailPage() {
               }
               disabled={!isNew}
               placeholder="key"
-              className="px-2 py-1 bg-transparent border-b border-[#454545] text-[#858585] text-xs focus:outline-none focus:border-[#0098ff] w-32 disabled:opacity-50"
+              className="px-2 py-1 bg-transparent border-b border-widget-border text-[#858585] text-xs focus:outline-none focus:border-focus-border w-32 disabled:opacity-50"
             />
             <span className="text-[#858585] text-xs">|</span>
             <span className="text-[#858585] text-xs">{levels.length} 级</span>
@@ -442,28 +442,28 @@ export function LevelDetailPage() {
         <table className="w-full text-sm border-collapse">
           <thead className="bg-[#1e1e1e] sticky top-0 z-10">
             <tr className="text-left text-[#858585]">
-              <th className="px-2 py-2 w-10 font-medium border-b border-[#3c3c3c]">Lv</th>
+              <th className="px-2 py-2 w-10 font-medium border-b border-widget-border">Lv</th>
               {isPlayerConfig ? (
                 <>
-                  <th className="px-2 py-2 font-medium border-b border-[#3c3c3c]">升级Exp</th>
-                  <th className="px-2 py-2 font-medium border-b border-[#3c3c3c]">生命</th>
-                  <th className="px-2 py-2 font-medium border-b border-[#3c3c3c]">体力</th>
-                  <th className="px-2 py-2 font-medium border-b border-[#3c3c3c]">法力</th>
-                  <th className="px-2 py-2 font-medium border-b border-[#3c3c3c]">攻击</th>
-                  <th className="px-2 py-2 font-medium border-b border-[#3c3c3c]">防御</th>
-                  <th className="px-2 py-2 font-medium border-b border-[#3c3c3c]">闪避</th>
-                  <th className="px-2 py-2 font-medium border-b border-[#3c3c3c]">新武功</th>
-                  <th className="px-2 py-2 w-10 font-medium border-b border-[#3c3c3c]"></th>
+                  <th className="px-2 py-2 font-medium border-b border-widget-border">升级Exp</th>
+                  <th className="px-2 py-2 font-medium border-b border-widget-border">生命</th>
+                  <th className="px-2 py-2 font-medium border-b border-widget-border">体力</th>
+                  <th className="px-2 py-2 font-medium border-b border-widget-border">法力</th>
+                  <th className="px-2 py-2 font-medium border-b border-widget-border">攻击</th>
+                  <th className="px-2 py-2 font-medium border-b border-widget-border">防御</th>
+                  <th className="px-2 py-2 font-medium border-b border-widget-border">闪避</th>
+                  <th className="px-2 py-2 font-medium border-b border-widget-border">新武功</th>
+                  <th className="px-2 py-2 w-10 font-medium border-b border-widget-border"></th>
                 </>
               ) : (
                 <>
-                  <th className="px-2 py-2 font-medium border-b border-[#3c3c3c]">Exp</th>
-                  <th className="px-2 py-2 font-medium border-b border-[#3c3c3c]">生命</th>
-                  <th className="px-2 py-2 font-medium border-b border-[#3c3c3c]">攻击</th>
-                  <th className="px-2 py-2 font-medium border-b border-[#3c3c3c]">防御</th>
-                  <th className="px-2 py-2 font-medium border-b border-[#3c3c3c]">闪避</th>
-                  <th className="px-2 py-2 font-medium border-b border-[#3c3c3c]">新武功</th>
-                  <th className="px-2 py-2 w-10 font-medium border-b border-[#3c3c3c]"></th>
+                  <th className="px-2 py-2 font-medium border-b border-widget-border">Exp</th>
+                  <th className="px-2 py-2 font-medium border-b border-widget-border">生命</th>
+                  <th className="px-2 py-2 font-medium border-b border-widget-border">攻击</th>
+                  <th className="px-2 py-2 font-medium border-b border-widget-border">防御</th>
+                  <th className="px-2 py-2 font-medium border-b border-widget-border">闪避</th>
+                  <th className="px-2 py-2 font-medium border-b border-widget-border">新武功</th>
+                  <th className="px-2 py-2 w-10 font-medium border-b border-widget-border"></th>
                 </>
               )}
             </tr>
@@ -550,7 +550,7 @@ export function LevelDetailPage() {
                           updateLevel(idx, "newMagic", e.target.value)
                         }
                         placeholder=""
-                        className="w-32 px-2 py-0.5 bg-[#3c3c3c] border border-[#454545] rounded text-white text-xs focus:outline-none focus:border-[#0098ff]"
+                        className="w-32 px-2 py-0.5 bg-[#3c3c3c] border border-widget-border rounded text-white text-xs focus:outline-none focus:border-focus-border"
                       />
                     </td>
                     <td className="px-2 py-1 text-center">
@@ -620,7 +620,7 @@ export function LevelDetailPage() {
                           updateLevel(idx, "newMagic", e.target.value)
                         }
                         placeholder=""
-                        className="w-28 px-2 py-0.5 bg-[#3c3c3c] border border-[#454545] rounded text-white text-xs focus:outline-none focus:border-[#0098ff]"
+                        className="w-28 px-2 py-0.5 bg-[#3c3c3c] border border-widget-border rounded text-white text-xs focus:outline-none focus:border-focus-border"
                       />
                     </td>
                     <td className="px-2 py-1 text-center">

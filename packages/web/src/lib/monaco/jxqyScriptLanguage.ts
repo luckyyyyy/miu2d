@@ -4,7 +4,7 @@
  */
 import type { languages, editor, Position, IRange } from "monaco-editor";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+// biome-ignore lint/suspicious/noExplicitAny: Monaco editor type is dynamically loaded
 type MonacoType = any;
 
 /**

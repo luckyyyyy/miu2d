@@ -2,7 +2,7 @@
  * Portrait（对话头像映射）tRPC 路由
  */
 import { Logger } from "@nestjs/common";
-import { z } from "zod";
+import type { z } from "zod";
 import {
 	PortraitMapResultSchema,
 	GetPortraitMapInputSchema,

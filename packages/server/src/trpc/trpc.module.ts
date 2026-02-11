@@ -9,6 +9,7 @@ import {
   type DynamicModule,
   type Provider
 } from "@nestjs/common";
+// biome-ignore lint/style/useImportType: runtime value needed for NestJS DI metadata
 import { ModuleRef } from "@nestjs/core";
 import type { Request, Response } from "express";
 import type { AnyRouter } from "@trpc/server";

@@ -38,16 +38,16 @@ export function PlayerListPanel({ basePath }: { basePath: string }) {
 
   return (
     <>
-      <div className="flex h-full w-60 flex-col bg-[#252526] border-r border-[#1e1e1e]">
+      <div className="flex h-full w-60 flex-col bg-[#252526] border-r border-panel-border">
         {/* 标题栏 */}
-        <div className="flex h-9 items-center justify-between px-4 border-b border-[#1e1e1e]">
+        <div className="flex h-9 items-center justify-between px-4 border-b border-panel-border">
           <span className="text-xs font-medium uppercase tracking-wide text-[#bbbbbb]">
             角色列表
           </span>
         </div>
 
         {/* 操作按钮 */}
-        <div className="flex flex-col gap-1 p-2 border-b border-[#1e1e1e]">
+        <div className="flex flex-col gap-1 p-2 border-b border-panel-border">
           <button
             type="button"
             onClick={() => setShowImportModal(true)}
@@ -163,8 +163,8 @@ function CreatePlayerModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-[#252526] rounded-lg border border-[#454545] w-96">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-[#454545]">
+      <div className="bg-[#252526] rounded-lg border border-widget-border w-96">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-widget-border">
           <h3 className="font-medium text-white">新建角色</h3>
           <button type="button" onClick={onClose} className="text-[#858585] hover:text-white">
             ✕
@@ -177,7 +177,7 @@ function CreatePlayerModal({
               type="text"
               value={key}
               onChange={(e) => setKey(e.target.value)}
-              className="w-full px-3 py-2 bg-[#3c3c3c] border border-[#454545] rounded text-white text-sm focus:outline-none focus:border-[#007acc]"
+              className="w-full px-3 py-2 bg-[#3c3c3c] border border-widget-border rounded text-white text-sm focus:outline-none focus:border-focus-border"
               placeholder="如 Player0.ini"
             />
             <p className="text-xs text-[#666] mt-1">唯一标识符，对应 INI 文件名</p>
@@ -188,7 +188,7 @@ function CreatePlayerModal({
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full px-3 py-2 bg-[#3c3c3c] border border-[#454545] rounded text-white text-sm focus:outline-none focus:border-[#007acc]"
+              className="w-full px-3 py-2 bg-[#3c3c3c] border border-widget-border rounded text-white text-sm focus:outline-none focus:border-focus-border"
               placeholder="输入角色名称"
             />
           </div>
@@ -196,7 +196,7 @@ function CreatePlayerModal({
             <div className="text-red-400 text-sm">{createMutation.error.message}</div>
           )}
         </div>
-        <div className="flex justify-end gap-2 px-4 py-3 border-t border-[#454545]">
+        <div className="flex justify-end gap-2 px-4 py-3 border-t border-widget-border">
           <button
             type="button"
             onClick={onClose}
@@ -306,8 +306,8 @@ function ImportPlayerModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-[#252526] rounded-lg border border-[#454545] w-[500px] max-h-[85vh] overflow-auto">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-[#454545]">
+      <div className="bg-[#252526] rounded-lg border border-widget-border w-[500px] max-h-[85vh] overflow-auto">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-widget-border">
           <h3 className="font-medium text-white">从 INI 导入角色</h3>
           <button type="button" onClick={onClose} className="text-[#858585] hover:text-white">✕</button>
         </div>
@@ -323,7 +323,7 @@ function ImportPlayerModal({
 
           <div
             className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-              isDragging ? "border-[#0098ff] bg-[#0098ff]/10" : "border-[#454545] hover:border-[#666]"
+              isDragging ? "border-[#0098ff] bg-[#0098ff]/10" : "border-widget-border hover:border-[#666]"
             }`}
             onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
             onDragLeave={() => setIsDragging(false)}
@@ -335,9 +335,9 @@ function ImportPlayerModal({
           </div>
 
           {batchItems.length > 0 && (
-            <div className="max-h-48 overflow-y-auto border border-[#454545] rounded">
+            <div className="max-h-48 overflow-y-auto border border-widget-border rounded">
               {batchItems.map((item, index) => (
-                <div key={item.fileName} className="flex items-center justify-between px-3 py-2 border-b border-[#454545] last:border-b-0 hover:bg-[#2a2d2e]">
+                <div key={item.fileName} className="flex items-center justify-between px-3 py-2 border-b border-widget-border last:border-b-0 hover:bg-[#2a2d2e]">
                   <div className="flex items-center gap-2">
                     <span className="text-xs px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400">角色</span>
                     <span className="text-sm text-white">{item.fileName}</span>
@@ -375,7 +375,7 @@ function ImportPlayerModal({
             </div>
           )}
         </div>
-        <div className="flex justify-end gap-2 px-4 py-3 border-t border-[#454545]">
+        <div className="flex justify-end gap-2 px-4 py-3 border-t border-widget-border">
           <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-[#cccccc] hover:bg-[#3c3c3c] rounded">
             {batchResult ? "关闭" : "取消"}
           </button>

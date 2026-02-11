@@ -2,11 +2,12 @@
  * ASF 预览 Tooltip
  * 鼠标悬停时显示 ASF 动画预览
  */
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { AsfData } from "@miu2d/engine/resource/asf";
 import { getFrameCanvas } from "@miu2d/engine/resource/asf";
 import { initWasm } from "@miu2d/engine/wasm/wasmManager";
 import { decodeAsfWasm } from "@miu2d/engine/wasm/wasmAsfDecoder";
+import { buildResourceUrl } from "../../../pages/dashboard/utils";
 
 interface AsfPreviewTooltipProps {
   /** 游戏 slug */
@@ -40,8 +41,8 @@ export function AsfPreviewTooltip({ gameSlug, path, position, onClose }: AsfPrev
         // 初始化 WASM
         await initWasm();
 
-        // 加载文件（路径转小写）
-        const url = `/game/${gameSlug}/resources/${path.toLowerCase()}`;
+        // 加载文件（路径转小写，.asf → .msf）
+        const url = buildResourceUrl(gameSlug, path.toLowerCase());
         const response = await fetch(url);
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}`);
@@ -218,9 +219,11 @@ export function MiniAsfPreview({ gameSlug, path, size = 48, onPathResolved }: Mi
   const [currentFrame, setCurrentFrame] = useState(0);
   const animationRef = useRef<number | null>(null);
   const lastTimeRef = useRef(0);
+  const onPathResolvedRef = useRef(onPathResolved);
+  onPathResolvedRef.current = onPathResolved;
 
-  // 路径数组（统一处理）
-  const paths = Array.isArray(path) ? path : [path];
+  // 用字符串 key 稳定路径依赖，避免数组引用变化导致无限刷新
+  const pathKey = Array.isArray(path) ? path.join("\0") : path;
 
   // IntersectionObserver 懒加载：进入视口后才开始加载 ASF
   useEffect(() => {
@@ -246,6 +249,8 @@ export function MiniAsfPreview({ gameSlug, path, size = 48, onPathResolved }: Mi
     if (!isVisible) return;
     let cancelled = false;
 
+    const paths = pathKey.split("\0");
+
     const loadAsf = async () => {
       try {
         setIsLoading(true);
@@ -258,7 +263,7 @@ export function MiniAsfPreview({ gameSlug, path, size = 48, onPathResolved }: Mi
         for (const p of paths) {
           if (cancelled) return;
 
-          const url = `/game/${gameSlug}/resources/${p.toLowerCase()}`;
+          const url = buildResourceUrl(gameSlug, p.toLowerCase());
           try {
             const response = await fetch(url);
             if (!response.ok) {
@@ -276,12 +281,11 @@ export function MiniAsfPreview({ gameSlug, path, size = 48, onPathResolved }: Mi
             if (!cancelled) {
               setAsf(asfData);
               // 通知父组件实际使用的路径
-              onPathResolved?.(p);
+              onPathResolvedRef.current?.(p);
             }
             return; // 成功，退出
           } catch (e) {
             lastError = e as Error;
-            continue; // 尝试下一个路径
           }
         }
 
@@ -301,7 +305,7 @@ export function MiniAsfPreview({ gameSlug, path, size = 48, onPathResolved }: Mi
     return () => {
       cancelled = true;
     };
-  }, [isVisible, gameSlug, paths.join(",")]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isVisible, gameSlug, pathKey]);
 
   // 动画循环
   useEffect(() => {

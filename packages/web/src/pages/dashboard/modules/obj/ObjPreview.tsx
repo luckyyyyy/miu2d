@@ -9,6 +9,7 @@ import type { AsfData } from "@miu2d/engine/resource/asf";
 import { getFrameCanvas } from "@miu2d/engine/resource/asf";
 import { initWasm } from "@miu2d/engine/wasm/wasmManager";
 import { decodeAsfWasm } from "@miu2d/engine/wasm/wasmAsfDecoder";
+import { buildResourceUrl } from "../../utils";
 import type { Obj, ObjState, ObjResource, ObjRes } from "@miu2d/types";
 import { ObjStateLabels, ObjKindLabels } from "@miu2d/types";
 
@@ -107,7 +108,7 @@ export function ObjPreview({ gameSlug, obj, resource }: ObjPreviewProps) {
       if (!wasmReady || !gameSlug) return null;
 
       try {
-        const url = `/game/${gameSlug}/resources/${imagePath}`;
+        const url = buildResourceUrl(gameSlug, imagePath);
         const response = await fetch(url);
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const buffer = await response.arrayBuffer();
@@ -263,7 +264,7 @@ export function ObjPreview({ gameSlug, obj, resource }: ObjPreviewProps) {
   return (
     <div className="space-y-4">
       {/* 画布 */}
-      <div className="relative bg-[#1e1e1e] rounded-lg overflow-hidden aspect-square border border-[#3c3c3c]">
+      <div className="relative bg-[#1e1e1e] rounded-lg overflow-hidden aspect-square border border-widget-border">
         {/* 始终渲染 canvas，但在无资源时隐藏 */}
         <canvas
           ref={canvasRef}

@@ -344,11 +344,22 @@ export function getTileTextureRegion(
   };
 }
 
+/** 交错渲染选项 */
+export interface RenderMapInterleavedOptions {
+  /** 是否渲染 layer1（地面层），默认 true */
+  showLayer1?: boolean;
+  /** 是否渲染 layer2（物体层），默认 true */
+  showLayer2?: boolean;
+  /** 是否渲染 layer3（顶层），默认 true */
+  showLayer3?: boolean;
+}
+
 /** 交错渲染地图（layer1 -> layer2+角色 -> layer3） */
 export function renderMapInterleaved(
   renderer: IRenderer,
   mapRenderer: MapRenderer,
-  drawCharactersAtRow?: (row: number, startCol: number, endCol: number) => void
+  drawCharactersAtRow?: (row: number, startCol: number, endCol: number) => void,
+  options?: RenderMapInterleavedOptions
 ): void {
   const { camera, mapData } = mapRenderer;
 
@@ -371,25 +382,35 @@ export function renderMapInterleaved(
     camera, mapData, mapRenderer.maxTileHeight, mapRenderer.maxTileWidth
   );
 
+  const layer1 = options?.showLayer1 !== false;
+  const layer2 = options?.showLayer2 !== false;
+  const layer3 = options?.showLayer3 !== false;
+
   // 1. 绘制 layer1 (地面)
-  for (let row = startY; row < endY; row++) {
-    for (let col = startX; col < endX; col++) {
-      drawTileLayer(renderer, mapRenderer, "layer1", col, row);
+  if (layer1) {
+    for (let row = startY; row < endY; row++) {
+      for (let col = startX; col < endX; col++) {
+        drawTileLayer(renderer, mapRenderer, "layer1", col, row);
+      }
     }
   }
 
   // 2. layer2 与角色交错渲染
   for (let row = startY; row < endY; row++) {
-    for (let col = startX; col < endX; col++) {
-      drawTileLayer(renderer, mapRenderer, "layer2", col, row);
+    if (layer2) {
+      for (let col = startX; col < endX; col++) {
+        drawTileLayer(renderer, mapRenderer, "layer2", col, row);
+      }
     }
     drawCharactersAtRow?.(row, startX, endX);
   }
 
   // 3. 绘制 layer3 (顶层物体)
-  for (let row = startY; row < endY; row++) {
-    for (let col = startX; col < endX; col++) {
-      drawTileLayer(renderer, mapRenderer, "layer3", col, row);
+  if (layer3) {
+    for (let row = startY; row < endY; row++) {
+      for (let col = startX; col < endX; col++) {
+        drawTileLayer(renderer, mapRenderer, "layer3", col, row);
+      }
     }
   }
 }

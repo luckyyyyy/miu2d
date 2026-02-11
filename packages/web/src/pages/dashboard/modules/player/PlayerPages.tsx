@@ -228,8 +228,8 @@ function BasicInfoSection({
   gameSlug: string;
 }) {
   return (
-    <section className="bg-[#252526] border border-[#3c3c3c] rounded-xl overflow-hidden">
-      <div className="px-4 py-3 border-b border-[#3c3c3c]">
+    <section className="bg-[#252526] border border-widget-border rounded-xl overflow-hidden">
+      <div className="px-4 py-3 border-b border-widget-border">
         <h2 className="text-sm font-medium text-[#cccccc]">📝 基本信息</h2>
       </div>
       <div className="p-4 grid grid-cols-2 gap-4">
@@ -239,7 +239,7 @@ function BasicInfoSection({
             type="text"
             value={formData.name || ""}
             onChange={(e) => updateField("name", e.target.value)}
-            className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white focus:outline-none focus:border-[#0098ff]"
+            className="w-full px-3 py-2 bg-[#1e1e1e] border border-widget-border rounded-lg text-white focus:outline-none focus:border-focus-border"
           />
         </div>
 
@@ -250,7 +250,7 @@ function BasicInfoSection({
             value={formData.key || ""}
             onChange={(e) => updateField("key", e.target.value)}
             placeholder="例如: Player0.ini"
-            className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white focus:outline-none focus:border-[#0098ff]"
+            className="w-full px-3 py-2 bg-[#1e1e1e] border border-widget-border rounded-lg text-white focus:outline-none focus:border-focus-border"
           />
         </div>
 
@@ -379,8 +379,8 @@ function InitialMagicsSection({
 
   return (
     <div className="space-y-5">
-      <section className="bg-[#252526] border border-[#3c3c3c] rounded-xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-[#3c3c3c] flex items-center justify-between">
+      <section className="bg-[#252526] border border-widget-border rounded-xl overflow-hidden">
+        <div className="px-4 py-3 border-b border-widget-border flex items-center justify-between">
           <h2 className="text-sm font-medium text-[#cccccc]">⚔️ 初始武功列表</h2>
           <button
             type="button"
@@ -497,8 +497,8 @@ function InitialGoodsSection({
 
   return (
     <div className="space-y-5">
-      <section className="bg-[#252526] border border-[#3c3c3c] rounded-xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-[#3c3c3c] flex items-center justify-between">
+      <section className="bg-[#252526] border border-widget-border rounded-xl overflow-hidden">
+        <div className="px-4 py-3 border-b border-widget-border flex items-center justify-between">
           <h2 className="text-sm font-medium text-[#cccccc]">🎒 初始物品列表</h2>
           <button
             type="button"
@@ -586,8 +586,8 @@ function CombatSection({
   return (
     <div className="space-y-5">
       {/* 生命和资源 */}
-      <section className="bg-[#252526] border border-[#3c3c3c] rounded-xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-[#3c3c3c]">
+      <section className="bg-[#252526] border border-widget-border rounded-xl overflow-hidden">
+        <div className="px-4 py-3 border-b border-widget-border">
           <h2 className="text-sm font-medium text-[#cccccc]">❤️ 生命与资源</h2>
         </div>
         <div className="p-4 grid grid-cols-2 gap-4">
@@ -619,8 +619,8 @@ function CombatSection({
       </section>
 
       {/* 战斗属性 */}
-      <section className="bg-[#252526] border border-[#3c3c3c] rounded-xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-[#3c3c3c]">
+      <section className="bg-[#252526] border border-widget-border rounded-xl overflow-hidden">
+        <div className="px-4 py-3 border-b border-widget-border">
           <h2 className="text-sm font-medium text-[#cccccc]">⚔️ 战斗属性</h2>
         </div>
         <div className="p-4 grid grid-cols-3 gap-4">
@@ -652,8 +652,8 @@ function CombatSection({
       </section>
 
       {/* 经验和等级 */}
-      <section className="bg-[#252526] border border-[#3c3c3c] rounded-xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-[#3c3c3c]">
+      <section className="bg-[#252526] border border-widget-border rounded-xl overflow-hidden">
+        <div className="px-4 py-3 border-b border-widget-border">
           <h2 className="text-sm font-medium text-[#cccccc]">📈 经验与等级</h2>
         </div>
         <div className="p-4 grid grid-cols-3 gap-4">
@@ -713,8 +713,8 @@ function FilesSection({
   return (
     <div className="space-y-5">
       {/* 关联资源 */}
-      <section className="bg-[#252526] border border-[#3c3c3c] rounded-xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-[#3c3c3c]">
+      <section className="bg-[#252526] border border-widget-border rounded-xl overflow-hidden">
+        <div className="px-4 py-3 border-b border-widget-border">
           <h2 className="text-sm font-medium text-[#cccccc]">🔗 关联资源</h2>
         </div>
         <div className="p-4 space-y-4">
@@ -754,8 +754,8 @@ function FilesSection({
       </section>
 
       {/* 关联脚本 */}
-      <section className="bg-[#252526] border border-[#3c3c3c] rounded-xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-[#3c3c3c]">
+      <section className="bg-[#252526] border border-widget-border rounded-xl overflow-hidden">
+        <div className="px-4 py-3 border-b border-widget-border">
           <h2 className="text-sm font-medium text-[#cccccc]">📜 关联脚本</h2>
         </div>
         <div className="p-4 space-y-4">
@@ -790,8 +790,8 @@ function FilesSection({
       </section>
 
       {/* 其他数值配置 */}
-      <section className="bg-[#252526] border border-[#3c3c3c] rounded-xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-[#3c3c3c]">
+      <section className="bg-[#252526] border border-widget-border rounded-xl overflow-hidden">
+        <div className="px-4 py-3 border-b border-widget-border">
           <h2 className="text-sm font-medium text-[#cccccc]">🔧 其他参数</h2>
         </div>
         <div className="p-4 grid grid-cols-3 gap-4">
@@ -821,7 +821,7 @@ function FilesSection({
               type="text"
               value={formData.secondAttack || ""}
               onChange={(e) => updateField("secondAttack", e.target.value)}
-              className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white focus:outline-none focus:border-[#0098ff]"
+              className="w-full px-3 py-2 bg-[#1e1e1e] border border-widget-border rounded-lg text-white focus:outline-none focus:border-focus-border"
             />
           </div>
         </div>

@@ -1,14 +1,4 @@
-/**
- * GameCursorManager - 独立于 React 的游戏鼠标管理器
- *
- * 实现方式：
- * - 纯 DOM 操作，通过添加/移除 CSS class 控制光标
- * - 使用 data URL（不是 blob URL），不产生网络请求
- * - 预生成所有帧的 CSS 类（.game-cursor-frame-0, .game-cursor-frame-1, ...）
- * - 动画时只切换类名，不修改 CSS 内容
- * - 完全脱离 React 机制
- */
-import { buildPath } from "@miu2d/engine/config";
+
 import { logger } from "@miu2d/engine/core/logger";
 import { type AsfData, getFrameCanvas, loadAsf } from "@miu2d/engine/resource/asf";
 

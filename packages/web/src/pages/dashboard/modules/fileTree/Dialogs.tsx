@@ -20,8 +20,8 @@ function Dialog({ title, onClose, children }: DialogProps) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-[#252526] border border-[#454545] rounded-lg shadow-xl w-[400px] max-w-[90vw]">
-        <div className="px-4 py-3 border-b border-[#454545]">
+      <div className="bg-[#252526] border border-widget-border rounded-lg shadow-xl w-[400px] max-w-[90vw]">
+        <div className="px-4 py-3 border-b border-widget-border">
           <h3 className="text-[15px] font-medium text-white">{title}</h3>
         </div>
         {children}
@@ -93,11 +93,11 @@ export function InputDialog({
           }}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
-          className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#454545] rounded text-[#cccccc] text-[13px] placeholder-[#666] focus:border-[#007fd4] focus:outline-none"
+          className="w-full px-3 py-2 bg-[#1e1e1e] border border-widget-border rounded text-[#cccccc] text-[13px] placeholder-[#666] focus:border-[#007fd4] focus:outline-none"
         />
         {error && <p className="mt-2 text-[12px] text-red-400">{error}</p>}
       </div>
-      <div className="flex justify-end gap-2 px-4 py-3 border-t border-[#454545]">
+      <div className="flex justify-end gap-2 px-4 py-3 border-t border-widget-border">
         <button
           onClick={onCancel}
           className="px-4 py-1.5 bg-[#3c3c3c] hover:bg-[#4a4a4a] rounded text-[13px] text-[#cccccc] transition-colors"
@@ -139,7 +139,7 @@ export function ConfirmDialog({
   return (
     <Dialog title={title} onClose={loading ? () => {} : onCancel}>
       <div className="p-4 text-[13px] text-[#cccccc]">{message}</div>
-      <div className="flex justify-end gap-2 px-4 py-3 border-t border-[#454545]">
+      <div className="flex justify-end gap-2 px-4 py-3 border-t border-widget-border">
         <button
           onClick={onCancel}
           disabled={loading}

@@ -95,16 +95,16 @@ export function ObjListPanel({ basePath }: { basePath: string }) {
 
   return (
     <>
-      <div className="flex h-full w-60 flex-col bg-[#252526] border-r border-[#1e1e1e]">
+      <div className="flex h-full w-60 flex-col bg-[#252526] border-r border-panel-border">
         {/* 标题栏 */}
-        <div className="flex h-9 items-center justify-between px-4 border-b border-[#1e1e1e]">
+        <div className="flex h-9 items-center justify-between px-4 border-b border-panel-border">
           <span className="text-xs font-medium uppercase tracking-wide text-[#bbbbbb]">
             Object 列表
           </span>
         </div>
 
         {/* 操作按钮 */}
-        <div className="flex flex-col gap-1 p-2 border-b border-[#1e1e1e]">
+        <div className="flex flex-col gap-1 p-2 border-b border-panel-border">
           <button
             type="button"
             onClick={() => setShowImportModal(true)}
@@ -132,7 +132,7 @@ export function ObjListPanel({ basePath }: { basePath: string }) {
         </div>
 
         {/* 类型过滤器 */}
-        <div className="flex gap-1 px-2 py-1.5 border-b border-[#1e1e1e]">
+        <div className="flex gap-1 px-2 py-1.5 border-b border-panel-border">
           <button
             type="button"
             onClick={() => setFilterKind("all")}
@@ -178,7 +178,7 @@ export function ObjListPanel({ basePath }: { basePath: string }) {
               {showObjs && (
                 <>
                   {filterKind === "all" && (
-                    <div className="px-3 py-1.5 text-xs font-medium text-[#569cd6] border-b border-[#1e1e1e]">
+                    <div className="px-3 py-1.5 text-xs font-medium text-[#569cd6] border-b border-panel-border">
                       📦 Object ({objList?.length || 0})
                     </div>
                   )}
@@ -234,7 +234,7 @@ export function ObjListPanel({ basePath }: { basePath: string }) {
               {showResources && (
                 <>
                   {filterKind === "all" && (
-                    <div className="px-3 py-1.5 text-xs font-medium text-purple-400 border-b border-[#1e1e1e] mt-2">
+                    <div className="px-3 py-1.5 text-xs font-medium text-purple-400 border-b border-panel-border mt-2">
                       🎨 Object 资源 ({resourceList?.length || 0})
                     </div>
                   )}
@@ -439,8 +439,8 @@ function ImportObjModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-[#252526] rounded-lg border border-[#454545] w-[500px] max-h-[85vh] overflow-auto">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-[#454545]">
+      <div className="bg-[#252526] rounded-lg border border-widget-border w-[500px] max-h-[85vh] overflow-auto">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-widget-border">
           <h3 className="font-medium text-white">从 INI 导入 Object</h3>
           <button type="button" onClick={onClose} className="text-[#858585] hover:text-white">
             ✕
@@ -466,7 +466,7 @@ function ImportObjModal({
             className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
               isDragging
                 ? "border-[#0098ff] bg-[#0098ff]/10"
-                : "border-[#454545] hover:border-[#666]"
+                : "border-widget-border hover:border-[#666]"
             }`}
             onDragOver={(e) => {
               e.preventDefault();
@@ -482,11 +482,11 @@ function ImportObjModal({
 
           {/* 待导入文件列表 */}
           {batchItems.length > 0 && (
-            <div className="max-h-48 overflow-y-auto border border-[#454545] rounded">
+            <div className="max-h-48 overflow-y-auto border border-widget-border rounded">
               {batchItems.map((item, index) => (
                 <div
                   key={item.fileName}
-                  className="flex items-center justify-between px-3 py-2 border-b border-[#454545] last:border-b-0 hover:bg-[#2a2d2e]"
+                  className="flex items-center justify-between px-3 py-2 border-b border-widget-border last:border-b-0 hover:bg-[#2a2d2e]"
                 >
                   <div className="flex-1">
                     <span className="text-sm text-white">{item.fileName}</span>
@@ -541,7 +541,7 @@ function ImportObjModal({
             </div>
           )}
         </div>
-        <div className="flex justify-end gap-2 px-4 py-3 border-t border-[#454545]">
+        <div className="flex justify-end gap-2 px-4 py-3 border-t border-widget-border">
           <button
             type="button"
             onClick={onClose}
@@ -599,8 +599,8 @@ function CreateObjModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-[#252526] rounded-lg border border-[#454545] w-96">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-[#454545]">
+      <div className="bg-[#252526] rounded-lg border border-widget-border w-96">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-widget-border">
           <h3 className="font-medium text-white">新建 Object</h3>
           <button type="button" onClick={onClose} className="text-[#858585] hover:text-white">
             ✕
@@ -613,7 +613,7 @@ function CreateObjModal({
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full px-3 py-2 bg-[#3c3c3c] border border-[#454545] rounded text-white text-sm focus:outline-none focus:border-[#007acc]"
+              className="w-full px-3 py-2 bg-[#3c3c3c] border border-widget-border rounded text-white text-sm focus:outline-none focus:border-focus-border"
               placeholder="输入 Object 名称"
             />
           </div>
@@ -623,7 +623,7 @@ function CreateObjModal({
               type="text"
               value={key}
               onChange={(e) => setKey(e.target.value)}
-              className="w-full px-3 py-2 bg-[#3c3c3c] border border-[#454545] rounded text-white text-sm focus:outline-none focus:border-[#007acc]"
+              className="w-full px-3 py-2 bg-[#3c3c3c] border border-widget-border rounded text-white text-sm focus:outline-none focus:border-focus-border"
               placeholder="留空将自动生成"
             />
           </div>
@@ -669,7 +669,7 @@ function CreateObjModal({
             <div className="text-red-400 text-sm">{createMutation.error.message}</div>
           )}
         </div>
-        <div className="flex justify-end gap-2 px-4 py-3 border-t border-[#454545]">
+        <div className="flex justify-end gap-2 px-4 py-3 border-t border-widget-border">
           <button
             type="button"
             onClick={onClose}
@@ -725,8 +725,8 @@ function CreateObjResourceModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-[#252526] rounded-lg border border-[#454545] w-96">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-[#454545]">
+      <div className="bg-[#252526] rounded-lg border border-widget-border w-96">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-widget-border">
           <h3 className="font-medium text-white">新建 Object 资源</h3>
           <button type="button" onClick={onClose} className="text-[#858585] hover:text-white">
             ✕
@@ -743,7 +743,7 @@ function CreateObjResourceModal({
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full px-3 py-2 bg-[#3c3c3c] border border-[#454545] rounded text-white text-sm focus:outline-none focus:border-[#007acc]"
+              className="w-full px-3 py-2 bg-[#3c3c3c] border border-widget-border rounded text-white text-sm focus:outline-none focus:border-focus-border"
               placeholder="输入资源名称"
             />
           </div>
@@ -753,7 +753,7 @@ function CreateObjResourceModal({
               type="text"
               value={key}
               onChange={(e) => setKey(e.target.value)}
-              className="w-full px-3 py-2 bg-[#3c3c3c] border border-[#454545] rounded text-white text-sm focus:outline-none focus:border-[#007acc]"
+              className="w-full px-3 py-2 bg-[#3c3c3c] border border-widget-border rounded text-white text-sm focus:outline-none focus:border-focus-border"
               placeholder="留空将自动生成 (建议以 .ini 结尾)"
             />
           </div>
@@ -761,7 +761,7 @@ function CreateObjResourceModal({
             <div className="text-red-400 text-sm">{createMutation.error.message}</div>
           )}
         </div>
-        <div className="flex justify-end gap-2 px-4 py-3 border-t border-[#454545]">
+        <div className="flex justify-end gap-2 px-4 py-3 border-t border-widget-border">
           <button
             type="button"
             onClick={onClose}

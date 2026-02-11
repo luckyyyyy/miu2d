@@ -16,32 +16,32 @@ const gameModuleSections: ModuleNavSection[] = [
     label: "战斗实体",
     accent: "blue",
     items: [
-      { id: "npcs", label: "NPC 管理", path: "npcs" },
-      { id: "magic", label: "武功管理", path: "magic" },
+      { id: "npcs", label: "NPC", path: "npcs" },
+      { id: "magic", label: "武功", path: "magic" },
     ],
   },
   {
     label: "物品系统",
     accent: "emerald",
     items: [
-      { id: "goods", label: "物品管理", path: "goods" },
-      { id: "objs", label: "物件管理", path: "objs" },
-      { id: "shops", label: "商店管理", path: "shops" },
+      { id: "goods", label: "物品", path: "goods" },
+      { id: "objs", label: "物件", path: "objs" },
+      { id: "shops", label: "商店", path: "shops" },
     ],
   },
   {
     label: "成长系统",
     accent: "rose",
     items: [
-      { id: "levels", label: "等级配置", path: "levels" },
+      { id: "levels", label: "等级", path: "levels" },
     ],
   },
   {
     label: "对话系统",
     accent: "violet",
     items: [
-      { id: "talks", label: "对话管理", path: "talks/list" },
-      { id: "talk-portrait", label: "对话头像", path: "talks/portrait" },
+      { id: "talks", label: "对话", path: "talks/list" },
+      { id: "talk-portrait", label: "头像", path: "talks/portrait" },
     ],
   },
 ];
@@ -77,9 +77,9 @@ export function GameModulesPanel({ basePath }: { basePath: string }) {
 
   return (
     <div className="flex h-full flex-row">
-      {/* 左侧：分组导航（与游戏编辑同组件，宽度统一 w-60） */}
-      <div className="w-60 shrink-0 flex flex-col bg-[#252526] border-r border-[#1e1e1e]">
-        <div className="flex h-9 items-center px-4 text-xs font-medium uppercase tracking-wide text-[#bbbbbb] border-b border-[#1e1e1e]">
+      {/* 左侧：分组导航 */}
+      <div className="w-44 shrink-0 flex flex-col bg-[#252526] border-r border-panel-border">
+        <div className="flex h-9 items-center px-4 text-xs font-medium uppercase tracking-wide text-[#bbbbbb] border-b border-panel-border">
           游戏模块
         </div>
         <div className="flex-1 overflow-y-auto">

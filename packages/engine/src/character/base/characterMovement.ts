@@ -128,15 +128,16 @@ export abstract class CharacterMovement extends CharacterBase {
   moveToDirection(direction: number, elapsedSeconds: number): void {
     const moveDistance = this.getEffectiveSpeed() * elapsedSeconds;
 
+    // 0=South, 1=SW, 2=W, 3=NW, 4=N, 5=NE, 6=E, 7=SE
     const vectors = [
-      { x: 0, y: -1 },
-      { x: Math.SQRT1_2, y: -Math.SQRT1_2 },
-      { x: 1, y: 0 },
-      { x: Math.SQRT1_2, y: Math.SQRT1_2 },
       { x: 0, y: 1 },
       { x: -Math.SQRT1_2, y: Math.SQRT1_2 },
       { x: -1, y: 0 },
       { x: -Math.SQRT1_2, y: -Math.SQRT1_2 },
+      { x: 0, y: -1 },
+      { x: Math.SQRT1_2, y: -Math.SQRT1_2 },
+      { x: 1, y: 0 },
+      { x: Math.SQRT1_2, y: Math.SQRT1_2 },
     ];
 
     const vec = vectors[direction] || { x: 0, y: 0 };
@@ -662,39 +663,16 @@ export abstract class CharacterMovement extends CharacterBase {
   // =============================================
 
   protected getRandTilePath(count: number, isFlyer: boolean, maxOffset: number = -1): Vector2[] {
-    const path: Vector2[] = [{ x: this._mapX, y: this._mapY }];
-    const maxTry = count * 3;
-
     if (maxOffset === -1) {
       maxOffset = isFlyer ? 15 : 10;
     }
-
-    for (let i = 1; i < count; i++) {
-      let attempts = maxTry;
-      let foundValid = false;
-
-      while (attempts > 0 && !foundValid) {
-        attempts--;
-        const offsetX = Math.floor(Math.random() * (maxOffset * 2 + 1)) - maxOffset;
-        const offsetY = Math.floor(Math.random() * (maxOffset * 2 + 1)) - maxOffset;
-        const tilePosition = {
-          x: this._mapX + offsetX,
-          y: this._mapY + offsetY,
-        };
-
-        if (tilePosition.x === 0 && tilePosition.y === 0) continue;
-        if (!isFlyer && !this.checkWalkable(tilePosition)) {
-          continue;
-        }
-
-        path.push(tilePosition);
-        foundValid = true;
-      }
-
-      if (!foundValid) break;
-    }
-
-    return path;
+    return generateRandTilePath(
+      this._mapX,
+      this._mapY,
+      count,
+      maxOffset,
+      (x, y) => this.checkWalkable({ x, y }),
+    );
   }
 
   protected randWalk(
@@ -1043,4 +1021,50 @@ export abstract class CharacterMovement extends CharacterBase {
     this.walkTo(target.tilePosition);
     this.follow(target);
   }
+}
+
+/**
+ * Generate random tile path around a home position.
+ *
+ * Standalone version of CharacterMovement.getRandTilePath, for use outside
+ * the class hierarchy (e.g. dashboard NPC simulation).
+ *
+ * @param homeX      Centre tile X
+ * @param homeY      Centre tile Y
+ * @param count      Number of path points (engine default: 8)
+ * @param maxOffset  Max random offset from home (engine default: 10 ground, 15 flyer)
+ * @param isWalkable Optional check – return false for blocked tiles. When omitted every tile is considered walkable.
+ */
+export function generateRandTilePath(
+  homeX: number,
+  homeY: number,
+  count: number,
+  maxOffset: number,
+  isWalkable?: (x: number, y: number) => boolean,
+): Vector2[] {
+  const path: Vector2[] = [{ x: homeX, y: homeY }];
+  const maxTry = count * 3;
+
+  for (let i = 1; i < count; i++) {
+    let attempts = maxTry;
+    let foundValid = false;
+
+    while (attempts > 0 && !foundValid) {
+      attempts--;
+      const offsetX = Math.floor(Math.random() * (maxOffset * 2 + 1)) - maxOffset;
+      const offsetY = Math.floor(Math.random() * (maxOffset * 2 + 1)) - maxOffset;
+      const x = homeX + offsetX;
+      const y = homeY + offsetY;
+
+      if (x === 0 && y === 0) continue;
+      if (isWalkable && !isWalkable(x, y)) continue;
+
+      path.push({ x, y });
+      foundValid = true;
+    }
+
+    if (!foundValid) break;
+  }
+
+  return path;
 }

@@ -118,7 +118,7 @@ export function FileManager() {
     };
 
     loadTree();
-  }, [rootFiles, currentGame?.id, utils.file.list, refreshVersion]); // refreshVersion is intentionally used to force re-run
+  }, [rootFiles, currentGame?.id, utils.file.list]); // refreshVersion is intentionally used to force re-run
 
   // 从 URL 恢复选中状态
   useEffect(() => {
@@ -377,7 +377,7 @@ export function FileManager() {
       } while (batch.length > 0);
 
       const results: { relativePath: string; file: File }[] = [];
-      const folderPath = basePath + normalizeFileName(entry.name) + "/";
+      const folderPath = `${basePath + normalizeFileName(entry.name)}/`;
 
       for (const child of entries) {
         const childResults = await readEntries(child, folderPath);
@@ -880,7 +880,7 @@ export function FileManager() {
     <div className="h-full flex bg-[#1e1e1e]">
       {/* 左侧：目录树 */}
       <div
-        className={`w-[280px] flex flex-col border-r border-[#454545] relative ${isTreeDragOver ? "bg-[#094771]/20" : ""}`}
+        className={`w-[280px] flex flex-col border-r border-widget-border relative ${isTreeDragOver ? "bg-[#094771]/20" : ""}`}
         onDragOver={handleTreeDragOver}
         onDragLeave={handleTreeDragLeave}
         onDrop={handleTreeDrop}
@@ -904,7 +904,7 @@ export function FileManager() {
           </div>
         )}
         {/* 工具栏 */}
-        <div className="flex items-center justify-end px-3 py-2 border-b border-[#454545] bg-[#252526]">
+        <div className="flex items-center justify-end px-3 py-2 border-b border-widget-border bg-[#252526]">
           <div className="flex items-center gap-1">
             <button
               onClick={() => {

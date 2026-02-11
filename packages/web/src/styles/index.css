@@ -11,6 +11,11 @@
 /* Tailwind CSS v4 主题配置 */
 @theme {
   --spacing-15: 3.75rem; /* 60px for mb-15, mt-15 */
+
+  /* VS Code Dark theme - border colors */
+  --color-panel-border: #2b2b2b;     /* 结构性面板分隔 (sidebar-r, header-b, activity-bar) */
+  --color-widget-border: #3c3c3c;    /* 卡片/弹窗/输入框/分组 borders */
+  --color-focus-border: #007fd4;     /* 焦点状态 */
 }
 
 /*

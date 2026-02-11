@@ -398,3 +398,56 @@ export const saves = pgTable("saves", {
   /** 更新时间 */
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow()
 });
+
+// ============= 场景系统 =============
+
+/**
+ * 场景表（每张地图 = 一个场景）
+ * key 来自地图文件名（如 "map_003_武当山下"）
+ * name 来自文件名解析（如 "武当山下"）
+ * 类型定义在 @miu2d/types 中
+ */
+export const scenes = pgTable("scenes", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  /** 所属游戏 */
+  gameId: uuid("game_id").references(() => games.id, { onDelete: "cascade" }).notNull(),
+  /** 场景唯一标识（地图文件名去掉扩展名，如 map_003_武当山下） */
+  key: text("key").notNull(),
+  /** 场景显示名（如 武当山下） */
+  name: text("name").notNull(),
+  /** 地图文件名（如 map_003_武当山下.mmf） */
+  mapFileName: text("map_file_name").notNull(),
+  /** 额外数据（JSONB，地图尺寸等元信息） */
+  data: jsonb("data"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow()
+}, (t) => [
+  unique("scenes_game_id_key_unique").on(t.gameId, t.key)
+]);
+
+/**
+ * 场景子项表（脚本/陷阱/NPC/物件）
+ * 关联到具体场景，存储脚本内容或 NPC/物件配置
+ * kind: script=对话脚本, trap=陷阱脚本, npc=NPC配置, obj=物件配置
+ */
+export const sceneItems = pgTable("scene_items", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  /** 所属游戏 */
+  gameId: uuid("game_id").references(() => games.id, { onDelete: "cascade" }).notNull(),
+  /** 所属场景 */
+  sceneId: uuid("scene_id").references(() => scenes.id, { onDelete: "cascade" }).notNull(),
+  /** 子项类型 */
+  kind: text("kind", { enum: ["script", "trap", "npc", "obj"] }).notNull(),
+  /** 子项唯一标识（文件名去掉扩展名） */
+  key: text("key").notNull(),
+  /** 显示名 */
+  name: text("name").notNull(),
+  /** 关联的资源管理器文件 ID（可选） */
+  fileId: uuid("file_id"),
+  /** 额外数据（JSONB） */
+  data: jsonb("data"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow()
+}, (t) => [
+  unique("scene_items_game_scene_kind_key_unique").on(t.gameId, t.sceneId, t.kind, t.key)
+]);

@@ -39,7 +39,7 @@ export function ActivityBar() {
   const basePath = gameId ? `/dashboard/${gameId}` : "/dashboard";
 
   return (
-    <div className="flex w-12 flex-col bg-[#333333] border-r border-[#252526]">
+    <div className="flex w-12 flex-col bg-[#333333] border-r border-panel-border">
       {/* 主导航图标 */}
       <nav className="flex flex-1 flex-col">
         {activityBarItems.map((item) => {
@@ -70,7 +70,7 @@ export function ActivityBar() {
       </nav>
 
       {/* 底部图标 */}
-      <div className="flex flex-col border-t border-[#252526]">
+      <div className="flex flex-col border-t border-panel-border">
         <a
           href={gameId ? `/game/${gameId}` : "/"}
           target="_blank"

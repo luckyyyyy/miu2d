@@ -1,5 +1,5 @@
 import { Section, Text } from "@react-email/components";
-import * as React from "react";
+import type * as React from "react";
 import {
   EmailLayout,
   OrangeAccentLine,

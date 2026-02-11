@@ -1,4 +1,3 @@
-import { EditorApp } from "@miu2d/viewer";
 import { Route, BrowserRouter as Router, Routes } from "react-router-dom";
 import { DeviceProvider, AuthProvider, TRPCProvider, ThemeProvider } from "./contexts";
 import {
@@ -6,7 +5,6 @@ import {
   GameScreen,
   LandingPage,
   LoginPage,
-  MapViewerScreen,
   NotFoundPage,
   RegisterPage,
 } from "./pages";
@@ -24,8 +22,6 @@ export default function App() {
               <Route path="/register" element={<RegisterPage />} />
               <Route path="/game/:gameSlug" element={<GameScreen />} />
               <Route path="/game/:gameSlug/share/:shareCode" element={<GameScreen />} />
-              <Route path="/viewer" element={<MapViewerScreen />} />
-              <Route path="/editor/*" element={<EditorApp />} />
               <Route path="/dashboard/*" element={<DashboardApp />} />
               <Route path="*" element={<NotFoundPage />} />
             </Routes>

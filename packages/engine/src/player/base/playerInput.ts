@@ -7,8 +7,7 @@
 
 import { logger } from "../../core/logger";
 import type { InputState, Vector2 } from "../../core/types";
-import { CharacterState, Direction, RUN_SPEED_FOLD } from "../../core/types";
-import { tileToPixel } from "../../utils";
+import { CharacterState, Direction, } from "../../core/types";
 import {
   IS_USE_THEW_WHEN_NORMAL_RUN,
   type PlayerAction,
@@ -199,39 +198,31 @@ export abstract class PlayerInput extends PlayerBase {
 
   /**
    * Move in a direction
-   * direction)
    * 使用 WalkTo/RunTo 而不是直接设置 path，确保经过完整的寻路和障碍物检测
    *
-   * 注意：Direction 枚举（0=North）和原版的方向索引（0=South）不同，需要转换
-   * Direction 枚举:    0=N, 1=NE, 2=E, 3=SE, 4=S, 5=SW, 6=W, 7=NW
-   * 邻居数组索引:   0=S, 1=SW, 2=W, 3=NW, 4=N, 5=NE, 6=E, 7=SE
+   * Direction 枚举与原版方向索引一致：0=S, 1=SW, 2=W, 3=NW, 4=N, 5=NE, 6=E, 7=SE
    *
    * Enhancement: When primary direction is blocked, try adjacent directions
    * to allow smoother movement around obstacles (especially for mobile joystick)
    */
   protected moveInDirection(direction: Direction, isRun: boolean = false): void {
-    // 将 Direction 枚举转换为原版的邻居数组索引
-    // Direction: 0=N, 1=NE, 2=E, 3=SE, 4=S, 5=SW, 6=W, 7=NW
-    // index:  0=S, 1=SW, 2=W, 3=NW, 4=N, 5=NE, 6=E, 7=SE
-    // 映射: Direction -> 原版 index
-    // N(0)->4, NE(1)->5, E(2)->6, SE(3)->7, S(4)->0, SW(5)->1, W(6)->2, NW(7)->3
-    const directionToCSharpIndex = [4, 5, 6, 7, 0, 1, 2, 3];
-    const primaryCSharpDir = directionToCSharpIndex[direction];
+    // Direction 枚举直接对应原版方向索引，无需转换
+    const primaryDir = direction as number;
 
     // Direction order: primary, then adjacent directions
     // This allows smoother movement around obstacles
     const directionOrder = [
-      primaryCSharpDir,
-      (primaryCSharpDir + 1) % 8,
-      (primaryCSharpDir + 7) % 8, // +7 = -1 mod 8
+      primaryDir,
+      (primaryDir + 1) % 8,
+      (primaryDir + 7) % 8, // +7 = -1 mod 8
     ];
 
     const neighbors = this.findAllNeighbors(this.tilePosition);
     const mapService = this.engine.map;
 
     // Try each direction in order of preference
-    for (const csharpDirIndex of directionOrder) {
-      const targetTile = neighbors[csharpDirIndex];
+    for (const dirIndex of directionOrder) {
+      const targetTile = neighbors[dirIndex];
 
       // Check if target tile is walkable (quick pre-check to avoid unnecessary pathfinding)
       const isObstacle = mapService.isObstacleForCharacter(targetTile.x, targetTile.y);
@@ -239,9 +230,7 @@ export abstract class PlayerInput extends PlayerBase {
         continue;
       }
 
-      // Convert back to Direction enum for _currentDirection
-      const csharpToDirection = [4, 5, 6, 7, 0, 1, 2, 3]; // inverse mapping
-      this._currentDirection = csharpToDirection[csharpDirIndex] as Direction;
+      this._currentDirection = dirIndex as Direction;
 
       let success: boolean;
       if (isRun && this.canRunCheck()) {

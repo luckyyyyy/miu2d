@@ -4,10 +4,11 @@
  * 处理存档的 CRUD、分享、管理员操作
  */
 import { TRPCError } from "@trpc/server";
-import { and, eq, desc, sql, count } from "drizzle-orm";
+import { and, eq, desc, count } from "drizzle-orm";
 import { randomBytes } from "node:crypto";
 import { db } from "../../db/client";
-import { saves, games, users, gameMembers } from "../../db/schema";
+import { saves, games, users, } from "../../db/schema";
+import { verifyGameOrAdminAccess } from "../../utils/gameAccess";
 
 function generateShareCode(): string {
 	return randomBytes(6).toString("base64url"); // 8 chars
@@ -212,31 +213,6 @@ export class SaveService {
 	// ============= 管理员接口 =============
 
 	/**
-	 * 验证用户是否为游戏成员或全局管理员
-	 */
-	private async verifyGameAccess(gameId: string, userId: string) {
-		// 检查是否为全局管理员
-		const [user] = await db
-			.select({ role: users.role })
-			.from(users)
-			.where(eq(users.id, userId))
-			.limit(1);
-
-		if (user?.role === "admin") return;
-
-		// 检查是否为游戏成员
-		const [membership] = await db
-			.select({ id: gameMembers.id })
-			.from(gameMembers)
-			.where(and(eq(gameMembers.gameId, gameId), eq(gameMembers.userId, userId)))
-			.limit(1);
-
-		if (!membership) {
-			throw new TRPCError({ code: "FORBIDDEN", message: "无权管理此游戏的存档" });
-		}
-	}
-
-	/**
 	 * 管理员列出所有存档
 	 */
 	async adminList(input: {
@@ -249,7 +225,7 @@ export class SaveService {
 
 		if (input.gameSlug) {
 			const game = await this.resolveGame(input.gameSlug);
-			await this.verifyGameAccess(game.id, operatorId);
+			await verifyGameOrAdminAccess(game.id, operatorId);
 			conditions.push(eq(saves.gameId, game.id));
 		}
 
@@ -305,7 +281,7 @@ export class SaveService {
 			throw new TRPCError({ code: "NOT_FOUND", message: "存档不存在" });
 		}
 
-		await this.verifyGameAccess(row.save.gameId, operatorId);
+		await verifyGameOrAdminAccess(row.save.gameId, operatorId);
 
 		return {
 			...this.toOutput(row.save),
@@ -327,7 +303,7 @@ export class SaveService {
 		data: Record<string, unknown>;
 	}, operatorId: string) {
 		const game = await this.resolveGame(input.gameSlug);
-		await this.verifyGameAccess(game.id, operatorId);
+		await verifyGameOrAdminAccess(game.id, operatorId);
 
 		const values = {
 			gameId: game.id,
@@ -363,7 +339,7 @@ export class SaveService {
 			throw new TRPCError({ code: "NOT_FOUND", message: "存档不存在" });
 		}
 
-		await this.verifyGameAccess(existing.gameId, operatorId);
+		await verifyGameOrAdminAccess(existing.gameId, operatorId);
 
 		const shareCode = isShared ? (existing.shareCode ?? generateShareCode()) : existing.shareCode;
 
@@ -390,7 +366,7 @@ export class SaveService {
 			throw new TRPCError({ code: "NOT_FOUND", message: "存档不存在" });
 		}
 
-		await this.verifyGameAccess(existing.gameId, operatorId);
+		await verifyGameOrAdminAccess(existing.gameId, operatorId);
 
 		await db.delete(saves).where(eq(saves.id, saveId));
 		return { id: saveId };

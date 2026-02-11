@@ -4,7 +4,6 @@
  */
 
 import type { AudioManager } from "../../audio";
-import type { Character } from "../../character/character";
 import type { Vector2 } from "../../core/types";
 import type { ScreenEffects } from "../../effects";
 import type { BuyManager } from "../../gui/buyManager";

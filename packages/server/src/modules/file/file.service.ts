@@ -7,10 +7,11 @@
 import { TRPCError } from "@trpc/server";
 import { and, eq, isNull, inArray } from "drizzle-orm";
 import { db } from "../../db/client";
-import { files, gameMembers, games } from "../../db/schema";
+import { files, } from "../../db/schema";
 import * as s3 from "../../storage/s3";
 import type { FileNode } from "@miu2d/types";
 import { getMessage, type Language } from "../../i18n";
+import { verifyGameAccess } from "../../utils/gameAccess";
 
 /**
  * 将数据库记录转换为输出格式
@@ -38,28 +39,6 @@ export function toFileNodeOutput(
 }
 
 export class FileService {
-	/**
-	 * 验证用户是否有权访问游戏
-	 */
-	async verifyGameAccess(gameId: string, userId: string, language: Language): Promise<void> {
-		const [member] = await db
-			.select()
-			.from(gameMembers)
-			.where(
-				and(
-					eq(gameMembers.gameId, gameId),
-					eq(gameMembers.userId, userId)
-				)
-			)
-			.limit(1);
-
-		if (!member) {
-			throw new TRPCError({
-				code: "FORBIDDEN",
-				message: getMessage(language, "errors.file.noAccess")
-			});
-		}
-	}
 
 	/**
 	 * 获取文件/目录的完整路径字符串
@@ -82,7 +61,7 @@ export class FileService {
 			currentId = file.parentId;
 		}
 
-		return "/" + pathParts.join("/");
+		return `/${pathParts.join("/")}`;
 	}
 
 	/**
@@ -102,7 +81,7 @@ export class FileService {
 		userId: string,
 		language: Language
 	): Promise<FileNode[]> {
-		await this.verifyGameAccess(gameId, userId, language);
+		await verifyGameAccess(gameId, userId, language);
 
 		// 获取父目录路径
 		const parentPath = await this.getDirectoryPath(parentId ?? null);
@@ -125,7 +104,7 @@ export class FileService {
 		userId: string,
 		language: Language
 	): Promise<FileNode> {
-		await this.verifyGameAccess(gameId, userId, language);
+		await verifyGameAccess(gameId, userId, language);
 
 		// 检查同名文件/目录
 		await this.checkNameConflict(gameId, parentId ?? null, name, language);
@@ -190,7 +169,7 @@ export class FileService {
 		userId: string,
 		language: Language
 	): Promise<{ fileId: string; uploadUrl: string; storageKey: string }> {
-		await this.verifyGameAccess(gameId, userId, language);
+		await verifyGameAccess(gameId, userId, language);
 
 		// 检查同名文件/目录
 		await this.checkNameConflict(gameId, parentId ?? null, name, language);
@@ -238,7 +217,7 @@ export class FileService {
 			});
 		}
 
-		await this.verifyGameAccess(file.gameId, userId, language);
+		await verifyGameAccess(file.gameId, userId, language);
 
 		// 验证 S3 中文件存在
 		if (file.storageKey && !(await s3.fileExists(file.storageKey))) {
@@ -276,7 +255,7 @@ export class FileService {
 			});
 		}
 
-		await this.verifyGameAccess(file.gameId, userId, language);
+		await verifyGameAccess(file.gameId, userId, language);
 
 		if (file.type !== "file" || !file.storageKey) {
 			throw new TRPCError({
@@ -307,7 +286,7 @@ export class FileService {
 			});
 		}
 
-		await this.verifyGameAccess(file.gameId, userId, language);
+		await verifyGameAccess(file.gameId, userId, language);
 
 		if (file.type !== "file") {
 			throw new TRPCError({
@@ -352,7 +331,7 @@ export class FileService {
 			});
 		}
 
-		await this.verifyGameAccess(file.gameId, userId, language);
+		await verifyGameAccess(file.gameId, userId, language);
 
 		// 检查同名冲突
 		await this.checkNameConflict(file.gameId, file.parentId, newName, language, fileId);
@@ -385,7 +364,7 @@ export class FileService {
 			});
 		}
 
-		await this.verifyGameAccess(file.gameId, userId, language);
+		await verifyGameAccess(file.gameId, userId, language);
 
 		// 验证目标目录存在且是目录
 		if (newParentId) {
@@ -475,7 +454,7 @@ export class FileService {
 			});
 		}
 
-		await this.verifyGameAccess(file.gameId, userId, language);
+		await verifyGameAccess(file.gameId, userId, language);
 
 		// 软删除：只打标记，不删除数据库记录和 S3 文件
 		await this.softDeleteRecursive(fileId);
@@ -545,7 +524,7 @@ export class FileService {
 			});
 		}
 
-		await this.verifyGameAccess(file.gameId, userId, language);
+		await verifyGameAccess(file.gameId, userId, language);
 
 		// 构建路径
 		const path: Array<{ id: string; name: string }> = [];
@@ -584,7 +563,7 @@ export class FileService {
 			});
 		}
 
-		await this.verifyGameAccess(file.gameId, userId, language);
+		await verifyGameAccess(file.gameId, userId, language);
 
 		const path = await this.buildFilePath(file.id);
 		return toFileNodeOutput(file, path);
@@ -613,7 +592,7 @@ export class FileService {
 		storageKey: string;
 		skipped: boolean;
 	}>> {
-		await this.verifyGameAccess(gameId, userId, language);
+		await verifyGameAccess(gameId, userId, language);
 
 		const results: Array<{
 			clientId: string;
@@ -735,7 +714,7 @@ export class FileService {
 		// 验证对所有涉及的游戏有权限（通常只有一个）
 		const gameIds = [...new Set(fileRecords.map(f => f.gameId))];
 		for (const gid of gameIds) {
-			await this.verifyGameAccess(gid, userId, language);
+			await verifyGameAccess(gid, userId, language);
 		}
 
 		// 批量验证 S3 中文件存在（并行检查）
@@ -769,7 +748,7 @@ export class FileService {
 		userId: string,
 		language: Language
 	): Promise<string> {
-		await this.verifyGameAccess(gameId, userId, language);
+		await verifyGameAccess(gameId, userId, language);
 
 		let currentParentId: string | null = parentId ?? null;
 

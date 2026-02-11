@@ -35,7 +35,7 @@ function ShopDetailPageKeyed() {
 import { MagicListPage, MagicDetailPage } from "./modules/magic";
 
 // 等级与强度
-import { LevelListPage, LevelDetailPage, StrengthConfigPage } from "./modules/level";
+import { LevelListPage, LevelDetailPage, } from "./modules/level";
 
 
 
@@ -45,11 +45,7 @@ import { TalkListPage, TalkPortraitPage } from "./modules/talk";
 // 场景编辑
 import {
   ScenesHomePage,
-  MapEditorPage,
-  DialogsPage,
-  MapNpcsPage,
-  MapObjectsPage,
-  SceneScriptsPage,
+  SceneDetailPage,
 } from "./modules/ScenesPages";
 
 // 资源管理
@@ -151,12 +147,7 @@ export function DashboardApp() {
         {/* 场景编辑 */}
         <Route path="scenes">
           <Route index element={<ScenesHomePage />} />
-          <Route path="map-editor" element={<MapEditorPage />} />
-          <Route path="mpc" element={<MapEditorPage />} />
-          <Route path="dialogs" element={<DialogsPage />} />
-          <Route path="map-npcs" element={<MapNpcsPage />} />
-          <Route path="map-objects" element={<MapObjectsPage />} />
-          <Route path="scene-scripts" element={<SceneScriptsPage />} />
+          <Route path=":sceneId" element={<SceneDetailPage />} />
         </Route>
 
         {/* 资源管理 */}

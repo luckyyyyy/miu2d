@@ -11,35 +11,13 @@ import type {
 	SearchTalkInput,
 } from "@miu2d/types";
 import { parseTalkIndexTxt } from "@miu2d/types";
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { db } from "../../db/client";
-import { gameMembers, games, talks } from "../../db/schema";
+import { games, talks } from "../../db/schema";
 import type { Language } from "../../i18n";
-import { getMessage } from "../../i18n";
+import { verifyGameAccess } from "../../utils/gameAccess";
 
 export class TalkService {
-	/**
-	 * 验证用户是否有权访问游戏
-	 */
-	async verifyGameAccess(gameId: string, userId: string, language: Language): Promise<void> {
-		const [member] = await db
-			.select()
-			.from(gameMembers)
-			.where(
-				and(
-					eq(gameMembers.gameId, gameId),
-					eq(gameMembers.userId, userId),
-				),
-			)
-			.limit(1);
-
-		if (!member) {
-			throw new TRPCError({
-				code: "FORBIDDEN",
-				message: getMessage(language, "errors.file.noAccess"),
-			});
-		}
-	}
 
 	/**
 	 * 获取对话数据（全量）
@@ -49,7 +27,7 @@ export class TalkService {
 		userId: string,
 		language: Language,
 	): Promise<{ gameId: string; entries: TalkEntry[] }> {
-		await this.verifyGameAccess(gameId, userId, language);
+		await verifyGameAccess(gameId, userId, language);
 
 		const [row] = await db
 			.select()
@@ -71,7 +49,7 @@ export class TalkService {
 		userId: string,
 		language: Language,
 	): Promise<{ entries: TalkEntry[]; total: number }> {
-		await this.verifyGameAccess(input.gameId, userId, language);
+		await verifyGameAccess(input.gameId, userId, language);
 
 		const [row] = await db
 			.select()
@@ -133,7 +111,7 @@ export class TalkService {
 		userId: string,
 		language: Language,
 	): Promise<{ gameId: string; entries: TalkEntry[] }> {
-		await this.verifyGameAccess(input.gameId, userId, language);
+		await verifyGameAccess(input.gameId, userId, language);
 
 		const sorted = [...input.entries].sort((a, b) => a.id - b.id);
 
@@ -172,7 +150,7 @@ export class TalkService {
 		userId: string,
 		language: Language,
 	): Promise<{ gameId: string; entries: TalkEntry[] }> {
-		await this.verifyGameAccess(gameId, userId, language);
+		await verifyGameAccess(gameId, userId, language);
 
 		const [row] = await db
 			.select()
@@ -206,7 +184,7 @@ export class TalkService {
 		userId: string,
 		language: Language,
 	): Promise<{ gameId: string; entries: TalkEntry[] }> {
-		await this.verifyGameAccess(gameId, userId, language);
+		await verifyGameAccess(gameId, userId, language);
 
 		const [row] = await db
 			.select()
@@ -243,7 +221,7 @@ export class TalkService {
 		userId: string,
 		language: Language,
 	): Promise<{ gameId: string; entries: TalkEntry[] }> {
-		await this.verifyGameAccess(gameId, userId, language);
+		await verifyGameAccess(gameId, userId, language);
 
 		const [row] = await db
 			.select()
@@ -270,7 +248,7 @@ export class TalkService {
 		userId: string,
 		language: Language,
 	): Promise<{ gameId: string; entries: TalkEntry[] }> {
-		await this.verifyGameAccess(input.gameId, userId, language);
+		await verifyGameAccess(input.gameId, userId, language);
 
 		const parsed = parseTalkIndexTxt(input.content);
 		return this.update({ gameId: input.gameId, entries: parsed }, userId, language);

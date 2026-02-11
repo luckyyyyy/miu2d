@@ -260,8 +260,8 @@ export function MagicDetailPage() {
       sidePanel={
         <div className="w-96 flex-shrink-0 space-y-4">
           <div className="sticky top-6">
-            <div className="bg-[#252526] border border-[#3c3c3c] rounded-xl overflow-hidden">
-              <div className="px-4 py-3 border-b border-[#3c3c3c] flex items-center justify-between">
+            <div className="bg-[#252526] border border-widget-border rounded-xl overflow-hidden">
+              <div className="px-4 py-3 border-b border-widget-border flex items-center justify-between">
                 <h3 className="text-sm font-medium text-[#cccccc]">⚡ 武功预览</h3>
               </div>
               <div className="p-4">
@@ -275,8 +275,8 @@ export function MagicDetailPage() {
 
             {/* 等级数据预览 */}
             {isPlayerMagic && currentLevelData && (
-              <div className="bg-[#252526] border border-[#3c3c3c] rounded-xl overflow-hidden mt-4">
-                <div className="px-4 py-3 border-b border-[#3c3c3c] flex items-center justify-between">
+              <div className="bg-[#252526] border border-widget-border rounded-xl overflow-hidden mt-4">
+                <div className="px-4 py-3 border-b border-widget-border flex items-center justify-between">
                   <h3 className="text-sm font-medium text-[#cccccc]">
                     📊 等级 {previewLevel}
                   </h3>
@@ -389,8 +389,8 @@ function BasicInfoSection({
   return (
     <div className="space-y-5">
       {/* 基本信息 */}
-      <section className="bg-[#252526] border border-[#3c3c3c] rounded-xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-[#3c3c3c]">
+      <section className="bg-[#252526] border border-widget-border rounded-xl overflow-hidden">
+        <div className="px-4 py-3 border-b border-widget-border">
           <h2 className="text-sm font-medium text-[#cccccc]">📝 基本信息</h2>
         </div>
         <div className="p-4 grid grid-cols-2 gap-4">
@@ -400,7 +400,7 @@ function BasicInfoSection({
             <select
               value={formData.userType || "player"}
               onChange={(e) => updateField("userType", e.target.value as MagicUserType)}
-              className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white focus:outline-none focus:border-[#0098ff]"
+              className="w-full px-3 py-2 bg-[#1e1e1e] border border-widget-border rounded-lg text-white focus:outline-none focus:border-focus-border"
             >
               <option value="player">玩家武功</option>
               <option value="npc">NPC 武功</option>
@@ -413,7 +413,7 @@ function BasicInfoSection({
               type="text"
               value={formData.name || ""}
               onChange={(e) => updateField("name", e.target.value)}
-              className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white focus:outline-none focus:border-[#0098ff]"
+              className="w-full px-3 py-2 bg-[#1e1e1e] border border-widget-border rounded-lg text-white focus:outline-none focus:border-focus-border"
             />
           </div>
 
@@ -424,7 +424,7 @@ function BasicInfoSection({
               value={formData.key || ""}
               onChange={(e) => updateField("key", e.target.value)}
               placeholder="例如: magic01.ini"
-              className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white focus:outline-none focus:border-[#0098ff]"
+              className="w-full px-3 py-2 bg-[#1e1e1e] border border-widget-border rounded-lg text-white focus:outline-none focus:border-focus-border"
             />
           </div>
 
@@ -434,7 +434,7 @@ function BasicInfoSection({
               <select
                 value={formData.belong || "Neutral"}
                 onChange={(e) => updateField("belong", e.target.value as MagicBelong)}
-                className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white focus:outline-none focus:border-[#0098ff]"
+                className="w-full px-3 py-2 bg-[#1e1e1e] border border-widget-border rounded-lg text-white focus:outline-none focus:border-focus-border"
               >
                 {Object.entries(MagicBelongLabels).map(([key, label]) => (
                   <option key={key} value={key}>
@@ -451,15 +451,15 @@ function BasicInfoSection({
               rows={2}
               value={formData.intro || ""}
               onChange={(e) => updateField("intro", e.target.value)}
-              className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white focus:outline-none focus:border-[#0098ff] resize-none"
+              className="w-full px-3 py-2 bg-[#1e1e1e] border border-widget-border rounded-lg text-white focus:outline-none focus:border-focus-border resize-none"
             />
           </div>
         </div>
       </section>
 
       {/* 运动类型 */}
-      <section className="bg-[#252526] border border-[#3c3c3c] rounded-xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-[#3c3c3c]">
+      <section className="bg-[#252526] border border-widget-border rounded-xl overflow-hidden">
+        <div className="px-4 py-3 border-b border-widget-border">
           <h2 className="text-sm font-medium text-[#cccccc]">🎯 运动类型</h2>
         </div>
         <div className="p-4 grid grid-cols-3 gap-4">
@@ -468,7 +468,7 @@ function BasicInfoSection({
             <select
               value={formData.moveKind || "SingleMove"}
               onChange={(e) => updateField("moveKind", e.target.value as MagicMoveKind)}
-              className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white focus:outline-none focus:border-[#0098ff]"
+              className="w-full px-3 py-2 bg-[#1e1e1e] border border-widget-border rounded-lg text-white focus:outline-none focus:border-focus-border"
             >
               {Object.entries(MagicMoveKindLabels).map(([key, label]) => (
                 <option key={key} value={key}>
@@ -496,7 +496,7 @@ function BasicInfoSection({
                 <select
                   value={MagicRegionTypeFromValue[formData.region ?? 1] || "Square"}
                   onChange={(e) => updateField("region", MagicRegionTypeValues[e.target.value as MagicRegionType])}
-                  className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white focus:outline-none focus:border-[#0098ff]"
+                  className="w-full px-3 py-2 bg-[#1e1e1e] border border-widget-border rounded-lg text-white focus:outline-none focus:border-focus-border"
                 >
                   {Object.entries(MagicRegionTypeLabels).map(([key, label]) => (
                     <option key={key} value={key}>
@@ -554,7 +554,7 @@ function BasicInfoSection({
                 id="passThrough"
                 checked={formData.passThrough || false}
                 onChange={(e) => updateField("passThrough", e.target.checked)}
-                className="w-4 h-4 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg"
+                className="w-4 h-4 bg-[#1e1e1e] border border-widget-border rounded-lg"
               />
               <label htmlFor="passThrough" className="text-sm text-[#858585]">
                 穿透敌人
@@ -569,7 +569,7 @@ function BasicInfoSection({
                 id="passThroughWall"
                 checked={formData.passThroughWall || false}
                 onChange={(e) => updateField("passThroughWall", e.target.checked)}
-                className="w-4 h-4 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg"
+                className="w-4 h-4 bg-[#1e1e1e] border border-widget-border rounded-lg"
               />
               <label htmlFor="passThroughWall" className="text-sm text-[#858585]">
                 穿墙
@@ -584,7 +584,7 @@ function BasicInfoSection({
                 id="attackAll"
                 checked={formData.attackAll || false}
                 onChange={(e) => updateField("attackAll", e.target.checked)}
-                className="w-4 h-4 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg"
+                className="w-4 h-4 bg-[#1e1e1e] border border-widget-border rounded-lg"
               />
               <label htmlFor="attackAll" className="text-sm text-[#858585]">
                 攻击全部
@@ -600,7 +600,7 @@ function BasicInfoSection({
                 id="traceEnemy"
                 checked={formData.traceEnemy || false}
                 onChange={(e) => updateField("traceEnemy", e.target.checked)}
-                className="w-4 h-4 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg"
+                className="w-4 h-4 bg-[#1e1e1e] border border-widget-border rounded-lg"
               />
               <label htmlFor="traceEnemy" className="text-sm text-[#858585]">
                 追踪敌人
@@ -622,8 +622,8 @@ function BasicInfoSection({
       </section>
 
       {/* 特殊效果 */}
-      <section className="bg-[#252526] border border-[#3c3c3c] rounded-xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-[#3c3c3c]">
+      <section className="bg-[#252526] border border-widget-border rounded-xl overflow-hidden">
+        <div className="px-4 py-3 border-b border-widget-border">
           <h2 className="text-sm font-medium text-[#cccccc]">✨ 特殊效果</h2>
         </div>
         <div className="p-4 grid grid-cols-3 gap-4">
@@ -632,7 +632,7 @@ function BasicInfoSection({
             <select
               value={formData.specialKind || "None"}
               onChange={(e) => updateField("specialKind", e.target.value as MagicSpecialKind)}
-              className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white focus:outline-none focus:border-[#0098ff]"
+              className="w-full px-3 py-2 bg-[#1e1e1e] border border-widget-border rounded-lg text-white focus:outline-none focus:border-focus-border"
             >
               {Object.entries(MagicSpecialKindLabels).map(([key, label]) => (
                 <option key={key} value={key}>
@@ -669,7 +669,7 @@ function BasicInfoSection({
               id="alphaBlend"
               checked={formData.alphaBlend || false}
               onChange={(e) => updateField("alphaBlend", e.target.checked)}
-              className="w-4 h-4 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg"
+              className="w-4 h-4 bg-[#1e1e1e] border border-widget-border rounded-lg"
             />
             <label htmlFor="alphaBlend" className="text-sm text-[#858585]">
               透明混合
@@ -742,8 +742,8 @@ function ResourceSection({
   }, [updateField]);
 
   return (
-    <section className="bg-[#252526] border border-[#3c3c3c] rounded-xl overflow-hidden">
-      <div className="px-4 py-3 border-b border-[#3c3c3c]">
+    <section className="bg-[#252526] border border-widget-border rounded-xl overflow-hidden">
+      <div className="px-4 py-3 border-b border-widget-border">
         <h2 className="text-sm font-medium text-[#cccccc]">🎨 资源文件</h2>
       </div>
       <div className="p-4 space-y-4">
@@ -784,8 +784,8 @@ function LevelsSection({
   setPreviewLevel: (level: number) => void;
 }) {
   return (
-    <section className="bg-[#252526] border border-[#3c3c3c] rounded-xl overflow-hidden">
-      <div className="px-4 py-3 border-b border-[#3c3c3c]">
+    <section className="bg-[#252526] border border-widget-border rounded-xl overflow-hidden">
+      <div className="px-4 py-3 border-b border-widget-border">
         <h2 className="text-sm font-medium text-[#cccccc]">📊 等级配置</h2>
       </div>
       <div className="overflow-x-auto">
@@ -806,7 +806,7 @@ function LevelsSection({
               <tr
                 key={level.level}
                 onClick={() => setPreviewLevel(level.level)}
-                className={`border-t border-[#3c3c3c] transition-colors cursor-pointer ${
+                className={`border-t border-widget-border transition-colors cursor-pointer ${
                   previewLevel === level.level ? "bg-[#0e639c]/15" : "hover:bg-[#2a2d2e]"
                 }`}
               >
@@ -858,7 +858,7 @@ function LevelsSection({
                         e.target.value ? (e.target.value as MagicMoveKind) : undefined
                       )
                     }
-                    className="w-28 px-2 py-1.5 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white text-sm focus:outline-none focus:border-[#0098ff] transition-colors"
+                    className="w-28 px-2 py-1.5 bg-[#1e1e1e] border border-widget-border rounded-lg text-white text-sm focus:outline-none focus:border-focus-border transition-colors"
                   >
                     <option value="">继承</option>
                     {Object.entries(MagicMoveKindLabels).map(([key, label]) => (
@@ -915,8 +915,8 @@ function AttackFileSection({
 
   if (!attackFile) {
     return (
-      <section className="bg-[#252526] border border-[#3c3c3c] rounded-xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-[#3c3c3c]">
+      <section className="bg-[#252526] border border-widget-border rounded-xl overflow-hidden">
+        <div className="px-4 py-3 border-b border-widget-border">
           <h2 className="text-sm font-medium text-[#cccccc]">⚔️ 攻击配置</h2>
         </div>
         <div className="p-8 text-center text-[#858585]">
@@ -961,8 +961,8 @@ function AttackFileSection({
   }
 
   return (
-    <section className="bg-[#252526] border border-[#3c3c3c] rounded-xl overflow-hidden">
-      <div className="px-4 py-3 border-b border-[#3c3c3c] flex items-center justify-between">
+    <section className="bg-[#252526] border border-widget-border rounded-xl overflow-hidden">
+      <div className="px-4 py-3 border-b border-widget-border flex items-center justify-between">
         <h2 className="text-sm font-medium text-[#cccccc]">⚔️ 攻击配置</h2>
         <button
           type="button"
@@ -981,7 +981,7 @@ function AttackFileSection({
             type="text"
             value={attackFile.name || ""}
             onChange={(e) => updateAttackField("name", e.target.value)}
-            className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white focus:outline-none focus:border-[#0098ff]"
+            className="w-full px-3 py-2 bg-[#1e1e1e] border border-widget-border rounded-lg text-white focus:outline-none focus:border-focus-border"
           />
         </div>
 
@@ -990,7 +990,7 @@ function AttackFileSection({
           <select
             value={attackFile.moveKind || "SingleMove"}
             onChange={(e) => updateAttackField("moveKind", e.target.value as MagicMoveKind)}
-            className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white focus:outline-none focus:border-[#0098ff]"
+            className="w-full px-3 py-2 bg-[#1e1e1e] border border-widget-border rounded-lg text-white focus:outline-none focus:border-focus-border"
           >
             {Object.entries(MagicMoveKindLabels).map(([key, label]) => (
               <option key={key} value={key}>
@@ -1031,7 +1031,7 @@ function AttackFileSection({
           <select
             value={attackFile.specialKind || "None"}
             onChange={(e) => updateAttackField("specialKind", e.target.value as MagicSpecialKind)}
-            className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white focus:outline-none focus:border-[#0098ff]"
+            className="w-full px-3 py-2 bg-[#1e1e1e] border border-widget-border rounded-lg text-white focus:outline-none focus:border-focus-border"
           >
             {Object.entries(MagicSpecialKindLabels).map(([key, label]) => (
               <option key={key} value={key}>
@@ -1049,7 +1049,7 @@ function AttackFileSection({
             value={attackFile.flyingImage || ""}
             onChange={(e) => updateAttackField("flyingImage", e.target.value || null)}
             placeholder="asf/effect/xxx.asf"
-            className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white focus:outline-none focus:border-[#0098ff]"
+            className="w-full px-3 py-2 bg-[#1e1e1e] border border-widget-border rounded-lg text-white focus:outline-none focus:border-focus-border"
           />
         </div>
 
@@ -1060,7 +1060,7 @@ function AttackFileSection({
             value={attackFile.vanishImage || ""}
             onChange={(e) => updateAttackField("vanishImage", e.target.value || null)}
             placeholder="asf/effect/xxx.asf"
-            className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white focus:outline-none focus:border-[#0098ff]"
+            className="w-full px-3 py-2 bg-[#1e1e1e] border border-widget-border rounded-lg text-white focus:outline-none focus:border-focus-border"
           />
         </div>
 
@@ -1071,7 +1071,7 @@ function AttackFileSection({
             rows={2}
             value={attackFile.intro || ""}
             onChange={(e) => updateAttackField("intro", e.target.value)}
-            className="w-full px-3 py-2 bg-[#1e1e1e] border border-[#3c3c3c] rounded-lg text-white focus:outline-none focus:border-[#0098ff] resize-none"
+            className="w-full px-3 py-2 bg-[#1e1e1e] border border-widget-border rounded-lg text-white focus:outline-none focus:border-focus-border resize-none"
           />
         </div>
 

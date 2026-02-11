@@ -7,7 +7,7 @@
 import { ResourcePath } from "../config/resourcePaths";
 import { logger } from "../core/logger";
 import type { AsfData } from "../resource/asf";
-import { getFrameAtlasInfo, getFrameCanvas, loadAsf } from "../resource/asf";
+import { getFrameAtlasInfo, loadAsf } from "../resource/asf";
 import { getDirectionIndex } from "../utils/direction";
 import type { IRenderer } from "../webgl/iRenderer";
 import type { MagicSprite } from "./magicSprite";

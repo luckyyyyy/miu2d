@@ -4,7 +4,6 @@
 
 import type { MapAPI, ObjAPI, CameraAPI, AudioAPI, EffectsAPI, TimerAPI } from "../../core/gameAPI";
 import type { ScriptCommandContext } from "../scriptContext/types";
-import { logger } from "../../core/logger";
 import { tileToPixel } from "../../utils";
 import type { BlockingResolver } from "../../script/blockingResolver";
 

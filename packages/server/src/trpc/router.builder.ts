@@ -8,7 +8,6 @@ import {
   getProcedureMeta,
   getRouterAlias,
   getRouterRegistry,
-  type RouterClass
 } from "./decorators";
 
 const t = initTRPC.context<Context>().create();

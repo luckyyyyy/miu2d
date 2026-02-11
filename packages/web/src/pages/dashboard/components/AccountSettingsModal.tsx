@@ -35,11 +35,11 @@ export function AccountSettingsModal({ onClose }: AccountSettingsModalProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
       <div
-        className="w-full max-w-2xl h-[520px] bg-[#1e1e1e] border border-[#454545] rounded-xl shadow-2xl flex flex-col overflow-hidden"
+        className="w-full max-w-2xl h-[520px] bg-[#1e1e1e] border border-widget-border rounded-xl shadow-2xl flex flex-col overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#454545]">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-widget-border">
           <h2 className="text-lg font-semibold text-white">{t("settings.title")}</h2>
           <button
             type="button"
@@ -52,7 +52,7 @@ export function AccountSettingsModal({ onClose }: AccountSettingsModalProps) {
 
         <div className="flex flex-1 overflow-hidden">
           {/* Sidebar tabs */}
-          <div className="w-48 shrink-0 border-r border-[#454545] bg-[#252526] py-2 overflow-y-auto">
+          <div className="w-48 shrink-0 border-r border-widget-border bg-[#252526] py-2 overflow-y-auto">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
@@ -172,7 +172,7 @@ function ProfileTab({
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder={t("settings.namePlaceholder")}
-          className="w-full px-3 py-2 bg-[#3c3c3c] border border-[#454545] rounded-lg text-white placeholder-[#858585] focus:outline-none focus:border-[#0098ff] transition-colors"
+          className="w-full px-3 py-2 bg-[#3c3c3c] border border-widget-border rounded-lg text-white placeholder-[#858585] focus:outline-none focus:border-focus-border transition-colors"
         />
       </div>
 
@@ -186,7 +186,7 @@ function ProfileTab({
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder={t("settings.emailPlaceholder")}
-          className="w-full px-3 py-2 bg-[#3c3c3c] border border-[#454545] rounded-lg text-white placeholder-[#858585] focus:outline-none focus:border-[#0098ff] transition-colors"
+          className="w-full px-3 py-2 bg-[#3c3c3c] border border-widget-border rounded-lg text-white placeholder-[#858585] focus:outline-none focus:border-focus-border transition-colors"
         />
       </div>
 
@@ -282,7 +282,7 @@ function PasswordTab() {
             setError("");
             setStatus("idle");
           }}
-          className="w-full px-3 py-2 bg-[#3c3c3c] border border-[#454545] rounded-lg text-white placeholder-[#858585] focus:outline-none focus:border-[#0098ff] transition-colors"
+          className="w-full px-3 py-2 bg-[#3c3c3c] border border-widget-border rounded-lg text-white placeholder-[#858585] focus:outline-none focus:border-focus-border transition-colors"
           autoComplete="current-password"
         />
       </div>
@@ -296,7 +296,7 @@ function PasswordTab() {
           value={newPassword}
           onChange={(e) => setNewPassword(e.target.value)}
           placeholder={t("settings.passwordPlaceholder")}
-          className="w-full px-3 py-2 bg-[#3c3c3c] border border-[#454545] rounded-lg text-white placeholder-[#858585] focus:outline-none focus:border-[#0098ff] transition-colors"
+          className="w-full px-3 py-2 bg-[#3c3c3c] border border-widget-border rounded-lg text-white placeholder-[#858585] focus:outline-none focus:border-focus-border transition-colors"
           autoComplete="new-password"
         />
       </div>
@@ -310,7 +310,7 @@ function PasswordTab() {
           value={confirmPassword}
           onChange={(e) => setConfirmPassword(e.target.value)}
           placeholder={t("settings.passwordPlaceholder")}
-          className="w-full px-3 py-2 bg-[#3c3c3c] border border-[#454545] rounded-lg text-white placeholder-[#858585] focus:outline-none focus:border-[#0098ff] transition-colors"
+          className="w-full px-3 py-2 bg-[#3c3c3c] border border-widget-border rounded-lg text-white placeholder-[#858585] focus:outline-none focus:border-focus-border transition-colors"
           autoComplete="new-password"
         />
       </div>
@@ -404,7 +404,7 @@ function PreferencesTab({
               className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border text-sm transition-all ${
                 theme === opt.value
                   ? "border-[#0098ff] bg-[#0098ff]/10 text-white"
-                  : "border-[#454545] bg-[#3c3c3c] text-[#bbbbbb] hover:border-[#666666] hover:text-white"
+                  : "border-widget-border bg-[#3c3c3c] text-[#bbbbbb] hover:border-[#666666] hover:text-white"
               }`}
             >
               {opt.value === "light" ? (
@@ -432,7 +432,7 @@ function PreferencesTab({
               className={`px-4 py-2.5 rounded-lg border text-sm transition-all ${
                 locale === opt.value
                   ? "border-[#0098ff] bg-[#0098ff]/10 text-white"
-                  : "border-[#454545] bg-[#3c3c3c] text-[#bbbbbb] hover:border-[#666666] hover:text-white"
+                  : "border-widget-border bg-[#3c3c3c] text-[#bbbbbb] hover:border-[#666666] hover:text-white"
               }`}
             >
               {opt.label}

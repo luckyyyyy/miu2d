@@ -21,33 +21,12 @@ import {
 } from "@miu2d/types";
 import { and, eq, desc } from "drizzle-orm";
 import { db } from "../../db/client";
-import { gameMembers, games, goods } from "../../db/schema";
+import { games, goods } from "../../db/schema";
 import type { Language } from "../../i18n";
+import { verifyGameAccess } from "../../utils/gameAccess";
 import { getMessage } from "../../i18n";
 
 export class GoodsService {
-	/**
-	 * 验证用户是否有权访问游戏
-	 */
-	async verifyGameAccess(gameId: string, userId: string, language: Language): Promise<void> {
-		const [member] = await db
-			.select()
-			.from(gameMembers)
-			.where(
-				and(
-					eq(gameMembers.gameId, gameId),
-					eq(gameMembers.userId, userId)
-				)
-			)
-			.limit(1);
-
-		if (!member) {
-			throw new TRPCError({
-				code: "FORBIDDEN",
-				message: getMessage(language, "errors.file.noAccess")
-			});
-		}
-	}
 
 	/**
 	 * 将数据库记录转换为 Goods 类型
@@ -99,7 +78,7 @@ export class GoodsService {
 		userId: string,
 		language: Language
 	): Promise<Goods | null> {
-		await this.verifyGameAccess(gameId, userId, language);
+		await verifyGameAccess(gameId, userId, language);
 
 		const [row] = await db
 			.select()
@@ -119,7 +98,7 @@ export class GoodsService {
 		userId: string,
 		language: Language
 	): Promise<GoodsListItem[]> {
-		await this.verifyGameAccess(input.gameId, userId, language);
+		await verifyGameAccess(input.gameId, userId, language);
 
 		const conditions = [eq(goods.gameId, input.gameId)];
 		if (input.kind) {
@@ -165,7 +144,7 @@ export class GoodsService {
 		userId: string,
 		language: Language
 	): Promise<Goods> {
-		await this.verifyGameAccess(input.gameId, userId, language);
+		await verifyGameAccess(input.gameId, userId, language);
 
 		const defaultGoods = createDefaultGoods(input.gameId, input.kind, input.key);
 		const fullGoods = {
@@ -197,7 +176,7 @@ export class GoodsService {
 		userId: string,
 		language: Language
 	): Promise<Goods> {
-		await this.verifyGameAccess(input.gameId, userId, language);
+		await verifyGameAccess(input.gameId, userId, language);
 
 		// 检查是否存在
 		const existing = await this.get(input.gameId, input.id, userId, language);
@@ -246,7 +225,7 @@ export class GoodsService {
 		userId: string,
 		language: Language
 	): Promise<{ id: string }> {
-		await this.verifyGameAccess(gameId, userId, language);
+		await verifyGameAccess(gameId, userId, language);
 
 		await db
 			.delete(goods)
@@ -263,7 +242,7 @@ export class GoodsService {
 		userId: string,
 		language: Language
 	): Promise<Goods> {
-		await this.verifyGameAccess(input.gameId, userId, language);
+		await verifyGameAccess(input.gameId, userId, language);
 
 		const parsed = this.parseIni(input.iniContent);
 
@@ -288,7 +267,7 @@ export class GoodsService {
 		userId: string,
 		language: Language
 	): Promise<BatchImportGoodsResult> {
-		await this.verifyGameAccess(input.gameId, userId, language);
+		await verifyGameAccess(input.gameId, userId, language);
 
 		const success: BatchImportGoodsResult["success"] = [];
 		const failed: BatchImportGoodsResult["failed"] = [];

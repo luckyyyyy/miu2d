@@ -7,7 +7,6 @@
  */
 
 import type { IRenderer } from "./iRenderer";
-import { parseColor } from "./colorUtils";
 import type {
   BlendMode,
   ColorFilter,

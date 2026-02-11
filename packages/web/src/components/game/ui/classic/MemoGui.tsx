@@ -34,7 +34,7 @@ export const MemoGui: React.FC<MemoGuiProps> = ({ isVisible, memos, screenWidth 
     if (contentRef.current) {
       setContentHeight(contentRef.current.scrollHeight);
     }
-  }, [memos]);
+  }, []);
 
   // 计算面板位置 - Globals.WindowWidth / 2f + leftAdjust
   const panelStyle = useMemo(() => {

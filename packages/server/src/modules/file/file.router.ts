@@ -29,7 +29,7 @@ import {
 import type { Context } from "../../trpc/context";
 import { Ctx, Mutation, Query, Router, UseMiddlewares } from "../../trpc/decorators";
 import { requireUser } from "../../trpc/middlewares";
-import { fileService, toFileNodeOutput } from "./file.service";
+import { fileService, } from "./file.service";
 
 @Router({ alias: "file" })
 export class FileRouter {

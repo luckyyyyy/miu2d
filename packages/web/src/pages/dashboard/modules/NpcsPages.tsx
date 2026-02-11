@@ -46,7 +46,7 @@ export function NpcDetailPage() {
     >
       <div className="space-y-6">
         {/* 基本信息 */}
-        <section className="bg-[#252526] border border-[#454545] rounded-lg p-4">
+        <section className="bg-[#252526] border border-widget-border rounded-lg p-4">
           <h2 className="text-lg font-medium text-[#bbbbbb] mb-4">基本信息</h2>
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -55,7 +55,7 @@ export function NpcDetailPage() {
                 type="text"
                 defaultValue={npc?.id || ""}
                 disabled={!isNew}
-                className="w-full px-3 py-2 bg-[#3c3c3c] border border-[#454545] rounded text-white disabled:opacity-50 focus:outline-none focus:border-[#0098ff]"
+                className="w-full px-3 py-2 bg-[#3c3c3c] border border-widget-border rounded text-white disabled:opacity-50 focus:outline-none focus:border-focus-border"
               />
             </div>
             <div>
@@ -63,7 +63,7 @@ export function NpcDetailPage() {
               <input
                 type="text"
                 defaultValue={npc?.name || ""}
-                className="w-full px-3 py-2 bg-[#3c3c3c] border border-[#454545] rounded text-white focus:outline-none focus:border-[#0098ff]"
+                className="w-full px-3 py-2 bg-[#3c3c3c] border border-widget-border rounded text-white focus:outline-none focus:border-focus-border"
               />
             </div>
             <div className="col-span-2">
@@ -71,19 +71,19 @@ export function NpcDetailPage() {
               <textarea
                 rows={2}
                 defaultValue={npc?.description || ""}
-                className="w-full px-3 py-2 bg-[#3c3c3c] border border-[#454545] rounded text-white focus:outline-none focus:border-[#0098ff] resize-none"
+                className="w-full px-3 py-2 bg-[#3c3c3c] border border-widget-border rounded text-white focus:outline-none focus:border-focus-border resize-none"
               />
             </div>
           </div>
         </section>
 
         {/* 行为配置 */}
-        <section className="bg-[#252526] border border-[#454545] rounded-lg p-4">
+        <section className="bg-[#252526] border border-widget-border rounded-lg p-4">
           <h2 className="text-lg font-medium text-[#bbbbbb] mb-4">行为配置</h2>
           <div className="space-y-4">
             <div>
               <label className="block text-sm text-[#858585] mb-1">NPC类型</label>
-              <select className="w-full px-3 py-2 bg-[#3c3c3c] border border-[#454545] rounded text-white focus:outline-none focus:border-[#0098ff]">
+              <select className="w-full px-3 py-2 bg-[#3c3c3c] border border-widget-border rounded text-white focus:outline-none focus:border-focus-border">
                 <option value="normal">普通NPC</option>
                 <option value="merchant">商人</option>
                 <option value="quest">任务NPC</option>
@@ -96,7 +96,7 @@ export function NpcDetailPage() {
                 <input
                   type="text"
                   placeholder="选择对话脚本"
-                  className="flex-1 px-3 py-2 bg-[#3c3c3c] border border-[#454545] rounded text-white focus:outline-none focus:border-[#0098ff]"
+                  className="flex-1 px-3 py-2 bg-[#3c3c3c] border border-widget-border rounded text-white focus:outline-none focus:border-focus-border"
                 />
                 <button className="px-4 py-2 bg-[#3c3c3c] hover:bg-[#4a4a4a] rounded text-sm transition-colors">
                   浏览
@@ -113,7 +113,7 @@ export function NpcDetailPage() {
         </section>
 
         {/* 外观配置 */}
-        <section className="bg-[#252526] border border-[#454545] rounded-lg p-4">
+        <section className="bg-[#252526] border border-widget-border rounded-lg p-4">
           <h2 className="text-lg font-medium text-[#bbbbbb] mb-4">外观配置</h2>
           <div>
             <label className="block text-sm text-[#858585] mb-1">ASF 文件</label>
@@ -121,7 +121,7 @@ export function NpcDetailPage() {
               <input
                 type="text"
                 placeholder="选择 ASF 动画文件"
-                className="flex-1 px-3 py-2 bg-[#3c3c3c] border border-[#454545] rounded text-white focus:outline-none focus:border-[#0098ff]"
+                className="flex-1 px-3 py-2 bg-[#3c3c3c] border border-widget-border rounded text-white focus:outline-none focus:border-focus-border"
               />
               <button className="px-4 py-2 bg-[#3c3c3c] hover:bg-[#4a4a4a] rounded text-sm transition-colors">
                 浏览

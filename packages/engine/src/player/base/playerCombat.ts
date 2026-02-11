@@ -5,7 +5,7 @@
  * 继承链: Character → PlayerBase → PlayerInput → PlayerCombat → Player
  */
 
-import { Character } from "../../character";
+import type { Character } from "../../character";
 import type { CharacterBase } from "../../character/base";
 import { logger } from "../../core/logger";
 import type { Vector2 } from "../../core/types";

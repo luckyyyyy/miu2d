@@ -14,43 +14,6 @@ export interface TreeNode {
   children?: TreeNode[];
 }
 
-// 场景编辑模块的子菜单
-export const scenesTree: TreeNode[] = [
-  {
-    id: "maps",
-    label: "地图编辑器",
-    icon: "map",
-    children: [
-      { id: "map-editor", label: "地图编辑", path: "map-editor" },
-      { id: "mpc-files", label: "MPC地图文件", path: "mpc" },
-    ],
-  },
-  {
-    id: "dialogs",
-    label: "对话管理",
-    icon: "dialog",
-    path: "dialogs",
-  },
-  {
-    id: "map-npcs",
-    label: "地图NPC",
-    icon: "npc",
-    path: "map-npcs",
-  },
-  {
-    id: "map-objects",
-    label: "地图物品",
-    icon: "goods",
-    path: "map-objects",
-  },
-  {
-    id: "scene-scripts",
-    label: "场景脚本",
-    icon: "script",
-    path: "scene-scripts",
-  },
-];
-
 // 数据统计模块的子菜单
 export const statisticsTree: TreeNode[] = [
   { id: "player-data", label: "玩家数据", path: "player-data", icon: "user" },
@@ -64,8 +27,8 @@ interface SidebarPanelProps {
 
 export function SidebarPanel({ title, children }: SidebarPanelProps) {
   return (
-    <div className="flex h-full w-60 flex-col bg-[#252526] border-r border-[#1e1e1e]">
-      <div className="flex h-9 items-center px-4 text-xs font-medium uppercase tracking-wide text-[#bbbbbb] border-b border-[#1e1e1e]">
+    <div className="flex h-full w-60 flex-col bg-[#252526] border-r border-panel-border">
+      <div className="flex h-9 items-center px-4 text-xs font-medium uppercase tracking-wide text-[#bbbbbb] border-b border-panel-border">
         {title}
       </div>
       <div className="flex-1 overflow-y-auto py-1">{children}</div>
@@ -161,8 +124,8 @@ interface ListPanelProps {
 
 export function ListPanel({ title, basePath, items, isLoading, onAdd }: ListPanelProps) {
   return (
-    <div className="flex h-full w-60 flex-col bg-[#252526] border-r border-[#1e1e1e]">
-      <div className="flex h-9 items-center justify-between px-4 border-b border-[#1e1e1e]">
+    <div className="flex h-full w-60 flex-col bg-[#252526] border-r border-panel-border">
+      <div className="flex h-9 items-center justify-between px-4 border-b border-panel-border">
         <span className="text-xs font-medium uppercase tracking-wide text-[#bbbbbb]">
           {title}
         </span>

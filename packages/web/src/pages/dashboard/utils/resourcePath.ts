@@ -16,10 +16,18 @@ export function getResourceRoot(gameSlug: string): string {
 }
 
 /**
+ * .asf → .msf 扩展名重写
+ * 所有 ASF 资源已统一转换为 MSF 格式存储，URL 必须使用 .msf 扩展名
+ */
+export function rewriteAsfToMsf(path: string): string {
+  return path.replace(/\.asf$/i, ".msf");
+}
+
+/**
  * 构建完整的资源 URL
  * @param gameSlug 游戏标识符
  * @param path 资源相对路径（如 asf/goods/item.asf）
- * @returns 完整的资源 URL
+ * @returns 完整的资源 URL（自动将 .asf 重写为 .msf）
  */
 export function buildResourceUrl(gameSlug: string, path: string): string {
   // 标准化路径
@@ -29,6 +37,9 @@ export function buildResourceUrl(gameSlug: string, path: string): string {
   if (normalized.startsWith("/")) {
     normalized = normalized.slice(1);
   }
+
+  // .asf → .msf
+  normalized = rewriteAsfToMsf(normalized);
 
   // URL 编码路径中的特殊字符（保留斜杠）
   const encodedPath = normalized
@@ -133,7 +144,7 @@ export function buildEffectResourceUrl(
 ): string | null {
   if (!effectPath) return null;
 
-  let path = effectPath.startsWith("/") ? effectPath.slice(1) : effectPath;
+  const path = effectPath.startsWith("/") ? effectPath.slice(1) : effectPath;
 
   // 如果已经是完整路径，直接使用
   if (path.startsWith("asf/") || path.startsWith("content/")) {

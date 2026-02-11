@@ -4,15 +4,11 @@
  * 替代原有的 INI 文件加载，从统一数据加载器获取配置。
  */
 
-import {
-  getNpcsData,
-  type ApiNpcData,
-  type ApiNpcResources,
-} from "../resource/resourceLoader";
-import { createConfigCache } from "../resource/cacheRegistry";
+import type { NpcResStateInfo } from "../character/resFile";
 import type { CharacterConfig, CharacterStats } from "../core/types";
 import { CharacterState } from "../core/types";
-import type { NpcResStateInfo } from "../character/resFile";
+import { createConfigCache } from "../resource/cacheRegistry";
+import { type ApiNpcData, type ApiNpcResources, getNpcsData } from "../resource/resourceLoader";
 
 // ========== 缓存 ==========
 
@@ -21,21 +17,21 @@ const NPC_KEY_PREFIXES = ["ini/npc/", "ini/partner/"] as const;
 // ========== Kind/Relation 映射 ==========
 
 const KIND_MAP: Record<string, number> = {
-  Normal: 0,        // CharacterKind.Normal
-  Fighter: 1,       // CharacterKind.Fighter
-  GroundAnimal: 4,  // CharacterKind.GroundAnimal
-  Eventer: 5,       // CharacterKind.Eventer
-  Flyer: 7,         // CharacterKind.Flyer
-  WaterAnimal: 4,   // 映射到 GroundAnimal
-  Decoration: 5,    // 映射到 Eventer
-  Intangible: 6,    // CharacterKind.AfraidPlayerAnimal
+  Normal: 0, // CharacterKind.Normal
+  Fighter: 1, // CharacterKind.Fighter
+  GroundAnimal: 4, // CharacterKind.GroundAnimal
+  Eventer: 5, // CharacterKind.Eventer
+  Flyer: 7, // CharacterKind.Flyer
+  WaterAnimal: 4, // 映射到 GroundAnimal
+  Decoration: 5, // 映射到 Eventer
+  Intangible: 6, // CharacterKind.AfraidPlayerAnimal
 };
 
 const RELATION_MAP: Record<string, number> = {
-  Friendly: 0,  // RelationType.Friend
-  Hostile: 1,   // RelationType.Enemy
-  Neutral: 2,   // RelationType.Neutral
-  Partner: 3,   // RelationType.None
+  Friendly: 0, // RelationType.Friend
+  Hostile: 1, // RelationType.Enemy
+  Neutral: 2, // RelationType.Neutral
+  Partner: 3, // RelationType.None
 };
 
 // ========== API -> CharacterConfig 转换 ==========
@@ -91,7 +87,7 @@ function convertApiNpcToConfig(api: ApiNpcData): CharacterConfig {
     magicToUseWhenBeAttacked: "",
     magicToUseWhenDeath: "",
     kind: KIND_MAP[api.kind] ?? 0,
-    relation: api.relation ? RELATION_MAP[api.relation] ?? 0 : 0,
+    relation: api.relation ? (RELATION_MAP[api.relation] ?? 0) : 0,
     group: 0,
     noAutoAttackPlayer: 0,
     idle: 0,
@@ -118,8 +114,6 @@ function convertApiNpcToConfig(api: ApiNpcData): CharacterConfig {
   };
 }
 
-
-
 // ========== API Resources -> NpcResStateInfo 转换 ==========
 
 /** API resources key -> CharacterState 映射 */
@@ -143,7 +137,9 @@ const API_RES_KEY_TO_STATE: Record<string, number> = {
   special2: CharacterState.Special,
 };
 
-function convertApiResourcesToStateMap(resources: ApiNpcResources | null | undefined): Map<number, NpcResStateInfo> | null {
+function convertApiResourcesToStateMap(
+  resources: ApiNpcResources | null | undefined
+): Map<number, NpcResStateInfo> | null {
   if (!resources) return null;
 
   const stateMap = new Map<number, NpcResStateInfo>();
@@ -195,6 +191,14 @@ const npcResCacheStore = createConfigCache<NpcApiData, Map<number, NpcResStateIn
     for (const resData of data.resources) {
       const resMap = convertApiResourcesToStateMap(resData.resources);
       if (resMap) cache.set(normalizeKey(resData.key), resMap);
+    }
+    // 3. 为有 resourceKey 的 NPC 创建别名（使 npc.key 也能查到资源）
+    for (const api of data.npcs) {
+      const npcKey = normalizeKey(api.key);
+      if (!cache.has(npcKey) && api.resourceKey) {
+        const res = cache.get(normalizeKey(api.resourceKey));
+        if (res) cache.set(npcKey, res);
+      }
     }
   },
 });

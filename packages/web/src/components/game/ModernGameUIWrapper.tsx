@@ -15,7 +15,7 @@ import type { TouchDragData } from "@/contexts";
 import type { GameUILogic } from "./hooks";
 import type { EquipSlotType, GoodItemData } from "./ui/classic";
 // 视频播放器是全屏组件，与 UI 风格无关，复用 classic 版本
-import { slotTypeToEquipPosition, VideoPlayer } from "./ui/classic";
+import { slotTypeToEquipPosition, } from "./ui/classic";
 // 导入现代UI组件
 import {
   BottomBar,

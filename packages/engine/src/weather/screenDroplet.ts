@@ -298,7 +298,7 @@ export class ScreenDroplet {
         // easeOutBack: 快速膨胀 + 轻微过冲弹跳
         const t = this.impactProgress;
         const overshoot = 1.4;
-        const ease = 1 + (overshoot + 1) * Math.pow(t - 1, 3) + overshoot * Math.pow(t - 1, 2);
+        const ease = 1 + (overshoot + 1) * (t - 1) ** 3 + overshoot * (t - 1) ** 2;
         this.currentRx = this.baseRx * ease;
         this.currentRy = this.baseRy * ease;
         // 着陆期间透明度从 0 快速到 1

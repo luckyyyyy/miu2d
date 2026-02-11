@@ -81,7 +81,7 @@ export function GameSelector({
 
       {/* 下拉菜单 */}
       {isOpen && (
-        <div className="absolute top-full left-0 mt-1 w-64 bg-[#252526] border border-[#454545] rounded-md shadow-xl z-50 overflow-hidden">
+        <div className="absolute top-full left-0 mt-1 w-64 bg-[#252526] border border-widget-border rounded-md shadow-xl z-50 overflow-hidden">
           {/* 游戏列表 */}
           <div className="max-h-64 overflow-y-auto">
             {games.length === 0 ? (
@@ -118,7 +118,7 @@ export function GameSelector({
           </div>
 
           {/* 分隔线和操作按钮 */}
-          <div className="border-t border-[#454545]">
+          <div className="border-t border-widget-border">
             {onCreateGame && (
               <button
                 type="button"

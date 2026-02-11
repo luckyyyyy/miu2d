@@ -8,6 +8,7 @@ import {
   useState,
   useCallback,
   useRef,
+  useMemo,
   type ReactNode,
 } from "react";
 import type { Game } from "@miu2d/types";
@@ -68,7 +69,8 @@ export function DashboardProvider({
   // 编辑数据缓存 - 使用 ref 避免重新渲染
   const editCacheRef = useRef<Map<string, unknown>>(new Map());
 
-  const editCache: EditCache = {
+  // editCache 方法稳定引用（ref 不变，方法不变）
+  const editCache: EditCache = useMemo(() => ({
     get: <T,>(key: string) => editCacheRef.current.get(key) as T | undefined,
     set: <T,>(key: string, data: T) => {
       editCacheRef.current.set(key, data);
@@ -80,7 +82,7 @@ export function DashboardProvider({
     clear: () => {
       editCacheRef.current.clear();
     },
-  };
+  }), []);
 
   const toggleNode = useCallback((nodeId: string) => {
     setExpandedNodes((prev) => {
@@ -106,7 +108,7 @@ export function DashboardProvider({
     });
   }, []);
 
-  const value: DashboardContextType = {
+  const value: DashboardContextType = useMemo(() => ({
     currentGame,
     setCurrentGame,
     expandedNodes,
@@ -116,7 +118,7 @@ export function DashboardProvider({
     activeModule,
     setActiveModule,
     editCache,
-  };
+  }), [currentGame, expandedNodes, activeModule, toggleNode, expandNode, collapseNode, editCache]);
 
   return (
     <DashboardContext.Provider value={value}>

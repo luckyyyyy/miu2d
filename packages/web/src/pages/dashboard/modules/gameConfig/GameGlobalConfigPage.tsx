@@ -64,7 +64,7 @@ function HelpTip({ text }: { text: string }) {
   return (
     <span className="group relative inline-flex ml-1.5 cursor-help">
       <HelpIcon size={14} className="text-[#555] group-hover:text-[#0098ff] transition-colors" />
-      <span className="absolute bottom-full left-0 mb-2 px-3 py-2 text-xs text-[#cccccc] bg-[#1e1e1e] border border-[#454545] rounded-lg shadow-xl whitespace-normal w-64 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-150 z-50 leading-relaxed">
+      <span className="absolute bottom-full left-0 mb-2 px-3 py-2 text-xs text-[#cccccc] bg-[#1e1e1e] border border-widget-border rounded-lg shadow-xl whitespace-normal w-64 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-150 z-50 leading-relaxed">
         {text}
       </span>
     </span>
@@ -117,13 +117,13 @@ function Field({ label, desc, children }: { label: string; desc?: string; childr
 /** 表单卡片容器 */
 function FormCard({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={`bg-[#252526] border border-[#333] rounded-xl p-5 ${className}`}>
+    <div className={`bg-[#252526] border border-panel-border rounded-xl p-5 ${className}`}>
       {children}
     </div>
   );
 }
 
-const inputCls = "w-full px-3 py-2 bg-[#3c3c3c] border border-[#454545] rounded-lg text-white focus:outline-none focus:border-[#0098ff] transition-colors";
+const inputCls = "w-full px-3 py-2 bg-[#3c3c3c] border border-widget-border rounded-lg text-white focus:outline-none focus:border-focus-border transition-colors";
 
 // ========== 掉落子组件 ==========
 
@@ -145,7 +145,7 @@ function MoneyTiersEditor({ tiers, onChange }: { tiers: MoneyDropTier[]; onChang
         </thead>
         <tbody>
           {tiers.map((tier, i) => (
-            <tr key={tier.tier} className="border-t border-[#333] group hover:bg-[#2a2a2a] transition-colors">
+            <tr key={tier.tier} className="border-t border-panel-border group hover:bg-[#2a2a2a] transition-colors">
               <td className="py-3 pr-4">
                 <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-[#0098ff]/10 text-[#0098ff] text-sm font-medium">{tier.tier}</span>
               </td>
@@ -169,7 +169,7 @@ function DrugTiersEditor({ tiers, onChange }: { tiers: DrugDropTier[]; onChange:
     t[i] = { ...t[i], [field]: value ?? 0 };
     onChange(t);
   };
-  const smallInput = "w-32 px-2.5 py-1.5 bg-[#3c3c3c] border border-[#454545] rounded-lg text-white text-sm focus:outline-none focus:border-[#0098ff] transition-colors";
+  const smallInput = "w-32 px-2.5 py-1.5 bg-[#3c3c3c] border border-widget-border rounded-lg text-white text-sm focus:outline-none focus:border-focus-border transition-colors";
   return (
     <FormCard>
       <table className="w-full text-sm">
@@ -182,7 +182,7 @@ function DrugTiersEditor({ tiers, onChange }: { tiers: DrugDropTier[]; onChange:
         </thead>
         <tbody>
           {tiers.map((tier, i) => (
-            <tr key={i} className="border-t border-[#333] group hover:bg-[#2a2a2a] transition-colors">
+            <tr key={i} className="border-t border-panel-border group hover:bg-[#2a2a2a] transition-colors">
               <td className="py-3 pr-4">
                 <input type="text" value={tier.name} onChange={(e) => update(i, "name", e.target.value)} className={smallInput} />
               </td>
@@ -196,7 +196,7 @@ function DrugTiersEditor({ tiers, onChange }: { tiers: DrugDropTier[]; onChange:
           ))}
         </tbody>
       </table>
-      <div className="mt-3 pt-3 border-t border-[#333]">
+      <div className="mt-3 pt-3 border-t border-panel-border">
         <button
           type="button"
           onClick={() => onChange([...tiers, { name: "", maxLevel: 999, shopKey: "" }])}
@@ -228,7 +228,7 @@ function BossLevelBonusEditor({ bonuses, onChange }: { bonuses: BossLevelBonus[]
         </thead>
         <tbody>
           {bonuses.map((b, i) => (
-            <tr key={i} className="border-t border-[#333] group hover:bg-[#2a2a2a] transition-colors">
+            <tr key={i} className="border-t border-panel-border group hover:bg-[#2a2a2a] transition-colors">
               <td className="py-3 pr-4">
                 <NumberInput value={b.chance} onChange={(v) => update(i, "chance", v)} min={0} max={100} className="w-28" />
               </td>
@@ -249,7 +249,7 @@ function BossLevelBonusEditor({ bonuses, onChange }: { bonuses: BossLevelBonus[]
           ))}
         </tbody>
       </table>
-      <div className="mt-3 pt-3 border-t border-[#333] flex items-center gap-4">
+      <div className="mt-3 pt-3 border-t border-panel-border flex items-center gap-4">
         <button type="button" onClick={() => onChange([...bonuses, { chance: 0, bonus: 0 }])} className="px-3 py-1.5 text-xs bg-[#3c3c3c] hover:bg-[#4a4a4a] rounded-lg transition-colors text-[#cccccc]">
           + 添加档位
         </button>
@@ -343,7 +343,7 @@ function BasicInfoPanel({ config, updateConfig, gameId, gameSlug }: {
       <SectionTitle />
       <FormCard>
         <div className="space-y-4">
-          <div className="flex items-center justify-between py-2 border-b border-[#333] mb-2">
+          <div className="flex items-center justify-between py-2 border-b border-panel-border mb-2">
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium text-[#cccccc]">开放游戏</span>
               <HelpTip text="开启后玩家可以访问游戏并加载数据。关闭后 /api/data 接口将不可用，游戏无法启动" />
@@ -376,7 +376,7 @@ function BasicInfoPanel({ config, updateConfig, gameId, gameSlug }: {
           <Field label="游戏 Logo" desc="上传游戏 Logo，将作为网页图标和游戏左上角标识显示。支持 PNG、JPG、WebP 等格式，最大 5MB">
             <div className="flex items-center gap-4">
               {/* 预览 */}
-              <div className="w-16 h-16 rounded-lg border border-[#454545] bg-[#1a1a1a] flex items-center justify-center overflow-hidden flex-shrink-0">
+              <div className="w-16 h-16 rounded-lg border border-widget-border bg-[#1a1a1a] flex items-center justify-center overflow-hidden flex-shrink-0">
                 {logoPreview ? (
                   <img src={logoPreview} alt="Logo" className="w-full h-full object-contain" />
                 ) : (
@@ -439,7 +439,7 @@ function NewGameScriptPanel({ config, updateConfig }: { config: GameConfigDataFu
   return (
     <div className="flex flex-col h-full">
       <SectionTitle desc="新游戏开始时执行的脚本内容（JXQY 脚本语法）" />
-      <div className="border border-[#454545] rounded flex-1 min-h-0">
+      <div className="border border-widget-border rounded flex-1 min-h-0">
         <ScriptEditor
           value={config.newGameScript}
           onChange={(v) => updateConfig("newGameScript", v)}
@@ -478,7 +478,7 @@ function PlayerThewPanel({ thew, onChange }: { thew: PlayerThewCost; onChange: (
           <Field label="攻击消耗" desc="每次普通攻击扣除的体力值。体力不足时无法发起攻击"><NumberInput value={thew.attackCost} onChange={(v) => up("attackCost", v)} min={0} className="w-full" /></Field>
           <Field label="跳跃消耗" desc="每次跳跃扣除的体力值。体力不足时无法跳跃"><NumberInput value={thew.jumpCost} onChange={(v) => up("jumpCost", v)} min={0} className="w-full" /></Field>
         </div>
-        <div className="flex items-center gap-2.5 mt-5 pt-4 border-t border-[#333]">
+        <div className="flex items-center gap-2.5 mt-5 pt-4 border-t border-panel-border">
           <input
             type="checkbox"
             id="useThewNormalRun"
@@ -658,7 +658,7 @@ const PortraitEntryRow = memo(function PortraitEntryRow({
   return (
     <div className="flex items-center gap-3 px-4 py-3 bg-[#2a2d2e] rounded-lg group hover:bg-[#2f3233] transition-colors">
       {/* 预览 */}
-      <div className="w-12 h-12 flex-shrink-0 rounded bg-[#1e1e1e] border border-[#333] flex items-center justify-center overflow-hidden">
+      <div className="w-12 h-12 flex-shrink-0 rounded bg-[#1e1e1e] border border-panel-border flex items-center justify-center overflow-hidden">
         {entry.file ? (
           <MiniAsfPreview
             gameSlug={gameSlug}
@@ -949,7 +949,7 @@ export function GameGlobalConfigPage() {
   // 切换 tab 时滚动到顶部
   useEffect(() => {
     contentRef.current?.scrollTo({ top: 0 });
-  }, [activeCategory]);
+  }, []);
 
   const updateConfig = useCallback(<K extends keyof GameConfigDataFull>(field: K, value: GameConfigDataFull[K]) => {
     setConfig((prev) => ({ ...prev, [field]: value }));
@@ -1080,7 +1080,7 @@ export function GameGlobalConfigPage() {
   return (
     <div className="h-full flex flex-col">
       {/* 固定顶部栏 */}
-      <div className="flex-shrink-0 flex items-center gap-3 px-6 py-3 border-b border-[#333]">
+      <div className="flex-shrink-0 flex items-center gap-3 px-6 py-3 border-b border-panel-border">
         <h2 className="text-base font-semibold text-white tracking-tight">{CATEGORY_TITLES[activeCategory]}</h2>
         {!isSelfManaged && isDirty && (
           <span className="flex items-center gap-1.5 text-xs text-yellow-500">
