@@ -12,10 +12,10 @@ export {
   getAllNpcConfigKeys,
   getNpcConfigFromCache,
   isNpcConfigLoaded,
-} from "./npcConfigLoader";
+} from "./npc-config-loader";
 // NPC modules
 export { NpcMagicCache, type SpecialMagicType } from "./modules";
 // NPC class
 export { Npc, parseFixedPos } from "./npc";
 // NPC manager
-export { DeathInfo, isEnemy, NpcManager, type ViewRect } from "./npcManager";
+export { DeathInfo, isEnemy, NpcManager, type ViewRect } from "./npc-manager";

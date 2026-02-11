@@ -10,9 +10,9 @@
  */
 
 import { logger } from "../core/logger";
-import type { Mpc } from "../core/mapTypes";
-import { decodeMpcWasm } from "../wasm/wasmMpcDecoder";
-import { resourceLoader } from "./resourceLoader";
+import type { Mpc } from "../map/types";
+import { decodeMpcWasm } from "../wasm/wasm-mpc-decoder";
+import { resourceLoader } from "./resource-loader";
 import { loadShd, type Shd } from "./shd";
 
 /**

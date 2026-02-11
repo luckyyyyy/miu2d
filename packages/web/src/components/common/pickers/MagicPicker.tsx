@@ -10,8 +10,8 @@ import { trpc } from "../../../lib/trpc";
 import type { MagicListItem } from "@miu2d/types";
 import { MagicMoveKindLabels } from "@miu2d/types";
 import { MagicPreview } from "../../../pages/dashboard/modules/magic/MagicPreview";
-import { initWasm } from "@miu2d/engine/wasm/wasmManager";
-import { decodeAsfWasm } from "@miu2d/engine/wasm/wasmAsfDecoder";
+import { initWasm } from "@miu2d/engine/wasm/wasm-manager";
+import { decodeAsfWasm } from "@miu2d/engine/wasm/wasm-asf-decoder";
 import { getFrameCanvas } from "@miu2d/engine/resource/asf";
 import { buildResourceUrl } from "../../../pages/dashboard/utils";
 

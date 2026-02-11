@@ -13,7 +13,7 @@
  */
 
 import { logger } from "@miu2d/engine/core/logger";
-import { setResourcePaths } from "@miu2d/engine/config";
+import { setResourcePaths } from "@miu2d/engine/resource";
 import { loadGameData, loadGameConfig, getGameConfig } from "@miu2d/engine/resource";
 import { setLevelConfigGameSlug, initNpcLevelConfig } from "@miu2d/engine/character/level";
 import type { SaveData } from "@miu2d/engine/runtime";

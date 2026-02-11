@@ -9,7 +9,7 @@
  * - 更大的雪花使用柔和渐变纹理
  */
 
-import type { IRenderer } from "../webgl/iRenderer";
+import type { IRenderer } from "../renderer/i-renderer";
 
 /** 雪花形状类型（0-3: 小型像素 | 4-5: 大型柔和） */
 export type SnowFlakeType = 0 | 1 | 2 | 3 | 4 | 5;

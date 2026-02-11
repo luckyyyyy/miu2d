@@ -2,7 +2,7 @@
  * 性能统计区块
  */
 
-import type { PerformanceStatsData } from "@miu2d/engine/runtime/performanceStats";
+import type { PerformanceStatsData } from "@miu2d/engine/runtime/performance-stats";
 import type React from "react";
 import { DataRow } from "../DataRow";
 import { Section } from "../Section";

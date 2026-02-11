@@ -11,7 +11,7 @@
  */
 
 import { Direction } from "@miu2d/engine/core/types";
-import type { GameEngine } from "@miu2d/engine/runtime/gameEngine";
+import type { GameEngine } from "@miu2d/engine/runtime/game-engine";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { MobileActionButtons } from "./MobileActionButtons";
 import { MobileInteractionBar } from "./MobileInteractionBar";

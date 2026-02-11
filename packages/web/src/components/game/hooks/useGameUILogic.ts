@@ -9,18 +9,18 @@
  * 3. 从引擎获取数据并转换为 UI 友好格式
  */
 
-import { DefaultPaths } from "@miu2d/engine/config";
+import { DefaultPaths } from "@miu2d/engine/resource";
 import { logger } from "@miu2d/engine/core/logger";
-import type { MiuMapData } from "@miu2d/engine/core/mapTypes";
+import type { MiuMapData } from "@miu2d/engine/map/types";
 import type { Vector2 } from "@miu2d/engine/core/types";
-import type { GameEngine } from "@miu2d/engine/runtime/gameEngine";
-import type { ShopItemInfo } from "@miu2d/engine/gui/buyManager";
+import type { GameEngine } from "@miu2d/engine/runtime/game-engine";
+import type { ShopItemInfo } from "@miu2d/engine/gui/buy-manager";
 import type { MagicItemInfo } from "@miu2d/engine/magic";
 import type { Npc } from "@miu2d/engine/npc";
 import type { Good } from "@miu2d/engine/player/goods";
 import { GoodKind } from "@miu2d/engine/player/goods";
-import { resourceLoader } from "@miu2d/engine/resource/resourceLoader";
-import type { TimerState } from "@miu2d/engine/timer";
+import { resourceLoader } from "@miu2d/engine/resource/resource-loader";
+import type { TimerState } from "@miu2d/engine/core";
 import type { UIEquipSlotName } from "@miu2d/engine/gui/contract";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useUIBridge } from "../adapters";

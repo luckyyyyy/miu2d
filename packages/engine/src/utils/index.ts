@@ -37,7 +37,7 @@ export { distance, getViewTileDistance } from "./distance";
 // ID generation
 export { generateId } from "./id";
 // INI parser
-export { parseIni } from "./iniParser";
+export { parseIni } from "./ini-parser";
 // Math utilities
 export { clamp, getSpeedRatio, lerp, normalizeVector, vectorLength } from "./math";
 // Neighbor utilities

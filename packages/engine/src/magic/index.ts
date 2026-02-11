@@ -11,18 +11,18 @@ export {
   getMagicAtLevel,
   preloadMagicAsf,
   preloadMagics,
-} from "./magicLoader";
+} from "./magic-loader";
 // Magic Config Loader (API)
 export {
   getAllCachedMagicFileNames,
   getMagicFromApiCache,
   isMagicApiLoaded,
-} from "./magicConfigLoader";
+} from "./magic-config-loader";
 // Magic Renderer
-export { MagicRenderer } from "./magicRenderer";
+export { MagicRenderer } from "./magic-renderer";
 // MagicSprite class (inherits from Sprite)
 // 武功精灵类
-export { MagicSprite, type WorkItem } from "./magicSprite";
+export { MagicSprite, type WorkItem } from "./magic-sprite";
 // Magic Manager (refactored)
 export { MagicManager, type MagicManagerDeps } from "./manager";
 

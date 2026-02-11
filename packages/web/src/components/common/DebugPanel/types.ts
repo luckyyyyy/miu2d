@@ -3,9 +3,9 @@
  */
 
 import type { GameVariables } from "@miu2d/engine/core/types";
-import type { PerformanceStatsData } from "@miu2d/engine/runtime/performanceStats";
+import type { PerformanceStatsData } from "@miu2d/engine/runtime/performance-stats";
 import type { MagicItemInfo } from "@miu2d/engine/magic";
-import type { ResourceStats } from "@miu2d/engine/resource/resourceLoader";
+import type { ResourceStats } from "@miu2d/engine/resource/resource-loader";
 
 export interface PlayerStats {
   level: number;

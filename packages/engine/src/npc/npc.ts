@@ -4,16 +4,16 @@
  */
 
 import { Character } from "../character";
-import { loadNpcConfig } from "../character/resFile";
+import { loadNpcConfig } from "../character/res-loader";
 import { logger } from "../core/logger";
-import { PathType } from "../core/pathFinder";
+import { PathType } from "../core/path-finder";
 import type { CharacterConfig, Vector2 } from "../core/types";
 import { CharacterKind, CharacterState } from "../core/types";
 import type { MagicData } from "../magic/types";
 import type { AsfData } from "../resource/asf";
 import { generateId, tileToPixel } from "../utils";
 import { NpcAI, NpcMagicCache } from "./modules";
-import type { NpcManager } from "./npcManager";
+import type { NpcManager } from "./npc-manager";
 
 /** Npc 类*/
 export class Npc extends Character {

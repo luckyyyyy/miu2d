@@ -22,19 +22,19 @@
  */
 
 import type { AudioManager } from "../audio";
-import { ResourcePath } from "../config/resourcePaths";
+import { ResourcePath } from "../resource/resource-paths";
 import { logger } from "../core/logger";
-import type { ScreenEffects } from "../effects";
-import type { GuiManager } from "../gui/guiManager";
-import type { MemoListManager } from "../listManager";
-import type { MapBase } from "../map/mapBase";
+import type { ScreenEffects } from "../renderer/screen-effects";
+import type { GuiManager } from "../gui/gui-manager";
+import type { MemoListManager } from "./memo-list-manager";
+import type { MapBase } from "../map/map-base";
 import type { NpcManager } from "../npc";
 import type { ObjManager } from "../obj";
 import type { GoodsListManager } from "../player/goods";
-import type { MagicListManager } from "../player/magic/magicListManager";
+import type { MagicListManager } from "../player/magic/magic-list-manager";
 import type { Player } from "../player/player";
-import { resourceLoader } from "../resource/resourceLoader";
-import { getGameConfig, getPlayersData } from "../resource/resourceLoader";
+import { resourceLoader } from "../resource/resource-loader";
+import { getGameConfig, getPlayersData } from "../resource/resource-loader";
 import type { ScriptExecutor } from "../script/executor";
 import { type CharacterSaveSlot, formatSaveTime, type GoodsItemData, type MagicItemData, type NpcSaveItem, type ObjSaveItem, type PlayerSaveData, SAVE_VERSION, type SaveData, type TrapGroupValue } from "./storage";
 
@@ -702,7 +702,7 @@ export class Loader {
   /**
    * 从 API 数据中查找指定 key 的玩家数据
    */
-  private findApiPlayer(playerKey: string): import("../resource/resourceLoader").ApiPlayerData | null {
+  private findApiPlayer(playerKey: string): import("../resource/resource-loader").ApiPlayerData | null {
     const players = getPlayersData();
     if (!players) return null;
     return players.find(p => p.key === playerKey) ?? null;
@@ -712,7 +712,7 @@ export class Loader {
    * 从 API 数据中按 index 查找玩家数据
    * 用于 changePlayer 时从 API 加载目标角色配置
    */
-  private findApiPlayerByIndex(index: number): import("../resource/resourceLoader").ApiPlayerData | null {
+  private findApiPlayerByIndex(index: number): import("../resource/resource-loader").ApiPlayerData | null {
     const players = getPlayersData();
     if (!players) return null;
     return players.find(p => p.index === index) ?? null;

@@ -10,12 +10,12 @@
  * - 图片/音频预览
  */
 import type { AsfData } from "@miu2d/engine/resource/asf";
-import type { JxqyMapData, MiuMapData, Mpc } from "@miu2d/engine/core/mapTypes";
+import type { JxqyMapData, MiuMapData, Mpc } from "@miu2d/engine/map/types";
 import { parseMap } from "@miu2d/engine/resource/map";
 import { parseMMF } from "@miu2d/engine/resource/mmf";
-import { initWasm } from "@miu2d/engine/wasm/wasmManager";
-import { decodeAsfWasm } from "@miu2d/engine/wasm/wasmAsfDecoder";
-import { decodeMpcWasm } from "@miu2d/engine/wasm/wasmMpcDecoder";
+import { initWasm } from "@miu2d/engine/wasm/wasm-manager";
+import { decodeAsfWasm } from "@miu2d/engine/wasm/wasm-asf-decoder";
+import { decodeMpcWasm } from "@miu2d/engine/wasm/wasm-mpc-decoder";
 import { AsfViewer } from "@miu2d/viewer/components/AsfViewer";
 import { MapViewer } from "@miu2d/viewer/components/MapViewer";
 import { MpcViewer } from "@miu2d/viewer/components/MpcViewer";

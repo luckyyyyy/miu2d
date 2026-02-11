@@ -10,15 +10,15 @@
  */
 
 import { loadCharacterImage, loadNpcRes } from "@miu2d/engine/character";
-import { setResourcePaths } from "@miu2d/engine/config";
-import { ResourcePath } from "@miu2d/engine/config/resourcePaths";
-import type { MiuMapData } from "@miu2d/engine/core/mapTypes";
-import { getObjResFromCache } from "@miu2d/engine/obj/objConfigLoader";
+import { setResourcePaths } from "@miu2d/engine/resource";
+import { ResourcePath } from "@miu2d/engine/resource/resource-paths";
+import type { MiuMapData } from "@miu2d/engine/map/types";
+import { getObjResFromCache } from "@miu2d/engine/obj/obj-config-loader";
 import type { AsfData } from "@miu2d/engine/resource/asf";
 import { getFrameCanvas, loadAsf } from "@miu2d/engine/resource/asf";
 import { parseMMF } from "@miu2d/engine/resource/mmf";
-import type { ApiDataResponse } from "@miu2d/engine/resource/resourceLoader";
-import { setGameData } from "@miu2d/engine/resource/resourceLoader";
+import type { ApiDataResponse } from "@miu2d/engine/resource/resource-loader";
+import { setGameData } from "@miu2d/engine/resource/resource-loader";
 import type { SceneData, SceneNpcEntry, SceneObjEntry } from "@miu2d/types";
 import { NpcKindValues, NpcRelationValues, ObjKindValues } from "@miu2d/types";
 import type { MapMarker, MapViewerHandle, SidePanelTab } from "@miu2d/viewer";
@@ -26,6 +26,7 @@ import { MapViewer } from "@miu2d/viewer";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { NpcResourcePicker } from "../../../components/common/pickers/NpcResourcePicker";
+import { ObjResourcePicker } from "../../../components/common/pickers/ObjResourcePicker";
 import { FileSelectDialog } from "../../../components/common/ResourceFilePicker/FileSelectDialog";
 import { ResourceFilePicker } from "../../../components/common/ResourceFilePicker/ResourceFilePicker";
 import { ScriptEditor } from "../../../components/common/ScriptEditor";
@@ -1722,14 +1723,12 @@ function ObjEntryEditor({
           ))}
         </select>
       </FieldRow>
-      <ResourceFilePicker
+      <ObjResourcePicker
         label="资源"
         value={entry.objFile}
         onChange={(v) => onChange("objFile", v ?? "")}
-        fieldName="objFile"
         gameId={gameId}
         gameSlug={gameSlug}
-        extensions={[".obj"]}
         inlineLabel
       />
 

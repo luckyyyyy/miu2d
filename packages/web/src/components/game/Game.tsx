@@ -9,9 +9,9 @@
  * 5. 窗口调整时只重新获取状态并绘制
  */
 
-import { GameEvents, type UIPanelChangeEvent } from "@miu2d/engine/core/gameEvents";
-import type { DebugManager } from "@miu2d/engine/debug";
-import type { GameEngine } from "@miu2d/engine/runtime/gameEngine";
+import { GameEvents, type UIPanelChangeEvent } from "@miu2d/engine/core/game-events";
+import type { DebugManager } from "@miu2d/engine/core";
+import type { GameEngine } from "@miu2d/engine/runtime/game-engine";
 import type React from "react";
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { useGameEngine } from "@/hooks";

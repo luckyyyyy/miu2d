@@ -1,7 +1,7 @@
 /**
  * Portrait utility - 从 API 数据获取头像 ASF 路径
  */
-import { getPortraitsData } from "@miu2d/engine/resource/resourceLoader";
+import { getPortraitsData } from "@miu2d/engine/resource/resource-loader";
 
 /** 缓存：API 数据 → Map<index, asfFile> */
 let cachedMap: Map<number, string> | null = null;

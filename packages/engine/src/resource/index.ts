@@ -14,11 +14,12 @@
  * 2. 其他地方直接 import { loadMMF, loadMpc } 使用
  */
 export * from "./asf";
-export * from "./cacheRegistry";
+export * from "./cache-registry";
 export * from "./map";
 export * from "./mmf";
 export * from "./mpc";
-export * from "./resourceLoader";
+export * from "./resource-loader";
 export * from "./shd";
 export * from "./xnb";
 
+export * from "./resource-paths";

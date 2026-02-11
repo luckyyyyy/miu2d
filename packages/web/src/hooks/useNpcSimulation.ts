@@ -17,12 +17,12 @@
 
 import { useCallback, useEffect, useRef } from "react";
 import type { SceneNpcEntry } from "@miu2d/types";
-import type { MiuMapData } from "@miu2d/engine/core/mapTypes";
+import type { MiuMapData } from "@miu2d/engine/map/types";
 import type { Vector2 } from "@miu2d/engine/core/types";
 import type { MapViewerHandle } from "@miu2d/viewer";
 import { parseFixedPos } from "@miu2d/engine/npc";
 import { generateRandTilePath } from "@miu2d/engine/character";
-import { findPath, PathType } from "@miu2d/engine/core/pathFinder";
+import { findPath, PathType } from "@miu2d/engine/core/path-finder";
 import { MapBase } from "@miu2d/engine/map";
 import { getDirectionFromVector, tileToPixel } from "@miu2d/engine/utils";
 

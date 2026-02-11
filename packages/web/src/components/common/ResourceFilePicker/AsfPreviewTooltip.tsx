@@ -5,8 +5,8 @@
 import { useEffect, useRef, useState } from "react";
 import type { AsfData } from "@miu2d/engine/resource/asf";
 import { getFrameCanvas } from "@miu2d/engine/resource/asf";
-import { initWasm } from "@miu2d/engine/wasm/wasmManager";
-import { decodeAsfWasm } from "@miu2d/engine/wasm/wasmAsfDecoder";
+import { initWasm } from "@miu2d/engine/wasm/wasm-manager";
+import { decodeAsfWasm } from "@miu2d/engine/wasm/wasm-asf-decoder";
 import { buildResourceUrl } from "../../../pages/dashboard/utils";
 
 interface AsfPreviewTooltipProps {

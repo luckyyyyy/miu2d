@@ -12,12 +12,12 @@
  */
 
 import { logger } from "../core/logger";
-import { getCharacterDeathExp } from "../core/effectCalc";
-import { canMoveInDirection, findNeighborInDirection as findNeighborByIndex, PathType } from "../core/pathFinder";
-import type { IRenderer } from "../webgl/iRenderer";
+import { getCharacterDeathExp } from "../core/effect-calc";
+import { canMoveInDirection, findNeighborInDirection as findNeighborByIndex, PathType } from "../core/path-finder";
+import type { IRenderer } from "../renderer/i-renderer";
 import type { CharacterConfig, Vector2 } from "../core/types";
 import { CharacterState, RUN_SPEED_FOLD, TILE_WIDTH } from "../core/types";
-import type { MagicSprite } from "../magic/magicSprite";
+import type { MagicSprite } from "../magic/magic-sprite";
 import type { MagicData } from "../magic/types";
 import { Obj } from "../obj/obj";
 import {
@@ -29,8 +29,8 @@ import {
 } from "../sprite/sprite";
 import { distance, getDirectionFromVector, pixelToTile, tileToPixel } from "../utils";
 import { CharacterCombat, MAX_NON_FIGHT_SECONDS } from "./base";
-import { applyConfigToCharacter } from "./iniParser";
-import { loadCharacterAsf, loadCharacterImage, loadNpcRes } from "./resFile";
+import { applyConfigToCharacter } from "./config-parser";
+import { loadCharacterAsf, loadCharacterImage, loadNpcRes } from "./res-loader";
 
 export {
   type CharacterUpdateResult,

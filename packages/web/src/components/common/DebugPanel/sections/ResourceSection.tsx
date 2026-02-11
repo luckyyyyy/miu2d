@@ -2,7 +2,7 @@
  * 资源加载统计区块
  */
 
-import type { ResourceStats } from "@miu2d/engine/resource/resourceLoader";
+import type { ResourceStats } from "@miu2d/engine/resource/resource-loader";
 import type React from "react";
 import { DataRow } from "../DataRow";
 import { Section } from "../Section";

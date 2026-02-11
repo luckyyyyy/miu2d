@@ -8,6 +8,6 @@ export {
   BezierMover,
   type BezierMoveUpdateResult,
   type JumpObstacleChecker,
-} from "./bezierMover";
-export { type FlyIniInfo, FlyIniManager, parseMagicList, parseMagicListNoDistance } from "./flyIniManager";
-export { StatusEffectsManager, type StatusEffectsUpdateResult } from "./statusEffects";
+} from "./bezier-mover";
+export { type FlyIniInfo, FlyIniManager, parseMagicList, parseMagicListNoDistance } from "./fly-ini-manager";
+export { StatusEffectsManager, type StatusEffectsUpdateResult } from "./status-effects";

@@ -1,4 +1,4 @@
 export * from "./obj";
-export * from "./objConfigLoader";
-export * from "./objManager";
-export * from "./objRenderer";
+export * from "./obj-config-loader";
+export * from "./obj-manager";
+export * from "./obj-renderer";

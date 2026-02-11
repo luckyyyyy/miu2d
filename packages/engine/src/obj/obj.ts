@@ -4,13 +4,13 @@
  * Extends Sprite with object-specific functionality
  */
 
-import { ResourcePath, resolveScriptPath } from "../config/resourcePaths";
+import { ResourcePath, resolveScriptPath } from "../resource/resource-paths";
 import { logger } from "../core/logger";
 import type { Vector2 } from "../core/types";
 import { type AsfData, getFrameCanvas, getFrameIndex, loadAsf } from "../resource/asf";
 import { Sprite } from "../sprite/sprite";
-import type { IRenderer } from "../webgl/iRenderer";
-import { getObjConfigFromCache, type ObjConfig, type ObjResInfo } from "./objConfigLoader";
+import type { IRenderer } from "../renderer/i-renderer";
+import { getObjConfigFromCache, type ObjConfig, type ObjResInfo } from "./obj-config-loader";
 
 /**
  * Object Kind enum matching Obj.ObjKind

@@ -18,9 +18,9 @@
  * - Ratio = 4 (scale factor between world coordinates and minimap)
  * - Uses pre-rendered PNG images from map/littlemap/ directory
  */
-import { getResourceUrl, ResourcePath } from "@miu2d/engine/config";
+import { getResourceUrl, ResourcePath } from "@miu2d/engine/resource";
 import { logger } from "@miu2d/engine/core/logger";
-import type { MiuMapData } from "@miu2d/engine/core/mapTypes";
+import type { MiuMapData } from "@miu2d/engine/map/types";
 import type { Vector2 } from "@miu2d/engine/core/types";
 import type React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";

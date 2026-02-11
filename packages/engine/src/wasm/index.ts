@@ -7,11 +7,11 @@
  */
 
 // 统一的 WASM 初始化（应用启动时调用一次）
-export { initWasm, isWasmReady, getWasmModule } from "./wasmManager";
+export { initWasm, isWasmReady, getWasmModule } from "./wasm-manager";
 
 // ASF/MPC 解码器
-export { decodeAsfWasm } from "./wasmAsfDecoder";
-export { decodeMpcWasm } from "./wasmMpcDecoder";
+export { decodeAsfWasm } from "./wasm-asf-decoder";
+export { decodeMpcWasm } from "./wasm-mpc-decoder";
 
 // 碰撞检测
 export {
@@ -22,7 +22,7 @@ export {
   pointInCircle,
   pointInRect,
   WasmSpatialHashWrapper,
-} from "./wasmCollision";
+} from "./wasm-collision";
 
 // 寻路
 export {
@@ -33,4 +33,4 @@ export {
   setObstacle,
   updateObstacleBitmap,
   WasmPathType,
-} from "./wasmPathFinder";
+} from "./wasm-path-finder";

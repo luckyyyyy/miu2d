@@ -12,19 +12,19 @@
  */
 
 import type { Character } from "../character";
-import { resolveScriptPath } from "../config/resourcePaths";
+import { resolveScriptPath } from "../resource/resource-paths";
 import { logger } from "../core/logger";
 import type { Vector2 } from "../core/types";
 import { CharacterState, RUN_SPEED_FOLD } from "../core/types";
 import type { PlayerSaveData } from "../runtime/storage";
-import { getEffectAmount } from "../core/effectCalc";
-import type { MagicSprite } from "../magic/magicSprite";
+import { getEffectAmount } from "../core/effect-calc";
+import type { MagicSprite } from "../magic/magic-sprite";
 import type { MagicData } from "../magic/types";
 import { MagicMoveKind, MagicSpecialKind } from "../magic/types";
 import { Sprite } from "../sprite/sprite";
-import type { IRenderer } from "../webgl/iRenderer";
-import { getTileTextureRegion } from "../map/renderer";
-import type { ApiPlayerData } from "../resource/resourceLoader";
+import type { IRenderer } from "../renderer/i-renderer";
+import { getTileTextureRegion } from "../map/map-renderer";
+import type { ApiPlayerData } from "../resource/resource-loader";
 import { isBoxCollide, pixelToTile } from "../utils";
 import {
   LIFE_RESTORE_PERCENT,

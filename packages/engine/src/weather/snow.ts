@@ -8,7 +8,7 @@
  * - 近景大雪花带径向渐变，有体积感
  * - 更自然的密度分布
  */
-import type { IRenderer } from "../webgl/iRenderer";
+import type { IRenderer } from "../renderer/i-renderer";
 import { SnowFlake, clearSnowTextureCache, type SnowFlakeType } from "./snowflake";
 
 // 雪花生成间隔（毫秒）

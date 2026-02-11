@@ -10,7 +10,7 @@
  * 通过 {mpcIndex, frame} 引用 MPC 帧，每个地图位置可以引用任意帧。
  */
 
-import type { Mpc } from "@miu2d/engine/core/mapTypes";
+import type { Mpc } from "@miu2d/engine/map/types";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 interface MpcViewerProps {

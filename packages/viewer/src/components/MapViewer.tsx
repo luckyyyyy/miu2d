@@ -9,7 +9,7 @@
  * - IRenderer 懒初始化：首次 drawMap 时创建，避免 canvas 未挂载的竞态
  */
 
-import { type JxqyMapData, jxqyToMiuMapData, type MiuMapData } from "@miu2d/engine/core/mapTypes";
+import { type JxqyMapData, jxqyToMiuMapData, type MiuMapData } from "@miu2d/engine/map/types";
 import {
   createMapRenderer,
   getViewTileRange,
@@ -22,8 +22,8 @@ import {
 } from "@miu2d/engine/map";
 import type { AsfData } from "@miu2d/engine/resource/asf";
 import { getFrameAtlasInfo, getFrameCanvas, getFrameIndex } from "@miu2d/engine/resource/asf";
-import { getOuterEdge } from "@miu2d/engine/sprite/edgeDetection";
-import { createRenderer, type IRenderer, type RendererBackend } from "@miu2d/engine/webgl";
+import { getOuterEdge } from "@miu2d/engine/sprite/edge-detection";
+import { createRenderer, type IRenderer, type RendererBackend } from "@miu2d/engine/renderer";
 import {
   forwardRef,
   memo,

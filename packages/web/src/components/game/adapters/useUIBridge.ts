@@ -10,7 +10,7 @@
  * - 所有动作通过 dispatch 派发
  */
 
-import type { GameEngine } from "@miu2d/engine/runtime/gameEngine";
+import type { GameEngine } from "@miu2d/engine/runtime/game-engine";
 import type {
   UIAction,
   UIDialogState,

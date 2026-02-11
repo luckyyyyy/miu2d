@@ -5,14 +5,14 @@
 import type { AudioManager } from "../../audio";
 import type { Character } from "../../character/character";
 import type { Vector2 } from "../../core/types";
-import type { ScreenEffects } from "../../effects";
-import type { GuiManager } from "../../gui/guiManager";
+import type { ScreenEffects } from "../../renderer/screen-effects";
+import type { GuiManager } from "../../gui/gui-manager";
 import type { NpcManager } from "../../npc";
-import type { MagicListManager } from "../../player/magic/magicListManager";
+import type { MagicListManager } from "../../player/magic/magic-list-manager";
 import type { Player } from "../../player/player";
 import type { CharacterRef } from "../effects";
-import type { MagicRenderer } from "../magicRenderer";
-import type { MagicSprite, WorkItem } from "../magicSprite";
+import type { MagicRenderer } from "../magic-renderer";
+import type { MagicSprite, WorkItem } from "../magic-sprite";
 import type { Kind19MagicInfo, MagicData } from "../types";
 
 /**

@@ -16,7 +16,7 @@
 // Class-based exports
 export { Character } from "./character";
 // Standalone path generation utility (reusable outside class hierarchy)
-export { generateRandTilePath } from "./base/characterMovement";
+export { generateRandTilePath } from "./base/character-movement";
 // INI Parser - data-driven config parsing (new, replaces verbose switch-case)
 export {
   applyConfigToCharacter,
@@ -25,7 +25,7 @@ export {
   extractStatsFromCharacter,
   loadCharacterConfig,
   parseCharacterIni,
-} from "./iniParser";
+} from "./config-parser";
 // ResFile utilities - INI file loading ()
 export {
   // Image loading (ASF/MPC with optional SHD shadow)
@@ -35,4 +35,5 @@ export {
   loadNpcRes,
   // NpcRes (state -> ASF mappings)
   type NpcResStateInfo,
-} from "./resFile";
+} from "./res-loader";
+export * from "./attr-types";

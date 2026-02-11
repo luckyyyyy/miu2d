@@ -3,7 +3,7 @@
  * Props 与经典 LittleMapGui 完全一致
  */
 
-import type { MiuMapData } from "@miu2d/engine/core/mapTypes";
+import type { MiuMapData } from "@miu2d/engine/map/types";
 import type { Vector2 } from "@miu2d/engine/core/types";
 import type React from "react";
 import { useCallback, useEffect, useMemo, useRef } from "react";

@@ -2,8 +2,10 @@
  * Core exports
  */
 
-export * from "./attrTypes";
+export * from "../character/attr-types";
 export { logger } from "./logger";
-export * from "./mapTypes";
-export * from "./pathFinder";
+export * from "../map/types";
+export * from "./path-finder";
 export * from "./types";
+export * from "./timer-manager";
+export * from "./debug-manager";

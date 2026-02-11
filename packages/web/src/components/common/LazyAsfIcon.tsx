@@ -6,8 +6,8 @@
  */
 import { useState, useEffect, useRef, type ReactNode } from "react";
 import { getFrameCanvas } from "@miu2d/engine/resource/asf";
-import { initWasm } from "@miu2d/engine/wasm/wasmManager";
-import { decodeAsfWasm } from "@miu2d/engine/wasm/wasmAsfDecoder";
+import { initWasm } from "@miu2d/engine/wasm/wasm-manager";
+import { decodeAsfWasm } from "@miu2d/engine/wasm/wasm-asf-decoder";
 import { buildResourceUrl } from "../../pages/dashboard/utils";
 import { getNpcImageCandidates } from "@miu2d/types";
 

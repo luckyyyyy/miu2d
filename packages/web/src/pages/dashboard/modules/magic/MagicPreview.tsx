@@ -13,7 +13,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { AsfData } from "@miu2d/engine/resource/asf";
 import { getFrameCanvas } from "@miu2d/engine/resource/asf";
-import { initWasm } from "@miu2d/engine/wasm/wasmManager";
+import { initWasm } from "@miu2d/engine/wasm/wasm-manager";
 import {
   getDirection8,
   getDirection32List,
@@ -23,7 +23,7 @@ import {
   normalizeVector,
 } from "@miu2d/engine/utils";
 import type { Vector2 } from "@miu2d/engine/core/types";
-import { decodeAsfWasm } from "@miu2d/engine/wasm/wasmAsfDecoder";
+import { decodeAsfWasm } from "@miu2d/engine/wasm/wasm-asf-decoder";
 import { buildResourceUrl } from "../../utils";
 import type { Magic, MagicMoveKind } from "@miu2d/types";
 import { MagicMoveKindLabels, MagicMoveKindValues } from "@miu2d/types";

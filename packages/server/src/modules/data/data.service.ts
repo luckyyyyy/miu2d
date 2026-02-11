@@ -36,13 +36,13 @@ export async function buildGameData(gameSlug: string) {
 		objResources.map(r => [r.id, { resources: r.resources, key: r.key }])
 	);
 
-	// 为每个 obj 合并 resources 数据，并附带 resourceKey（objres 文件名）
+	// 为每个 obj 合并 resources 数据，并附带 objFile（objres 文件名）
 	const objsWithResources = objs.map(obj => {
 		const resEntry = obj.resourceId ? objResourceMap.get(obj.resourceId) : null;
 		return {
 			...obj,
 			resources: resEntry?.resources ?? {},
-			resourceKey: resEntry?.key ?? null,
+			objFile: resEntry?.key ?? null,
 		};
 	});
 
@@ -51,13 +51,13 @@ export async function buildGameData(gameSlug: string) {
 		npcResources.map(r => [r.id, { resources: r.resources, key: r.key }])
 	);
 
-	// 为每个 npc 合并 resources 数据，并附带 resourceKey（npcres 文件名）
+	// 为每个 npc 合并 resources 数据，并附带 npcIni（npcres 文件名）
 	const npcsWithResources = npcs.map(npc => {
 		const resEntry = npc.resourceId ? npcResourceMap.get(npc.resourceId) : null;
 		return {
 			...npc,
 			resources: npc.resources ?? resEntry?.resources ?? {},
-			resourceKey: resEntry?.key ?? null,
+			npcIni: resEntry?.key ?? null,
 		};
 	});
 

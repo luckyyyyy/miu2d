@@ -15,16 +15,16 @@
 export * from "./contract";
 
 // UI 桥接器 (原 ui/uiBridge.ts)
-export { UIBridge, type UIBridgeDeps } from "./uiBridge";
+export { UIBridge, type UIBridgeDeps } from "./ui-bridge";
 
 // GUI 管理器
-export * from "./guiManager";
+export * from "./gui-manager";
 
 // 购买管理器
-export * from "./buyManager";
+export * from "./buy-manager";
 
 // GUI 类型
 export * from "./types";
 
 // UI 配置
-export * from "./uiConfig";
+export * from "./ui-config";

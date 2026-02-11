@@ -2,7 +2,7 @@
  * Level system module exports
  */
 
-export type { LevelDetail, LevelUpResult } from "./levelManager";
+export type { LevelDetail, LevelUpResult } from "./level-manager";
 export {
   calculateLevelUp,
   getLevelDetail,
@@ -10,7 +10,7 @@ export {
   getNpcLevelDetail,
   initNpcLevelConfig,
   LevelManager,
-} from "./levelManager";
+} from "./level-manager";
 
 export {
   clearLevelConfigCache,
@@ -19,4 +19,4 @@ export {
   getLevelConfigFromCache,
   loadLevelConfig,
   setLevelConfigGameSlug,
-} from "./levelConfigLoader";
+} from "./level-config-loader";

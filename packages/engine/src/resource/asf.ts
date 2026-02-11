@@ -8,8 +8,8 @@
  * 注意：使用前需在应用启动时调用 await initWasm()
  */
 
-import { decodeAsfWasm } from "../wasm/wasmAsfDecoder";
-import { resourceLoader } from "./resourceLoader";
+import { decodeAsfWasm } from "../wasm/wasm-asf-decoder";
+import { resourceLoader } from "./resource-loader";
 
 export interface AsfFrame {
   width: number;

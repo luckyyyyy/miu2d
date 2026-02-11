@@ -36,15 +36,12 @@ export {
   type Vector2,
 } from "./core/types";
 // Debug system
-export * from "./debug";
 // Effects system
-export * from "./effects";
 // Runtime (engine entrypoints)
 export * from "./runtime";
 // GUI system
 export * from "./gui";
 // List managers
-export * from "./listManager";
 export * from "./map";
 // Resource management
 export * from "./resource";
@@ -56,6 +53,6 @@ export * from "./utils";
 // Weather system
 export * from "./weather";
 // WebGL / Renderer abstraction
-export { createRenderer, isWebGLAvailable, Canvas2DRenderer, type RendererBackend } from "./webgl";
-export type { IRenderer } from "./webgl/iRenderer";
-export type { TextureInfo, RenderStats, BlendMode, ColorFilter } from "./webgl/types";
+export { createRenderer, isWebGLAvailable, Canvas2DRenderer, type RendererBackend } from "./renderer";
+export type { IRenderer } from "./renderer/i-renderer";
+export type { TextureInfo, RenderStats, BlendMode, ColorFilter } from "./renderer/types";

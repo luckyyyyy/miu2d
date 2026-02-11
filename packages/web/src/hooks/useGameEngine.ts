@@ -17,10 +17,10 @@ import {
   GameEvents,
   type GameInitializedEvent,
   type GameLoadProgressEvent,
-} from "@miu2d/engine/core/gameEvents";
+} from "@miu2d/engine/core/game-events";
 import { logger } from "@miu2d/engine/core/logger";
-import { createGameEngine } from "@miu2d/engine/runtime/gameEngine";
-import type { GameEngine, GameEngineState } from "@miu2d/engine/runtime/gameEngine";
+import { createGameEngine } from "@miu2d/engine/runtime/game-engine";
+import type { GameEngine, GameEngineState } from "@miu2d/engine/runtime/game-engine";
 import type { SaveData } from "@miu2d/engine/runtime";
 import { useEffect, useRef, useState } from "react";
 

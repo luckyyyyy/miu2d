@@ -11,7 +11,7 @@
 
 import { logger } from "@miu2d/engine/core/logger";
 import { reloadGameData } from "@miu2d/engine/resource";
-import { resourceLoader } from "@miu2d/engine/resource/resourceLoader";
+import { resourceLoader } from "@miu2d/engine/resource/resource-loader";
 import type { SaveData } from "@miu2d/engine/runtime";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { GameHandle } from "../components";

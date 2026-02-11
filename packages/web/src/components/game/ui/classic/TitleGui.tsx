@@ -6,7 +6,7 @@
  * Resources: asf/ui/title/*.asf, asf/ui/title/title.jpg
  */
 
-import { buildPath } from "@miu2d/engine/config";
+import { buildPath } from "@miu2d/engine/resource";
 import { logger } from "@miu2d/engine/core/logger";
 import type React from "react";
 import { useCallback, useMemo, useState } from "react";

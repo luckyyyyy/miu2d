@@ -3,15 +3,15 @@
  * Base class for all visual game objects with animation
  */
 
-import { ResourcePath } from "../config/resourcePaths";
-import { EngineAccess } from "../core/engineAccess";
+import { ResourcePath } from "../resource/resource-paths";
+import { EngineAccess } from "../core/engine-access";
 import { logger } from "../core/logger";
 import type { Vector2 } from "../core/types";
 import { CharacterState } from "../core/types";
 import { getDirectionIndex, pixelToTile, tileToPixel } from "../utils";
-import { getOuterEdge } from "./edgeDetection";
-import type { IRenderer } from "../webgl/iRenderer";
-import type { ColorFilter } from "../webgl/types";
+import { getOuterEdge } from "./edge-detection";
+import type { IRenderer } from "../renderer/i-renderer";
+import type { ColorFilter } from "../renderer/types";
 import { type AsfData, type AsfFrame, getFrameAtlasInfo, getFrameCanvas, getFrameIndex, loadAsf } from "../resource/asf";
 
 // ============= 全局精灵渲染颜色 =============

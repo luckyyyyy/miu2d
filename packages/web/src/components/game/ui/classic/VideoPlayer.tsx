@@ -6,8 +6,8 @@
  * Features: progress bar, volume control, pause/play, seek
  */
 
-import { ResourcePath } from "@miu2d/engine/config/resourcePaths";
-import { GameEvents, type UIVideoPlayEvent } from "@miu2d/engine/core/gameEvents";
+import { ResourcePath } from "@miu2d/engine/resource/resource-paths";
+import { GameEvents, type UIVideoPlayEvent } from "@miu2d/engine/core/game-events";
 import { logger } from "@miu2d/engine/core/logger";
 import type { GameEngine } from "@miu2d/engine/runtime";
 import { useCallback, useEffect, useRef, useState } from "react";

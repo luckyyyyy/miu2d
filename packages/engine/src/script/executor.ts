@@ -12,7 +12,7 @@
  */
 import { logger } from "../core/logger";
 import type { ScriptData, ScriptState } from "../core/types";
-import { resourceLoader } from "../resource/resourceLoader";
+import { resourceLoader } from "../resource/resource-loader";
 import {
   type CommandHelpers,
   type CommandRegistry,
@@ -20,7 +20,7 @@ import {
   type ScriptContext,
 } from "./commands";
 import { loadScript, parseScript } from "./parser";
-import { type BlockingResolver, BlockingEvent } from "./blockingResolver";
+import { type BlockingResolver, BlockingEvent } from "./blocking-resolver";
 
 // Re-export ScriptContext for backwards compatibility
 export type { ScriptContext } from "./commands";

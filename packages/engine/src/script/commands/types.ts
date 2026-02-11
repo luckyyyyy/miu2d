@@ -3,7 +3,7 @@
  * Shared types for script command handlers
  */
 import type { ScriptState, SelectionOption } from "../../core/types";
-import type { TalkTextListManager } from "../../listManager/talkTextList";
+import type { TalkTextListManager } from "../../runtime/talk-text-list";
 
 export interface ScriptContext {
   // System access

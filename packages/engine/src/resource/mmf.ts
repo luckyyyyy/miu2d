@@ -12,8 +12,8 @@
  */
 
 import { logger } from "../core/logger";
-import type { MiuMapData, MsfEntry, TrapEntry } from "../core/mapTypes";
-import { resourceLoader } from "./resourceLoader";
+import type { MiuMapData, MsfEntry, TrapEntry } from "../map/types";
+import { resourceLoader } from "./resource-loader";
 
 /**
  * Parse an MMF file buffer into MiuMapData

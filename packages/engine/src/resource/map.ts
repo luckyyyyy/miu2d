@@ -9,10 +9,10 @@
  */
 
 import { logger } from "../core/logger";
-import type { JxqyMapData, MapMpcIndex, MapTileInfo } from "../core/mapTypes";
-import { getLittleEndianInt, readNullTerminatedString } from "./binaryUtils";
+import type { JxqyMapData, MapMpcIndex, MapTileInfo } from "../map/types";
+import { getLittleEndianInt, readNullTerminatedString } from "./binary-utils";
 import { getTextDecoder } from "./encoding";
-import { resourceLoader } from "./resourceLoader";
+import { resourceLoader } from "./resource-loader";
 
 /**
  * Parse a .map file buffer into JxqyMapData

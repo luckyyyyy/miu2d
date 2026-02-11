@@ -13,9 +13,9 @@
 
 import type { AudioManager } from "../audio";
 import { logger } from "../core/logger";
-import type { IRenderer } from "../webgl/iRenderer";
+import type { IRenderer } from "../renderer/i-renderer";
 import { RainDrop, RainLayer } from "./raindrop";
-import { ScreenDroplet, clearDropletTextureCache } from "./screenDroplet";
+import { ScreenDroplet, clearDropletTextureCache } from "./screen-droplet";
 
 // 下雨时的地图/精灵颜色（灰色）
 export const RAIN_COLOR = { r: 128, g: 128, b: 128 };

@@ -3,10 +3,10 @@
  * Parses script files into executable code structures
  */
 
-import { extractRelativePath, ResourcePath } from "../config/resourcePaths";
+import { extractRelativePath, ResourcePath } from "../resource/resource-paths";
 import { logger } from "../core/logger";
 import type { ScriptCode, ScriptData } from "../core/types";
-import { resourceLoader } from "../resource/resourceLoader";
+import { resourceLoader } from "../resource/resource-loader";
 
 /**
  * Label regex - matches @LabelName: format

@@ -8,8 +8,8 @@
 import {
   getGoodsData,
   type ApiGoodsData,
-} from "../../resource/resourceLoader";
-import { createConfigCache } from "../../resource/cacheRegistry";
+} from "../../resource/resource-loader";
+import { createConfigCache } from "../../resource/cache-registry";
 import { logger } from "../../core/logger";
 
 // ============= Enums =============
