@@ -1288,14 +1288,10 @@ export class NpcManager extends EngineAccess {
 
 
   /**
-   * Create NPC from data object (统一的 NPC 创建方法)
+   * Create NPC from JSON data (统一的 NPC 创建方法)
    * + Character.Load()
    *
-   * 同时支持：
-   * 1. .npc 文件加载（INI Section 解析后的 Record<string, string>）
-   * 2. JSON 存档加载（完整类型的对象）
-   *
-   * 逻辑：有什么字段就读什么字段，不区分来源
+   * 数据来源：Scene API / NPC 分组缓存 / 存档（均为 camelCase JSON）
    */
   async createNpcFromData(data: Record<string, unknown>): Promise<Npc | null> {
     const { config, extraState, mapX, mapY, dir } = parseNpcData(data);

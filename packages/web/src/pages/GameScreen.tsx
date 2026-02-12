@@ -85,6 +85,7 @@ export default function GameScreen() {
   const [isDataReady, setIsDataReady] = useState(false);
   const [gameName, setGameName] = useState("");
   const [gameLogoUrl, setGameLogoUrl] = useState("");
+  const [titleMusic, setTitleMusic] = useState("");
   const [initialSaveData, setInitialSaveData] = useState<SaveData | undefined>(undefined);
 
   // UI 主题
@@ -125,6 +126,40 @@ export default function GameScreen() {
     }
   }, [gameSlug]);
 
+  // ===== 标题界面背景音乐 =====
+  const titleAudioRef = useRef<HTMLAudioElement | null>(null);
+  useEffect(() => {
+    if (gamePhase === "title" && titleMusic && gameSlug) {
+      const audio = new Audio(`/game/${gameSlug}/resources/content/music/${titleMusic}`);
+      audio.loop = true;
+      audio.volume = 0.7;
+      titleAudioRef.current = audio;
+      // 用户交互后才能自动播放，静默处理 NotAllowedError
+      audio.play().catch(() => {
+        // 等待用户首次点击后播放
+        const handleInteraction = () => {
+          audio.play().catch(() => {});
+          document.removeEventListener("click", handleInteraction);
+          document.removeEventListener("keydown", handleInteraction);
+        };
+        document.addEventListener("click", handleInteraction, { once: true });
+        document.addEventListener("keydown", handleInteraction, { once: true });
+      });
+      logger.info(`[GameScreen] Title music: ${titleMusic}`);
+      return () => {
+        audio.pause();
+        audio.src = "";
+        titleAudioRef.current = null;
+      };
+    }
+    // 非 title 阶段确保停止
+    if (titleAudioRef.current) {
+      titleAudioRef.current.pause();
+      titleAudioRef.current.src = "";
+      titleAudioRef.current = null;
+    }
+  }, [gamePhase, titleMusic, gameSlug]);
+
   // ===== 加载游戏配置和数据 =====
   useEffect(() => {
     if (!gameSlug) {
@@ -156,6 +191,9 @@ export default function GameScreen() {
           link.rel = "icon";
           link.href = config.logoUrl;
           if (!link.parentNode) document.head.appendChild(link);
+        }
+        if (config?.titleMusic) {
+          setTitleMusic(config.titleMusic);
         }
 
         // 2. 并行加载游戏数据 + NPC 等级配置

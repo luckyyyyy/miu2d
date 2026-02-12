@@ -195,19 +195,11 @@ const FIELD_DEFS: FieldDef[] = [
   },
 ];
 
-// Build lookup map for O(1) access by INI key
-const FIELD_MAP = new Map<string, FieldDef>();
-for (const def of FIELD_DEFS) {
-  FIELD_MAP.set(def.key, def);
-}
-
 // ============= Pre-grouped Field Lists =============
 // Computed once at module load for O(1) runtime access
 
 /** Character fields (non-player) */
 const CHAR_FIELDS = FIELD_DEFS.filter((d) => d.class !== "player");
-/** Player-only fields */
-const PLAYER_FIELDS = FIELD_DEFS.filter((d) => d.class === "player");
 
 // ============= Character Interface =============
 // Character 的所有可配置属性
@@ -319,72 +311,6 @@ export interface CharacterInstance {
   dir: number;
 }
 
-// ============= Player Interface =============
-// Player 继承 Character，有额外属性
-
-/** Player instance - extends CharacterInstance with Player-only properties */
-export interface PlayerInstance extends CharacterInstance {
-  money: number;
-  manaLimit: boolean;
-  isRunDisabled: boolean;
-  isJumpDisabled: boolean;
-  isFightDisabled: boolean;
-}
-
-// ============= Parse Functions =============
-
-/** Parse value based on field type */
-function parseValue(value: string, type: FieldType): string | number | boolean {
-  switch (type) {
-    case "int":
-      return parseInt(value, 10) || 0;
-    case "bool":
-      return value !== "0";
-    default:
-      return value;
-  }
-}
-
-/**
- * Parse INI content to CharacterConfig
- */
-export function parseCharacterIni(content: string): CharacterConfig | null {
-  const config: Partial<CharacterConfig> = {
-    group: 0,
-    noAutoAttackPlayer: 0,
-    pathFinder: 0,
-  };
-  const stats: Partial<CharacterStats> = {};
-
-  for (const line of content.split("\n")) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("[") || trimmed.startsWith(";") || !trimmed.includes("=")) {
-      continue;
-    }
-
-    const eqIdx = trimmed.indexOf("=");
-    const key = trimmed.substring(0, eqIdx).trim().toLowerCase();
-    const value = trimmed.substring(eqIdx + 1).trim();
-
-    const def = FIELD_MAP.get(key);
-    if (def) {
-      const parsedValue = parseValue(value, def.type);
-      if (def.target === "config") {
-        (config as Record<string, string | number | boolean>)[def.prop] = parsedValue;
-      } else {
-        (stats as Record<string, number>)[def.prop] = parsedValue as number;
-      }
-    }
-  }
-
-  if (!config.name) {
-    return null;
-  }
-
-  config.stats = stats as CharacterStats;
-  return config as CharacterConfig;
-}
-
 /**
  * Load character config - 从 API 缓存获取
  */
@@ -440,17 +366,6 @@ export function applyConfigToCharacter(
   character: CharacterInstance
 ): void {
   applyFields(CHAR_FIELDS, config, character as unknown as Record<string, unknown>);
-}
-
-/**
- * Apply CharacterConfig to a Player instance (includes player-only fields)
- * Pure field assignment - call player.initializeAfterLoad() after this
- * + Player.AssignToValue()
- */
-export function applyConfigToPlayer(config: CharacterConfig, player: PlayerInstance): void {
-  const record = player as unknown as Record<string, unknown>;
-  applyFields(CHAR_FIELDS, config, record);
-  applyFields(PLAYER_FIELDS, config, record);
 }
 
 // ============= Extract from Character =============

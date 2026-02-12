@@ -1381,6 +1381,7 @@ export interface ApiConfigResponse {
   initialNpc: string;
   initialObj: string;
   initialBgm: string;
+  titleMusic: string;
   newGameScript: string;
   portraitAsf: string;
   player: {

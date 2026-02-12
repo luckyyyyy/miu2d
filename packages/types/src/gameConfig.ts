@@ -256,6 +256,8 @@ export const GameConfigDataSchema = z.object({
   initialObj: z.string().default(""),
   /** 初始背景音乐（新游戏加载的 BGM 文件名，留空则无背景音乐） */
   initialBgm: z.string().default(""),
+  /** 标题界面背景音乐（Title 画面播放的音乐文件名，留空则无音乐） */
+  titleMusic: z.string().default(""),
   /** 新游戏触发脚本内容 */
   newGameScript: z.string().default(""),
   /** 对话头像 ASF 路径 */
@@ -413,6 +415,7 @@ export function createDefaultGameConfig(): GameConfigData {
     initialNpc: "",
     initialObj: "",
     initialBgm: "",
+    titleMusic: "",
     newGameScript: "",
     portraitAsf: "",
   };

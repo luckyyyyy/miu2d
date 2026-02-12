@@ -17,14 +17,12 @@
 export { Character } from "./character";
 // Standalone path generation utility (reusable outside class hierarchy)
 export { generateRandTilePath } from "./base/character-movement";
-// INI Parser - data-driven config parsing (new, replaces verbose switch-case)
+// Config parser - data-driven config parsing
 export {
   applyConfigToCharacter,
-  applyConfigToPlayer,
   extractConfigFromCharacter,
   extractStatsFromCharacter,
   loadCharacterConfig,
-  parseCharacterIni,
 } from "./config-parser";
 // ResFile utilities - INI file loading ()
 export {

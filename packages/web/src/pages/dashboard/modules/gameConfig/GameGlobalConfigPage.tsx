@@ -460,6 +460,9 @@ function BasicInfoPanel({ config, updateConfig, gameId, gameSlug }: {
           <Field label="初始背景音乐" desc="新游戏开始时播放的背景音乐文件名，留空则无背景音乐">
             <input type="text" value={config.initialBgm} onChange={(e) => updateConfig("initialBgm", e.target.value)} className={inputCls} placeholder="例如: music01.ogg" />
           </Field>
+          <Field label="标题界面音乐" desc="Title 画面播放的背景音乐文件名（位于 content/music/ 目录下），留空则无音乐。进入游戏后自动停止">
+            <input type="text" value={config.titleMusic} onChange={(e) => updateConfig("titleMusic", e.target.value)} className={inputCls} placeholder="例如: title.ogg" />
+          </Field>
         </div>
       </FormCard>
     </div>
