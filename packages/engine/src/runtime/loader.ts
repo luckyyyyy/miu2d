@@ -62,6 +62,8 @@ export interface LoaderDependencies {
   resetEventId: () => void;
   resetGameTime: () => void;
   loadPlayerSprites: (npcIni: string) => Promise<void>;
+  /** 设置地图 MPC/MSF 加载进度回调（由 Loader 控制范围映射） */
+  setMapProgressCallback: (callback: ((progress: number, text: string) => void) | null) => void;
   // 用于存档
   getVariables: () => Record<string, number>;
   setVariables: (vars: Record<string, number>) => void;
@@ -269,6 +271,8 @@ export class Loader {
    * 1. 从 /api/config 获取初始地图和 BGM
    * 2. 加载地图和物体
    * 3. 从 /api/data 加载武功、物品、玩家数据
+   *
+   * 进度范围 0-100%（由 game-engine 映射到全局进度）
    */
   async loadGame(index: number): Promise<void> {
     // index 0 = 初始存档（由 NewGame.txt 脚本调用 LoadGame(0)）
@@ -287,137 +291,145 @@ export class Loader {
     const goodsListManager = player.getGoodsListManager();
     const magicListManager = player.getMagicListManager();
 
-    logger.log(`[Loader] Loading initial game save (index=${index})`);
+    const loadStart = performance.now();
+    const timings: Array<[string, number]> = [];
+    const time = (label: string, start: number) => {
+      timings.push([label, performance.now() - start]);
+    };
 
-    // 进度报告：地图加载前 0-5%
-    this.reportProgress(0, "准备加载...");
+    logger.log(`[Loader] ────── loadGame(${index}) ──────`);
 
     try {
-      // Step 1: 从 /api/config 获取初始地图和 BGM
-      this.reportProgress(5, "读取配置...");
+      // ── Phase 1: 读取配置 ──
+      this.reportProgress(0, "读取游戏配置...");
+      const tConfig = performance.now();
       const config = getGameConfig();
       const initialMap = config?.initialMap || "map002";
       const initialNpc = config?.initialNpc || "";
       const initialObj = config?.initialObj || "";
       const initialBgm = config?.initialBgm || "";
-      logger.debug(`[Loader] Initial save: map=${initialMap}, npc=${initialNpc}, obj=${initialObj}, bgm=${initialBgm}`);
 
       // 玩家角色索引 - 默认 0
       let chrIndex = 0;
-
-      // 加载地图
-      if (initialMap) {
-        this.reportProgress(10, "加载地图...");
-        logger.debug(`[Loader] Loading map: ${initialMap}`);
-        await loadMap(initialMap);
-      }
-
-      // 加载 NPC
-      if (initialNpc) {
-        this.reportProgress(92, "加载 NPC...");
-        logger.debug(`[Loader] Loading NPC file: ${initialNpc}`);
-        await npcManager.loadNpcFile(initialNpc);
-      }
-
-      // 加载物体
-      if (initialObj) {
-        this.reportProgress(94, "加载物体...");
-        logger.debug(`[Loader] Loading Obj file: ${initialObj}`);
-        await objManager.load(initialObj);
-      }
-
-      // 加载背景音乐
-      if (initialBgm) {
-        audioManager.playMusic(initialBgm);
-      }
-
-      // Step 2: 预读玩家 npcIni 以设置 NpcIniIndex
-      // 必须在加载武功列表之前设置，否则 SpecialAttackTexture 预加载会使用错误的索引
-
-      // 优先使用 /api/config 的 playerKey
       let playerKey = `Player${chrIndex}.ini`;
-      const configPlayerKey = getGameConfig()?.playerKey;
+      const configPlayerKey = config?.playerKey;
       if (configPlayerKey) {
         playerKey = configPlayerKey;
-        // 从 playerKey 提取 chrIndex（如 "Player1.ini" → 1）
         const match = configPlayerKey.match(/Player(\d+)\.ini/i);
         if (match) {
           chrIndex = parseInt(match[1], 10);
           player.setPlayerIndex(chrIndex);
-          logger.debug(`[Loader] Using config playerKey: ${configPlayerKey}, chrIndex=${chrIndex}`);
         }
       }
+      time("Config", tConfig);
 
-      // 从 API 数据加载玩家
+      // ── Phase 2: 加载地图 (2% → 65%) ──
+      // 地图有真实 MPC 子进度，给最大范围
+      if (initialMap) {
+        this.reportProgress(2, "加载地图...");
+        this.deps.setMapProgressCallback((mapProgress, _text) => {
+          this.reportProgress(Math.round(2 + mapProgress * 63), "加载地图资源...");
+        });
+        const tMap = performance.now();
+        await loadMap(initialMap);
+        this.deps.setMapProgressCallback(null);
+        time("Map", tMap);
+      }
+
+      // 背景音乐（非阻塞）
+      if (initialBgm) {
+        audioManager.playMusic(initialBgm);
+      }
+
+      // ── Phase 3: 预设 NpcIniIndex（必须在武功加载前完成） ──
+      this.reportProgress(66, "初始化角色...");
       const apiPlayerData = this.findApiPlayer(playerKey);
-
       if (apiPlayerData?.npcIni) {
         await player.setNpcIni(apiPlayerData.npcIni);
-        logger.debug(`[Loader] Pre-set NpcIni from API: ${apiPlayerData.npcIni} (index=${player.npcIniIndex})`);
       }
 
-      // Step 3: 加载 Magic、Goods (72-78%)
-      this.reportProgress(72, "加载武功...");
-      magicListManager.stopReplace();
-      magicListManager.clearReplaceList();
+      // ── Phase 4: 并行加载所有资源模块 ──
+      this.reportProgress(68, "加载游戏数据...");
 
-      // 初始化武功经验配置（从 /api/config 读取）
-      magicListManager.initializeMagicExp();
+      const parallelTasks: Array<Promise<void>> = [];
 
-      // 从 API 数据加载武功
-      if (apiPlayerData?.initialMagics && apiPlayerData.initialMagics.length > 0) {
-        const magicItems: MagicItemData[] = apiPlayerData.initialMagics.map((m, i) => ({
-          fileName: m.iniFile,
-          level: m.level,
-          exp: m.exp,
-          index: i + 1,
-        }));
-        await this.loadMagicsFromJSON(magicItems, 0, magicListManager);
-        logger.debug(`[Loader] Loaded ${magicItems.length} magics from API data`);
+      // Task A: 武功 + 物品 + 备忘
+      parallelTasks.push((async () => {
+        const t = performance.now();
+        magicListManager.stopReplace();
+        magicListManager.clearReplaceList();
+        magicListManager.initializeMagicExp();
+        if (apiPlayerData?.initialMagics && apiPlayerData.initialMagics.length > 0) {
+          const magicItems: MagicItemData[] = apiPlayerData.initialMagics.map((m, i) => ({
+            fileName: m.iniFile,
+            level: m.level,
+            exp: m.exp,
+            index: i + 1,
+          }));
+          await this.loadMagicsFromJSON(magicItems, 0, magicListManager);
+        }
+        if (apiPlayerData?.initialGoods && apiPlayerData.initialGoods.length > 0) {
+          const goodsItems: GoodsItemData[] = apiPlayerData.initialGoods.map(g => ({
+            fileName: g.iniFile,
+            count: g.number,
+          }));
+          this.loadGoodsFromJSON(goodsItems, [], goodsListManager);
+        }
+        memoListManager.renewList();
+        time("Magics+Goods", t);
+      })());
+
+      // Task B: 玩家数据 + 精灵
+      parallelTasks.push((async () => {
+        const t = performance.now();
+        if (apiPlayerData) {
+          await player.loadFromApiData(apiPlayerData);
+        }
+        const playerNpcIni = player.npcIni;
+        await this.deps.loadPlayerSprites(playerNpcIni);
+        time("Player+Sprites", t);
+      })());
+
+      // Task C: NPC 文件
+      if (initialNpc) {
+        parallelTasks.push((async () => {
+          const t = performance.now();
+          await npcManager.loadNpcFile(initialNpc);
+          time("NPCs", t);
+        })());
       }
 
-      this.reportProgress(74, "加载物品...");
-      // 从 API 数据加载物品
-      if (apiPlayerData?.initialGoods && apiPlayerData.initialGoods.length > 0) {
-        const goodsItems: GoodsItemData[] = apiPlayerData.initialGoods.map(g => ({
-          fileName: g.iniFile,
-          count: g.number,
-        }));
-        this.loadGoodsFromJSON(goodsItems, [], goodsListManager);
-        logger.debug(`[Loader] Loaded ${goodsItems.length} goods from API data`);
+      // Task D: Obj 文件
+      if (initialObj) {
+        parallelTasks.push((async () => {
+          const t = performance.now();
+          await objManager.load(initialObj);
+          time("OBJs", t);
+        })());
       }
 
-      // 初始存档的备忘为空
-      this.reportProgress(76, "加载备忘...");
-      memoListManager.renewList();
+      await Promise.all(parallelTasks);
 
-      // Step 4: 加载玩家 (78-88%)
-      this.reportProgress(78, "加载玩家...");
-      if (apiPlayerData) {
-        logger.debug(`[Loader] Loading player from API data: ${apiPlayerData.key}`);
-        await player.loadFromApiData(apiPlayerData);
-      }
-
-      // 加载玩家精灵 (80-88%)
-      this.reportProgress(80, "加载玩家精灵...");
-      const playerNpcIni = player.npcIni;
-      logger.debug(`[Loader] Loading player sprites: ${playerNpcIni}`);
-      await this.deps.loadPlayerSprites(playerNpcIni);
-
-      this.reportProgress(88, "应用装备特效...");
-      // 应用装备特效
+      // ── Phase 5: 收尾 ──
+      this.reportProgress(90, "应用装备效果...");
+      const tEffects = performance.now();
       goodsListManager.applyEquipSpecialEffectFromList();
-
-      // 应用武功效果（FlyIni 替换等）
       player.loadMagicEffect();
+      time("Effects", tEffects);
 
-      // 摄像机居中到玩家 (96-98%)
-      this.reportProgress(96, "初始化摄像机...");
+      this.reportProgress(95, "初始化视角...");
       this.deps.centerCameraOnPlayer();
 
-      this.reportProgress(98, "完成加载...");
       this.deps.onLoadComplete?.();
-      logger.debug(`[Loader] Game save loaded successfully`);
+      this.reportProgress(100, "加载完成");
+
+      // ── 打印耗时汇总 ──
+      const total = performance.now() - loadStart;
+      const maxLabelLen = Math.max(...timings.map(([l]) => l.length));
+      for (const [label, ms] of timings) {
+        logger.info(`[Loader] ⏱ ${label.padEnd(maxLabelLen)}  ${ms.toFixed(0).padStart(6)}ms`);
+      }
+      logger.info(`[Loader] ────── Total: ${total.toFixed(0)}ms ──────`);
 
       // Debug: 打印障碍物体
       objManager.debugPrintObstacleObjs();
@@ -729,10 +741,18 @@ export class Loader {
   /**
    * 从 JSON 数据加载存档
    *
+   * 进度范围 0-100%（由 game-engine 映射到全局进度）
+   *
    * @param data 存档数据
    */
   async loadGameFromJSON(data: SaveData): Promise<void> {
-    logger.log(`[Loader] Loading game from JSON...`);
+    const loadStart = performance.now();
+    const timings: Array<[string, number]> = [];
+    const time = (label: string, start: number) => {
+      timings.push([label, performance.now() - start]);
+    };
+
+    logger.log(`[Loader] ────── loadGameFromJSON ──────`);
 
     const {
       player,
@@ -753,233 +773,158 @@ export class Loader {
     const magicListManager = player.getMagicListManager();
 
     try {
-      // Step 0: 立即设置屏幕全黑，防止在加载过程中看到摄像机移动
-      // Reference: 存档加载时画面保持黑色直到 FadeIn
+      // ── Phase 1: 重置状态（同步，极快）──
+      this.reportProgress(0, "重置游戏状态...");
+      const tReset = performance.now();
       screenEffects.setFadeTransparency(1);
-      // 重置绘制颜色为白色（避免前一次游戏的颜色残留）
-      // 后面 Step 13 会从存档恢复正确的颜色
       screenEffects.resetColors();
-
-      // Step 1: 停止所有正在运行的脚本 (0-5%)
-      // Reference: ScriptManager.Clear()
-      this.reportProgress(0, "停止脚本...");
-      logger.debug(`[Loader] Stopping all scripts...`);
       const scriptExecutor = getScriptExecutor();
       scriptExecutor.stopAllScripts();
-
-      // Step 2: 重置 UI 状态（关闭对话框、选择框等）(5-10%)
-      // Reference: GuiManager.EndDialog(), GuiManager.CloseTimeLimit()
-      this.reportProgress(5, "重置界面...");
-      logger.debug(`[Loader] Resetting UI state...`);
       guiManager.resetAllUI();
-
-      // Step 3: 清理 (10-15%)
-      this.reportProgress(10, "清理数据...");
-      logger.debug(`[Loader] Clearing all managers...`);
       clearScriptCache();
       this.deps.clearVariables();
-      // 清理精灵/ASF/武功等资源缓存，释放 JS 堆和 GPU 纹理
       this.deps.clearResourceCaches();
       npcManager.clearAllNpc();
       objManager.clearAll();
       audioManager.stopMusic();
-
-      // 清空多角色内存存储（避免跨存档污染）
       this.clearCharacterMemory();
-
-      // 清空内存文件存储（避免跨存档污染，后面会从存档恢复）
       npcManager.clearNpcGroups();
       objManager.clearObjGroups();
+      time("Reset", tReset);
 
-
-
-      // Step 4: 加载游戏状态
+      // ── Phase 2: 加载地图 (2% → 65%) ──
+      // 地图有真实 MPC 子进度，给最大范围
       const state = data.state;
-
-      // 加载地图 (15-70% - 地图加载是最耗时的部分)
       if (state.map) {
-        this.reportProgress(15, "加载地图...");
-        logger.debug(`[Loader] Loading map: ${state.map}`);
+        this.reportProgress(2, "加载地图...");
+        this.deps.setMapProgressCallback((mapProgress, _text) => {
+          this.reportProgress(Math.round(2 + mapProgress * 63), "加载地图资源...");
+        });
+        const tMap = performance.now();
         await loadMap(state.map);
+        this.deps.setMapProgressCallback(null);
+        time("Map", tMap);
       }
 
-      // 注意：不从 .npc 文件加载，而是从 JSON 存档数据恢复
-      // 在存档时会把 NPC 状态写到 save/game/xxx.npc 文件
-      // Web 版直接从 JSON 恢复，所以跳过 npcManager.loadNpcFile()
-      // 只设置 fileName 用于后续可能的引用
-      if (state.npc) {
-        npcManager.setFileName(state.npc);
-      }
+      // 设置 NPC / Obj 的 fileName
+      if (state.npc) npcManager.setFileName(state.npc);
+      if (state.obj) objManager.setFileName(state.obj);
 
-      // 注意：不从 .obj 文件加载，而是从 JSON 存档数据恢复
-      // 在存档时会把 Obj 状态写到 save/game/xxx.obj 文件
-      // Web 版直接从 JSON 恢复，所以跳过 objManager.load()
-      // 只设置 fileName 用于后续可能的引用
-      if (state.obj) {
-        objManager.setFileName(state.obj);
-      }
+      // 背景音乐（非阻塞）
+      if (state.bgm) audioManager.playMusic(state.bgm);
 
-      // 播放背景音乐
-      if (state.bgm) {
-        audioManager.playMusic(state.bgm);
-      }
-
-      // 玩家角色索引（支持多主角）
-      // Globals.PlayerIndex = int.Parse(state["Chr"]);
-      // 必须在加载武功/物品/玩家数据之前设置，因为它们依赖 playerIndex
+      // 设置角色索引 + 恢复变量
       const chrIndex = state.chr ?? 0;
       player.setPlayerIndex(chrIndex);
-      logger.debug(`[Loader] Set playerIndex: ${chrIndex}`);
-
-      // Step 5: 恢复变量 (70-72%)
-      this.reportProgress(70, "恢复变量...");
       if (data.variables && setVariables) {
-        logger.debug(`[Loader] Restoring variables: ${Object.keys(data.variables).length} keys`);
         setVariables(data.variables);
       }
 
-      // Step 5.5: 预设 NpcIniIndex（从存档数据中提取 npcIni）
-      // 必须在加载武功列表之前设置，否则 SpecialAttackTexture 预加载会使用错误的索引
+      // ── Phase 3: 预设 NpcIniIndex ──
+      this.reportProgress(66, "初始化角色...");
       if (data.player?.npcIni) {
         await player.setNpcIni(data.player.npcIni);
-        logger.debug(`[Loader] Pre-set NpcIni from save: ${data.player.npcIni} (index=${player.npcIniIndex})`);
       }
 
-      // Step 6: 加载武功列表 (72-75%)
-      this.reportProgress(72, "加载武功...");
-      // 先停止替换并清理替换列表
-      magicListManager.stopReplace();
-      magicListManager.clearReplaceList();
-      logger.debug(`[Loader] Loading magics...`);
-      await this.loadMagicsFromJSON(data.magics, data.xiuLianIndex, magicListManager);
+      // ── Phase 4: 并行加载所有独立模块 ──
+      this.reportProgress(68, "加载游戏数据...");
 
-      // 加载替换武功列表（如果有）
-      // 会在角色变身时创建替换列表，保存时通过 SaveReplaceList 持久化
-      if (data.replaceMagicLists) {
-        logger.debug(`[Loader] Loading replace magic lists...`);
-        await magicListManager.deserializeReplaceLists(data.replaceMagicLists);
+      const parallelTasks: Array<Promise<void>> = [];
+
+      // Task A: 武功 + 替换武功 + 物品 + 备忘录
+      parallelTasks.push((async () => {
+        const t = performance.now();
+        magicListManager.stopReplace();
+        magicListManager.clearReplaceList();
+        await this.loadMagicsFromJSON(data.magics, data.xiuLianIndex, magicListManager);
+        if (data.replaceMagicLists) {
+          await magicListManager.deserializeReplaceLists(data.replaceMagicLists);
+        }
+        this.loadGoodsFromJSON(data.goods, data.equips, goodsListManager);
+        if (data.memo) {
+          memoListManager.renewList();
+          memoListManager.bulkLoadItems(data.memo.items);
+        }
+        time("Magics+Goods", t);
+      })());
+
+      // Task B: 玩家数据 + 精灵
+      parallelTasks.push((async () => {
+        const t = performance.now();
+        await this.loadPlayerFromJSON(data.player, player);
+        player.setLoadingState();
+        const playerNpcIni = player.npcIni;
+        await this.deps.loadPlayerSprites(playerNpcIni);
+        player.state = data.player.state ?? 0;
+        time("Player+Sprites", t);
+      })());
+
+      // Task C: NPC + 伙伴
+      const allNpcs = [
+        ...(data.snapshot.npc ?? []),
+        ...(data.snapshot.partner ?? []),
+      ];
+      if (allNpcs.length > 0) {
+        parallelTasks.push((async () => {
+          const t = performance.now();
+          npcManager.clearAllNpc();
+          if (state.npc) npcManager.setFileName(state.npc);
+          await this.loadNpcsFromJSON(allNpcs, npcManager);
+          time(`NPCs(${allNpcs.length})`, t);
+        })());
       }
 
-      // Step 7: 加载物品列表 (75-78%)
-      this.reportProgress(75, "加载物品...");
-      logger.debug(`[Loader] Loading goods...`);
-      this.loadGoodsFromJSON(data.goods, data.equips, goodsListManager);
-
-      // Step 8: 加载备忘录 (78-80%)
-      this.reportProgress(78, "加载备忘...");
-      if (data.memo) {
-        logger.debug(`[Loader] Loading memo...`);
-        memoListManager.renewList();
-        memoListManager.bulkLoadItems(data.memo.items);
+      // Task D: Obj
+      if (data.snapshot.obj?.length > 0) {
+        parallelTasks.push((async () => {
+          const t = performance.now();
+          objManager.clearAll();
+          if (state.obj) objManager.setFileName(state.obj);
+          await this.loadObjsFromJSON(data.snapshot.obj, objManager);
+          time(`OBJs(${data.snapshot.obj.length})`, t);
+        })());
       }
 
-      // Step 9: 加载玩家 (80-85%)
-      this.reportProgress(80, "加载玩家...");
-      logger.debug(`[Loader] Loading player...`);
-      await this.loadPlayerFromJSON(data.player, player);
+      // Task E: 陷阱恢复
+      parallelTasks.push((async () => {
+        if (data.groups?.trap) {
+          this.loadTrapsFromSave(data.snapshot.trap, data.groups.trap);
+        } else if (data.snapshot?.trap) {
+          this.loadTrapsFromSave(data.snapshot.trap, undefined);
+        }
+      })());
 
-      // 设置加载中状态（-1），确保后面设置真正 state 时会触发纹理更新
-      player.setLoadingState();
+      await Promise.all(parallelTasks);
 
-      // 加载玩家精灵 (85-88%)
-      this.reportProgress(85, "加载玩家精灵...");
-      // Reference: Loader.LoadPlayer() -> new Player(path) -> Load() -> Initlize()
-      const playerNpcIni = player.npcIni;
-      logger.debug(`[Loader] Loading player sprites: ${playerNpcIni}`);
-      await this.deps.loadPlayerSprites(playerNpcIni);
+      // ── Phase 5: 收尾 ──
+      this.reportProgress(90, "应用装备效果...");
+      const tEffects = performance.now();
 
-      // 精灵加载后恢复 state（因为 _state=-1，值不同会触发纹理更新）
-      player.state = data.player.state ?? 0;
+      // 恢复分组存储
+      if (data.groups?.npc) npcManager.setNpcGroups(data.groups.npc);
+      if (data.groups?.obj) objManager.setObjGroups(data.groups.obj);
 
-      // 应用装备特效
-      // Reference: Loader.LoadPlayer() -> GoodsListManager.ApplyEquipSpecialEffectFromList
+      // 应用装备特效 + 武功效果
       goodsListManager.applyEquipSpecialEffectFromList();
-
-      // 应用武功效果（FlyIni 替换等）
-      // Reference: Loader.LoadPlayer() -> Globals.ThePlayer.LoadMagicEffect()
       player.loadMagicEffect();
 
-      // Step 10: 加载陷阱 (88-90%)
-      // 陷阱基础配置已从 MMF 地图数据内嵌加载（在 handleMapChange 中初始化）
-      // 这里只恢复存档中的运行时陷阱修改（脚本动态设置的陷阱）
-      this.reportProgress(88, "加载陷阱...");
-      if (data.groups?.trap) {
-        logger.debug(`[Loader] Loading traps from save data...`);
-        this.loadTrapsFromSave(data.snapshot.trap, data.groups.trap);
-      } else if (data.snapshot?.trap) {
-        // 没有 trap groups，只恢复已触发列表
-        this.loadTrapsFromSave(data.snapshot.trap, undefined);
-      }
-
-      // Step 11: 从快照恢复 NPC (90-93%)
-      this.reportProgress(90, "加载 NPC...");
-      logger.debug(`[Loader] Loading NPCs...`);
-      npcManager.clearAllNpc();
-      // clearAllNpc 会清空 fileName（与 C# 行为一致），需要重新设置
-      // 否则脚本调用 SaveNpc() 时找不到文件名
-      if (state.npc) {
-        npcManager.setFileName(state.npc);
-      }
-      if (data.snapshot.npc?.length > 0) {
-        await this.loadNpcsFromJSON(data.snapshot.npc, npcManager);
-      }
-
-      // Step 11.5: 从快照恢复伙伴 (93-95%)
-      this.reportProgress(93, "加载伙伴...");
-      logger.debug(`[Loader] Loading partners...`);
-      if (data.snapshot.partner?.length > 0) {
-        await this.loadNpcsFromJSON(data.snapshot.partner, npcManager);
-        logger.debug(`[Loader] Loaded ${data.snapshot.partner.length} partners`);
-      }
-
-      // Step 12: 从快照恢复 Obj (95-98%)
-      this.reportProgress(95, "加载物体...");
-      logger.debug(`[Loader] Loading Objs...`);
-      objManager.clearAll();
-      // clearAll 会清空 fileName，需要重新设置
-      // 否则脚本调用 SaveObj() 时找不到文件名
-      if (state.obj) {
-        objManager.setFileName(state.obj);
-      }
-      if (data.snapshot.obj?.length > 0) {
-        await this.loadObjsFromJSON(data.snapshot.obj, objManager);
-      }
-
-      // Step 12.5: 恢复分组存储
-      if (data.groups?.npc) {
-        npcManager.setNpcGroups(data.groups.npc);
-        logger.debug(`[Loader] Restored NPC groups (${Object.keys(data.groups.npc).length} files)`);
-      }
-      if (data.groups?.obj) {
-        objManager.setObjGroups(data.groups.obj);
-        logger.debug(`[Loader] Restored Obj groups (${Object.keys(data.groups.obj).length} files)`);
-      }
-
-      // Step 13: 加载选项设置
-      // 参考Loader.cs LoadGame() 中的 option 恢复
+      // 恢复选项设置
       if (data.option) {
-        logger.debug(`[Loader] Restoring game options...`);
-        // mapTime
         if (this.deps.setMapTime && data.option.mapTime !== undefined) {
           this.deps.setMapTime(data.option.mapTime);
         }
-        // save/drop flags
         if (this.deps.setSaveEnabled) {
           this.deps.setSaveEnabled(!data.option.saveDisabled);
         }
         if (this.deps.setDropEnabled) {
           this.deps.setDropEnabled(!data.option.isDropGoodWhenDefeatEnemyDisabled);
         }
-        // weather
         if (this.deps.setWeatherState) {
           this.deps.setWeatherState({
             snowShow: data.option.snowShow,
             rainFile: data.option.rainFile,
           });
         }
-        // draw colors (mpcStyle = map, asfStyle = sprite)
-        // 格式: RRGGBB 十六进制字符串
-        // 参考 C#: 总是显式设置颜色（有值则解析，无值则重置为白色）
         const hexToRgb = (hex: string) => {
           const r = parseInt(hex.substring(0, 2), 16);
           const g = parseInt(hex.substring(2, 4), 16);
@@ -993,25 +938,19 @@ export class Loader {
         if (data.option.mpcStyle && data.option.mpcStyle !== "FFFFFF") {
           const c = hexToRgb(data.option.mpcStyle);
           screenEffects.setMapColor(c.r, c.g, c.b);
-          logger.debug(`[Loader] Restored map color: #${data.option.mpcStyle}`);
         } else {
           screenEffects.setMapColor(255, 255, 255);
-          logger.debug(`[Loader] Reset map color to white (default)`);
         }
         if (data.option.asfStyle && data.option.asfStyle !== "FFFFFF") {
           const c = hexToRgb(data.option.asfStyle);
           screenEffects.setSpriteColor(c.r, c.g, c.b);
-          logger.debug(`[Loader] Restored sprite color: #${data.option.asfStyle}`);
         } else {
           screenEffects.setSpriteColor(255, 255, 255);
-          logger.debug(`[Loader] Reset sprite color to white (default)`);
         }
       }
 
-      // Step 14: 加载计时器状态
-      // 参考Loader.cs LoadGame() 中的 timer 恢复
+      // 恢复计时器状态
       if (data.timer?.isOn && this.deps.setTimerState) {
-        logger.debug(`[Loader] Restoring timer state...`);
         this.deps.setTimerState({
           isOn: data.timer.isOn,
           totalSecond: data.timer.totalSecond,
@@ -1022,48 +961,49 @@ export class Loader {
         });
       }
 
-      // Step 14.1: 恢复脚本显示地图坐标开关
+      // 恢复脚本显示地图坐标开关
       if (data.state?.scriptShowMapPos !== undefined && this.deps.setScriptShowMapPos) {
         this.deps.setScriptShowMapPos(data.state.scriptShowMapPos);
-        logger.debug(`[Loader] Restored scriptShowMapPos: ${data.state.scriptShowMapPos}`);
       }
 
-      // Step 14.2: 恢复水波效果开关
+      // 恢复水波效果开关
       if (data.option?.water !== undefined && this.deps.setWaterEffectEnabled) {
         this.deps.setWaterEffectEnabled(data.option.water);
-        logger.debug(`[Loader] Restored water effect: ${data.option.water}`);
       }
 
-      // Step 14.3: 加载并行脚本
+      // 恢复并行脚本
       if (
         data.parallelScripts &&
         data.parallelScripts.length > 0 &&
         this.deps.loadParallelScripts
       ) {
-        logger.debug(`[Loader] Restoring ${data.parallelScripts.length} parallel scripts...`);
         this.deps.loadParallelScripts(data.parallelScripts);
       }
 
-      // Step 15: 立即居中摄像机到玩家位置 (98%)
-      // 必须在 fadeIn 之前完成，否则会看到摄像机移动
-      this.reportProgress(98, "完成加载...");
-      logger.debug(`[Loader] Centering camera on player...`);
+      time("Effects+Options", tEffects);
+
+      // ── Phase 6: 完成 ──
+      this.reportProgress(95, "初始化视角...");
       this.deps.centerCameraOnPlayer();
       this.deps.onLoadComplete?.();
 
-      // Step 16: 恢复其他角色数据到内存
-      // 用于 PlayerChange 切换角色时使用
+      // 恢复其他角色数据到内存
       if (data.otherCharacters) {
         this.loadOtherCharactersToMemory(data.otherCharacters);
       }
 
-      // Step 17: 执行淡入效果 (98-100%)
-      // 加载存档后屏幕应该从黑屏淡入到正常
-      logger.debug(`[Loader] Starting fade in effect...`);
+      // 执行淡入效果
       screenEffects.fadeIn();
 
       this.reportProgress(100, "加载完成");
-      logger.log(`[Loader] Game loaded from JSON successfully`);
+
+      // ── 打印耗时汇总 ──
+      const total = performance.now() - loadStart;
+      const maxLabelLen = Math.max(...timings.map(([l]) => l.length));
+      for (const [label, ms] of timings) {
+        logger.info(`[Loader] ⏱ ${label.padEnd(maxLabelLen)}  ${ms.toFixed(0).padStart(6)}ms`);
+      }
+      logger.info(`[Loader] ────── Total: ${total.toFixed(0)}ms ──────`);
     } catch (error) {
       logger.error(`[Loader] Error loading game from JSON:`, error);
       throw error;
@@ -1621,24 +1561,29 @@ export class Loader {
    * Web 版本则直接从 JSON 恢复
    */
   private async loadNpcsFromJSON(npcs: NpcSaveItem[], npcManager: NpcManager): Promise<void> {
-    let loadedCount = 0;
-
-    for (const npcData of npcs) {
-      // 跳过已死亡的 NPC（如果 isDeathInvoked 为 true）
+    // 过滤掉已完全死亡的 NPC
+    const validNpcs = npcs.filter(npcData => {
       if (npcData.isDeath && npcData.isDeathInvoked) {
         logger.log(`[Loader] Skipping dead NPC: ${npcData.name}`);
-        continue;
+        return false;
       }
+      return true;
+    });
 
-      try {
-        // 使用 NpcManager 的统一方法从存档数据创建 NPC
-        await npcManager.createNpcFromData(npcData as unknown as Record<string, unknown>);
-        loadedCount++;
-      } catch (error) {
-        logger.error(`[Loader] Failed to create NPC ${npcData.name}:`, error);
-      }
-    }
+    // 并行创建所有 NPC（每个 NPC 的精灵加载互不依赖）
+    const results = await Promise.all(
+      validNpcs.map(async (npcData) => {
+        try {
+          await npcManager.createNpcFromData(npcData as unknown as Record<string, unknown>);
+          return true;
+        } catch (error) {
+          logger.error(`[Loader] Failed to create NPC ${npcData.name}:`, error);
+          return false;
+        }
+      })
+    );
 
+    const loadedCount = results.filter(Boolean).length;
     logger.debug(`[Loader] Created ${loadedCount} NPCs from JSON save data`);
   }
 
@@ -1654,24 +1599,29 @@ export class Loader {
    * Web 版本则直接从 JSON 恢复
    */
   private async loadObjsFromJSON(objs: ObjSaveItem[], objManager: ObjManager): Promise<void> {
-    let loadedCount = 0;
-
-    for (const objData of objs) {
-      // 跳过已移除的物体
+    // 过滤掉已移除的物体
+    const validObjs = objs.filter(objData => {
       if (objData.isRemoved) {
         logger.log(`[Loader] Skipping removed Obj: ${objData.objName}`);
-        continue;
+        return false;
       }
+      return true;
+    });
 
-      try {
-        // 使用 ObjManager 的方法从 objres 文件创建 Obj
-        await objManager.createObjFromSaveData(objData);
-        loadedCount++;
-      } catch (error) {
-        logger.error(`[Loader] Failed to create Obj ${objData.objName}:`, error);
-      }
-    }
+    // 并行创建所有 Obj（每个 Obj 的资源加载互不依赖）
+    const results = await Promise.all(
+      validObjs.map(async (objData) => {
+        try {
+          await objManager.createObjFromSaveData(objData);
+          return true;
+        } catch (error) {
+          logger.error(`[Loader] Failed to create Obj ${objData.objName}:`, error);
+          return false;
+        }
+      })
+    );
 
+    const loadedCount = results.filter(Boolean).length;
     logger.debug(`[Loader] Created ${loadedCount} Objs from JSON save data`);
   }
 }

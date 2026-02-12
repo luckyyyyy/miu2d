@@ -111,13 +111,13 @@ export class GameConfigService {
 	 */
 	async getPublicBySlug(gameSlug: string): Promise<GameConfigData> {
 		const [game] = await db
-			.select({ id: games.id, isPublic: games.isPublic })
+			.select({ id: games.id })
 			.from(games)
 			.where(eq(games.slug, gameSlug))
 			.limit(1);
 
-		// 游戏不存在或未公开 → 返回 gameEnabled: false（不暴露是否存在）
-		if (!game || !game.isPublic) {
+		// 游戏不存在 → 返回 gameEnabled: false（不暴露是否存在）
+		if (!game) {
 			return { gameEnabled: false } as GameConfigData;
 		}
 

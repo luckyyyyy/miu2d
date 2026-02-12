@@ -406,14 +406,12 @@ export class GameEngine implements IEngineContext {
 
     try {
       // ========== 阶段1：加载全局资源（只加载一次）==========
-      // - TalkTextList (对话文本)
-      // 注：LevelManager 由 Player 持有，MagicExpConfig 由 MagicListManager 持有
-      this.emitLoadProgress(10, "加载全局资源...");
+      this.emitLoadProgress(2, "加载全局资源...");
       await this.talkTextList.initialize();
       this.partnerList.initialize();
 
       // ========== 阶段2：创建渲染器 ==========
-      this.emitLoadProgress(20, "创建渲染器...");
+      this.emitLoadProgress(5, "创建渲染器...");
       this.objRendererInstance = new ObjRenderer();
       this.mapRendererInstance = createMapRenderer();
       this.mapRendererInstance.camera = {
@@ -424,7 +422,7 @@ export class GameEngine implements IEngineContext {
       };
 
       // ========== 阶段3：创建游戏管理器 ==========
-      this.emitLoadProgress(30, "创建游戏管理器...");
+      this.emitLoadProgress(7, "创建游戏管理器...");
       this.gameManagerInstance = new GameManager(
         {
           events: this.events,
@@ -447,6 +445,8 @@ export class GameEngine implements IEngineContext {
           },
           // 加载存档后立即将摄像机居中到玩家位置（避免摄像机飞过去）
           centerCameraOnPlayer: () => this.centerCameraOnPlayer(),
+          // 由 Loader 控制地图 MPC/MSF 加载进度回调
+          setMapProgressCallback: (cb) => { this.mapLoadProgressCallback = cb; },
         }
       );
       this.gameManagerInstance.setLoadCompleteCallback(() => this.handleLoadComplete());
@@ -466,7 +466,7 @@ export class GameEngine implements IEngineContext {
 
       // ========== 阶段4：创建 UI 桥接器 ==========
       this.uiBridgeInstance = this.createUIBridge();
-      this.emitLoadProgress(40, "引擎初始化完成");
+      this.emitLoadProgress(10, "引擎初始化完成");
       logger.log("[GameEngine] Engine initialization completed (global resources loaded)");
 
       // 提前启动主循环，在 loading 状态下只推进安全子系统
@@ -496,19 +496,13 @@ export class GameEngine implements IEngineContext {
     }
 
     this.state = "loading";
-    this.emitLoadProgress(40, "开始新游戏...");
+    this.emitLoadProgress(10, "开始新游戏...");
 
-    // 设置地图加载进度回调
-    // NewGame 调用 LoadGame(0)，地图加载进度映射到 40-70% 范围
-    // 后续还有 NPC、魔法、物品、玩家精灵等加载 (70-98%)
-    this.mapLoadProgressCallback = (mpcProgress, text) => {
-      const mappedProgress = Math.round(40 + mpcProgress * 30);
-      this.emitLoadProgress(mappedProgress, text);
-    };
-
-    // 设置 Loader 进度回调，将后续加载进度转发到 UI
+    // Loader 统一管理 0-100% 进度（包括地图 MPC 进度），
+    // 映射到全局 10-98% 范围
     this.gameManager.setLoadProgressCallback((progress, text) => {
-      this.emitLoadProgress(progress, text);
+      const mapped = Math.round(10 + progress * 0.88);
+      this.emitLoadProgress(mapped, text);
     });
 
     try {
@@ -529,7 +523,6 @@ export class GameEngine implements IEngineContext {
       this.emitInitialized(false);
       throw error;
     } finally {
-      this.mapLoadProgressCallback = null;
       this.gameManager.setLoadProgressCallback(undefined);
     }
   }
@@ -550,40 +543,29 @@ export class GameEngine implements IEngineContext {
     this.state = "loading";
     this.emitLoadProgress(10, `读取存档 ${index}...`);
 
-    // 设置地图加载进度回调
-    // LoadGame(n) 的地图加载进度映射到 10-70% 范围
-    // 后续还有 NPC、魔法、物品、玩家精灵等加载 (70-98%)
-    this.mapLoadProgressCallback = (mpcProgress, text) => {
-      const mappedProgress = Math.round(10 + mpcProgress * 60);
-      this.emitLoadProgress(mappedProgress, text);
-    };
-
-    // 设置 Loader 进度回调，将后续加载进度转发到 UI
+    // Loader 统一管理 0-100% 进度，映射到全局 10-98%
     this.gameManager.setLoadProgressCallback((progress, text) => {
-      this.emitLoadProgress(progress, text);
+      const mapped = Math.round(10 + progress * 0.88);
+      this.emitLoadProgress(mapped, text);
     });
 
     try {
-      // 存档加载会恢复武功数据，不需要额外初始化
       await this.gameManager.loadGameSave(index);
 
-      this.emitLoadProgress(100, "存档加载完成");
       this.state = "running";
+      this.emitLoadProgress(100, "存档加载完成");
 
       logger.log(`[GameEngine] Game loaded from save ${index}`);
     } catch (error) {
       logger.error(`[GameEngine] Failed to load game ${index}:`, error);
       throw error;
     } finally {
-      this.mapLoadProgressCallback = null;
       this.gameManager.setLoadProgressCallback(undefined);
     }
   }
 
   /**
    * 初始化并开始新游戏（便捷方法）
-   *
-   * 组合调用 initialize() 和 newGame()，用于快速启动游戏。
    */
   async initializeAndStartNewGame(): Promise<void> {
     await this.initialize();
@@ -592,9 +574,6 @@ export class GameEngine implements IEngineContext {
 
   /**
    * 初始化并从 JSON 数据加载存档（便捷方法）
-   *
-   * 用于分享存档加载、标题界面读档等场景，
-   * 仅初始化引擎资源，不运行 NewGame.txt 脚本。
    */
   async initializeAndLoadFromJSON(data: SaveData): Promise<void> {
     await this.initialize();
@@ -602,17 +581,48 @@ export class GameEngine implements IEngineContext {
   }
 
   /**
+   * 从 JSON 数据加载存档
+   *
+   * 设置进度回调并委托给 GameManager，
+   * Loader 的 0-100% 映射到全局 10-98%。
+   */
+  async loadGameFromJSON(data: SaveData): Promise<void> {
+    if (this.state === "uninitialized") {
+      logger.error("[GameEngine] Cannot load game: engine not initialized");
+      throw new Error("Engine not initialized. Call initialize() first.");
+    }
+
+    this.state = "loading";
+    this.emitLoadProgress(10, "加载存档...");
+
+    // Loader 统一管理 0-100% 进度，映射到全局 10-98%
+    this.gameManager.setLoadProgressCallback((progress, text) => {
+      const mapped = Math.round(10 + progress * 0.88);
+      this.emitLoadProgress(mapped, text);
+    });
+
+    try {
+      await this.gameManager.loadGameFromJSON(data);
+
+      this.state = "running";
+      this.emitLoadProgress(100, "加载完成");
+      this.emitInitialized(true);
+
+      logger.log("[GameEngine] Game loaded from JSON save");
+    } catch (error) {
+      logger.error("[GameEngine] Failed to load game from JSON:", error);
+      this.emitInitialized(false);
+      throw error;
+    } finally {
+      this.gameManager.setLoadProgressCallback(undefined);
+    }
+  }
+
+  /**
    * 收集当前游戏状态用于保存
    */
   collectSaveData(): SaveData {
     return this.gameManager.collectSaveData();
-  }
-
-  /**
-   * 从 JSON 数据加载存档（恢复游戏状态）
-   */
-  async loadGameFromJSON(data: SaveData): Promise<void> {
-    return await this.gameManager.loadGameFromJSON(data);
   }
 
   /**

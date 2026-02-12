@@ -78,6 +78,8 @@ export interface GameManagerConfig {
   onMapChange: (mapPath: string) => Promise<MiuMapData>;
   // 立即将摄像机居中到玩家位置（用于加载存档后避免摄像机飞过去）
   centerCameraOnPlayer: () => void;
+  /** 设置地图 MPC/MSF 加载进度回调（由 Loader 控制） */
+  setMapProgressCallback: (callback: ((progress: number, text: string) => void) | null) => void;
 }
 
 /**
@@ -322,6 +324,7 @@ export class GameManager {
         this.gameTime = 0;
       },
       loadPlayerSprites: (npcIni) => this.loadPlayerSprites(npcIni),
+      setMapProgressCallback: (cb) => this.config.setMapProgressCallback(cb),
       // 存档相关依赖
       getVariables: () => this.variables,
       setVariables: (vars) => {

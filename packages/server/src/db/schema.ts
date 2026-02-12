@@ -41,7 +41,6 @@ export const games = pgTable("games", {
   slug: text("slug").notNull().unique(),
   name: text("name").notNull(),
   description: text("description"),
-  isPublic: boolean("is_public").notNull().default(true),
   ownerId: uuid("owner_id").references(() => users.id),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow()
 });

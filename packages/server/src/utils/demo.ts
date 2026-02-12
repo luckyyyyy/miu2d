@@ -59,7 +59,6 @@ export async function seedDemoData(): Promise<void> {
 			slug: DEMO_SLUG,
 			name: "Demo Game",
 			description: "Local development demo workspace",
-			isPublic: true,
 			ownerId: DEMO_DEV_USER_ID,
 		}).returning({ id: games.id });
 		console.log("[Demo] Created demo game");
