@@ -615,9 +615,9 @@ export class GameManager {
     logger.debug(`[GameManager] Loading map: ${mapPath}`);
     this.currentMapPath = mapPath;
 
-    // Extract map name from path
+    // Extract map name from path (strip both .map and .mmf extensions)
     const mapFileName = mapPath.split("/").pop() || mapPath;
-    this.currentMapName = mapFileName.replace(/\.map$/i, "");
+    this.currentMapName = mapFileName.replace(/\.(map|mmf)$/i, "");
 
     // Clear NPCs and Objs (keep partners)
     this.npcManager.clearAllNpcAndKeepPartner();

@@ -58,8 +58,8 @@ import { TalkTextListManager } from "./talk-text-list";
 import type { MagicItemInfo, MagicManager } from "../magic";
 import { MagicRenderer } from "../magic/magic-renderer";
 import { MapBase } from "../map";
-import { loadMMF } from "../resource/mmf";
-import { resourceLoader } from "../resource/resource-loader";
+import { parseMMF } from "../resource/mmf";
+import { resourceLoader, getGameSlug } from "../resource/resource-loader";
 import {
   createMapRenderer,
   loadMapMpcs,
@@ -697,7 +697,8 @@ export class GameEngine implements IEngineContext {
     logger.debug(`[GameEngine] Loading map: ${fullMapPath}`);
 
     try {
-      const mapData = await loadMMF(fullMapPath);
+      // 从 Scene API 加载 MMF 二进制数据
+      const mapData = await this.loadMapFromSceneApi(fullMapPath);
       if (mapData) {
         const mapName = fullMapPath.split("/").pop()?.replace(/\.(map|mmf)$/i, "") || "";
 
@@ -762,6 +763,40 @@ export class GameEngine implements IEngineContext {
         this.emitLoadProgress(100, "");
       }
       throw error;
+    }
+  }
+
+  /**
+   * 从 Scene API 加载 MMF 地图二进制数据
+   *
+   * 从地图路径提取 sceneKey（如 "map_003_武当山下"），
+   * 请求 /game/:gameSlug/api/scenes/:sceneKey/mmf
+   */
+  private async loadMapFromSceneApi(fullMapPath: string): Promise<MiuMapData | null> {
+    const gameSlug = getGameSlug();
+    if (!gameSlug) return null;
+
+    // 从路径末尾提取 sceneKey（去掉 .mmf/.map 扩展名）
+    const fileName = fullMapPath.split("/").pop() || "";
+    const sceneKey = fileName.replace(/\.(mmf|map)$/i, "");
+    if (!sceneKey) return null;
+
+    try {
+      const apiUrl = `/game/${gameSlug}/api/scenes/${encodeURIComponent(sceneKey)}/mmf`;
+      const response = await fetch(apiUrl);
+      if (!response.ok) return null;
+
+      const buffer = await response.arrayBuffer();
+      if (!buffer || buffer.byteLength === 0) return null;
+
+      const mapData = parseMMF(buffer, fullMapPath);
+      if (mapData) {
+        logger.log(`[GameEngine] Map loaded from Scene API: ${sceneKey}`);
+      }
+      return mapData;
+    } catch (_error) {
+      // API 不可用，返回 null 让调用者 fallback
+      return null;
     }
   }
 

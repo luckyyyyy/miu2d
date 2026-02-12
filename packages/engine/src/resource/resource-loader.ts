@@ -1592,6 +1592,13 @@ export function isGameDataLoaded(): boolean {
   return isGameDataLoadedFlag;
 }
 
+/**
+ * 获取当前游戏 slug
+ */
+export function getGameSlug(): string {
+  return currentGameSlug;
+}
+
 export function getMagicsData(): ApiMagicResponse | null {
   return cachedGameData?.magics ?? null;
 }

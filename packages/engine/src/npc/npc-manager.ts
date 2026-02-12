@@ -6,7 +6,7 @@
 import type { Character } from "../character";
 import type { CharacterBase } from "../character/base";
 import { loadNpcConfig } from "../character/res-loader";
-import { ResourcePath, resolveScriptPath } from "../resource/resource-paths";
+import { resolveScriptPath } from "../resource/resource-paths";
 import { EngineAccess } from "../core/engine-access";
 import { logger } from "../core/logger";
 import type { CharacterConfig, Vector2 } from "../core/types";
@@ -28,9 +28,9 @@ export function isEnemy(a: CharacterBase, b: CharacterBase): boolean {
   // 不同组
   return a.group !== b.group;
 }
-import { resourceLoader } from "../resource/resource-loader";
+import { getGameSlug } from "../resource/resource-loader";
 import type { NpcSaveItem } from "../runtime/storage";
-import { distance, getNeighbors, getViewTileDistance, parseIni } from "../utils";
+import { distance, getNeighbors, getViewTileDistance } from "../utils";
 import { Npc } from "./npc";
 import { collectNpcSnapshot, parseNpcData } from "./npc-persistence";
 import { findCharactersInTileDistance, findClosestCharacter } from "./npc-queries";
@@ -1250,56 +1250,39 @@ export class NpcManager extends EngineAccess {
       return true;
     }
 
-    // 2. Fallback: 从文件系统加载（ini/save/ 静态资源）
-    const paths = [ResourcePath.saveGame(fileName), ResourcePath.iniSave(fileName)];
-
-    for (const filePath of paths) {
+    // 2. 从 Scene API 加载（数据库存储的 NPC JSON 数据）
+    const gameSlug = getGameSlug();
+    const sceneKey = this.engine.getCurrentMapName();
+    if (gameSlug && sceneKey) {
       try {
-        // .npc files have been converted to UTF-8
-        // resourceLoader.loadText handles Vite HTML fallback detection
-        const content = await resourceLoader.loadText(filePath);
-
-        if (!content) {
-          continue;
+        const apiUrl = `/game/${gameSlug}/api/scenes/npc/${encodeURIComponent(sceneKey)}/${encodeURIComponent(fileName)}`;
+        const response = await fetch(apiUrl);
+        if (response.ok) {
+          const entries: Record<string, unknown>[] = await response.json();
+          if (clearCurrentNpcs) {
+            this.clearAllNpcAndKeepPartner();
+          }
+          if (entries.length > 0) {
+            logger.log(`[NpcManager] Loading ${entries.length} NPCs from API: ${apiUrl}`);
+            const loadPromises: Promise<void>[] = [];
+            for (const entry of entries) {
+              loadPromises.push(this.createNpcFromData(entry).then(() => {}));
+            }
+            await Promise.all(loadPromises);
+          }
+          this.fileName = fileName;
+          logger.log(`[NpcManager] Loaded ${this.npcs.size} NPCs from API: ${fileName}`);
+          return true;
         }
-
-        // Clear existing NPCs if requested (keep partners)
-        if (clearCurrentNpcs) {
-          this.clearAllNpcAndKeepPartner();
-        }
-
-        logger.log(`[NpcManager] Parsing NPC file from: ${filePath}`);
-        await this.parseNpcFile(content);
-        this.fileName = fileName; // Store loaded file name
-        logger.log(`[NpcManager] Loaded ${this.npcs.size} NPCs from ${fileName}`);
-        return true;
-      } catch (_error) {
-        // Continue to next path
+      } catch (error) {
+        logger.error(`[NpcManager] Scene API error for ${fileName}:`, error);
       }
+    } else {
+      logger.warn(`[NpcManager] Cannot load from API: gameSlug=${gameSlug}, sceneKey=${sceneKey}`);
     }
 
-    logger.error(`[NpcManager] Failed to load NPC file: ${fileName} (tried all paths)`);
+    logger.error(`[NpcManager] Failed to load NPC file: ${fileName}`);
     return false;
-  }
-
-  /**
-   * Parse NPC file content
-   */
-  private async parseNpcFile(content: string): Promise<void> {
-    const sections = parseIni(content);
-
-    const loadPromises: Promise<void>[] = [];
-
-    for (const sectionName in sections) {
-      // Match NPC followed by digits (e.g., NPC000, NPC001, etc.)
-      if (/^NPC\d+$/i.test(sectionName)) {
-        const section = sections[sectionName];
-        const promise = this.createNpcFromData(section).then(() => {});
-        loadPromises.push(promise);
-      }
-    }
-
-    await Promise.all(loadPromises);
   }
 
 

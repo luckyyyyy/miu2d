@@ -9,6 +9,8 @@ import { TRPCError } from "@trpc/server";
 import type {
 	Scene,
 	SceneListItem,
+	SceneNpcEntry,
+	SceneObjEntry,
 	CreateSceneInput,
 	UpdateSceneInput,
 	ListSceneInput,
@@ -23,7 +25,7 @@ import {
 } from "@miu2d/types";
 import { and, eq } from "drizzle-orm";
 import { db } from "../../db/client";
-import { scenes } from "../../db/schema";
+import { games, scenes } from "../../db/schema";
 import type { Language } from "../../i18n";
 import { verifyGameAccess } from "../../utils/gameAccess";
 import { getMessage } from "../../i18n";
@@ -273,6 +275,89 @@ export class SceneService {
 			.returning({ id: scenes.id });
 
 		return { deletedCount: deleted.length };
+	}
+
+	// ============= 公开 REST API（无需认证） =============
+
+	/**
+	 * 通过 gameSlug 获取 gameId
+	 */
+	private async getGameIdBySlug(gameSlug: string): Promise<string | null> {
+		const [game] = await db
+			.select({ id: games.id })
+			.from(games)
+			.where(eq(games.slug, gameSlug))
+			.limit(1);
+		return game?.id ?? null;
+	}
+
+	/**
+	 * 获取 MMF 地图二进制数据（公开接口）
+	 *
+	 * 从 scenes.mmfData (base64) 解码为 Buffer 直接返回
+	 */
+	async getMmfBinaryBySlug(gameSlug: string, sceneKey: string): Promise<Buffer | null> {
+		const gameId = await this.getGameIdBySlug(gameSlug);
+		if (!gameId) return null;
+
+		const [row] = await db
+			.select({ mmfData: scenes.mmfData })
+			.from(scenes)
+			.where(and(eq(scenes.gameId, gameId), eq(scenes.key, sceneKey)))
+			.limit(1);
+
+		if (!row?.mmfData) return null;
+		return Buffer.from(row.mmfData, "base64");
+	}
+
+	/**
+	 * 获取 NPC 条目数据（公开接口）
+	 *
+	 * 从指定场景的 data.npc 中查找 npcKey，
+	 * 直接返回 SceneNpcEntry[] JSON 数组
+	 */
+	async getNpcEntriesBySlug(gameSlug: string, sceneKey: string, npcKey: string): Promise<SceneNpcEntry[] | null> {
+		const gameId = await this.getGameIdBySlug(gameSlug);
+		if (!gameId) return null;
+
+		const [row] = await db
+			.select({ data: scenes.data })
+			.from(scenes)
+			.where(and(eq(scenes.gameId, gameId), eq(scenes.key, sceneKey)))
+			.limit(1);
+
+		if (!row) return null;
+		const data = row.data as SceneData | null;
+		const npcData = data?.npc?.[npcKey];
+		if (npcData?.entries) {
+			return npcData.entries;
+		}
+		return null;
+	}
+
+	/**
+	 * 获取 OBJ 条目数据（公开接口）
+	 *
+	 * 从指定场景的 data.obj 中查找 objKey，
+	 * 直接返回 SceneObjEntry[] JSON 数组
+	 */
+	async getObjEntriesBySlug(gameSlug: string, sceneKey: string, objKey: string): Promise<SceneObjEntry[] | null> {
+		const gameId = await this.getGameIdBySlug(gameSlug);
+		if (!gameId) return null;
+
+		const [row] = await db
+			.select({ data: scenes.data })
+			.from(scenes)
+			.where(and(eq(scenes.gameId, gameId), eq(scenes.key, sceneKey)))
+			.limit(1);
+
+		if (!row) return null;
+		const data = row.data as SceneData | null;
+		const objData = data?.obj?.[objKey];
+		if (objData?.entries) {
+			return objData.entries;
+		}
+		return null;
 	}
 }
 

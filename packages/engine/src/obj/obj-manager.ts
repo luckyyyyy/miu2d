@@ -41,10 +41,9 @@ import { ResourcePath } from "../resource/resource-paths";
 import { EngineAccess } from "../core/engine-access";
 import { logger } from "../core/logger";
 import type { Vector2 } from "../core/types";
-import { resourceLoader } from "../resource/resource-loader";
+import { getGameSlug } from "../resource/resource-loader";
 import { loadAsf } from "../resource/asf";
 import type { ObjSaveItem } from "../runtime/storage";
-import { parseIni } from "../utils";
 import type { IRenderer } from "../renderer/i-renderer";
 import { Obj, type ObjKind, ObjState } from "./obj";
 import { getObjConfigFromCache, getObjResFromCache, type ObjResInfo } from "./obj-config-loader";
@@ -168,97 +167,40 @@ export class ObjManager extends EngineAccess {
       return true;
     }
 
-    // 2. Fallback: 从文件系统加载
-    const paths = [ResourcePath.saveGame(fileName), ResourcePath.iniSave(fileName)];
-
-    for (const filePath of paths) {
+    // 2. 从 Scene API 加载（数据库存储的 OBJ JSON 数据）
+    const gameSlug = getGameSlug();
+    const sceneKey = this.engine.getCurrentMapName();
+    if (gameSlug && sceneKey) {
       try {
-        // .obj files are now UTF-8 encoded
-        const content = await resourceLoader.loadText(filePath);
-
-        if (!content) {
-          continue;
+        const apiUrl = `/game/${gameSlug}/api/scenes/obj/${encodeURIComponent(sceneKey)}/${encodeURIComponent(fileName)}`;
+        const response = await fetch(apiUrl);
+        if (response.ok) {
+          const entries: Array<Record<string, unknown>> = await response.json();
+          if (entries.length > 0) {
+            logger.log(`[ObjManager] Loading ${entries.length} objs from API: ${apiUrl}`);
+            const loadPromises: Promise<void>[] = [];
+            for (let i = 0; i < entries.length; i++) {
+              const e = entries[i];
+              const sectionName = `OBJ${String(i).padStart(3, "0")}`;
+              loadPromises.push(this.createObjFromJsonEntry(sectionName, e));
+            }
+            await Promise.all(loadPromises);
+          }
+          logger.log(`[ObjManager] Loaded ${this.objects.length} objects from API: ${fileName}`);
+          return true;
         }
-
-        // Check for Vite's HTML fallback
-        if (content.trim().startsWith("<!DOCTYPE") || content.trim().startsWith("<html")) {
-          continue;
-        }
-
-        logger.log(`[ObjManager] Parsing obj file from: ${filePath}`);
-        await this.parseObjFile(content);
-        logger.log(`[ObjManager] Loaded ${this.objects.length} objects`);
-        return true;
-      } catch (_error) {
-        // Continue to next path
+      } catch (error) {
+        logger.error(`[ObjManager] Scene API error for ${fileName}:`, error);
       }
+    } else {
+      logger.warn(`[ObjManager] Cannot load from API: gameSlug=${gameSlug}, sceneKey=${sceneKey}`);
     }
 
-    logger.error(`[ObjManager] Failed to load obj file: ${fileName} (tried all paths)`);
+    logger.error(`[ObjManager] Failed to load obj file: ${fileName}`);
     return false;
   }
 
   /**
-   * Parse .obj file content
-   */
-  private async parseObjFile(content: string): Promise<void> {
-    const sections = parseIni(content);
-    logger.log(`[ObjManager] Found ${Object.keys(sections).length} sections in obj file`);
-
-    // Process each OBJ section
-    const loadPromises: Promise<void>[] = [];
-
-    for (const sectionName in sections) {
-      // Match OBJ followed by digits (e.g., OBJ000, OBJ001, etc.)
-      if (/^OBJ\d+$/i.test(sectionName)) {
-        const section = sections[sectionName];
-        const promise = this.createObjFromSection(sectionName, section);
-        loadPromises.push(promise);
-      }
-    }
-
-    // Wait for all objects to load
-    await Promise.all(loadPromises);
-  }
-
-  /**
-   * 从 .obj 文件的 INI section 创建 Obj
-   */
-  private async createObjFromSection(
-    sectionName: string,
-    section: Record<string, string>
-  ): Promise<void> {
-    const obj = new Obj();
-    obj.loadFromSection(section);
-
-    const mapX = obj.tilePosition.x;
-    const mapY = obj.tilePosition.y;
-    obj.id = `${sectionName}_${obj.objName}_${mapX}_${mapY}`;
-    obj.fileName = this.fileName;
-
-    await this.loadObjResources(obj);
-
-    // 恢复保存的状态（用于地图重新加载时保持修改）
-    const wasRestored = this.restoreObjState(obj);
-
-    if (obj.isRemoved) {
-      logger.log(`[ObjManager] Skipping removed obj: ${obj.objName} at (${mapX}, ${mapY})`);
-      return;
-    }
-
-    if (obj.hasSound && (obj.isLoopingSound || obj.isRandSound)) {
-      logger.log(
-        `[ObjManager] Created sound obj: ${obj.objName} (kind=${obj.kind}, sound=${obj.wavFile}) at (${mapX}, ${mapY})`
-      );
-    } else {
-      logger.log(
-        `[ObjManager] Created obj: ${obj.objName} (kind=${obj.kind}) at (${mapX}, ${mapY}), texture=${obj.texture ? "loaded" : "null"}${wasRestored ? " [state restored]" : ""}`
-      );
-    }
-    // _list.AddLast(obj)
-    this.objects.push(obj);
-  }
-
   /**
    * 为 Obj 加载资源（objres 配置和 ASF 纹理）
    * 统一的资源加载逻辑，供各创建方法调用
@@ -672,6 +614,55 @@ export class ObjManager extends EngineAccess {
     // 纹理加载后再设置帧号，避免 setter 的边界检查在 _frameEnd=0 时将帧号重置为 0
     obj.currentFrameIndex = objData.frame;
 
+    this.objects.push(obj);
+  }
+
+  /**
+   * 从 Scene API 的 JSON 条目创建 Obj
+   * SceneObjEntry 使用 camelCase 字段名
+   */
+  private async createObjFromJsonEntry(
+    sectionName: string,
+    entry: Record<string, unknown>
+  ): Promise<void> {
+    const obj = new Obj();
+    obj.objName = String(entry.objName ?? "");
+    obj.kind = Number(entry.kind ?? 0) as ObjKind;
+    obj.dir = Number(entry.dir ?? 0);
+    obj.damage = Number(entry.damage ?? 0);
+    obj.frame = Number(entry.frame ?? 0);
+    obj.lum = Number(entry.lum ?? 0);
+    obj.offX = Number(entry.offX ?? 0);
+    obj.offY = Number(entry.offY ?? 0);
+    obj.scriptFile = String(entry.scriptFile ?? "");
+    obj.wavFile = String(entry.wavFile ?? "");
+    obj.objFileName = String(entry.objFile ?? "");
+
+    const mapX = Number(entry.mapX ?? 0);
+    const mapY = Number(entry.mapY ?? 0);
+    obj.setTilePosition(mapX, mapY);
+    obj.id = `${sectionName}_${obj.objName}_${mapX}_${mapY}`;
+    obj.fileName = this.fileName;
+
+    await this.loadObjResources(obj);
+
+    // 恢复保存的状态（用于地图重新加载时保持修改）
+    const wasRestored = this.restoreObjState(obj);
+
+    if (obj.isRemoved) {
+      logger.log(`[ObjManager] Skipping removed obj: ${obj.objName} at (${mapX}, ${mapY})`);
+      return;
+    }
+
+    if (obj.hasSound && (obj.isLoopingSound || obj.isRandSound)) {
+      logger.log(
+        `[ObjManager] Created sound obj: ${obj.objName} (kind=${obj.kind}, sound=${obj.wavFile}) at (${mapX}, ${mapY})`
+      );
+    } else {
+      logger.log(
+        `[ObjManager] Created obj: ${obj.objName} (kind=${obj.kind}) at (${mapX}, ${mapY}), texture=${obj.texture ? "loaded" : "null"}${wasRestored ? " [state restored]" : ""}`
+      );
+    }
     this.objects.push(obj);
   }
 

@@ -743,44 +743,6 @@ export class Obj extends Sprite {
   }
 
   /**
-   * Load object from ini section data
-   */
-  loadFromSection(section: Record<string, string>): void {
-    this._objName = section.ObjName || "";
-    this._kind = parseInt(section.Kind || "0", 10) as ObjKind;
-    const mapX = parseInt(section.MapX || "0", 10);
-    const mapY = parseInt(section.MapY || "0", 10);
-    this.setTilePosition(mapX, mapY);
-    this._dir = parseInt(section.Dir || "0", 10);
-    this._currentDirection = this._dir;
-    this._frame = parseInt(section.Frame || "0", 10);
-    this._currentFrameIndex = this._frame;
-    this._offX = parseInt(section.OffX || "0", 10);
-    this._offY = parseInt(section.OffY || "0", 10);
-    this._damage = parseInt(section.Damage || "0", 10);
-    this._lum = parseInt(section.Lum || "0", 10);
-    this._height = parseInt(section.Height || "0", 10);
-    this._scriptFile = section.ScriptFile || "";
-    this._scriptFileRight = section.ScriptFileRight || "";
-    this._wavFileName = section.WavFile || "";
-    this._timerScriptFile = section.TimerScriptFile || "";
-    this._timerScriptInterval = parseInt(section.TimerScriptInterval || "3000", 10);
-    this._canInteractDirectly = parseInt(section.CanInteractDirectly || "0", 10);
-    this._scriptFileJustTouch = parseInt(section.ScriptFileJustTouch || "0", 10);
-    this._reviveNpcIni = section.ReviveNpcIni || "";
-
-    // ObjFile needs to be loaded separately by ObjManager
-    if (section.ObjFile) {
-      this._objFileName = section.ObjFile;
-    }
-
-    // Sound objects (LoopingSound=3, RandSound=4) are invisible
-    if (this._kind === ObjKind.LoopingSound || this._kind === ObjKind.RandSound) {
-      this.isShow = false;
-    }
-  }
-
-  /**
    * 从 API 缓存的 ObjConfig 加载属性（代替读取本地 INI 文件）
    */
   loadFromConfig(config: ObjConfig): void {
