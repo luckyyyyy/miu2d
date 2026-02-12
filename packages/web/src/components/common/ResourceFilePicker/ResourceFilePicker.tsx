@@ -102,15 +102,18 @@ export function ResourceFilePicker({
 
   // 选择文件
   const handleSelect = useCallback((path: string) => {
-    // 后端返回的 path 以 / 开头，去掉开头的斜杠
-    let normalizedPath = path.startsWith("/") ? path.slice(1) : path;
-    normalizedPath = normalizedPath.replace(/\\/g, "/");
+    let normalizedPath = path.replace(/\\/g, "/");
 
     // 根据字段类型决定保存格式
     const selectedFileType = getResourceFileType(fieldName, normalizedPath);
     if (selectedFileType === "script" || selectedFileType === "ini") {
       // 脚本和 INI 只保存文件名（引擎会动态查找完整路径）
       normalizedPath = normalizedPath.split("/").pop() || normalizedPath;
+    } else {
+      // 资源路径统一以 / 开头
+      if (!normalizedPath.startsWith("/")) {
+        normalizedPath = `/${normalizedPath}`;
+      }
     }
 
     onChange(normalizedPath);

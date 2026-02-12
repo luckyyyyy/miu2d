@@ -44,5 +44,4 @@ export { clamp, getSpeedRatio, lerp, normalizeVector, vectorLength } from "./mat
 export { getNeighbors } from "./neighbors";
 // Path finding
 export * from "./path-finder";
-// NOTE: debug-manager is NOT re-exported here to avoid circular dependency.
-// It imports from magic/npc/player barrels. Import directly: "@miu2d/engine/utils/debug-manager"
+// debug-manager has been moved to runtime/ where it logically belongs.

@@ -352,6 +352,8 @@ export function GoodsDetailPage() {
       if (cacheKey) {
         editCache.remove(cacheKey);
       }
+      utils.goods.list.invalidate({ gameId: gameId! });
+      utils.goods.get.invalidate({ gameId: gameId!, id: goodsId! });
       toast.success(`物品「${formData.name}」保存成功`);
     },
   });

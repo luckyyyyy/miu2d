@@ -155,6 +155,8 @@ export function MagicDetailPage() {
         editCache.remove(cacheKey);
         editCache.remove(`${cacheKey}:meta`);
       }
+      utils.magic.list.invalidate({ gameId: gameId! });
+      utils.magic.get.invalidate({ gameId: gameId!, id: magicId! });
       toast.success(`武功「${formData.name}」保存成功`);
     },
   });
@@ -715,11 +717,11 @@ function ResourceSection({
   gameSlug: string;
 }) {
   const resourceFields = [
-    { key: "image", label: "武功图像", extensions: ["asf", "mpc"] },
-    { key: "icon", label: "武功图标", extensions: ["asf", "mpc"] },
-    { key: "flyingImage", label: "飞行图像", extensions: ["asf"] },
-    { key: "vanishImage", label: "消失图像", extensions: ["asf"] },
-    { key: "superModeImage", label: "超级模式图像", extensions: ["asf"] },
+    { key: "image", label: "武功图像", extensions: ["asf", "msf", "mpc"] },
+    { key: "icon", label: "武功图标", extensions: ["asf", "msf", "mpc"] },
+    { key: "flyingImage", label: "飞行图像", extensions: ["asf", "msf"] },
+    { key: "vanishImage", label: "消失图像", extensions: ["asf", "msf"] },
+    { key: "superModeImage", label: "超级模式图像", extensions: ["asf", "msf"] },
     { key: "flyingSound", label: "飞行音效", extensions: ["wav", "ogg"] },
     { key: "vanishSound", label: "消失音效", extensions: ["wav", "ogg"] },
   ];
@@ -758,7 +760,7 @@ function ResourceSection({
         {/* 动作文件（玩家武功专用） */}
         {formData.userType === "player" && (
           <ResourceFieldGroup
-            fields={[{ key: "actionFile", label: "动作文件名", extensions: ["asf"] }]}
+            fields={[{ key: "actionFile", label: "动作文件名", extensions: ["asf", "msf"] }]}
             data={data}
             updateField={handleUpdateField}
             gameId={gameId}

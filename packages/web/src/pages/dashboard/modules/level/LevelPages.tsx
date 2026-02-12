@@ -241,6 +241,8 @@ export function LevelDetailPage() {
       if (cacheKey) {
         editCache.remove(cacheKey);
       }
+      utils.level.list.invalidate({ gameId: gameId! });
+      utils.level.get.invalidate({ gameId: gameId!, id: levelConfigId! });
       toast.success(`配置「${data.name}」保存成功`);
     },
     onError: (error) => {

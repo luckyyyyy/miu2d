@@ -48,7 +48,7 @@ import { logger } from "../core/logger";
 import type { MiuMapData } from "../map/types";
 import { createDefaultInputState, type InputState, type Vector2 } from "../core/types";
 import { CharacterState, type Direction } from "../core/types";
-import { DebugManager, type PlayerStatsInfo } from "../utils/debug-manager";
+import { DebugManager, type PlayerStatsInfo } from "./debug-manager";
 import { ScreenEffects } from "../renderer/screen-effects";
 import type { GuiManager } from "../gui/gui-manager";
 import type { GuiManagerState } from "../gui/types";

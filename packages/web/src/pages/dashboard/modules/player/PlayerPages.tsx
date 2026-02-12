@@ -99,6 +99,7 @@ export function PlayerDetailPage() {
     onSuccess: () => {
       if (cacheKey) editCache.remove(cacheKey);
       utils.player.list.invalidate({ gameId: gameId! });
+      utils.player.get.invalidate({ gameId: gameId!, id: playerId! });
       toast.success(`角色「${formData.name}」保存成功`);
     },
   });

@@ -81,11 +81,15 @@ function normalizeResourcePath(
 ): string | undefined {
   if (!path) return undefined;
 
-  // 绝对路径：转换为资源根目录下的路径
+  // 绝对路径处理
   if (path.startsWith("/")) {
     const root = getResourceRoot();
-    // 移除开头的 /，拼接到资源根目录
-    return `${root}${path}`;
+    // 已经包含资源根目录前缀，直接返回
+    if (path.startsWith(`${root}/`)) {
+      return path;
+    }
+    // 否则拼接到资源根目录（移除开头的 /）
+    return `${root}/${path.slice(1)}`;
   }
 
   // 相对路径：添加资源类型前缀
@@ -109,7 +113,12 @@ function normalizeSoundPath(path: string | null | undefined): string | undefined
   // 绝对路径处理
   if (path.startsWith("/")) {
     const root = getResourceRoot();
-    return `${root}${path}`;
+    // 已经包含资源根目录前缀，直接返回
+    if (path.startsWith(`${root}/`)) {
+      return path;
+    }
+    // 否则拼接到资源根目录（移除开头的 /）
+    return `${root}/${path.slice(1)}`;
   }
 
   // 声音文件不需要前缀（由 audioManager 处理）

@@ -37,7 +37,7 @@ import { GameEvents } from "../core/game-events";
 import { logger } from "../core/logger";
 import type { MiuMapData } from "../map/types";
 import type { GameVariables, InputState, Vector2 } from "../core/types";
-import type { DebugManager } from "../utils/debug-manager";
+import type { DebugManager } from "./debug-manager";
 import type { ScreenEffects } from "../renderer/screen-effects";
 import type { IRenderer } from "../renderer/i-renderer";
 import { BuyManager } from "../gui/buy-manager";

@@ -12,5 +12,4 @@ export * from "./types";
 // Re-export from new locations for backward compatibility
 export * from "../utils/path-finder";
 export * from "../data/timer-manager";
-// NOTE: debug-manager is NOT re-exported here to avoid circular dependency.
-// Import directly: "@miu2d/engine/utils/debug-manager"
+// debug-manager lives in runtime/ — import via "@miu2d/engine/runtime/debug-manager"

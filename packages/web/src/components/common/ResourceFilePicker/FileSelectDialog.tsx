@@ -357,6 +357,7 @@ export function FileSelectDialog({
     const ext = node.name.split(".").pop()?.toLowerCase();
     switch (ext) {
       case "asf":
+      case "msf":
       case "mpc":
         return "🎬";
       case "wav":

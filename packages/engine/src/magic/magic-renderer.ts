@@ -4,7 +4,7 @@
  * 负责将武功精灵渲染到 Canvas
  */
 
-import { ResourcePath } from "../resource/resource-paths";
+import { ResourcePath, isResourcePath } from "../resource/resource-paths";
 import { logger } from "../core/logger";
 import type { AsfData } from "../resource/format/asf";
 import { getFrameAtlasInfo, loadAsf } from "../resource/format/asf";
@@ -83,12 +83,16 @@ export class MagicRenderer {
   private async _loadAsfInternal(asfPath: string): Promise<CachedMagicAsf | null> {
     try {
       // asfPath 可能是以下格式:
-      // 1. "asf/effect/xxx.asf" - 完整相对路径
-      // 2. "xxx.asf" - 仅文件名
+      // 1. "/game/xxx/resources/asf/effect/xxx.asf" - 已解析的完整资源路径
+      // 2. "asf/effect/xxx.asf" - 完整相对路径
+      // 3. "xxx.asf" - 仅文件名
       // 构建可能的路径列表
       const possiblePaths: string[] = [];
 
-      if (asfPath.startsWith("asf/")) {
+      if (isResourcePath(asfPath)) {
+        // 已经是完整的资源路径，直接使用
+        possiblePaths.push(asfPath);
+      } else if (asfPath.startsWith("asf/")) {
         // 已经是完整相对路径
         possiblePaths.push(ResourcePath.from(asfPath));
       } else {

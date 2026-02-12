@@ -193,32 +193,34 @@ function FileManagerInner() {
   );
 
   return (
-    <div className="h-full flex bg-[#1e1e1e]">
+    <div
+      className="h-full flex bg-[#1e1e1e] relative"
+      onDragOver={handleTreeDragOver}
+      onDragLeave={handleTreeDragLeave}
+      onDrop={handleTreeDrop}
+    >
+      {/* 全局拖拽提示 */}
+      {isTreeDragOver && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20 bg-[#094771]/30 border-2 border-dashed border-[#0e639c]">
+          <div className="text-center text-[#0e639c]">
+            <div className="text-3xl mb-2">📥</div>
+            <p className="text-sm">拖放文件/文件夹到此处上传</p>
+          </div>
+        </div>
+      )}
+      {/* 解析文件/文件夹中 */}
+      {isProcessingDrop && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20 bg-[#1e1e1e]/70">
+          <div className="text-center">
+            <div className="w-6 h-6 border-2 border-[#0e639c] border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+            <p className="text-sm text-[#cccccc]">正在解析文件...</p>
+          </div>
+        </div>
+      )}
       {/* 左侧：目录树 */}
       <div
-        className={`w-[280px] flex flex-col border-r border-widget-border relative ${isTreeDragOver ? "bg-[#094771]/20" : ""}`}
-        onDragOver={handleTreeDragOver}
-        onDragLeave={handleTreeDragLeave}
-        onDrop={handleTreeDrop}
+        className="w-[280px] flex flex-col border-r border-widget-border relative"
       >
-        {/* 拖拽提示 */}
-        {isTreeDragOver && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10 bg-[#094771]/30 border-2 border-dashed border-[#0e639c]">
-            <div className="text-center text-[#0e639c]">
-              <div className="text-3xl mb-2">📥</div>
-              <p className="text-sm">拖放文件/文件夹到此处上传</p>
-            </div>
-          </div>
-        )}
-        {/* 解析文件/文件夹中 */}
-        {isProcessingDrop && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10 bg-[#1e1e1e]/70">
-            <div className="text-center">
-              <div className="w-6 h-6 border-2 border-[#0e639c] border-t-transparent rounded-full animate-spin mx-auto mb-2" />
-              <p className="text-sm text-[#cccccc]">正在解析文件...</p>
-            </div>
-          </div>
-        )}
         {/* 工具栏 */}
         <div className="flex items-center justify-end px-3 py-2 border-b border-widget-border bg-[#252526]">
           <div className="flex items-center gap-1">

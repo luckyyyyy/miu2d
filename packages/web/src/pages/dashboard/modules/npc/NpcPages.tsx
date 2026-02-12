@@ -147,6 +147,7 @@ export function NpcDetailPage() {
         editCache.remove(cacheKey);
       }
       utils.npc.list.invalidate({ gameId: gameId! });
+      utils.npc.get.invalidate({ gameId: gameId!, id: npcId! });
       toast.success(`NPC「${formData.name}」保存成功`);
     },
   });

@@ -144,6 +144,7 @@ export function ObjDetailPage() {
         editCache.remove(cacheKey);
       }
       utils.obj.list.invalidate({ gameId: gameId! });
+      utils.obj.get.invalidate({ gameId: gameId!, id: objId! });
       toast.success(`物体「${formData.name}」保存成功`);
     },
   });
