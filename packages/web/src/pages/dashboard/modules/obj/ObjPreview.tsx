@@ -5,8 +5,8 @@
  * - Object 只支持 Common 一种状态（与 NPC 多状态不同）
  */
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { AsfData } from "@miu2d/engine/resource/asf";
-import { getFrameCanvas } from "@miu2d/engine/resource/asf";
+import type { AsfData } from "@miu2d/engine/resource/format/asf";
+import { getFrameCanvas } from "@miu2d/engine/resource/format/asf";
 import { initWasm } from "@miu2d/engine/wasm/wasm-manager";
 import { decodeAsfWasm } from "@miu2d/engine/wasm/wasm-asf-decoder";
 import { buildResourceUrl } from "../../utils";

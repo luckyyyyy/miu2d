@@ -48,17 +48,17 @@ import { logger } from "../core/logger";
 import type { MiuMapData } from "../map/types";
 import { createDefaultInputState, type InputState, type Vector2 } from "../core/types";
 import { CharacterState, type Direction } from "../core/types";
-import { DebugManager, type PlayerStatsInfo } from "../core/debug-manager";
+import { DebugManager, type PlayerStatsInfo } from "../utils/debug-manager";
 import { ScreenEffects } from "../renderer/screen-effects";
 import type { GuiManager } from "../gui/gui-manager";
 import type { GuiManagerState } from "../gui/types";
-import { MemoListManager } from "./memo-list-manager";
-import { PartnerListManager } from "./partner-list";
-import { TalkTextListManager } from "./talk-text-list";
+import { MemoListManager } from "../data/memo-list-manager";
+import { PartnerListManager } from "../data/partner-list";
+import { TalkTextListManager } from "../data/talk-text-list";
 import type { MagicItemInfo, MagicManager } from "../magic";
 import { MagicRenderer } from "../magic/magic-renderer";
 import { MapBase } from "../map";
-import { parseMMF } from "../resource/mmf";
+import { parseMMF } from "../resource/format/mmf";
 import { resourceLoader, getGameSlug } from "../resource/resource-loader";
 import {
   createMapRenderer,
@@ -74,8 +74,8 @@ import { GoodKind, type GoodsListManager, getEquipSlotIndex } from "../player/go
 import type { GoodsItemInfo } from "../player/goods/goods-list-manager";
 import type { Player } from "../player/player";
 import { Sprite, setSpriteDrawColor } from "../sprite/sprite";
-import { clearAsfCache } from "../resource/asf";
-import { TimerManager } from "../core/timer-manager";
+import { clearAsfCache } from "../resource/format/asf";
+import { TimerManager } from "../data/timer-manager";
 import type { IUIBridge, UIPanelName } from "../gui/contract";
 import { UIBridge, type UIBridgeDeps } from "../gui/ui-bridge";
 import { pixelToTile } from "../utils";
@@ -84,10 +84,10 @@ import type { IRenderer } from "../renderer/i-renderer";
 import { createRenderer, type RendererBackend } from "../renderer";
 import { GameManager } from "./game-manager";
 import { PerformanceStats, type PerformanceStatsData } from "./performance-stats";
-import type { SaveData } from "./storage";
+import type { SaveData } from "../storage/storage";
 import type { BuyManager } from "../gui/buy-manager";
 import type { InteractionManager } from "./interaction-manager";
-import type { MagicHandler } from "./magic-handler";
+import type { MagicHandler } from "../magic/magic-handler";
 import type { ScriptExecutor } from "../script/executor";
 
 export interface GameEngineConfig {

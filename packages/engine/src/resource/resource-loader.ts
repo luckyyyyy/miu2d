@@ -17,7 +17,7 @@
  */
 
 import { getResourceRoot, getResourceUrl } from "./resource-paths";
-import { parseXnbAudio, xnbToAudioBuffer } from "./xnb";
+import { parseXnbAudio, xnbToAudioBuffer } from "./format/xnb";
 /**
  * 资源类型
  * - text/binary/audio: 原始资源类型

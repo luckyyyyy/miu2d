@@ -11,7 +11,7 @@ import {
   findPathInDirection,
   PathType,
   findPath as pathFinderFindPath,
-} from "../../core/path-finder";
+} from "../../utils/path-finder";
 import type { Vector2 } from "../../core/types";
 import {
   BASE_SPEED,

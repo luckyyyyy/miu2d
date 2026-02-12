@@ -23,13 +23,13 @@ import {
 } from "../core/game-events";
 import { logger } from "../core/logger";
 import type { BuyManager, ShopItemInfo } from "./buy-manager";
-import type { MemoListManager } from "../runtime/memo-list-manager";
+import type { MemoListManager } from "../data/memo-list-manager";
 import type { MagicItemInfo } from "../magic/types";
 import type { Good } from "../player/goods/good";
 import type { GoodsItemInfo, GoodsListManager } from "../player/goods/goods-list-manager";
 import type { MagicListManager } from "../player/magic/magic-list-manager";
 import type { Player } from "../player/player";
-import type { TimerManager } from "../core/timer-manager";
+import type { TimerManager } from "../data/timer-manager";
 import type {
   IUIBridge,
   UIAction,

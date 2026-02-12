@@ -5,7 +5,7 @@
  * XNB 文件使用自定义解析器解码
  */
 import { useCallback, useEffect, useRef, useState } from "react";
-import { parseXnbAudio, xnbToAudioBuffer } from "@miu2d/engine/resource/xnb";
+import { parseXnbAudio, xnbToAudioBuffer } from "@miu2d/engine/resource/format/xnb";
 
 interface AudioPreviewProps {
   /** 游戏 slug */

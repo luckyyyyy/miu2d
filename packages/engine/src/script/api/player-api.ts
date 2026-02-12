@@ -2,12 +2,12 @@
  * PlayerAPI Implementation - Delegates to existing playerCommands logic
  */
 
-import type { PlayerAPI } from "../../core/game-api";
+import type { PlayerAPI } from "./game-api";
 import type { ScriptCommandContext } from "./types";
 import { isCharacterMoveEnd } from "./helpers";
 import { CharacterState } from "../../core/types";
 import { logger } from "../../core/logger";
-import type { BlockingResolver } from "../../script/blocking-resolver";
+import type { BlockingResolver } from "../blocking-resolver";
 import type { Npc } from "../../npc";
 import type { Player } from "../../player/player";
 

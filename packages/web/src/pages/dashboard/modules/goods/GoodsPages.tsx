@@ -10,7 +10,7 @@ import { DetailPageLayout } from "../../components/DetailPageLayout";
 import { EditorEmptyState } from "../../components/EditorEmptyState";
 import { useDashboard } from "../../DashboardContext";
 import { buildGoodsImageUrl } from "../../utils";
-import { getFrameCanvas } from "@miu2d/engine/resource/asf";
+import { getFrameCanvas } from "@miu2d/engine/resource/format/asf";
 import { decodeAsfWasm, initWasm } from "@miu2d/engine/wasm";
 import type {
   Goods,

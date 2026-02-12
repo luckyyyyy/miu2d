@@ -11,9 +11,9 @@
  */
 
 import type { AudioManager } from "../audio";
-import type { DebugManager } from "./debug-manager";
+import type { DebugManager } from "../utils/debug-manager";
 import type { InteractionManager } from "../runtime/interaction-manager";
-import type { MagicHandler } from "../runtime/magic-handler";
+import type { MagicHandler } from "../magic/magic-handler";
 import type { BuyManager } from "../gui/buy-manager";
 import type { GuiManager } from "../gui/gui-manager";
 import type { MagicManager } from "../magic";

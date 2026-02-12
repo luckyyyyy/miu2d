@@ -5,8 +5,8 @@
  * 支持 PCM 格式的 SoundEffect 资源。
  */
 
-import { parseXnbAudio, xnbToWavBlob } from "@miu2d/engine/resource/xnb";
-import type { XnbAudioData } from "@miu2d/engine/resource/xnb";
+import { parseXnbAudio, xnbToWavBlob } from "@miu2d/engine/resource/format/xnb";
+import type { XnbAudioData } from "@miu2d/engine/resource/format/xnb";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 interface XnbAudioViewerProps {

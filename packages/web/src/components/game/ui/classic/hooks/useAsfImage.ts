@@ -3,7 +3,7 @@
  * () pattern
  */
 
-import { type AsfData, getFrameCanvas, loadAsf } from "@miu2d/engine/resource/asf";
+import { type AsfData, getFrameCanvas, loadAsf } from "@miu2d/engine/resource/format/asf";
 import { useEffect, useRef, useState } from "react";
 
 export interface AsfImageData {

@@ -10,7 +10,7 @@ import { EngineAccess } from "../../core/engine-access";
 import { logger } from "../../core/logger";
 import type { Vector2 } from "../../core/types";
 import type { NpcManager } from "../../npc";
-import { findNeighborInDirection } from "../../core/path-finder";
+import { findNeighborInDirection } from "../../utils/path-finder";
 import type { Player } from "../../player/player";
 import { pixelToTile, tileToPixel } from "../../utils";
 import {

@@ -12,7 +12,7 @@ import { MagicMoveKindLabels } from "@miu2d/types";
 import { MagicPreview } from "../../../pages/dashboard/modules/magic/MagicPreview";
 import { initWasm } from "@miu2d/engine/wasm/wasm-manager";
 import { decodeAsfWasm } from "@miu2d/engine/wasm/wasm-asf-decoder";
-import { getFrameCanvas } from "@miu2d/engine/resource/asf";
+import { getFrameCanvas } from "@miu2d/engine/resource/format/asf";
 import { buildResourceUrl } from "../../../pages/dashboard/utils";
 
 export interface MagicPickerProps {

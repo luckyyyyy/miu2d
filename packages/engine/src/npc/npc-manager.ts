@@ -11,7 +11,7 @@ import { EngineAccess } from "../core/engine-access";
 import { logger } from "../core/logger";
 import type { CharacterConfig, Vector2 } from "../core/types";
 import { CharacterKind, type CharacterState, type Direction, RelationType } from "../core/types";
-import { type DropCharacter, getDropObj } from "../player/good-drop";
+import { type DropCharacter, getDropObj } from "../player/goods/good-drop";
 
 /**
  * Check if two characters are enemies (pure function)
@@ -29,7 +29,7 @@ export function isEnemy(a: CharacterBase, b: CharacterBase): boolean {
   return a.group !== b.group;
 }
 import { getGameSlug } from "../resource/resource-loader";
-import type { NpcSaveItem } from "../runtime/storage";
+import type { NpcSaveItem } from "../storage/storage";
 import { distance, getNeighbors, getViewTileDistance } from "../utils";
 import { Npc } from "./npc";
 import { collectNpcSnapshot, parseNpcData } from "./npc-persistence";

@@ -3,7 +3,7 @@
  * 只有一个播放/停止按钮，用于紧凑的资源选择器
  */
 import { useCallback, useEffect, useRef, useState } from "react";
-import { parseXnbAudio, xnbToAudioBuffer } from "@miu2d/engine/resource/xnb";
+import { parseXnbAudio, xnbToAudioBuffer } from "@miu2d/engine/resource/format/xnb";
 
 interface MiniAudioPlayerProps {
   gameSlug: string;

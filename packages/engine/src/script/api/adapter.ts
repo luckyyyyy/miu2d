@@ -7,8 +7,8 @@
  * New script engines (JS, Lua) should use GameAPI directly.
  */
 
-import type { GameAPI } from "../../core/game-api";
-import type { ScriptContext } from "../../script/commands/types";
+import type { GameAPI } from "./game-api";
+import type { ScriptContext } from "../commands/types";
 
 export interface ScriptContextExtras {
   scriptBasePath: string;

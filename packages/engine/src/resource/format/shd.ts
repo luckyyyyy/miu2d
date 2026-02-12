@@ -8,10 +8,10 @@
  * Reference: Engine/Shd.cs
  */
 
-import { logger } from "../core/logger";
-import type { MpcHead } from "../map/types";
+import { logger } from "../../core/logger";
+import type { MpcHead } from "../../map/types";
 import { getLittleEndianInt } from "./binary-utils";
-import { resourceLoader } from "./resource-loader";
+import { resourceLoader } from "../resource-loader";
 
 /**
  * SHD frame data - array of RGBA values (shadow pixels)

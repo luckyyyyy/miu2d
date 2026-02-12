@@ -30,6 +30,6 @@ dist-ssr
 /Sword2
 /deploy
 .env
-
+vfx-demo
 # Docker data
 .data/

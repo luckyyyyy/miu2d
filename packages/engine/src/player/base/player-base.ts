@@ -8,7 +8,7 @@
 import { Character } from "../../character";
 import { ResourcePath } from "../../resource/resource-paths";
 import { logger } from "../../core/logger";
-import { PathType } from "../../core/path-finder";
+import { PathType } from "../../utils/path-finder";
 import type { Vector2 } from "../../core/types";
 import { CharacterKind, DEFAULT_PLAYER_STATS, } from "../../core/types";
 import type { GuiManager } from "../../gui/gui-manager";
@@ -16,7 +16,7 @@ import { getMagic, } from "../../magic/magic-loader";
 import type { MagicData, MagicItemInfo } from "../../magic/types";
 import { MagicAddonEffect } from "../../magic/types";
 import type { Npc, NpcManager } from "../../npc";
-import { type AsfData, getCachedAsf } from "../../resource/asf";
+import { type AsfData, getCachedAsf } from "../../resource/format/asf";
 import { GoodsListManager } from "../goods/goods-list-manager";
 import { MagicListManager } from "../magic/magic-list-manager";
 

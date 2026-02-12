@@ -10,11 +10,11 @@ import { logger } from "../core/logger";
 import type { InputState, Vector2 } from "../core/types";
 import { CharacterState } from "../core/types";
 import type { GuiManager } from "../gui/gui-manager";
-import type { MagicItemInfo } from "../magic";
+import type { MagicItemInfo } from "./";
 import type { MagicListManager } from "../player/magic/magic-list-manager";
 import type { Player } from "../player/player";
 import { getDirectionFromVector, pixelToTile, tileToPixel } from "../utils";
-import type { InteractionManager } from "./interaction-manager";
+import type { InteractionManager } from "../runtime/interaction-manager";
 
 /**
  * Dependencies for MagicHandler

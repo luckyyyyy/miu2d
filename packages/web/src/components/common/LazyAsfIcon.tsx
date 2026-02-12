@@ -5,7 +5,7 @@
  * 全局缓存已解码的 dataURL，避免重复解码。
  */
 import { useState, useEffect, useRef, type ReactNode } from "react";
-import { getFrameCanvas } from "@miu2d/engine/resource/asf";
+import { getFrameCanvas } from "@miu2d/engine/resource/format/asf";
 import { initWasm } from "@miu2d/engine/wasm/wasm-manager";
 import { decodeAsfWasm } from "@miu2d/engine/wasm/wasm-asf-decoder";
 import { buildResourceUrl } from "../../pages/dashboard/utils";

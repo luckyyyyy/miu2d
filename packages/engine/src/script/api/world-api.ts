@@ -2,10 +2,10 @@
  * World APIs - Map, Obj, Camera, Audio, Effects, Timer implementations
  */
 
-import type { MapAPI, ObjAPI, CameraAPI, AudioAPI, EffectsAPI, TimerAPI } from "../../core/game-api";
+import type { MapAPI, ObjAPI, CameraAPI, AudioAPI, EffectsAPI, TimerAPI } from "./game-api";
 import type { ScriptCommandContext } from "./types";
 import { tileToPixel } from "../../utils";
-import type { BlockingResolver } from "../../script/blocking-resolver";
+import type { BlockingResolver } from "../blocking-resolver";
 import { logger } from "../../core/logger";
 
 export function createMapAPI(ctx: ScriptCommandContext): MapAPI {

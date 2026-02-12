@@ -9,7 +9,7 @@
  */
 
 import { logger } from "../core/logger";
-import type { AsfData, AsfFrame } from "../resource/asf";
+import type { AsfData, AsfFrame } from "../resource/format/asf";
 import { getWasmModule } from "./wasm-manager";
 import type { WasmModule } from "./wasm-manager";
 

@@ -15,7 +15,7 @@
  * 所有调试面板功能都从此模块导出
  */
 
-import { EngineAccess } from "./engine-access";
+import { EngineAccess } from "../core/engine-access";
 import { logger } from "../core/logger";
 import type { GameVariables } from "../core/types";
 import type { GuiManager } from "../gui/gui-manager";

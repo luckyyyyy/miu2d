@@ -11,9 +11,9 @@
  *    - 金钱/药品：1/2 概率
  */
 
-import { logger } from "../core/logger";
-import type { Vector2 } from "../core/types";
-import { Obj } from "../obj/obj";
+import { logger } from "../../core/logger";
+import type { Vector2 } from "../../core/types";
+import { Obj } from "../../obj/obj";
 
 /** 物品类型枚举*/
 export enum GoodType {

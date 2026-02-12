@@ -10,22 +10,22 @@
  */
 
 import type { AudioManager } from "../audio";
-import type { GameAPI } from "../core/game-api";
+import type { GameAPI } from "./api/game-api";
 import type { Vector2 } from "../core/types";
 import type { ScreenEffects } from "../renderer/screen-effects";
 import type { BuyManager } from "../gui/buy-manager";
 import type { GuiManager } from "../gui/gui-manager";
-import type { MemoListManager } from "./memo-list-manager";
-import type { TalkTextListManager } from "./talk-text-list";
-import type { PartnerListManager } from "./partner-list";
+import type { MemoListManager } from "../data/memo-list-manager";
+import type { TalkTextListManager } from "../data/talk-text-list";
+import type { PartnerListManager } from "../data/partner-list";
 import type { NpcManager } from "../npc";
 import type { ObjManager } from "../obj";
 import type { Player } from "../player/player";
-import type { ScriptContext } from "../script/commands/types";
-import type { TimerManager } from "../core/timer-manager";
+import type { ScriptContext } from "./commands/types";
+import type { TimerManager } from "../data/timer-manager";
 import type { WeatherManager } from "../weather";
-import { BlockingResolver } from "../script/blocking-resolver";
-import { createGameAPIImpl, gameAPIToScriptContext } from "./script-api";
+import { BlockingResolver } from "./blocking-resolver";
+import { createGameAPIImpl, gameAPIToScriptContext } from "./api";
 
 /**
  * Dependencies needed to create a script context

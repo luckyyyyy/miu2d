@@ -5,7 +5,7 @@
 
 import type { CharacterConfig, Vector2 } from "../core/types";
 import type { CharacterKind, RelationType } from "../core/types";
-import type { NpcSaveItem } from "../runtime/storage";
+import type { NpcSaveItem } from "../storage/storage";
 import type { Npc } from "./npc";
 
 /** NPC 的额外状态（不属于 CharacterConfig 的部分） */

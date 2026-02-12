@@ -11,8 +11,8 @@
  * - 多发飞行物（LineMove、SectorMove 等）
  */
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { AsfData } from "@miu2d/engine/resource/asf";
-import { getFrameCanvas } from "@miu2d/engine/resource/asf";
+import type { AsfData } from "@miu2d/engine/resource/format/asf";
+import { getFrameCanvas } from "@miu2d/engine/resource/format/asf";
 import { initWasm } from "@miu2d/engine/wasm/wasm-manager";
 import {
   getDirection8,

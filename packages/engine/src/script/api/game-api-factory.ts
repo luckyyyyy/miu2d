@@ -2,13 +2,13 @@
  * GameAPI Factory - Creates a complete GameAPI from ScriptContextDependencies
  */
 
-import type { GameAPI } from "../../core/game-api";
+import type { GameAPI } from "./game-api";
 import type { ScriptContextDependencies } from "../script-context-factory";
 import { ResourcePath } from "../../resource/resource-paths";
 import type { Npc } from "../../npc";
 import type { Player } from "../../player/player";
 import type { ScriptCommandContext } from "./types";
-import type { BlockingResolver } from "../../script/blocking-resolver";
+import type { BlockingResolver } from "../blocking-resolver";
 
 import { createPlayerAPI } from "./player-api";
 import { createNpcAPI } from "./npc-api";

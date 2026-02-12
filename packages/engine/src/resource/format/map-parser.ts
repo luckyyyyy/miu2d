@@ -8,11 +8,11 @@
  * - Tile 属性（障碍类型、陷阱索引）
  */
 
-import { logger } from "../core/logger";
-import type { JxqyMapData, MapMpcIndex, MapTileInfo } from "../map/types";
+import { logger } from "../../core/logger";
+import type { JxqyMapData, MapMpcIndex, MapTileInfo } from "../../map/types";
 import { getLittleEndianInt, readNullTerminatedString } from "./binary-utils";
 import { getTextDecoder } from "./encoding";
-import { resourceLoader } from "./resource-loader";
+import { resourceLoader } from "../resource-loader";
 
 /**
  * Parse a .map file buffer into JxqyMapData

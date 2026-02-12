@@ -6,7 +6,7 @@
  */
 
 import { logger } from "../core/logger";
-import { setZstdDecompressor } from "../resource/mmf";
+import { setZstdDecompressor } from "../resource/format/mmf";
 
 // WASM 模块类型定义
 interface WasmAsfHeader {

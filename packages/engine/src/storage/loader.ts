@@ -25,7 +25,7 @@ import type { AudioManager } from "../audio";
 import { logger } from "../core/logger";
 import type { ScreenEffects } from "../renderer/screen-effects";
 import type { GuiManager } from "../gui/gui-manager";
-import type { MemoListManager } from "./memo-list-manager";
+import type { MemoListManager } from "../data/memo-list-manager";
 import type { MapBase } from "../map/map-base";
 import type { NpcManager } from "../npc";
 import type { ObjManager } from "../obj";

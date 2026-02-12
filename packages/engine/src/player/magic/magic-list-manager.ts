@@ -9,7 +9,7 @@ import { getMagic, getMagicAtLevel, preloadMagicAsf } from "../../magic/magic-lo
 import type { MagicData, MagicItemInfo } from "../../magic/types";
 import { createDefaultMagicItemInfo } from "../../magic/types";
 import { getGameConfig } from "../../resource/resource-loader";
-import { loadAsf } from "../../resource/asf";
+import { loadAsf } from "../../resource/format/asf";
 
 /**
  * 武功经验配置

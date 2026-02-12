@@ -8,7 +8,7 @@
  */
 
 import type { Character } from "../../character";
-import { PathType } from "../../core/path-finder";
+import { PathType } from "../../utils/path-finder";
 import { ActionType, CharacterKind, CharacterState } from "../../core/types";
 import type { Vector2 } from "../../core/types";
 import type { Npc } from "../npc";

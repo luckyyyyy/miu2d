@@ -21,7 +21,7 @@ import type { Npc, NpcManager } from "../npc";
 import type { Obj } from "../obj/obj";
 import type { Player } from "../player/player";
 import { getViewTileDistance, pixelToTile } from "../utils";
-import { findDistanceTileInDirection } from "../core/path-finder";
+import { findDistanceTileInDirection } from "../utils/path-finder";
 
 /**
  * Pending interaction target

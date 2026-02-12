@@ -14,9 +14,9 @@
  * moveAlongPath will convert tile positions to pixel positions for rendering.
  */
 
-import { distance, getDirectionFromVector, getNeighbors, tileToPixel } from "../utils";
-import { logger } from "./logger";
-import type { Vector2 } from "./types";
+import { distance, getDirectionFromVector, getNeighbors, tileToPixel } from "./";
+import { logger } from "../core/logger";
+import type { Vector2 } from "../core/types";
 
 /**
  * PathFinder.PathType enum

@@ -2,11 +2,11 @@
  * System APIs - Dialog, Variable, Input, Save, ScriptRunner implementations
  */
 
-import type { DialogAPI, VariableAPI, InputAPI, SaveAPI, ScriptRunnerAPI } from "../../core/game-api";
+import type { DialogAPI, VariableAPI, InputAPI, SaveAPI, ScriptRunnerAPI } from "./game-api";
 import type { ScriptCommandContext } from "./types";
 import { logger } from "../../core/logger";
 import { resolveScriptPath } from "../../resource/resource-paths";
-import { type BlockingResolver, BlockingEvent } from "../../script/blocking-resolver";
+import { type BlockingResolver, BlockingEvent } from "../blocking-resolver";
 
 export function createDialogAPI(ctx: ScriptCommandContext, resolver: BlockingResolver): DialogAPI {
   const { guiManager, talkTextList } = ctx;

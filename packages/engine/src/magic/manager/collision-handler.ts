@@ -7,7 +7,7 @@
 
 import type { CharacterBase } from "../../character/base";
 import type { Character } from "../../character/character";
-import { getCharacterDeathExp } from "../../core/effect-calc";
+import { getCharacterDeathExp } from "../effect-calc";
 import { EngineAccess } from "../../core/engine-access";
 import { logger } from "../../core/logger";
 import {
@@ -15,7 +15,7 @@ import {
   bouncingAtWall,
   findDistanceTileInDirection,
   findNeighborInDirection,
-} from "../../core/path-finder";
+} from "../../utils/path-finder";
 import type { Vector2 } from "../../core/types";
 import type { Npc, NpcManager } from "../../npc";
 import { isEnemy } from "../../npc/npc-manager";

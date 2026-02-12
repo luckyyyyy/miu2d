@@ -7,7 +7,7 @@
 import { ResourcePath, resolveScriptPath } from "../resource/resource-paths";
 import { logger } from "../core/logger";
 import type { Vector2 } from "../core/types";
-import { type AsfData, getFrameCanvas, getFrameIndex, loadAsf } from "../resource/asf";
+import { type AsfData, getFrameCanvas, getFrameIndex, loadAsf } from "../resource/format/asf";
 import { Sprite } from "../sprite/sprite";
 import type { IRenderer } from "../renderer/i-renderer";
 import { getObjConfigFromCache, type ObjConfig, type ObjResInfo } from "./obj-config-loader";

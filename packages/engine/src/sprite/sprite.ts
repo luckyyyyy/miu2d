@@ -12,7 +12,7 @@ import { getDirectionIndex, pixelToTile, tileToPixel } from "../utils";
 import { getOuterEdge } from "./edge-detection";
 import type { IRenderer } from "../renderer/i-renderer";
 import type { ColorFilter } from "../renderer/types";
-import { type AsfData, type AsfFrame, getFrameAtlasInfo, getFrameCanvas, getFrameIndex, loadAsf } from "../resource/asf";
+import { type AsfData, type AsfFrame, getFrameAtlasInfo, getFrameCanvas, getFrameIndex, loadAsf } from "../resource/format/asf";
 
 // ============= 全局精灵渲染颜色 =============
 // 替代原 Sprite.drawColor 静态属性，由 GameEngine 每帧更新

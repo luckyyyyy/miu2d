@@ -7,8 +7,8 @@
 
 import { ResourcePath } from "../resource/resource-paths";
 import { logger } from "../core/logger";
-import { loadMpcWithShadow } from "../resource/mpc";
-import { type AsfData, loadAsf } from "../resource/asf";
+import { loadMpcWithShadow } from "../resource/format/mpc";
+import { type AsfData, loadAsf } from "../resource/format/asf";
 import { getNpcResFromCache } from "../npc/npc-config-loader";
 
 // Re-export from iniParser for backward compatibility

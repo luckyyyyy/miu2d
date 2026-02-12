@@ -2,7 +2,7 @@
  * NpcAPI Implementation - Delegates to existing npcCommands logic
  */
 
-import type { NpcAPI } from "../../core/game-api";
+import type { NpcAPI } from "./game-api";
 import type { ScriptCommandContext } from "./types";
 import { isCharacterMoveEnd } from "./helpers";
 import { CharacterState } from "../../core/types";
@@ -10,7 +10,7 @@ import { ResourcePath } from "../../resource/resource-paths";
 import { logger } from "../../core/logger";
 import { tileToPixel } from "../../utils";
 import type { Character } from "../../character/character";
-import type { BlockingResolver } from "../../script/blocking-resolver";
+import type { BlockingResolver } from "../blocking-resolver";
 
 export function createNpcAPI(ctx: ScriptCommandContext, resolver: BlockingResolver): NpcAPI {
   const {

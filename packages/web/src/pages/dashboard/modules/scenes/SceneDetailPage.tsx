@@ -5,7 +5,7 @@
  * SceneDetailContent: 核心内容 — 地图预览 + 右侧 tab 面板（NPC/OBJ/脚本/陷阱）
  */
 import type { MiuMapData } from "@miu2d/engine/map/types";
-import { dtoToMiuMapData } from "@miu2d/engine/resource/mmf-dto";
+import { dtoToMiuMapData } from "@miu2d/engine/resource/format/mmf-dto";
 import type { SceneData, SceneNpcEntry, SceneObjEntry, NpcListItem, ObjListItem } from "@miu2d/types";
 import { NpcKindValues, NpcRelationValues, ObjKindValues } from "@miu2d/types";
 import type { MapMarker, MapViewerHandle, SidePanelTab } from "@miu2d/viewer";

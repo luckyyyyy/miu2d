@@ -11,8 +11,8 @@
  * - No engine internals leaked - only script-level operations
  */
 
-import type { SelectionOption, Vector2 } from "./types";
-import type { TalkTextListManager } from "../runtime/talk-text-list";
+import type { SelectionOption, Vector2 } from "../../core/types";
+import type { TalkTextListManager } from "../../data/talk-text-list";
 
 // ===== Top-level GameAPI =====
 

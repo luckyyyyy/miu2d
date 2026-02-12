@@ -2,12 +2,12 @@
  * Item APIs - Goods, Magic, Memo implementations
  */
 
-import type { GoodsAPI, MagicAPI, MemoAPI } from "../../core/game-api";
+import type { GoodsAPI, MagicAPI, MemoAPI } from "./game-api";
 import type { ScriptCommandContext } from "./types";
 import { logger } from "../../core/logger";
 import { getShopsData } from "../../resource/resource-loader";
 import { getNeighbors, tileToPixel } from "../../utils";
-import type { BlockingResolver } from "../../script/blocking-resolver";
+import type { BlockingResolver } from "../blocking-resolver";
 
 export function createGoodsAPI(ctx: ScriptCommandContext, resolver: BlockingResolver): GoodsAPI {
   const { player, guiManager, buyManager, goodsListManager, getCharacterByName } = ctx;

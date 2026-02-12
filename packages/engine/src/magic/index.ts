@@ -28,5 +28,9 @@ export { MagicManager, type MagicManagerDeps } from "./manager";
 
 // Passives System (被动效果 - 修炼武功)
 export * from "./passives";
+// Effect calculation (效果计算)
+export { getEffectAmount, getCharacterDeathExp, addMagicEffect, type IEffectCharacter } from "./effect-calc";
+// NOTE: MagicHandler is NOT re-exported here to avoid circular dependency.
+// Import directly: "@miu2d/engine/magic/magic-handler"
 // Types (includes MAGIC_BASE_SPEED)
 export * from "./types";

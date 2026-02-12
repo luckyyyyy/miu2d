@@ -20,8 +20,8 @@ import {
   setCameraSize,
   updateCamera,
 } from "@miu2d/engine/map";
-import type { AsfData } from "@miu2d/engine/resource/asf";
-import { getFrameAtlasInfo, getFrameCanvas, getFrameIndex } from "@miu2d/engine/resource/asf";
+import type { AsfData } from "@miu2d/engine/resource/format/asf";
+import { getFrameAtlasInfo, getFrameCanvas, getFrameIndex } from "@miu2d/engine/resource/format/asf";
 import { getOuterEdge } from "@miu2d/engine/sprite/edge-detection";
 import { createRenderer, type IRenderer, type RendererBackend } from "@miu2d/engine/renderer";
 import {

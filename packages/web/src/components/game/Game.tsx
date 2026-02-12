@@ -10,7 +10,7 @@
  */
 
 import { GameEvents, type UIPanelChangeEvent } from "@miu2d/engine/core/game-events";
-import type { DebugManager } from "@miu2d/engine/core";
+import type { DebugManager } from "@miu2d/engine/utils/debug-manager";
 import type { GameEngine } from "@miu2d/engine/runtime/game-engine";
 import type React from "react";
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from "react";

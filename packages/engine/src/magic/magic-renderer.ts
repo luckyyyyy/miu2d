@@ -6,8 +6,8 @@
 
 import { ResourcePath } from "../resource/resource-paths";
 import { logger } from "../core/logger";
-import type { AsfData } from "../resource/asf";
-import { getFrameAtlasInfo, loadAsf } from "../resource/asf";
+import type { AsfData } from "../resource/format/asf";
+import { getFrameAtlasInfo, loadAsf } from "../resource/format/asf";
 import { getDirectionIndex } from "../utils/direction";
 import type { IRenderer } from "../renderer/i-renderer";
 import type { MagicSprite } from "./magic-sprite";

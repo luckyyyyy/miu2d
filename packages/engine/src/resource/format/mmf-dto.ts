@@ -9,7 +9,7 @@
  * - Frontend: receive mapParsed → dtoToMiuMapData → pass to MapViewer
  */
 
-import type { MiuMapData } from "../map/types";
+import type { MiuMapData } from "../../map/types";
 import type { MiuMapDataDto } from "@miu2d/types";
 
 // ============= Base64 helpers (works in both Node.js and browser) =============

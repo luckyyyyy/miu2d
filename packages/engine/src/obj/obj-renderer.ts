@@ -11,7 +11,7 @@
  */
 
 import type { Camera } from "../map/types";
-import { getFrameAtlasInfo, getFrameCanvas } from "../resource/asf";
+import { getFrameAtlasInfo, getFrameCanvas } from "../resource/format/asf";
 import { tileToPixel } from "../utils";
 import { getOuterEdge } from "../sprite/edge-detection";
 import type { IRenderer } from "../renderer/i-renderer";

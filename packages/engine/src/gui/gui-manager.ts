@@ -18,7 +18,7 @@ import {
   type UIVideoPlayEvent,
 } from "../core/game-events";
 import { logger } from "../core/logger";
-import type { MemoListManager } from "../runtime/memo-list-manager";
+import type { MemoListManager } from "../data/memo-list-manager";
 import type { GuiManagerState, SelectionOptionData } from "./types";
 import { createDefaultGuiState } from "./types";
 

@@ -3,7 +3,7 @@
 import { ResourcePath } from "../resource/resource-paths";
 import { logger } from "../core/logger";
 import type { Camera, MiuMapData, Mpc } from "./types";
-import { loadMpc } from "../resource/mpc";
+import { loadMpc } from "../resource/format/mpc";
 import type { IRenderer } from "../renderer/i-renderer";
 import { MapBase } from "./map-base";
 

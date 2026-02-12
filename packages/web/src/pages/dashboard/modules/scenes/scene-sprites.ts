@@ -4,8 +4,8 @@
 import { loadCharacterImage, loadNpcRes } from "@miu2d/engine/character";
 import { ResourcePath } from "@miu2d/engine/resource/resource-paths";
 import { getObjResFromCache } from "@miu2d/engine/obj/obj-config-loader";
-import type { AsfData } from "@miu2d/engine/resource/asf";
-import { getFrameCanvas, loadAsf } from "@miu2d/engine/resource/asf";
+import type { AsfData } from "@miu2d/engine/resource/format/asf";
+import { getFrameCanvas, loadAsf } from "@miu2d/engine/resource/format/asf";
 import type { ApiDataResponse } from "@miu2d/engine/resource/resource-loader";
 import { setGameData } from "@miu2d/engine/resource/resource-loader";
 import { setResourcePaths } from "@miu2d/engine/resource";

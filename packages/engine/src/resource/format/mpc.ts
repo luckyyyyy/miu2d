@@ -9,10 +9,10 @@
  * 注意：使用前需在应用启动时调用 await initWasm()
  */
 
-import { logger } from "../core/logger";
-import type { Mpc } from "../map/types";
-import { decodeMpcWasm } from "../wasm/wasm-mpc-decoder";
-import { resourceLoader } from "./resource-loader";
+import { logger } from "../../core/logger";
+import type { Mpc } from "../../map/types";
+import { decodeMpcWasm } from "../../wasm/wasm-mpc-decoder";
+import { resourceLoader } from "../resource-loader";
 import { loadShd, type Shd } from "./shd";
 
 /**

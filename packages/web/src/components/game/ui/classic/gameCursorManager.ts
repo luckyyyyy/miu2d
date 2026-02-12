@@ -1,6 +1,6 @@
 
 import { logger } from "@miu2d/engine/core/logger";
-import { type AsfData, getFrameCanvas, loadAsf } from "@miu2d/engine/resource/asf";
+import { type AsfData, getFrameCanvas, loadAsf } from "@miu2d/engine/resource/format/asf";
 
 // UI 配置
 const MOUSE_CONFIG = {

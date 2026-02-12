@@ -42,3 +42,7 @@ export { parseIni } from "./ini-parser";
 export { clamp, getSpeedRatio, lerp, normalizeVector, vectorLength } from "./math";
 // Neighbor utilities
 export { getNeighbors } from "./neighbors";
+// Path finding
+export * from "./path-finder";
+// NOTE: debug-manager is NOT re-exported here to avoid circular dependency.
+// It imports from magic/npc/player barrels. Import directly: "@miu2d/engine/utils/debug-manager"

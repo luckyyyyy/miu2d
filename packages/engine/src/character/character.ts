@@ -12,8 +12,8 @@
  */
 
 import { logger } from "../core/logger";
-import { getCharacterDeathExp } from "../core/effect-calc";
-import { canMoveInDirection, findNeighborInDirection as findNeighborByIndex, PathType } from "../core/path-finder";
+import { getCharacterDeathExp } from "../magic/effect-calc";
+import { canMoveInDirection, findNeighborInDirection as findNeighborByIndex, PathType } from "../utils/path-finder";
 import type { IRenderer } from "../renderer/i-renderer";
 import type { CharacterConfig, Vector2 } from "../core/types";
 import { CharacterState, RUN_SPEED_FOLD, TILE_WIDTH } from "../core/types";
