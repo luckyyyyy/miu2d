@@ -1128,6 +1128,25 @@ export class GameEngine implements IEngineContext {
       renderer.restore();
     }
 
+    // === 高亮边缘在灰度/着色之后绘制（不受颜色效果影响） ===
+    // C#: Globals.OutEdgeSprite 在所有效果之后绘制
+    // 必须在 grayscale restore 之后，否则边缘颜色会被灰度化
+    {
+      const interactionManager = this.gameManager.getInteractionManager();
+      const hoverTarget = interactionManager.getHoverTarget();
+      const edgeColor = interactionManager.getEdgeColor();
+      const mapR = this.mapRenderer;
+      if (hoverTarget.type === "npc") {
+        const npc = hoverTarget.npc;
+        if (npc.isSpritesLoaded() && npc.isVisible) {
+          npc.drawHighlight(renderer, mapR.camera.x, mapR.camera.y, edgeColor);
+        }
+      } else if (hoverTarget.type === "obj") {
+        const obj = hoverTarget.obj;
+        this.objRenderer.drawObjHighlight(renderer, obj, mapR.camera.x, mapR.camera.y, edgeColor);
+      }
+    }
+
     // 应用地图颜色叠加（非黑色的 ChangeMapColor 效果）
     // 使用 Color.Multiply 将颜色应用到地图和精灵
     if (screenEffects.isMapTinted()) {
@@ -1171,11 +1190,6 @@ export class GameEngine implements IEngineContext {
 
     // 获取玩家
     const player = this.gameManager.getPlayer();
-
-    // 获取交互管理器
-    const interactionManager = this.gameManager.getInteractionManager();
-    const hoverTarget = interactionManager.getHoverTarget();
-    const edgeColor = interactionManager.getEdgeColor();
 
     // === 性能优化：使用 Update 阶段预计算的视野内对象 ===
     // 中直接使用 NpcManager.NpcsInView, ObjManager.ObjsInView
@@ -1252,17 +1266,8 @@ export class GameEngine implements IEngineContext {
       }
     }
 
-    // === 高亮边缘在所有内容渲染完成后单独绘制（最高层） ===
-    // 末尾: if (Globals.OutEdgeSprite != null) { ... }
-    if (hoverTarget.type === "npc") {
-      const npc = hoverTarget.npc;
-      if (npc.isSpritesLoaded() && npc.isVisible) {
-        npc.drawHighlight(r, mapR.camera.x, mapR.camera.y, edgeColor);
-      }
-    } else if (hoverTarget.type === "obj") {
-      const obj = hoverTarget.obj;
-      this.objRenderer.drawObjHighlight(r, obj, mapR.camera.x, mapR.camera.y, edgeColor);
-    }
+    // 注意：高亮边缘不在这里绘制，移到 render() 中 grayscale restore 之后
+    // 否则在 ChangeMapColor(0,0,0) 灰度模式下边缘会被灰度化而不可见
   }
 
   // ============= 画布管理 =============

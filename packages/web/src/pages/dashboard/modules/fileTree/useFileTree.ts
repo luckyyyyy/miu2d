@@ -30,6 +30,7 @@ export function useFileTree({ gameId }: UseFileTreeOptions) {
   const [expandedState, setExpandedState] = useState<ExpandedState>(() => new Set());
   const [selectedNode, setSelectedNode] = useState<FlatFileTreeNode | null>(null);
   const [isRestoringUrl, setIsRestoringUrl] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   // Ref 保持最新 expandedState，在 async 回调中安全读取
   const expandedRef = useRef(expandedState);
@@ -153,7 +154,7 @@ export function useFileTree({ gameId }: UseFileTreeOptions) {
     return () => {
       aborted = true;
     };
-  }, [rootFiles, gameId, utils.file.list]);
+  }, [rootFiles, gameId, utils.file.list, refreshKey]);
 
   // === 从 URL 恢复选中 ===
   useEffect(() => {
@@ -340,6 +341,8 @@ export function useFileTree({ gameId }: UseFileTreeOptions) {
     if (!gameId) return;
     await utils.file.list.invalidate();
     await refetchRoot();
+    // 强制触发树重建，即使根目录数据未变（子目录上传场景）
+    setRefreshKey((k) => k + 1);
   }, [gameId, utils.file.list, refetchRoot]);
 
   return {
