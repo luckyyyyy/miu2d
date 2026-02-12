@@ -77,7 +77,7 @@ export async function buildGameData(gameSlug: string) {
 			resources: objResources,
 		},
 		players: playersList,
-		portraits: portraitEntries,
+		portraits: portraitEntries.map(e => ({ index: e.idx, asfFile: e.file })),
 		talks: talkEntries,
 	};
 }

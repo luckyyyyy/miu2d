@@ -10,9 +10,9 @@ interface DataRowProps {
   valueColor?: string;
 }
 
-export const DataRow: React.FC<DataRowProps> = ({ label, value, valueColor = "text-white/70" }) => (
+export const DataRow: React.FC<DataRowProps> = ({ label, value, valueColor = "text-[#d4d4d4]" }) => (
   <div className="flex justify-between text-[11px] py-px">
-    <span className="text-white/40">{label}</span>
+    <span className="text-[#969696]">{label}</span>
     <span className={`font-mono ${valueColor}`}>{value}</span>
   </div>
 );

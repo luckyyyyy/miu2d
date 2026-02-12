@@ -463,8 +463,8 @@ export function updateCamera(renderer: MapRenderer, deltaX: number, deltaY: numb
   const newX = Math.max(0, Math.min(camera.x + deltaX, mapData.mapPixelWidth - camera.width));
   const newY = Math.max(0, Math.min(camera.y + deltaY, mapData.mapPixelHeight - camera.height));
 
-  camera.x = Math.floor(newX);
-  camera.y = Math.floor(newY);
+  camera.x = Math.round(newX);
+  camera.y = Math.round(newY);
 }
 
 export function setCameraSize(renderer: MapRenderer, width: number, height: number): void {

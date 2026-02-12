@@ -1,49 +1,56 @@
 /**
- * MMF (Miu Map Format) parser
+ * MMF 辅助工具（服务端）
  *
- * Parses .mmf binary files into MiuMapData.
- * See docs/mmf-format.md for the full specification.
- *
- * Features:
- * - Compact MSF table (variable-length, UTF-8)
- * - Embedded trap table (no external Traps.ini needed)
- * - zstd-compressed tile data blob
- * - Extension chunk support (forward-compatible)
+ * 直接内联 MMF 解析/序列化逻辑（不依赖 @miu2d/engine，避免 nodenext 模块兼容问题）。
+ * 使用 node:zlib 的 zstd 支持进行压缩/解压。
+ * 提供 mmfData (base64 binary) ↔ MiuMapDataDto (JSON-safe) 双向转换。
  */
+import { zstdCompressSync, zstdDecompressSync } from "node:zlib";
+import type { MiuMapDataDto } from "@miu2d/types";
 
-import { logger } from "../core/logger";
-import type { MiuMapData, MsfEntry, TrapEntry } from "../map/types";
-import { resourceLoader } from "./resource-loader";
+// ── 内部类型（与 engine/map/types 保持一致） ──
 
-/**
- * Parse an MMF file buffer into MiuMapData
- */
-export function parseMMF(buffer: ArrayBuffer, mapPath?: string): MiuMapData | null {
+interface MsfEntry {
+  name: string;
+  looping: boolean;
+}
+
+interface TrapEntry {
+  trapIndex: number;
+  scriptPath: string;
+}
+
+interface MiuMapData {
+  mapColumnCounts: number;
+  mapRowCounts: number;
+  mapPixelWidth: number;
+  mapPixelHeight: number;
+  msfEntries: MsfEntry[];
+  trapTable: TrapEntry[];
+  layer1: Uint8Array;
+  layer2: Uint8Array;
+  layer3: Uint8Array;
+  barriers: Uint8Array;
+  traps: Uint8Array;
+}
+
+// ── MMF 解析 ──
+
+function parseMMF(buffer: ArrayBuffer): MiuMapData | null {
   const view = new DataView(buffer);
   const data = new Uint8Array(buffer);
 
-  if (data.length < 20) {
-    logger.error(`[MMF] File too small: ${data.length} bytes (path: ${mapPath || "unknown"})`);
-    return null;
-  }
+  if (data.length < 20) return null;
 
-  // 1. Preamble (8 bytes)
   const magic = String.fromCharCode(data[0], data[1], data[2], data[3]);
-  if (magic !== "MMF1") {
-    logger.error(`[MMF] Invalid magic: "${magic}" (expected "MMF1", path: ${mapPath || "unknown"})`);
-    return null;
-  }
+  if (magic !== "MMF1") return null;
 
   const version = view.getUint16(4, true);
   const flags = view.getUint16(6, true);
   let offset = 8;
 
-  if (version !== 1) {
-    logger.error(`[MMF] Unsupported version: ${version} (path: ${mapPath || "unknown"})`);
-    return null;
-  }
+  if (version !== 1) return null;
 
-  // 2. Map Header (12 bytes)
   const columns = view.getUint16(offset, true); offset += 2;
   const rows = view.getUint16(offset, true); offset += 2;
   const msfCount = view.getUint16(offset, true); offset += 2;
@@ -53,23 +60,17 @@ export function parseMMF(buffer: ArrayBuffer, mapPath?: string): MiuMapData | nu
   const mapPixelWidth = (columns - 1) * 64;
   const mapPixelHeight = (Math.floor((rows - 3) / 2) + 1) * 32;
 
-  // 3. MSF Table
   const decoder = new TextDecoder("utf-8");
   const msfEntries: MsfEntry[] = [];
-
   for (let i = 0; i < msfCount; i++) {
     if (offset >= data.length) break;
     const nameLen = data[offset++];
     const name = decoder.decode(data.slice(offset, offset + nameLen));
     offset += nameLen;
     const entryFlags = data[offset++];
-    msfEntries.push({
-      name,
-      looping: (entryFlags & 1) !== 0,
-    });
+    msfEntries.push({ name, looping: (entryFlags & 1) !== 0 });
   }
 
-  // 4. Trap Table
   const trapTable: TrapEntry[] = [];
   if (flags & 0x02) {
     for (let i = 0; i < trapCount; i++) {
@@ -82,44 +83,30 @@ export function parseMMF(buffer: ArrayBuffer, mapPath?: string): MiuMapData | nu
     }
   }
 
-  // 5. Skip extension chunks until END sentinel
+  // Skip extension chunks until END sentinel
   while (offset + 8 <= data.length) {
     const chunkId = String.fromCharCode(
-      data[offset], data[offset + 1], data[offset + 2], data[offset + 3]
+      data[offset], data[offset + 1], data[offset + 2], data[offset + 3],
     );
     const chunkLen = view.getUint32(offset + 4, true);
     offset += 8;
     if (chunkId === "END\0") break;
-    // Skip unknown chunks (forward compatible)
     offset += chunkLen;
   }
 
-  // 6. Decompress tile blob
+  // Decompress tile blob
   const compressed = data.slice(offset);
   let blob: Uint8Array;
-
   if (flags & 0x01) {
-    // zstd compressed - use WASM decoder or JS fallback
-    try {
-      blob = decompressZstd(compressed);
-    } catch (e) {
-      logger.error(`[MMF] zstd decompression failed:`, e);
-      return null;
-    }
+    const result = zstdDecompressSync(Buffer.from(compressed));
+    blob = new Uint8Array(result.buffer, result.byteOffset, result.byteLength);
   } else {
     blob = compressed;
   }
 
-  // 7. Parse layers from decompressed blob
   const totalTiles = columns * rows;
-  const expectedBlobSize = totalTiles * 8; // 3 layers × 2 + barrier + trap
-
-  if (blob.length < expectedBlobSize) {
-    logger.error(
-      `[MMF] Blob size mismatch: ${blob.length} < ${expectedBlobSize} expected (path: ${mapPath || "unknown"})`
-    );
-    return null;
-  }
+  const expectedBlobSize = totalTiles * 8;
+  if (blob.length < expectedBlobSize) return null;
 
   let blobOffset = 0;
   const layer1 = blob.slice(blobOffset, blobOffset + totalTiles * 2); blobOffset += totalTiles * 2;
@@ -128,57 +115,26 @@ export function parseMMF(buffer: ArrayBuffer, mapPath?: string): MiuMapData | nu
   const barriers = blob.slice(blobOffset, blobOffset + totalTiles); blobOffset += totalTiles;
   const traps = blob.slice(blobOffset, blobOffset + totalTiles);
 
-  logger.debug(
-    `[MMF] Parsed: ${columns}×${rows} tiles, ${msfEntries.length} MSF, ${trapTable.length} traps (path: ${mapPath || "unknown"})`
-  );
-
   return {
-    mapColumnCounts: columns,
-    mapRowCounts: rows,
-    mapPixelWidth,
-    mapPixelHeight,
-    msfEntries,
-    trapTable,
-    layer1,
-    layer2,
-    layer3,
-    barriers,
-    traps,
+    mapColumnCounts: columns, mapRowCounts: rows,
+    mapPixelWidth, mapPixelHeight,
+    msfEntries, trapTable,
+    layer1, layer2, layer3, barriers, traps,
   };
 }
 
-/**
- * Load an MMF map file from URL
- */
-export async function loadMMF(url: string): Promise<MiuMapData | null> {
-  try {
-    logger.debug(`[MMF] Fetching map from: ${url}`);
-    const buffer = await resourceLoader.loadBinary(url);
-    if (!buffer) {
-      logger.error(`[MMF] Failed to load: ${url}`);
-      return null;
-    }
-    return parseMMF(buffer, url);
-  } catch (error) {
-    logger.error(`[MMF] Error loading ${url}:`, error);
-    return null;
-  }
-}
+// ── MMF 序列化 ──
 
-/**
- * Serialize MiuMapData back into MMF binary format (inverse of parseMMF)
- */
-export function serializeMMF(mapData: MiuMapData): ArrayBuffer {
+function serializeMMF(mapData: MiuMapData): ArrayBuffer {
   const encoder = new TextEncoder();
   const totalTiles = mapData.mapColumnCounts * mapData.mapRowCounts;
 
-  // ── Calculate sizes ──
   let msfTableSize = 0;
   const encodedMsfNames: Uint8Array[] = [];
   for (const entry of mapData.msfEntries) {
     const nameBytes = encoder.encode(entry.name);
     encodedMsfNames.push(nameBytes);
-    msfTableSize += 1 + nameBytes.length + 1; // nameLen + name + flags
+    msfTableSize += 1 + nameBytes.length + 1;
   }
 
   let trapTableSize = 0;
@@ -186,11 +142,11 @@ export function serializeMMF(mapData: MiuMapData): ArrayBuffer {
   for (const entry of mapData.trapTable) {
     const pathBytes = encoder.encode(entry.scriptPath);
     encodedTrapPaths.push(pathBytes);
-    trapTableSize += 1 + 2 + pathBytes.length; // trapIndex + pathLen + path
+    trapTableSize += 1 + 2 + pathBytes.length;
   }
 
   // Compose uncompressed tile blob
-  const blobSize = totalTiles * 8; // 3 layers × 2 + barrier + trap
+  const blobSize = totalTiles * 8;
   const blob = new Uint8Array(blobSize);
   let blobOffset = 0;
   blob.set(mapData.layer1.subarray(0, totalTiles * 2), blobOffset); blobOffset += totalTiles * 2;
@@ -199,21 +155,13 @@ export function serializeMMF(mapData: MiuMapData): ArrayBuffer {
   blob.set(mapData.barriers.subarray(0, totalTiles), blobOffset); blobOffset += totalTiles;
   blob.set(mapData.traps.subarray(0, totalTiles), blobOffset);
 
-  // Compress
-  let compressedBlob: Uint8Array;
-  let useZstd = false;
-  if (_zstdCompress) {
-    compressedBlob = _zstdCompress(blob);
-    useZstd = true;
-  } else {
-    compressedBlob = blob; // fallback: no compression
-  }
+  // Compress with zstd
+  const result = zstdCompressSync(Buffer.from(blob));
+  const compressedBlob = new Uint8Array(result.buffer, result.byteOffset, result.byteLength);
 
-  // Flags
   const hasTraps = mapData.trapTable.length > 0;
-  const flags = (useZstd ? 0x01 : 0) | (hasTraps ? 0x02 : 0);
+  const flags = 0x01 | (hasTraps ? 0x02 : 0); // always zstd
 
-  // Total header size: preamble(8) + header(12) + msf + trap + end(8)
   const headerSize = 8 + 12 + msfTableSize + (hasTraps ? trapTableSize : 0) + 8;
   const totalSize = headerSize + compressedBlob.length;
 
@@ -222,20 +170,20 @@ export function serializeMMF(mapData: MiuMapData): ArrayBuffer {
   const out = new Uint8Array(buf);
   let offset = 0;
 
-  // 1. Preamble (8 bytes)
+  // Preamble
   out[0] = 0x4D; out[1] = 0x4D; out[2] = 0x46; out[3] = 0x31; // "MMF1"
-  view.setUint16(4, 1, true); // version
+  view.setUint16(4, 1, true);
   view.setUint16(6, flags, true);
   offset = 8;
 
-  // 2. Map Header (12 bytes)
+  // Map Header
   view.setUint16(offset, mapData.mapColumnCounts, true); offset += 2;
   view.setUint16(offset, mapData.mapRowCounts, true); offset += 2;
   view.setUint16(offset, mapData.msfEntries.length, true); offset += 2;
   view.setUint16(offset, mapData.trapTable.length, true); offset += 2;
-  view.setUint32(offset, 0, true); offset += 4; // reserved
+  view.setUint32(offset, 0, true); offset += 4;
 
-  // 3. MSF Table
+  // MSF Table
   for (let i = 0; i < mapData.msfEntries.length; i++) {
     const nameBytes = encodedMsfNames[i];
     out[offset++] = nameBytes.length;
@@ -243,7 +191,7 @@ export function serializeMMF(mapData: MiuMapData): ArrayBuffer {
     out[offset++] = mapData.msfEntries[i].looping ? 1 : 0;
   }
 
-  // 4. Trap Table
+  // Trap Table
   if (hasTraps) {
     for (let i = 0; i < mapData.trapTable.length; i++) {
       const entry = mapData.trapTable[i];
@@ -254,41 +202,69 @@ export function serializeMMF(mapData: MiuMapData): ArrayBuffer {
     }
   }
 
-  // 5. End Sentinel (8 bytes)
-  out[offset] = 0x45; out[offset + 1] = 0x4E; out[offset + 2] = 0x44; out[offset + 3] = 0x00; // "END\0"
+  // End Sentinel
+  out[offset] = 0x45; out[offset + 1] = 0x4E; out[offset + 2] = 0x44; out[offset + 3] = 0x00;
   view.setUint32(offset + 4, 0, true);
   offset += 8;
 
-  // 6. Compressed tile blob
+  // Compressed tile blob
   out.set(compressedBlob, offset);
 
   return buf;
 }
 
-// ============= zstd compression/decompression =============
+// ── DTO 转换 ──
 
-let _zstdDecompress: ((data: Uint8Array) => Uint8Array) | null = null;
-let _zstdCompress: ((data: Uint8Array) => Uint8Array) | null = null;
+function miuMapDataToDto(data: MiuMapData): MiuMapDataDto {
+  return {
+    mapColumnCounts: data.mapColumnCounts,
+    mapRowCounts: data.mapRowCounts,
+    mapPixelWidth: data.mapPixelWidth,
+    mapPixelHeight: data.mapPixelHeight,
+    msfEntries: data.msfEntries.map((e) => ({ name: e.name, looping: e.looping })),
+    trapTable: data.trapTable.map((e) => ({ trapIndex: e.trapIndex, scriptPath: e.scriptPath })),
+    layer1: Buffer.from(data.layer1).toString("base64"),
+    layer2: Buffer.from(data.layer2).toString("base64"),
+    layer3: Buffer.from(data.layer3).toString("base64"),
+    barriers: Buffer.from(data.barriers).toString("base64"),
+    traps: Buffer.from(data.traps).toString("base64"),
+  };
+}
+
+function dtoToMiuMapData(dto: MiuMapDataDto): MiuMapData {
+  return {
+    mapColumnCounts: dto.mapColumnCounts,
+    mapRowCounts: dto.mapRowCounts,
+    mapPixelWidth: dto.mapPixelWidth,
+    mapPixelHeight: dto.mapPixelHeight,
+    msfEntries: dto.msfEntries.map((e) => ({ name: e.name, looping: e.looping })),
+    trapTable: dto.trapTable.map((e) => ({ trapIndex: e.trapIndex, scriptPath: e.scriptPath })),
+    layer1: new Uint8Array(Buffer.from(dto.layer1, "base64")),
+    layer2: new Uint8Array(Buffer.from(dto.layer2, "base64")),
+    layer3: new Uint8Array(Buffer.from(dto.layer3, "base64")),
+    barriers: new Uint8Array(Buffer.from(dto.barriers, "base64")),
+    traps: new Uint8Array(Buffer.from(dto.traps, "base64")),
+  };
+}
+
+// ── 公共 API ──
 
 /**
- * Set the zstd decompression function.
- * Should be called at engine init with the actual zstd implementation.
+ * 将 mmfData (base64 binary) 解析为 MiuMapDataDto (JSON-safe)
  */
-export function setZstdDecompressor(fn: (data: Uint8Array) => Uint8Array): void {
-  _zstdDecompress = fn;
+export function parseMmfToDto(mmfBase64: string): MiuMapDataDto | null {
+  const binary = Buffer.from(mmfBase64, "base64");
+  const arrayBuffer = binary.buffer.slice(binary.byteOffset, binary.byteOffset + binary.byteLength);
+  const mapData = parseMMF(arrayBuffer);
+  if (!mapData) return null;
+  return miuMapDataToDto(mapData);
 }
 
 /**
- * Set the zstd compression function.
- * Should be called at engine/server init with the actual zstd implementation.
+ * 将 MiuMapDataDto (JSON) 序列化为 mmfData (base64 binary)
  */
-export function setZstdCompressor(fn: (data: Uint8Array) => Uint8Array): void {
-  _zstdCompress = fn;
-}
-
-function decompressZstd(data: Uint8Array): Uint8Array {
-  if (_zstdDecompress) {
-    return _zstdDecompress(data);
-  }
-  throw new Error("[MMF] No zstd decompressor registered. Call setZstdDecompressor() at engine init.");
+export function serializeDtoToMmf(dto: MiuMapDataDto): string {
+  const mapData = dtoToMiuMapData(dto);
+  const buffer = serializeMMF(mapData);
+  return Buffer.from(buffer).toString("base64");
 }

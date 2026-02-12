@@ -120,19 +120,21 @@ export function FileManager() {
     loadTree();
   }, [rootFiles, currentGame?.id, utils.file.list]); // refreshVersion is intentionally used to force re-run
 
-  // 从 URL 恢复选中状态
+  // 从 URL 恢复选中状态：展开路径上的所有目录，并选中目标文件
   useEffect(() => {
     if (!currentGame?.id || !initialFilePath || hasRestoredFromUrl || treeNodes.length === 0) return;
 
     const restoreFromUrl = async () => {
-      // 解析路径，例如 "ini/magic/player.ini" -> ["ini", "magic", "player.ini"]
+      // 解析路径，例如 "/map/map_001_xxx.mmf" -> ["map", "map_001_xxx.mmf"]
       const pathParts = initialFilePath.split("/").filter(Boolean);
       if (pathParts.length === 0) return;
 
-      // 递归查找并展开路径
       let currentParentId: string | null = null;
       let currentNodes = treeNodes;
       const expandIds: string[] = [];
+
+      // 用于就地更新 treeNodes 中已加载的子节点
+      const loadedChildren = new Map<string, FileTreeNode[]>();
 
       for (let i = 0; i < pathParts.length; i++) {
         const part = pathParts[i];
@@ -141,14 +143,18 @@ export function FileManager() {
         // 在当前层级查找节点
         let foundNode = currentNodes.find((n) => n.name === part);
 
-        // 如果没找到，可能需要先加载父目录
-        if (!foundNode && currentParentId) {
+        // 没找到则尝试从服务端加载
+        if (!foundNode) {
           try {
             const children = await utils.file.list.fetch({
               gameId: currentGame.id,
               parentId: currentParentId,
             });
-            currentNodes = fileNodesToTreeNodes(children, i);
+            const childNodes = fileNodesToTreeNodes(children, i);
+            currentNodes = childNodes;
+            if (currentParentId) {
+              loadedChildren.set(currentParentId, childNodes);
+            }
             foundNode = currentNodes.find((n) => n.name === part);
           } catch {
             break;
@@ -158,8 +164,28 @@ export function FileManager() {
         if (!foundNode) break;
 
         if (isLast) {
-          // 最后一个节点，选中它
-          // 更新展开状态（展开所有父目录）
+          // 目标节点：更新树、展开状态、选中状态
+
+          // 递归更新 treeNodes，将已加载的子节点嵌入树中
+          const updateTreeWithLoaded = (nodes: FileTreeNode[]): FileTreeNode[] => {
+            return nodes.map((n) => {
+              const loaded = loadedChildren.get(n.id);
+              if (loaded) {
+                return {
+                  ...n,
+                  isLoaded: true,
+                  children: updateTreeWithLoaded(loaded),
+                };
+              }
+              if (n.children) {
+                return { ...n, children: updateTreeWithLoaded(n.children) };
+              }
+              return n;
+            });
+          };
+          setTreeNodes((prev) => updateTreeWithLoaded(prev));
+
+          // 展开所有父目录
           setExpandedState((prev) => {
             const next = new Set(prev);
             for (const id of expandIds) {
@@ -168,7 +194,7 @@ export function FileManager() {
             return next;
           });
 
-          // 设置选中状态
+          // 选中目标节点
           setSelectedNode({
             ...foundNode,
             isExpanded: false,
@@ -176,7 +202,6 @@ export function FileManager() {
             flatIndex: 0,
           } as FlatFileTreeNode);
         } else if (foundNode.isDirectory) {
-          // 中间节点，记录展开ID并继续
           expandIds.push(foundNode.id);
           currentParentId = foundNode.id;
 
@@ -187,7 +212,9 @@ export function FileManager() {
                 gameId: currentGame.id,
                 parentId: foundNode.id,
               });
-              currentNodes = fileNodesToTreeNodes(children, i + 1);
+              const childNodes = fileNodesToTreeNodes(children, i + 1);
+              loadedChildren.set(foundNode.id, childNodes);
+              currentNodes = childNodes;
             } catch {
               break;
             }
@@ -195,14 +222,8 @@ export function FileManager() {
             currentNodes = foundNode.children;
           }
         } else {
-          // 中间节点是文件，无法继续
           break;
         }
-      }
-
-      // 触发刷新以加载展开的目录
-      if (expandIds.length > 0) {
-        setRefreshVersion((v) => v + 1);
       }
 
       setHasRestoredFromUrl(true);

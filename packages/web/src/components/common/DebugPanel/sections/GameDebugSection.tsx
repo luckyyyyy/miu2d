@@ -148,8 +148,8 @@ export const GameDebugSection: React.FC<GameDebugSectionProps> = ({
             onClick={onToggleGodMode}
             className={`flex-1 px-2 py-1 text-[11px] border ${
               isGodMode
-                ? "bg-orange-600 hover:bg-orange-500 text-white border-orange-500"
-                : "bg-white/5 hover:bg-white/10 text-white/70 border-white/10"
+                ? "bg-[#f59e0b] hover:bg-[#fbbf24] text-white border-[#f59e0b]"
+                : "bg-[#3c3c3c] hover:bg-[#505050] text-[#d4d4d4] border-[#505050]"
             }`}
           >
             {isGodMode ? "无敌中" : "无敌"}
@@ -157,14 +157,14 @@ export const GameDebugSection: React.FC<GameDebugSectionProps> = ({
           <button
             type="button"
             onClick={onKillAllEnemies}
-            className={`${btnClass} flex-1 text-red-400`}
+            className={`${btnClass} flex-1 text-[#f87171]`}
           >
             秒杀
           </button>
           <button
             type="button"
             onClick={onReduceLife}
-            className={`${btnClass} flex-1 text-red-400`}
+            className={`${btnClass} flex-1 text-[#f87171]`}
           >
             扣血
           </button>
@@ -204,7 +204,7 @@ export const GameDebugSection: React.FC<GameDebugSectionProps> = ({
               const a = Number.parseInt(moneyAmount, 10);
               if (!Number.isNaN(a)) onAddMoney(a);
             }}
-            className={`${btnClass} w-20 flex-shrink-0 text-amber-400`}
+            className={`${btnClass} w-20 flex-shrink-0 text-[#fb923c]`}
           >
             添加金钱
           </button>
@@ -285,12 +285,12 @@ export const GameDebugSection: React.FC<GameDebugSectionProps> = ({
         {/* 分隔线 + 武功配置重载 */}
         {onReloadMagicConfig && (
           <>
-            <hr className="border-white/10 my-2" />
+            <hr className="border-[#2d2d2d] my-2" />
             <button
               type="button"
               onClick={handleReloadMagicConfig}
               disabled={isReloadingMagic}
-              className={`${btnClass} w-full text-cyan-400`}
+              className={`${btnClass} w-full text-[#93c5fd]`}
             >
               {isReloadingMagic ? "重载中..." : "武功配置重载"}
             </button>

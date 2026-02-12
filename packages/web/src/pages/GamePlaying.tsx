@@ -17,13 +17,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { GameHandle } from "../components";
 import {
   DebugPanel,
-  FloatingPanel,
+  DockedPanel,
   Game,
   GameCursor,
   GameMenuPanel,
   MobileControls,
   TouchDragIndicator,
 } from "../components";
+import { VideoPlayer } from "../components/game/ui/classic";
 import type { ToolbarButton } from "../components";
 import type { MenuTab } from "../components/game/GameMenuPanel";
 import type { UITheme } from "../components/game/ui";
@@ -318,99 +319,106 @@ export function GamePlaying({
 
   return (
     <>
-      {/* Game Area */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <div
-          ref={gameAreaRef}
-          className={`flex-1 flex items-center justify-center relative bg-black ${isMobile ? "overflow-hidden" : ""}`}
+      {/* Game Area + Docked Debug Panel */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* 调试面板 - 左侧固定 */}
+        <DockedPanel
+          panelId="debug"
+          visible={showDebug}
+          onClose={() => setShowDebug(false)}
+          title="调试面板"
+          defaultWidth={420}
         >
-          {/* 游戏光标 */}
-          {!isMobile && <GameCursor enabled={true} containerRef={gameAreaRef} />}
+          <DebugPanel
+            isGodMode={debugManager?.isGodMode() ?? false}
+            playerStats={debugManager?.getPlayerStats() ?? undefined}
+            playerPosition={debugManager?.getPlayerPosition() ?? undefined}
+            loadedResources={debugManager?.getLoadedResources() ?? undefined}
+            resourceStats={resourceLoader.getStats()}
+            performanceStats={getEngine()?.getPerformanceStats()}
+            gameVariables={debugManager?.getGameVariables()}
+            xiuLianMagic={debugManager?.getXiuLianMagic() ?? undefined}
+            triggeredTrapIds={debugManager?.getTriggeredTrapIds()}
+            currentScriptInfo={debugManager?.getCurrentScriptInfo() ?? undefined}
+            scriptHistory={debugManager?.getScriptHistory()}
+            onSetGameVariable={(name, value) => debugManager?.setGameVariable(name, value)}
+            onFullAll={() => debugManager?.fullAll()}
+            onSetLevel={(level) => debugManager?.setLevel(level)}
+            onAddMoney={(amount) => debugManager?.addMoney(amount)}
+            onToggleGodMode={() => debugManager?.toggleGodMode()}
+            onReduceLife={() => debugManager?.reduceLife()}
+            onKillAllEnemies={() => debugManager?.killAllEnemies()}
+            onExecuteScript={async (script) => {
+              const dm = getDebugManager();
+              if (!dm) return "DebugManager not initialized";
+              return await dm.executeScript(script);
+            }}
+            onAddItem={async (itemFile) => { await getDebugManager()?.addItem(itemFile); }}
+            onAddMagic={async (magicFile) => { await getDebugManager()?.addMagic(magicFile); }}
+            onAddAllMagics={async () => { await getDebugManager()?.addAllMagics(); }}
+            onXiuLianLevelUp={() => getDebugManager()?.xiuLianLevelUp()}
+            onXiuLianLevelDown={() => getDebugManager()?.xiuLianLevelDown()}
+            onReloadMagicConfig={async () => { if (gameSlug) await reloadGameData(gameSlug); }}
+          />
+        </DockedPanel>
 
-          {/* 移动端缩放 */}
+        {/* 游戏区域 */}
+        <div className="flex-1 flex flex-col overflow-hidden">
           <div
-            style={
-              isMobile
-                ? {
-                    transform: `scale(${windowSize.scale})`,
-                    transformOrigin: "center center",
-                    width: windowSize.width,
-                    height: windowSize.height,
-                  }
-                : undefined
-            }
+            ref={gameAreaRef}
+            className={`flex-1 flex items-center justify-center relative bg-black ${isMobile ? "overflow-hidden" : ""}`}
           >
-            {isDataReady ? (
-              <Game
-                ref={gameRef}
-                width={windowSize.width}
-                height={windowSize.height}
-                initialSaveData={initialSaveData}
-                onReturnToTitle={handleReturnToTitle}
-                uiTheme={uiTheme}
-                onOpenMenu={handleOpenMenu}
+            {/* 游戏光标 */}
+            {!isMobile && <GameCursor enabled={true} containerRef={gameAreaRef} />}
+
+            {/* 移动端缩放 */}
+            <div
+              style={
+                isMobile
+                  ? {
+                      transform: `scale(${windowSize.scale})`,
+                      transformOrigin: "center center",
+                      width: windowSize.width,
+                      height: windowSize.height,
+                    }
+                  : undefined
+              }
+            >
+              {isDataReady ? (
+                <Game
+                  ref={gameRef}
+                  width={windowSize.width}
+                  height={windowSize.height}
+                  initialSaveData={initialSaveData}
+                  onReturnToTitle={handleReturnToTitle}
+                  uiTheme={uiTheme}
+                  onOpenMenu={handleOpenMenu}
+                />
+              ) : (
+                <div className="flex items-center justify-center w-full h-full text-gray-400">
+                  加载游戏数据...
+                </div>
+              )}
+            </div>
+
+            {/* 移动端控制层 */}
+            {isMobile && (
+              <MobileControls
+                engine={getEngine() ?? null}
+                canvasSize={{ width: windowSize.width, height: windowSize.height }}
+                scale={windowSize.scale}
+                onOpenMenu={() => handleReturnToTitle()}
               />
-            ) : (
-              <div className="flex items-center justify-center w-full h-full text-gray-400">
-                加载游戏数据...
-              </div>
             )}
+
+            {/* 触摸拖拽指示器 */}
+            {isMobile && <TouchDragIndicator />}
+
+            {/* 视频播放器 - 放在 game area 层级，自适应可见区域 */}
+            {getEngine() && <VideoPlayer engine={getEngine()!} />}
           </div>
-
-          {/* 移动端控制层 */}
-          {isMobile && (
-            <MobileControls
-              engine={getEngine() ?? null}
-              canvasSize={{ width: windowSize.width, height: windowSize.height }}
-              scale={windowSize.scale}
-              onOpenMenu={() => handleReturnToTitle()}
-            />
-          )}
-
-          {/* 触摸拖拽指示器 */}
-          {isMobile && <TouchDragIndicator />}
         </div>
       </div>
-
-      {/* 调试面板 */}
-      <FloatingPanel
-        panelId="debug"
-        visible={showDebug}
-        onClose={() => setShowDebug(false)}
-        title="调试面板"
-        defaultWidth={480}
-      >
-        <DebugPanel
-          isGodMode={debugManager?.isGodMode() ?? false}
-          playerStats={debugManager?.getPlayerStats() ?? undefined}
-          playerPosition={debugManager?.getPlayerPosition() ?? undefined}
-          loadedResources={debugManager?.getLoadedResources() ?? undefined}
-          resourceStats={resourceLoader.getStats()}
-          performanceStats={getEngine()?.getPerformanceStats()}
-          gameVariables={debugManager?.getGameVariables()}
-          xiuLianMagic={debugManager?.getXiuLianMagic() ?? undefined}
-          triggeredTrapIds={debugManager?.getTriggeredTrapIds()}
-          currentScriptInfo={debugManager?.getCurrentScriptInfo() ?? undefined}
-          scriptHistory={debugManager?.getScriptHistory()}
-          onFullAll={() => debugManager?.fullAll()}
-          onSetLevel={(level) => debugManager?.setLevel(level)}
-          onAddMoney={(amount) => debugManager?.addMoney(amount)}
-          onToggleGodMode={() => debugManager?.toggleGodMode()}
-          onReduceLife={() => debugManager?.reduceLife()}
-          onKillAllEnemies={() => debugManager?.killAllEnemies()}
-          onExecuteScript={async (script) => {
-            const dm = getDebugManager();
-            if (!dm) return "DebugManager not initialized";
-            return await dm.executeScript(script);
-          }}
-          onAddItem={async (itemFile) => { await getDebugManager()?.addItem(itemFile); }}
-          onAddMagic={async (magicFile) => { await getDebugManager()?.addMagic(magicFile); }}
-          onAddAllMagics={async () => { await getDebugManager()?.addAllMagics(); }}
-          onXiuLianLevelUp={() => getDebugManager()?.xiuLianLevelUp()}
-          onXiuLianLevelDown={() => getDebugManager()?.xiuLianLevelDown()}
-          onReloadMagicConfig={async () => { if (gameSlug) await reloadGameData(gameSlug); }}
-        />
-      </FloatingPanel>
 
       {/* 游戏菜单面板（存档 + 设置） */}
       <GameMenuPanel

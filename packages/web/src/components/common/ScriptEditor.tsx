@@ -8,6 +8,7 @@
  * - 其它需要代码编辑的场景
  */
 import Editor, { loader } from "@monaco-editor/react";
+import type { OnMount } from "@monaco-editor/react";
 import { useEffect, useRef } from "react";
 import {
   JXQY_SCRIPT_LANGUAGE_ID,
@@ -36,6 +37,8 @@ export interface ScriptEditorProps {
   options?: Record<string, unknown>;
   /** CSS class */
   className?: string;
+  /** 编辑器挂载回调，可用于注册快捷键等 */
+  onMount?: OnMount;
 }
 
 let monacoInitialized = false;
@@ -54,6 +57,7 @@ export function ScriptEditor({
   wordWrap = "on",
   options,
   className,
+  onMount,
 }: ScriptEditorProps) {
   const initRef = useRef(false);
 
@@ -69,13 +73,14 @@ export function ScriptEditor({
   }, []);
 
   return (
-    <div className={className}>
+    <div className={className} style={{ position: "static", fontSize: `${fontSize}px` }}>
       <Editor
         height={height}
         language={language ?? JXQY_SCRIPT_LANGUAGE_ID}
         value={value}
         onChange={(v) => onChange?.(v ?? "")}
         theme="jxqy-script-theme"
+        onMount={onMount}
         options={{
           minimap: { enabled: minimap },
           fontSize,

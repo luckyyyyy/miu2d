@@ -18,7 +18,6 @@ import { useGameEngine } from "@/hooks";
 import { GameCanvas, type GameCanvasHandle } from "./GameCanvas";
 import { GameUI } from "./GameUI";
 import { LoadingOverlay } from "./LoadingOverlay";
-import { VideoPlayer } from "./ui/classic";
 
 /**
  * Game component public methods (exposed via ref)
@@ -175,10 +174,6 @@ export const Game = forwardRef<GameHandle, GameProps>(
           text={loadingText}
           error={error}
         />
-
-        {/* VideoPlayer must be mounted even during loading, because
-            PlayMovie can run in the NewGame script before loading finishes */}
-        {engine && <VideoPlayer engine={engine} />}
 
         {/* Game UI Components */}
         {!isLoading && <GameUI engine={engine} width={width} height={height} uiTheme={uiTheme} />}

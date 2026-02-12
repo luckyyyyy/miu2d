@@ -17,6 +17,7 @@ export * from "./asf";
 export * from "./cache-registry";
 export * from "./map";
 export * from "./mmf";
+export * from "./mmf-dto";
 export * from "./mpc";
 export * from "./resource-loader";
 export * from "./shd";

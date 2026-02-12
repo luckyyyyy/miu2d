@@ -1237,10 +1237,14 @@ export class NpcManager extends EngineAccess {
       }
 
       logger.log(`[NpcManager] Loading ${storedData.length} NPCs from groups: ${fileName}`);
+      const loadPromises: Promise<void>[] = [];
       for (const npcData of storedData) {
         if (npcData.isDeath && npcData.isDeathInvoked) continue;
-        await this.createNpcFromData(npcData as unknown as Record<string, unknown>);
+        loadPromises.push(
+          this.createNpcFromData(npcData as unknown as Record<string, unknown>).then(() => {})
+        );
       }
+      await Promise.all(loadPromises);
       this.fileName = fileName;
       logger.log(`[NpcManager] Loaded ${this.npcs.size} NPCs from groups: ${fileName}`);
       return true;

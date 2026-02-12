@@ -212,4 +212,27 @@ export interface IRenderer {
    * 用于复杂占位符绘制（文字、圆弧等）的渐进迁移回退
    */
   getContext2D(): CanvasRenderingContext2D | null;
+
+  // ============= 世界缩放 =============
+
+  /**
+   * 设置世界坐标缩放（低缩放率大地图支持）
+   *
+   * 当画布缓冲区尺寸（受 GPU 限制）小于世界可视区域时，
+   * 通过此方法设置世界坐标空间大小，渲染器会自动将世界坐标
+   * 缩放到画布缓冲区。在 beginFrame 之后、绘制之前调用。
+   *
+   * - Canvas2D: 内部 ctx.scale(canvasW/worldW, canvasH/worldH)
+   * - WebGL: 修改 u_resolution 为 worldW/worldH
+   *
+   * @param worldWidth  世界可视区域宽度（像素）
+   * @param worldHeight 世界可视区域高度（像素）
+   */
+  applyWorldScale(worldWidth: number, worldHeight: number): void;
+
+  /**
+   * 重置世界坐标缩放（恢复 1:1 画布坐标）
+   * 在 endFrame 之前调用。
+   */
+  resetWorldScale(): void;
 }

@@ -530,6 +530,7 @@ export {
   AdminListSavesInputSchema,
   AdminListSavesOutputSchema,
   AdminCreateSaveInputSchema,
+  AdminUpdateSaveInputSchema,
   AdminDeleteSaveInputSchema,
 } from "./save.js";
 export type {
@@ -544,23 +545,27 @@ export type {
   AdminListSavesInput,
   AdminListSavesOutput,
   AdminCreateSaveInput,
+  AdminUpdateSaveInput,
   AdminDeleteSaveInput,
 } from "./save.js";
 
 // 场景类型
 export {
   SceneItemKindEnum, SceneItemKindLabels,
-  SceneSchema, SceneListItemSchema,
+  SceneSchema, SceneListItemSchema, MiuMapDataDtoSchema,
   ListSceneInputSchema, GetSceneInputSchema, CreateSceneInputSchema,
   UpdateSceneInputSchema, DeleteSceneInputSchema,
-  ImportZoneEnum, ImportSceneFileInputSchema, ImportSceneFileResultSchema,
+  ImportSceneItemSchema, ImportSceneBatchInputSchema, ImportSceneBatchResultSchema,
+  ClearAllScenesInputSchema, ClearAllScenesResultSchema,
   parseMapFileName, classifyScriptFile, classifySaveFile, extractDisplayName,
   parseIniContent, parseNpcEntries, parseObjEntries, getSceneDataCounts,
 } from "./scene.js";
 export type {
   SceneItemKind, Scene, SceneListItem,
   SceneData, SceneNpcEntry, SceneObjEntry, SceneNpcData, SceneObjData,
+  MiuMapDataDto, MsfEntryDto, TrapEntryDto,
   ListSceneInput, GetSceneInput, CreateSceneInput,
   UpdateSceneInput, DeleteSceneInput,
-  ImportZone, ImportSceneFileInput, ImportSceneFileResult,
+  ImportSceneItem, ImportSceneBatchInput, ImportSceneBatchResult,
+  ClearAllScenesInput, ClearAllScenesResult,
 } from "./scene.js";

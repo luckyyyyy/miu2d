@@ -20,7 +20,7 @@ import { trpc } from "../../../lib/trpc";
 import { useDashboard } from "../DashboardContext";
 import { DashboardIcons } from "../icons";
 import { ContextMenu } from "../modules/fileTree/ContextMenu";
-import { ImportScenesModal } from "../modules/ScenesPages";
+import { ImportScenesModal } from "../modules/scenes";
 
 interface ContextMenuState {
   x: number;
@@ -469,10 +469,8 @@ function SceneKindGroup({
 
     const sceneData = (scene.data ?? {}) as SceneData;
     const newData: SceneData = { ...sceneData };
-    // 根据 kind 自动补后缀
     let fileName = newName.trim();
     if (kind === "script" || kind === "trap") {
-      if (!fileName.endsWith(".txt")) fileName += ".txt";
       const field = kind === "trap" ? "traps" : "scripts";
       if (sceneData[field]?.[fileName]) {
         toast.error("同名文件已存在");
@@ -480,14 +478,12 @@ function SceneKindGroup({
       }
       newData[field] = { ...(sceneData[field] ?? {}), [fileName]: "" };
     } else if (kind === "npc") {
-      if (!fileName.endsWith(".npc")) fileName += ".npc";
       if (sceneData.npc?.[fileName]) {
         toast.error("同名文件已存在");
         return;
       }
       newData.npc = { ...(sceneData.npc ?? {}), [fileName]: { key: fileName, entries: [] } };
     } else {
-      if (!fileName.endsWith(".obj")) fileName += ".obj";
       if (sceneData.obj?.[fileName]) {
         toast.error("同名文件已存在");
         return;
@@ -593,32 +589,33 @@ function SceneKindGroup({
   );
 }
 
-/** 构建保留 npcKey/objKey 的搜索参数 */
+/** 构建保留所有独立 key 的搜索参数 — npcKey / objKey / scriptKey / trapKey */
 function buildSearchParams(
   currentParams: URLSearchParams,
   kind: SceneItemKind,
-  key: string
+  key: string,
 ): string {
   const params = new URLSearchParams();
-  params.set("kind", kind);
 
+  // 保留所有现有的独立 key
+  const existingNpcKey = currentParams.get("npcKey");
+  const existingObjKey = currentParams.get("objKey");
+  const existingScriptKey = currentParams.get("scriptKey");
+  const existingTrapKey = currentParams.get("trapKey");
+  if (existingNpcKey) params.set("npcKey", existingNpcKey);
+  if (existingObjKey) params.set("objKey", existingObjKey);
+  if (existingScriptKey) params.set("scriptKey", existingScriptKey);
+  if (existingTrapKey) params.set("trapKey", existingTrapKey);
+
+  // 覆盖当前 kind 对应的 key
   if (kind === "npc") {
     params.set("npcKey", key);
-    // 保留现有的 objKey
-    const existingObjKey = currentParams.get("objKey");
-    if (existingObjKey) params.set("objKey", existingObjKey);
   } else if (kind === "obj") {
     params.set("objKey", key);
-    // 保留现有的 npcKey
-    const existingNpcKey = currentParams.get("npcKey");
-    if (existingNpcKey) params.set("npcKey", existingNpcKey);
-  } else {
-    // script/trap: 使用 key 参数，同时保留 npcKey/objKey
-    params.set("key", key);
-    const existingNpcKey = currentParams.get("npcKey");
-    if (existingNpcKey) params.set("npcKey", existingNpcKey);
-    const existingObjKey = currentParams.get("objKey");
-    if (existingObjKey) params.set("objKey", existingObjKey);
+  } else if (kind === "script") {
+    params.set("scriptKey", key);
+  } else if (kind === "trap") {
+    params.set("trapKey", key);
   }
 
   return params.toString();
@@ -640,6 +637,7 @@ function SceneKindItems({
   gameId: string;
   onRefetch: () => void;
 }) {
+  const { sceneId: activeSceneId } = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [confirmDeleteKey, setConfirmDeleteKey] = useState<string | null>(null);
@@ -708,14 +706,14 @@ function SceneKindItems({
 
       updateMutation.mutate({ gameId, id: sceneId, data: newData as Record<string, unknown> });
 
-      // 如果删除的恰好是当前正选中的子项，清除 URL 参数
-      const currentKind = searchParams.get("kind");
-      const currentKey = searchParams.get("key");
+      // 如果删除的恰好是当前正选中的子项，清除对应 URL 参数
       const currentNpcKey = searchParams.get("npcKey");
       const currentObjKey = searchParams.get("objKey");
+      const currentScriptKey = searchParams.get("scriptKey");
+      const currentTrapKey = searchParams.get("trapKey");
       if (
-        (kind === "script" && currentKind === "script" && currentKey === key) ||
-        (kind === "trap" && currentKind === "trap" && currentKey === key) ||
+        (kind === "script" && currentScriptKey === key) ||
+        (kind === "trap" && currentTrapKey === key) ||
         (kind === "npc" && currentNpcKey === key) ||
         (kind === "obj" && currentObjKey === key)
       ) {
@@ -739,7 +737,6 @@ function SceneKindItems({
       const newData: SceneData = { ...sceneData };
 
       if (kind === "script" || kind === "trap") {
-        if (!newKey.endsWith(".txt")) newKey += ".txt";
         const field = kind === "trap" ? "traps" : "scripts";
         const bucket = sceneData[field] ?? {};
         if (newKey !== oldKey && bucket[newKey]) {
@@ -749,7 +746,6 @@ function SceneKindItems({
         const { [oldKey]: content, ...rest } = bucket;
         newData[field] = { ...rest, [newKey]: content ?? "" };
       } else if (kind === "npc") {
-        if (!newKey.endsWith(".npc")) newKey += ".npc";
         const bucket = sceneData.npc ?? {};
         if (newKey !== oldKey && bucket[newKey]) {
           toast.error("同名文件已存在");
@@ -758,7 +754,6 @@ function SceneKindItems({
         const { [oldKey]: entry, ...rest } = bucket;
         newData.npc = { ...rest, [newKey]: entry ?? { key: newKey, entries: [] } };
       } else {
-        if (!newKey.endsWith(".obj")) newKey += ".obj";
         const bucket = sceneData.obj ?? {};
         if (newKey !== oldKey && bucket[newKey]) {
           toast.error("同名文件已存在");
@@ -807,7 +802,7 @@ function SceneKindItems({
           }}
         >
           <span className="text-[#666]">{DashboardIcons.file}</span>
-          <span className="truncate">{key.replace(/\.(txt|npc|obj)$/i, "")}</span>
+          <span className="truncate">{key}</span>
         </NavLink>
       )}
       {/* 删除确认 */}
@@ -851,7 +846,7 @@ function SceneKindItems({
             label: "重命名",
             onClick: () => {
               setRenamingKey(itemContextMenu.key);
-              setRenameValue(itemContextMenu.key.replace(/\.(txt|npc|obj)$/i, ""));
+              setRenameValue(itemContextMenu.key);
             },
           },
           { label: "删除", danger: true, onClick: () => setConfirmDeleteKey(itemContextMenu.key) },
@@ -859,29 +854,14 @@ function SceneKindItems({
       />
     ) : null;
 
-  // NPC/OBJ: 独立选中状态（npcKey/objKey 互不干扰）
-  if (kind === "npc" || kind === "obj") {
-    const paramName = kind === "npc" ? "npcKey" : "objKey";
-    const activeKey = searchParams.get(paramName);
-    return (
-      <>
-        {itemKeys.map((key) => {
-          const isActive = activeKey === key;
-          const qs = buildSearchParams(searchParams, kind, key);
-          return renderItem(key, isActive, qs);
-        })}
-        {renderContextMenu()}
-      </>
-    );
-  }
-
-  // Script/Trap: 每个文件显示一个链接
-  const activeKind = searchParams.get("kind");
-  const activeKey = searchParams.get("key");
+  // NPC/OBJ/Script/Trap: 统一使用独立 key 参数
+  const paramName =
+    kind === "npc" ? "npcKey" : kind === "obj" ? "objKey" : kind === "script" ? "scriptKey" : "trapKey";
+  const activeKey = searchParams.get(paramName);
   return (
     <>
       {itemKeys.map((key) => {
-        const isActive = activeKind === kind && activeKey === key;
+        const isActive = activeSceneId === sceneId && activeKey === key;
         const qs = buildSearchParams(searchParams, kind, key);
         return renderItem(key, isActive, qs);
       })}

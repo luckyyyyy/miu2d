@@ -34,6 +34,25 @@ const s3Config = {
 const bucket = process.env.MINIO_BUCKET || "miu2d";
 
 /**
+ * 公开访问的 S3 endpoint
+ * 开发环境下使用 /s3 前缀，由 Vite 代理转发到 MinIO
+ * 生产环境可设置为 CDN 或公网 MinIO 地址
+ */
+const s3PublicEndpoint = process.env.S3_PUBLIC_ENDPOINT || "/s3";
+
+/**
+ * 将 presigned URL 的内部 endpoint 替换为公开 endpoint
+ * 这样前端通过代理访问 MinIO，避免直连 localhost:9000
+ */
+function rewritePresignedUrl(url: string): string {
+	const internalEndpoint = s3Config.endpoint;
+	if (s3PublicEndpoint && url.startsWith(internalEndpoint)) {
+		return url.replace(internalEndpoint, s3PublicEndpoint);
+	}
+	return url;
+}
+
+/**
  * S3 客户端单例
  */
 let s3Client: S3Client | null = null;
@@ -147,7 +166,7 @@ export async function getDownloadUrl(
 		{ expiresIn }
 	);
 
-	return url;
+	return rewritePresignedUrl(url);
 }
 
 /**
@@ -170,7 +189,7 @@ export async function getUploadUrl(
 		{ expiresIn }
 	);
 
-	return url;
+	return rewritePresignedUrl(url);
 }
 
 /**

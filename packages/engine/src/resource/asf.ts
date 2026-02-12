@@ -74,7 +74,7 @@ export function getFrameCanvas(frame: AsfFrame): HTMLCanvasElement {
   const canvas = document.createElement("canvas");
   canvas.width = Math.max(1, frame.width);
   canvas.height = Math.max(1, frame.height);
-  const ctx = canvas.getContext("2d");
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
   if (ctx) ctx.putImageData(frame.imageData, 0, 0);
   frame.canvas = canvas;
   return canvas;

@@ -457,6 +457,24 @@ export class Canvas2DRenderer implements IRenderer {
     this.stats.spriteCount++;
   }
 
+  private _worldScaleApplied = false;
+
+  applyWorldScale(worldWidth: number, worldHeight: number): void {
+    if (!this.ctx) return;
+    const sx = this._width / worldWidth;
+    const sy = this._height / worldHeight;
+    if (Math.abs(sx - 1) < 1e-6 && Math.abs(sy - 1) < 1e-6) return;
+    this.ctx.save();
+    this.ctx.scale(sx, sy);
+    this._worldScaleApplied = true;
+  }
+
+  resetWorldScale(): void {
+    if (!this.ctx || !this._worldScaleApplied) return;
+    this.ctx.restore();
+    this._worldScaleApplied = false;
+  }
+
   private drawCanvasSource(
     ctx: CanvasRenderingContext2D,
     source: CanvasImageSource,

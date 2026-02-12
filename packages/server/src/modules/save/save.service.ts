@@ -326,6 +326,50 @@ export class SaveService {
 	}
 
 	/**
+	 * 管理员更新存档数据
+	 */
+	async adminUpdate(input: {
+		saveId: string;
+		name?: string;
+		data: Record<string, unknown>;
+	}, operatorId: string) {
+		const [existing] = await db
+			.select({ id: saves.id, gameId: saves.gameId })
+			.from(saves)
+			.where(eq(saves.id, input.saveId))
+			.limit(1);
+
+		if (!existing) {
+			throw new TRPCError({ code: "NOT_FOUND", message: "存档不存在" });
+		}
+
+		await verifyGameOrAdminAccess(existing.gameId, operatorId);
+
+		// 从 data 中提取元信息
+		const playerData = input.data.player as Record<string, unknown> | undefined;
+		const mapName = typeof input.data.mapFileName === "string" ? input.data.mapFileName : undefined;
+		const playerName = typeof playerData?.name === "string" ? playerData.name : undefined;
+		const level = typeof playerData?.level === "number" ? playerData.level : undefined;
+
+		const setValues: Record<string, unknown> = {
+			data: input.data,
+			updatedAt: new Date(),
+		};
+		if (input.name) setValues.name = input.name;
+		if (mapName !== undefined) setValues.mapName = mapName;
+		if (playerName !== undefined) setValues.playerName = playerName;
+		if (level !== undefined) setValues.level = level;
+
+		const [updated] = await db
+			.update(saves)
+			.set(setValues)
+			.where(eq(saves.id, input.saveId))
+			.returning();
+
+		return this.toOutput(updated);
+	}
+
+	/**
 	 * 管理员设置存档分享状态（可操作任何用户的存档）
 	 */
 	async adminSetShared(saveId: string, isShared: boolean, operatorId: string) {

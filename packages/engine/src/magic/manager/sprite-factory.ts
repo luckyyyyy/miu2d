@@ -246,6 +246,11 @@ export class SpriteFactory extends EngineAccess {
     const dir32Index = directionIndex * 4;
     const directions = getDirection32List();
 
+    if (dir32Index < 0 || dir32Index >= directions.length) {
+      logger.warn(`[SpriteFactory] addSectorMove: invalid dir32Index=${dir32Index}, origin=(${origin.x},${origin.y}), dest=(${destination.x},${destination.y})`);
+      return;
+    }
+
     let count = 1;
     if (magic.effectLevel > 0) {
       count += Math.floor((magic.effectLevel - 1) / 3);
@@ -265,8 +270,9 @@ export class SpriteFactory extends EngineAccess {
 
     // 两侧
     for (let i = 1; i <= count; i++) {
-      const leftIdx = (dir32Index + i * 2) % 32;
-      const rightIdx = (dir32Index + 32 - i * 2) % 32;
+      // JS % 对负数保留符号，需要用 ((x % n) + n) % n 实现数学取模
+      const leftIdx = ((dir32Index + i * 2) % 32 + 32) % 32;
+      const rightIdx = ((dir32Index + 32 - i * 2) % 32 + 32) % 32;
 
       const leftDir = directions[leftIdx];
       const rightDir = directions[rightIdx];
@@ -470,6 +476,11 @@ export class SpriteFactory extends EngineAccess {
     const dir32Index = directionIndex * 4;
     const directions = getDirection32List();
 
+    if (dir32Index < 0 || dir32Index >= directions.length) {
+      logger.warn(`[SpriteFactory] addRandomSectorMove: invalid dir32Index=${dir32Index}`);
+      return;
+    }
+
     let count = 1;
     if (magic.effectLevel > 0) {
       count += Math.floor((magic.effectLevel - 1) / 3);
@@ -489,8 +500,9 @@ export class SpriteFactory extends EngineAccess {
 
     // 两侧
     for (let i = 1; i <= count; i++) {
-      const leftIdx = (dir32Index + i * 2) % 32;
-      const rightIdx = (dir32Index + 32 - i * 2) % 32;
+      // JS % 对负数保留符号，需要用 ((x % n) + n) % n 实现数学取模
+      const leftIdx = ((dir32Index + i * 2) % 32 + 32) % 32;
+      const rightIdx = ((dir32Index + 32 - i * 2) % 32 + 32) % 32;
 
       const leftDir = directions[leftIdx];
       const rightDir = directions[rightIdx];

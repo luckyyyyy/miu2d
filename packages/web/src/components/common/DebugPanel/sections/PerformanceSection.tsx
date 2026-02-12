@@ -15,9 +15,9 @@ interface PerformanceSectionProps {
  * 获取 FPS 对应的颜色
  */
 function getFpsColor(fps: number): string {
-  if (fps >= 55) return "text-green-400";
-  if (fps >= 30) return "text-yellow-400";
-  return "text-red-400";
+  if (fps >= 55) return "text-[#4ade80]";
+  if (fps >= 30) return "text-[#fbbf24]";
+  return "text-[#f87171]";
 }
 
 /**
@@ -33,11 +33,11 @@ function formatTime(ms: number): string {
 function getRendererLabel(type: string): { label: string; color: string } {
   switch (type) {
     case "webgl":
-      return { label: "WebGL 2", color: "text-green-400" };
+      return { label: "WebGL 2", color: "text-[#4ade80]" };
     case "canvas2d":
-      return { label: "Canvas 2D", color: "text-yellow-400" };
+      return { label: "Canvas 2D", color: "text-[#fbbf24]" };
     default:
-      return { label: "None", color: "text-white/40" };
+      return { label: "None", color: "text-[#969696]" };
   }
 }
 
@@ -74,58 +74,58 @@ export const PerformanceSection: React.FC<PerformanceSectionProps> = ({ performa
       <div className="space-y-2">
         {/* 渲染器信息 */}
         <div className="space-y-px">
-          <div className="text-[10px] text-white/40 uppercase">渲染器</div>
+          <div className="text-[10px] text-[#969696] uppercase">渲染器</div>
           <DataRow label="后端" value={renderer.label} valueColor={renderer.color} />
-          <DataRow label="Draw Calls" value={drawCalls} valueColor="text-white/70" />
-          <DataRow label="Sprites" value={spriteCount} valueColor="text-cyan-400" />
-          <DataRow label="Rects" value={rectCount} valueColor="text-blue-400" />
-          <DataRow label="纹理切换" value={textureSwaps} valueColor="text-white/70" />
-          <DataRow label="纹理总数" value={textureCount} valueColor="text-white/70" />
+          <DataRow label="Draw Calls" value={drawCalls} valueColor="text-[#d4d4d4]" />
+          <DataRow label="Sprites" value={spriteCount} valueColor="text-[#93c5fd]" />
+          <DataRow label="Rects" value={rectCount} valueColor="text-[#60a5fa]" />
+          <DataRow label="纹理切换" value={textureSwaps} valueColor="text-[#d4d4d4]" />
+          <DataRow label="纹理总数" value={textureCount} valueColor="text-[#d4d4d4]" />
         </div>
 
         {/* FPS + 帧时间 */}
         <div className="space-y-px">
-          <div className="text-[10px] text-white/40 uppercase">帧率</div>
+          <div className="text-[10px] text-[#969696] uppercase">帧率</div>
           <DataRow label="FPS" value={`${fps}  (${fpsMin}~${fpsMax})`} valueColor={getFpsColor(fps)} />
           <DataRow label="平均 FPS" value={fpsAvg} valueColor={getFpsColor(fpsAvg)} />
           <DataRow
             label="帧时间"
             value={`${formatTime(frameTime)} (avg: ${formatTime(frameTimeAvg)})`}
-            valueColor={frameTime > 33 ? "text-red-400" : "text-white/70"}
+            valueColor={frameTime > 33 ? "text-[#f87171]" : "text-[#d4d4d4]"}
           />
         </div>
 
         {/* 阶段耗时 */}
         <div className="space-y-px">
-          <div className="text-[10px] text-white/40 uppercase">阶段耗时</div>
+          <div className="text-[10px] text-[#969696] uppercase">阶段耗时</div>
           <DataRow
             label="Update"
             value={`${formatTime(updateTime)} (avg: ${formatTime(updateTimeAvg)})`}
-            valueColor="text-white/50"
+            valueColor="text-[#969696]"
           />
           <DataRow
             label="Render"
             value={`${formatTime(renderTime)} (avg: ${formatTime(renderTimeAvg)})`}
-            valueColor="text-white/50"
+            valueColor="text-[#969696]"
           />
         </div>
 
         {/* 视野内对象 */}
         <div className="space-y-px">
-          <div className="text-[10px] text-white/40 uppercase">视野内对象</div>
-          <DataRow label="NPC" value={npcsInView} valueColor="text-cyan-400" />
-          <DataRow label="物体" value={objsInView} valueColor="text-blue-400" />
-          <DataRow label="武功精灵" value={magicSprites} valueColor="text-purple-400" />
+          <div className="text-[10px] text-[#969696] uppercase">视野内对象</div>
+          <DataRow label="NPC" value={npcsInView} valueColor="text-[#93c5fd]" />
+          <DataRow label="物体" value={objsInView} valueColor="text-[#60a5fa]" />
+          <DataRow label="武功精灵" value={magicSprites} valueColor="text-[#c084fc]" />
         </div>
 
         {/* 帧统计 */}
         <div className="space-y-px">
-          <div className="text-[10px] text-white/40 uppercase">帧统计</div>
-          <DataRow label="总帧数" value={totalFrames.toLocaleString()} valueColor="text-white/70" />
+          <div className="text-[10px] text-[#969696] uppercase">帧统计</div>
+          <DataRow label="总帧数" value={totalFrames.toLocaleString()} valueColor="text-[#d4d4d4]" />
           <DataRow
             label="丢帧"
             value={`${droppedFrames} (${dropRate}%)`}
-            valueColor={droppedFrames > 0 ? "text-yellow-400" : "text-green-400"}
+            valueColor={droppedFrames > 0 ? "text-[#fbbf24]" : "text-[#4ade80]"}
           />
         </div>
       </div>

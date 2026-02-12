@@ -19,16 +19,31 @@ interface ScriptInfoSectionProps {
 }
 
 // 复制脚本内容到剪贴板
+const copyToClipboard = (text: string): void => {
+  if (navigator.clipboard?.writeText) {
+    navigator.clipboard.writeText(text).catch(() => {
+      fallbackCopy(text);
+    });
+  } else {
+    fallbackCopy(text);
+  }
+};
+
+const fallbackCopy = (text: string): void => {
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  textarea.style.position = "fixed";
+  textarea.style.opacity = "0";
+  document.body.appendChild(textarea);
+  textarea.select();
+  document.execCommand("copy");
+  document.body.removeChild(textarea);
+};
+
 const copyScriptContent = (filePath: string, codes: string[]) => {
   const content = `// ${filePath}\n${codes.join("\n")}`;
-  navigator.clipboard
-    .writeText(content)
-    .then(() => {
-      logger.log("[DebugPanel] Script copied to clipboard");
-    })
-    .catch((err) => {
-      logger.error("Failed to copy:", err);
-    });
+  copyToClipboard(content);
+  logger.log("[DebugPanel] Script copied to clipboard");
 };
 
 export const ScriptInfoSection: React.FC<ScriptInfoSectionProps> = ({
@@ -87,7 +102,7 @@ export const ScriptInfoSection: React.FC<ScriptInfoSectionProps> = ({
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <div
-              className="text-[10px] text-cyan-400 font-mono break-all flex-1"
+              className="text-[10px] text-[#93c5fd] font-mono break-all flex-1"
               title={currentScriptInfo.filePath}
             >
               {currentScriptInfo.filePath}
@@ -97,13 +112,13 @@ export const ScriptInfoSection: React.FC<ScriptInfoSectionProps> = ({
               onClick={() =>
                 copyScriptContent(currentScriptInfo.filePath, currentScriptInfo.allCodes)
               }
-              className="text-white/40 hover:text-white/70 flex-shrink-0 p-0.5"
+              className="text-[#969696] hover:text-[#d4d4d4] flex-shrink-0 p-0.5"
               title="复制脚本内容"
             >
-              📋
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M4 4v-2h10v10h-2v2H2V4h2zm1-1H3v10h9V5h-1V3H5v0zm1-2v2h7v7h1V1H6z"/></svg>
             </button>
             {currentScriptInfo.isCompleted && (
-              <span className="text-[10px] text-green-400 flex-shrink-0">✓ 已完成</span>
+              <span className="text-[10px] text-[#4ade80] flex-shrink-0">✓ 已完成</span>
             )}
           </div>
           <DataRow
@@ -113,7 +128,7 @@ export const ScriptInfoSection: React.FC<ScriptInfoSectionProps> = ({
                 ? `已完成 (执行 ${currentScriptInfo.executedLines?.size ?? 0}/${currentScriptInfo.totalLines} 行)`
                 : `执行中 ${currentScriptInfo.currentLine + 1} / ${currentScriptInfo.totalLines} (已执行 ${currentScriptInfo.executedLines?.size ?? 0} 行)`
             }
-            valueColor={currentScriptInfo.isCompleted ? "text-green-400" : "text-yellow-400"}
+            valueColor={currentScriptInfo.isCompleted ? "text-[#4ade80]" : "text-[#fbbf24]"}
           />
           <ScriptCodeView
             codes={currentScriptInfo.allCodes}
@@ -121,33 +136,33 @@ export const ScriptInfoSection: React.FC<ScriptInfoSectionProps> = ({
             isCompleted={currentScriptInfo.isCompleted}
             executedLines={currentScriptInfo.executedLines}
             onExecuteLine={handleExecuteLine}
-            className="mt-1 bg-white/5 border border-white/10"
+            className="mt-1 bg-[#1e1e1e] border border-[#333]"
           />
         </div>
       ) : (
-        <div className="text-[11px] text-white/40 mb-2">无脚本执行中</div>
+        <div className="text-[11px] text-[#969696] mb-2">无脚本执行中</div>
       )}
 
       {/* 脚本历史 */}
       {hasHistory && (
         <>
-          <div className="text-[10px] text-white/40 mt-3 mb-1 border-t border-white/10 pt-2">
+          <div className="text-[10px] text-[#969696] mt-3 mb-1 border-t border-[#2d2d2d] pt-2">
             历史记录
           </div>
           <div
             className="space-y-0.5 max-h-48 overflow-y-auto"
-            style={{ scrollbarWidth: "thin", scrollbarColor: "#52525b transparent" }}
+            style={{ scrollbarWidth: "thin", scrollbarColor: "#424242 transparent" }}
           >
             {scriptHistory.map((item, idx) => (
               <div
                 key={`${item.filePath}-${item.timestamp}`}
-                className="flex items-center text-[10px] font-mono py-0.5 text-white/50 hover:bg-white/10 cursor-default"
+                className="flex items-center text-[10px] font-mono py-0.5 text-[#969696] hover:bg-[#2a2d2e] cursor-default"
                 onMouseEnter={(e) => handleScriptMouseEnter(idx, e)}
                 onMouseLeave={handleScriptMouseLeave}
               >
-                <span className="w-4 text-center text-white/25 mr-1">{idx + 1}</span>
-                <span className="flex-1 break-all text-cyan-400/70">{item.filePath}</span>
-                <span className="text-white/25 ml-1">
+                <span className="w-4 text-center text-[#7a7a7a] mr-1">{idx + 1}</span>
+                <span className="flex-1 break-all text-[#93c5fd]/70">{item.filePath}</span>
+                <span className="text-[#7a7a7a] ml-1">
                   ({item.executedLines?.size ?? 0}/{item.totalLines})
                 </span>
               </div>
@@ -170,7 +185,7 @@ export const ScriptInfoSection: React.FC<ScriptInfoSectionProps> = ({
               const historyItem = scriptHistory[hoveredScriptIndex];
               return (
                 <div
-                  className="fixed z-[9999] bg-white/5 backdrop-blur-2xl border border-white/20 shadow-2xl shadow-black/50 max-w-lg max-h-[60vh] overflow-auto rounded-xl transition-opacity duration-150 ring-1 ring-white/10"
+                  className="fixed z-[9999] bg-[#1e1e1e]/65 backdrop-blur-xl border border-white/[0.06] shadow-2xl shadow-black/60 max-w-lg max-h-[60vh] overflow-auto transition-opacity duration-150 rounded-lg"
                   style={{
                     left: Math.min(tooltipX, window.innerWidth - 520),
                     top,
@@ -190,11 +205,11 @@ export const ScriptInfoSection: React.FC<ScriptInfoSectionProps> = ({
                   }}
                   onMouseLeave={handleScriptMouseLeave}
                 >
-                  <div className="flex items-center px-3 py-2 border-b border-white/10 sticky top-0 bg-white/5 backdrop-blur-2xl">
-                    <span className="text-[11px] text-cyan-400 select-text flex-1 font-medium">
+                  <div className="flex items-center px-2 py-1 border-b border-white/[0.06] sticky top-0 bg-white/[0.05] rounded-t-lg">
+                    <span className="text-[11px] text-[#93c5fd] select-text flex-1 font-medium">
                       {historyItem.filePath}
                     </span>
-                    <span className="text-[10px] text-white/40 ml-2">
+                    <span className="text-[10px] text-white/25 ml-2">
                       (执行 {historyItem.executedLines?.size ?? 0}/{historyItem.totalLines} 行)
                     </span>
                     <button
@@ -203,10 +218,10 @@ export const ScriptInfoSection: React.FC<ScriptInfoSectionProps> = ({
                         e.stopPropagation();
                         copyScriptContent(historyItem.filePath, historyItem.allCodes);
                       }}
-                      className="text-white/40 hover:text-white/70 p-1 ml-2 hover:bg-white/10 rounded"
+                      className="text-[#969696] hover:text-[#d4d4d4] p-0.5 ml-1 hover:bg-white/10 rounded"
                       title="复制脚本内容"
                     >
-                      📋
+                      <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M4 4v-2h10v10h-2v2H2V4h2zm1-1H3v10h9V5h-1V3H5v0zm1-2v2h7v7h1V1H6z"/></svg>
                     </button>
                   </div>
                   <ScriptCodeView
@@ -215,6 +230,7 @@ export const ScriptInfoSection: React.FC<ScriptInfoSectionProps> = ({
                     isCompleted={true}
                     onExecuteLine={handleExecuteLine}
                     className="border-0"
+                    transparent
                   />
                 </div>
               );

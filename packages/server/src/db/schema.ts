@@ -417,6 +417,8 @@ export const scenes = pgTable("scenes", {
   name: text("name").notNull(),
   /** 地图文件名（如 map_003_武当山下.mmf） */
   mapFileName: text("map_file_name").notNull(),
+  /** MMF 地图二进制数据（base64 编码） */
+  mmfData: text("mmf_data"),
   /** 额外数据（JSONB，地图尺寸等元信息） */
   data: jsonb("data"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),

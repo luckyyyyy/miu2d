@@ -10,11 +10,13 @@ function getPortraitMap(): Map<number, string> {
   if (cachedMap) return cachedMap;
 
   const data = getPortraitsData();
+  if (!data || data.length === 0) {
+    // 数据尚未加载，不缓存空结果
+    return new Map<number, string>();
+  }
   cachedMap = new Map<number, string>();
-  if (data) {
-    for (const entry of data) {
-      cachedMap.set(entry.index, entry.asfFile);
-    }
+  for (const entry of data) {
+    cachedMap.set(entry.index, entry.asfFile);
   }
   return cachedMap;
 }

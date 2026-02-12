@@ -10,9 +10,12 @@ import type { AppRouter } from "@miu2d/server/trpc";
 export const trpc = createTRPCReact<AppRouter>();
 
 const getBaseUrl = () => {
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
   if (typeof window !== "undefined") {
-    // 浏览器环境
-    return import.meta.env.VITE_API_URL || "http://localhost:4000";
+    // 浏览器环境：使用当前 origin，走 Vite 代理
+    return window.location.origin;
   }
   return "http://localhost:4000";
 };

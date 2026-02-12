@@ -13,3 +13,4 @@ export { GoodsPicker, type GoodsPickerProps } from "./GoodsPicker";
 export { MagicPicker, type MagicPickerProps } from "./MagicPicker";
 export { NpcResourcePicker, type NpcResourcePickerProps } from "./NpcResourcePicker";
 export { ResourceListPicker, type ResourceListPickerProps, type ResourceListItem } from "./ResourceListPicker";
+export { EntitySelectDialog, type EntitySelectDialogProps } from "./EntitySelectDialog";

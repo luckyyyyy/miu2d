@@ -42,7 +42,7 @@ export {
   ScenesHomePage,
   SceneDetailPage,
   ImportScenesModal,
-} from "./modules/ScenesPages";
+} from "./modules/scenes";
 
 // 资源管理
 export {

@@ -129,11 +129,14 @@ export async function loadSpriteSet(
   let loaded = 0;
   const total = statesToLoad.length;
 
-  for (const { key, suffixes } of statesToLoad) {
-    spriteSet[key] = await loadAsfWithFallback(basePath, baseFileName, suffixes);
-    loaded++;
-    onProgress?.(loaded, total);
-  }
+  // 所有状态并行加载（各状态之间无依赖，fallback 逻辑在 loadAsfWithFallback 内部保持串行）
+  await Promise.all(
+    statesToLoad.map(async ({ key, suffixes }) => {
+      spriteSet[key] = await loadAsfWithFallback(basePath, baseFileName, suffixes);
+      loaded++;
+      onProgress?.(loaded, total);
+    })
+  );
 
   spriteCache.set(cacheKey, spriteSet);
   return spriteSet;

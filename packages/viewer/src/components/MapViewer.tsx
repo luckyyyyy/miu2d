@@ -39,27 +39,39 @@ import {
 /** WebGL 渲染画布最大单边尺寸（避免 GPU 显存溢出） */
 const MAX_RENDER_DIM = 4096;
 
-/** 超过此可见瓦片数量时跳过逐瓦片叠加层（网格/障碍/陷阱/hover），防止低缩放率卡死 */
+/** 超过此可见瓦片数量时跳过网格/hover 叠加层，防止低缩放率卡死 */
 const MAX_OVERLAY_TILES = 10000;
+/** 障碍/陷阱上限更高 — 它们是稀疏的，迭代成本>绘制成本 */
+const MAX_OVERLAY_TILES_SPARSE = 50000;
+/** 低于此缩放率时跳过陷阱序号文字（太小看不清） */
+const TRAP_LABEL_MIN_ZOOM = 0.25;
 
 /**
- * 计算逻辑画布尺寸，等比例裁剪以保持容器纵横比。
- * 避免 logicalW/H 独立 clamp 导致 X/Y 缩放不一致（低缩放率出现地图变形/切割）。
+ * 计算逻辑画布尺寸和世界可视尺寸。
+ * - logicalW/H: 画布缓冲区尺寸（受 MAX_RENDER_DIM 限制，避免 GPU 溢出）
+ * - worldW/H: 世界可视区域尺寸（不受限制，大地图低缩放时 > logicalW/H）
+ *
+ * 当 worldW/H > logicalW/H 时，需要通过 IRenderer.applyWorldScale 将世界坐标
+ * 缩放到画布坐标，避免低缩放率时缩放完全失效。
  */
 function computeLogicalSize(
   containerW: number,
   containerH: number,
   zoom: number
-): { logicalW: number; logicalH: number } {
-  let logicalW = Math.ceil(containerW / zoom);
-  let logicalH = Math.ceil(containerH / zoom);
-  const maxDim = Math.max(logicalW, logicalH);
+): { logicalW: number; logicalH: number; worldW: number; worldH: number } {
+  const worldW = Math.ceil(containerW / zoom);
+  const worldH = Math.ceil(containerH / zoom);
+  const maxDim = Math.max(worldW, worldH);
   if (maxDim > MAX_RENDER_DIM) {
     const scale = MAX_RENDER_DIM / maxDim;
-    logicalW = Math.ceil(logicalW * scale);
-    logicalH = Math.ceil(logicalH * scale);
+    return {
+      logicalW: Math.ceil(worldW * scale),
+      logicalH: Math.ceil(worldH * scale),
+      worldW,
+      worldH,
+    };
   }
-  return { logicalW, logicalH };
+  return { logicalW: worldW, logicalH: worldH, worldW, worldH };
 }
 
 /** 地图标记（NPC/OBJ 等） */
@@ -138,6 +150,8 @@ interface MapViewerProps {
   onMarkerDrag?: (index: number, mapX: number, mapY: number) => void;
   /** 点击地图空白区域回调（用于取消选中） */
   onEmptyClick?: () => void;
+  /** 点击带陷阱的瓦片回调（trapIndex > 0 时触发，优先于 onEmptyClick） */
+  onTrapTileClick?: (trapIndex: number, tileX: number, tileY: number) => void;
   /** 右侧面板的额外 Tab（在"地图"Tab 后追加） */
   sidePanelTabs?: SidePanelTab[];
   /** 右侧面板当前激活的 Tab ID（受控模式，不传则内部管理） */
@@ -159,6 +173,10 @@ interface MapViewerProps {
   } | undefined;
   /** 从外部拖拽元素放入地图时的回调（mapX/mapY 为瓦片坐标） */
   onDrop?: (mapX: number, mapY: number, data: DataTransfer) => void;
+  /** 高亮陷阱索引集合（用于选中某个陷阱脚本时高亮对应瓦片） */
+  highlightTrapIndices?: ReadonlySet<number> | null;
+  /** 右键地图回调（tileX/tileY 为瓦片坐标，clientX/clientY 用于定位菜单） */
+  onContextMenu?: (info: { tileX: number; tileY: number; clientX: number; clientY: number }) => void;
 }
 
 /** MapViewer 暴露给父组件的命令式 API */
@@ -198,6 +216,8 @@ const BARRIER_COLORS: Record<number, string> = {
 
 // 陷阱颜色
 const TRAP_COLOR = "rgba(255, 255, 0, 0.6)";
+/** 高亮陷阱颜色（选中陷阱脚本对应的 tile） */
+const TRAP_HIGHLIGHT_COLOR = "rgba(255, 100, 0, 0.85)";
 
 // ============= 叠加层形状缓存（预渲染到 offscreen canvas，通过 drawSource 绘制）=============
 
@@ -411,12 +431,15 @@ export const MapViewer = memo(
       onMarkerClick,
       onMarkerDrag,
       onEmptyClick,
+      onTrapTileClick,
       sidePanelTabs,
       activeTabId,
       onTabChange,
       rendererBackend = "auto",
       getMarkerPosition,
       onDrop,
+      highlightTrapIndices,
+      onContextMenu: onContextMenuProp,
     },
     ref
   ) {
@@ -431,7 +454,15 @@ export const MapViewer = memo(
     const tileRendererRef = useRef<IRenderer | null>(null);
 
     // 状态
-    const [zoom, setZoom] = useState(0.25);
+    const [zoom, setZoomState] = useState(0.25);
+    const zoomRef = useRef(0.25);
+    /** 更新缩放值（ref + state 同步，ref 用于渲染循环，state 用于 UI 显示） */
+    const setZoom = useCallback((z: number | ((prev: number) => number)) => {
+      const newZoom = typeof z === "function" ? z(zoomRef.current) : z;
+      zoomRef.current = newZoom;
+      needsRenderRef.current = true;
+      setZoomState(newZoom);
+    }, []);
     const [loadProgress, setLoadProgress] = useState(0);
     const [isMapLoading, setIsMapLoading] = useState(false);
     const [_mapLoadError, setMapLoadError] = useState<string | null>(null);
@@ -446,6 +477,17 @@ export const MapViewer = memo(
     const [showLayer3, setShowLayer3] = useState(true);
     const [showObstacles, setShowObstacles] = useState(false);
     const [showTraps, setShowTraps] = useState(false);
+
+    // 高亮陷阱索引 ref（避免闭包依赖）
+    const highlightTrapIndicesRef = useRef(highlightTrapIndices);
+    highlightTrapIndicesRef.current = highlightTrapIndices;
+
+    // 有高亮陷阱时自动显示陷阱叠加层
+    useEffect(() => {
+      if (highlightTrapIndices && highlightTrapIndices.size > 0) {
+        setShowTraps(true);
+      }
+    }, [highlightTrapIndices]);
     const [showGrid, setShowGrid] = useState(false);
 
     // 右侧面板 Tab（内部状态，受控时由外部管理）
@@ -537,17 +579,23 @@ export const MapViewer = memo(
     const miuMapDataRef = useRef(miuMapData);
     miuMapDataRef.current = miuMapData;
 
+    // MSF 稳定键：仅在 MSF 列表变化时才触发 MPC 重新加载，trap 编辑不会改变此值
+    const msfKey = useMemo(
+      () => miuMapData?.msfEntries.map((e) => e.name).join(",") ?? "",
+      [miuMapData],
+    );
+
     // 暴露命令式 API 给父组件
     useImperativeHandle(
       ref,
       () => ({
         panTo: (mapX: number, mapY: number) => {
           const renderer = rendererRef.current;
-          const webglCanvas = webglCanvasRef.current;
-          if (!renderer || !webglCanvas) return;
+          if (!renderer) return;
           const pixelPos = MapBase.toPixelPosition(mapX, mapY, false);
-          renderer.camera.x = Math.floor(Math.max(0, pixelPos.x - webglCanvas.width / 2));
-          renderer.camera.y = Math.floor(Math.max(0, pixelPos.y - webglCanvas.height / 2));
+          renderer.camera.x = Math.floor(Math.max(0, pixelPos.x - renderer.camera.width / 2));
+          renderer.camera.y = Math.floor(Math.max(0, pixelPos.y - renderer.camera.height / 2));
+          needsRenderRef.current = true;
         },
         getMapInfo: () => {
           if (!miuMapData) return null;
@@ -561,21 +609,23 @@ export const MapViewer = memo(
             msfEntries: miuMapData.msfEntries.map((e) => ({ name: e.name, looping: e.looping })),
           };
         },
-        getZoom: () => zoom,
+        getZoom: () => zoomRef.current,
         setZoom: (z: number) => setZoom(z),
         requestRender: () => {
           needsRenderRef.current = true;
         },
       }),
-      [miuMapData, zoom]
+      [miuMapData, setZoom]
     );
 
     // Unified map dimensions for camera/zoom calculations
-    const mapDimensions = useMemo(() => {
-      if (mmfData) return { width: mmfData.mapPixelWidth, height: mmfData.mapPixelHeight };
-      if (mapData) return { width: mapData.mapPixelWidth, height: mapData.mapPixelHeight };
-      return null;
-    }, [mmfData, mapData]);
+    // 使用原始值作为依赖，避免 trap 编辑改变 mmfData 引用时导致缩放重置
+    const mapPixelW = mmfData?.mapPixelWidth ?? mapData?.mapPixelWidth ?? 0;
+    const mapPixelH = mmfData?.mapPixelHeight ?? mapData?.mapPixelHeight ?? 0;
+    const mapDimensions = useMemo(
+      () => (mapPixelW > 0 && mapPixelH > 0 ? { width: mapPixelW, height: mapPixelH } : null),
+      [mapPixelW, mapPixelH],
+    );
 
     // 地图加载后计算合适的初始缩放，并重置相机位置
     useEffect(() => {
@@ -599,8 +649,11 @@ export const MapViewer = memo(
     }, [mapDimensions]);
 
     // 加载 MPC 资源
+    // 依赖 msfKey 而非 miuMapData 引用：trap/trapTable 编辑不改变 MSF 列表，不会触发重新加载
+    // miuMapData 通过 ref 读取实际数据
     useEffect(() => {
-      if (!miuMapData || !mapName) return;
+      const data = miuMapDataRef.current;
+      if (!data || !mapName || !msfKey) return;
 
       // 立刻设置加载状态，防止显示旧地图
       setIsMapLoading(true);
@@ -615,7 +668,7 @@ export const MapViewer = memo(
           // 使用 engine 的 loadMapMpcs
           const success = await loadMapMpcs(
             renderer,
-            miuMapData,
+            data,
             mapName,
             (progress: number) => setLoadProgress(progress),
             resourceRoot
@@ -632,43 +685,21 @@ export const MapViewer = memo(
       };
 
       loadMpcs();
-    }, [miuMapData, mapName, resourceRoot]);
+    }, [msfKey, mapName, resourceRoot]);
 
-    // 设置 canvas 大小（单 canvas）
+    // 监听容器尺寸变化（仅标记脏，实际 resize 由 drawMap 统一处理，避免清空画布造成黑闪）
+    // 依赖 miuMapData: 同 wheel 事件注册，确保组件从早期 return 过渡到完整渲染后重新绑定
+    // biome-ignore lint/correctness/useExhaustiveDependencies: miuMapData triggers re-binding when container mounts after early return
     useEffect(() => {
       const container = containerRef.current;
-      const webglCanvas = webglCanvasRef.current;
-      const mapRenderer = rendererRef.current;
+      if (!container) return;
 
-      if (!container || !webglCanvas || !mapRenderer) return;
-
-      const updateSize = () => {
-        const { width, height } = container.getBoundingClientRect();
-        if (width === 0 || height === 0) return;
-
-        // WebGL canvas 逻辑分辨率 = 容器尺寸 / zoom（等比例 clamp）
-        const { logicalW, logicalH } = computeLogicalSize(width, height, zoom);
-
-        // 仅当尺寸变化时 resize（避免每帧重建 WebGL 状态）
-        if (
-          lastLogicalSizeRef.current.w !== logicalW ||
-          lastLogicalSizeRef.current.h !== logicalH
-        ) {
-          webglCanvas.width = logicalW;
-          webglCanvas.height = logicalH;
-          tileRendererRef.current?.resize(logicalW, logicalH);
-          lastLogicalSizeRef.current = { w: logicalW, h: logicalH };
-        }
-
-        // 相机覆盖的世界区域 = 逻辑分辨率
-        setCameraSize(mapRenderer, logicalW, logicalH);
-      };
-
-      const resizeObserver = new ResizeObserver(() => updateSize());
-      updateSize();
+      const resizeObserver = new ResizeObserver(() => {
+        needsRenderRef.current = true;
+      });
       resizeObserver.observe(container);
       return () => resizeObserver.disconnect();
-    }, [zoom]);
+    }, [miuMapData]);
 
     // 绘制地图（单 WebGL canvas 渲染全部内容）
     const drawMap = useCallback(() => {
@@ -692,28 +723,33 @@ export const MapViewer = memo(
       const containerH = Math.floor(containerRect.height);
       if (containerW === 0 || containerH === 0) return;
 
-      // 确保 WebGL canvas 逻辑尺寸同步（等比例 clamp，保持纵横比一致）
-      const { logicalW, logicalH } = computeLogicalSize(containerW, containerH, zoom);
+      // 确保画布缓冲区尺寸同步（capped），相机使用未受限的世界尺寸
+      const currentZoom = zoomRef.current;
+      const { logicalW, logicalH, worldW, worldH } = computeLogicalSize(containerW, containerH, currentZoom);
       if (webglCanvas.width !== logicalW || webglCanvas.height !== logicalH) {
         webglCanvas.width = logicalW;
         webglCanvas.height = logicalH;
         tileRenderer.resize(logicalW, logicalH);
         lastLogicalSizeRef.current = { w: logicalW, h: logicalH };
-        setCameraSize(mapRenderer, logicalW, logicalH);
       }
 
-      // 相机覆盖的世界区域 = 逻辑分辨率
-      mapRenderer.camera.width = logicalW;
-      mapRenderer.camera.height = logicalH;
+      // 相机覆盖的世界区域 = 未受限尺寸（大地图低缩放时可远大于画布）
+      mapRenderer.camera.width = worldW;
+      mapRenderer.camera.height = worldH;
+      setCameraSize(mapRenderer, worldW, worldH);
 
-      // ========== WebGL 渲染: 全部内容 ==========
+      // ========== 渲染: 全部内容 ==========
       tileRenderer.beginFrame();
 
+      // 应用世界缩放（世界坐标 → 画布坐标）
+      tileRenderer.applyWorldScale(worldW, worldH);
+
       // 背景
-      tileRenderer.fillRect({ x: 0, y: 0, width: logicalW, height: logicalH, color: "#1a1a2e" });
+      tileRenderer.fillRect({ x: 0, y: 0, width: worldW, height: worldH, color: "#1a1a2e" });
 
       if (!miuMapData || isMapLoading || mapRenderer.isLoading) {
         // 无数据或加载中：仅渲染背景，HTML overlay 显示加载进度
+        tileRenderer.resetWorldScale();
         tileRenderer.endFrame();
         return;
       }
@@ -850,8 +886,8 @@ export const MapViewer = memo(
         }
       }
 
-      // 障碍物（填色菱形）
-      if (showObstacles && miuMapData.barriers && visibleTileCount <= MAX_OVERLAY_TILES) {
+      // 障碍物（填色菱形）— 稀疏数据，用更高的上限
+      if (showObstacles && miuMapData.barriers && visibleTileCount <= MAX_OVERLAY_TILES_SPARSE) {
         for (let row = startY; row < endY; row++) {
           for (let col = startX; col < endX; col++) {
             const tileIndex = col + row * miuMapData.mapColumnCounts;
@@ -865,9 +901,12 @@ export const MapViewer = memo(
         }
       }
 
-      // 陷阱（填色菱形 + 序号文字）
-      if (showTraps && miuMapData.traps && visibleTileCount <= MAX_OVERLAY_TILES) {
+      // 陷阱（填色菱形 + 序号文字，高亮选中的陷阱索引）— 稀疏数据，用更高的上限
+      if (showTraps && miuMapData.traps && visibleTileCount <= MAX_OVERLAY_TILES_SPARSE) {
         const trapDiamond = getCachedDiamond(TRAP_COLOR);
+        const hlSet = highlightTrapIndicesRef.current;
+        const hasHighlight = hlSet != null && hlSet.size > 0;
+        const hlDiamond = hasHighlight ? getCachedDiamond(TRAP_HIGHLIGHT_COLOR) : null;
         for (let row = startY; row < endY; row++) {
           for (let col = startX; col < endX; col++) {
             const tileIndex = col + row * miuMapData.mapColumnCounts;
@@ -876,14 +915,17 @@ export const MapViewer = memo(
             const pixelPos = MapBase.toPixelPosition(col, row);
             const sx = pixelPos.x - camX - 32;
             const sy = pixelPos.y - camY - 16;
-            tileRenderer.drawSource(trapDiamond, sx, sy);
-            // 陷阱序号
-            const trapLabel = getCachedTrapLabel(trapIndex);
-            tileRenderer.drawSource(
-              trapLabel,
-              sx + 32 - trapLabel.width / 2,
-              sy + 16 - trapLabel.height / 2 + 4
-            );
+            const isHighlighted = hasHighlight && hlSet!.has(trapIndex);
+            tileRenderer.drawSource(isHighlighted ? hlDiamond! : trapDiamond, sx, sy);
+            // 陷阱序号（低缩放率时跳过文字，太小无法辨识）
+            if (zoomRef.current >= TRAP_LABEL_MIN_ZOOM) {
+              const trapLabel = getCachedTrapLabel(trapIndex);
+              tileRenderer.drawSource(
+                trapLabel,
+                sx + 32 - trapLabel.width / 2,
+                sy + 16 - trapLabel.height / 2 + 4
+              );
+            }
           }
         }
       }
@@ -991,11 +1033,11 @@ export const MapViewer = memo(
         }
       }
 
+      tileRenderer.resetWorldScale();
       tileRenderer.endFrame();
     }, [
       miuMapData,
       isMapLoading,
-      zoom,
       rendererBackend,
       showGrid,
       showLayer1,
@@ -1077,6 +1119,12 @@ export const MapViewer = memo(
       needsRenderRef.current = true;
     }, [markers]);
 
+    // 高亮陷阱变化时触发重绘
+    // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally trigger redraw when highlightTrapIndices prop changes
+    useEffect(() => {
+      needsRenderRef.current = true;
+    }, [highlightTrapIndices]);
+
     // 动画循环（脏标记驱动：仅在 needsRenderRef 为 true 时才执行 drawMap）
     useEffect(() => {
       let animationId: number;
@@ -1138,15 +1186,16 @@ export const MapViewer = memo(
         const canvasX = clientX - rect.left;
         const canvasY = clientY - rect.top;
 
-        const { logicalW, logicalH } = computeLogicalSize(rect.width, rect.height, zoom);
-        const effectiveZoom = rect.width / logicalW;
+        // effectiveZoom = zoom（直接使用，无需通过 logicalW 间接计算）
+        const currentZoom = zoomRef.current;
+        const effectiveZoom = currentZoom;
 
         const worldX = canvasX / effectiveZoom + renderer.camera.x;
         const worldY = canvasY / effectiveZoom + renderer.camera.y;
 
         return { canvasX, canvasY, worldX, worldY, effectiveZoom };
       },
-      [zoom]
+      []
     );
 
     // ============= 拖放处理 =============
@@ -1234,6 +1283,12 @@ export const MapViewer = memo(
         isDraggingRef.current = false;
         needsRenderRef.current = true;
 
+        // 仅左键点击才处理标记选择/搬运（右键由 contextmenu 处理）
+        if (e.button !== 0) {
+          pendingClickRef.current = null;
+          return;
+        }
+
         // 检查是否有待确认的点击（mousedown 位置与 mouseup 位置距离 < 5px 视为点击）
         const pending = pendingClickRef.current;
         pendingClickRef.current = null;
@@ -1252,12 +1307,25 @@ export const MapViewer = memo(
                 onMarkerClick?.(pending.idx);
               }
             } else {
-              onEmptyClick?.();
+              // 空白区域点击：检查是否有陷阱瓦片
+              const tp = tilePosRef.current;
+              const data = miuMapDataRef.current;
+              if (onTrapTileClick && data && tp.x >= 0 && tp.y >= 0 && tp.x < data.mapColumnCounts && tp.y < data.mapRowCounts) {
+                const tIdx = tp.x + tp.y * data.mapColumnCounts;
+                const trapIdx = data.traps[tIdx] ?? 0;
+                if (trapIdx > 0) {
+                  onTrapTileClick(trapIdx, tp.x, tp.y);
+                } else {
+                  onEmptyClick?.();
+                }
+              } else {
+                onEmptyClick?.();
+              }
             }
           }
         }
       },
-      [markers, onMarkerDrag, onMarkerClick, onEmptyClick]
+      [markers, onMarkerDrag, onMarkerClick, onEmptyClick, onTrapTileClick]
     );
 
     const handleMouseMove = useCallback(
@@ -1279,7 +1347,7 @@ export const MapViewer = memo(
         if (tile.x !== prevTile.x || tile.y !== prevTile.y) {
           tilePosRef.current = { x: tile.x, y: tile.y };
           // 仅在缩放率足够高时才为 hover 高亮触发重绘，防止低缩放率下频繁重绘卡死
-          if (zoom >= 0.2) {
+          if (zoomRef.current >= 0.2) {
             needsRenderRef.current = true;
           }
         }
@@ -1315,7 +1383,7 @@ export const MapViewer = memo(
         // 鼠标移动时直接同步 DOM（tooltip 跟随响应更即时）
         syncUI();
       },
-      [getWorldPos, markers, syncUI, zoom]
+      [getWorldPos, markers, syncUI]
     );
 
     const handleMouseLeave = useCallback(() => {
@@ -1329,15 +1397,23 @@ export const MapViewer = memo(
       syncUI();
     }, [syncUI]);
 
-    // 右键取消标记搬运（恢复原位，不提交）；始终阻止浏览器默认菜单
+    // 右键：正在搬运标记时取消搬运；否则触发外部右键菜单回调
     const handleContextMenu = useCallback((e: React.MouseEvent) => {
       e.preventDefault();
       if (draggingMarkerRef.current !== null) {
         draggingMarkerRef.current = null;
         markerDragPosRef.current = null;
         needsRenderRef.current = true;
+        return;
       }
-    }, []);
+      if (onContextMenuProp) {
+        const wp = getWorldPos(e.clientX, e.clientY);
+        if (wp) {
+          const tile = MapBase.toTilePosition(wp.worldX, wp.worldY, false);
+          onContextMenuProp({ tileX: tile.x, tileY: tile.y, clientX: e.clientX, clientY: e.clientY });
+        }
+      }
+    }, [onContextMenuProp, getWorldPos]);
 
     // 滚轮事件：直接滚轮缩放
     const handleWheel = useCallback(
@@ -1355,9 +1431,8 @@ export const MapViewer = memo(
         const mouseX = e.clientX - rect.left;
         const mouseY = e.clientY - rect.top;
 
-        // effectiveZoom（等比例 clamp，保持纵横比一致）
-        const { logicalW } = computeLogicalSize(rect.width, rect.height, zoom);
-        const effectiveZoom = rect.width / logicalW;
+        const currentZoom = zoomRef.current;
+        const effectiveZoom = currentZoom;
 
         // 计算鼠标对应的世界坐标（缩放前）
         const worldX = mouseX / effectiveZoom + renderer.camera.x;
@@ -1365,15 +1440,12 @@ export const MapViewer = memo(
 
         // 计算新的缩放值
         const zoomDelta = e.deltaY > 0 ? 0.9 : 1.1;
-        const newZoom = Math.max(0.05, Math.min(4, zoom * zoomDelta));
+        const newZoom = Math.max(0.05, Math.min(4, currentZoom * zoomDelta));
+        const newEffectiveZoom = newZoom;
 
-        // 新的 effectiveZoom
-        const { logicalW: newLogicalW, logicalH: newLogicalH } = computeLogicalSize(
-          rect.width,
-          rect.height,
-          newZoom
-        );
-        const newEffectiveZoom = rect.width / newLogicalW;
+        // 新的世界可视尺寸（用于 camera clamp）
+        const newWorldW = Math.ceil(rect.width / newZoom);
+        const newWorldH = Math.ceil(rect.height / newZoom);
 
         // 调整相机位置（同时 clamp 上下界，与 updateCamera 一致，避免拖拽时跳跃）
         const newCameraX = worldX - mouseX / newEffectiveZoom;
@@ -1381,27 +1453,30 @@ export const MapViewer = memo(
 
         const mapData = renderer.mapData;
         if (mapData) {
-          const maxCameraX = Math.max(0, mapData.mapPixelWidth - newLogicalW);
-          const maxCameraY = Math.max(0, mapData.mapPixelHeight - newLogicalH);
-          renderer.camera.x = Math.floor(Math.max(0, Math.min(newCameraX, maxCameraX)));
-          renderer.camera.y = Math.floor(Math.max(0, Math.min(newCameraY, maxCameraY)));
+          const maxCameraX = Math.max(0, mapData.mapPixelWidth - newWorldW);
+          const maxCameraY = Math.max(0, mapData.mapPixelHeight - newWorldH);
+          renderer.camera.x = Math.round(Math.max(0, Math.min(newCameraX, maxCameraX)));
+          renderer.camera.y = Math.round(Math.max(0, Math.min(newCameraY, maxCameraY)));
         } else {
-          renderer.camera.x = Math.floor(Math.max(0, newCameraX));
-          renderer.camera.y = Math.floor(Math.max(0, newCameraY));
+          renderer.camera.x = Math.round(Math.max(0, newCameraX));
+          renderer.camera.y = Math.round(Math.max(0, newCameraY));
         }
 
         setZoom(newZoom);
       },
-      [zoom]
+      [setZoom]
     );
 
     // 注册非 passive 滚轮事件（React 默认 passive 无法 preventDefault）
+    // 依赖 miuMapData: 组件有早期 return（isLoading / error / !miuMapData），
+    // 此时 containerRef.current 为 null，效果空转；miuMapData 变化后重新挂载 container → 重新注册
+    // biome-ignore lint/correctness/useExhaustiveDependencies: miuMapData triggers re-registration when container mounts after early return
     useEffect(() => {
       const container = containerRef.current;
       if (!container) return;
       container.addEventListener("wheel", handleWheel, { passive: false });
       return () => container.removeEventListener("wheel", handleWheel);
-    }, [handleWheel]);
+    }, [handleWheel, miuMapData]);
 
     // 加载/错误状态
     if (isLoading) {
@@ -1603,20 +1678,23 @@ export const MapViewer = memo(
             className={`${sidePanelTabs && sidePanelTabs.length > 0 ? "w-[420px]" : "w-64"} shrink-0 border-l border-[#3c3c3c] bg-[#252526] flex flex-col min-h-0 overflow-hidden`}
           >
             {/* Tab 栏 */}
-            <div className="flex border-b border-[#3c3c3c] shrink-0">
-              <button
-                type="button"
-                onClick={() => handleTabChange("map")}
-                className={`px-3 py-1.5 text-xs transition-colors ${currentTabId === "map" ? "bg-[#1e1e1e] text-white border-t-2 border-[#0098ff]" : "text-[#858585] hover:text-[#cccccc]"}`}
-              >
-                地图
-              </button>
+            <div className="flex border-b border-[#3c3c3c] shrink-0 overflow-x-auto">
+              {/* 仅在 sidePanelTabs 没有 map tab 时显示内置地图 tab */}
+              {!sidePanelTabs?.some((t) => t.id === "map") && (
+                <button
+                  type="button"
+                  onClick={() => handleTabChange("map")}
+                  className={`px-3 py-1.5 text-xs transition-colors shrink-0 ${currentTabId === "map" ? "bg-[#1e1e1e] text-white border-t-2 border-[#0098ff]" : "text-[#858585] hover:text-[#cccccc]"}`}
+                >
+                  地图
+                </button>
+              )}
               {sidePanelTabs?.map((tab) => (
                 <button
                   key={tab.id}
                   type="button"
                   onClick={() => handleTabChange(tab.id)}
-                  className={`px-3 py-1.5 text-xs transition-colors ${currentTabId === tab.id ? "bg-[#1e1e1e] text-white border-t-2 border-[#0098ff]" : "text-[#858585] hover:text-[#cccccc]"}`}
+                  className={`px-3 py-1.5 text-xs transition-colors shrink-0 ${currentTabId === tab.id ? "bg-[#1e1e1e] text-white border-t-2 border-[#0098ff]" : "text-[#858585] hover:text-[#cccccc]"}`}
                 >
                   {tab.label}
                 </button>
@@ -1625,7 +1703,7 @@ export const MapViewer = memo(
 
             {/* Tab 内容 */}
             <div className="flex-1 flex flex-col min-h-0">
-              {currentTabId === "map" && (
+              {currentTabId === "map" && !sidePanelTabs?.some((t) => t.id === "map") && (
                 <div className="flex-1 overflow-auto p-4">
                   {/* 地图信息 */}
                   <div className="mb-4">

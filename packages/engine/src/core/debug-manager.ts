@@ -67,6 +67,7 @@ export class DebugManager extends EngineAccess {
   // Player, NpcManager, ObjManager, GuiManager 现在通过 IEngineContext 获取
   private scriptExecutor: ScriptExecutor | null = null;
   private getVariables: (() => GameVariables) | null = null;
+  private setVariableCallback: ((name: string, value: number) => void) | null = null;
   private getMapInfo: (() => { mapName: string; mapPath: string }) | null = null;
   private getTriggeredTraps: (() => number[]) | null = null;
   private config: DebugManagerConfig;
@@ -145,12 +146,14 @@ export class DebugManager extends EngineAccess {
     scriptExecutor: ScriptExecutor,
     getVariables: () => GameVariables,
     getMapInfo: () => { mapName: string; mapPath: string },
-    getTriggeredTraps?: () => number[]
+    getTriggeredTraps?: () => number[],
+    setVariable?: (name: string, value: number) => void
   ): void {
     this.scriptExecutor = scriptExecutor;
     this.getVariables = getVariables;
     this.getMapInfo = getMapInfo;
     this.getTriggeredTraps = getTriggeredTraps ?? null;
+    this.setVariableCallback = setVariable ?? null;
   }
 
   /**
@@ -218,6 +221,13 @@ export class DebugManager extends EngineAccess {
    */
   getGameVariables(): GameVariables | undefined {
     return this.getVariables?.();
+  }
+
+  /**
+   * 设置游戏变量
+   */
+  setGameVariable(name: string, value: number): void {
+    this.setVariableCallback?.(name, value);
   }
 
   /**

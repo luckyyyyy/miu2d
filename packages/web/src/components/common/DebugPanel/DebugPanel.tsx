@@ -31,6 +31,7 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({
   currentScriptInfo,
   scriptHistory,
   onClose,
+  onSetGameVariable,
   onFullAll,
   onSetLevel,
   onAddMoney,
@@ -49,10 +50,10 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({
   const isScriptRunning = !!(currentScriptInfo && !currentScriptInfo.isCompleted);
 
   return (
-    <div className="w-full h-full flex flex-col text-white/80 text-xs font-sans">
+    <div className="w-full h-full flex flex-col text-[#d4d4d4] text-xs font-sans bg-[#1e1e1e]">
       <div
         className="flex-1 overflow-y-auto px-1"
-        style={{ scrollbarWidth: "thin", scrollbarColor: "rgba(255,255,255,0.2) transparent" }}
+        style={{ scrollbarWidth: "thin", scrollbarColor: "#444 transparent" }}
       >
         {/* 性能统计 */}
         {performanceStats && <PerformanceSection performanceStats={performanceStats} />}
@@ -67,6 +68,7 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({
           loadedResources={loadedResources}
           triggeredTrapIds={triggeredTrapIds}
           gameVariables={gameVariables}
+          onSetGameVariable={onSetGameVariable}
         />
 
         {/* 资源加载统计 */}

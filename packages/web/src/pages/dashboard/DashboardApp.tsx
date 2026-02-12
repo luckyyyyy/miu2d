@@ -46,7 +46,7 @@ import { TalkListPage, TalkPortraitPage } from "./modules/talk";
 import {
   ScenesHomePage,
   SceneDetailPage,
-} from "./modules/ScenesPages";
+} from "./modules/scenes";
 
 // 资源管理
 import {

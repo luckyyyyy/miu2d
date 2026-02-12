@@ -16,15 +16,15 @@ export const Section: React.FC<SectionProps> = ({ title, children, defaultOpen =
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
   return (
-    <div className="border-b border-white/10 last:border-b-0">
+    <div className="border-b border-[#2d2d2d] last:border-b-0">
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center gap-1 px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-white/40 hover:text-white/70 hover:bg-white/5"
+        className="w-full flex items-center gap-1 px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-[#bbbbbb] hover:text-[#e0e0e0] hover:bg-[#2a2d2e]"
       >
         <span className={`text-[10px] ${isOpen ? "rotate-90" : ""}`}>▶</span>
         <span className="flex-1 text-left">{title}</span>
-        {badge !== undefined && <span className="text-[10px] text-white/30">{badge}</span>}
+        {badge !== undefined && <span className="text-[10px] text-[#bbbbbb]">{badge}</span>}
       </button>
       {isOpen && <div className="px-2 pb-2">{children}</div>}
     </div>

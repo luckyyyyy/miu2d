@@ -981,10 +981,14 @@ export class Loader {
         // 格式: RRGGBB 十六进制字符串
         // 参考 C#: 总是显式设置颜色（有值则解析，无值则重置为白色）
         const hexToRgb = (hex: string) => {
-          const r = parseInt(hex.substring(0, 2), 16) || 255;
-          const g = parseInt(hex.substring(2, 4), 16) || 255;
-          const b = parseInt(hex.substring(4, 6), 16) || 255;
-          return { r, g, b };
+          const r = parseInt(hex.substring(0, 2), 16);
+          const g = parseInt(hex.substring(2, 4), 16);
+          const b = parseInt(hex.substring(4, 6), 16);
+          return {
+            r: Number.isNaN(r) ? 255 : r,
+            g: Number.isNaN(g) ? 255 : g,
+            b: Number.isNaN(b) ? 255 : b,
+          };
         };
         if (data.option.mpcStyle && data.option.mpcStyle !== "FFFFFF") {
           const c = hexToRgb(data.option.mpcStyle);

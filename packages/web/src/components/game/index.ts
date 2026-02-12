@@ -30,6 +30,7 @@ export { GlassModal } from "./GlassModal";
 export { AuthModal } from "./AuthModal";
 export { GameMenuPanel, type MenuTab } from "./GameMenuPanel";
 export { FloatingPanel } from "./FloatingPanel";
+export { DockedPanel } from "./DockedPanel";
 // UI 组件
 export * from "./ui";
 // Note: TooltipState, MagicTooltipState, MagicDragData 已经从 ./ui 导出

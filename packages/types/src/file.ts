@@ -70,7 +70,7 @@ export type PrepareUploadInput = z.infer<typeof PrepareUploadInputSchema>;
  */
 export const PrepareUploadOutputSchema = z.object({
   fileId: z.string().uuid(),
-  uploadUrl: z.string().url(),
+  uploadUrl: z.string(),
   storageKey: z.string()
 });
 export type PrepareUploadOutput = z.infer<typeof PrepareUploadOutputSchema>;
@@ -95,7 +95,7 @@ export type GetDownloadUrlInput = z.infer<typeof GetDownloadUrlInputSchema>;
  * 获取下载 URL 响应
  */
 export const GetDownloadUrlOutputSchema = z.object({
-  downloadUrl: z.string().url()
+  downloadUrl: z.string()
 });
 export type GetDownloadUrlOutput = z.infer<typeof GetDownloadUrlOutputSchema>;
 
@@ -113,7 +113,7 @@ export type GetUploadUrlInput = z.infer<typeof GetUploadUrlInputSchema>;
  * 获取上传 URL 响应
  */
 export const GetUploadUrlOutputSchema = z.object({
-  uploadUrl: z.string().url(),
+  uploadUrl: z.string(),
   storageKey: z.string()
 });
 export type GetUploadUrlOutput = z.infer<typeof GetUploadUrlOutputSchema>;

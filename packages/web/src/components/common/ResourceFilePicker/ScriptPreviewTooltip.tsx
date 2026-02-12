@@ -16,6 +16,8 @@ let monacoInitialized = false;
 interface ScriptPreviewTooltipProps {
   gameSlug: string;
   path: string;
+  /** If provided, use this content directly instead of fetching from server */
+  initialContent?: string;
 }
 
 // 根据扩展名获取 Monaco Editor 语言
@@ -38,9 +40,9 @@ function getMonacoLanguage(ext: string): string {
   return langMap[ext] || "plaintext";
 }
 
-export function ScriptPreviewTooltip({ gameSlug, path }: ScriptPreviewTooltipProps) {
-  const [content, setContent] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+export function ScriptPreviewTooltip({ gameSlug, path, initialContent }: ScriptPreviewTooltipProps) {
+  const [content, setContent] = useState<string | null>(initialContent ?? null);
+  const [isLoading, setIsLoading] = useState(initialContent === undefined);
   const [error, setError] = useState<string | null>(null);
   const [monacoReady, setMonacoReady] = useState(monacoInitialized);
 
@@ -57,7 +59,7 @@ export function ScriptPreviewTooltip({ gameSlug, path }: ScriptPreviewTooltipPro
   }, []);
 
   useEffect(() => {
-    if (!path) return;
+    if (initialContent !== undefined || !path) return;
 
     setIsLoading(true);
     setError(null);
@@ -80,7 +82,7 @@ export function ScriptPreviewTooltip({ gameSlug, path }: ScriptPreviewTooltipPro
     };
 
     loadScript();
-  }, [gameSlug, path]);
+  }, [gameSlug, path, initialContent]);
 
   // 获取文件名和扩展名
   const fileName = path.split("/").pop() || path;

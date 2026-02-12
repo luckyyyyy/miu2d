@@ -1,7 +1,7 @@
 /**
  * 数据统计页面
  */
-import { lazy, Suspense, useMemo, useState } from "react";
+import { lazy, Suspense, useCallback, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { DashboardIcons } from "../icons";
 import { trpc } from "../../../lib/trpc";
@@ -109,6 +109,13 @@ export function PlayerSavesPage() {
     onSuccess: () => {
       utils.save.adminList.invalidate();
       setShowCreateModal(false);
+    },
+  });
+
+  const updateMutation = trpc.save.adminUpdate.useMutation({
+    onSuccess: () => {
+      utils.save.adminList.invalidate();
+      if (selectedSaveId) utils.save.adminGet.invalidate({ saveId: selectedSaveId });
     },
   });
 
@@ -441,7 +448,15 @@ export function PlayerSavesPage() {
 
                     {/* JSON 数据 - 填满剩余空间 */}
                     <div className="flex-1 min-h-0">
-                      <SaveDataEditor data={saveDetailQuery.data.data} />
+                      <SaveDataEditor
+                        saveId={selectedSaveId!}
+                        data={saveDetailQuery.data.data}
+                        onSave={(saveId, newData) => updateMutation.mutate({ saveId, data: newData })}
+                        isSaving={updateMutation.isPending}
+                        saveError={updateMutation.error?.message}
+                        saveSuccess={updateMutation.isSuccess}
+                        onResetStatus={() => updateMutation.reset()}
+                      />
                     </div>
                   </>
                 ) : (
@@ -682,44 +697,125 @@ function AdminCreateSaveModal({
 }
 
 /**
- * 存档数据查看器 - 使用 Monaco Editor 渲染 JSON
+ * 存档数据编辑器 - 使用 Monaco Editor 编辑 JSON，支持保存
  * 过滤掉 screenshot 等超大 base64 字段避免卡顿
  */
-function SaveDataEditor({ data }: { data: Record<string, unknown> }) {
+function SaveDataEditor({
+  saveId,
+  data,
+  onSave,
+  isSaving,
+  saveError,
+  saveSuccess,
+  onResetStatus,
+}: {
+  saveId: string;
+  data: Record<string, unknown>;
+  onSave: (saveId: string, data: Record<string, unknown>) => void;
+  isSaving: boolean;
+  saveError?: string;
+  saveSuccess: boolean;
+  onResetStatus: () => void;
+}) {
+  // 记录被过滤的 screenshot 原始值，保存时还原
+  const screenshotRef = useRef<string | null>(null);
+  const [parseError, setParseError] = useState("");
+  const editorValueRef = useRef("");
+  const [isDirty, setIsDirty] = useState(false);
+
   const jsonString = useMemo(() => {
     // 过滤掉 screenshot 等超大 base64 字段，避免渲染卡死
+    let screenshotValue: string | null = null;
     const filtered = Object.fromEntries(
       Object.entries(data).map(([key, value]) => {
         if (key === "screenshot" && typeof value === "string" && value.length > 1000) {
+          screenshotValue = value;
           return [key, `[base64 image, ${(value.length / 1024).toFixed(0)}KB]`];
         }
         return [key, value];
       }),
     );
-    return JSON.stringify(filtered, null, 2);
+    screenshotRef.current = screenshotValue;
+    const str = JSON.stringify(filtered, null, 2);
+    editorValueRef.current = str;
+    return str;
   }, [data]);
 
+  const handleEditorChange = useCallback((value: string | undefined) => {
+    editorValueRef.current = value ?? "";
+    setIsDirty(true);
+    setParseError("");
+    onResetStatus();
+  }, [onResetStatus]);
+
+  const handleSave = useCallback(() => {
+    setParseError("");
+    const text = editorValueRef.current.trim();
+    if (!text) {
+      setParseError("JSON 数据不能为空");
+      return;
+    }
+    let parsed: Record<string, unknown>;
+    try {
+      parsed = JSON.parse(text);
+    } catch {
+      setParseError("JSON 格式不正确，请检查语法");
+      return;
+    }
+    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+      setParseError("JSON 必须是一个对象");
+      return;
+    }
+    // 还原被过滤的 screenshot
+    if (screenshotRef.current && typeof parsed.screenshot === "string" && parsed.screenshot.startsWith("[base64")) {
+      parsed.screenshot = screenshotRef.current;
+    }
+    onSave(saveId, parsed);
+    setIsDirty(false);
+  }, [saveId, onSave]);
+
   return (
-    <div className="h-full">
-      <Suspense fallback={<div className="h-full bg-[#1a1a1a] flex items-center justify-center text-[#858585] text-sm">加载编辑器...</div>}>
-        <MonacoEditor
-          height="100%"
-          language="json"
-          theme="vs-dark"
-          value={jsonString}
-          options={{
-            readOnly: true,
-            minimap: { enabled: false },
-            fontSize: 12,
-            lineNumbers: "on",
-            scrollBeyondLastLine: false,
-            automaticLayout: true,
-            tabSize: 2,
-            wordWrap: "on",
-            folding: true,
-          }}
-        />
-      </Suspense>
+    <div className="h-full flex flex-col">
+      {/* 工具栏 */}
+      <div className="flex items-center justify-between px-4 py-2 border-b border-widget-border shrink-0">
+        <div className="flex items-center gap-2 text-xs">
+          {parseError && <span className="text-[#f48771]">{parseError}</span>}
+          {saveError && <span className="text-[#f48771]">保存失败: {saveError}</span>}
+          {saveSuccess && <span className="text-[#4ec9b0]">保存成功</span>}
+          {isDirty && !parseError && !saveError && !saveSuccess && (
+            <span className="text-[#cca700]">已修改</span>
+          )}
+        </div>
+        <button
+          onClick={handleSave}
+          disabled={isSaving || (!isDirty && !parseError)}
+          className="px-3 py-1 text-xs bg-[#0e639c] hover:bg-[#1177bb] text-white rounded transition-colors disabled:opacity-40"
+        >
+          {isSaving ? "保存中..." : "保存"}
+        </button>
+      </div>
+      {/* 编辑器 */}
+      <div className="flex-1 min-h-0">
+        <Suspense fallback={<div className="h-full bg-[#1a1a1a] flex items-center justify-center text-[#858585] text-sm">加载编辑器...</div>}>
+          <MonacoEditor
+            height="100%"
+            language="json"
+            theme="vs-dark"
+            defaultValue={jsonString}
+            onChange={handleEditorChange}
+            options={{
+              minimap: { enabled: false },
+              fontSize: 12,
+              lineNumbers: "on",
+              scrollBeyondLastLine: false,
+              automaticLayout: true,
+              tabSize: 2,
+              wordWrap: "on",
+              folding: true,
+            }}
+          />
+        </Suspense>
+      </div>
     </div>
   );
 }

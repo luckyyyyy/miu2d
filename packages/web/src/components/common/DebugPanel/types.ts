@@ -61,6 +61,7 @@ export interface DebugPanelProps {
   currentScriptInfo?: ScriptInfo | null;
   scriptHistory?: ScriptHistoryItem[];
   onClose?: () => void;
+  onSetGameVariable?: (name: string, value: number) => void;
   onFullAll: () => void;
   onSetLevel: (level: number) => void;
   onAddMoney: (amount: number) => void;

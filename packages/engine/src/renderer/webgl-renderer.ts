@@ -639,4 +639,35 @@ export class WebGLRenderer implements IRenderer {
   getContext2D(): CanvasRenderingContext2D | null {
     return null;
   }
+
+  applyWorldScale(worldWidth: number, worldHeight: number): void {
+    const gl = this.gl;
+    if (!gl) return;
+    // flush pending draws before changing resolution
+    this.batcher?.flush();
+    this.rectBatcher?.flush();
+    if (this.spriteProgram) {
+      gl.useProgram(this.spriteProgram.program);
+      gl.uniform2f(this.spriteProgram.u_resolution, worldWidth, worldHeight);
+    }
+    if (this.rectProgram) {
+      gl.useProgram(this.rectProgram.program);
+      gl.uniform2f(this.rectProgram.u_resolution, worldWidth, worldHeight);
+    }
+  }
+
+  resetWorldScale(): void {
+    const gl = this.gl;
+    if (!gl) return;
+    this.batcher?.flush();
+    this.rectBatcher?.flush();
+    if (this.spriteProgram) {
+      gl.useProgram(this.spriteProgram.program);
+      gl.uniform2f(this.spriteProgram.u_resolution, this._width, this._height);
+    }
+    if (this.rectProgram) {
+      gl.useProgram(this.rectProgram.program);
+      gl.uniform2f(this.rectProgram.u_resolution, this._width, this._height);
+    }
+  }
 }

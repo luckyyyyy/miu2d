@@ -280,7 +280,8 @@ export class GameManager {
       this.scriptExecutor,
       () => this.variables,
       () => ({ mapName: this.currentMapName, mapPath: this.currentMapPath }),
-      () => this.map.getIgnoredTrapIndices()
+      () => this.map.getIgnoredTrapIndices(),
+      (name, value) => this.setVariable(name, value)
     );
 
     // Initialize loader (after scriptExecutor is created)

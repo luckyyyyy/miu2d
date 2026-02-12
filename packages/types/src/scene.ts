@@ -31,11 +31,38 @@ export interface SceneNpcEntry {
 	mapY: number;
 	action: number;
 	walkSpeed: number;
-	dialogRadius: number;
+	state: number;
+	pathFinder: number;
+	lum: number;
+	// 脚本
 	scriptFile: string;
+	deathScript: string;
+	// 视野/对话
+	dialogRadius: number;
 	visionRadius: number;
+	// 阵营
 	relation: number;
 	group: number;
+	// 战斗属性
+	attack: number;
+	defend: number;
+	evade: number;
+	attackLevel: number;
+	attackRadius: number;
+	bodyIni: string;
+	flyIni: string;
+	// 等级经验
+	level: number;
+	levelUpExp: number;
+	exp: number;
+	// 生命/体力/魔法
+	life: number;
+	lifeMax: number;
+	thew: number;
+	thewMax: number;
+	mana: number;
+	manaMax: number;
+	// 巡逻路径
 	fixedPos: string;
 }
 
@@ -80,6 +107,61 @@ export interface SceneData {
 	obj?: Record<string, SceneObjData>;
 }
 
+// ============= MMF 地图数据 DTO（JSON 安全，Uint8Array → base64） =============
+
+/** MSF 文件条目 */
+export interface MsfEntryDto {
+	name: string;
+	looping: boolean;
+}
+
+/** 陷阱映射条目（trapIndex ↔ 脚本路径） */
+export interface TrapEntryDto {
+	/** 陷阱索引 (1-255，对应瓦片中的 trapIndex) */
+	trapIndex: number;
+	/** 脚本文件路径 (如 "Trap01.txt") */
+	scriptPath: string;
+}
+
+/**
+ * MiuMapData 的 JSON 安全表示
+ *
+ * 供 API 传输和 JSONB 存储，与 MiuMapData 一一对应。
+ * 二进制数组字段（layer1/2/3、barriers、traps）编码为 base64 字符串。
+ */
+export interface MiuMapDataDto {
+	mapColumnCounts: number;
+	mapRowCounts: number;
+	mapPixelWidth: number;
+	mapPixelHeight: number;
+	msfEntries: MsfEntryDto[];
+	trapTable: TrapEntryDto[];
+	/** Layer 1 (ground): base64(totalTiles × 2 bytes) */
+	layer1: string;
+	/** Layer 2 (decoration): base64(totalTiles × 2 bytes) */
+	layer2: string;
+	/** Layer 3 (top/occlusion): base64(totalTiles × 2 bytes) */
+	layer3: string;
+	/** Barrier types: base64(totalTiles × 1 byte) */
+	barriers: string;
+	/** Trap indices: base64(totalTiles × 1 byte) */
+	traps: string;
+}
+
+export const MiuMapDataDtoSchema = z.object({
+	mapColumnCounts: z.number(),
+	mapRowCounts: z.number(),
+	mapPixelWidth: z.number(),
+	mapPixelHeight: z.number(),
+	msfEntries: z.array(z.object({ name: z.string(), looping: z.boolean() })),
+	trapTable: z.array(z.object({ trapIndex: z.number(), scriptPath: z.string() })),
+	layer1: z.string(),
+	layer2: z.string(),
+	layer3: z.string(),
+	barriers: z.string(),
+	traps: z.string(),
+});
+
 // ============= 场景 Schema =============
 
 export const SceneSchema = z.object({
@@ -88,6 +170,10 @@ export const SceneSchema = z.object({
 	key: z.string(),
 	name: z.string(),
 	mapFileName: z.string(),
+	/** MMF 地图二进制数据（base64 编码）—— 仅导入/导出时使用 */
+	mmfData: z.string().nullable().optional(),
+	/** MMF 解析后的结构化地图数据 */
+	mapParsed: MiuMapDataDtoSchema.nullable().optional(),
 	data: z.record(z.string(), z.unknown()).nullable(),
 	createdAt: z.string(),
 	updatedAt: z.string(),
@@ -142,6 +228,8 @@ export const UpdateSceneInputSchema = z.object({
 	id: z.string().uuid(),
 	name: z.string().optional(),
 	data: z.record(z.string(), z.unknown()).nullable().optional(),
+	/** 结构化地图数据更新（局部或完整） */
+	mapParsed: MiuMapDataDtoSchema.nullable().optional(),
 });
 export type UpdateSceneInput = z.infer<typeof UpdateSceneInputSchema>;
 
@@ -151,39 +239,46 @@ export const DeleteSceneInputSchema = z.object({
 });
 export type DeleteSceneInput = z.infer<typeof DeleteSceneInputSchema>;
 
-// ============= 单文件导入 =============
-
-/** 导入区域（对应 3 个拖拽区域） */
-export const ImportZoneEnum = z.enum(["map", "script", "save"]);
-export type ImportZone = z.infer<typeof ImportZoneEnum>;
+// ============= 批量导入（前端解析好数据，按场景逐条导入） =============
 
 /**
- * 单文件导入请求
- * 前端逐个文件调用，后端逐个处理
+ * 单个场景导入数据（前端解析完成后发送）
+ * 包含地图 + 脚本 + 陷阱 + NPC + OBJ 全部数据
  */
-export const ImportSceneFileInputSchema = z.object({
-	gameId: z.string().uuid(),
-	zone: ImportZoneEnum,
-	fileName: z.string(),
-	/** 脚本文件所在的目录名（仅 zone=script 时需要，如 "map_003_武当山下"） */
-	dirName: z.string().optional(),
-	/** 文件内容：map 为 base64, script/save 为 UTF-8 文本 */
-	content: z.string(),
+export const ImportSceneItemSchema = z.object({
+	key: z.string(),
+	name: z.string(),
+	mapFileName: z.string(),
+	/** MMF 地图二进制 base64 */
+	mmfData: z.string(),
+	/** 解析好的场景数据（脚本/陷阱/NPC/OBJ） */
+	data: z.record(z.string(), z.unknown()).nullable(),
 });
-export type ImportSceneFileInput = z.infer<typeof ImportSceneFileInputSchema>;
+export type ImportSceneItem = z.infer<typeof ImportSceneItemSchema>;
 
-export const ImportSceneFileResultSchema = z.object({
+export const ImportSceneBatchInputSchema = z.object({
+	gameId: z.string().uuid(),
+	scene: ImportSceneItemSchema,
+});
+export type ImportSceneBatchInput = z.infer<typeof ImportSceneBatchInputSchema>;
+
+export const ImportSceneBatchResultSchema = z.object({
 	ok: z.boolean(),
-	/** 创建/更新/跳过/错误 */
-	action: z.enum(["created", "updated", "skipped", "error"]),
-	/** 若创建了场景，返回场景名 */
+	action: z.enum(["created", "updated", "error"]),
 	sceneName: z.string().optional(),
-	/** 若处理了子项，返回类型 */
-	itemKind: SceneItemKindEnum.optional(),
-	/** 错误信息 */
 	error: z.string().optional(),
 });
-export type ImportSceneFileResult = z.infer<typeof ImportSceneFileResultSchema>;
+export type ImportSceneBatchResult = z.infer<typeof ImportSceneBatchResultSchema>;
+
+export const ClearAllScenesInputSchema = z.object({
+	gameId: z.string().uuid(),
+});
+export type ClearAllScenesInput = z.infer<typeof ClearAllScenesInputSchema>;
+
+export const ClearAllScenesResultSchema = z.object({
+	deletedCount: z.number(),
+});
+export type ClearAllScenesResult = z.infer<typeof ClearAllScenesResultSchema>;
 
 // ============= 辅助函数 =============
 
@@ -273,11 +368,31 @@ export function parseNpcEntries(sections: Record<string, Record<string, string>>
 			mapY: Number(s.MapY ?? 0),
 			action: Number(s.Action ?? 0),
 			walkSpeed: Number(s.WalkSpeed ?? 1),
-			dialogRadius: Number(s.DialogRadius ?? 0),
+			state: Number(s.State ?? 0),
+			pathFinder: Number(s.PathFinder ?? 0),
+			lum: Number(s.Lum ?? 0),
 			scriptFile: s.ScriptFile ?? "",
+			deathScript: s.DeathScript ?? "",
+			dialogRadius: Number(s.DialogRadius ?? 0),
 			visionRadius: Number(s.VisionRadius ?? 0),
 			relation: Number(s.Relation ?? 0),
 			group: Number(s.Group ?? 0),
+			attack: Number(s.Attack ?? 0),
+			defend: Number(s.Defend ?? 0),
+			evade: Number(s.Evade ?? 0),
+			attackLevel: Number(s.AttackLevel ?? 0),
+			attackRadius: Number(s.AttackRadius ?? 0),
+			bodyIni: s.BodyIni ?? "",
+			flyIni: s.FlyIni ?? "",
+			level: Number(s.Level ?? 0),
+			levelUpExp: Number(s.LevelUpExp ?? 0),
+			exp: Number(s.Exp ?? 0),
+			life: Number(s.Life ?? 0),
+			lifeMax: Number(s.LifeMax ?? 0),
+			thew: Number(s.Thew ?? 0),
+			thewMax: Number(s.ThewMax ?? 0),
+			mana: Number(s.Mana ?? 0),
+			manaMax: Number(s.ManaMax ?? 0),
 			fixedPos: s.FixedPos ?? "",
 		});
 	}

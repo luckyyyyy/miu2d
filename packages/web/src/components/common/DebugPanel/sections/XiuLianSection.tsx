@@ -27,8 +27,8 @@ export const XiuLianSection: React.FC<XiuLianSectionProps> = ({
     <Section title="修炼武功">
       <div className="flex items-center justify-between">
         <div>
-          <div className="text-[11px] text-amber-400">{xiuLianMagic.magic.name}</div>
-          <div className="text-[10px] text-white/40">
+          <div className="text-[11px] text-[#fbbf24]">{xiuLianMagic.magic.name}</div>
+          <div className="text-[10px] text-[#969696]">
             {canUpgrade
               ? `等级 ${xiuLianMagic.level} / ${xiuLianMagic.magic.maxLevel || 10}`
               : `等级 ${xiuLianMagic.level}（不可升级）`}

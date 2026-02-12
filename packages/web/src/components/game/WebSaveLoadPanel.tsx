@@ -29,6 +29,27 @@ export interface WebSaveLoadPanelProps {
   onClose: () => void;
 }
 
+function copyToClipboard(text: string): void {
+  if (navigator.clipboard?.writeText) {
+    navigator.clipboard.writeText(text).catch(() => {
+      fallbackCopy(text);
+    });
+  } else {
+    fallbackCopy(text);
+  }
+}
+
+function fallbackCopy(text: string): void {
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  textarea.style.position = "fixed";
+  textarea.style.opacity = "0";
+  document.body.appendChild(textarea);
+  textarea.select();
+  document.execCommand("copy");
+  document.body.removeChild(textarea);
+}
+
 export function WebSaveLoadPanel({
   gameSlug,
   visible,
@@ -72,9 +93,7 @@ export function WebSaveLoadPanel({
     onSuccess: (data) => {
       utils.save.list.invalidate({ gameSlug });
       if (data.isShared && data.shareCode) {
-        const url = `${window.location.origin}/game/${gameSlug}/share/${data.shareCode}`;
-        navigator.clipboard.writeText(url).catch(() => {});
-        setMessage({ text: "分享链接已复制到剪贴板", type: "success" });
+        setMessage({ text: "已开启分享", type: "success" });
       } else {
         setMessage({ text: "已取消分享", type: "info" });
       }
@@ -463,7 +482,7 @@ function SaveSlotCard({
           <button
             onClick={() => {
               const url = `${window.location.origin}/game/${gameSlug}/share/${save.shareCode}`;
-              navigator.clipboard.writeText(url).catch(() => {});
+              copyToClipboard(url);
             }}
             className="px-2 py-1 bg-white/10 hover:bg-white/20 text-white/50 text-[11px] rounded transition-colors flex-shrink-0"
           >

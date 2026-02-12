@@ -1,7 +1,8 @@
 /**
  * 场景服务
  *
- * 地图文件 (*.mmf) 存储在文件系统 (S3)
+ * MMF 地图二进制数据存储在 scenes.mmfData (base64)
+ * 解析后的 mapParsed (MiuMapDataDto) 在 API 响应中按需计算
  * 其他数据（脚本/陷阱/NPC/OBJ）解析为 JSON 存储在 scene.data 字段
  */
 import { TRPCError } from "@trpc/server";
@@ -11,28 +12,22 @@ import type {
 	CreateSceneInput,
 	UpdateSceneInput,
 	ListSceneInput,
-	ImportSceneFileInput,
-	ImportSceneFileResult,
+	ImportSceneBatchInput,
+	ImportSceneBatchResult,
+	ClearAllScenesInput,
+	ClearAllScenesResult,
 	SceneData,
 } from "@miu2d/types";
 import {
-	parseMapFileName,
-	classifyScriptFile,
-	classifySaveFile,
-	extractDisplayName,
-	parseIniContent,
-	parseNpcEntries,
-	parseObjEntries,
 	getSceneDataCounts,
 } from "@miu2d/types";
-import { and, eq, isNull, sql } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db } from "../../db/client";
-import { scenes, files } from "../../db/schema";
+import { scenes } from "../../db/schema";
 import type { Language } from "../../i18n";
 import { verifyGameAccess } from "../../utils/gameAccess";
 import { getMessage } from "../../i18n";
-import { fileService } from "../file/file.service";
-import * as s3 from "../../storage/s3";
+import { parseMmfToDto, serializeDtoToMmf } from "./mmf-helper";
 
 export class SceneService {
 
@@ -40,12 +35,17 @@ export class SceneService {
 	 * 将数据库记录转换为 Scene 类型
 	 */
 	private toScene(row: typeof scenes.$inferSelect): Scene {
+		const mmfData = row.mmfData ?? null;
+		// 按需解析 MMF 二进制为结构化 DTO
+		const mapParsed = mmfData ? parseMmfToDto(mmfData) : null;
 		return {
 			id: row.id,
 			gameId: row.gameId,
 			key: row.key,
 			name: row.name,
 			mapFileName: row.mapFileName,
+			mmfData: null, // 不再返回原始二进制，前端使用 mapParsed
+			mapParsed,
 			data: (row.data as Record<string, unknown>) ?? null,
 			createdAt: row.createdAt?.toISOString() ?? new Date().toISOString(),
 			updatedAt: row.updatedAt?.toISOString() ?? new Date().toISOString(),
@@ -155,6 +155,11 @@ export class SceneService {
 		if (input.name !== undefined) updates.name = input.name;
 		if (input.data !== undefined) updates.data = input.data;
 
+		// 如果前端发送了 mapParsed 更新，序列化回二进制存储
+		if (input.mapParsed !== undefined && input.mapParsed !== null) {
+			updates.mmfData = serializeDtoToMmf(input.mapParsed);
+		}
+
 		const [row] = await db
 			.update(scenes)
 			.set(updates)
@@ -190,305 +195,84 @@ export class SceneService {
 		return row;
 	}
 
-	// ============= 单文件导入 =============
+	// ============= 批量导入（逐条） =============
 
 	/**
-	 * 导入单个文件
-	 * 前端逐个文件调用，每次只处理 1 个文件
+	 * 导入单个场景（前端已解析好全部数据）
+	 * 包含 MMF base64 + scripts/traps/npc/obj
 	 */
-	async importFile(
-		input: ImportSceneFileInput,
+	async importScene(
+		input: ImportSceneBatchInput,
 		userId: string,
 		language: Language
-	): Promise<ImportSceneFileResult> {
+	): Promise<ImportSceneBatchResult> {
 		await verifyGameAccess(input.gameId, userId, language);
 
+		const { scene } = input;
+
 		try {
-			switch (input.zone) {
-				case "map":
-					return await this.importMapFile(input, userId, language);
-				case "script":
-					return await this.importScriptFile(input, userId, language);
-				case "save":
-					return await this.importSaveFile(input, userId, language);
-				default:
-					return { ok: false, action: "error", error: `不支持的区域: ${input.zone}` };
+			// 检查是否已存在
+			const [existing] = await db
+				.select({ id: scenes.id })
+				.from(scenes)
+				.where(and(eq(scenes.gameId, input.gameId), eq(scenes.key, scene.key)))
+				.limit(1);
+
+			if (existing) {
+				// 更新现有场景
+				await db
+					.update(scenes)
+					.set({
+						name: scene.name,
+						mapFileName: scene.mapFileName,
+						mmfData: scene.mmfData,
+						data: scene.data as Record<string, unknown>,
+						updatedAt: new Date(),
+					})
+					.where(and(eq(scenes.id, existing.id), eq(scenes.gameId, input.gameId)));
+
+				return { ok: true, action: "updated", sceneName: scene.name };
 			}
+
+			// 创建新场景
+			await db.insert(scenes).values({
+				gameId: input.gameId,
+				key: scene.key,
+				name: scene.name,
+				mapFileName: scene.mapFileName,
+				mmfData: scene.mmfData,
+				data: scene.data as Record<string, unknown>,
+			});
+
+			return { ok: true, action: "created", sceneName: scene.name };
 		} catch (e) {
 			return {
 				ok: false,
 				action: "error",
+				sceneName: scene.name,
 				error: e instanceof Error ? e.message : String(e),
 			};
 		}
 	}
 
-	/** 导入地图文件 → 创建场景 + 上传到资源管理器 map/ */
-	private async importMapFile(
-		input: ImportSceneFileInput,
+	// ============= 清空所有场景 =============
+
+	/**
+	 * 清空指定游戏的所有场景数据
+	 */
+	async clearAll(
+		input: ClearAllScenesInput,
 		userId: string,
 		language: Language
-	): Promise<ImportSceneFileResult> {
-		if (!input.fileName.toLowerCase().endsWith(".mmf")) {
-			return { ok: false, action: "error", error: `不支持的地图文件类型: ${input.fileName}（仅支持 .mmf）` };
-		}
-		const { key, name } = parseMapFileName(input.fileName);
+	): Promise<ClearAllScenesResult> {
+		await verifyGameAccess(input.gameId, userId, language);
 
-		// 检查是否已存在
-		const [existing] = await db
-			.select({ id: scenes.id })
-			.from(scenes)
-			.where(and(eq(scenes.gameId, input.gameId), eq(scenes.key, key)))
-			.limit(1);
+		const deleted = await db
+			.delete(scenes)
+			.where(eq(scenes.gameId, input.gameId))
+			.returning({ id: scenes.id });
 
-		if (existing) {
-			return { ok: true, action: "skipped", sceneName: name };
-		}
-
-		// 创建场景记录
-		await db.insert(scenes).values({
-			gameId: input.gameId,
-			key,
-			name,
-			mapFileName: input.fileName,
-		});
-
-		// 上传到资源管理器 map/
-		const mapFolderId = await fileService.ensureFolderPath(
-			input.gameId, null, ["map"], userId, language
-		);
-		await this.uploadFileToResources(
-			input.gameId,
-			mapFolderId,
-			input.fileName,
-			Buffer.from(input.content, "base64"),
-			"application/octet-stream",
-			userId,
-			language
-		);
-
-		return { ok: true, action: "created", sceneName: name };
-	}
-
-	/**
-	 * 导入脚本文件 → 匹配场景 → 解析内容存入 scene.data.scripts / scene.data.traps
-	 */
-	private async importScriptFile(
-		input: ImportSceneFileInput,
-		_userId: string,
-		_language: Language
-	): Promise<ImportSceneFileResult> {
-		if (!input.fileName.toLowerCase().endsWith(".txt")) {
-			return { ok: false, action: "error", error: `不支持的脚本文件类型: ${input.fileName}（仅支持 .txt）` };
-		}
-		const dirName = input.dirName;
-		if (!dirName) {
-			return { ok: false, action: "error", error: "脚本文件缺少 dirName" };
-		}
-
-		// 统一 key 大小写匹配场景
-		const allScenes = await db
-			.select()
-			.from(scenes)
-			.where(eq(scenes.gameId, input.gameId));
-
-		const scene = allScenes.find(s => s.key.toLowerCase() === dirName.toLowerCase());
-		if (!scene) {
-			return { ok: false, action: "error", error: `未找到目录 ${dirName} 对应的场景` };
-		}
-
-		const kind = classifyScriptFile(input.fileName);
-		const dataKey = kind === "trap" ? "traps" : "scripts";
-
-		// 读取当前 scene.data，合并新内容
-		const data: SceneData = ((scene.data ?? {}) as SceneData);
-		if (!data[dataKey]) {
-			(data as Record<string, unknown>)[dataKey] = {};
-		}
-
-		// 检查是否已存在
-		if (data[dataKey]![input.fileName]) {
-			return { ok: true, action: "skipped", itemKind: kind };
-		}
-
-		data[dataKey]![input.fileName] = input.content;
-
-		// 更新场景
-		await db
-			.update(scenes)
-			.set({ data: data as Record<string, unknown>, updatedAt: new Date() })
-			.where(and(eq(scenes.id, scene.id), eq(scenes.gameId, input.gameId)));
-
-		return { ok: true, action: "updated", itemKind: kind };
-	}
-
-	/**
-	 * 导入存档文件 → 解析 INI → 匹配场景 → 解析 NPC/OBJ 条目存入 scene.data
-	 */
-	private async importSaveFile(
-		input: ImportSceneFileInput,
-		_userId: string,
-		_language: Language
-	): Promise<ImportSceneFileResult> {
-		const lower = input.fileName.toLowerCase();
-		if (!lower.endsWith(".npc") && !lower.endsWith(".obj")) {
-			return { ok: false, action: "error", error: `不支持的存档文件类型: ${input.fileName}（仅支持 .npc/.obj）` };
-		}
-		const kind = classifySaveFile(input.fileName);
-		if (!kind) {
-			return { ok: false, action: "error", error: `不支持的文件类型: ${input.fileName}` };
-		}
-
-		const displayName = extractDisplayName(input.fileName);
-
-		// 从文件内容的 [Head] Map= 字段匹配场景
-		const sceneId = await this.matchSaveFileToScene(input.gameId, input.content, displayName);
-		if (!sceneId) {
-			return { ok: false, action: "error", error: `未找到 ${input.fileName} 对应的场景（Map= 不匹配）` };
-		}
-
-		// 获取当前场景
-		const [scene] = await db
-			.select()
-			.from(scenes)
-			.where(and(eq(scenes.id, sceneId), eq(scenes.gameId, input.gameId)))
-			.limit(1);
-
-		if (!scene) {
-			return { ok: false, action: "error", error: "场景不存在" };
-		}
-
-		// 解析 INI 内容
-		const sections = parseIniContent(input.content);
-		const data: SceneData = ((scene.data ?? {}) as SceneData);
-
-		if (kind === "npc") {
-			const entries = parseNpcEntries(sections);
-			if (!data.npc) data.npc = {};
-			data.npc[input.fileName] = { key: input.fileName, entries };
-		} else if (kind === "obj") {
-			const entries = parseObjEntries(sections);
-			if (!data.obj) data.obj = {};
-			data.obj[input.fileName] = { key: input.fileName, entries };
-		}
-
-		// 更新场景
-		await db
-			.update(scenes)
-			.set({ data: data as Record<string, unknown>, updatedAt: new Date() })
-			.where(and(eq(scenes.id, sceneId), eq(scenes.gameId, input.gameId)));
-
-		return { ok: true, action: "updated", itemKind: kind };
-	}
-
-	/**
-	 * 从 NPC/OBJ 文件内容中解析 [Head] Map= 字段，匹配到对应场景
-	 * 例如 Map=map_009_山洞内部.map → 匹配 scene key "map_009_山洞内部"
-	 * 如果头部没有 Map= 字段，回退到文件名模式匹配
-	 */
-	private async matchSaveFileToScene(
-		gameId: string,
-		content: string,
-		displayName: string
-	): Promise<string | null> {
-		// 1. 优先从文件内容解析 Map= 字段
-		const mapMatch = content.match(/^Map\s*=\s*(.+)/im);
-		if (mapMatch) {
-			const mapFileName = mapMatch[1].trim();
-			// 提取 key（去掉 .map/.mmf 后缀）
-			const mapKey = mapFileName.replace(/\.(map|mmf)$/i, "");
-			if (mapKey) {
-				const rows = await db
-					.select({ id: scenes.id })
-					.from(scenes)
-					.where(and(
-						eq(scenes.gameId, gameId),
-						eq(scenes.key, mapKey)
-					))
-					.limit(1);
-				if (rows.length > 0) return rows[0].id;
-
-				// Map= 中的 key 可能大小写不同，用 LOWER 兜底
-				const rows2 = await db
-					.select({ id: scenes.id })
-					.from(scenes)
-					.where(and(
-						eq(scenes.gameId, gameId),
-						sql`LOWER(${scenes.key}) = LOWER(${mapKey})`
-					))
-					.limit(1);
-				if (rows2.length > 0) return rows2[0].id;
-			}
-		}
-
-		// 2. 回退：从文件名模式匹配（map003 → map_003_*）
-		const numMatch = displayName.match(/^map(\d{3})/i);
-		if (numMatch) {
-			const mapNum = numMatch[1];
-			const rows = await db
-				.select({ id: scenes.id })
-				.from(scenes)
-				.where(and(
-					eq(scenes.gameId, gameId),
-					sql`(${scenes.key} LIKE ${`map_${mapNum}_%`} OR ${scenes.key} LIKE ${`MAP_${mapNum}_%`})`
-				))
-				.limit(1);
-
-			if (rows.length > 0) return rows[0].id;
-		}
-
-		return null;
-	}
-
-	/**
-	 * 上传文件到资源管理器
-	 * 如果同名文件已存在则跳过
-	 * 仅用于地图文件 (MMF) 上传
-	 */
-	private async uploadFileToResources(
-		gameId: string,
-		parentId: string,
-		fileName: string,
-		content: Buffer,
-		mimeType: string,
-		_userId: string,
-		_language: Language
-	): Promise<string> {
-		// 检查是否已存在同名文件
-		const [existing] = await db
-			.select({ id: files.id })
-			.from(files)
-			.where(and(
-				eq(files.gameId, gameId),
-				eq(files.parentId, parentId),
-				eq(files.name, fileName),
-				isNull(files.deletedAt)
-			))
-			.limit(1);
-
-		if (existing) {
-			return existing.id;
-		}
-
-		// 生成 storageKey 并上传到 S3
-		const storageKey = `${gameId}/${crypto.randomUUID()}/${fileName}`;
-		await s3.uploadFile(storageKey, content, mimeType);
-
-		// 创建文件记录
-		const [file] = await db
-			.insert(files)
-			.values({
-				gameId,
-				parentId,
-				name: fileName,
-				type: "file",
-				storageKey,
-				size: String(content.length),
-				mimeType,
-			})
-			.returning();
-
-		return file.id;
+		return { deletedCount: deleted.length };
 	}
 }
 

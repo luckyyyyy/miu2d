@@ -1,7 +1,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import tailwindcss from "@tailwindcss/vite";
-import react from "@vitejs/plugin-react";
+import react from "@vitejs/plugin-react-oxc";
 import { defineConfig, type Plugin } from "vite";
 
 const __dirname = path.dirname(new URL(import.meta.url).pathname);
@@ -47,7 +47,20 @@ export default defineConfig({
     },
   },
   server: {
+    host: "0.0.0.0",
     proxy: {
+      // tRPC API 代理到后端 4000 端口
+      "/trpc": {
+        target: "http://localhost:4000",
+        changeOrigin: true,
+      },
+      // MinIO presigned URL 代理：/s3/* → MinIO 9000
+      // changeOrigin 确保 Host 头匹配 presigned URL 签名
+      "/s3": {
+        target: "http://localhost:9000",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/s3/, ""),
+      },
       // 代理后端 API 路径到后端 4000 端口
       // 注意：/game/:gameSlug 是前端路由，不代理
       // 只代理 /game/*/api/* 和 /game/*/resources/* 到后端

@@ -15,6 +15,7 @@ import {
 	AdminListSavesInputSchema,
 	AdminListSavesOutputSchema,
 	AdminCreateSaveInputSchema,
+	AdminUpdateSaveInputSchema,
 	AdminDeleteSaveInputSchema,
 } from "@miu2d/types";
 import type { Context } from "../../trpc/context";
@@ -119,6 +120,15 @@ export class SaveRouter {
 	@Mutation({ input: AdminCreateSaveInputSchema, output: SaveSlotSchema })
 	async adminCreate(input: z.infer<typeof AdminCreateSaveInputSchema>, @Ctx() ctx: Context) {
 		return saveService.adminCreate(input, ctx.userId!);
+	}
+
+	/**
+	 * 管理员更新存档数据
+	 */
+	@UseMiddlewares(requireUser)
+	@Mutation({ input: AdminUpdateSaveInputSchema, output: SaveSlotSchema })
+	async adminUpdate(input: z.infer<typeof AdminUpdateSaveInputSchema>, @Ctx() ctx: Context) {
+		return saveService.adminUpdate(input, ctx.userId!);
 	}
 
 	/**

@@ -11,8 +11,10 @@ import {
 	CreateSceneInputSchema,
 	UpdateSceneInputSchema,
 	DeleteSceneInputSchema,
-	ImportSceneFileInputSchema,
-	ImportSceneFileResultSchema,
+	ImportSceneBatchInputSchema,
+	ImportSceneBatchResultSchema,
+	ClearAllScenesInputSchema,
+	ClearAllScenesResultSchema,
 } from "@miu2d/types";
 import type { Context } from "../../trpc/context";
 import { Ctx, Mutation, Query, Router, UseMiddlewares } from "../../trpc/decorators";
@@ -59,11 +61,19 @@ export class SceneRouter {
 		return sceneService.delete(input.gameId, input.id, ctx.userId!, ctx.language);
 	}
 
-	// ============= 单文件导入 =============
+	// ============= 批量导入（逐条） =============
 
 	@UseMiddlewares(requireUser)
-	@Mutation({ input: ImportSceneFileInputSchema, output: ImportSceneFileResultSchema })
-	async importFile(input: z.infer<typeof ImportSceneFileInputSchema>, @Ctx() ctx: Context) {
-		return sceneService.importFile(input, ctx.userId!, ctx.language);
+	@Mutation({ input: ImportSceneBatchInputSchema, output: ImportSceneBatchResultSchema })
+	async importScene(input: z.infer<typeof ImportSceneBatchInputSchema>, @Ctx() ctx: Context) {
+		return sceneService.importScene(input, ctx.userId!, ctx.language);
+	}
+
+	// ============= 清空所有场景 =============
+
+	@UseMiddlewares(requireUser)
+	@Mutation({ input: ClearAllScenesInputSchema, output: ClearAllScenesResultSchema })
+	async clearAll(input: z.infer<typeof ClearAllScenesInputSchema>, @Ctx() ctx: Context) {
+		return sceneService.clearAll(input, ctx.userId!, ctx.language);
 	}
 }

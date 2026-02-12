@@ -142,6 +142,15 @@ export const AdminCreateSaveInputSchema = z.object({
 
 export type AdminCreateSaveInput = z.infer<typeof AdminCreateSaveInputSchema>;
 
+/** 管理员更新存档数据 */
+export const AdminUpdateSaveInputSchema = z.object({
+  saveId: z.string(),
+  name: z.string().max(100).optional(),
+  data: z.record(z.string(), z.unknown()),
+});
+
+export type AdminUpdateSaveInput = z.infer<typeof AdminUpdateSaveInputSchema>;
+
 /** 管理员删除存档 */
 export const AdminDeleteSaveInputSchema = z.object({
   saveId: z.string(),

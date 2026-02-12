@@ -28,12 +28,12 @@ export const LS_SCRIPT_CONTENT = "debug_script_content";
 export const LS_SCRIPT_HISTORY = "debug_script_history";
 export const MAX_HISTORY = 20;
 
-// 样式类
+// 样式类 — VS Code Dark Theme
 export const inputClass =
-  "px-2 py-1 text-[11px] bg-white/5 border border-white/10 text-white/70 focus:outline-none focus:border-white/20";
+  "px-2 py-1 text-[11px] bg-[#3c3c3c] border border-[#3c3c3c] text-[#d4d4d4] focus:outline-none focus:border-[#007acc]";
 export const selectClass =
-  "px-2 py-1 text-[11px] bg-white/5 border border-white/10 text-white/70 focus:outline-none focus:border-white/20 cursor-pointer [&>option]:text-black [&>option]:bg-white";
+  "px-2 py-1 text-[11px] bg-[#3c3c3c] border border-[#3c3c3c] text-[#d4d4d4] focus:outline-none focus:border-[#007acc] cursor-pointer [&>option]:text-[#d4d4d4] [&>option]:bg-[#252526]";
 export const btnClass =
-  "px-2 py-1 text-[11px] bg-white/5 hover:bg-white/10 text-white/70 border border-white/10 disabled:opacity-50 disabled:cursor-not-allowed";
+  "px-2 py-1 text-[11px] bg-[#3c3c3c] hover:bg-[#505050] text-[#d4d4d4] border border-[#505050] disabled:opacity-50 disabled:cursor-not-allowed";
 export const btnPrimary =
-  "px-2 py-1 text-[11px] bg-blue-600 hover:bg-blue-500 text-white border border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed";
+  "px-2 py-1 text-[11px] bg-[#0e639c] hover:bg-[#1177bb] text-white border border-[#0e639c] disabled:opacity-50 disabled:cursor-not-allowed";
