@@ -1557,8 +1557,7 @@ export class Loader {
    * 2. 遍历存档数据，为每个 NPC 创建实例
    * 3. 加载对应的资源（npcres -> asf）
    *
-   * 注意：版本存档时会把完整 NPC 数据写到 save/game/xxx.npc 文件
-   * Web 版本则直接从 JSON 恢复
+   * Web 版本直接从 JSON 恢复
    */
   private async loadNpcsFromJSON(npcs: NpcSaveItem[], npcManager: NpcManager): Promise<void> {
     // 过滤掉已完全死亡的 NPC
@@ -1595,8 +1594,7 @@ export class Loader {
    * 2. 遍历存档数据，为每个 Obj 创建实例
    * 3. 加载对应的资源（objres -> asf）
    *
-   * 注意：版本存档时会把完整 Obj 数据写到 save/game/xxx.obj 文件
-   * Web 版本则直接从 JSON 恢复
+   * Web 版本直接从 JSON 恢复
    */
   private async loadObjsFromJSON(objs: ObjSaveItem[], objManager: ObjManager): Promise<void> {
     // 过滤掉已移除的物体

@@ -147,8 +147,8 @@ export class ObjManager extends EngineAccess {
   }
 
   /**
-   * Load objects from an .obj file
-   *  - tries groups store first (saved by SaveObj), then save/game/, then ini/save/
+   * Load objects for a given scene key
+   *  - tries groups store first (saved by SaveObj), then Scene API
    */
   async load(fileName: string): Promise<boolean> {
     logger.log(`[ObjManager] Loading obj file: ${fileName}`);

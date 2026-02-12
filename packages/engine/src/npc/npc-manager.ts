@@ -61,7 +61,7 @@ export interface ViewRect {
 export class NpcManager extends EngineAccess {
   // Internal storage uses Npc class instances
   private npcs: Map<string, Npc> = new Map();
-  // Note: NPC config is loaded from API cache (npcConfigLoader)
+  // Note: NPC config is loaded from API cache (npc-config-loader)
   // Store loaded NPC file name
   private fileName: string = "";
 
@@ -342,7 +342,7 @@ export class NpcManager extends EngineAccess {
 
   /**
    * Add NPC from config file
-   * Config is loaded from API cache (npcConfigLoader)
+   * Config is loaded from API cache (npc-config-loader)
    */
   async addNpc(
     configPath: string,
@@ -1211,9 +1211,8 @@ export class NpcManager extends EngineAccess {
   }
 
   /**
-   * Load NPCs from a .npc file
-   *  and Utils.GetNpcObjFilePath
-   * Uses unified resourceLoader for text data fetching
+   * Load NPCs for a given scene key
+   *  - tries groups store first, then Scene API
    *
    * @param fileName - The NPC file name (e.g., "wudangshanxia.npc")
    * @param clearCurrentNpcs - Whether to clear existing NPCs (default: true)

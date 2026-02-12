@@ -114,22 +114,6 @@ describe("resourcePaths", () => {
       expect(ResourcePath.sound("click.wav")).toBe("/resources/content/sound/click.wav");
     });
 
-    it("saveGame()", () => {
-      expect(ResourcePath.saveGame("save.ini")).toBe("/resources/save/game/save.ini");
-    });
-
-    it("saveRpg()", () => {
-      expect(ResourcePath.saveRpg(1, "save.ini")).toBe("/resources/save/rpg1/save.ini");
-    });
-
-    it("saveBase(0) returns game save path", () => {
-      expect(ResourcePath.saveBase(0)).toBe("/resources/save/game");
-    });
-
-    it("saveBase(n) returns rpg slot path", () => {
-      expect(ResourcePath.saveBase(2)).toBe("/resources/save/rpg2");
-    });
-
     it("mpcMap()", () => {
       expect(ResourcePath.mpcMap("tiles.mpc")).toBe("/resources/mpc/map/tiles.mpc");
     });

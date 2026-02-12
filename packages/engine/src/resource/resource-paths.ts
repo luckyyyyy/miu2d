@@ -154,7 +154,6 @@ export const ResourceDirs = {
     magic: "ini/magic",
     level: "ini/level",
     buy: "ini/buy",
-    save: "ini/save",
   },
   /** 脚本文件目录 */
   script: {
@@ -169,12 +168,6 @@ export const ResourceDirs = {
     sound: "content/sound",
     ui: "content/ui",
     video: "content/video",
-  },
-  /** 存档目录 */
-  save: {
-    root: "save",
-    game: "save/game",
-    rpg: "save/rpg",
   },
 } as const;
 
@@ -288,10 +281,6 @@ export const ResourcePath = {
   buy(fileName: string): string {
     return buildPath(`${ResourceDirs.ini.buy}/${fileName}`);
   },
-  /** INI 存档路径 */
-  iniSave(fileName: string): string {
-    return buildPath(`${ResourceDirs.ini.save}/${fileName}`);
-  },
   /** INI 根目录路径 */
   ini(fileName: string): string {
     return buildPath(`${ResourceDirs.ini.root}/${fileName}`);
@@ -331,23 +320,6 @@ export const ResourcePath = {
   /** Content 根目录路径 */
   content(relativePath: string): string {
     return buildPath(`${ResourceDirs.content.root}/${relativePath}`);
-  },
-
-  // --- 存档 ---
-  /** 游戏存档路径 */
-  saveGame(fileName: string): string {
-    return buildPath(`${ResourceDirs.save.game}/${fileName}`);
-  },
-  /** RPG 存档路径（带存档槽） */
-  saveRpg(slotIndex: number, fileName: string): string {
-    return buildPath(`${ResourceDirs.save.rpg}${slotIndex}/${fileName}`);
-  },
-  /** 存档基础路径（根据存档槽） */
-  saveBase(slotIndex: number): string {
-    if (slotIndex === 0) {
-      return buildPath(ResourceDirs.save.game);
-    }
-    return buildPath(`${ResourceDirs.save.rpg}${slotIndex}`);
   },
 
   // --- MPC ---
