@@ -394,11 +394,11 @@ export const DefaultPaths = {
   },
   /** UI 设置文件 (Content) */
   get uiSettingsContent(): string {
-    return ResourcePath.ui("UI_Settings.ini");
+    return ResourcePath.ui("ui_settings.ini");
   },
   /** UI 设置文件 (INI) */
   get uiSettingsIni(): string {
-    return ResourcePath.ini("UI_Settings.ini");
+    return ResourcePath.ini("ui_settings.ini");
   },
   /** 音乐基础路径 */
   get musicBasePath(): string {

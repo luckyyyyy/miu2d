@@ -112,20 +112,26 @@ export class AuthService {
 	}
 
 	setSessionCookie(res: Response, sessionId: string) {
+		const cookieSecure = process.env.SESSION_COOKIE_SECURE
+			? process.env.SESSION_COOKIE_SECURE === "true"
+			: process.env.NODE_ENV === "production";
 		res.cookie(SESSION_COOKIE_NAME, sessionId, {
 			httpOnly: true,
 			sameSite: "lax",
-			secure: process.env.NODE_ENV === "production",
+			secure: cookieSecure,
 			maxAge: SESSION_COOKIE_MAX_AGE,
 			path: "/"
 		});
 	}
 
 	clearSessionCookie(res: Response) {
+		const cookieSecure = process.env.SESSION_COOKIE_SECURE
+			? process.env.SESSION_COOKIE_SECURE === "true"
+			: process.env.NODE_ENV === "production";
 		res.clearCookie(SESSION_COOKIE_NAME, {
 			httpOnly: true,
 			sameSite: "lax",
-			secure: process.env.NODE_ENV === "production",
+			secure: cookieSecure,
 			path: "/"
 		});
 	}

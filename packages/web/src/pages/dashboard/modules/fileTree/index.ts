@@ -6,3 +6,7 @@ export { UploadProgress, UploadQueue } from "./UploadProgress";
 export { InputDialog, ConfirmDialog } from "./Dialogs";
 export { FileManager } from "./FileManager";
 export { FilePreview } from "./FilePreview";
+export { FileManagerProvider, useFileManager } from "./FileManagerContext";
+export { useFileTree } from "./useFileTree";
+export { useFileOperations } from "./useFileOperations";
+export { useFileUpload } from "./useFileUpload";

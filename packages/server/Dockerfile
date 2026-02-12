@@ -1,5 +1,5 @@
 # 构建阶段
-FROM node:20-alpine AS builder
+FROM node:22-alpine AS builder
 
 # 启用 corepack 以使用 pnpm
 RUN corepack enable && corepack prepare pnpm@10.15.1 --activate
@@ -31,13 +31,14 @@ RUN pnpm install --frozen-lockfile
 # 复制源代码和脚本
 COPY packages/server/src ./packages/server/src
 COPY packages/server/scripts ./packages/server/scripts
+COPY packages/server/drizzle ./packages/server/drizzle
 
 # 构建应用
 WORKDIR /app/packages/server
 RUN pnpm build
 
 # 生产阶段
-FROM node:20-alpine AS runner
+FROM node:22-alpine AS runner
 
 # 启用 corepack
 RUN corepack enable && corepack prepare pnpm@10.15.1 --activate
@@ -54,6 +55,9 @@ COPY packages/server/package.json ./packages/server/
 COPY --from=builder /app/packages/types/dist ./packages/types/dist
 COPY --from=builder /app/packages/i18n/dist ./packages/i18n/dist
 COPY --from=builder /app/packages/server/dist ./packages/server/dist
+
+# 复制 drizzle 迁移文件
+COPY --from=builder /app/packages/server/drizzle ./packages/server/drizzle
 
 # 只安装生产依赖
 RUN pnpm install --prod --frozen-lockfile --ignore-scripts

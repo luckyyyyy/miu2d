@@ -29,6 +29,8 @@ interface FileTreeProps {
   onMove?: (nodeId: string, newParentId: string | null) => void;
   /** 外部文件拖入目录事件 */
   onFileDrop?: (dataTransfer: DataTransfer, targetFolderId: string | null) => void;
+  /** 任何 drop 完成后的回调（用于清理外层 drag 状态） */
+  onDropComplete?: () => void;
   /** 正在重命名的节点 ID */
   renamingId?: string | null;
   /** 取消重命名 */
@@ -56,6 +58,7 @@ export function FileTree({
   onRename,
   onMove,
   onFileDrop,
+  onDropComplete,
   renamingId,
   onRenameCancel,
   indentSize = 8,
@@ -234,6 +237,7 @@ export function FileTree({
         onFileDrop?.(e.dataTransfer, targetNode.id);
         setDragOverId(null);
         setIsDragOverRoot(false);
+        onDropComplete?.();
         return;
       }
 
@@ -252,8 +256,9 @@ export function FileTree({
       setDraggedNode(null);
       setDragOverId(null);
       setIsDragOverRoot(false);
+      onDropComplete?.();
     },
-    [draggedNode, flatNodes, onMove, onFileDrop]
+    [draggedNode, flatNodes, onMove, onFileDrop, onDropComplete]
   );
 
   // 容器拖拽处理（用于拖放到根目录）
@@ -289,6 +294,7 @@ export function FileTree({
       onFileDrop?.(e.dataTransfer, null);
       setDragOverId(null);
       setIsDragOverRoot(false);
+      onDropComplete?.();
       return;
     }
 
@@ -299,7 +305,8 @@ export function FileTree({
     setDraggedNode(null);
     setDragOverId(null);
     setIsDragOverRoot(false);
-  }, [draggedNode, onMove, onFileDrop]);
+    onDropComplete?.();
+  }, [draggedNode, onMove, onFileDrop, onDropComplete]);
 
   const handleContainerDragLeave = useCallback((e: React.DragEvent) => {
     // 确保是离开容器而不是进入子元素

@@ -14,7 +14,9 @@
     "start": "node dist/main.js",
     "tsc": "tsc --noEmit",
     "db:seed": "tsx src/seed.ts",
-    "db:migrate": "drizzle-kit push",
+    "db:migrate": "tsx src/db/migrate.ts",
+    "db:migrate:prod": "node dist/db/migrate.js",
+    "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio --port 4983"
   },
   "dependencies": {

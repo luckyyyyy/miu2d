@@ -401,9 +401,8 @@ export function LevelDetailPage() {
               onChange={(e) =>
                 setFormData((prev) => ({ ...prev, key: e.target.value }))
               }
-              disabled={!isNew}
               placeholder="key"
-              className="px-2 py-1 bg-transparent border-b border-widget-border text-[#858585] text-xs focus:outline-none focus:border-focus-border w-32 disabled:opacity-50"
+              className="px-2 py-1 bg-transparent border-b border-widget-border text-[#858585] text-xs focus:outline-none focus:border-focus-border w-32"
             />
             <span className="text-[#858585] text-xs">|</span>
             <span className="text-[#858585] text-xs">{levels.length} 级</span>

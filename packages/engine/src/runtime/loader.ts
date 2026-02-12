@@ -1528,52 +1528,37 @@ export class Loader {
     const visibleMagics = magics.filter((m) => !m.isHidden);
     const hiddenMagics = magics.filter((m) => m.isHidden);
 
-    // 串行加载可见武功到指定位置
-    for (const item of visibleMagics) {
-      // 使用保存的索引位置，如果没有则自动分配
-      const targetIndex = item.index ?? -1;
+    // 批量加载可见武功（同步放置 + 并行预加载 ASF）
+    const batchItems = visibleMagics.map((item) => ({
+      fileName: item.fileName,
+      index: (item.index ?? -1) > 0 ? item.index : undefined,
+      level: item.level,
+      exp: item.exp,
+      hideCount: item.hideCount,
+    }));
+    const results = await magicListManager.addMagicBatch(batchItems);
 
-      if (targetIndex > 0) {
-        // 直接加载到指定位置
-        const [success] = await magicListManager.addMagic(item.fileName, {
-          index: targetIndex,
-          level: item.level,
-          exp: item.exp,
-        });
-        if (success) {
-          // 恢复 hideCount（可能 > 1，表示多件装备提供同一武功）
-          if (item.hideCount !== undefined) {
-            const info = magicListManager.getItemInfo(targetIndex);
-            if (info) {
-              info.hideCount = item.hideCount;
-            }
-          }
-        } else {
-          logger.warn(`[Loader] Failed to load magic ${item.fileName} at index ${targetIndex}`);
-        }
-      } else {
-        // 旧存档兼容：自动分配位置
-        const [success, index] = await magicListManager.addMagic(item.fileName);
-        if (success && index !== -1) {
-          const info = magicListManager.getItemInfo(index);
-          if (info) {
-            info.level = item.level;
-            info.exp = item.exp;
-          }
-        }
+    // 旧存档兼容：检查未指定 index 但成功分配的情况（addMagicBatch 已处理）
+    // 恢复 hideCount 在 addMagicBatch 中已通过 item.hideCount 参数处理
+    for (let i = 0; i < results.length; i++) {
+      const [success, index] = results[i];
+      if (!success && index === -1) {
+        logger.warn(`[Loader] Failed to load magic ${visibleMagics[i].fileName}`);
       }
     }
 
-    // 加载隐藏武功（装备关联武功，脱装备后被隐藏）
-    // 参考 C# MagicListManager.LoadList: HideStartIndex(1000+) 区域
-    for (const item of hiddenMagics) {
-      await magicListManager.addHiddenMagic(item.fileName, {
-        index: item.index,
-        level: item.level,
-        exp: item.exp,
-        hideCount: item.hideCount ?? 0,
-        lastIndexWhenHide: item.lastIndexWhenHide ?? 0,
-      });
+    // 批量加载隐藏武功（同步放置 + 并行预加载 ASF）
+    if (hiddenMagics.length > 0) {
+      await magicListManager.addHiddenMagicBatch(
+        hiddenMagics.map((item) => ({
+          fileName: item.fileName,
+          index: item.index,
+          level: item.level,
+          exp: item.exp,
+          hideCount: item.hideCount ?? 0,
+          lastIndexWhenHide: item.lastIndexWhenHide ?? 0,
+        }))
+      );
     }
 
     // 设置修炼武功

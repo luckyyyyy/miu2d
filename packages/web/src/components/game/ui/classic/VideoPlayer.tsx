@@ -299,18 +299,26 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ engine }) => {
   );
 
   // Subscribe to video play events
-  // VideoPlayer is always mounted (even during loading), so it will catch
-  // UI_VIDEO_PLAY events in real-time. No need to check for pending movies.
+  // Also check for pending movies that may have been requested before
+  // this effect ran (race condition: engine emits UI_VIDEO_PLAY synchronously,
+  // but React useEffect runs asynchronously after render commit).
   useEffect(() => {
     if (!engine) return;
 
     const events = engine.events;
     events.on(GameEvents.UI_VIDEO_PLAY, handleVideoPlay);
 
+    // Check for pending movie that was emitted before we subscribed
+    const pendingMovie = engine.guiManager.getPendingMovie();
+    if (pendingMovie && !videoFile) {
+      logger.log(`[VideoPlayer] Found pending movie on subscribe: ${pendingMovie}`);
+      handleVideoPlay({ file: pendingMovie } as UIVideoPlayEvent);
+    }
+
     return () => {
       events.off(GameEvents.UI_VIDEO_PLAY, handleVideoPlay);
     };
-  }, [engine, handleVideoPlay]);
+  }, [engine, handleVideoPlay, videoFile]);
 
   // Add keyboard listener
   useEffect(() => {

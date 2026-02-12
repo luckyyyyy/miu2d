@@ -770,6 +770,19 @@ export class GuiManager extends EngineAccess {
     return !this.isMoviePlaying;
   }
 
+  /**
+   * Force end movie playback (safety fallback for timeout).
+   * Used when the UI never picked up the movie event.
+   */
+  forceEndMovie(): void {
+    if (this.isMoviePlaying) {
+      logger.warn("[GuiManager] forceEndMovie: forcing movie playback to end");
+      this.isMoviePlaying = false;
+      this.pendingMovieFile = null;
+      this.events.emit(GameEvents.UI_VIDEO_END, {});
+    }
+  }
+
   reset(): void {
     this.state = createDefaultGuiState();
   }

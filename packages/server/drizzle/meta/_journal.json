@@ -15,6 +15,13 @@
       "when": 1770667795799,
       "tag": "0001_small_ben_parker",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1770908518544,
+      "tag": "0002_pretty_mach_iv",
+      "breakpoints": true
     }
   ]
 }

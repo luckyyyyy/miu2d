@@ -83,7 +83,7 @@ export class MagicManager {
       magicSprites: new Map(),
       workList: [],
       effectSprites: new Map(),
-      maxMagicUnit: 100,
+      maxMagicUnit: 1000,
       isInSuperMagicMode: false,
       superModeMagicSprite: null,
       timeStopperMagicSprite: null,
@@ -412,7 +412,7 @@ export class MagicManager {
         MagicMoveKind.TimeStop,
       ];
       if (!skipKinds.includes(sprite.magic.moveKind)) {
-        logger.warn(`[MagicManager] Max magic unit reached, skipping ${sprite.magic.name}`);
+        logger.debug(`[MagicManager] Max magic unit reached, skipping ${sprite.magic.name}`);
         return;
       }
     }

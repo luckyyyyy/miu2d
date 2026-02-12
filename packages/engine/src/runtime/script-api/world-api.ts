@@ -6,6 +6,7 @@ import type { MapAPI, ObjAPI, CameraAPI, AudioAPI, EffectsAPI, TimerAPI } from "
 import type { ScriptCommandContext } from "./types";
 import { tileToPixel } from "../../utils";
 import type { BlockingResolver } from "../../script/blocking-resolver";
+import { logger } from "../../core/logger";
 
 export function createMapAPI(ctx: ScriptCommandContext): MapAPI {
   return {
@@ -82,7 +83,20 @@ export function createAudioAPI(ctx: ScriptCommandContext, resolver: BlockingReso
     playMovie: async (file) => {
       guiManager.playMovie(file);
       if (guiManager.isMovieEnd()) return;
-      await resolver.waitForCondition(() => guiManager.isMovieEnd());
+      // Safety timeout: if UI never picks up the movie event (e.g. component
+      // not mounted or event lost), don't block the script forever.
+      const MOVIE_TIMEOUT_MS = 30_000;
+      const startTime = performance.now();
+      await resolver.waitForCondition(() => {
+        if (guiManager.isMovieEnd()) return true;
+        // Timeout fallback — force end if UI never responded
+        if (performance.now() - startTime > MOVIE_TIMEOUT_MS) {
+          logger.warn(`[WorldAPI] PlayMovie timeout after ${MOVIE_TIMEOUT_MS}ms, forcing end`);
+          guiManager.forceEndMovie();
+          return true;
+        }
+        return false;
+      });
     },
   };
 }

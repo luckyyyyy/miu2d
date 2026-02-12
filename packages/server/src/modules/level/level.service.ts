@@ -262,8 +262,8 @@ export class LevelConfigService {
     const levels = this.parseIni(input.iniContent, input.userType);
     const maxLevel = levels.length;
 
-    // 使用文件名（不含扩展名）作为 key
-    const key = input.fileName.replace(/\.ini$/i, "");
+    // 使用完整文件名作为 key（保留 .ini 扩展名）
+    const key = input.fileName;
 
     // 提取名称（如 Level-easy -> 简单模式）
     const name = this.extractNameFromFileName(input.fileName);
