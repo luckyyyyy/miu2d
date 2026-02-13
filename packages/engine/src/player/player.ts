@@ -565,7 +565,17 @@ export class Player extends PlayerCombat {
       this.relation = data.relation;
       this.pathFinder = data.pathFinder;
 
-      // 配置字符串
+      // 位置
+      this.setPosition(data.mapX, data.mapY);
+      this.setDirection(data.dir);
+
+      // 范围（必须在 setFlyIni 之前设置，buildFlyIniInfos 依赖 attackRadius）
+      this.idle = data.idle;
+      this.visionRadius = data.visionRadius;
+      this.dialogRadius = data.dialogRadius;
+      this.attackRadius = data.attackRadius;
+
+      // 配置字符串（flyIni 必须在 attackRadius 之后，因为 buildFlyIniInfos 需要 attackRadius）
       if (data.bodyIni) this.bodyIni = data.bodyIni;
       if (data.flyIni) this.setFlyIni(data.flyIni);
       if (data.flyIni2) this.setFlyIni2(data.flyIni2);
@@ -573,16 +583,6 @@ export class Player extends PlayerCombat {
       if (data.scriptFile) this.scriptFile = data.scriptFile;
       if (data.levelIni) this.levelIniFile = data.levelIni;
       if (data.timeScript) this.timerScript = data.timeScript;
-
-      // 位置
-      this.setPosition(data.mapX, data.mapY);
-      this.setDirection(data.dir);
-
-      // 范围
-      this.idle = data.idle;
-      this.visionRadius = data.visionRadius;
-      this.dialogRadius = data.dialogRadius;
-      this.attackRadius = data.attackRadius;
 
       // 属性 - 先设置 Max 再设置当前值
       this.level = data.level;

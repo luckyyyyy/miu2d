@@ -33,3 +33,4 @@ dist-ssr
 vfx-demo
 # Docker data
 .data/
+/magic
