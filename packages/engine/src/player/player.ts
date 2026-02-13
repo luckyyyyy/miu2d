@@ -25,6 +25,7 @@ import { Sprite } from "../sprite/sprite";
 import type { IRenderer } from "../renderer/i-renderer";
 import { getTileTextureRegion } from "../map/map-renderer";
 import type { ApiPlayerData } from "../resource/resource-loader";
+import { applyFlatDataToCharacter } from "../character/config-parser";
 import { isBoxCollide, pixelToTile } from "../utils";
 import {
   LIFE_RESTORE_PERCENT,
@@ -556,55 +557,23 @@ export class Player extends PlayerCombat {
     await this.levelManager.initialize();
 
     try {
-      // 基本信息
-      this.name = data.name;
-      if (data.npcIni) {
-        this.setNpcIni(data.npcIni);
-      }
-      this.kind = data.kind;
-      this.relation = data.relation;
-      this.pathFinder = data.pathFinder;
+      // API 字段名映射到 CharacterInstance 属性名
+      const mapped: Record<string, unknown> = {
+        ...data,
+        timerScriptFile: data.timeScript, // API: timeScript → CharacterInstance: timerScriptFile
+        levelIniFile: data.levelIni,      // API: levelIni → CharacterInstance: levelIniFile
+        manaLimit: data.manaLimit !== 0,   // API: number → CharacterInstance: boolean
+      };
 
-      // 位置
+      // 统一赋值所有 FIELD_DEFS 中定义的字段（纯赋值，无副作用）
+      applyFlatDataToCharacter(mapped, this, true);
+
+      // 需要副作用的字段
+      if (data.npcIni) await this.setNpcIni(data.npcIni);
       this.setPosition(data.mapX, data.mapY);
-      this.setDirection(data.dir);
 
-      // 范围（必须在 setFlyIni 之前设置，buildFlyIniInfos 依赖 attackRadius）
-      this.idle = data.idle;
-      this.visionRadius = data.visionRadius;
-      this.dialogRadius = data.dialogRadius;
-      this.attackRadius = data.attackRadius;
-
-      // 配置字符串（flyIni 必须在 attackRadius 之后，因为 buildFlyIniInfos 需要 attackRadius）
-      if (data.bodyIni) this.bodyIni = data.bodyIni;
-      if (data.flyIni) this.setFlyIni(data.flyIni);
-      if (data.flyIni2) this.setFlyIni2(data.flyIni2);
-      if (data.deathScript) this.deathScript = data.deathScript;
-      if (data.scriptFile) this.scriptFile = data.scriptFile;
-      if (data.levelIni) this.levelIniFile = data.levelIni;
-      if (data.timeScript) this.timerScript = data.timeScript;
-
-      // 属性 - 先设置 Max 再设置当前值
-      this.level = data.level;
-      this.exp = data.exp;
-      this.levelUpExp = data.levelUpExp;
-      this.lifeMax = data.lifeMax;
-      this.life = data.life;
-      this.thewMax = data.thewMax;
-      this.thew = data.thew;
-      this.manaMax = data.manaMax;
-      this.mana = data.mana;
-      this.attack = data.attack;
-      this.attackLevel = data.attackLevel;
-      this.defend = data.defend;
-      this.evade = data.evade;
-      this.lum = data.lum;
-      this.walkSpeed = data.walkSpeed;
-
-      // Player 特有
-      this.money = data.money;
-      this.manaLimit = data.manaLimit !== 0;
-      this.expBonus = data.expBonus;
+      // 统一触发副作用（setFlyIni → buildFlyIniInfos 等）
+      this.applyConfigSetters();
 
       logger.info(`[Player] Loaded from API data: ${data.name} at (${data.mapX}, ${data.mapY})`);
       return true;
@@ -617,151 +586,16 @@ export class Player extends PlayerCombat {
   /**
    * 从存档数据加载玩家
    * 用于 JSON 存档恢复，由 Loader.loadPlayerFromJSON 调用
-   * + Player 特有字段
    */
   loadFromSaveData(data: PlayerSaveData): void {
-    // === 基本信息 ===
-    this.name = data.name;
-    if (data.npcIni) {
-      // 使用 setNpcIni 来提取 NpcIniIndex
-      this.setNpcIni(data.npcIni);
-    }
-    this.kind = data.kind;
-    this.relation = data.relation;
-    this.pathFinder = data.pathFinder;
+    // 所有字段名已统一，直接赋值（无需 rename mapping）
+    applyFlatDataToCharacter(data as unknown as Record<string, unknown>, this, true);
 
-    // === 位置 ===
+    // 需要副作用的字段
+    if (data.npcIni) this.setNpcIni(data.npcIni);
     this.setPosition(data.mapX, data.mapY);
-    this.setDirection(data.dir);
 
-    // === 范围 ===
-    this.visionRadius = data.visionRadius;
-    this.dialogRadius = data.dialogRadius;
-    this.attackRadius = data.attackRadius;
-
-    // === 属性 ===
-    // 必须先设置 Max 再设置当前值（setter 会限制在 Max 以内）
-    this.level = data.level;
-    this.exp = data.exp;
-    this.levelUpExp = data.levelUpExp;
-    this.lifeMax = data.lifeMax;
-    this.life = data.life;
-    this.thewMax = data.thewMax;
-    this.thew = data.thew;
-    this.manaMax = data.manaMax;
-    this.mana = data.mana;
-    this.attack = data.attack;
-    this.attack2 = data.attack2;
-    this.attack3 = data.attack3;
-    this.attackLevel = data.attackLevel;
-    this.defend = data.defend;
-    this.defend2 = data.defend2;
-    this.defend3 = data.defend3;
-    this.evade = data.evade;
-    this.lum = data.lum;
-    this.action = data.action;
-    this.walkSpeed = data.walkSpeed;
-    this.addMoveSpeedPercent = data.addMoveSpeedPercent;
-    this.expBonus = data.expBonus;
-    this.canLevelUp = data.canLevelUp;
-
-    // === 位置相关 ===
-    this.fixedPos = data.fixedPos;
-    this.currentFixedPosIndex = data.currentFixedPosIndex;
-    // destinationMapPosX/Y 用于恢复目标位置，但通常重新加载时不需要继续移动
-
-    // === AI/行为 ===
-    this.idle = data.idle;
-    this.group = data.group;
-    this.noAutoAttackPlayer = data.noAutoAttackPlayer;
-    this.invincible = data.invincible;
-
-    // === 状态效果 ===
-    this.poisonSeconds = data.poisonSeconds;
-    this.poisonByCharacterName = data.poisonByCharacterName;
-    this.petrifiedSeconds = data.petrifiedSeconds;
-    this.frozenSeconds = data.frozenSeconds;
-    this.isPoisonVisualEffect = data.isPoisonVisualEffect;
-    this.isPetrifiedVisualEffect = data.isPetrifiedVisualEffect;
-    this.isFrozenVisualEffect = data.isFrozenVisualEffect;
-
-    // === 死亡/复活 ===
-    this.isDeath = data.isDeath;
-    this.isDeathInvoked = data.isDeathInvoked;
-    this.reviveMilliseconds = data.reviveMilliseconds;
-    this.leftMillisecondsToRevive = data.leftMillisecondsToRevive;
-
-    // === INI 文件 ===
-    if (data.bodyIni) this.bodyIni = data.bodyIni;
-    if (data.flyIni) this.flyIni = data.flyIni;
-    if (data.flyIni2) this.flyIni2 = data.flyIni2;
-    if (data.flyInis) this.flyInis = data.flyInis;
-    this.isBodyIniAdded = data.isBodyIniAdded;
-
-    // === 脚本相关 ===
-    if (data.scriptFile) this.scriptFile = data.scriptFile;
-    if (data.scriptFileRight) this.scriptFileRight = data.scriptFileRight;
-    if (data.deathScript) this.deathScript = data.deathScript;
-    if (data.timerScriptFile) this.timerScript = data.timerScriptFile;
-    this.timerInterval = data.timerScriptInterval;
-
-    // === 技能相关 ===
-    if (data.magicToUseWhenLifeLow) this.magicToUseWhenLifeLow = data.magicToUseWhenLifeLow;
-    this.lifeLowPercent = data.lifeLowPercent;
-    this.keepRadiusWhenLifeLow = data.keepRadiusWhenLifeLow;
-    this.keepRadiusWhenFriendDeath = data.keepRadiusWhenFriendDeath;
-    if (data.magicToUseWhenBeAttacked)
-      this.magicToUseWhenBeAttacked = data.magicToUseWhenBeAttacked;
-    this.magicDirectionWhenBeAttacked = data.magicDirectionWhenBeAttacked;
-    if (data.magicToUseWhenDeath) this.magicToUseWhenDeath = data.magicToUseWhenDeath;
-    this.magicDirectionWhenDeath = data.magicDirectionWhenDeath;
-
-    // === 商店/可见性 ===
-    if (data.buyIniFile) this.buyIniFile = data.buyIniFile;
-    if (data.buyIniString) this.buyIniString = data.buyIniString;
-    if (data.visibleVariableName) this.visibleVariableName = data.visibleVariableName;
-    this.visibleVariableValue = data.visibleVariableValue;
-
-    // === 掉落 ===
-    if (data.dropIni) this.dropIni = data.dropIni;
-
-    // === 装备 ===
-    this.canEquip = data.canEquip;
-    if (data.headEquip) this.headEquip = data.headEquip;
-    if (data.neckEquip) this.neckEquip = data.neckEquip;
-    if (data.bodyEquip) this.bodyEquip = data.bodyEquip;
-    if (data.backEquip) this.backEquip = data.backEquip;
-    if (data.handEquip) this.handEquip = data.handEquip;
-    if (data.wristEquip) this.wristEquip = data.wristEquip;
-    if (data.footEquip) this.footEquip = data.footEquip;
-    if (data.backgroundTextureEquip) this.backgroundTextureEquip = data.backgroundTextureEquip;
-
-    // === 保持攻击位置 ===
-    this.keepAttackX = data.keepAttackX;
-    this.keepAttackY = data.keepAttackY;
-
-    // === 伤害玩家 ===
-    this.hurtPlayerInterval = data.hurtPlayerInterval;
-    this.hurtPlayerLife = data.hurtPlayerLife;
-    this.hurtPlayerRadius = data.hurtPlayerRadius;
-
-    // === Player 特有 ===
-    this.money = data.money;
-    this.isRunDisabled = data.isRunDisabled;
-    this.walkIsRun = data.walkIsRun;
-
-    // 装备加成属性
-    this.setAddLifeRestorePercent(data.addLifeRestorePercent ?? 0);
-    this.setAddManaRestorePercent(data.addManaRestorePercent ?? 0);
-    this.setAddThewRestorePercent(data.addThewRestorePercent ?? 0);
-
-    // Player 特有属性
-    this.currentUseMagicIndex = data.currentUseMagicIndex ?? 0;
-    this.manaLimit = data.manaLimit ?? false;
-    this.isJumpDisabled = data.isJumpDisabled ?? false;
-    this.isFightDisabled = data.isFightDisabled ?? false;
-
-    // 调用 setXXX 方法触发副作用
+    // 统一触发副作用（setFlyIni → buildFlyIniInfos 等）
     this.applyConfigSetters();
   }
 

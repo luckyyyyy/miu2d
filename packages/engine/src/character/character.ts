@@ -659,6 +659,14 @@ export abstract class Character extends CharacterCombat {
     this._elapsedMilliSecond = 0;
     this._leftFrameToPlay = 0;
     this._updateTextureForState(CharacterState.Stand);
+
+    // 处理在特殊动作期间发生的延迟死亡
+    if (this._pendingDeath) {
+      const killer = this._pendingDeathKiller as Character | null;
+      this._pendingDeath = false;
+      this._pendingDeathKiller = null;
+      this.death(killer);
+    }
   }
 
   playStateOnce(stateToPlay?: CharacterState): boolean {
@@ -689,9 +697,20 @@ export abstract class Character extends CharacterCombat {
    * 我们直接加载 ASF 并设置到 _spriteSet 对应槽位，然后刷新当前状态贴图
    */
   async setNpcActionFile(stateType: number, asfFile: string): Promise<void> {
+    const key = stateToSpriteSetKey(stateType as CharacterState);
+
+    // C# 参考: Utils.GetAsf() 对空文件名直接返回 null，不加载也不报错
+    // 脚本中 SetNpcActionFile("xxx", 10, "") 是用来清除该状态的动画
+    if (!asfFile) {
+      this._spriteSet[key] = undefined as never;
+      if (!this.isInSpecialAction) {
+        this._updateTextureForState(this._state);
+      }
+      return;
+    }
+
     const asf = await loadCharacterAsf(asfFile);
     if (asf) {
-      const key = stateToSpriteSetKey(stateType as CharacterState);
       this._spriteSet[key] = asf;
 
       logger.debug(`[Character] SetNpcActionFile: state=${stateType} -> ${asfFile}`);

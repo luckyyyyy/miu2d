@@ -118,7 +118,7 @@ export class CameraController {
   update(currentX: number, currentY: number, deltaTime: number): Vector2 | null {
     // Handle MoveScreenEx (position-based movement)
     if (this.isMovingToPosition) {
-      return this.updateMoveToPosition(currentX, currentY);
+      return this.updateMoveToPosition(currentX, currentY, deltaTime);
     }
 
     // Handle MoveScreen (direction-based movement)
@@ -161,8 +161,9 @@ export class CameraController {
   /**
    * Update position-based camera movement (MoveScreenEx)
    * Reference: Carmera.UpdateMoveTo()
+   * C# original moves _moveSpeed pixels per frame at ~60fps
    */
-  private updateMoveToPosition(currentX: number, currentY: number): Vector2 | null {
+  private updateMoveToPosition(currentX: number, currentY: number, deltaTime: number): Vector2 | null {
     // Calculate direction to destination
     const dx = this.moveToDestination.x - currentX;
     const dy = this.moveToDestination.y - currentY;
@@ -174,11 +175,20 @@ export class CameraController {
       return { x: this.moveToDestination.x, y: this.moveToDestination.y };
     }
 
-    // Normalize and move
+    // Normalize and move (frame-rate independent: C# runs at ~60fps)
+    const framesThisTick = (deltaTime / 1000) * 60;
+    const moveAmount = this.moveToSpeed * framesThisTick;
     const dirX = dx / distance;
     const dirY = dy / distance;
-    const newX = currentX + dirX * this.moveToSpeed;
-    const newY = currentY + dirY * this.moveToSpeed;
+    const newX = currentX + dirX * moveAmount;
+    const newY = currentY + dirY * moveAmount;
+
+    // C# stuck detection: if (CarmeraBeginPositionInWorld == last) IsInMoveTo = false;
+    // 当目标被地图边界 clamp 后相机无法移动时，防止死循环
+    if (Math.abs(newX - currentX) < 0.01 && Math.abs(newY - currentY) < 0.01) {
+      this.isMovingToPosition = false;
+      return { x: currentX, y: currentY };
+    }
 
     // Check if we would overshoot
     const newDx = this.moveToDestination.x - newX;

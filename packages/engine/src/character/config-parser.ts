@@ -44,7 +44,7 @@ const FIELD_DEFS: FieldDef[] = [
   { key: "scriptfile", prop: "scriptFile", type: "string", target: "config" },
   { key: "scriptfileright", prop: "scriptFileRight", type: "string", target: "config" },
   { key: "deathscript", prop: "deathScript", type: "string", target: "config" },
-  { key: "timerscriptfile", prop: "timerScript", type: "string", target: "config" },
+  { key: "timerscriptfile", prop: "timerScriptFile", type: "string", target: "config" },
   { key: "dropini", prop: "dropIni", type: "string", target: "config" },
   { key: "buyinifile", prop: "buyIniFile", type: "string", target: "config" },
   { key: "buyinistring", prop: "buyIniString", type: "string", target: "config" },
@@ -84,7 +84,7 @@ const FIELD_DEFS: FieldDef[] = [
   { key: "group", prop: "group", type: "int", target: "config" },
   { key: "noautoattackplayer", prop: "noAutoAttackPlayer", type: "int", target: "config" },
   { key: "idle", prop: "idle", type: "int", target: "config" },
-  { key: "timerscriptinterval", prop: "timerInterval", type: "int", target: "config" },
+  { key: "timerscriptinterval", prop: "timerScriptInterval", type: "int", target: "config" },
   { key: "pathfinder", prop: "pathFinder", type: "int", target: "config" },
   { key: "caninteractdirectly", prop: "canInteractDirectly", type: "int", target: "config" },
   { key: "expbonus", prop: "expBonus", type: "int", target: "config" },
@@ -174,6 +174,22 @@ const FIELD_DEFS: FieldDef[] = [
   { key: "dir", prop: "dir", type: "int", target: "stats" },
 
   // =============================================
+  // Runtime State Fields (saved/loaded, not from INI config)
+  // C# loads these via reflection default case in AssignToValue()
+  // =============================================
+  { key: "state", prop: "state", type: "int", target: "config" },
+  { key: "currentfixedposindex", prop: "currentFixedPosIndex", type: "int", target: "config" },
+  { key: "destinationmapposx", prop: "destinationMapPosX", type: "int", target: "config" },
+  { key: "destinationmapposy", prop: "destinationMapPosY", type: "int", target: "config" },
+  {
+    key: "leftmillisecondstorevive",
+    prop: "leftMillisecondsToRevive",
+    type: "int",
+    target: "config",
+  },
+  { key: "isbodyiniadded", prop: "isBodyIniAdded", type: "int", target: "config" },
+
+  // =============================================
   // Player-only Fields
   // =============================================
   { key: "money", prop: "money", type: "int", target: "config", class: "player" },
@@ -193,6 +209,35 @@ const FIELD_DEFS: FieldDef[] = [
     target: "config",
     class: "player",
   },
+  { key: "walkisrun", prop: "walkIsRun", type: "int", target: "config", class: "player" },
+  {
+    key: "currentusemagicindex",
+    prop: "currentUseMagicIndex",
+    type: "int",
+    target: "config",
+    class: "player",
+  },
+  {
+    key: "addliferestorepercent",
+    prop: "addLifeRestorePercent",
+    type: "int",
+    target: "config",
+    class: "player",
+  },
+  {
+    key: "addmanarestorepercent",
+    prop: "addManaRestorePercent",
+    type: "int",
+    target: "config",
+    class: "player",
+  },
+  {
+    key: "addthewrestorepercent",
+    prop: "addThewRestorePercent",
+    type: "int",
+    target: "config",
+    class: "player",
+  },
 ];
 
 // ============= Pre-grouped Field Lists =============
@@ -200,6 +245,11 @@ const FIELD_DEFS: FieldDef[] = [
 
 /** Character fields (non-player) */
 const CHAR_FIELDS = FIELD_DEFS.filter((d) => d.class !== "player");
+
+/** All field prop names (deduplicated, for flat data assignment) */
+const ALL_PROPS = [...new Set(FIELD_DEFS.map((d) => d.prop))];
+/** Character-only prop names (deduplicated) */
+const CHAR_PROPS = [...new Set(CHAR_FIELDS.map((d) => d.prop))];
 
 // ============= Character Interface =============
 // Character 的所有可配置属性
@@ -216,7 +266,7 @@ export interface CharacterInstance {
   scriptFile: string;
   scriptFileRight: string;
   deathScript: string;
-  timerScript: string;
+  timerScriptFile: string;
   dropIni: string;
   buyIniFile: string;
   buyIniString: string;
@@ -244,7 +294,7 @@ export interface CharacterInstance {
   group: number;
   noAutoAttackPlayer: number;
   idle: number;
-  timerInterval: number;
+  timerScriptInterval: number;
   pathFinder: number;
   canInteractDirectly: number;
   expBonus: number;
@@ -309,6 +359,21 @@ export interface CharacterInstance {
   mapX: number;
   mapY: number;
   dir: number;
+
+  // Runtime state (saved/loaded, not INI config)
+  state: number;
+  currentFixedPosIndex: number;
+  destinationMapPosX: number;
+  destinationMapPosY: number;
+  leftMillisecondsToRevive: number;
+  isBodyIniAdded: number;
+
+  // Player-only runtime state (optional - only on Player)
+  walkIsRun?: number;
+  currentUseMagicIndex?: number;
+  addLifeRestorePercent?: number;
+  addManaRestorePercent?: number;
+  addThewRestorePercent?: number;
 }
 
 /**
@@ -368,6 +433,33 @@ export function applyConfigToCharacter(
   applyFields(CHAR_FIELDS, config, character as unknown as Record<string, unknown>);
 }
 
+/**
+ * Apply flat data to a CharacterInstance (pure assignment, no side effects)
+ *
+ * 统一的字段赋值入口，用于 loadFromApiData / loadFromSaveData。
+ * 只赋值 FIELD_DEFS 中定义的属性，跳过 undefined/null 值。
+ * 调用方在赋值后应调用 applyConfigSetters() 触发副作用。
+ *
+ * @param data 扁平数据对象（ApiPlayerData / PlayerSaveData / 其他）
+ * @param character 目标 CharacterInstance
+ * @param includePlayerFields 是否包含 Player-only 字段
+ */
+export function applyFlatDataToCharacter(
+  data: Record<string, unknown>,
+  character: CharacterInstance,
+  includePlayerFields: boolean = false
+): void {
+  const props = includePlayerFields ? ALL_PROPS : CHAR_PROPS;
+  const charRecord = character as unknown as Record<string, unknown>;
+
+  for (const prop of props) {
+    const value = data[prop];
+    if (value !== undefined && value !== null) {
+      charRecord[prop] = value;
+    }
+  }
+}
+
 // ============= Extract from Character =============
 
 /**
@@ -422,4 +514,36 @@ export function extractStatsFromCharacter(character: CharacterInstance): Charact
   }
 
   return stats as unknown as CharacterStats;
+}
+
+/**
+ * Extract flat data from a CharacterInstance as a plain Record
+ *
+ * 统一的字段提取入口，用于 collectPlayerData / collectNpcSnapshot。
+ * 返回 FIELD_DEFS 中定义的所有属性的扁平对象。
+ * 字符串值为空时转为 undefined（用于存档格式）。
+ *
+ * @param character 源 CharacterInstance
+ * @param includePlayerFields 是否包含 Player-only 字段
+ */
+export function extractFlatDataFromCharacter(
+  character: CharacterInstance,
+  includePlayerFields: boolean = false
+): Record<string, unknown> {
+  const props = includePlayerFields ? ALL_PROPS : CHAR_PROPS;
+  const charRecord = character as unknown as Record<string, unknown>;
+  const result: Record<string, unknown> = {};
+
+  for (const prop of props) {
+    const value = charRecord[prop];
+    if (typeof value === "function") continue;
+    // 字符串空值转 undefined（存档格式约定）
+    if (typeof value === "string" && value === "") {
+      result[prop] = undefined;
+    } else {
+      result[prop] = value;
+    }
+  }
+
+  return result;
 }

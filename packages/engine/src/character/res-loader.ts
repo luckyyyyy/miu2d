@@ -30,6 +30,9 @@ export interface NpcResStateInfo {
  * ()
  */
 export async function loadCharacterAsf(asfFileName: string): Promise<AsfData | null> {
+  // C# 参考: Utils.GetAsf() - if (string.IsNullOrEmpty(fileName)) return null;
+  if (!asfFileName) return null;
+
   // Encode Chinese characters in filename for URL
   const encodedFileName = encodeURIComponent(asfFileName);
 

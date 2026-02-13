@@ -45,7 +45,6 @@ export class SpecialActionHandler extends EngineAccess {
     if (player.isInSpecialAction) {
       if (player.isSpecialActionEnd()) {
         player.endSpecialAction();
-        // State is already set to Stand by endSpecialAction()
       }
     }
   }

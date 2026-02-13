@@ -34,6 +34,7 @@ import type { MagicListManager } from "../player/magic/magic-list-manager";
 import type { Player } from "../player/player";
 import { getGameConfig, getPlayersData } from "../resource/resource-loader";
 import type { ScriptExecutor } from "../script/executor";
+import { extractFlatDataFromCharacter } from "../character/config-parser";
 import { type CharacterSaveSlot, formatSaveTime, type GoodsItemData, type MagicItemData, type NpcSaveItem, type ObjSaveItem, type PlayerSaveData, SAVE_VERSION, type SaveData, type TrapGroupValue } from "./storage";
 
 /**
@@ -1178,147 +1179,18 @@ export class Loader {
   /**
    * 收集玩家数据
    * + Player.Save()
+   *
+   * 使用 extractFlatDataFromCharacter 提取 FIELD_DEFS 定义的所有字段，
+   * 然后补充非 FIELD_DEFS 的 Player 特有运行时字段。
    */
   private collectPlayerData(player: Player): PlayerSaveData {
-    return {
-      // === 基本信息 ===
-      name: player.name,
-      npcIni: player.npcIni,
-      kind: player.kind,
-      relation: player.relation,
-      pathFinder: player.pathFinder,
-      state: player.state,
+    // 提取所有 FIELD_DEFS 字段（包括 Player-only，所有字段名已统一）
+    const base = extractFlatDataFromCharacter(player, true);
 
-      // === 位置 ===
-      mapX: player.mapX,
-      mapY: player.mapY,
-      dir: player.currentDirection,
+    // 运行时方向（currentDirection 而非初始配置 dir）
+    base.dir = player.currentDirection;
 
-      // === 范围 ===
-      visionRadius: player.visionRadius,
-      dialogRadius: player.dialogRadius,
-      attackRadius: player.attackRadius,
-
-      // === 属性 ===
-      level: player.level,
-      exp: player.exp,
-      levelUpExp: player.levelUpExp,
-      life: player.life,
-      lifeMax: player.lifeMax,
-      thew: player.thew,
-      thewMax: player.thewMax,
-      mana: player.mana,
-      manaMax: player.manaMax,
-      attack: player.attack,
-      attack2: player.attack2,
-      attack3: player.attack3,
-      attackLevel: player.attackLevel,
-      defend: player.defend,
-      defend2: player.defend2,
-      defend3: player.defend3,
-      evade: player.evade,
-      lum: player.lum,
-      action: player.action,
-      walkSpeed: player.walkSpeed,
-      addMoveSpeedPercent: player.addMoveSpeedPercent,
-      expBonus: player.expBonus,
-      canLevelUp: player.canLevelUp,
-
-      // === 位置相关 ===
-      fixedPos: player.fixedPos,
-      currentFixedPosIndex: player.currentFixedPosIndex,
-      destinationMapPosX: player.destinationMoveTilePosition.x,
-      destinationMapPosY: player.destinationMoveTilePosition.y,
-
-      // === AI/行为 ===
-      idle: player.idle,
-      group: player.group,
-      noAutoAttackPlayer: player.noAutoAttackPlayer,
-      invincible: player.invincible,
-
-      // === 状态效果 ===
-      poisonSeconds: player.poisonSeconds,
-      poisonByCharacterName: player.poisonByCharacterName,
-      petrifiedSeconds: player.petrifiedSeconds,
-      frozenSeconds: player.frozenSeconds,
-      isPoisonVisualEffect: player.isPoisonVisualEffect,
-      isPetrifiedVisualEffect: player.isPetrifiedVisualEffect,
-      isFrozenVisualEffect: player.isFrozenVisualEffect,
-
-      // === 死亡/复活 ===
-      isDeath: player.isDeath,
-      isDeathInvoked: player.isDeathInvoked,
-      reviveMilliseconds: player.reviveMilliseconds,
-      leftMillisecondsToRevive: player.leftMillisecondsToRevive,
-
-      // === INI 文件 ===
-      bodyIni: player.bodyIni || undefined,
-      flyIni: player.flyIni || undefined,
-      flyIni2: player.flyIni2 || undefined,
-      flyInis: player.flyInis || undefined,
-      isBodyIniAdded: player.isBodyIniAdded,
-
-      // === 脚本相关 ===
-      scriptFile: player.scriptFile || undefined,
-      scriptFileRight: player.scriptFileRight || undefined,
-      deathScript: player.deathScript || undefined,
-      timerScriptFile: player.timerScript || undefined,
-      timerScriptInterval: player.timerInterval,
-
-      // === 技能相关 ===
-      magicToUseWhenLifeLow: player.magicToUseWhenLifeLow || undefined,
-      lifeLowPercent: player.lifeLowPercent,
-      keepRadiusWhenLifeLow: player.keepRadiusWhenLifeLow,
-      keepRadiusWhenFriendDeath: player.keepRadiusWhenFriendDeath,
-      magicToUseWhenBeAttacked: player.magicToUseWhenBeAttacked || undefined,
-      magicDirectionWhenBeAttacked: player.magicDirectionWhenBeAttacked,
-      magicToUseWhenDeath: player.magicToUseWhenDeath || undefined,
-      magicDirectionWhenDeath: player.magicDirectionWhenDeath,
-
-      // === 商店/可见性 ===
-      buyIniFile: player.buyIniFile || undefined,
-      buyIniString: player.buyIniString || undefined,
-      visibleVariableName: player.visibleVariableName || undefined,
-      visibleVariableValue: player.visibleVariableValue,
-
-      // === 掉落 ===
-      dropIni: player.dropIni || undefined,
-
-      // === 装备 ===
-      canEquip: player.canEquip,
-      headEquip: player.headEquip || undefined,
-      neckEquip: player.neckEquip || undefined,
-      bodyEquip: player.bodyEquip || undefined,
-      backEquip: player.backEquip || undefined,
-      handEquip: player.handEquip || undefined,
-      wristEquip: player.wristEquip || undefined,
-      footEquip: player.footEquip || undefined,
-      backgroundTextureEquip: player.backgroundTextureEquip || undefined,
-
-      // === 保持攻击位置 ===
-      keepAttackX: player.keepAttackX,
-      keepAttackY: player.keepAttackY,
-
-      // === 伤害玩家 ===
-      hurtPlayerInterval: player.hurtPlayerInterval,
-      hurtPlayerLife: player.hurtPlayerLife,
-      hurtPlayerRadius: player.hurtPlayerRadius,
-
-      // === Player 特有 ===
-      money: player.money,
-      currentUseMagicIndex: player.currentUseMagicIndex,
-      manaLimit: player.manaLimit,
-      isRunDisabled: player.isRunDisabled,
-      isJumpDisabled: player.isJumpDisabled,
-      isFightDisabled: player.isFightDisabled,
-      walkIsRun: player.walkIsRun,
-      addLifeRestorePercent: player.getAddLifeRestorePercent(),
-      addManaRestorePercent: player.getAddManaRestorePercent(),
-      addThewRestorePercent: player.getAddThewRestorePercent(),
-
-      // === 等级配置文件 ===
-      levelIniFile: player.levelIniFile || undefined,
-    };
+    return base as unknown as PlayerSaveData;
   }
 
   /**

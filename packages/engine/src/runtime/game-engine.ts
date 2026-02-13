@@ -218,6 +218,11 @@ export class GameEngine implements IEngineContext {
     setEngineContext(this);
 
     this._map = new MapBase();
+    // 同步 MapBase 视口尺寸到实际画布尺寸
+    // C# 中 Carmera.ViewWidth/ViewHeight 由游戏初始化设置
+    // 避免 MoveScreenEx 等命令使用默认 800x600 计算半屏偏移导致位置偏移
+    this._map.viewWidth = this.config.width;
+    this._map.viewHeight = this.config.height;
 
     // 创建全局资源
     this.talkTextList = new TalkTextListManager();
@@ -1013,22 +1018,36 @@ export class GameEngine implements IEngineContext {
   }
 
   /**
+   * 获取当前相机跟踪的角色位置
+   * C# Globals.PlayerKindCharacter / Globals.PlayerPositionInWorld
+   * 优先级: NPC with Kind=Player > ControledCharacter > ThePlayer
+   */
+  private getPlayerKindPosition(): { x: number; y: number } {
+    const npcWithPlayerKind = this.gameManager.getNpcManager().getPlayerKindCharacter();
+    if (npcWithPlayerKind) return npcWithPlayerKind.pixelPosition;
+    const player = this.gameManager.getPlayer();
+    if (player.controledCharacter) return player.controledCharacter.pixelPosition;
+    return player.pixelPosition;
+  }
+
+  /**
    * 更新相机
    */
   private updateCamera(deltaTime: number): void {
-    const player = this.gameManager.getPlayer();
     const { width, height } = this.config;
+    // C#: 相机跟踪 PlayerKindCharacter，而非固定跟踪真实玩家
+    const playerPos = this.getPlayerKindPosition();
 
     // 检查是否有 SetPlayerScn 请求（居中到玩家）
     const pendingCenter = this.gameManager.consumePendingCenterOnPlayer();
     if (pendingCenter) {
-      // 将摄像机居中到玩家
-      const targetCameraX = player.pixelPosition.x - width / 2;
-      const targetCameraY = player.pixelPosition.y - height / 2;
+      // 将摄像机居中到 PlayerKindCharacter
+      const targetCameraX = playerPos.x - width / 2;
+      const targetCameraY = playerPos.y - height / 2;
       this.mapRenderer.camera.x = targetCameraX;
       this.mapRenderer.camera.y = targetCameraY;
-      // 更新上次玩家位置
-      this.lastPlayerPositionForCamera = { ...player.pixelPosition };
+      // 更新上次位置
+      this.lastPlayerPositionForCamera = { ...playerPos };
     }
 
     // 检查是否有 SetMapPos 设置的待处理摄像机位置
@@ -1036,10 +1055,10 @@ export class GameEngine implements IEngineContext {
     if (pendingPos) {
       this.mapRenderer.camera.x = pendingPos.x;
       this.mapRenderer.camera.y = pendingPos.y;
-      // SetMapPos 后重置上次玩家位置，这样只有玩家移动后摄像机才会开始跟随
-      this.lastPlayerPositionForCamera = { ...player.pixelPosition };
+      // SetMapPos 后重置上次位置，这样只有角色移动后摄像机才会开始跟随
+      this.lastPlayerPositionForCamera = { ...playerPos };
     } else if (this.gameManager.isCameraMovingByScript()) {
-      // 检查是否由脚本控制相机 (MoveScreen)
+      // 检查是否由脚本控制相机 (MoveScreen/MoveScreenEx)
       const newCameraPos = this.gameManager.updateCameraMovement(
         this.mapRenderer.camera.x,
         this.mapRenderer.camera.y,
@@ -1049,10 +1068,14 @@ export class GameEngine implements IEngineContext {
         this.mapRenderer.camera.x = newCameraPos.x;
         this.mapRenderer.camera.y = newCameraPos.y;
       }
+      // C# 中 UpdatePlayerView 在每帧都会执行（包括 MoveScreenEx 期间），
+      // 始终更新 _lastPlayerPosition。TS 中需要同步更新以防止
+      // MoveScreenEx 结束后因 lastPlayerPosition 过时导致相机跳跃。
+      this.lastPlayerPositionForCamera = { ...playerPos };
     } else {
-      // 正常跟随玩家
-      // - 只有玩家位置改变时才更新摄像机
-      const currentPlayerPos = player.pixelPosition;
+      // 正常跟随 PlayerKindCharacter
+      // - 只有角色位置改变时才更新摄像机
+      const currentPlayerPos = playerPos;
       const lastPos = this.lastPlayerPositionForCamera;
 
       // 计算玩家位置偏移
@@ -1115,13 +1138,13 @@ export class GameEngine implements IEngineContext {
    * 用于加载存档后避免摄像机从 (0,0) 飞到玩家位置
    */
   private centerCameraOnPlayer(): void {
-    const player = this.gameManager.getPlayer();
-
     const { width, height } = this.config;
+    // C#: CenterPlayerInCamera 使用 Globals.PlayerPositionInWorld
+    const playerPos = this.getPlayerKindPosition();
 
-    // 直接设置摄像机位置到玩家中心（无平滑过渡）
-    let targetX = player.pixelPosition.x - width / 2;
-    let targetY = player.pixelPosition.y - height / 2;
+    // 直接设置摄像机位置到角色中心（无平滑过渡）
+    let targetX = playerPos.x - width / 2;
+    let targetY = playerPos.y - height / 2;
 
     // 限制在地图范围内
     const mapData = this.gameManager.getMapData();
@@ -1130,8 +1153,8 @@ export class GameEngine implements IEngineContext {
 
     this.mapRenderer.camera.x = targetX;
     this.mapRenderer.camera.y = targetY;
-    // 更新上次玩家位置
-    this.lastPlayerPositionForCamera = { ...player.pixelPosition };
+    // 更新上次位置
+    this.lastPlayerPositionForCamera = { ...playerPos };
 
     logger.debug(`[GameEngine] Camera centered on player at (${targetX}, ${targetY})`);
   }
@@ -1358,6 +1381,10 @@ export class GameEngine implements IEngineContext {
 
     this.mapRendererInstance.camera.width = width;
     this.mapRendererInstance.camera.height = height;
+
+    // 同步 MapBase 视口尺寸（MoveScreenEx 等命令依赖此值计算半屏偏移）
+    this._map.viewWidth = width;
+    this._map.viewHeight = height;
 
     // 同步渲染器尺寸
     this._renderer?.resize(width, height);

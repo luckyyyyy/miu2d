@@ -30,6 +30,7 @@ export function isEnemy(a: CharacterBase, b: CharacterBase): boolean {
 }
 import { getGameSlug } from "../resource/resource-loader";
 import type { NpcSaveItem } from "../storage/storage";
+import { applyFlatDataToCharacter } from "../character/config-parser";
 import { distance, getNeighbors, getViewTileDistance } from "../utils";
 import { Npc } from "./npc";
 import { collectNpcSnapshot, parseNpcData } from "./npc-persistence";
@@ -1292,6 +1293,12 @@ export class NpcManager extends EngineAccess {
    *
    * 数据来源：Scene API / NPC 分组缓存 / 存档（均为 camelCase JSON）
    */
+  /**
+   * 从存档/API 数据创建 NPC
+   *
+   * 使用 parseNpcData 创建基础 NPC，然后通过 applyFlatDataToCharacter
+   * 用存档数据覆盖所有 FIELD_DEFS 属性，最后补充 NPC 特有运行时状态。
+   */
   async createNpcFromData(data: Record<string, unknown>): Promise<Npc | null> {
     const { config, extraState, mapX, mapY, dir } = parseNpcData(data);
 
@@ -1301,39 +1308,16 @@ export class NpcManager extends EngineAccess {
       return null;
     }
 
-    // Create NPC with config
+    // Create NPC with config (loads ini + sprites)
     const npc = await this.addNpcWithConfig(config, mapX, mapY, dir as Direction);
 
-    // === 基本状态 ===
-    npc.actionType = extraState.action;
+    // 字段名已统一，直接赋值（无需 rename mapping）
+    applyFlatDataToCharacter(data, npc, false);
+    npc.applyConfigSetters();
+
+    // === NPC 特有字段（不在 FIELD_DEFS 中） ===
     npc.isHide = extraState.isHide;
     npc.isAIDisabled = extraState.isAIDisabled;
-    if (extraState.state !== undefined) {
-      npc.state = extraState.state;
-    }
-
-    // === 死亡/复活 ===
-    npc.isDeath = extraState.isDeath;
-    npc.isDeathInvoked = extraState.isDeathInvoked;
-    npc.invincible = extraState.invincible;
-    npc.reviveMilliseconds = extraState.reviveMilliseconds;
-    npc.leftMillisecondsToRevive = extraState.leftMillisecondsToRevive;
-
-    // === 脚本 ===
-    if (extraState.scriptFileRight) {
-      npc.scriptFileRight = extraState.scriptFileRight;
-    }
-    if (extraState.timerScriptFile) {
-      npc.timerScript = extraState.timerScriptFile;
-    }
-    if (extraState.timerScriptInterval !== undefined) {
-      npc.timerInterval = extraState.timerScriptInterval;
-    }
-
-    // === 配置 ===
-    if (extraState.dropIni) npc.dropIni = extraState.dropIni;
-    if (extraState.buyIniFile) npc.buyIniFile = extraState.buyIniFile;
-    if (extraState.buyIniString) npc.buyIniString = extraState.buyIniString;
     if (extraState.actionPathTilePositions && extraState.actionPathTilePositions.length > 0) {
       npc.actionPathTilePositions = extraState.actionPathTilePositions.map((p) => ({
         x: p.x,
@@ -1341,48 +1325,9 @@ export class NpcManager extends EngineAccess {
       }));
     }
 
-    // === 属性 (存档专用) ===
-    if (extraState.attack3) npc.attack3 = extraState.attack3;
-    if (extraState.defend3) npc.defend3 = extraState.defend3;
-    if (extraState.canLevelUp) npc.canLevelUp = extraState.canLevelUp;
-
-    // === 位置相关 ===
-    if (extraState.currentFixedPosIndex) npc.currentFixedPosIndex = extraState.currentFixedPosIndex;
-    // destinationMapPosX/Y 通常不需要恢复，因为重新加载时 NPC 会重新计算目标
-
-    // === INI 文件 ===
-    if (extraState.isBodyIniAdded) npc.isBodyIniAdded = extraState.isBodyIniAdded;
-
-    // === 状态效果 ===
-    if (extraState.poisonSeconds) npc.poisonSeconds = extraState.poisonSeconds;
-    if (extraState.poisonByCharacterName)
-      npc.poisonByCharacterName = extraState.poisonByCharacterName;
-    if (extraState.petrifiedSeconds) npc.petrifiedSeconds = extraState.petrifiedSeconds;
-    if (extraState.frozenSeconds) npc.frozenSeconds = extraState.frozenSeconds;
-    if (extraState.isPoisonVisualEffect) npc.isPoisonVisualEffect = extraState.isPoisonVisualEffect;
-    if (extraState.isPetrifiedVisualEffect)
-      npc.isPetrifiedVisualEffect = extraState.isPetrifiedVisualEffect;
-    if (extraState.isFrozenVisualEffect) npc.isFrozenVisualEffect = extraState.isFrozenVisualEffect;
-
-    // === 装备 ===
-    if (extraState.canEquip) npc.canEquip = extraState.canEquip;
-    if (extraState.headEquip) npc.headEquip = extraState.headEquip;
-    if (extraState.neckEquip) npc.neckEquip = extraState.neckEquip;
-    if (extraState.bodyEquip) npc.bodyEquip = extraState.bodyEquip;
-    if (extraState.backEquip) npc.backEquip = extraState.backEquip;
-    if (extraState.handEquip) npc.handEquip = extraState.handEquip;
-    if (extraState.wristEquip) npc.wristEquip = extraState.wristEquip;
-    if (extraState.footEquip) npc.footEquip = extraState.footEquip;
-    if (extraState.backgroundTextureEquip)
-      npc.backgroundTextureEquip = extraState.backgroundTextureEquip;
-
-    // === 保持攻击位置 ===
-    if (extraState.keepAttackX) npc.keepAttackX = extraState.keepAttackX;
-    if (extraState.keepAttackY) npc.keepAttackY = extraState.keepAttackY;
-
-    // === 等级配置 ===
-    if (extraState.levelIniFile) {
-      await npc.levelManager.setLevelFile(extraState.levelIniFile);
+    // 等级配置（异步加载配置文件）
+    if (npc.levelIniFile) {
+      await npc.levelManager.setLevelFile(npc.levelIniFile);
     }
 
     return npc;

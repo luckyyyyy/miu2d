@@ -21,6 +21,18 @@ export function createPlayerAPI(ctx: ScriptCommandContext, resolver: BlockingRes
     isMapObstacleForCharacter,
   } = ctx;
 
+  /**
+   * C# Globals.PlayerKindCharacter 等效实现
+   * 优先级: NPC with Kind=Player > ControledCharacter > ThePlayer
+   * PlayerGoto/PlayerRunTo/SetPlayerScn 等命令都作用于此角色
+   */
+  const getPlayerKindCharacter = (): Player | Npc => {
+    const npcWithPlayerKind = npcManager.getPlayerKindCharacter();
+    if (npcWithPlayerKind) return npcWithPlayerKind;
+    if (player.controledCharacter) return player.controledCharacter as Player | Npc;
+    return player;
+  };
+
   const pa = (fn: (p: Player) => void, label: string) => () => {
     if (player) { fn(player); logger.log(`[GameAPI.player] ${label}`); }
   };
@@ -35,14 +47,7 @@ export function createPlayerAPI(ctx: ScriptCommandContext, resolver: BlockingRes
           targetCharacter = npcManager.getNpc(characterName);
         }
       } else {
-        const npcWithPlayerKind = npcManager.getPlayerKindCharacter();
-        if (npcWithPlayerKind) {
-          targetCharacter = npcWithPlayerKind;
-        } else if (player.controledCharacter) {
-          targetCharacter = player.controledCharacter as Player | Npc;
-        } else {
-          targetCharacter = player;
-        }
+        targetCharacter = getPlayerKindCharacter();
       }
       if (!targetCharacter) {
         logger.warn(`[GameAPI.player] setPosition: character not found: ${characterName}`);
@@ -53,65 +58,70 @@ export function createPlayerAPI(ctx: ScriptCommandContext, resolver: BlockingRes
       if (player) { player.resetPartnerPosition?.(); }
       checkTrap({ x, y });
     },
+    // C# SetPlayerDir always uses ThePlayer directly
     setDirection: (direction) => { player.setDirection(direction); },
     setState: (state) => { player.setFightState(state !== 0); },
 
     // Blocking movement → Promise
+    // C#: Globals.PlayerKindCharacter.WalkTo(...)
     walkTo: async (x, y) => {
+      const target = getPlayerKindCharacter();
       const destination = { x, y };
-      player.walkToTile(x, y);
-      if (isCharacterMoveEnd(player, destination, (_c, d) => player.walkToTile(d.x, d.y), isMapObstacleForCharacter, "playerWalkTo")) {
+      target.walkTo(destination);
+      if (isCharacterMoveEnd(target, destination, (_c, d) => target.walkTo(d), isMapObstacleForCharacter, "playerWalkTo")) {
         return;
       }
       await resolver.waitForCondition(() =>
-        isCharacterMoveEnd(player, destination, (_c, d) => player.walkToTile(d.x, d.y), isMapObstacleForCharacter, "playerWalkTo")
+        isCharacterMoveEnd(target, destination, (_c, d) => target.walkTo(d), isMapObstacleForCharacter, "playerWalkTo")
       );
     },
 
     walkToDir: async (direction, steps) => {
-      player.walkToDirection(direction, steps);
-      if (!player || player.state === CharacterState.Stand || player.state === CharacterState.Stand1) return;
+      const target = getPlayerKindCharacter();
+      target.walkToDirection(direction, steps);
+      if (target.state === CharacterState.Stand || target.state === CharacterState.Stand1) return;
       await resolver.waitForCondition(() =>
-        !player || player.state === CharacterState.Stand || player.state === CharacterState.Stand1
+        target.state === CharacterState.Stand || target.state === CharacterState.Stand1
       );
     },
 
     runTo: async (x, y) => {
+      const target = getPlayerKindCharacter();
       const destination = { x, y };
-      player.runToTile(x, y);
-      if (isCharacterMoveEnd(player, destination, (_c, d) => player.runToTile(d.x, d.y), isMapObstacleForCharacter, "playerRunTo")) {
+      target.runTo(destination);
+      if (isCharacterMoveEnd(target, destination, (_c, d) => target.runTo(d), isMapObstacleForCharacter, "playerRunTo")) {
         return;
       }
       await resolver.waitForCondition(() =>
-        isCharacterMoveEnd(player, destination, (_c, d) => player.runToTile(d.x, d.y), isMapObstacleForCharacter, "playerRunTo")
+        isCharacterMoveEnd(target, destination, (_c, d) => target.runTo(d), isMapObstacleForCharacter, "playerRunTo")
       );
     },
 
     jumpTo: async (x, y) => {
-      if (player) {
-        const success = player.jumpTo({ x, y });
-        logger.log(`[GameAPI.player] jumpTo: (${x}, ${y}) success=${success}`);
-      }
-      if (!player || player.state === CharacterState.Stand || player.state === CharacterState.Stand1) return;
+      const target = getPlayerKindCharacter();
+      const success = target.jumpTo({ x, y });
+      logger.log(`[GameAPI.player] jumpTo: (${x}, ${y}) success=${success}`);
+      if (target.state === CharacterState.Stand || target.state === CharacterState.Stand1) return;
       await resolver.waitForCondition(() =>
-        !player || player.state === CharacterState.Stand || player.state === CharacterState.Stand1
+        target.state === CharacterState.Stand || target.state === CharacterState.Stand1
       );
     },
 
     walkToNonBlocking: (x, y) => {
-      if (player) { player.walkToTile(x, y); }
+      const target = getPlayerKindCharacter();
+      target.walkTo({ x, y });
     },
     runToNonBlocking: (x, y) => {
-      if (player) { player.runToTile(x, y); }
+      const target = getPlayerKindCharacter();
+      target.runTo({ x, y });
     },
     centerCamera: () => { ctx.centerCameraOnPlayer(); },
     setWalkIsRun: (value) => {
       if (player) { player.walkIsRun = value; }
     },
     toNonFightingState: () => {
-      const npcWithPlayerKind = npcManager.getPlayerKindCharacter();
-      const targetCharacter = npcWithPlayerKind ?? player.controledCharacter ?? player;
-      if (targetCharacter) { targetCharacter.toNonFightingState(); }
+      const target = getPlayerKindCharacter();
+      if (target) { target.toNonFightingState(); }
     },
     change: async (index) => {
       await ctx.changePlayer(index);

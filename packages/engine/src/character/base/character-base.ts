@@ -172,8 +172,8 @@ export abstract class CharacterBase extends Sprite implements CharacterInstance 
   scriptFile: string = "";
   scriptFileRight: string = "";
   deathScript: string = "";
-  timerScript: string = "";
-  timerInterval: number = 0;
+  timerScriptFile: string = "";
+  timerScriptInterval: number = 0;
   pathFinder: number = 0;
   noAutoAttackPlayer: number = 0;
   canInteractDirectly: number = 0;
@@ -326,6 +326,11 @@ export abstract class CharacterBase extends Sprite implements CharacterInstance 
   specialActionLastDirection: number = 4;
   specialActionFrame: number = 0;
   specialActionAsf: string | undefined = undefined;
+
+  // === Pending Death (deferred during special action) ===
+  /** 特殊动作播放中被击杀时，延迟到动作结束再处理死亡 */
+  protected _pendingDeath: boolean = false;
+  protected _pendingDeathKiller: CharacterBase | null = null;
 
   // === BezierMove ===
   protected _bezierMover = new BezierMover<CharacterBase>();
@@ -519,6 +524,22 @@ export abstract class CharacterBase extends Sprite implements CharacterInstance 
   // === Movement Properties ===
   get destinationMoveTilePosition(): Vector2 {
     return this._destinationMoveTilePosition;
+  }
+
+  /** C# DestinationMapPosX - proxy for save/load */
+  get destinationMapPosX(): number {
+    return this._destinationMoveTilePosition.x;
+  }
+  set destinationMapPosX(value: number) {
+    this._destinationMoveTilePosition.x = value;
+  }
+
+  /** C# DestinationMapPosY - proxy for save/load */
+  get destinationMapPosY(): number {
+    return this._destinationMoveTilePosition.y;
+  }
+  set destinationMapPosY(value: number) {
+    this._destinationMoveTilePosition.y = value;
   }
 
   get currentFixedPosIndex(): number {

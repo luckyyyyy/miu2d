@@ -827,26 +827,11 @@ export class GameManager {
       return;
     }
 
-    // Update script executor
-    this.scriptExecutor.update(deltaTime * 1000);
-
-    // Reset trap flag when trap script finishes
-    if (
-      this.map.isInRunMapTrap &&
-      !this.scriptExecutor.isRunning() &&
-      !this.scriptExecutor.isWaitingForInput()
-    ) {
-      this.map.isInRunMapTrap = false;
-    }
-
     // Update screen effects
     this.screenEffects.update(deltaTime);
 
     // Update GUI
     this.guiManager.update(deltaTime);
-
-    // Check for special action completion
-    this.specialActionHandler.update();
 
     // CanInput = !Globals.IsInputDisabled && !ScriptManager.IsInRunningScript && MouseInBound()
     // Don't process USER input if GUI is blocking OR script is running
@@ -891,6 +876,22 @@ export class GameManager {
     // Update magic system - cooldowns and active magic sprites
     this.magicListManager.updateCooldowns(deltaTime * 1000);
     this.magicManager.update(deltaTime * 1000);
+
+    // Check for special action completion (non-blocking NpcSpecialAction)
+    this.specialActionHandler.update();
+
+    // Update script executor — AFTER character updates (matches C# update order)
+    // C# 中 ScriptManager.Update 在角色更新之后运行，确保同帧内检测到动画结束
+    this.scriptExecutor.update(deltaTime * 1000);
+
+    // Reset trap flag when trap script finishes
+    if (
+      this.map.isInRunMapTrap &&
+      !this.scriptExecutor.isRunning() &&
+      !this.scriptExecutor.isWaitingForInput()
+    ) {
+      this.map.isInRunMapTrap = false;
+    }
 
     // Update HUD
     this.guiManager.updateHud(
@@ -1189,7 +1190,20 @@ export class GameManager {
   cameraMoveToPosition(destX: number, destY: number, speed: number): void {
     // 取消待处理的居中请求，因为脚本明确要移动相机
     this.pendingCenterOnPlayer = false;
-    this.cameraController.moveToPosition(destX, destY, speed);
+    // C# original: _moveToBeginDestination = ToPixelPosition(centerTilePosition) - GetHalfViewSize()
+    // MoveScreenEx 的目标是让指定tile位于屏幕中央，需减去半屏偏移
+    const viewW = this.map.viewWidth;
+    const viewH = this.map.viewHeight;
+    const halfViewX = Math.floor(viewW / 2);
+    const halfViewY = Math.floor(viewH / 2);
+    let camX = destX - halfViewX;
+    let camY = destY - halfViewY;
+    // 将目标限制在地图范围内，避免 updateCamera 的 clamp 导致永远无法到达
+    if (this.hasMapData) {
+      camX = Math.max(0, Math.min(camX, this.mapData.mapPixelWidth - viewW));
+      camY = Math.max(0, Math.min(camY, this.mapData.mapPixelHeight - viewH));
+    }
+    this.cameraController.moveToPosition(camX, camY, speed);
   }
 
   isCameraMoveToPositionEnd(): boolean {

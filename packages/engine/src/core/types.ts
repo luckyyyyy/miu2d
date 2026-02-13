@@ -142,8 +142,8 @@ export interface CharacterConfig {
   scriptFile?: string;
   scriptFileRight?: string; // ScriptFileRight (右键脚本)
   deathScript?: string;
-  timerScript?: string;
-  timerInterval?: number;
+  timerScriptFile?: string;
+  timerScriptInterval?: number;
   pathFinder: number; // PathFinder (寻路类型)
   canInteractDirectly?: number;
   expBonus?: number; // Boss判断（>0为Boss，名字显示黄色）

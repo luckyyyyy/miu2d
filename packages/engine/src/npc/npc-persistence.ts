@@ -5,75 +5,25 @@
 
 import type { CharacterConfig, Vector2 } from "../core/types";
 import type { CharacterKind, RelationType } from "../core/types";
+import { extractFlatDataFromCharacter } from "../character/config-parser";
 import type { NpcSaveItem } from "../storage/storage";
 import type { Npc } from "./npc";
 
-/** NPC 的额外状态（不属于 CharacterConfig 的部分） */
+/**
+ * NPC 的额外状态（不属于 FIELD_DEFS 的运行时字段）
+ *
+ * FIELD_DEFS 中定义的字段由 applyFlatDataToCharacter 统一处理，
+ * 此接口只包含需要单独处理的非 FIELD_DEFS 字段。
+ */
 export interface NpcExtraState {
-  // 基本状态
-  state?: number;
-  action: number;
-  /** script-controlled hiding (IsVisible is computed from magic time) */
-  isHide: boolean;
-  isAIDisabled: boolean;
-
-  // 死亡/复活
+  // 死亡检查（也在 FIELD_DEFS 中，但需要在创建 NPC 前提前检查）
   isDeath: boolean;
   isDeathInvoked: boolean;
-  invincible: number;
-  reviveMilliseconds: number;
-  leftMillisecondsToRevive: number;
 
-  // 脚本
-  scriptFileRight?: string;
-  timerScriptFile?: string;
-  timerScriptInterval?: number;
-
-  // 配置
-  dropIni?: string;
-  buyIniFile?: string;
-  buyIniString?: string;
+  // NPC 特有（不在 FIELD_DEFS 中）
+  isHide: boolean;
+  isAIDisabled: boolean;
   actionPathTilePositions?: Array<{ x: number; y: number }>;
-
-  // 属性 (存档专用)
-  attack3: number;
-  defend3: number;
-  canLevelUp: number;
-
-  // 位置相关
-  currentFixedPosIndex: number;
-  destinationMapPosX: number;
-  destinationMapPosY: number;
-
-  // INI 文件
-  isBodyIniAdded: number;
-
-  // 状态效果
-  poisonSeconds: number;
-  poisonByCharacterName?: string;
-  petrifiedSeconds: number;
-  frozenSeconds: number;
-  isPoisonVisualEffect: boolean;
-  isPetrifiedVisualEffect: boolean;
-  isFrozenVisualEffect: boolean;
-
-  // 装备
-  canEquip: number;
-  headEquip?: string;
-  neckEquip?: string;
-  bodyEquip?: string;
-  backEquip?: string;
-  handEquip?: string;
-  wristEquip?: string;
-  footEquip?: string;
-  backgroundTextureEquip?: string;
-
-  // 保持攻击位置
-  keepAttackX: number;
-  keepAttackY: number;
-
-  // 等级配置
-  levelIniFile?: string;
 }
 
 /** parseNpcData 的返回类型 */
@@ -152,22 +102,18 @@ export function parseNpcData(data: Record<string, unknown>): ParsedNpcData {
   const flyIni = parseStr(data.flyIni);
   const flyIni2 = parseStr(data.flyIni2);
   const flyInis = parseStr(data.flyInis);
+  const dropIni = parseStr(data.dropIni);
+  const buyIniFile = parseStr(data.buyIniFile);
 
   // 状态
-  const state = data.state !== undefined ? parseNum(data.state, 0) : undefined;
   const isHide = parseBool(data.isHide, false);
   const isAIDisabled = parseBool(data.isAIDisabled, false);
   const isDeath = parseBool(data.isDeath, false);
   const isDeathInvoked = parseBool(data.isDeathInvoked, false);
   const invincible = parseNum(data.invincible, 0);
   const reviveMilliseconds = parseNum(data.reviveMilliseconds, 0);
-  const leftMillisecondsToRevive = parseNum(data.leftMillisecondsToRevive, 0);
 
-  // 额外属性
-  const timerScriptFile = parseStr(data.timerScriptFile);
-  const timerScriptInterval = parseNum(data.timerScriptInterval, 0);
-  const dropIni = parseStr(data.dropIni);
-  const buyIniFile = parseStr(data.buyIniFile);
+  // NPC 特有额外属性
   const actionPathTilePositions = (data.actionPathTilePositions ?? undefined) as
     | Vector2[]
     | undefined;
@@ -268,101 +214,14 @@ export function parseNpcData(data: Record<string, unknown>): ParsedNpcData {
     pathFinder,
   };
 
-  // 存档专用字段
-  const attack3 = parseNum(data.attack3, 0);
-  const defend3 = parseNum(data.defend3, 0);
-  const canLevelUp = parseNum(data.canLevelUp, 0);
-  const currentFixedPosIndex = parseNum(data.currentFixedPosIndex, 0);
-  const destinationMapPosX = parseNum(data.destinationMapPosX, 0);
-  const destinationMapPosY = parseNum(data.destinationMapPosY, 0);
-  const isBodyIniAdded = parseNum(data.isBodyIniAdded, 0);
-  const poisonSeconds = parseNum(data.poisonSeconds, 0);
-  const poisonByCharacterName = parseStr(data.poisonByCharacterName);
-  const petrifiedSeconds = parseNum(data.petrifiedSeconds, 0);
-  const frozenSeconds = parseNum(data.frozenSeconds, 0);
-  const isPoisonVisualEffect = parseBool(data.isPoisonVisualEffect, false);
-  const isPetrifiedVisualEffect = parseBool(data.isPetrifiedVisualEffect, false);
-  const isFrozenVisualEffect = parseBool(data.isFrozenVisualEffect, false);
-  const buyIniString = parseStr(data.buyIniString);
-  const canEquip = parseNum(data.canEquip, 0);
-  const headEquip = parseStr(data.headEquip);
-  const neckEquip = parseStr(data.neckEquip);
-  const bodyEquip = parseStr(data.bodyEquip);
-  const backEquip = parseStr(data.backEquip);
-  const handEquip = parseStr(data.handEquip);
-  const wristEquip = parseStr(data.wristEquip);
-  const footEquip = parseStr(data.footEquip);
-  const backgroundTextureEquip = parseStr(data.backgroundTextureEquip);
-  const keepAttackX = parseNum(data.keepAttackX, 0);
-  const keepAttackY = parseNum(data.keepAttackY, 0);
-  const levelIniFile = parseStr(data.levelIniFile);
-
   return {
     config,
     extraState: {
-      // 基本状态
-      state,
-      action,
-      isHide,
-      isAIDisabled,
-
-      // 死亡/复活
       isDeath,
       isDeathInvoked,
-      invincible,
-      reviveMilliseconds,
-      leftMillisecondsToRevive,
-
-      // 脚本
-      scriptFileRight: scriptFileRight || undefined,
-      timerScriptFile: timerScriptFile || undefined,
-      timerScriptInterval,
-
-      // 配置
-      dropIni: dropIni || undefined,
-      buyIniFile: buyIniFile || undefined,
-      buyIniString: buyIniString || undefined,
+      isHide,
+      isAIDisabled,
       actionPathTilePositions,
-
-      // 属性 (存档专用)
-      attack3,
-      defend3,
-      canLevelUp,
-
-      // 位置相关
-      currentFixedPosIndex,
-      destinationMapPosX,
-      destinationMapPosY,
-
-      // INI 文件
-      isBodyIniAdded,
-
-      // 状态效果
-      poisonSeconds,
-      poisonByCharacterName: poisonByCharacterName || undefined,
-      petrifiedSeconds,
-      frozenSeconds,
-      isPoisonVisualEffect,
-      isPetrifiedVisualEffect,
-      isFrozenVisualEffect,
-
-      // 装备
-      canEquip,
-      headEquip: headEquip || undefined,
-      neckEquip: neckEquip || undefined,
-      bodyEquip: bodyEquip || undefined,
-      backEquip: backEquip || undefined,
-      handEquip: handEquip || undefined,
-      wristEquip: wristEquip || undefined,
-      footEquip: footEquip || undefined,
-      backgroundTextureEquip: backgroundTextureEquip || undefined,
-
-      // 保持攻击位置
-      keepAttackX,
-      keepAttackY,
-
-      // 等级配置
-      levelIniFile: levelIniFile || undefined,
     },
     mapX,
     mapY,
@@ -373,6 +232,9 @@ export function parseNpcData(data: Record<string, unknown>): ParsedNpcData {
 /**
  * 收集 NPC 快照为 NpcSaveItem[]
  * 纯查询函数，不修改任何状态
+ *
+ * 使用 extractFlatDataFromCharacter 提取 FIELD_DEFS 定义的所有字段，
+ * 然后补充非 FIELD_DEFS 的 NPC 特有运行时字段。
  *
  * @param npcs NPC 集合
  * @param partnersOnly 是否只收集伙伴
@@ -389,108 +251,21 @@ export function collectNpcSnapshot(
     // 跳过被魔法召唤的 NPC
     if (npc.summonedByMagicSprite !== null) continue;
 
-    const item: NpcSaveItem = {
-      name: npc.name,
-      npcIni: npc.npcIni,
-      kind: npc.kind,
-      relation: npc.relation,
-      pathFinder: npc.pathFinder,
-      state: npc.state,
-      mapX: npc.mapX,
-      mapY: npc.mapY,
-      dir: npc.currentDirection,
-      visionRadius: npc.visionRadius,
-      dialogRadius: npc.dialogRadius,
-      attackRadius: npc.attackRadius,
-      level: npc.level,
-      exp: npc.exp,
-      levelUpExp: npc.levelUpExp,
-      life: npc.life,
-      lifeMax: npc.lifeMax,
-      thew: npc.thew,
-      thewMax: npc.thewMax,
-      mana: npc.mana,
-      manaMax: npc.manaMax,
-      attack: npc.attack,
-      attack2: npc.attack2,
-      attack3: npc.attack3,
-      attackLevel: npc.attackLevel,
-      defend: npc.defend,
-      defend2: npc.defend2,
-      defend3: npc.defend3,
-      evade: npc.evade,
-      lum: npc.lum,
-      action: npc.actionType,
-      walkSpeed: npc.walkSpeed,
-      addMoveSpeedPercent: npc.addMoveSpeedPercent,
-      expBonus: npc.expBonus,
-      canLevelUp: npc.canLevelUp,
-      fixedPos: npc.fixedPos,
-      currentFixedPosIndex: npc.currentFixedPosIndex,
-      destinationMapPosX: npc.destinationMoveTilePosition.x,
-      destinationMapPosY: npc.destinationMoveTilePosition.y,
-      idle: npc.idle,
-      group: npc.group,
-      noAutoAttackPlayer: npc.noAutoAttackPlayer,
-      invincible: npc.invincible,
-      poisonSeconds: npc.poisonSeconds,
-      poisonByCharacterName: npc.poisonByCharacterName,
-      petrifiedSeconds: npc.petrifiedSeconds,
-      frozenSeconds: npc.frozenSeconds,
-      isPoisonVisualEffect: npc.isPoisonVisualEffect,
-      isPetrifiedVisualEffect: npc.isPetrifiedVisualEffect,
-      isFrozenVisualEffect: npc.isFrozenVisualEffect,
-      isDeath: npc.isDeath,
-      isDeathInvoked: npc.isDeathInvoked,
-      reviveMilliseconds: npc.reviveMilliseconds,
-      leftMillisecondsToRevive: npc.leftMillisecondsToRevive,
-      bodyIni: npc.bodyIni || undefined,
-      flyIni: npc.flyIni || undefined,
-      flyIni2: npc.flyIni2 || undefined,
-      flyInis: npc.flyInis || undefined,
-      isBodyIniAdded: npc.isBodyIniAdded,
-      scriptFile: npc.scriptFile || undefined,
-      scriptFileRight: npc.scriptFileRight || undefined,
-      deathScript: npc.deathScript || undefined,
-      timerScriptFile: npc.timerScript || undefined,
-      timerScriptInterval: npc.timerInterval,
-      magicToUseWhenLifeLow: npc.magicToUseWhenLifeLow || undefined,
-      lifeLowPercent: npc.lifeLowPercent,
-      keepRadiusWhenLifeLow: npc.keepRadiusWhenLifeLow,
-      keepRadiusWhenFriendDeath: npc.keepRadiusWhenFriendDeath,
-      magicToUseWhenBeAttacked: npc.magicToUseWhenBeAttacked || undefined,
-      magicDirectionWhenBeAttacked: npc.magicDirectionWhenBeAttacked,
-      magicToUseWhenDeath: npc.magicToUseWhenDeath || undefined,
-      magicDirectionWhenDeath: npc.magicDirectionWhenDeath,
-      buyIniFile: npc.buyIniFile || undefined,
-      buyIniString: npc.buyIniString || undefined,
-      visibleVariableName: npc.visibleVariableName || undefined,
-      visibleVariableValue: npc.visibleVariableValue,
-      dropIni: npc.dropIni || undefined,
-      canEquip: npc.canEquip,
-      headEquip: npc.headEquip || undefined,
-      neckEquip: npc.neckEquip || undefined,
-      bodyEquip: npc.bodyEquip || undefined,
-      backEquip: npc.backEquip || undefined,
-      handEquip: npc.handEquip || undefined,
-      wristEquip: npc.wristEquip || undefined,
-      footEquip: npc.footEquip || undefined,
-      backgroundTextureEquip: npc.backgroundTextureEquip || undefined,
-      keepAttackX: npc.keepAttackX,
-      keepAttackY: npc.keepAttackY,
-      hurtPlayerInterval: npc.hurtPlayerInterval,
-      hurtPlayerLife: npc.hurtPlayerLife,
-      hurtPlayerRadius: npc.hurtPlayerRadius,
-      isHide: npc.isHide,
-      isAIDisabled: npc.isAIDisabled,
-      actionPathTilePositions:
-        npc.actionPathTilePositions?.length > 0
-          ? npc.actionPathTilePositions.map((p) => ({ x: p.x, y: p.y }))
-          : undefined,
-      levelIniFile: npc.levelIniFile || undefined,
-    };
+    // 提取所有 FIELD_DEFS 字段（字段名已统一，无需 rename mapping）
+    const base = extractFlatDataFromCharacter(npc, false);
 
-    items.push(item);
+    // 运行时方向（currentDirection 而非初始配置 dir）
+    base.dir = npc.currentDirection;
+
+    // NPC 特有字段（不在 FIELD_DEFS 中）
+    base.isHide = npc.isHide;
+    base.isAIDisabled = npc.isAIDisabled;
+    base.actionPathTilePositions =
+      npc.actionPathTilePositions?.length > 0
+        ? npc.actionPathTilePositions.map((p) => ({ x: p.x, y: p.y }))
+        : undefined;
+
+    items.push(base as unknown as NpcSaveItem);
   }
 
   return items;

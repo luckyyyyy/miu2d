@@ -591,27 +591,27 @@ export abstract class PlayerBase extends Character {
   }
 
   // Player.AddLifeRestorePercent, AddManaRestorePercent, AddThewRestorePercent
-  getAddLifeRestorePercent(): number {
+  get addLifeRestorePercent(): number {
     return this._addLifeRestorePercent;
   }
 
-  setAddLifeRestorePercent(value: number): void {
+  set addLifeRestorePercent(value: number) {
     this._addLifeRestorePercent = value;
   }
 
-  getAddManaRestorePercent(): number {
+  get addManaRestorePercent(): number {
     return this._addManaRestorePercent;
   }
 
-  setAddManaRestorePercent(value: number): void {
+  set addManaRestorePercent(value: number) {
     this._addManaRestorePercent = value;
   }
 
-  getAddThewRestorePercent(): number {
+  get addThewRestorePercent(): number {
     return this._addThewRestorePercent;
   }
 
-  setAddThewRestorePercent(value: number): void {
+  set addThewRestorePercent(value: number) {
     this._addThewRestorePercent = value;
   }
 

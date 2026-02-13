@@ -72,7 +72,11 @@ export interface TimerData {
  * 参考Character.Save() 和 Player.Save()
  * 完整对应所有存档字段
  */
-export interface PlayerSaveData {
+/**
+ * 角色存档基础数据 - Player 和 NPC 共享的字段
+ * 单一类型定义，消除 PlayerSaveData 与 NpcSaveItem 的字段重复
+ */
+export interface CharacterSaveBase {
   // === 基本信息 ===
   name: string;
   npcIni: string;
@@ -196,7 +200,12 @@ export interface PlayerSaveData {
   hurtPlayerLife: number;
   hurtPlayerRadius: number;
 
-  // === Player 特有 ===
+  // === 等级配置文件 ===
+  levelIniFile?: string;
+}
+
+/** Player 存档数据 = 共享基础 + Player 特有字段 */
+export interface PlayerSaveData extends CharacterSaveBase {
   money: number;
   currentUseMagicIndex: number;
   manaLimit: boolean;
@@ -207,9 +216,6 @@ export interface PlayerSaveData {
   addLifeRestorePercent: number;
   addManaRestorePercent: number;
   addThewRestorePercent: number;
-
-  // === 等级配置文件 ===
-  levelIniFile?: string;
 }
 
 /**
@@ -285,140 +291,12 @@ export type TrapGroupValue = Record<number, string>;
  * 参考 JxqyHD/Engine/Character.cs 的 Save 方法
  * 完整对应所有存档字段
  */
-export interface NpcSaveItem {
-  // === 基本信息 ===
-  name: string;
-  npcIni: string;
-  kind: number;
-  relation: number;
-  pathFinder: number;
-  state: number;
-
-  // === 位置 ===
-  mapX: number;
-  mapY: number;
-  dir: number;
-
-  // === 视野/交互范围 ===
-  visionRadius: number;
-  dialogRadius: number;
-  attackRadius: number;
-
-  // === 属性 ===
-  level: number;
-  exp: number;
-  levelUpExp: number;
-  life: number;
-  lifeMax: number;
-  thew: number;
-  thewMax: number;
-  mana: number;
-  manaMax: number;
-  attack: number;
-  attack2: number;
-  attack3: number;
-  attackLevel: number;
-  defend: number;
-  defend2: number;
-  defend3: number;
-  evade: number;
-  lum: number;
-  action: number;
-  walkSpeed: number;
-  addMoveSpeedPercent: number;
-  expBonus: number;
-  canLevelUp: number;
-
-  // === 位置相关 ===
-  fixedPos: string;
-  currentFixedPosIndex: number;
-  destinationMapPosX: number;
-  destinationMapPosY: number;
-
-  // === AI/行为 ===
-  idle: number;
-  group: number;
-  noAutoAttackPlayer: number;
-  invincible: number;
-
-  // === 状态效果 ===
-  poisonSeconds: number;
-  poisonByCharacterName: string;
-  petrifiedSeconds: number;
-  frozenSeconds: number;
-  isPoisonVisualEffect: boolean;
-  isPetrifiedVisualEffect: boolean;
-  isFrozenVisualEffect: boolean;
-
-  // === 死亡/复活 ===
-  isDeath: boolean;
-  isDeathInvoked: boolean;
-  reviveMilliseconds: number;
-  leftMillisecondsToRevive: number;
-
-  // === INI 文件 ===
-  bodyIni?: string;
-  flyIni?: string;
-  flyIni2?: string;
-  flyInis?: string;
-  isBodyIniAdded: number;
-
-  // === 脚本相关 ===
-  scriptFile?: string;
-  scriptFileRight?: string;
-  deathScript?: string;
-  timerScriptFile?: string;
-  timerScriptInterval: number;
-
-  // === 技能相关 ===
-  magicToUseWhenLifeLow?: string;
-  lifeLowPercent: number;
-  keepRadiusWhenLifeLow: number;
-  keepRadiusWhenFriendDeath: number;
-  magicToUseWhenBeAttacked?: string;
-  magicDirectionWhenBeAttacked: number;
-  magicToUseWhenDeath?: string;
-  magicDirectionWhenDeath: number;
-
-  // === 商店/可见性 ===
-  buyIniFile?: string;
-  buyIniString?: string;
-  visibleVariableName?: string;
-  visibleVariableValue: number;
-
-  // === 掉落 ===
-  dropIni?: string;
-
-  // === 装备 ===
-  canEquip: number;
-  headEquip?: string;
-  neckEquip?: string;
-  bodyEquip?: string;
-  backEquip?: string;
-  handEquip?: string;
-  wristEquip?: string;
-  footEquip?: string;
-  backgroundTextureEquip?: string;
-
-  // === 保持攻击位置 ===
-  keepAttackX: number;
-  keepAttackY: number;
-
-  // === 伤害玩家 ===
-  hurtPlayerInterval: number;
-  hurtPlayerLife: number;
-  hurtPlayerRadius: number;
-
-  // === NPC 特有 ===
+/** NPC 存档数据 = 共享基础 + NPC 特有字段 */
+export interface NpcSaveItem extends CharacterSaveBase {
   /** script-controlled hiding (IsVisible is computed, not saved) */
   isHide: boolean;
   isAIDisabled: boolean;
-
-  // === 巡逻路径 ===
   actionPathTilePositions?: Array<{ x: number; y: number }>;
-
-  // === 等级配置文件 ===
-  levelIniFile?: string;
 }
 
 /**
