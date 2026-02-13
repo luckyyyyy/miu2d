@@ -106,7 +106,7 @@ This project uses **pnpm monorepo** architecture:
 | **@miu2d/server** | `packages/server/` | NestJS backend with tRPC API |
 | **@miu2d/types** | `packages/types/` | Shared Zod schemas and TypeScript types |
 | **@miu2d/i18n** | `packages/i18n/` | Internationalization resources |
-| **@miu2d/asf2msf** | `packages/asf2msf/` | Rust CLI: ASF → [MSF](docs/msf-format.md) sprite converter |
+| **@miu2d/converter** | `packages/converter/` | Rust CLI toolkit: ASF/MPC → MSF, MAP → MMF |
 
 **Import engine modules:**
 ```typescript
@@ -152,8 +152,8 @@ pnpm build      # Build for production
 pnpm tsc        # TypeScript type check
 pnpm lint       # Code linting
 pnpm format     # Code formatting
-make asf2msf    # Convert ASF sprites to MSF format
-make asf2msf-verify  # Pixel-perfect verify conversion
+make convert    # One-shot resource conversion (ASF/MPC/MAP/etc.)
+make convert-verify  # Pixel-perfect verification for ASF/MPC
 ```
 
 ---

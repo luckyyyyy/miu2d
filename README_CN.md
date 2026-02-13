@@ -118,7 +118,7 @@
 | **@miu2d/server** | `packages/server/` | NestJS 后端服务，tRPC API |
 | **@miu2d/types** | `packages/types/` | **共享 Zod Schema 和 TypeScript 类型** |
 | **@miu2d/i18n** | `packages/i18n/` | 国际化资源包（前后端共用） |
-| **@miu2d/asf2msf** | `packages/asf2msf/` | Rust CLI: ASF → [MSF](docs/msf-format.md) 精灵转换器 |
+| **@miu2d/converter** | `packages/converter/` | Rust CLI 资源转换工具（ASF/MPC → MSF，MAP → MMF） |
 
 **导入引擎模块：**
 ```typescript
@@ -221,7 +221,7 @@ await engine.loadGame(saveIndex);
 ## 📁 项目结构
 
 ```
-game-jxqy/
+miu2d/
 ├── packages/
 │   ├── engine/                  # @miu2d/engine - 游戏引擎（~47k 行）
 │   │   └── src/
@@ -231,21 +231,9 @@ game-jxqy/
 │   │       │   ├── base/        # 继承链（character-base → movement → combat）
 │   │       │   ├── modules/     # 功能模块（贝塞尔移动、状态效果等）
 │   │       │   └── level/       # 等级系统
-│   │       ├── core/            # 核心模块
-│   │       │   ├── types.ts     # 核心类型定义
-│   │       │   ├── engine-context.ts # 引擎上下文接口
-│   │       │   ├── game-api.ts  # 结构化脚本 API（16 个子 API）
-│   │       │   ├── event-emitter.ts # 事件系统
-│   │       │   ├── game-events.ts   # 游戏事件定义
-│   │       │   ├── path-finder.ts   # A* 寻路算法
-│   │       │   ├── timer-manager.ts # 计时器系统
-│   │       │   ├── debug-manager.ts # 调试管理器
-│   │       │   └── logger.ts    # 日志系统
+│   │       ├── core/            # 核心类型、日志、事件
+│   │       ├── data/            # 数据与配置模型
 │   │       ├── gui/             # 界面状态管理
-│   │       │   ├── gui-manager.ts
-│   │       │   ├── buy-manager.ts   # 商店管理器
-│   │       │   ├── ui-bridge.ts     # UI 桥接层
-│   │       │   └── ui-config.ts     # UI 配置
 │   │       ├── magic/           # 武功系统（12 种特效）
 │   │       │   ├── manager/     # 武功管理器
 │   │       │   ├── effects/     # 武功特效（12 种 MoveKind）
@@ -258,29 +246,14 @@ game-jxqy/
 │   │       │   ├── goods/       # 物品系统
 │   │       │   └── magic/       # 玩家武功
 │   │       ├── renderer/        # 渲染器（WebGL + Canvas2D 回退）
-│   │       │   ├── webgl-renderer.ts    # WebGL 主渲染器
-│   │       │   ├── canvas2d-renderer.ts # Canvas 2D 回退
-│   │       │   ├── sprite-batcher.ts    # 精灵批量渲染
-│   │       │   └── screen-effects.ts    # 屏幕特效
 │   │       ├── resource/        # 资源管理
-│   │       │   ├── resource-loader.ts   # 统一资源加载器
-│   │       │   ├── asf.ts, mpc.ts, shd.ts, xnb.ts, mmf.ts  # 格式解析
-│   │       │   └── resource-paths.ts    # 资源路径管理
-│   │       ├── runtime/         # 运行时
-│   │       │   ├── game-engine.ts       # 引擎主类（入口）
-│   │       │   ├── game-manager.ts      # 游戏逻辑控制器
-│   │       │   ├── input-handler.ts     # 输入处理
-│   │       │   ├── interaction-manager.ts # 交互管理
-│   │       │   ├── magic-handler.ts     # 武功处理
-│   │       │   ├── camera-controller.ts # 镜头控制
-│   │       │   ├── loader.ts            # 存档加载器
-│   │       │   ├── storage.ts           # 存档存储
-│   │       │   ├── performance-stats.ts # 性能统计
-│   │       │   └── script-api/          # 结构化脚本 API
-│   │       ├── script/          # 剧本系统（180+ 命令）
-│   │       │   ├── parser.ts, executor.ts
-│   │       │   └── commands/    # 命令处理器
+│   │       │   ├── format/      # 二进制格式解析实现
+│   │       │   ├── resource-loader.ts
+│   │       │   └── resource-paths.ts
+│   │       ├── runtime/         # 运行时（engine/manager/input/interaction）
+│   │       ├── script/          # 剧本系统（parser/executor/commands/api）
 │   │       ├── sprite/          # 精灵基类
+│   │       ├── storage/         # 存档与持久化
 │   │       ├── utils/           # 工具模块
 │   │       ├── wasm/            # WASM 集成
 │   │       └── weather/         # 天气系统（rain, snow, screen-droplet）
@@ -324,7 +297,7 @@ game-jxqy/
 │   ├── ui/                      # @miu2d/ui - 通用 UI 组件
 │   ├── viewer/                  # @miu2d/viewer - 资源查看器（ASF/Map/MPC/XnbAudio）
 │   ├── i18n/                    # @miu2d/i18n - 国际化资源
-│   └── asf2msf/                 # @miu2d/asf2msf - Rust CLI 转换工具
+│   └── converter/               # @miu2d/converter - Rust CLI 资源转换工具
 │
 ├── resources/                   # 游戏资源
 │   ├── map/, asf/, mpc/, ini/, script/, save/
@@ -376,6 +349,8 @@ pnpm build      # 构建生产版本
 pnpm tsc        # TypeScript 类型检查
 pnpm lint       # 代码检查
 pnpm format     # 代码格式化
+make convert    # 一键转换资源（ASF/MPC/MAP 等）
+make convert-verify  # 验证 ASF/MPC 转换无损
 ```
 
 ---
@@ -421,6 +396,8 @@ pnpm build        # 构建生产版本
 pnpm preview      # 预览生产版本
 pnpm tsc          # TypeScript 类型检查
 pnpm lint         # 代码检查
+make convert      # 一键转换资源（ASF/MPC/MAP 等）
+make convert-verify # 验证 ASF/MPC 转换无损
 ```
 
 ### 开发原则
@@ -441,7 +418,7 @@ pnpm lint         # 代码检查
 | `.npc` | NPC 存档文件 | UTF-8 | `/resources/ini/save/` |
 | `.ini` | 配置文件（NPC、物品等） | UTF-8 | `/resources/ini/` |
 | `.txt` | 游戏剧本 | UTF-8 | `/resources/script/` |
-| `.ogg` | 音频文件（音乐和音效） | 二进制 | `/resources/Content/` |
+| `.ogg` | 音频文件（音乐和音效） | 二进制 | `/resources/content/` |
 
 ### 资源加载架构
 

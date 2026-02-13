@@ -219,12 +219,12 @@ ASF 使用 Indexed8Alpha8 (2bpp) 因为需要保留 per-pixel 变化 alpha 值�
 | 模块 | 文件 | 说明 |
 |------|------|------|
 | Rust WASM 解码 | `packages/engine-wasm/src/msf_codec.rs` | WASM 解码器 |
-| Rust CLI (ASF) | `packages/asf2msf/src/main.rs` | ASF → MSF v2 批量转换 |
-| Rust CLI (MPC) | `packages/asf2msf/src/bin/mpc2msf.rs` | MPC → MSF v2 批量转换 |
-| Rust 验证 (ASF) | `packages/asf2msf/src/bin/verify.rs` | ASF ↔ MSF v2 逐像素验证 |
-| Rust 验证 (MPC) | `packages/asf2msf/src/bin/verify_mpc.rs` | MPC ↔ MSF v2 逐像素验证 |
-| TS ASF 解码 | `packages/engine/src/wasm/wasmAsfDecoder.ts` | MSF v2 / ASF → AsfData |
-| TS MPC 解码 | `packages/engine/src/wasm/wasmMpcDecoder.ts` | MSF v2 / MPC → Mpc |
+| Rust CLI (ASF) | `packages/converter/src/main.rs` | ASF → MSF v2 批量转换 |
+| Rust CLI (MPC) | `packages/converter/src/bin/mpc2msf.rs` | MPC → MSF v2 批量转换 |
+| Rust 验证 (ASF) | `packages/converter/src/bin/verify.rs` | ASF ↔ MSF v2 逐像素验证 |
+| Rust 验证 (MPC) | `packages/converter/src/bin/verify_mpc.rs` | MPC ↔ MSF v2 逐像素验证 |
+| TS ASF 解码 | `packages/engine/src/wasm/wasm-asf-decoder.ts` | MSF v2 / ASF → AsfData |
+| TS MPC 解码 | `packages/engine/src/wasm/wasm-mpc-decoder.ts` | MSF v2 / MPC → Mpc |
 
 ---
 
@@ -255,8 +255,6 @@ ASF 使用 Indexed8Alpha8 (2bpp) 因为需要保留 per-pixel 变化 alpha 值�
 ### 命令
 
 ```bash
-make asf2msf          # ASF → MSF v2 转换
-make asf2msf-verify   # 验证
-make mpc2msf          # MPC → MSF v2 转换
-make mpc2msf-verify   # 验证
+make convert          # ASF/MPC/MAP 一键转换
+make convert-verify   # 验证 ASF↔MSF 与 MPC↔MSF 无损
 ```

@@ -549,5 +549,5 @@ Extension Chunk 方案避免了这些问题，与 MSF v2 的扩展理念一致�
 |------|------|------|
 | 格式规范 | `docs/mmf-format.md` | 本文档 |
 | TS 解析器 | `packages/engine/src/resource/mmf.ts` | MMF 解析 + 加载 |
-| Rust 转换器 | `packages/asf2msf/src/bin/map2mmf.rs` | MAP → MMF 批量转换 |
+| Rust 转换器 | `packages/converter/src/bin/map2mmf.rs` | MAP → MMF 批量转换 |
 | 旧格式解析 | `packages/engine/src/resource/map.ts` | 旧 MAP 解析（保留兼容） |

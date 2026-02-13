@@ -1,8 +1,8 @@
-# @miu2d/asf2msf
+# @miu2d/converter
 
-ASF → MSF 精灵格式批量转换器（Rust CLI）。
+游戏资源转换工具集（Rust CLI）。
 
-将《剑侠情缘外传：月影传说》的 ASF 精灵动画文件无损转换为 Web 优化的 [MSF (Miu Sprite Format)](../../docs/msf-format.md)。
+将《剑侠情缘外传：月影传说》的资源批量转换为 Web 优化格式（ASF/MPC → MSF，MAP → MMF）。
 
 ---
 
@@ -27,24 +27,33 @@ ASF → MSF 精灵格式批量转换器（Rust CLI）。
 ### 通过 Makefile（推荐）
 
 ```bash
-# 转换并部署（转换到临时目录 → 回写到 resources/asf/）
-make asf2msf
+# 一键转换资源（ASF/MPC/MAP/编码/视频）
+make convert
 
-# 逐像素验证转换结果
-make asf2msf-verify
+# 逐像素验证转换结果（ASF + MPC）
+make convert-verify
 ```
 
 ### 通过 pnpm
 
 ```bash
-cd packages/asf2msf
+cd packages/converter
 
 # 转换到单独输出目录
-pnpm convert
+pnpm convert:asf
 # → resources/asf → resources/asf_msf
 
 # 转换 + 部署（回写 .msf 到 resources/asf/ 并清理）
-pnpm convert:deploy
+pnpm convert:asf:deploy
+
+# MPC 转换到单独输出目录
+pnpm convert:mpc
+
+# MPC 转换 + 部署（回写 .msf 到 resources/mpc/ 并清理）
+pnpm convert:mpc:deploy
+
+# MAP 转 MMF
+pnpm convert:map
 
 # 逐像素验证（对比同目录下的 .asf 和 .msf 文件）
 pnpm verify
@@ -56,7 +65,7 @@ pnpm scan-alpha
 ### 通过 cargo
 
 ```bash
-cd packages/asf2msf
+cd packages/converter
 
 # 批量转换
 cargo run --release --bin asf2msf -- <输入目录> <输出目录>
@@ -148,14 +157,18 @@ MPC 文件                          MSF 文件
 ## 项目结构
 
 ```
-packages/asf2msf/
-├── Cargo.toml          # Rust 依赖 (walkdir, rayon)
+packages/converter/
+├── Cargo.toml          # Rust 依赖 (walkdir, rayon, zstd, encoding_rs)
 ├── package.json        # pnpm 脚本
 ├── README.md
 └── src/
     ├── main.rs         # 主转换器
     └── bin/
-        ├── verify.rs   # 逐像素验证工具
+        ├── mpc2msf.rs     # MPC → MSF
+        ├── map2mmf.rs     # MAP → MMF
+        ├── convert_all.rs # 一键转换入口
+        ├── verify.rs      # ASF 逐像素验证
+        ├── verify_mpc.rs  # MPC 逐像素验证
         └── scan_alpha.rs  # Alpha 使用扫描
 ```
 

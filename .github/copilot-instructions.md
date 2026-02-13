@@ -100,6 +100,7 @@ pnpm --filter @miu2d/server dev # 只运行 server 包
 | `@miu2d/server` | `packages/server/` | NestJS 后端服务，tRPC API |
 | `@miu2d/types` | `packages/types/` | **共享 Zod Schema 和 TypeScript 类型** |
 | `@miu2d/i18n` | `packages/i18n/` | 国际化资源包（前后端共用） |
+| `@miu2d/converter` | `packages/converter/` | Rust CLI 资源转换工具（ASF/MPC → MSF，MAP → MMF） |
 | **C# 参考** | `JxqyHD/Engine/` | 原 C# 实现，功能参考来源 |
 | **游戏资源** | `resources/` | 地图、精灵、脚本等资源文件 |
 
@@ -228,6 +229,7 @@ function MyPage() {
 packages/engine/src/
 ├── audio/          # 音频管理（Web Audio API）
 ├── character/      # 角色系统（base/ 继承链, modules/, level/）
+├── data/           # 数据与配置模型
 ├── core/           # 核心类型和工具（types.ts, logger.ts, engine-context.ts, game-api.ts）
 ├── gui/            # GUI 管理器（gui-manager, buy-manager, ui-bridge）
 ├── magic/          # 武功系统（effects/, manager/, passives/）
@@ -236,11 +238,11 @@ packages/engine/src/
 ├── obj/            # 物体系统（obj-manager, obj-renderer）
 ├── player/         # 玩家系统（base/, goods/, magic/）
 ├── renderer/       # 渲染器（WebGL + Canvas2D, sprite-batcher, screen-effects）
-├── resource/       # 资源加载器（asf, mpc, shd, xnb, mmf 解析）
+├── resource/       # 资源加载器（format/, resource-loader, resource-paths）
 ├── runtime/        # 运行时（GameEngine, GameManager, InputHandler, CameraController）
-│   └── script-api/ # 结构化脚本 API（player-api, npc-api, world-api 等）
-├── script/         # 脚本系统（commands/, parser.ts, executor.ts）
+├── script/         # 脚本系统（commands/, api/, parser.ts, executor.ts）
 ├── sprite/         # 精灵基类（sprite.ts, edge-detection.ts）
+├── storage/        # 存档与持久化
 ├── utils/          # 工具函数（direction, distance, collision, ini-parser）
 ├── wasm/           # WASM 集成
 └── weather/        # 天气系统（rain, snow, screen-droplet）

@@ -594,17 +594,11 @@ xxd -s 16 -l 48 file.asf
 ### MSF 格式转换
 
 ```bash
-# ASF → MSF（zstd 压缩）
-make asf2msf
+# ASF/MPC/MAP 一键转换（zstd 压缩）
+make convert
 
-# MPC → MSF（zstd 压缩）
-make mpc2msf
-
-# 验证 ASF↔MSF 无损
-make asf2msf-verify
-
-# 验证 MPC↔MSF 无损
-make mpc2msf-verify
+# 验证 ASF↔MSF 与 MPC↔MSF 无损
+make convert-verify
 ```
 
 ---

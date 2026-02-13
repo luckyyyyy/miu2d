@@ -207,12 +207,12 @@ blobStart        = extensionStart + (所有 chunk 大小之和) + 8 (END sentine
 | 模块 | 文件 | 说明 |
 |------|------|------|
 | Rust 编解码 | `packages/engine-wasm/src/msf_codec.rs` | 编码器 + WASM 解码器 |
-| Rust CLI (ASF) | `packages/asf2msf/src/main.rs` | 批量 ASF → MSF |
-| Rust CLI (MPC) | `packages/asf2msf/src/bin/mpc2msf.rs` | 批量 MPC → MSF |
-| Rust 验证 (ASF) | `packages/asf2msf/src/bin/verify.rs` | ASF ↔ MSF 逐像素比对 |
-| Rust 验证 (MPC) | `packages/asf2msf/src/bin/verify_mpc.rs` | MPC ↔ MSF 逐像素比对 |
-| TS ASF 解码 | `packages/engine/src/wasm/wasmAsfDecoder.ts` | 自动检测 MSF/ASF |
-| TS MPC 解码 | `packages/engine/src/wasm/wasmMpcDecoder.ts` | 自动检测 MSF/MPC |
+| Rust CLI (ASF) | `packages/converter/src/main.rs` | 批量 ASF → MSF |
+| Rust CLI (MPC) | `packages/converter/src/bin/mpc2msf.rs` | 批量 MPC → MSF |
+| Rust 验证 (ASF) | `packages/converter/src/bin/verify.rs` | ASF ↔ MSF 逐像素比对 |
+| Rust 验证 (MPC) | `packages/converter/src/bin/verify_mpc.rs` | MPC ↔ MSF 逐像素比对 |
+| TS ASF 解码 | `packages/engine/src/wasm/wasm-asf-decoder.ts` | 自动检测 MSF/ASF |
+| TS MPC 解码 | `packages/engine/src/wasm/wasm-mpc-decoder.ts` | 自动检测 MSF/MPC |
 | TS ASF URL 重写 | `packages/engine/src/resource/asf.ts` | `.asf` → `.msf` 透明替换 |
 | TS MPC URL 重写 | `packages/engine/src/resource/mpc.ts` | `.mpc` → `.msf` 透明替换 |
 
@@ -281,7 +281,7 @@ frame_offsets_output: [offset₀, offset₁, ...] (u32, pixel_output 中的字�
 
 ### TS 自动检测
 
-[wasmMpcDecoder.ts](../packages/engine/src/wasm/wasmMpcDecoder.ts) 检查前 4 字节 magic：
+[wasm-mpc-decoder.ts](../packages/engine/src/wasm/wasm-mpc-decoder.ts) 检查前 4 字节 magic：
 
 - `"MSF1"` → 使用 `parse_msf_header` + `decode_msf_individual_frames`
 - 否则 → 使用原有 `parse_mpc_header` + `decode_mpc_frames`
@@ -303,11 +303,11 @@ frame_offsets_output: [offset₀, offset₁, ...] (u32, pixel_output 中的字�
 ### 命令
 
 ```bash
-# 转换
-make mpc2msf
+# 转换（包含 ASF/MPC/MAP）
+make convert
 
-# 验证
-make mpc2msf-verify
+# 验证（ASF/MPC）
+make convert-verify
 ```
 
 ---
