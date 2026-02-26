@@ -259,6 +259,12 @@ export const ImportSceneItemSchema = z.object({
   mmfData: z.string(),
   /** 解析好的场景数据（脚本/陷阱/NPC/OBJ） */
   data: z.record(z.string(), z.unknown()).nullable(),
+  /**
+   * 陷阱索引 → 脚本路径映射（来自 Traps.ini）
+   * 当 MMF 的 trapTable 为空时，服务端用此数据重建并重新序列化 MMF
+   * key 为陷阱索引（字符串形式），value 为脚本文件名
+   */
+  trapOverrides: z.record(z.string(), z.string()).optional(),
 });
 export type ImportSceneItem = z.infer<typeof ImportSceneItemSchema>;
 

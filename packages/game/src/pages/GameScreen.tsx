@@ -16,12 +16,14 @@ import { initNpcLevelConfig } from "@miu2d/engine/character/level";
 import { logger } from "@miu2d/engine/core/logger";
 import { getGameConfig, loadGameConfig, loadGameData } from "@miu2d/engine/data";
 import { setResourcePaths } from "@miu2d/engine/resource";
+import { setUiSettingsIniContent } from "@miu2d/engine/gui/ui-settings";
 import type { SaveData } from "@miu2d/engine/storage";
 import { trpc, useMobile } from "@miu2d/shared";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import type { ToolbarButton } from "../components";
 import { AuthModal, GameMenuPanel, GameTopBar, loadUITheme, TitleGui } from "../components";
+import { resetCachedUIConfigs } from "../components/ui/classic/useUISettings";
 import type { MenuTab } from "../components/GameMenuPanel";
 import type { UITheme } from "../components/ui";
 import { TouchDragProvider } from "../contexts";
@@ -188,6 +190,10 @@ export default function GameScreen() {
         if (config?.titleMusic) {
           setTitleMusic(config.titleMusic);
         }
+
+        // 设置自定义 UI Settings INI 内容（切换游戏时自动清除缓存）
+        setUiSettingsIniContent(config?.uiSettingsIni || "");
+        resetCachedUIConfigs();
 
         // 2. 并行加载游戏数据 + NPC 等级配置
         await Promise.all([
@@ -423,6 +429,7 @@ export default function GameScreen() {
           <div className="w-full flex-1 relative">
             <TitleGui
               gameSlug={gameSlug}
+              gameName={gameName}
               screenWidth={window.innerWidth}
               screenHeight={window.innerHeight}
               onNewGame={handleNewGame}

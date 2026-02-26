@@ -6,8 +6,6 @@
  */
 
 import { logger } from "../core/logger";
-import { resourceLoader } from "../resource/resource-loader";
-import { DefaultPaths } from "../resource/resource-paths";
 import { parseIni } from "../utils";
 
 // ===== Types from ui-config (merged) =====
@@ -43,9 +41,31 @@ export function colorToCSS(color: UiColorRGBA): string {
 let cachedSettings: Record<string, Record<string, string>> | null = null;
 let loadingPromise: Promise<Record<string, Record<string, string>>> | null = null;
 
+/** 通过 GameConfig API 传入的 UI Settings INI 内容 */
+let customUiSettingsIniContent = "";
+
 /**
- * Load and parse UI_Settings.ini
- * Returns cached result if already loaded
+ * 设置 UI Settings INI 内容（从 GameConfig.uiSettingsIni 获取）
+ * 调用后会清除已缓存的设置，下次 loadUISettings 将直接使用该内容
+ */
+export function setUiSettingsIniContent(content: string): void {
+  if (content !== customUiSettingsIniContent) {
+    customUiSettingsIniContent = content;
+    resetUISettingsCache();
+  }
+}
+
+/**
+ * 重置 UI Settings 缓存（切换游戏时调用）
+ */
+export function resetUISettingsCache(): void {
+  cachedSettings = null;
+  loadingPromise = null;
+}
+
+/**
+ * Load and parse UI Settings from GameConfig.uiSettingsIni content.
+ * Must be set via setUiSettingsIniContent() before calling.
  */
 export async function loadUISettings(): Promise<Record<string, Record<string, string>>> {
   if (cachedSettings) {
@@ -58,18 +78,17 @@ export async function loadUISettings(): Promise<Record<string, Record<string, st
 
   loadingPromise = (async () => {
     try {
-      const content = await resourceLoader.loadText(DefaultPaths.uiSettingsIni);
-      if (!content) {
-        logger.error("Failed to load UI_Settings.ini");
-        return {};
+      if (!customUiSettingsIniContent) {
+        logger.error("[UISettings] uiSettingsIni not configured in GameConfig. Please set it in the dashboard.");
+        cachedSettings = {};
+        return cachedSettings;
       }
 
-      // Parse INI content
-      cachedSettings = parseIni(content);
-      logger.debug("[UISettings] Loaded UI_Settings.ini successfully");
+      cachedSettings = parseIni(customUiSettingsIniContent);
+      logger.debug("[UISettings] Parsed INI content from GameConfig");
       return cachedSettings;
     } catch (error) {
-      logger.error("Error loading UI_Settings.ini:", error);
+      logger.error("Error parsing UI_Settings.ini content:", error);
       return {};
     } finally {
       loadingPromise = null;
@@ -148,8 +167,14 @@ export interface PanelConfig {
   image: string;
   leftAdjust: number;
   topAdjust: number;
+  /** Optional explicit panel dimensions from ini (override image size) */
   width?: number;
   height?: number;
+  /**
+   * Panel anchor - controls which screen edge the panel is positioned relative to.
+   * "Top" (default): top=topAdjust; "Bottom": bottom edge anchored
+   */
+  anchor?: "Top" | "Bottom";
 }
 
 // ============================================
@@ -299,10 +324,16 @@ function panelFrom(
   s: IniSection,
   defaults: { image: string; leftAdjust?: number; topAdjust?: number }
 ): PanelConfig {
+  const rawWidth = parseInt2(s.Width, 0);
+  const rawHeight = parseInt2(s.Height, 0);
+  const rawAnchor = s.Anchor?.trim();
   return {
     image: normalizeImagePath(s.Image || defaults.image),
     leftAdjust: parseInt2(s.LeftAdjust, defaults.leftAdjust ?? 0),
     topAdjust: parseInt2(s.TopAdjust, defaults.topAdjust ?? 0),
+    ...(rawWidth > 0 ? { width: rawWidth } : {}),
+    ...(rawHeight > 0 ? { height: rawHeight } : {}),
+    ...(rawAnchor === "Bottom" ? { anchor: "Bottom" as const } : {}),
   };
 }
 
@@ -370,20 +401,6 @@ function scrollBarFrom(
     height: parseInt2(s.ScrollBarHeight, d.height),
     button: normalizeImagePath(s.ScrollBarButton || d.button),
   };
-}
-
-/** Parse N item slots from Item_Left_N / Item_Top_N / Item_Width_N / Item_Height_N keys */
-function itemGridFrom(
-  s: IniSection,
-  count: number,
-  d: { left: number; top: number; width: number; height: number }
-): { left: number; top: number; width: number; height: number }[] {
-  return Array.from({ length: count }, (_, i) => ({
-    left: parseInt2(s[`Item_Left_${i + 1}`], d.left),
-    top: parseInt2(s[`Item_Top_${i + 1}`], d.top),
-    width: parseInt2(s[`Item_Width_${i + 1}`], d.width),
-    height: parseInt2(s[`Item_Height_${i + 1}`], d.height),
-  }));
 }
 
 /** Parse 7 equipment slots (head/neck/body/back/hand/wrist/foot) */
@@ -552,7 +569,17 @@ export function parseXiuLianGuiConfig(settings: Record<string, IniSection>): Xiu
 }
 
 export function parseGoodsGuiConfig(settings: Record<string, IniSection>): GoodsGuiConfig {
-  const goods = getSection(settings, "Good");
+  const goods = getSection(settings, "Goods");
+  const listItems = getSection(settings, "Goods_List_Items");
+
+  // Parse 9 item slots (3x3 grid) — computed defaults per slot
+  const items = Array.from({ length: 9 }, (_, i) => ({
+    left: parseInt2(listItems[`Item_Left_${i + 1}`], 71 + (i % 3) * 65),
+    top: parseInt2(listItems[`Item_Top_${i + 1}`], 91 + Math.floor(i / 3) * 79),
+    width: parseInt2(listItems[`Item_Width_${i + 1}`], 60),
+    height: parseInt2(listItems[`Item_Height_${i + 1}`], 75),
+  }));
+
   return {
     panel: panelFrom(goods, { image: "asf/ui/common/panel3.asf" }),
     scrollBar: scrollBarFrom(goods, {
@@ -562,12 +589,7 @@ export function parseGoodsGuiConfig(settings: Record<string, IniSection>): Goods
       height: 190,
       button: "asf/ui/option/slidebtn.asf",
     }),
-    items: itemGridFrom(getSection(settings, "Goods_List_Items"), 9, {
-      left: 71,
-      top: 91,
-      width: 60,
-      height: 75,
-    }),
+    items,
     money: textFrom(getSection(settings, "Goods_Money"), {
       left: 137,
       top: 363,
@@ -580,6 +602,16 @@ export function parseGoodsGuiConfig(settings: Record<string, IniSection>): Goods
 
 export function parseMagicsGuiConfig(settings: Record<string, IniSection>): MagicsGuiConfig {
   const magics = getSection(settings, "Magics");
+  const listItems = getSection(settings, "Magics_List_Items");
+
+  // Parse 9 item slots (3x3 grid) — computed defaults per slot
+  const items = Array.from({ length: 9 }, (_, i) => ({
+    left: parseInt2(listItems[`Item_Left_${i + 1}`], 71 + (i % 3) * 65),
+    top: parseInt2(listItems[`Item_Top_${i + 1}`], 91 + Math.floor(i / 3) * 79),
+    width: parseInt2(listItems[`Item_Width_${i + 1}`], 60),
+    height: parseInt2(listItems[`Item_Height_${i + 1}`], 75),
+  }));
+
   return {
     panel: panelFrom(magics, { image: "asf/ui/common/panel2.asf" }),
     scrollBar: scrollBarFrom(magics, {
@@ -589,12 +621,7 @@ export function parseMagicsGuiConfig(settings: Record<string, IniSection>): Magi
       height: 190,
       button: "asf/ui/option/slidebtn.asf",
     }),
-    items: itemGridFrom(getSection(settings, "Magics_List_Items"), 9, {
-      left: 71,
-      top: 91,
-      width: 60,
-      height: 75,
-    }),
+    items,
   };
 }
 
@@ -953,5 +980,198 @@ export function parseBuySellGuiConfig(settings: Record<string, IniSection>): Buy
       image: normalizeImagePath(buySell.CloseImage || "asf/ui/buysell/CloseBtn.asf"),
       sound: buySell.CloseSound || "界-大按钮.wav",
     },
+  };
+}
+
+// ============= Bottom (底部快捷栏) Config =============
+
+export interface BottomSlotConfig {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+}
+
+export interface BottomGuiConfig {
+  panel: PanelConfig;
+  items: BottomSlotConfig[];
+}
+
+export function parseBottomGuiConfig(settings: Record<string, IniSection>): BottomGuiConfig {
+  const bottomItems = getSection(settings, "Bottom_Items");
+
+  // 8 slots: 1-3 items, 4-8 magic (matching C# BottomGui)
+  const defaultSlots: BottomSlotConfig[] = [
+    { left: 7, top: 20, width: 30, height: 40 },
+    { left: 44, top: 20, width: 30, height: 40 },
+    { left: 82, top: 20, width: 30, height: 40 },
+    { left: 199, top: 20, width: 30, height: 40 },
+    { left: 238, top: 20, width: 30, height: 40 },
+    { left: 277, top: 20, width: 30, height: 40 },
+    { left: 316, top: 20, width: 30, height: 40 },
+    { left: 354, top: 20, width: 30, height: 40 },
+  ];
+
+  const items = Array.from({ length: 8 }, (_, i) => ({
+    left: parseInt2(bottomItems[`Item_Left_${i + 1}`], defaultSlots[i].left),
+    top: parseInt2(bottomItems[`Item_Top_${i + 1}`], defaultSlots[i].top),
+    width: parseInt2(bottomItems[`Item_Width_${i + 1}`], defaultSlots[i].width),
+    height: parseInt2(bottomItems[`Item_Height_${i + 1}`], defaultSlots[i].height),
+  }));
+
+  return {
+    panel: panelFrom(getSection(settings, "Bottom"), {
+      image: "asf/ui/bottom/window.asf",
+      leftAdjust: 102,
+    }),
+    items,
+  };
+}
+
+// ============= BottomState (血蓝条) Config =============
+
+export interface BottomStateBarConfig {
+  image: string;
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+}
+
+export interface BottomStateGuiConfig {
+  panel: PanelConfig;
+  life: BottomStateBarConfig;
+  thew: BottomStateBarConfig;
+  mana: BottomStateBarConfig;
+}
+
+export function parseBottomStateGuiConfig(settings: Record<string, IniSection>): BottomStateGuiConfig {
+  const barFrom = (s: IniSection, d: BottomStateBarConfig): BottomStateBarConfig => ({
+    image: normalizeImagePath(s.Image || d.image),
+    left: parseInt2(s.Left, d.left),
+    top: parseInt2(s.Top, d.top),
+    width: parseInt2(s.Width, d.width),
+    height: parseInt2(s.Height, d.height),
+  });
+
+  return {
+    panel: panelFrom(getSection(settings, "BottomState"), {
+      image: "asf/ui/column/panel9.asf",
+      leftAdjust: -320,
+    }),
+    life: barFrom(getSection(settings, "BottomState_Life"), {
+      image: "asf/ui/column/ColLife.asf",
+      left: 11,
+      top: 22,
+      width: 48,
+      height: 46,
+    }),
+    thew: barFrom(getSection(settings, "BottomState_Thew"), {
+      image: "asf/ui/column/ColThew.asf",
+      left: 59,
+      top: 22,
+      width: 48,
+      height: 46,
+    }),
+    mana: barFrom(getSection(settings, "BottomState_Mana"), {
+      image: "asf/ui/column/ColMana.asf",
+      left: 113,
+      top: 22,
+      width: 48,
+      height: 46,
+    }),
+  };
+}
+
+// ============= Top (顶部/侧边功能按钮栏) Config =============
+
+export interface TopGuiConfig {
+  panel: PanelConfig;
+  buttons: ButtonConfig[];
+}
+
+/** Button section names in C# order: State, Equip, XiuLian, Goods, Magic, Memo, System */
+const TOP_BUTTON_SECTIONS = [
+  "Top_State_Btn",
+  "Top_Equip_Btn",
+  "Top_XiuLian_Btn",
+  "Top_Goods_Btn",
+  "Top_Magic_Btn",
+  "Top_Memo_Btn",
+  "Top_System_Btn",
+] as const;
+
+const TOP_BUTTON_DEFAULTS: {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+  image: string;
+  sound: string;
+}[] = [
+  { left: 52, top: 0, width: 19, height: 19, image: "asf/ui/top/BtnState.asf", sound: "界-大按钮.wav" },
+  { left: 80, top: 0, width: 19, height: 19, image: "asf/ui/top/BtnEquip.asf", sound: "界-大按钮.wav" },
+  { left: 107, top: 0, width: 19, height: 19, image: "asf/ui/top/BtnXiuLian.asf", sound: "界-大按钮.wav" },
+  { left: 135, top: 0, width: 19, height: 19, image: "asf/ui/top/BtnGoods.asf", sound: "界-大按钮.wav" },
+  { left: 162, top: 0, width: 19, height: 19, image: "asf/ui/top/BtnMagic.asf", sound: "界-大按钮.wav" },
+  { left: 189, top: 0, width: 19, height: 19, image: "asf/ui/top/BtnNotes.asf", sound: "界-大按钮.wav" },
+  { left: 216, top: 0, width: 19, height: 19, image: "asf/ui/top/BtnOption.asf", sound: "界-大按钮.wav" },
+];
+
+export function parseTopGuiConfig(settings: Record<string, IniSection>): TopGuiConfig {
+  const buttons = TOP_BUTTON_SECTIONS.map((sec, i) =>
+    buttonFrom(getSection(settings, sec), TOP_BUTTON_DEFAULTS[i])
+  );
+
+  return {
+    panel: panelFrom(getSection(settings, "Top"), {
+      image: "asf/ui/top/window.asf",
+    }),
+    buttons,
+  };
+}
+
+// ============= ToolTip Config =============
+
+export interface ToolTipUseTypeConfig {
+  useType: 1 | 2;
+}
+
+export interface ToolTipType2Config {
+  width: number;
+  textHorizontalPadding: number;
+  textVerticalPadding: number;
+  backgroundColor: UiColorRGBA;
+  magicNameColor: UiColorRGBA;
+  magicLevelColor: UiColorRGBA;
+  magicIntroColor: UiColorRGBA;
+  goodNameColor: UiColorRGBA;
+  goodPriceColor: UiColorRGBA;
+  goodUserColor: UiColorRGBA;
+  goodPropertyColor: UiColorRGBA;
+  goodIntroColor: UiColorRGBA;
+}
+
+export function parseToolTipUseTypeConfig(settings: Record<string, IniSection>): ToolTipUseTypeConfig {
+  const sec = getSection(settings, "ToolTip_Use_Type");
+  const useType = parseInt2(sec["UseType"], 1);
+  return { useType: useType === 2 ? 2 : 1 };
+}
+
+export function parseToolTipType2Config(settings: Record<string, IniSection>): ToolTipType2Config {
+  const sec = getSection(settings, "ToolTip_Type2");
+  return {
+    width: parseInt2(sec["Width"], 288),
+    textHorizontalPadding: parseInt2(sec["TextHorizontalPadding"], 6),
+    textVerticalPadding: parseInt2(sec["TextVerticalPadding"], 4),
+    backgroundColor: parseIniColor(sec["BackgroundColor"] ?? "0,0,0,160"),
+    magicNameColor: parseIniColor(sec["MagicNameColor"] ?? "225,225,110,160"),
+    magicLevelColor: parseIniColor(sec["MagicLevelColor"] ?? "255,255,255,160"),
+    magicIntroColor: parseIniColor(sec["MagicIntroColor"] ?? "255,255,255,160"),
+    goodNameColor: parseIniColor(sec["GoodNameColor"] ?? "245,233,171,160"),
+    goodPriceColor: parseIniColor(sec["GoodPriceColor"] ?? "255,255,255,160"),
+    goodUserColor: parseIniColor(sec["GoodUserColor"] ?? "255,255,255,160"),
+    goodPropertyColor: parseIniColor(sec["GoodPropertyColor"] ?? "255,255,255,160"),
+    goodIntroColor: parseIniColor(sec["GoodIntroColor"] ?? "255,255,255,160"),
   };
 }

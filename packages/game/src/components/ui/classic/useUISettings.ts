@@ -4,6 +4,8 @@
  */
 
 import {
+  type BottomGuiConfig,
+  type BottomStateGuiConfig,
   type BuySellGuiConfig,
   type DialogGuiConfig,
   type EquipGuiConfig,
@@ -15,6 +17,8 @@ import {
   type MessageGuiConfig,
   type NpcEquipGuiConfig,
   type NpcInfoShowConfig,
+  parseBottomGuiConfig,
+  parseBottomStateGuiConfig,
   parseBuySellGuiConfig,
   parseDialogGuiConfig,
   parseEquipGuiConfig,
@@ -25,13 +29,17 @@ import {
   parseMessageGuiConfig,
   parseNpcEquipGuiConfig,
   parseNpcInfoShowConfig,
-  parseSaveLoadGuiConfig,
   parseStateGuiConfig,
   parseSystemGuiConfig,
+  parseToolTipType2Config,
+  parseToolTipUseTypeConfig,
+  parseTopGuiConfig,
   parseXiuLianGuiConfig,
-  type SaveLoadGuiConfig,
   type StateGuiConfig,
   type SystemGuiConfig,
+  type ToolTipType2Config,
+  type ToolTipUseTypeConfig,
+  type TopGuiConfig,
   type XiuLianGuiConfig,
 } from "@miu2d/engine/gui/ui-settings";
 import { useEffect, useState } from "react";
@@ -51,11 +59,24 @@ let cachedConfigs: {
   npcInfoShow?: NpcInfoShowConfig;
   littleMap?: LittleMapGuiConfig;
   buySell?: BuySellGuiConfig;
-  saveLoad?: SaveLoadGuiConfig;
+  bottom?: BottomGuiConfig;
+  bottomState?: BottomStateGuiConfig;
+  top?: TopGuiConfig;
+  toolTipUseType?: ToolTipUseTypeConfig;
+  toolTipType2?: ToolTipType2Config;
 } = {};
 
 let isLoaded = false;
 let loadPromise: Promise<void> | null = null;
+
+/**
+ * 重置 UI 配置缓存（切换游戏时调用）
+ */
+export function resetCachedUIConfigs(): void {
+  cachedConfigs = {};
+  isLoaded = false;
+  loadPromise = null;
+}
 
 async function ensureLoaded(): Promise<void> {
   if (isLoaded) return;
@@ -80,7 +101,11 @@ async function ensureLoaded(): Promise<void> {
       npcInfoShow: parseNpcInfoShowConfig(settings),
       littleMap: parseLittleMapGuiConfig(settings),
       buySell: parseBuySellGuiConfig(settings),
-      saveLoad: parseSaveLoadGuiConfig(settings),
+      bottom: parseBottomGuiConfig(settings),
+      bottomState: parseBottomStateGuiConfig(settings),
+      top: parseTopGuiConfig(settings),
+      toolTipUseType: parseToolTipUseTypeConfig(settings),
+      toolTipType2: parseToolTipType2Config(settings),
     };
     isLoaded = true;
   })();
@@ -361,19 +386,108 @@ export function useBuySellGuiConfig(): BuySellGuiConfig | null {
 }
 
 /**
- * Hook to get SaveLoad (存档/读档) GUI config
- * Used for save/load interface display
+ * Hook to get Bottom (底部快捷栏) GUI config
  */
-export function useSaveLoadGuiConfig(): SaveLoadGuiConfig | null {
-  const [config, setConfig] = useState<SaveLoadGuiConfig | null>(cachedConfigs.saveLoad || null);
+export function useBottomGuiConfig(): BottomGuiConfig | null {
+  const [config, setConfig] = useState<BottomGuiConfig | null>(cachedConfigs.bottom || null);
 
   useEffect(() => {
-    if (cachedConfigs.saveLoad) {
-      setConfig(cachedConfigs.saveLoad);
+    if (cachedConfigs.bottom) {
+      setConfig(cachedConfigs.bottom);
       return;
     }
     ensureLoaded().then(() => {
-      setConfig(cachedConfigs.saveLoad || null);
+      setConfig(cachedConfigs.bottom || null);
+    });
+  }, []);
+
+  return config;
+}
+
+/**
+ * Hook to get BottomState (血蓝条) GUI config
+ */
+export function useBottomStateGuiConfig(): BottomStateGuiConfig | null {
+  const [config, setConfig] = useState<BottomStateGuiConfig | null>(cachedConfigs.bottomState || null);
+
+  useEffect(() => {
+    if (cachedConfigs.bottomState) {
+      setConfig(cachedConfigs.bottomState);
+      return;
+    }
+    ensureLoaded().then(() => {
+      setConfig(cachedConfigs.bottomState || null);
+    });
+  }, []);
+
+  return config;
+}
+
+/**
+ * Hook to get Top (功能按钮栏) GUI config
+ */
+export function useTopGuiConfig(): TopGuiConfig | null {
+  const [config, setConfig] = useState<TopGuiConfig | null>(cachedConfigs.top || null);
+
+  useEffect(() => {
+    if (cachedConfigs.top) {
+      setConfig(cachedConfigs.top);
+      return;
+    }
+    ensureLoaded().then(() => {
+      setConfig(cachedConfigs.top || null);
+    });
+  }, []);
+
+  return config;
+}
+
+/**
+ * Hook to get ToolTip use type (1=image-based/tipbox.asf, 2=text-based)
+ */
+export function useToolTipUseTypeConfig(): ToolTipUseTypeConfig {
+  const [config, setConfig] = useState<ToolTipUseTypeConfig>(cachedConfigs.toolTipUseType ?? { useType: 1 });
+
+  useEffect(() => {
+    if (cachedConfigs.toolTipUseType) {
+      setConfig(cachedConfigs.toolTipUseType);
+      return;
+    }
+    ensureLoaded().then(() => {
+      setConfig(cachedConfigs.toolTipUseType ?? { useType: 1 });
+    });
+  }, []);
+
+  return config;
+}
+
+/**
+ * Hook to get ToolTip Type2 config (text-based tooltip colors and dimensions)
+ */
+export function useToolTipType2Config(): ToolTipType2Config {
+  const defaultType2: ToolTipType2Config = {
+    width: 288,
+    textHorizontalPadding: 6,
+    textVerticalPadding: 4,
+    backgroundColor: { r: 0, g: 0, b: 0, a: 160 },
+    magicNameColor: { r: 225, g: 225, b: 110, a: 160 },
+    magicLevelColor: { r: 255, g: 255, b: 255, a: 160 },
+    magicIntroColor: { r: 255, g: 255, b: 255, a: 160 },
+    goodNameColor: { r: 245, g: 233, b: 171, a: 160 },
+    goodPriceColor: { r: 255, g: 255, b: 255, a: 160 },
+    goodUserColor: { r: 255, g: 255, b: 255, a: 160 },
+    goodPropertyColor: { r: 255, g: 255, b: 255, a: 160 },
+    goodIntroColor: { r: 255, g: 255, b: 255, a: 160 },
+  };
+  const [config, setConfig] = useState<ToolTipType2Config>(cachedConfigs.toolTipType2 ?? defaultType2);
+
+  useEffect(() => {
+    if (cachedConfigs.toolTipType2) {
+      setConfig(cachedConfigs.toolTipType2);
+      return;
+    }
+    ensureLoaded().then(() => {
+      setConfig(cachedConfigs.toolTipType2 ?? defaultType2);
     });
   }, []);
 

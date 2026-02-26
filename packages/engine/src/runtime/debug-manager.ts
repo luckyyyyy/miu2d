@@ -20,7 +20,7 @@ import { logger } from "../core/logger";
 import type { GameVariables } from "../core/types";
 import type { GuiManager } from "../gui/gui-manager";
 import type { MagicItemInfo } from "../magic";
-import { getAllCachedMagicFileNames } from "../magic/magic-config-loader";
+import { getMagicsData } from "../data/game-data-api";
 import type { NpcManager } from "../npc";
 import type { ObjManager } from "../obj";
 import type { GoodsListManager } from "../player/goods";
@@ -473,10 +473,9 @@ export class DebugManager {
       return 0;
     }
 
-    // 从 API 缓存获取所有玩家武功
-    const playerMagics = getAllCachedMagicFileNames().filter((key) =>
-      key.startsWith("player-magic-")
-    );
+    // 从 API 数据获取所有玩家武功（userType === "player"），避免依赖 key 前缀约定
+    const magicsData = getMagicsData();
+    const playerMagics = magicsData?.player.map((m) => m.key) ?? [];
 
     let addedCount = 0;
     for (const magicFile of playerMagics) {

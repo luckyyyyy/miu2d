@@ -8,6 +8,7 @@ import { type GameEventMap, GameEvents } from "../core/game-events";
 import type { MemoListManager } from "../gui/memo-list-manager";
 import { type UIBridgeDeps, UIBridgeImpl } from "../gui/ui-bridge";
 import type { GuiManagerState, UIBridge } from "../gui/ui-types";
+import { MAGIC_LIST_CONFIG } from "../player/magic/magic-list-config";
 import { pixelToTile } from "../utils";
 import type { GameManager } from "./game-manager";
 import type { TimerManager } from "./timer-manager";
@@ -79,7 +80,9 @@ export function createEngineUIBridge(
       setCurrentMagicByBottom: (i) => gm.magicInventory.setCurrentMagicByBottomIndex(i),
       swapMagic: (from, to) => gm.magicInventory.exchangeListItem(from, to),
       assignMagicToBottom: (src, slot) => callbacks.handleMagicDrop(src, slot),
-      setXiuLianMagic: (i) => gm.magicInventory.exchangeListItem(i, 49),
+      swapBottomSlots: (fromSlot, toSlot) => gm.magicInventory.swapBottomSlots(fromSlot, toSlot),
+      clearBottomSlot: (slot) => gm.magicInventory.assignMagicToBottomSlot(0, slot),
+      setXiuLianMagic: (i) => gm.magicInventory.exchangeListItem(i, MAGIC_LIST_CONFIG.xiuLianIndex),
     },
     shop: {
       buyItem: (i) => gm.handleBuyItem(i),

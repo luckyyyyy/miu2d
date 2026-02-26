@@ -22,6 +22,21 @@ use walkdir::WalkDir;
 
 // ============= Text Encoding Conversion =============
 
+/// Heuristic: if the text contains any CJK Unified Ideographs (U+4E00..U+9FFF)
+/// or CJK punctuation (U+3000..U+303F), it's genuinely Chinese UTF-8.
+/// GBK bytes that accidentally form valid UTF-8 produce characters from other
+/// Unicode blocks (Cyrillic, Latin Extended, etc.) — not CJK.
+fn looks_like_valid_chinese_utf8(text: &str) -> bool {
+    text.chars().any(|c| {
+        matches!(c,
+            '\u{4E00}'..='\u{9FFF}'   // CJK Unified Ideographs
+            | '\u{3400}'..='\u{4DBF}' // CJK Extension A
+            | '\u{3000}'..='\u{303F}' // CJK Symbols and Punctuation
+            | '\u{FF00}'..='\u{FFEF}' // Halfwidth and Fullwidth Forms (，。！)
+        )
+    })
+}
+
 fn convert_encoding(resources_dir: &Path) -> (usize, usize, usize) {
     println!("\n╔══════════════════════════════════════╗");
     println!("║  Step 1: GBK → UTF-8 Encoding       ║");
@@ -56,17 +71,25 @@ fn convert_encoding(resources_dir: &Path) -> (usize, usize, usize) {
                     return;
                 }
 
-                // Check if already valid UTF-8
-                if std::str::from_utf8(&raw).is_ok() {
-                    // Check if it contains any non-ASCII that might be GBK
-                    // If it's pure ASCII or already valid UTF-8, skip
-                    if !raw.iter().any(|&b| b > 0x7f) {
+                // Pure ASCII: no conversion needed
+                if !raw.iter().any(|&b| b > 0x7f) {
+                    skipped.fetch_add(1, Ordering::Relaxed);
+                    return;
+                }
+
+                // Has non-ASCII bytes. Even if valid UTF-8, some GBK byte sequences
+                // (e.g. 药品 = D2 A9 C6 B7) happen to be valid UTF-8 but decode to
+                // wrong characters (ҩƷ). Use heuristics to detect this.
+                let utf8_text = std::str::from_utf8(&raw);
+                if let Ok(text) = utf8_text {
+                    if looks_like_valid_chinese_utf8(text) {
+                        // Genuinely valid UTF-8 with CJK characters
                         skipped.fetch_add(1, Ordering::Relaxed);
                         return;
                     }
-                    // It could be valid UTF-8 already (previously converted)
-                    skipped.fetch_add(1, Ordering::Relaxed);
-                    return;
+                    // Valid UTF-8 but no CJK chars despite having non-ASCII bytes
+                    // — likely GBK bytes that happen to form valid (but wrong) UTF-8.
+                    // Fall through to GBK decode.
                 }
 
                 // Decode from GBK

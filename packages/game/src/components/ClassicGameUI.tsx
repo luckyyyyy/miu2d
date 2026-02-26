@@ -6,13 +6,15 @@
  */
 
 import { logger } from "@miu2d/engine/core/logger";
+import { MAGIC_LIST_CONFIG } from "@miu2d/engine/player/magic/magic-list-config";
 import type { UIEquipSlotName } from "@miu2d/engine/gui/ui-types";
 import { GoodKind } from "@miu2d/engine/player/goods";
 import type React from "react";
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import type { TouchDragData } from "../contexts";
 import type { GameUILogic } from "./hooks";
 import type { EquipSlotType } from "./ui/classic";
+import { useEquipGuiConfig, useStateGuiConfig } from "./ui/classic/useUISettings";
 import {
   BottomGui,
   BottomStateGui,
@@ -61,6 +63,14 @@ const equipSlotToUISlot = (slot: EquipSlotType): UIEquipSlotName => {
  * ClassicGameUI Component
  */
 export const ClassicGameUI: React.FC<ClassicGameUIProps> = ({ logic, width, height }) => {
+  // 检测 State 和 Equip 是否共用同一背景图（整合模式，如 demo2）
+  const stateGuiConfig = useStateGuiConfig();
+  const equipGuiConfig = useEquipGuiConfig();
+  const isStateIntegratedWithEquip =
+    !!stateGuiConfig &&
+    !!equipGuiConfig &&
+    stateGuiConfig.panel.image === equipGuiConfig.panel.image;
+
   const {
     engine,
     dispatch,
@@ -111,6 +121,11 @@ export const ClassicGameUI: React.FC<ClassicGameUIProps> = ({ logic, width, heig
     handleShopClose,
   } = logic;
 
+  // 告知引擎整合模式：F1 等同 F2，不单独响应 state 面板
+  useEffect(() => {
+    engine?.setStateEquipIntegrated(isStateIntegratedWithEquip);
+  }, [engine, isStateIntegratedWithEquip]);
+
   // ============= Touch Drop Handlers =============
   // 这些处理器需要在组件内部定义以访问最新的 logic 状态
 
@@ -139,15 +154,11 @@ export const ClassicGameUI: React.FC<ClassicGameUIProps> = ({ logic, width, heig
               bottomSlot: targetBottomSlot,
             });
           } else if (touchData.bottomSlot !== undefined) {
-            const fromListIndex = engine
-              ?.getGameManager()
-              ?.magicInventory?.bottomIndexToListIndex(touchData.bottomSlot - 3);
-            const toListIndex = engine
-              ?.getGameManager()
-              ?.magicInventory?.bottomIndexToListIndex(targetBottomSlot);
-            if (fromListIndex !== undefined && toListIndex !== undefined) {
-              dispatch({ type: "SWAP_MAGIC", fromIndex: fromListIndex, toIndex: toListIndex });
-            }
+            dispatch({
+              type: "SWAP_BOTTOM_SLOTS",
+              fromSlot: touchData.bottomSlot - 3,
+              toSlot: targetBottomSlot,
+            });
           }
         }
       }
@@ -198,20 +209,16 @@ export const ClassicGameUI: React.FC<ClassicGameUIProps> = ({ logic, width, heig
           toIndex: targetStoreIndex,
         });
       } else if (touchData.type === "magic" && touchData.bottomSlot !== undefined) {
-        const fromListIndex = engine
-          ?.getGameManager()
-          ?.magicInventory?.bottomIndexToListIndex(touchData.bottomSlot - 3);
-        if (fromListIndex !== undefined) {
-          dispatch({ type: "SWAP_MAGIC", fromIndex: fromListIndex, toIndex: targetStoreIndex });
-        }
+        // 从快捷栏拖回技能栏：清除快捷栏引用
+        dispatch({ type: "CLEAR_BOTTOM_SLOT", bottomSlot: touchData.bottomSlot - 3 });
       }
     },
-    [dispatch, engine]
+    [dispatch]
   );
 
   const handleXiuLianTouchDrop = useCallback(
     (touchData: TouchDragData) => {
-      const xiuLianIndex = 49;
+      const xiuLianIndex = MAGIC_LIST_CONFIG.xiuLianIndex;
       if (touchData.type === "magic") {
         if (
           touchData.storeIndex !== undefined &&
@@ -222,8 +229,8 @@ export const ClassicGameUI: React.FC<ClassicGameUIProps> = ({ logic, width, heig
         } else if (touchData.bottomSlot !== undefined) {
           const fromListIndex = engine
             ?.getGameManager()
-            ?.magicInventory?.bottomIndexToListIndex(touchData.bottomSlot - 3);
-          if (fromListIndex !== undefined) {
+            ?.magicInventory?.getBottomSlots()[touchData.bottomSlot - 3];
+          if (fromListIndex != null) {
             dispatch({ type: "SWAP_MAGIC", fromIndex: fromListIndex, toIndex: xiuLianIndex });
           }
         }
@@ -386,7 +393,7 @@ export const ClassicGameUI: React.FC<ClassicGameUIProps> = ({ logic, width, heig
         />
       )}
 
-      {/* State Panel */}
+      {/* State Panel - 整合模式下由 EquipGui 通过 overlayStats 渲染文字，此处仅在非整合模式显示 */}
       {panels?.state && player && (
         <StateGui
           isVisible={true}
@@ -429,6 +436,25 @@ export const ClassicGameUI: React.FC<ClassicGameUIProps> = ({ logic, width, heig
           onClose={() => togglePanel("equip")}
           dragData={dragData}
           onTouchDrop={handleEquipTouchDrop}
+          overlayStats={isStateIntegratedWithEquip && player ? {
+            level: player.level,
+            exp: player.exp,
+            levelUpExp: player.levelUpExp,
+            life: player.life,
+            lifeMax: player.lifeMax,
+            thew: player.thew,
+            thewMax: player.thewMax,
+            mana: player.mana,
+            manaMax: player.manaMax,
+            manaLimit: player.manaLimit,
+            attack: player.attack,
+            attack2: player.attack2,
+            attack3: player.attack3,
+            defend: player.defend,
+            defend2: player.defend2,
+            defend3: player.defend3,
+            evade: player.evade,
+          } : undefined}
         />
       )}
 

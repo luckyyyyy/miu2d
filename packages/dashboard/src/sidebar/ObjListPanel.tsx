@@ -312,7 +312,9 @@ export function ObjListPanel({ basePath }: { basePath: string }) {
               fileName={item.fileName}
               onRemove={onRemove}
               extra={
-                item.objResContent ? (
+                item.type === "resource" ? (
+                  <span className="text-xs text-blue-400">独立资源</span>
+                ) : item.objResContent ? (
                   <span className="text-xs text-green-400">+ 资源</span>
                 ) : undefined
               }
@@ -368,7 +370,9 @@ export function ObjListPanel({ basePath }: { basePath: string }) {
 
 interface ObjImportItem {
   fileName: string;
-  iniContent: string;
+  /** 导入类型：obj = Object配置, resource = 独立资源配置 */
+  type?: "obj" | "resource";
+  iniContent?: string;
   objResContent?: string;
 }
 
@@ -402,14 +406,30 @@ async function processObjDrop(dt: DataTransfer): Promise<ObjImportItem[]> {
   }
 
   const items: ObjImportItem[] = [];
+  const usedObjResKeys = new Set<string>();
+
   for (const [_, objInfo] of objFiles) {
     const objFileField = parseObjFileField(objInfo.content);
     const objResInfo = objFileField ? objResFiles.get(objFileField) : null;
+    if (objFileField && objResInfo) {
+      usedObjResKeys.add(objFileField);
+    }
     items.push({
       fileName: objInfo.fileName,
       iniContent: objInfo.content,
       objResContent: objResInfo?.content,
     });
+  }
+
+  // 添加独立的 objres 文件（没有被任何 obj 的 ObjFile= 引用的）
+  for (const [key, resInfo] of objResFiles) {
+    if (!usedObjResKeys.has(key)) {
+      items.push({
+        fileName: resInfo.fileName,
+        type: "resource",
+        objResContent: resInfo.content,
+      });
+    }
   }
 
   return items;

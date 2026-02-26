@@ -17,6 +17,7 @@ import {
   BOTTOM_INDEX_END,
   EQUIP_INDEX_BEGIN,
 } from "../player/goods/goods-list-manager";
+import { MAGIC_LIST_CONFIG } from "../player/magic/magic-list-config";
 import type { PlayerMagicInventory } from "../player/magic/player-magic-inventory";
 import type { Player } from "../player/player";
 import type {
@@ -63,12 +64,17 @@ export async function loadPlayerFromJSON(data: PlayerSaveData, player: Player): 
 
 /**
  * 从 JSON 加载武功列表
- * 参考PlayerMagicInventory.LoadList
+ * 参考 PlayerMagicInventory.LoadList
+ *
+ * 旧存档兼容：
+ * - 旧版快捷栏占用 magicList[40..44]，加载时保留在原 store 索引并重建 bottomSlots
+ * - xiuLianIndex=49 在新设计中仍为有效 store 索引（1..60），自动兼容
  */
 export async function loadMagicsFromJSON(
   magics: MagicItemData[],
   xiuLianIndex: number,
-  magicInventory: PlayerMagicInventory
+  magicInventory: PlayerMagicInventory,
+  bottomSlots?: (number | null)[]
 ): Promise<void> {
   // 清空列表
   magicInventory.renewList();
@@ -87,8 +93,6 @@ export async function loadMagicsFromJSON(
   }));
   const results = await magicInventory.addMagicBatch(batchItems);
 
-  // 旧存档兼容：检查未指定 index 但成功分配的情况（addMagicBatch 已处理）
-  // 恢复 hideCount 在 addMagicBatch 中已通过 item.hideCount 参数处理
   for (let i = 0; i < results.length; i++) {
     const [success, index] = results[i];
     if (!success && index === -1) {
@@ -108,6 +112,29 @@ export async function loadMagicsFromJSON(
         lastIndexWhenHide: item.lastIndexWhenHide ?? 0,
       }))
     );
+  }
+
+  // 恢复快捷栏引用
+  if (bottomSlots) {
+    // 新存档：直接恢复
+    magicInventory.setBottomSlots(bottomSlots);
+  } else {
+    // 旧存档兼容：index 40-44 的武功自动推断为快捷栏绑定
+    const legacySlots: (number | null)[] = new Array(MAGIC_LIST_CONFIG.bottomSlotCount).fill(null);
+    for (let i = 0; i < results.length; i++) {
+      const origIndex = visibleMagics[i].index ?? -1;
+      if (
+        origIndex >= MAGIC_LIST_CONFIG.LEGACY_BOTTOM_INDEX_BEGIN &&
+        origIndex <= MAGIC_LIST_CONFIG.LEGACY_BOTTOM_INDEX_END
+      ) {
+        const slotNum = origIndex - MAGIC_LIST_CONFIG.LEGACY_BOTTOM_INDEX_BEGIN;
+        const [success, storeIdx] = results[i];
+        if (success && storeIdx > 0) {
+          legacySlots[slotNum] = storeIdx;
+        }
+      }
+    }
+    magicInventory.setBottomSlots(legacySlots);
   }
 
   // 设置修炼武功

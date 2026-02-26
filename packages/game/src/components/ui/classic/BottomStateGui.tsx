@@ -8,36 +8,7 @@
 import type React from "react";
 import { useMemo } from "react";
 import { useAsfImage, useColumnView } from "./hooks";
-
-// UI配置 - 对应 UI_Settings.ini 中的 [BottomState] 部分
-const UI_CONFIG = {
-  panel: {
-    image: "asf/ui/column/panel9.asf",
-    leftAdjust: -320, // 相对于屏幕中心的偏移
-    topAdjust: 0,
-  },
-  life: {
-    image: "asf/ui/column/ColLife.asf",
-    left: 11,
-    top: 22,
-    width: 48,
-    height: 46,
-  },
-  thew: {
-    image: "asf/ui/column/ColThew.asf",
-    left: 59,
-    top: 22,
-    width: 48,
-    height: 46,
-  },
-  mana: {
-    image: "asf/ui/column/ColMana.asf",
-    left: 113,
-    top: 22,
-    width: 48,
-    height: 46,
-  },
-};
+import { useBottomStateGuiConfig } from "./useUISettings";
 
 interface BottomStateGuiProps {
   life: number;
@@ -95,8 +66,11 @@ export const BottomStateGui: React.FC<BottomStateGuiProps> = ({
   screenWidth,
   screenHeight: _screenHeight,
 }) => {
+  // 从 INI 读取配置
+  const config = useBottomStateGuiConfig();
+
   // 加载面板背景
-  const panelImage = useAsfImage(UI_CONFIG.panel.image);
+  const panelImage = useAsfImage(config?.panel.image ?? null);
 
   // 计算百分比
   const lifePercent = maxLife > 0 ? Math.max(0, Math.min(1, life / maxLife)) : 0;
@@ -104,20 +78,31 @@ export const BottomStateGui: React.FC<BottomStateGuiProps> = ({
   const manaPercent = maxMana > 0 ? Math.max(0, Math.min(1, mana / maxMana)) : 0;
 
   // 计算面板位置 - 对应中的 Position 计算
-  // Position = new Vector2(Globals.WindowWidth/2f + leftAdjust, Globals.WindowHeight - height + topAdjust)
+  // C# formula: Position = new Vector2(Globals.WindowWidth/2f + leftAdjust, Globals.WindowHeight - height + topAdjust)
+  // When the ini specifies an explicit Width (e.g. demo2 Width=640), use centered formula:
+  //   X = (screenWidth - width) / 2 + leftAdjust
+  // Otherwise use original C# formula:
+  //   X = screenWidth / 2 + leftAdjust
   const panelStyle = useMemo(() => {
-    const panelWidth = panelImage.width || 172; // fallback size
-    const panelHeight = panelImage.height || 68;
+    const panelWidth = panelImage.width || config?.panel.width || 172;
+    const panelHeight = panelImage.height || config?.panel.height || 68;
+    const leftAdjust = config?.panel.leftAdjust ?? -320;
+    const topAdjust = config?.panel.topAdjust ?? 0;
+
+    // Use centered formula when explicit Width is declared in ini
+    const left = config?.panel.width != null
+      ? (screenWidth - (config.panel.width)) / 2 + leftAdjust
+      : screenWidth / 2 + leftAdjust;
 
     return {
       position: "absolute" as const,
-      left: screenWidth / 2 + UI_CONFIG.panel.leftAdjust,
-      bottom: 0 - UI_CONFIG.panel.topAdjust,
+      left,
+      bottom: -topAdjust,
       width: panelWidth,
       height: panelHeight,
       pointerEvents: "none" as const,
     };
-  }, [screenWidth, panelImage.width, panelImage.height]);
+  }, [screenWidth, panelImage.width, panelImage.height, config]);
 
   // 如果面板图片还在加载，显示简单的占位
   if (panelImage.isLoading) {
@@ -151,28 +136,34 @@ export const BottomStateGui: React.FC<BottomStateGuiProps> = ({
       )}
 
       {/* 生命球 - Life */}
-      <ColumnView
-        imagePath={UI_CONFIG.life.image}
-        percent={lifePercent}
-        left={UI_CONFIG.life.left}
-        top={UI_CONFIG.life.top}
-      />
+      {config && (
+        <ColumnView
+          imagePath={config.life.image}
+          percent={lifePercent}
+          left={config.life.left}
+          top={config.life.top}
+        />
+      )}
 
       {/* 体力球 - Thew */}
-      <ColumnView
-        imagePath={UI_CONFIG.thew.image}
-        percent={thewPercent}
-        left={UI_CONFIG.thew.left}
-        top={UI_CONFIG.thew.top}
-      />
+      {config && (
+        <ColumnView
+          imagePath={config.thew.image}
+          percent={thewPercent}
+          left={config.thew.left}
+          top={config.thew.top}
+        />
+      )}
 
       {/* 内力球 - Mana */}
-      <ColumnView
-        imagePath={UI_CONFIG.mana.image}
-        percent={manaPercent}
-        left={UI_CONFIG.mana.left}
-        top={UI_CONFIG.mana.top}
-      />
+      {config && (
+        <ColumnView
+          imagePath={config.mana.image}
+          percent={manaPercent}
+          left={config.mana.left}
+          top={config.mana.top}
+        />
+      )}
     </div>
   );
 };

@@ -361,7 +361,22 @@ export class GuiManager {
   // 右侧面板互斥组
   private readonly rightPanels: (keyof GuiManagerState["panels"])[] = ["goods", "magic", "memo"];
 
+  /**
+   * 整合模式标志（如 demo2：[State] 与 [Equip] 共用同一背景图）。
+   * 为 true 时 F1 键等同于 F2（统一打开装备+属性面板），单独的 state 面板不响应。
+   */
+  private stateEquipIntegrated = false;
+
+  setStateEquipIntegrated(v: boolean): void {
+    this.stateEquipIntegrated = v;
+  }
+
   toggleStateGui(): void {
+    // 整合模式：state 面板没有独立背景，F1 应等同于 F2
+    if (this.stateEquipIntegrated) {
+      this.togglePanel("equip", this.leftPanels);
+      return;
+    }
     this.togglePanel("state", this.leftPanels);
   }
   toggleEquipGui(): void {

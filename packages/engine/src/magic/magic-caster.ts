@@ -103,10 +103,8 @@ export class MagicCaster {
     // 这里不扣除，而是在 onMagicCast() 中扣除
 
     // Set cooldown
-    magicInventory.setMagicCooldown(
-      magicInventory.bottomIndexToListIndex(slotIndex),
-      magicInfo.magic.coldMilliSeconds
-    );
+    const cooldownStoreIndex = magicInventory.getBottomSlots()[slotIndex] ?? 0;
+    magicInventory.setMagicCooldown(cooldownStoreIndex, magicInfo.magic.coldMilliSeconds);
 
     // Set as current magic in use
     magicInventory.setCurrentMagicByBottomIndex(slotIndex);
@@ -305,18 +303,19 @@ export class MagicCaster {
 
   /**
    * Handle magic drag-drop from MagicGui to BottomGui
+   * 新设计：快捷栏仅保存存储区索引引用，武功不移动
    */
   handleMagicDrop(sourceStoreIndex: number, targetBottomSlot: number): void {
     const magicInventory = this.magicInventory;
-    const targetListIndex = magicInventory.bottomIndexToListIndex(targetBottomSlot);
-    magicInventory.exchangeListItem(sourceStoreIndex, targetListIndex);
+    magicInventory.assignMagicToBottomSlot(sourceStoreIndex, targetBottomSlot);
     logger.log(
-      `[Magic] Exchanged store index ${sourceStoreIndex} with bottom slot ${targetBottomSlot}`
+      `[Magic] Assigned store index ${sourceStoreIndex} to bottom slot ${targetBottomSlot}`
     );
   }
 
   /**
    * Right-click magic in MagicGui to add to first empty bottom slot
+   * 新设计：绑定引用，不移动武功
    */
   handleMagicRightClick(storeIndex: number): void {
     const magicInventory = this.magicInventory;
@@ -324,17 +323,11 @@ export class MagicCaster {
     const info = magicInventory.getItemInfo(storeIndex);
     if (!info) return;
 
-    // Find first empty bottom slot
-    for (let i = 0; i < 5; i++) {
-      const bottomMagic = magicInventory.getBottomMagicInfo(i);
-      if (!bottomMagic) {
-        const targetListIndex = magicInventory.bottomIndexToListIndex(i);
-        magicInventory.exchangeListItem(storeIndex, targetListIndex);
-        logger.log(`[Magic] Moved magic from store ${storeIndex} to bottom slot ${i}`);
-        return;
-      }
+    const success = magicInventory.assignToBottomEmptySlot(storeIndex);
+    if (success) {
+      logger.log(`[Magic] Bound store index ${storeIndex} to first empty bottom slot`);
+    } else {
+      guiManager.showMessage("快捷栏已满");
     }
-
-    guiManager.showMessage("快捷栏已满");
   }
 }

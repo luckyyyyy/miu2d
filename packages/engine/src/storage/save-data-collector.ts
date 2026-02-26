@@ -8,6 +8,7 @@ import {
   STORE_INDEX_BEGIN,
   STORE_INDEX_END,
 } from "../player/goods";
+import { MAGIC_LIST_CONFIG } from "../player/magic/magic-list-config";
 import type { PlayerMagicInventory } from "../player/magic/player-magic-inventory";
 import type { Player } from "../player/player";
 import type { GoodsItemData, MagicItemData, PlayerSaveData } from "./save-types";
@@ -66,7 +67,7 @@ export class SaveDataCollector {
 
   static collectMagicsData(magicInventory: PlayerMagicInventory): MagicItemData[] {
     const items: MagicItemData[] = [];
-    const maxMagic = 49;
+    const maxMagic = MAGIC_LIST_CONFIG.maxMagic;
 
     for (let i = 1; i <= maxMagic; i++) {
       const info = magicInventory.getItemInfo(i);
@@ -100,5 +101,9 @@ export class SaveDataCollector {
     }
 
     return items;
+  }
+
+  static collectBottomSlotsData(magicInventory: PlayerMagicInventory): (number | null)[] {
+    return magicInventory.getBottomSlots();
   }
 }

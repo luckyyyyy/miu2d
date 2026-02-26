@@ -36,7 +36,7 @@ const TIMER_CONFIG = {
     height: 22,
     charSpace: 1,
     lineSpace: 0,
-    color: "rgba(255, 0, 0, 0.8)", // 255,0,0,204
+    color: "rgba(255, 0, 0, 1)", // 255,0,0,204
   },
 };
 

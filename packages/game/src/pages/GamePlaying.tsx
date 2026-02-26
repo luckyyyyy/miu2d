@@ -69,9 +69,13 @@ export function GamePlaying({
   const gameAreaRef = useRef<HTMLDivElement>(null);
   const [activePanel, setActivePanel] = useState<ActivePanel>("none");
   const [showDebug, setShowDebug] = useState(false);
+  const [debugPanelWidth, setDebugPanelWidth] = useState(0);
   const [menuTab, setMenuTab] = useState<MenuTab>("save");
   const [, forceUpdate] = useState({});
   const { isAuthenticated } = useAuth();
+
+  // 实际可用的游戏画布宽度（扣除调试面板占用）
+  const effectiveGameWidth = windowSize.width - (showDebug ? debugPanelWidth : 0);
 
   // 获取 DebugManager / Engine（稳定引用，通过 ref 访问）
   const getDebugManager = useCallback(() => gameRef.current?.getDebugManager(), []);
@@ -362,6 +366,7 @@ export function GamePlaying({
           onClose={() => setShowDebug(false)}
           title="调试面板"
           defaultWidth={420}
+          onWidthChange={setDebugPanelWidth}
         >
           <DebugPanel
             isGodMode={debugManager?.isGodMode() ?? false}
@@ -429,7 +434,7 @@ export function GamePlaying({
               {isDataReady ? (
                 <Game
                   ref={gameRef}
-                  width={windowSize.width}
+                  width={effectiveGameWidth}
                   height={windowSize.height}
                   initialSaveData={initialSaveData}
                   onReturnToTitle={handleReturnToTitle}

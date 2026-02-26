@@ -27,6 +27,8 @@ interface ParsedScene {
   mapFileName: string;
   mmfBase64: string;
   data: SceneData;
+  /** 陷阱索引 → 脚本文件名（来自 Traps.ini）*/
+  trapOverrides?: Record<string, string>;
 }
 
 async function readDroppedDirectory(
@@ -55,6 +57,35 @@ async function readDroppedDirectory(
   return results;
 }
 
+/**
+ * 解析 Traps.ini 内容，返回 mapName(小写) → (trapIndex → scriptPath) 戏映射
+ */
+function parseTrapsIni(content: string): Map<string, Map<number, string>> {
+  const result = new Map<string, Map<number, string>>();
+  let section: string | null = null;
+  for (const line of content.split("\n")) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith(";") || trimmed.startsWith("#")) continue;
+    if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
+      section = trimmed.slice(1, -1).toLowerCase();
+      continue;
+    }
+    if (section) {
+      const eqIdx = trimmed.indexOf("=");
+      if (eqIdx > 0) {
+        const key = trimmed.slice(0, eqIdx).trim();
+        const val = trimmed.slice(eqIdx + 1).trim();
+        const idx = parseInt(key, 10);
+        if (!Number.isNaN(idx)) {
+          if (!result.has(section)) result.set(section, new Map());
+          result.get(section)!.set(idx, val);
+        }
+      }
+    }
+  }
+  return result;
+}
+
 async function fileToBase64(file: File): Promise<string> {
   const buffer = await file.arrayBuffer();
   const bytes = new Uint8Array(buffer);
@@ -73,17 +104,44 @@ async function parseResourcesFolder(
 
   const normalize = (path: string): string => {
     let p = path.replace(/^\//, "");
+    // 用户拖拽的根文件夹名称不固定（resources / resources-xin / sword2 / ...），
+    // 只要第一级目录下存在 map/ script/ save/ ini/ 等子目录就剥离它。
     const firstSlash = p.indexOf("/");
     if (firstSlash > 0) {
-      const firstDir = p.substring(0, firstSlash).toLowerCase();
-      if (firstDir === "resources" || firstDir === "sword2" || firstDir === "resources.bak") {
-        p = p.substring(firstSlash + 1);
+      const rest = p.substring(firstSlash + 1);
+      const secondDir = rest.split("/")[0]?.toLowerCase();
+      const knownSubDirs = new Set([
+        "map",
+        "script",
+        "save",
+        "ini",
+        "mpc",
+        "asf",
+        "content",
+        "music",
+        "sound",
+      ]);
+      if (knownSubDirs.has(secondDir)) {
+        p = rest;
       }
     }
     return p;
   };
 
-  // === 阶段 1: 解析 MMF 文件 ===
+  // === 阶段0: 解析 Traps.ini ===
+  onProgress("查找陷阱配置...");
+  let allTraps = new Map<string, Map<number, string>>();
+  const trapsFile = files.find((f) => {
+    const norm = normalize(f.relativePath).toLowerCase();
+    return norm === "save/game/traps.ini" || norm === "ini/save/traps.ini";
+  });
+  if (trapsFile) {
+    const content = await trapsFile.file.text();
+    allTraps = parseTrapsIni(content);
+    onProgress(`读到陷阱配置 ${allTraps.size} 个场景`);
+  }
+
+  // === 阶段1: 解析 MMF 文件 ===
   onProgress("解析地图文件...");
   const mmfFiles = files.filter((f) => {
     const norm = normalize(f.relativePath);
@@ -93,12 +151,19 @@ async function parseResourcesFolder(
   for (const mmfFile of mmfFiles) {
     const { key, name } = parseMapFileName(mmfFile.file.name);
     const mmfBase64 = await fileToBase64(mmfFile.file);
+    // 从 Traps.ini 构建陷阱映射（用于补全 MMF 空 trapTable）
+    const trapsForScene = allTraps.get(key.toLowerCase());
+    const trapOverrides: Record<string, string> | undefined =
+      trapsForScene && trapsForScene.size > 0
+        ? Object.fromEntries(Array.from(trapsForScene.entries()).map(([idx, path]) => [String(idx), path]))
+        : undefined;
     sceneMap.set(key.toLowerCase(), {
       key,
       name,
       mapFileName: mmfFile.file.name,
       mmfBase64,
       data: {},
+      trapOverrides,
     });
   }
 
@@ -134,6 +199,8 @@ async function parseResourcesFolder(
   }
 
   // === 阶段 3: 解析 NPC/OBJ 文件 ===
+  // 引擎只从 ini/save/ 读取设计时数据，save/game/ 是运行时存档状态。
+  // 优先使用 ini/save/ 的文件；仅当 ini/save/ 中不存在时才回退到 save/game/。
   onProgress("解析 NPC/OBJ 文件...");
   const saveFiles = files.filter((f) => {
     const norm = normalize(f.relativePath);
@@ -144,7 +211,12 @@ async function parseResourcesFolder(
     );
   });
 
+  // 记录每个 (sceneKey, fileName) 的来源目录，ini/save 优先
+  const saveFileSourceMap = new Map<string, "ini/save" | "save/game">();
+
   for (const sf of saveFiles) {
+    const norm = normalize(sf.relativePath);
+    const fromIniSave = /^ini\/save\//i.test(norm);
     const content = await sf.file.text();
     const sections = parseIniContent(content);
 
@@ -158,6 +230,14 @@ async function parseResourcesFolder(
     if (!scene) continue;
 
     const fileName = sf.file.name;
+    const dedupeKey = `${mapKey.toLowerCase()}::${fileName.toLowerCase()}`;
+    const prevSource = saveFileSourceMap.get(dedupeKey);
+
+    // 如果已有 ini/save 版本，跳过 save/game 的同名文件
+    if (prevSource === "ini/save" && !fromIniSave) continue;
+
+    saveFileSourceMap.set(dedupeKey, fromIniSave ? "ini/save" : "save/game");
+
     if (fileName.toLowerCase().endsWith(".npc")) {
       const entries = parseNpcEntries(sections);
       if (!scene.data.npc) scene.data.npc = {};
@@ -280,6 +360,7 @@ export function ImportScenesModal({
             mapFileName: scene.mapFileName,
             mmfData: scene.mmfBase64,
             data: scene.data as Record<string, unknown>,
+            trapOverrides: scene.trapOverrides,
           },
         });
 

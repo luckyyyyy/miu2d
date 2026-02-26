@@ -13,7 +13,8 @@ import { useCallback, useMemo } from "react";
 import type { TouchDragData } from "../../../contexts";
 import { useTouchDragSource, useTouchDropTarget } from "../../../hooks";
 import { useAsfImage } from "./hooks";
-import { useEquipGuiConfig } from "./useUISettings";
+import type { PlayerStats } from "./StateGui";
+import { useEquipGuiConfig, useStateGuiConfig } from "./useUISettings";
 
 // Equipment slot type
 export type EquipSlotType = "head" | "neck" | "body" | "back" | "hand" | "wrist" | "foot";
@@ -90,6 +91,11 @@ interface EquipGuiProps {
   dragData?: DragData | null;
   /** 移动端触摸拖拽 drop 回调 */
   onTouchDrop?: (slot: EquipSlotType, data: TouchDragData) => void;
+  /**
+   * 整合模式：在装备面板容器内叠加渲染玩家属性文字（demo2 [State] 与 [Equip] 共用背景）。
+   * 传入后，文字坐标直接相对于本容器（与 [State] ini 配置一致），无需额外定位。
+   */
+  overlayStats?: PlayerStats;
 }
 
 // Slot names for display
@@ -257,9 +263,12 @@ export const EquipGui: React.FC<EquipGuiProps> = ({
   onSlotMouseLeave,
   dragData,
   onTouchDrop,
+  overlayStats,
 }) => {
   // Load config from UI_Settings.ini
   const config = useEquipGuiConfig();
+  // 整合模式：加载 State 配置（即使不用 overlayStats，也须始终在顶层调用 Hook）
+  const stateConfig = useStateGuiConfig();
 
   // Load panel background
   const panelImage = useAsfImage(config?.panel.image || "asf/ui/common/panel7.asf");
@@ -375,6 +384,49 @@ export const EquipGui: React.FC<EquipGuiProps> = ({
           }}
         />
       )}
+
+      {/* 整合模式：在装备面板内叠加渲染玩家属性文字 */}
+      {overlayStats && stateConfig && (() => {
+        const getTextStyle = (textCfg: {
+          left: number;
+          top: number;
+          width: number;
+          height: number;
+          color: string;
+        }): React.CSSProperties => ({
+          position: "absolute",
+          left: textCfg.left,
+          top: textCfg.top - 3,
+          width: textCfg.width,
+          fontSize: 12,
+          fontFamily: "SimSun, serif",
+          color: "white",
+          textAlign: "left",
+          pointerEvents: "none",
+        });
+        const s = overlayStats;
+        const sc = stateConfig;
+        const attackText = s.attack2 || s.attack3
+          ? `${s.attack}(${s.attack2 ?? 0})(${s.attack3 ?? 0})`
+          : s.attack.toString();
+        const defendText = s.defend2 || s.defend3
+          ? `${s.defend}(${s.defend2 ?? 0})(${s.defend3 ?? 0})`
+          : s.defend.toString();
+        const manaText = s.manaLimit ? "1/1" : `${s.mana}/${s.manaMax}`;
+        return (
+          <>
+            <div style={getTextStyle(sc.level)}>{s.level}</div>
+            <div style={getTextStyle(sc.exp)}>{s.exp}</div>
+            <div style={getTextStyle(sc.levelUp)}>{s.levelUpExp}</div>
+            <div style={getTextStyle(sc.life)}>{s.life}/{s.lifeMax}</div>
+            <div style={getTextStyle(sc.thew)}>{s.thew}/{s.thewMax}</div>
+            <div style={getTextStyle(sc.mana)}>{manaText}</div>
+            <div style={getTextStyle(sc.attack)}>{attackText}</div>
+            <div style={getTextStyle(sc.defend)}>{defendText}</div>
+            <div style={getTextStyle(sc.evade)}>{s.evade}</div>
+          </>
+        );
+      })()}
 
       {/* Equipment slots */}
       {slots.map(([slotType, slotConfig]) => {

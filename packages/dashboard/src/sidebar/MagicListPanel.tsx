@@ -38,16 +38,50 @@ export function MagicListPanel({ basePath }: { basePath: string }) {
     },
   });
 
-  const batchImportMutation = trpc.magic.batchImportFromIni.useMutation({
-    onSuccess: (result) => {
-      refetch();
-      setShowImportModal(false);
-      if (result.success.length > 0) {
-        // 导航到第一个成功导入的武功
-        navigate(`${basePath}/${result.success[0].id}`);
+  const batchImportMutation = trpc.magic.batchImportFromIni.useMutation();
+  const [batchResult, setBatchResult] = useState<BatchImportResult | null>(null);
+  const [isBatchImporting, setIsBatchImporting] = useState(false);
+
+  /**
+   * 分批导入武功：将 items 拆成每批 CHUNK_SIZE 个，依次调用 API，合并结果
+   */
+  const handleBatchImport = async (items: BatchImportItem[]) => {
+    if (!gameId) return;
+    const CHUNK_SIZE = 100;
+    setIsBatchImporting(true);
+    setBatchResult(null);
+
+    const merged: BatchImportResult = { success: [], failed: [] };
+
+    for (let i = 0; i < items.length; i += CHUNK_SIZE) {
+      const chunk = items.slice(i, i + CHUNK_SIZE);
+      try {
+        const result = await batchImportMutation.mutateAsync({
+          gameId,
+          items: chunk,
+        });
+        merged.success.push(...result.success);
+        merged.failed.push(...result.failed);
+      } catch (error) {
+        // 整批失败时，将所有 item 记入 failed
+        for (const item of chunk) {
+          merged.failed.push({
+            fileName: item.fileName,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
       }
-    },
-  });
+    }
+
+    setBatchResult(merged);
+    setIsBatchImporting(false);
+    refetch();
+
+    if (merged.success.length > 0) {
+      setShowImportModal(false);
+      navigate(`${basePath}/${merged.success[0].id}`);
+    }
+  };
 
   return (
     <>
@@ -183,12 +217,9 @@ export function MagicListPanel({ basePath }: { basePath: string }) {
               attackFileContent,
             });
           }}
-          onBatchImport={(items) => {
-            // 每个 item 已经有 userType 字段，不需要全局指定
-            batchImportMutation.mutate({ gameId: gameId!, items });
-          }}
-          isLoading={importMutation.isPending || batchImportMutation.isPending}
-          batchResult={batchImportMutation.data}
+          onBatchImport={handleBatchImport}
+          isLoading={importMutation.isPending || isBatchImporting}
+          batchResult={batchResult}
         />
       )}
 
@@ -214,11 +245,16 @@ interface BatchImportItem {
 }
 
 /**
- * 根据文件名自动检测武功类型
- * 规则：路径中包含 "player" 识别为玩家武功，其他都是 NPC 武功
+ * 根据文件名 + INI 内容自动检测武功类型
+ * 规则（优先级从高到低）：
+ *  1. 路径中包含 "player" → 玩家武功
+ *  2. INI 内容包含 [Level1] 等级段 → 玩家武功（碧海潮生等新资源命名无 player 前缀）
+ *  3. 其他 → NPC 武功
  */
-function detectUserTypeFromFileName(fileName: string): "player" | "npc" {
-  return fileName.toLowerCase().includes("player") ? "player" : "npc";
+function detectUserTypeFromFileName(fileName: string, iniContent?: string): "player" | "npc" {
+  if (fileName.toLowerCase().includes("player")) return "player";
+  if (iniContent && /^\[Level\d+\]/im.test(iniContent)) return "player";
+  return "npc";
 }
 
 interface BatchImportResult {
@@ -326,10 +362,16 @@ function ImportMagicModal({
       } else if (entry.isDirectory) {
         const dirEntry = entry as FileSystemDirectoryEntry;
         const reader = dirEntry.createReader();
-        const entries = await new Promise<FileSystemEntry[]>((resolve, reject) => {
-          reader.readEntries(resolve, reject);
-        });
-        for (const subEntry of entries) {
+        // readEntries may NOT return all entries in one call — must loop until empty
+        let allEntries: FileSystemEntry[] = [];
+        let batch: FileSystemEntry[];
+        do {
+          batch = await new Promise<FileSystemEntry[]>((resolve, reject) => {
+            reader.readEntries(resolve, reject);
+          });
+          allEntries = allEntries.concat(batch);
+        } while (batch.length > 0);
+        for (const subEntry of allEntries) {
           await processEntry(subEntry, basePath ? `${basePath}/${entry.name}` : entry.name);
         }
       }
@@ -384,8 +426,8 @@ function ImportMagicModal({
         }
       }
 
-      // 自动检测 userType：路径中包含 "player" 则为玩家武功
-      const detectedUserType = detectUserTypeFromFileName(info.fullPath);
+      // 自动检测 userType：路径中包含 "player" 或 INI 有 [Level1] 则为玩家武功
+      const detectedUserType = detectUserTypeFromFileName(info.fullPath, info.content);
 
       items.push({
         fileName: info.file.name,
@@ -580,7 +622,7 @@ function ImportMagicModal({
                       <p className="mb-2 text-lg">📁 拖放武功目录到这里</p>
                       <p className="text-xs">支持拖放整个 ini/magic 目录，自动扫描所有武功文件</p>
                       <p className="text-xs mt-1">
-                        自动识别：路径包含 "player" → 玩家武功，其他需手动选择
+                        自动识别：路径含 "player" 或 INI 含等级段 → 玩家武功，其他需手动确认
                       </p>
                     </div>
                   ) : (

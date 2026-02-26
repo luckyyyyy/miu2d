@@ -8,80 +8,19 @@
 import type React from "react";
 import { useCallback, useMemo, useState } from "react";
 import { useAsfImage } from "./hooks";
+import { useTopGuiConfig } from "./useUISettings";
 
-// UI配置 - 对应 UI_Settings.ini 中的 [Top] 部分
-const UI_CONFIG = {
-  panel: {
-    image: "asf/ui/top/window.asf",
-    leftAdjust: 0,
-    topAdjust: 0,
-  },
-  buttons: [
-    {
-      id: "state",
-      image: "asf/ui/top/BtnState.asf",
-      left: 52,
-      top: 0,
-      width: 19,
-      height: 19,
-      title: "状态 (F1/T)",
-    },
-    {
-      id: "equip",
-      image: "asf/ui/top/BtnEquip.asf",
-      left: 80,
-      top: 0,
-      width: 19,
-      height: 19,
-      title: "装备 (F2/E)",
-    },
-    {
-      id: "xiulian",
-      image: "asf/ui/top/BtnXiuLian.asf",
-      left: 107,
-      top: 0,
-      width: 19,
-      height: 19,
-      title: "修炼 (F3)",
-    },
-    {
-      id: "goods",
-      image: "asf/ui/top/BtnGoods.asf",
-      left: 135,
-      top: 0,
-      width: 19,
-      height: 19,
-      title: "物品 (F5/I)",
-    },
-    {
-      id: "magic",
-      image: "asf/ui/top/BtnMagic.asf",
-      left: 162,
-      top: 0,
-      width: 19,
-      height: 19,
-      title: "武功 (F6/M)",
-    },
-    {
-      id: "memo",
-      image: "asf/ui/top/BtnNotes.asf",
-      left: 189,
-      top: 0,
-      width: 19,
-      height: 19,
-      title: "任务 (F7)",
-    },
-    {
-      id: "system",
-      image: "asf/ui/top/BtnOption.asf",
-      left: 216,
-      top: 0,
-      width: 19,
-      height: 19,
-      title: "系统 (ESC)",
-    },
-  ],
-};
+// Button IDs in order matching C#: State, Equip, XiuLian, Goods, Magic, Memo, System
+const BUTTON_IDS = ["state", "equip", "xiulian", "goods", "magic", "memo", "system"] as const;
+const BUTTON_TITLES = [
+  "状态 (F1/T)",
+  "装备 (F2/E)",
+  "修炼 (F3)",
+  "物品 (F5/I)",
+  "武功 (F6/M)",
+  "任务 (F7)",
+  "系统 (ESC)",
+];
 
 interface TopGuiProps {
   screenWidth: number;
@@ -194,8 +133,11 @@ export const TopGui: React.FC<TopGuiProps> = ({
   onMemoClick,
   onSystemClick,
 }) => {
+  // 从 INI 读取配置
+  const config = useTopGuiConfig();
+
   // 加载面板背景
-  const panelImage = useAsfImage(UI_CONFIG.panel.image);
+  const panelImage = useAsfImage(config?.panel.image ?? null);
 
   // 按钮处理器映射
   const handlers: Record<string, () => void> = useMemo(
@@ -221,20 +163,29 @@ export const TopGui: React.FC<TopGuiProps> = ({
 
   // 计算面板位置
   // Position = new Vector2((Globals.WindowWidth - BaseTexture.Width) / 2f + leftAdjust, topAdjust)
+  // Anchor=Bottom: panel anchored to bottom edge of screen
   const panelStyle = useMemo(() => {
     const panelWidth = panelImage.width || 286; // fallback size
     const panelHeight = panelImage.height || 19;
+    const leftAdjust = config?.panel.leftAdjust ?? 0;
+    const topAdjust = config?.panel.topAdjust ?? 0;
+    const isBottomAnchored = config?.panel.anchor === "Bottom";
+
+    const left = (screenWidth - panelWidth) / 2 + leftAdjust;
 
     return {
       position: "absolute" as const,
-      left: (screenWidth - panelWidth) / 2 + UI_CONFIG.panel.leftAdjust,
-      top: UI_CONFIG.panel.topAdjust,
+      left,
+      ...(isBottomAnchored
+        ? { bottom: -topAdjust }
+        : { top: topAdjust }),
       width: panelWidth,
       height: panelHeight,
+      overflow: "hidden" as const,
       pointerEvents: "auto" as const,
-      zIndex: 1000, // 确保 TopGui 永远置于顶部
+      zIndex: 1000,
     };
-  }, [screenWidth, panelImage.width, panelImage.height]);
+  }, [screenWidth, panelImage.width, panelImage.height, config]);
 
   // 如果面板图片还在加载
   if (panelImage.isLoading) {
@@ -269,16 +220,16 @@ export const TopGui: React.FC<TopGuiProps> = ({
       )}
 
       {/* 按钮 */}
-      {UI_CONFIG.buttons.map((btn) => (
+      {config?.buttons.map((btn, i) => (
         <TopButton
-          key={btn.id}
+          key={BUTTON_IDS[i]}
           imagePath={btn.image}
           left={btn.left}
           top={btn.top}
           width={btn.width}
           height={btn.height}
-          title={btn.title}
-          onClick={handlers[btn.id]}
+          title={BUTTON_TITLES[i]}
+          onClick={handlers[BUTTON_IDS[i]]}
         />
       ))}
     </div>

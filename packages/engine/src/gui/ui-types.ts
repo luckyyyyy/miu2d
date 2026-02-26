@@ -436,6 +436,8 @@ export type UIAction =
   | { type: "SET_CURRENT_MAGIC_BY_BOTTOM"; bottomIndex: number }
   | { type: "SWAP_MAGIC"; fromIndex: number; toIndex: number }
   | { type: "ASSIGN_MAGIC_TO_BOTTOM"; magicIndex: number; bottomSlot: number }
+  | { type: "SWAP_BOTTOM_SLOTS"; fromSlot: number; toSlot: number }
+  | { type: "CLEAR_BOTTOM_SLOT"; bottomSlot: number }
   | { type: "SET_XIULIAN_MAGIC"; magicIndex: number }
   // 商店
   | { type: "BUY_ITEM"; shopIndex: number }

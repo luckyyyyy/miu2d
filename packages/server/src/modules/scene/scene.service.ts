@@ -199,6 +199,19 @@ export class SceneService {
     const { scene } = input;
 
     try {
+      // 若 MMF 的 trapTable 为空且前端提供了 trapOverrides，则重建 trapTable 并重新序列化
+      let mmfData = scene.mmfData;
+      if (mmfData && scene.trapOverrides && Object.keys(scene.trapOverrides).length > 0) {
+        const parsed = parseMmfToDto(mmfData);
+        if (parsed && parsed.trapTable.length === 0) {
+          parsed.trapTable = Object.entries(scene.trapOverrides).map(([idx, scriptPath]) => ({
+            trapIndex: parseInt(idx, 10),
+            scriptPath,
+          }));
+          mmfData = serializeDtoToMmf(parsed);
+        }
+      }
+
       // 检查是否已存在
       const [existing] = await db
         .select({ id: scenes.id })
@@ -213,7 +226,7 @@ export class SceneService {
           .set({
             name: scene.name,
             mapFileName: scene.mapFileName,
-            mmfData: scene.mmfData,
+            mmfData,
             data: scene.data as Record<string, unknown>,
             updatedAt: new Date(),
           })
@@ -228,7 +241,7 @@ export class SceneService {
         key: scene.key,
         name: scene.name,
         mapFileName: scene.mapFileName,
-        mmfData: scene.mmfData,
+        mmfData,
         data: scene.data as Record<string, unknown>,
       });
 

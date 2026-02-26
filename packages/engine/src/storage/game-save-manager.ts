@@ -526,7 +526,7 @@ export class Loader {
           const t = performance.now();
           magicInventory.stopReplace();
           magicInventory.clearReplaceList();
-          await loadMagicsFromJSON(data.magics, data.xiuLianIndex, magicInventory);
+          await loadMagicsFromJSON(data.magics, data.xiuLianIndex, magicInventory, data.bottomSlots);
           if (data.replaceMagicLists) {
             await magicInventory.deserializeReplaceLists(data.replaceMagicLists);
           }
@@ -799,6 +799,7 @@ export class Loader {
       // 武功
       magics: SaveDataCollector.collectMagicsData(magicInventory),
       xiuLianIndex: magicInventory.getXiuLianIndex(),
+      bottomSlots: SaveDataCollector.collectBottomSlotsData(magicInventory),
       // 替换武功列表 (角色变身时的临时武功)
       // > PlayerMagicInventory.SaveReplaceList
       replaceMagicLists: magicInventory.serializeReplaceLists(),

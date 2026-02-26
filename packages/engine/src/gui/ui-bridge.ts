@@ -131,6 +131,8 @@ export interface UIMagicActions {
   setCurrentMagicByBottom: (bottomIndex: number) => void;
   swapMagic: (fromIndex: number, toIndex: number) => void;
   assignMagicToBottom: (magicIndex: number, bottomSlot: number) => void;
+  swapBottomSlots: (fromSlot: number, toSlot: number) => void;
+  clearBottomSlot: (bottomSlot: number) => void;
   setXiuLianMagic: (magicIndex: number) => void;
 }
 
@@ -592,6 +594,12 @@ export class UIBridgeImpl implements UIBridge {
         break;
       case "ASSIGN_MAGIC_TO_BOTTOM":
         this.deps.magic.assignMagicToBottom(action.magicIndex, action.bottomSlot);
+        break;
+      case "SWAP_BOTTOM_SLOTS":
+        this.deps.magic.swapBottomSlots(action.fromSlot, action.toSlot);
+        break;
+      case "CLEAR_BOTTOM_SLOT":
+        this.deps.magic.clearBottomSlot(action.bottomSlot);
         break;
       case "SET_XIULIAN_MAGIC":
         this.deps.magic.setXiuLianMagic(action.magicIndex);

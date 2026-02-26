@@ -2,7 +2,8 @@
  * 游戏调试区块 - 合并快捷操作和物品/武功
  */
 
-import { getAllCachedMagicFileNames, getMagicFromApiCache } from "@miu2d/engine/magic";
+import { getMagicFromApiCache } from "@miu2d/engine/magic";
+import { getMagicsData } from "@miu2d/engine/data";
 import { EquipPosition, GoodKind, getAllGoods } from "@miu2d/engine/player/goods";
 import type React from "react";
 import { useState } from "react";
@@ -93,13 +94,11 @@ export const GameDebugSection: React.FC<GameDebugSectionProps> = ({
     category: getGoodsCategory(g.kind, g.part),
   }));
 
-  // 从 API 缓存获取武功列表
-  const allMagics = getAllCachedMagicFileNames()
-    .filter((key) => key.startsWith("player-magic-"))
-    .map((key) => {
-      const magic = getMagicFromApiCache(key);
-      return { name: magic?.name ?? key, file: key };
-    });
+  // 从 API 数据获取所有玩家武功列表（userType === "player"），避免依赖 key 前缀约定
+  const allMagics = (getMagicsData()?.player ?? []).map((api) => {
+    const magic = getMagicFromApiCache(api.key);
+    return { name: magic?.name ?? api.name ?? api.key, file: api.key };
+  });
 
   // 根据选择的分类过滤物品
   const filteredItems =

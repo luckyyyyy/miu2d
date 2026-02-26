@@ -88,6 +88,7 @@ export interface GameConfigResponse {
   titleMusic: string;
   newGameScript: string;
   portraitAsf: string;
+  uiSettingsIni: string;
   player: PlayerConfig;
   drop: DropConfig;
   magicExp?: MagicExpConfig;

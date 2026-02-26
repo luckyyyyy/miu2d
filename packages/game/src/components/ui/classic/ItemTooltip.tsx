@@ -1,43 +1,37 @@
 /**
- * ItemTooltip Component - based on JxqyHD Engine/Gui/ToolTipGuiType1.cs
- * Displays item information when hovering over inventory/equipment slots
- *
- * Layout from UI_Settings.ini [ToolTip_Type1] section:
- * - Background: tipbox.asf
- * - Item Image: Left=132, Top=47, 60x75
- * - Name: Left=67, Top=191
- * - Price/Level: Left=160, Top=191
- * - Effect: Left=67, Top=215
- * - Intro: Left=67, Top=235 (approx)
+ * ItemTooltip Component
+ * Supports two tooltip types based on [ToolTip_Use_Type].UseType from UI_Settings.ini:
+ * - Type1: Image-based (tipbox.asf background) - JxqyHD Engine/Gui/ToolTipGuiType1.cs
+ * - Type2: Text-based (semi-transparent dark bg, colored text rows)
  */
 
+import { colorToCSS } from "@miu2d/engine/gui/ui-settings";
 import type { Good } from "@miu2d/engine/player/goods";
 import type React from "react";
 import { useEffect, useMemo, useState } from "react";
+import { useToolTipType2Config, useToolTipUseTypeConfig } from "./useUISettings";
 import { useAsfImage } from "./hooks";
 
 interface ItemTooltipProps {
   good: Good | null;
-  isRecycle?: boolean; // Show sell price instead of buy price
-  shopPrice?: number; // 商店自定义价格（已含 buyPercent），覆盖 good.cost
+  isRecycle?: boolean;
+  shopPrice?: number;
   position: { x: number; y: number };
   isVisible: boolean;
 }
 
-export const ItemTooltip: React.FC<ItemTooltipProps> = ({
+// ============= Type1 Item Tooltip (image-based, tipbox.asf) =============
+
+const ItemTooltipType1: React.FC<ItemTooltipProps> = ({
   good,
   isRecycle = false,
   shopPrice,
   position,
   isVisible,
 }) => {
-  // Load tooltip background - tipbox.asf from UI_Settings.ini
   const bgImage = useAsfImage("asf/ui/common/tipbox.asf", 0);
-
-  // Track actual background dimensions
   const [bgSize, setBgSize] = useState({ width: 265, height: 270 });
 
-  // Get actual size from loaded image
   useEffect(() => {
     if (bgImage.dataUrl) {
       const img = new Image();
@@ -48,31 +42,23 @@ export const ItemTooltip: React.FC<ItemTooltipProps> = ({
     }
   }, [bgImage.dataUrl]);
 
-  // Load item image
   const itemImage = useAsfImage(good?.imagePath ?? null, 0);
 
-  // Build effect text (matches ShowGood method)
   const effectText = useMemo(() => {
     if (!good) return "";
     return good.getEffectString();
   }, [good]);
 
-  // Price text
   const priceText = useMemo(() => {
     if (!good) return "价格： 0";
-    // 商店自定义价格优先，否则使用物品自身价格
     const price = isRecycle ? good.sellPrice : shopPrice != null ? shopPrice : good.cost;
     return (isRecycle ? "回收价格： " : "价格： ") + price;
   }, [good, isRecycle, shopPrice]);
 
   if (!isVisible || !good) return null;
 
-  // Use actual background size
   const tooltipWidth = bgSize.width;
   const tooltipHeight = bgSize.height;
-
-  // Position tooltip to avoid going off screen
-  // TopAdjust=27 from config
   const adjustedX = Math.min(position.x + 10, window.innerWidth - tooltipWidth - 20);
   const adjustedY = Math.min(position.y + 27, window.innerHeight - tooltipHeight - 20);
 
@@ -88,7 +74,6 @@ export const ItemTooltip: React.FC<ItemTooltipProps> = ({
         pointerEvents: "none",
       }}
     >
-      {/* Background - tipbox.asf */}
       {bgImage.dataUrl ? (
         <img
           src={bgImage.dataUrl}
@@ -214,6 +199,123 @@ export const ItemTooltip: React.FC<ItemTooltipProps> = ({
       </div>
     </div>
   );
+};
+
+// ============= Type2 Item Tooltip (text-based, semi-transparent bg) =============
+
+const ItemTooltipType2: React.FC<ItemTooltipProps> = ({
+  good,
+  isRecycle = false,
+  shopPrice,
+  position,
+  isVisible,
+}) => {
+  const cfg = useToolTipType2Config();
+
+  const effectText = useMemo(() => {
+    if (!good) return "";
+    return good.getEffectString();
+  }, [good]);
+
+  const priceText = useMemo(() => {
+    if (!good) return "价格： 0";
+    const price = isRecycle ? good.sellPrice : shopPrice != null ? shopPrice : good.cost;
+    return (isRecycle ? "回收价格： " : "价格： ") + price;
+  }, [good, isRecycle, shopPrice]);
+
+  if (!isVisible || !good) return null;
+
+  const hPad = cfg.textHorizontalPadding;
+  const vPad = cfg.textVerticalPadding;
+  const lineH = 18;
+
+  const tooltipWidth = cfg.width;
+  const adjustedX = Math.min(position.x + 10, window.innerWidth - tooltipWidth - 20);
+  const adjustedY = Math.min(position.y + 27, window.innerHeight - 20);
+
+  return (
+    <div
+      style={{
+        position: "fixed",
+        left: adjustedX,
+        top: adjustedY,
+        width: tooltipWidth,
+        zIndex: 10000,
+        pointerEvents: "none",
+        backgroundColor: colorToCSS(cfg.backgroundColor),
+        padding: `${vPad}px ${hPad}px`,
+        boxSizing: "border-box",
+        fontFamily: "SimSun, serif",
+        fontSize: 12,
+      }}
+    >
+      {/* Item Name */}
+      <div
+        style={{
+          color: colorToCSS(cfg.goodNameColor),
+          lineHeight: `${lineH}px`,
+          whiteSpace: "nowrap",
+          overflow: "hidden",
+        }}
+      >
+        {good.name || "无名称"}
+      </div>
+
+      {/* Price */}
+      <div
+        style={{
+          marginTop: vPad,
+          color: colorToCSS(cfg.goodPriceColor),
+          lineHeight: `${lineH}px`,
+          whiteSpace: "nowrap",
+        }}
+      >
+        {priceText}
+      </div>
+
+      {/* Effect / property */}
+      {effectText && (
+        <div
+          style={{
+            marginTop: vPad,
+            color: colorToCSS(cfg.goodPropertyColor),
+            lineHeight: `${lineH}px`,
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+          }}
+        >
+          {effectText}
+        </div>
+      )}
+
+      {/* Intro */}
+      {good.intro && (
+        <div
+          style={{
+            marginTop: vPad,
+            color: colorToCSS(cfg.goodIntroColor),
+            fontSize: 11,
+            lineHeight: "16px",
+            whiteSpace: "pre-wrap",
+            wordBreak: "break-word",
+          }}
+        >
+          {good.intro}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ============= Main ItemTooltip (routes to Type1 or Type2) =============
+
+export const ItemTooltip: React.FC<ItemTooltipProps> = (props) => {
+  const { useType } = useToolTipUseTypeConfig();
+
+  if (useType === 2) {
+    return <ItemTooltipType2 {...props} />;
+  }
+  return <ItemTooltipType1 {...props} />;
 };
 
 // ============= Tooltip Manager State =============

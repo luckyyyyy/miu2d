@@ -27,6 +27,7 @@ const gameEditSections: ModuleNavSection[] = [
     items: [
       { id: "basic", label: "基础信息", path: "basic" },
       { id: "newgame", label: "新游戏脚本", path: "newgame" },
+      { id: "ui-settings", label: "UI 设置", path: "ui-settings" },
     ],
   },
   {

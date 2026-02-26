@@ -11,14 +11,6 @@ import { getPortraitPathByIndex } from "../portraitUtils";
 
 // 统一楷体字体样式
 const KAITI_FONT = '"STKaiti", "楷体", "KaiTi", "SimKai", serif';
-const DIALOG_TEXT_STYLE = {
-  fontFamily: KAITI_FONT,
-  fontSize: 14,
-  fontWeight: 500,
-  lineHeight: 1.6,
-  letterSpacing: 0.5,
-  color: "rgba(0, 0, 0, 0.9)",
-};
 
 import type { DialogGuiState } from "@miu2d/engine/gui/ui-types";
 import { useAsfImage } from "./hooks";
@@ -278,8 +270,8 @@ export const DialogUI: React.FC<DialogUIProps> = ({
 
   // 选项颜色 - 蓝色普通，红色悬停/选中
   // config.selectA.color 已经是 CSS rgba 字符串
-  const selectionNormalColor = config.selectA.color || "rgba(0,0,255,0.8)";
-  const selectionActiveColor = "rgba(255, 0, 0, 0.8)";
+  const selectionNormalColor = config.selectA.color || "rgba(0,0,255,1)";
+  const selectionActiveColor = "rgba(255, 0, 0, 1)";
 
   // 判断选项是否激活（hover 或 键盘选中）
   // 默认选中第一项
@@ -363,16 +355,20 @@ export const DialogUI: React.FC<DialogUIProps> = ({
           <p
             style={{
               margin: 0,
-              ...DIALOG_TEXT_STYLE,
+              fontFamily: KAITI_FONT,
+              fontSize: 14,
+              fontWeight: 500,
+              lineHeight: 1.6,
               letterSpacing: config.text.charSpace,
+              color: config.text.color,
             }}
           >
-            <ColoredText text={displayedText} defaultColor="#000000" />
+            <ColoredText text={displayedText} defaultColor={config.text.color} />
             {!state.isComplete && !state.isInSelecting && (
               <span
                 style={{
                   animation: "blink 0.5s infinite",
-                  color: "#000",
+                  color: config.text.color,
                 }}
               >
                 |
@@ -443,7 +439,8 @@ export const DialogUI: React.FC<DialogUIProps> = ({
               right: 10,
               bottom: 8,
               fontSize: 11,
-              color: "rgba(0, 0, 0, 0.5)",
+              color: config.text.color,
+              opacity: 0.6,
               pointerEvents: "none",
             }}
           >

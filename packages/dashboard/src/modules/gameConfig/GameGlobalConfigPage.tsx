@@ -31,6 +31,7 @@ import { useDashboard } from "../../DashboardContext";
 type ConfigCategory =
   | "basic"
   | "newgame"
+  | "ui-settings"
   | "player-speed"
   | "player-thew"
   | "player-restore"
@@ -612,6 +613,7 @@ function BasicInfoPanel({
               placeholder="例如: title.ogg"
             />
           </Field>
+
         </div>
       </FormCard>
     </div>
@@ -632,6 +634,29 @@ function NewGameScriptPanel({
         <ScriptEditor
           value={config.newGameScript}
           onChange={(v) => updateConfig("newGameScript", v)}
+          height="100%"
+          className="h-full"
+        />
+      </div>
+    </div>
+  );
+}
+
+function UISettingsPanel({
+  config,
+  updateConfig,
+}: {
+  config: GameConfigDataFull;
+  updateConfig: <K extends keyof GameConfigDataFull>(k: K, v: GameConfigDataFull[K]) => void;
+}) {
+  return (
+    <div className="flex flex-col h-full">
+      <SectionTitle desc="UI_Settings.ini 的内容。定义游戏界面各面板的位置、大小和图片资源。留空则自动从资源目录加载。" />
+      <div className="border border-widget-border rounded flex-1 min-h-0">
+        <ScriptEditor
+          value={config.uiSettingsIni}
+          onChange={(v) => updateConfig("uiSettingsIni", v)}
+          language="ini"
           height="100%"
           className="h-full"
         />
@@ -1641,6 +1666,8 @@ export function GameGlobalConfigPage() {
         );
       case "newgame":
         return <NewGameScriptPanel config={config} updateConfig={updateConfig} />;
+      case "ui-settings":
+        return <UISettingsPanel config={config} updateConfig={updateConfig} />;
       case "player-speed":
         return (
           <PlayerSpeedPanel
@@ -1687,6 +1714,7 @@ export function GameGlobalConfigPage() {
   const CATEGORY_TITLES: Record<ConfigCategory, string> = {
     basic: "基础信息",
     newgame: "新游戏脚本",
+    "ui-settings": "UI 设置",
     "player-speed": "移动速度",
     "player-thew": "体力消耗",
     "player-restore": "自然恢复",
@@ -1739,9 +1767,9 @@ export function GameGlobalConfigPage() {
       {/* 内容区域 */}
       <div
         ref={contentRef}
-        className={`flex-1 ${activeCategory === "newgame" ? "flex flex-col overflow-hidden" : ""} ${activeCategory !== "newgame" ? "p-6 overflow-y-auto" : ""}`}
+        className={`flex-1 ${activeCategory === "newgame" || activeCategory === "ui-settings" ? "flex flex-col overflow-hidden" : "p-6 overflow-y-auto"}`}
       >
-        <div className={activeCategory === "newgame" ? "flex flex-col flex-1 min-h-0" : ""}>
+        <div className={activeCategory === "newgame" || activeCategory === "ui-settings" ? "flex flex-col flex-1 min-h-0" : ""}>
           {renderPanel()}
         </div>
       </div>

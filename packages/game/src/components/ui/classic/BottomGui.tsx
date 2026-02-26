@@ -19,26 +19,7 @@ import { useTouchDragSource, useTouchDropTarget } from "../../../hooks";
 import { AsfAnimatedSprite } from "./AsfAnimatedSprite";
 import type { GoodItemData } from "./GoodsGui";
 import { useAsfImage } from "./hooks";
-
-// UI配置 - 对应 UI_Settings.ini 中的 [Bottom] 和 [Bottom_Items] 部分
-const UI_CONFIG = {
-  panel: {
-    image: "asf/ui/bottom/window.asf",
-    leftAdjust: 102, // 相对于屏幕中心的偏移
-    topAdjust: 0,
-  },
-  // 各个图标位置：1-3 物品，4-8 武功
-  items: [
-    { left: 7, top: 20, width: 30, height: 40 }, // 物品槽 1
-    { left: 44, top: 20, width: 30, height: 40 }, // 物品槽 2
-    { left: 82, top: 20, width: 30, height: 40 }, // 物品槽 3
-    { left: 199, top: 20, width: 30, height: 40 }, // 武功槽 1 (A)
-    { left: 238, top: 20, width: 30, height: 40 }, // 武功槽 2 (S)
-    { left: 277, top: 20, width: 30, height: 40 }, // 武功槽 3 (D)
-    { left: 316, top: 20, width: 30, height: 40 }, // 武功槽 4 (F)
-    { left: 354, top: 20, width: 30, height: 40 }, // 武功槽 5 (G)
-  ],
-};
+import { useBottomGuiConfig } from "./useUISettings";
 
 // 快捷键 : Z,X,C 物品, A,S,D,F,G 武功
 const SLOT_KEYS = ["Z", "X", "C", "A", "S", "D", "F", "G"];
@@ -405,8 +386,11 @@ export const BottomGui: React.FC<BottomGuiProps> = ({
   const [hoveredSlot, setHoveredSlot] = useState<number | null>(null);
   const [localDragIndex, setLocalDragIndex] = useState<number | null>(null);
 
+  // 从 INI 读取配置
+  const config = useBottomGuiConfig();
+
   // 加载面板背景
-  const panelImage = useAsfImage(UI_CONFIG.panel.image);
+  const panelImage = useAsfImage(config?.panel.image ?? null);
 
   // 计算面板位置
   // Position = new Vector2((Globals.WindowWidth - BaseTexture.Width)/2f + leftAdjust,
@@ -417,13 +401,13 @@ export const BottomGui: React.FC<BottomGuiProps> = ({
 
     return {
       position: "absolute" as const,
-      left: (screenWidth - panelWidth) / 2 + UI_CONFIG.panel.leftAdjust,
-      bottom: 0 - UI_CONFIG.panel.topAdjust,
+      left: (screenWidth - panelWidth) / 2 + (config?.panel.leftAdjust ?? 102),
+      bottom: 0 - (config?.panel.topAdjust ?? 0),
       width: panelWidth,
       height: panelHeight,
       pointerEvents: "auto" as const,
     };
-  }, [screenWidth, panelImage.width, panelImage.height]);
+  }, [screenWidth, panelImage.width, panelImage.height, config]);
 
   const handleRightClick = useCallback(
     (e: React.MouseEvent, index: number) => {
@@ -495,7 +479,7 @@ export const BottomGui: React.FC<BottomGuiProps> = ({
       )}
 
       {/* 槽位 */}
-      {UI_CONFIG.items.map((cfg, index) => {
+      {(config?.items ?? []).map((cfg, index) => {
         const isGoodsSlot = index < 3;
         const isMagicSlot = index >= 3;
 

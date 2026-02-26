@@ -11,6 +11,7 @@
 
 import type { ShopItemInfo } from "@miu2d/engine";
 import { logger } from "@miu2d/engine/core/logger";
+import { MAGIC_LIST_CONFIG } from "@miu2d/engine/player/magic/magic-list-config";
 import type { Vector2 } from "@miu2d/engine/core/types";
 import type { UIEquipSlotName } from "@miu2d/engine/gui/ui-types";
 import type { MagicItemInfo } from "@miu2d/engine/magic";
@@ -670,8 +671,7 @@ export function useGameUILogic({ engine }: UseGameUILogicOptions) {
     (bottomSlot: number) => {
       if (!engine) return;
       const listIndex =
-        engine.getGameManager().magicInventory.bottomIndexToListIndex(bottomSlot) ??
-        bottomSlot + 41;
+        engine.getGameManager().magicInventory.getBottomSlots()[bottomSlot] ?? 0;
       setBottomMagicDragData({ bottomSlot, listIndex });
       setMagicDragData(null);
     },
@@ -688,11 +688,8 @@ export function useGameUILogic({ engine }: UseGameUILogicOptions) {
       if (source && source.storeIndex > 0) {
         dispatch({ type: "SWAP_MAGIC", fromIndex: source.storeIndex, toIndex: targetStoreIndex });
       } else if (bottomMagicDragData) {
-        dispatch({
-          type: "SWAP_MAGIC",
-          fromIndex: bottomMagicDragData.listIndex,
-          toIndex: targetStoreIndex,
-        });
+        // 从快捷栏拖回技能栏：清除快捷栏引用，武功留在原 store 位置
+        dispatch({ type: "CLEAR_BOTTOM_SLOT", bottomSlot: bottomMagicDragData.bottomSlot });
       }
       setMagicDragData(null);
       setBottomMagicDragData(null);
@@ -709,27 +706,22 @@ export function useGameUILogic({ engine }: UseGameUILogicOptions) {
           bottomSlot: targetBottomSlot,
         });
       } else if (bottomMagicDragData) {
-        if (!engine) return;
-        const targetListIndex = engine
-          .getGameManager()
-          .magicInventory.bottomIndexToListIndex(targetBottomSlot);
-        if (targetListIndex !== undefined) {
-          dispatch({
-            type: "SWAP_MAGIC",
-            fromIndex: bottomMagicDragData.listIndex,
-            toIndex: targetListIndex,
-          });
-        }
+        // 快捷栏之间拖拽：交换两槽位引用
+        dispatch({
+          type: "SWAP_BOTTOM_SLOTS",
+          fromSlot: bottomMagicDragData.bottomSlot,
+          toSlot: targetBottomSlot,
+        });
       }
       setMagicDragData(null);
       setBottomMagicDragData(null);
     },
-    [dispatch, engine, magicDragData, bottomMagicDragData]
+    [dispatch, magicDragData, bottomMagicDragData]
   );
 
   const handleMagicDropOnXiuLian = useCallback(
     (sourceIndex: number) => {
-      const xiuLianIndex = 49;
+      const xiuLianIndex = MAGIC_LIST_CONFIG.xiuLianIndex;
 
       if (magicDragData && magicDragData.storeIndex > 0) {
         dispatch({

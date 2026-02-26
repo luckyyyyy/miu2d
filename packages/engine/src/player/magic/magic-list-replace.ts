@@ -65,17 +65,6 @@ export class MagicListReplace {
 
     let listI = 0;
 
-    // 填充快捷栏 (BottomIndex)
-    for (let i = MAGIC_LIST_CONFIG.bottomIndexBegin; i <= MAGIC_LIST_CONFIG.bottomIndexEnd; i++) {
-      if (listI >= magicFileNames.length) break;
-      const magic = getMagic(ResourcePath.magic(magicFileNames[listI]));
-      if (magic) {
-        newList[i] = createDefaultMagicItemInfo(magic, 1);
-        newList[i]!.hideCount = 1;
-      }
-      listI++;
-    }
-
     // 填充存储区 (StoreIndex)
     for (let i = MAGIC_LIST_CONFIG.storeIndexBegin; i <= MAGIC_LIST_CONFIG.storeIndexEnd; i++) {
       if (listI >= magicFileNames.length) break;

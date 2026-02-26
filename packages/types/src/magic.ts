@@ -617,7 +617,7 @@ export type BatchImportMagicItem = z.infer<typeof BatchImportMagicItemSchema>;
 export const BatchImportMagicInputSchema = z.object({
   gameId: z.string().uuid(),
   userType: MagicUserTypeEnum.optional(), // 全局类型（可选，作为默认值）
-  items: z.array(BatchImportMagicItemSchema).min(1).max(100), // 限制最多 100 个
+  items: z.array(BatchImportMagicItemSchema).min(1).max(500), // 限制最多 500 个
 });
 
 export type BatchImportMagicInput = z.infer<typeof BatchImportMagicInputSchema>;

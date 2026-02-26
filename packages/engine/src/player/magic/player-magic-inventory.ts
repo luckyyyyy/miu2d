@@ -73,6 +73,10 @@ export class PlayerMagicInventory {
   // === ReplaceMagicList（委托 MagicListReplace）===
   private readonly replace = new MagicListReplace();
 
+  // 快捷栏：独立 reference 数组，每项为 storeIndex (1..storeIndexEnd) 或 null
+  // 不再占用 magicList 的索引槽位，武功始终保留在存储区
+  private bottomSlots: (number | null)[] = new Array(MAGIC_LIST_CONFIG.bottomSlotCount).fill(null);
+
   constructor() {
     const size = MAGIC_LIST_CONFIG.maxMagic + 1;
     this.magicList = new Array(size).fill(null);
@@ -185,13 +189,6 @@ export class PlayerMagicInventory {
   }
 
   /**
-   * 检查索引是否在快捷栏范围内
-   */
-  indexInBottomRange(index: number): boolean {
-    return index >= MAGIC_LIST_CONFIG.bottomIndexBegin && index <= MAGIC_LIST_CONFIG.bottomIndexEnd;
-  }
-
-  /**
    * 检查索引是否是修炼索引
    */
   indexInXiuLianIndex(index: number): boolean {
@@ -292,6 +289,7 @@ export class PlayerMagicInventory {
       activeList[i] = null;
       activeListHide[i] = null;
     }
+    this.bottomSlots.fill(null);
     this.currentMagicInUse = null;
     // 清空修炼武功并触发回调
     if (this.xiuLianMagic !== null) {
@@ -463,10 +461,6 @@ export class PlayerMagicInventory {
   getIconPath(index: number): string | null {
     const magic = this.get(index);
     if (!magic) return null;
-    // 快捷栏使用小图标，武功面板使用大图
-    if (this.indexInBottomRange(index)) {
-      return magic.icon || magic.image || null;
-    }
     return magic.image || magic.icon || null;
   }
 
@@ -475,14 +469,7 @@ export class PlayerMagicInventory {
    */
   getFreeIndex(): number {
     const activeList = this.getActiveMagicList();
-    // 先检查存储区
     for (let i = MAGIC_LIST_CONFIG.storeIndexBegin; i <= MAGIC_LIST_CONFIG.storeIndexEnd; i++) {
-      if (!activeList[i]) {
-        return i;
-      }
-    }
-    // 再检查快捷栏
-    for (let i = MAGIC_LIST_CONFIG.bottomIndexBegin; i <= MAGIC_LIST_CONFIG.bottomIndexEnd; i++) {
       if (!activeList[i]) {
         return i;
       }
@@ -592,6 +579,12 @@ export class PlayerMagicInventory {
       this.xiuLianMagic = null;
       this.callbacks.onXiuLianMagicChange?.(null);
     }
+    // 清除快捷栏中对此存储索引的引用
+    for (let s = 0; s < this.bottomSlots.length; s++) {
+      if (this.bottomSlots[s] === index) {
+        this.bottomSlots[s] = null;
+      }
+    }
 
     activeList[index] = null;
     this.updateView();
@@ -614,7 +607,6 @@ export class PlayerMagicInventory {
 
   /**
    * 交换列表项（同步，资源已在 addMagic 时预加载）
-   *
    */
   exchangeListItem(index1: number, index2: number): void {
     if (index1 === index2) return;
@@ -625,20 +617,16 @@ export class PlayerMagicInventory {
     activeList[index1] = activeList[index2];
     activeList[index2] = temp;
 
-    // 检查当前使用的武功
-    const inBottom1 = this.indexInBottomRange(index1);
-    const inBottom2 = this.indexInBottomRange(index2);
-    if (inBottom1 !== inBottom2) {
-      if (
-        this.currentMagicInUse === activeList[index1] ||
-        this.currentMagicInUse === activeList[index2]
-      ) {
-        // 快捷栏武功被交换出去，清除当前使用
-        this.currentMagicInUse = null;
+    // 同步更新快捷栏中的存储索引引用
+    for (let s = 0; s < this.bottomSlots.length; s++) {
+      if (this.bottomSlots[s] === index1) {
+        this.bottomSlots[s] = index2;
+      } else if (this.bottomSlots[s] === index2) {
+        this.bottomSlots[s] = index1;
       }
     }
 
-    // 检查修炼武功 - 资源已在 addMagic 时预加载，这里只需更新状态
+    // 检查修炼武功
     if (this.indexInXiuLianIndex(index1)) {
       this.xiuLianMagic = activeList[index1];
       this.callbacks.onXiuLianMagicChange?.(this.xiuLianMagic);
@@ -690,14 +678,14 @@ export class PlayerMagicInventory {
   }
 
   /**
-   * 通过快捷栏索引设置当前武功
-   * @param bottomIndex 快捷栏相对索引 (0-4)
+   * 通过快捷栏槽位索引设置当前武功
+   * @param slotIndex 快捷栏槽位 (0-4)
    */
-  setCurrentMagicByBottomIndex(bottomIndex: number): boolean {
-    const listIndex = MAGIC_LIST_CONFIG.bottomIndexBegin + bottomIndex;
-    if (!this.indexInBottomRange(listIndex)) return false;
+  setCurrentMagicByBottomIndex(slotIndex: number): boolean {
+    const storeIndex = this.bottomSlots[slotIndex] ?? null;
+    if (storeIndex === null) return false;
 
-    const info = this.getActiveMagicList()[listIndex];
+    const info = this.getActiveMagicList()[storeIndex];
     if (!info || !info.magic) return false;
 
     return this.setCurrentMagicInUse(info);
@@ -785,7 +773,12 @@ export class PlayerMagicInventory {
     const result: (MagicItemInfo | null)[] = [];
     const activeList = this.getActiveMagicList();
     for (let i = MAGIC_LIST_CONFIG.storeIndexBegin; i <= MAGIC_LIST_CONFIG.storeIndexEnd; i++) {
-      result.push(activeList[i]);
+      // 已放入快捷栏的武功不在技能栏显示
+      if (this.bottomSlots.includes(i)) {
+        result.push(null);
+      } else {
+        result.push(activeList[i]);
+      }
     }
     return result;
   }
@@ -794,27 +787,45 @@ export class PlayerMagicInventory {
    * 获取快捷栏武功
    */
   getBottomMagics(): (MagicItemInfo | null)[] {
-    const result: (MagicItemInfo | null)[] = [];
     const activeList = this.getActiveMagicList();
-    for (let i = MAGIC_LIST_CONFIG.bottomIndexBegin; i <= MAGIC_LIST_CONFIG.bottomIndexEnd; i++) {
-      result.push(activeList[i]);
+    return this.bottomSlots.map((storeIndex) =>
+      storeIndex !== null ? (activeList[storeIndex] ?? null) : null
+    );
+  }
+
+  /**
+   * 获取快捷栏某槽位的武功信息
+   */
+  getBottomMagicInfo(slotIndex: number): MagicItemInfo | null {
+    const storeIndex = this.bottomSlots[slotIndex] ?? null;
+    if (storeIndex === null) return null;
+    return this.getActiveMagicList()[storeIndex] ?? null;
+  }
+
+  /**
+   * 将武功绑定到快捷栏槽位（不移动武功，仅记录引用）
+   * @param storeIndex 存储区索引 (1..storeIndexEnd)，0 表示清空该槽位
+   * @param slotIndex  快捷栏槽位 (0-4)
+   */
+  assignMagicToBottomSlot(storeIndex: number, slotIndex: number): boolean {
+    if (slotIndex < 0 || slotIndex >= MAGIC_LIST_CONFIG.bottomSlotCount) return false;
+    if (storeIndex <= 0) {
+      this.bottomSlots[slotIndex] = null;
+      this.updateView();
+      return true;
     }
-    return result;
-  }
-
-  /**
-   * 获取快捷栏某位置的武功信息
-   */
-  getBottomMagicInfo(bottomIndex: number): MagicItemInfo | null {
-    const listIndex = MAGIC_LIST_CONFIG.bottomIndexBegin + bottomIndex;
-    return this.getItemInfo(listIndex);
-  }
-
-  /**
-   * 将快捷栏索引转换为列表索引
-   */
-  bottomIndexToListIndex(bottomIndex: number): number {
-    return MAGIC_LIST_CONFIG.bottomIndexBegin + bottomIndex;
+    if (storeIndex < MAGIC_LIST_CONFIG.storeIndexBegin || storeIndex > MAGIC_LIST_CONFIG.storeIndexEnd) {
+      return false;
+    }
+    // 同一武功只能占一个快捷槽：先清除已有引用
+    for (let s = 0; s < this.bottomSlots.length; s++) {
+      if (this.bottomSlots[s] === storeIndex) {
+        this.bottomSlots[s] = null;
+      }
+    }
+    this.bottomSlots[slotIndex] = storeIndex;
+    this.updateView();
+    return true;
   }
 
   /**
@@ -828,22 +839,58 @@ export class PlayerMagicInventory {
   }
 
   /**
-   * 将武功移动到快捷栏的空位
+   * 将武功添加到快捷栏的第一个空位（不移动武功，仅绑定引用）
    */
-  moveToBottomEmptySlot(sourceIndex: number): boolean {
-    if (!this.indexInRange(sourceIndex)) return false;
+  assignToBottomEmptySlot(storeIndex: number): boolean {
+    if (!this.indexInRange(storeIndex)) return false;
     const activeList = this.getActiveMagicList();
-    const info = activeList[sourceIndex];
-    if (!info) return false;
+    if (!activeList[storeIndex]) return false;
 
-    // 找快捷栏空位
-    for (let i = MAGIC_LIST_CONFIG.bottomIndexBegin; i <= MAGIC_LIST_CONFIG.bottomIndexEnd; i++) {
-      if (!activeList[i]) {
-        this.exchangeListItem(sourceIndex, i);
+    // 若已在某个快捷槽，不重复添加
+    if (this.bottomSlots.includes(storeIndex)) return false;
+
+    for (let s = 0; s < this.bottomSlots.length; s++) {
+      if (this.bottomSlots[s] === null) {
+        this.bottomSlots[s] = storeIndex;
+        this.updateView();
         return true;
       }
     }
     return false;
+  }
+
+  /**
+   * 交换两个快捷栏槽位引用（仅移动引用，不移动武功数据）
+   */
+  swapBottomSlots(fromSlot: number, toSlot: number): void {
+    if (
+      fromSlot < 0 || fromSlot >= MAGIC_LIST_CONFIG.bottomSlotCount ||
+      toSlot < 0 || toSlot >= MAGIC_LIST_CONFIG.bottomSlotCount ||
+      fromSlot === toSlot
+    ) return;
+    const tmp = this.bottomSlots[fromSlot];
+    this.bottomSlots[fromSlot] = this.bottomSlots[toSlot];
+    this.bottomSlots[toSlot] = tmp;
+    this.updateView();
+  }
+
+  // ============= 快捷栏存档支持 =============
+
+  /**
+   * 获取快捷栏引用数组（用于存档）
+   */
+  getBottomSlots(): (number | null)[] {
+    return [...this.bottomSlots];
+  }
+
+  /**
+   * 从存档恢复快捷栏引用（旧存档兼容在 loadMagicsFromJSON 中处理）
+   */
+  setBottomSlots(slots: (number | null)[]): void {
+    for (let s = 0; s < this.bottomSlots.length; s++) {
+      this.bottomSlots[s] = slots[s] ?? null;
+    }
+    this.updateView();
   }
 
   // ============= 脚本命令支持 =============

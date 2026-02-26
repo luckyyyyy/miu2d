@@ -603,17 +603,22 @@ export class GameEngine implements EngineContext {
     // 同步渲染器尺寸
     this._renderer?.resize(width, height);
 
-    // 保持相机中心点不变：根据视口尺寸差调整偏移
-    // 不能无条件居中到玩家，因为相机可能在跟随 PlayerKindCharacter（NPC）、
-    // 在脚本 MoveScreen/MoveScreenEx 移动中、或在 SetMapPos 设定的位置
+    // resize 时同步相机位置
     if (this.gameManager.isMapLoaded()) {
       const dw = width - oldWidth;
       const dh = height - oldHeight;
-      camera.x -= dw / 2;
-      camera.y -= dh / 2;
 
-      // 同步调整 MoveScreenEx 的目标位置（目标是 camera top-left = center - halfView）
-      this.gameManager.adjustCameraForViewportResize(dw, dh);
+      if (this.gameManager.isCameraMovingByScript()) {
+        // 脚本 MoveScreen/MoveScreenEx 控制相机时：保持世界坐标中心点不变
+        camera.x -= dw / 2;
+        camera.y -= dh / 2;
+        // 同步调整 MoveScreenEx 的目标位置（目标是 camera top-left = center - halfView）
+        this.gameManager.adjustCameraForViewportResize(dw, dh);
+      } else {
+        // 正常跟随模式：直接居中到玩家，避免 clamp 截断后玩家偏离屏幕中心
+        // 导致死区逻辑不再跟随的问题
+        this.engineCamera.centerCameraOnPlayer();
+      }
 
       // 限制相机在地图范围内
       const mapData = this.gameManager.getMapData();
@@ -810,6 +815,11 @@ export class GameEngine implements EngineContext {
   }
   onSelectionMade(index: number): void {
     this.gameManager.onSelectionMade(index);
+  }
+
+  /** 整合模式设置（state 与 equip 共用同一背景图时，F1 等同于 F2） */
+  setStateEquipIntegrated(v: boolean): void {
+    this.gameManager.guiManager.setStateEquipIntegrated(v);
   }
 
   /** 切换GUI面板 */

@@ -5,6 +5,7 @@
  */
 
 import { logger } from "../../core/logger";
+import { MAGIC_LIST_CONFIG } from "../../player/magic/magic-list-config";
 import type { MagicData, MagicItemInfo } from "../types";
 import type {
   AttackContext,
@@ -26,7 +27,7 @@ import {
  * 默认配置
  */
 const DEFAULT_CONFIG: PassiveManagerConfig = {
-  xiuLianIndex: 49,
+  xiuLianIndex: MAGIC_LIST_CONFIG.xiuLianIndex,
 };
 
 /**

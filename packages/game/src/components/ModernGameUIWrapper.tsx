@@ -6,6 +6,7 @@
  */
 
 import { logger } from "@miu2d/engine/core/logger";
+import { MAGIC_LIST_CONFIG } from "@miu2d/engine/player/magic/magic-list-config";
 import type { UIEquipSlotName } from "@miu2d/engine/gui/ui-types";
 import type { Good } from "@miu2d/engine/player/goods";
 import { GoodKind } from "@miu2d/engine/player/goods";
@@ -183,15 +184,11 @@ export const ModernGameUIWrapper: React.FC<ModernGameUIWrapperProps> = ({
               bottomSlot: targetBottomSlot,
             });
           } else if (touchData.bottomSlot !== undefined) {
-            const fromListIndex = engine
-              ?.getGameManager()
-              ?.magicInventory?.bottomIndexToListIndex(touchData.bottomSlot - 3);
-            const toListIndex = engine
-              ?.getGameManager()
-              ?.magicInventory?.bottomIndexToListIndex(targetBottomSlot);
-            if (fromListIndex !== undefined && toListIndex !== undefined) {
-              dispatch({ type: "SWAP_MAGIC", fromIndex: fromListIndex, toIndex: toListIndex });
-            }
+            dispatch({
+              type: "SWAP_BOTTOM_SLOTS",
+              fromSlot: touchData.bottomSlot - 3,
+              toSlot: targetBottomSlot,
+            });
           }
         }
       }
@@ -242,20 +239,16 @@ export const ModernGameUIWrapper: React.FC<ModernGameUIWrapperProps> = ({
           toIndex: targetStoreIndex,
         });
       } else if (touchData.type === "magic" && touchData.bottomSlot !== undefined) {
-        const fromListIndex = engine
-          ?.getGameManager()
-          ?.magicInventory?.bottomIndexToListIndex(touchData.bottomSlot - 3);
-        if (fromListIndex !== undefined) {
-          dispatch({ type: "SWAP_MAGIC", fromIndex: fromListIndex, toIndex: targetStoreIndex });
-        }
+        // 从快捷栏拖回技能栏：清除快捷栏引用
+        dispatch({ type: "CLEAR_BOTTOM_SLOT", bottomSlot: touchData.bottomSlot - 3 });
       }
     },
-    [dispatch, engine]
+    [dispatch]
   );
 
   const handleXiuLianTouchDrop = useCallback(
     (touchData: TouchDragData) => {
-      const xiuLianIndex = 49;
+      const xiuLianIndex = MAGIC_LIST_CONFIG.xiuLianIndex;
       if (touchData.type === "magic") {
         if (
           touchData.storeIndex !== undefined &&
@@ -266,8 +259,8 @@ export const ModernGameUIWrapper: React.FC<ModernGameUIWrapperProps> = ({
         } else if (touchData.bottomSlot !== undefined) {
           const fromListIndex = engine
             ?.getGameManager()
-            ?.magicInventory?.bottomIndexToListIndex(touchData.bottomSlot - 3);
-          if (fromListIndex !== undefined) {
+            ?.magicInventory?.getBottomSlots()[touchData.bottomSlot - 3];
+          if (fromListIndex != null) {
             dispatch({ type: "SWAP_MAGIC", fromIndex: fromListIndex, toIndex: xiuLianIndex });
           }
         }

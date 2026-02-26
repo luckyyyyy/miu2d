@@ -240,7 +240,7 @@ export interface MagicItemData {
   level: number;
   /** 经验值 */
   exp: number;
-  /** 列表索引 (1-36 存储区, 40-44 快捷栏, 49 修炼) */
+  /** 列表索引 (1-60 存储区, 61 修炼；旧存档兼容：40-44 快捷栏、49 修炼) */
   index: number;
   /**
    * 隐藏计数（装备关联武功的引用计数）
@@ -346,6 +346,8 @@ export interface CharacterSaveSlot {
   magics: MagicItemData[] | null;
   /** 修炼武功索引 */
   xiuLianIndex: number;
+  /** 快捷栏引用数组 (storeIndex 1..60 | null，5 个槽位) */
+  bottomSlots?: (number | null)[];
   /** 替换武功列表 */
   replaceMagicLists?: unknown;
   /** 物品列表 */
@@ -384,6 +386,8 @@ export interface SaveData {
   magics: MagicItemData[];
   /** 修炼武功索引 */
   xiuLianIndex: number;
+  /** 快捷栏引用数组 (storeIndex 1..60 | null，5 个槽位) */
+  bottomSlots?: (number | null)[];
   /** 替换武功列表 (角色变身时的临时武功) */
   replaceMagicLists?: object;
   /** 备忘录 */

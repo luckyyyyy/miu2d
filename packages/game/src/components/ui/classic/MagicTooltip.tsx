@@ -1,18 +1,15 @@
 /**
- * MagicTooltip Component - based on JxqyHD Engine/Gui/ToolTipGuiType1.cs ShowMagic method
- * Displays magic/skill information when hovering over magic slots
- *
- * Uses same background as ItemTooltip (tipbox.asf) but different layout:
- * - Background: tipbox.asf (same as goods)
- * - Magic Image: Left=132, Top=47, 60x75 (same position as goods)
- * - Name: Left=67, Top=191, Color=102,73,212,204 (purple)
- * - Level: Left=160, Top=191, Color=91,31,27,204 (dark red)
- * - Magic Intro: Left=67, Top=210, Color=52,21,14,204 (brown) - uses ToolTip_Type1_Item_Magic_Intro
+ * MagicTooltip Component
+ * Supports two tooltip types based on [ToolTip_Use_Type].UseType from UI_Settings.ini:
+ * - Type1: Image-based (tipbox.asf background) - JxqyHD Engine/Gui/ToolTipGuiType1.cs
+ * - Type2: Text-based (semi-transparent dark bg, colored text rows)
  */
 
+import { colorToCSS } from "@miu2d/engine/gui/ui-settings";
 import type { MagicItemInfo } from "@miu2d/engine/magic";
 import type React from "react";
 import { useEffect, useState } from "react";
+import { useToolTipType2Config, useToolTipUseTypeConfig } from "./useUISettings";
 import { useAsfAnimation, useAsfImage } from "./hooks";
 
 interface MagicTooltipProps {
@@ -21,14 +18,12 @@ interface MagicTooltipProps {
   isVisible: boolean;
 }
 
-export const MagicTooltip: React.FC<MagicTooltipProps> = ({ magicInfo, position, isVisible }) => {
-  // Load tooltip background - same tipbox.asf as ItemTooltip
-  const bgImage = useAsfImage("asf/ui/common/tipbox.asf", 0);
+// ============= Type1 Magic Tooltip (image-based, tipbox.asf) =============
 
-  // Track actual background dimensions
+const MagicTooltipType1: React.FC<MagicTooltipProps> = ({ magicInfo, position, isVisible }) => {
+  const bgImage = useAsfImage("asf/ui/common/tipbox.asf", 0);
   const [bgSize, setBgSize] = useState({ width: 265, height: 270 });
 
-  // Get actual size from loaded image
   useEffect(() => {
     if (bgImage.dataUrl) {
       const img = new Image();
@@ -39,22 +34,16 @@ export const MagicTooltip: React.FC<MagicTooltipProps> = ({ magicInfo, position,
     }
   }, [bgImage.dataUrl]);
 
-  // Load magic image - 使用动态动画播放
   const magic = magicInfo?.magic;
   const magicImage = useAsfAnimation(magic?.image ?? null, true, true);
 
   if (!isVisible || !magicInfo) return null;
 
-  // Use actual background size
   const tooltipWidth = bgSize.width;
   const tooltipHeight = bgSize.height;
-
-  // Position tooltip to avoid going off screen
-  // TopAdjust=27 from config
   const adjustedX = Math.min(position.x + 10, window.innerWidth - tooltipWidth - 20);
   const adjustedY = Math.min(position.y + 27, window.innerHeight - tooltipHeight - 20);
 
-  // Build display data - matches ShowMagic method
   const name = magic?.name || "无名称";
   const level = `等级： ${magicInfo.level}`;
   const intro = magic?.intro || "无简介";
@@ -71,7 +60,6 @@ export const MagicTooltip: React.FC<MagicTooltipProps> = ({ magicInfo, position,
         pointerEvents: "none",
       }}
     >
-      {/* Background - tipbox.asf */}
       {bgImage.dataUrl ? (
         <img
           src={bgImage.dataUrl}
@@ -172,8 +160,7 @@ export const MagicTooltip: React.FC<MagicTooltipProps> = ({ magicInfo, position,
         {level}
       </div>
 
-      {/* Magic Intro - config [ToolTip_Type1_Item_Magic_Intro]:
-          Left=67, Top=210, Width=196, Height=120, Color=52,21,14,204 (brown) */}
+      {/* Magic Intro */}
       <div
         style={{
           position: "absolute",
@@ -194,6 +181,103 @@ export const MagicTooltip: React.FC<MagicTooltipProps> = ({ magicInfo, position,
       </div>
     </div>
   );
+};
+
+// ============= Type2 Magic Tooltip (text-based, semi-transparent bg) =============
+
+const MagicTooltipType2: React.FC<MagicTooltipProps> = ({ magicInfo, position, isVisible }) => {
+  const cfg = useToolTipType2Config();
+  const magic = magicInfo?.magic;
+
+  if (!isVisible || !magicInfo) return null;
+
+  const hPad = cfg.textHorizontalPadding;
+  const vPad = cfg.textVerticalPadding;
+  const lineHeight = 18;
+  const introLineH = 16;
+
+  const name = magic?.name || "无名称";
+  const levelText = `等级： ${magicInfo.level}`;
+  const intro = magic?.intro || "";
+
+  // Estimate height: name row + level row + intro lines + padding
+  const introLines = intro ? intro.split("\n").length : 0;
+  const tooltipHeight =
+    vPad * 2 + lineHeight + vPad + lineHeight + (introLines > 0 ? vPad + introLines * introLineH : 0) + vPad;
+
+  const tooltipWidth = cfg.width;
+  const adjustedX = Math.min(position.x + 10, window.innerWidth - tooltipWidth - 20);
+  const adjustedY = Math.min(position.y + 27, window.innerHeight - tooltipHeight - 20);
+
+  return (
+    <div
+      style={{
+        position: "fixed",
+        left: adjustedX,
+        top: adjustedY,
+        width: tooltipWidth,
+        minHeight: tooltipHeight,
+        zIndex: 10000,
+        pointerEvents: "none",
+        backgroundColor: colorToCSS(cfg.backgroundColor),
+        padding: `${vPad}px ${hPad}px`,
+        boxSizing: "border-box",
+        fontFamily: "SimSun, serif",
+        fontSize: 12,
+      }}
+    >
+      {/* Magic Name */}
+      <div
+        style={{
+          color: colorToCSS(cfg.magicNameColor),
+          lineHeight: `${lineHeight}px`,
+          whiteSpace: "nowrap",
+          overflow: "hidden",
+        }}
+      >
+        {name}
+      </div>
+
+      {/* Level */}
+      <div
+        style={{
+          marginTop: vPad,
+          color: colorToCSS(cfg.magicLevelColor),
+          lineHeight: `${lineHeight}px`,
+          whiteSpace: "nowrap",
+        }}
+      >
+        {levelText}
+      </div>
+
+      {/* Intro */}
+      {intro && (
+        <div
+          style={{
+            marginTop: vPad,
+            color: colorToCSS(cfg.magicIntroColor),
+            fontSize: 11,
+            lineHeight: `${introLineH}px`,
+            whiteSpace: "pre-wrap",
+            wordBreak: "break-word",
+          }}
+        >
+          {intro}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ============= Main MagicTooltip (routes to Type1 or Type2) =============
+
+export const MagicTooltip: React.FC<MagicTooltipProps> = (props) => {
+  const { useType } = useToolTipUseTypeConfig();
+
+  if (useType === 2) {
+    return <MagicTooltipType2 {...props} />;
+  }
+  return <MagicTooltipType1 {...props} />;
 };
 
 // ============= Magic Tooltip Manager State =============

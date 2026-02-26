@@ -27,6 +27,8 @@ interface DockedPanelProps {
   minWidth?: number;
   /** 最大宽度（默认 50vw） */
   maxWidth?: number;
+  /** 宽度变化时的回调（用于通知父组件调整游戏画布宽度） */
+  onWidthChange?: (width: number) => void;
   children: React.ReactNode;
 }
 
@@ -59,6 +61,7 @@ export function DockedPanel({
   defaultWidth = 420,
   minWidth = 280,
   maxWidth,
+  onWidthChange,
   children,
 }: DockedPanelProps) {
   const [width, setWidth] = useState(() => loadWidth(panelId) ?? defaultWidth);
@@ -71,6 +74,16 @@ export function DockedPanel({
   widthRef.current = width;
 
   const effectiveMaxWidth = maxWidth ?? Math.floor(window.innerWidth * 0.5);
+
+  // 通知父组件当前宽度
+  const onWidthChangeRef = useRef(onWidthChange);
+  onWidthChangeRef.current = onWidthChange;
+
+  useEffect(() => {
+    if (visible) {
+      onWidthChangeRef.current?.(width);
+    }
+  }, [visible, width]);
 
   const startResize = useCallback((e: React.MouseEvent) => {
     if (e.button !== 0) return;
