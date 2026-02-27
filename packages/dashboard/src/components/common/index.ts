@@ -20,9 +20,6 @@ export {
 export type { FormSectionProps } from "./FormSection";
 // Form Section
 export { FormSection } from "./FormSection";
-export type { DroppedFile, ImportIniModalProps, ImportResult } from "./ImportIniModal";
-// Import INI Modal
-export { BatchItemRow, ImportIniModal, readDroppedFiles } from "./ImportIniModal";
 export type { LazyAsfIconProps } from "./LazyAsfIcon";
 // Lazy ASF Icon
 export { LazyAsfIcon } from "./LazyAsfIcon";

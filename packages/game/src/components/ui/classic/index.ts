@@ -14,6 +14,8 @@ export { BottomStateGui } from "./BottomStateGui";
 export type { ShopItemData } from "./BuyGui";
 export { BuyGui } from "./BuyGui";
 
+export { GambleGui } from "./GambleGui";
+
 // Dialog UI
 export { DialogUI } from "./DialogUI";
 // Equip GUI

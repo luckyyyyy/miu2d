@@ -229,30 +229,17 @@ const playerAddJusticeCommand: CommandHandler = (params, _result, _helpers) => {
 /**
  * Gamble - Gambling mini-game
  * Gamble(cost, type, $result)
- * Deducts `cost` money, randomly wins (50%) or loses.
- * Win: returns cost*2 (net gain = cost), sets result=1.
- * Loss: money stays deducted, sets result=0.
- * type: 0=猜大小, 1=骰子 (mini-game UI not yet implemented, uses random).
+ * Opens the dice mini-game UI. Deducts `cost` money before the player plays.
+ * Win: returns cost*2, sets result=1. Loss: sets result=0.
+ * type: 0=吕文才骰子, 1=赌场老板骰子
  */
-const gambleCommand: CommandHandler = (params, _result, helpers) => {
+const gambleCommand: CommandHandler = async (params, _result, helpers) => {
   const cost = parseInt(params[0] || "0", 10);
-  // params[1] is the game type — reserved for future mini-game UI
+  const npcType = parseInt(params[1] || "0", 10);
   const varName = (params[2] || "").trim().replace(/^\$/, "");
 
-  // Deduct the bet
-  if (cost > 0) {
-    helpers.api.player.addMoney(-cost);
-  }
-
-  // 50/50 random win or loss
-  const win = Math.random() < 0.5;
-
-  if (win) {
-    helpers.api.player.addMoney(cost * 2);
-    logger.info(`[Gamble] 赢！+${cost} 银两`);
-  } else {
-    logger.info(`[Gamble] 输！-${cost} 银两`);
-  }
+  const win = await helpers.api.script.showGamble(cost, npcType);
+  logger.info(`[Gamble] 结果: ${win ? "赢" : "输"}，${cost} 银两`);
 
   if (varName) {
     helpers.api.variables.set(varName, win ? 1 : 0);

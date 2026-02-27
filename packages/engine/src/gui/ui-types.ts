@@ -86,6 +86,7 @@ export interface GuiManagerState {
   isDragging: boolean;
   dragPosition: Vector2;
   isVisible: boolean;
+  gamble: { npcType: number; cost: number } | null;
 }
 
 // === 默认状态工厂 ===
@@ -155,6 +156,7 @@ export const createDefaultGuiState = (): GuiManagerState => ({
     title: false,
     timer: false,
     littleMap: false,
+    gamble: false,
   },
   tooltipText: "",
   tooltipVisible: false,
@@ -163,6 +165,7 @@ export const createDefaultGuiState = (): GuiManagerState => ({
   isDragging: false,
   dragPosition: { x: 0, y: 0 },
   isVisible: true,
+  gamble: null,
 });
 
 // === 热键配置 ===
@@ -449,6 +452,8 @@ export type UIAction =
   | { type: "MINIMAP_CLICK"; worldX: number; worldY: number }
   // 视频
   | { type: "VIDEO_END" }
+  // 赌博小游戏
+  | { type: "GAMBLE_DONE"; win: boolean }
   // 系统
   | { type: "SHOW_MESSAGE"; text: string }
   | { type: "SHOW_SYSTEM"; visible: boolean }

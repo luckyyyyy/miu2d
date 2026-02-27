@@ -17,8 +17,6 @@ export { DashboardIcons, Icon } from "./icons";
 export { GameGlobalConfigPage } from "./modules/gameConfig";
 // 物品编辑
 export { GoodsDetailPage, GoodsListPage } from "./modules/goods/GoodsPages";
-// 通用编辑器
-export { DetailEditorPage, ListEditorPage } from "./modules/ListEditorPage";
 // 等级配置
 export { LevelDetailPage, LevelListPage, StrengthConfigPage } from "./modules/level";
 // 武功编辑
@@ -49,7 +47,6 @@ export {
 } from "./modules/StatisticsPages";
 // 场景编辑
 export {
-  ImportScenesModal,
   SceneDetailPage,
   ScenesHomePage,
 } from "./modules/scenes";

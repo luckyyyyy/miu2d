@@ -309,4 +309,6 @@ export interface ScriptRunnerAPI {
   loadGame(index: number): Promise<void>;
   setInterfaceVisible(visible: boolean): void;
   saveGame(): void;
+  /** 打开赌博小游戏，等待玩家操作，返回是否赢 */
+  showGamble(cost: number, npcType: number): Promise<boolean>;
 }
