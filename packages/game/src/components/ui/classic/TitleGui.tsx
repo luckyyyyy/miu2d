@@ -22,6 +22,7 @@ import { useTitleGuiConfig } from "./useUISettings";
 interface TitleGuiProps {
   gameSlug?: string;
   gameName?: string;
+  logoUrl?: string;
   screenWidth?: number;
   screenHeight?: number;
   onNewGame: () => void;
@@ -512,7 +513,7 @@ const MenuButton: React.FC<MenuButtonProps> = ({ label, sub, onClick, primary = 
   );
 };
 
-const ModernTitle: React.FC<TitleGuiProps> = ({ gameName, onNewGame, onLoadGame }) => {
+const ModernTitle: React.FC<TitleGuiProps> = ({ gameName, logoUrl, onNewGame, onLoadGame }) => {
   const canvasRef = useParticles(60);
   const [titleVisible, setTitleVisible] = useState(false);
 
@@ -704,21 +705,36 @@ const ModernTitle: React.FC<TitleGuiProps> = ({ gameName, onNewGame, onLoadGame 
               animation: "linePulse 3s ease-in-out infinite",
             }}
           />
-          <h1
-            style={{
-              margin: 0,
-              fontFamily: '"STKaiti", "楷体", "KaiTi", "SimKai", serif',
-              fontSize: "clamp(2.6rem, 5vw, 4rem)",
-              fontWeight: 700,
-              letterSpacing: "0.18em",
-              color: "rgba(255, 242, 210, 0.97)",
-              animation: "titleGlow 4s ease-in-out infinite",
-              lineHeight: 1.2,
-              whiteSpace: "nowrap",
-            }}
-          >
-            {displayName}
-          </h1>
+          {logoUrl ? (
+            <img
+              src={logoUrl}
+              alt={displayName}
+              style={{
+                maxHeight: "clamp(3rem, 8vw, 5rem)",
+                maxWidth: "min(320px, 60vw)",
+                objectFit: "contain",
+                display: "block",
+                margin: "0 auto",
+                filter: "drop-shadow(0 0 16px rgba(200,160,60,0.5))",
+              }}
+            />
+          ) : (
+            <h1
+              style={{
+                margin: 0,
+                fontFamily: '"STKaiti", "楷体", "KaiTi", "SimKai", serif',
+                fontSize: "clamp(2.6rem, 5vw, 4rem)",
+                fontWeight: 700,
+                letterSpacing: "0.18em",
+                color: "rgba(255, 242, 210, 0.97)",
+                animation: "titleGlow 4s ease-in-out infinite",
+                lineHeight: 1.2,
+                whiteSpace: "nowrap",
+              }}
+            >
+              {displayName}
+            </h1>
+          )}
           <div
             style={{
               marginTop: 14,

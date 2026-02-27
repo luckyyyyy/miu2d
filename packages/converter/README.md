@@ -162,14 +162,15 @@ packages/converter/
 ├── package.json        # pnpm 脚本
 ├── README.md
 └── src/
-    ├── main.rs         # 主转换器
+    ├── main.rs         # asf2msf 主转换器
     └── bin/
-        ├── mpc2msf.rs     # MPC → MSF
-        ├── map2mmf.rs     # MAP → MMF
-        ├── convert_all.rs # 一键转换入口
-        ├── verify.rs      # ASF 逐像素验证
-        ├── verify_mpc.rs  # MPC 逐像素验证
-        └── scan_alpha.rs  # Alpha 使用扫描
+        ├── mpc2msf.rs           # MPC → MSF
+        ├── map2mmf.rs           # MAP → MMF
+        ├── convert_all.rs       # 一键转换入口
+        ├── verify.rs            # ASF 逐像素验证
+        ├── verify_mpc.rs        # MPC 逐像素验证
+        ├── scan_alpha.rs        # Alpha 使用扫描
+        └── bench_compression.rs # 压缩算法基准测试
 ```
 
 ---

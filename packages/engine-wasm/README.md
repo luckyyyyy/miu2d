@@ -1,6 +1,6 @@
 # @miu2d/engine-wasm
 
-Rust + WebAssembly 高性能模块，为 Miu2D 游戏引擎提供计算密集型功能，相比纯 JS 实现约 **10x** 性能提升。
+Rust + WebAssembly 高性能模块（2,644 行 Rust），为 Miu2D 游戏引擎提供计算密集型功能，相比纯 JS 实现约 **10x** 性能提升。
 
 ## 模块总览
 
@@ -149,7 +149,7 @@ packages/engine-wasm/
 ├── Cargo.toml              # Rust 依赖：wasm-bindgen, js-sys, web-sys, hashbrown, ruzstd
 ├── src/
 │   ├── lib.rs              # 入口 + zstd_decompress
-│   ├── pathfinder.rs       # A* 寻路（1186 行，最大模块）
+│   ├── pathfinder.rs       # A* 寻路（1,144 行，最大模块）
 │   ├── asf_decoder.rs      # ASF 精灵帧解码
 │   ├── mpc_decoder.rs      # MPC 地图瓦片解码
 │   ├── msf_codec.rs        # MSF v2 编解码

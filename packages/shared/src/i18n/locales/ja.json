@@ -112,10 +112,14 @@
   },
   "demo": {
     "title": "オンラインデモ",
-    "subtitle": "武侠RPG『月影伝説』Webリメイク版",
+    "subtitle": "武侠RPG Webリメイク版",
     "hint": "クリックで移動 · Shift押しながらダッシュ · Alt+クリックで軽功",
     "loading": "ゲーム読み込み中...",
-    "fullscreen": "フルスクリーン"
+    "fullscreen": "フルスクリーン",
+    "tabs": {
+      "sword1": "新・剣侠伝",
+      "yuying": "月影伝説"
+    }
   },
   "features": {
     "title": "強力なエンジン機能",

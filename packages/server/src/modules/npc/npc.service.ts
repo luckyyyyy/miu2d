@@ -393,11 +393,17 @@ export class NpcService {
     }
 
     // ── 批量 upsert NPC 资源 ─────────────────────────────────────────
+    // 去重：同一 key 可能出现多次（多个 NPC 共享同一资源），只保留最后一条
+    // PostgreSQL ON CONFLICT DO UPDATE 不允许 VALUES 中存在重复的冲突目标
+    const npcResRowsDeduped = [
+      ...new Map(npcResRows.map((r) => [`${r.gameId}::${r.key}`, r])).values(),
+    ];
+
     const npcResKeyToId = new Map<string, string>();
-    if (npcResRows.length > 0) {
+    if (npcResRowsDeduped.length > 0) {
       const upserted = await db
         .insert(npcResources)
-        .values(npcResRows)
+        .values(npcResRowsDeduped)
         .onConflictDoUpdate({
           target: [npcResources.gameId, npcResources.key],
           set: {

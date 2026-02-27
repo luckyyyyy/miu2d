@@ -99,8 +99,14 @@ export function GameListPage() {
               onClick={() => navigate(`/dashboard/${game.slug}`)}
               className="flex items-center gap-4 p-4 bg-[#252526] hover:bg-[#2a2d2e] border border-widget-border rounded-lg transition-colors text-left group"
             >
-              <div className="w-12 h-12 flex items-center justify-center bg-[#0e639c] rounded-lg text-white text-xl">
+              <div className="w-12 h-12 relative bg-[#0e639c] rounded-lg flex items-center justify-center text-white text-xl flex-shrink-0 overflow-hidden">
                 {DashboardIcons.game}
+                <img
+                  src={`/game/${game.slug}/api/logo`}
+                  alt=""
+                  className="absolute inset-0 w-full h-full object-contain"
+                  onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+                />
               </div>
               <div className="flex-1 min-w-0">
                 <h2 className="text-lg font-semibold text-white truncate group-hover:text-[#0098ff] transition-colors">

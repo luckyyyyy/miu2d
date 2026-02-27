@@ -23,7 +23,7 @@ import { trpc, useMobile } from "@miu2d/shared";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import type { ToolbarButton } from "../components";
-import { AuthModal, GameMenuPanel, GameTopBar, loadUITheme, TitleGui } from "../components";
+import { AuthModal, GameMenuPanel, GameTopBar, loadAudioSettings, loadUITheme, saveAudioSettings, TitleGui } from "../components";
 import { resetCachedUIConfigs } from "../components/ui/classic/useUISettings";
 import type { MenuTab } from "../components/GameMenuPanel";
 import type { UITheme } from "../components/ui";
@@ -123,11 +123,23 @@ export default function GameScreen() {
 
   // ===== 标题界面背景音乐 =====
   const titleAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  const getTitleMusicVolume = useCallback(
+    () => titleAudioRef.current?.volume ?? loadAudioSettings().musicVolume,
+    []
+  );
+  const setTitleMusicVolume = useCallback((v: number) => {
+    if (titleAudioRef.current) {
+      titleAudioRef.current.volume = v;
+    }
+    saveAudioSettings({ musicVolume: v });
+  }, []);
+
   useEffect(() => {
     if (gamePhase === "title" && titleMusic && gameSlug) {
       const audio = new Audio(getResourceUrl(`/game/${gameSlug}/resources/content/music/${titleMusic}`));
       audio.loop = true;
-      audio.volume = 0.7;
+      audio.volume = loadAudioSettings().musicVolume;
       titleAudioRef.current = audio;
       // 用户交互后才能自动播放，静默处理 NotAllowedError
       audio.play().catch(() => {
@@ -155,6 +167,19 @@ export default function GameScreen() {
     }
   }, [gamePhase, titleMusic, gameSlug]);
 
+  // ===== 离开游戏时恢复默认 favicon 和标题 =====
+  useEffect(() => {
+    return () => {
+      document.title = "Miu2D Engine";
+      document.querySelectorAll<HTMLLinkElement>("link[rel~='icon']").forEach((el) => el.remove());
+      const link = document.createElement("link");
+      link.rel = "icon";
+      link.href =
+        "data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎮</text></svg>";
+      document.head.appendChild(link);
+    };
+  }, []);
+
   // ===== 加载游戏配置和数据 =====
   useEffect(() => {
     if (!gameSlug) {
@@ -181,12 +206,15 @@ export default function GameScreen() {
         }
         if (config?.logoUrl) {
           setGameLogoUrl(config.logoUrl);
-          const link =
-            document.querySelector<HTMLLinkElement>("link[rel~='icon']") ||
-            document.createElement("link");
+          // Remove all existing favicon links then insert a fresh one
+          // (just updating href is often ignored by browsers due to caching)
+          document
+            .querySelectorAll<HTMLLinkElement>("link[rel~='icon']")
+            .forEach((el) => el.remove());
+          const link = document.createElement("link");
           link.rel = "icon";
-          link.href = config.logoUrl;
-          if (!link.parentNode) document.head.appendChild(link);
+          link.href = `${config.logoUrl}?_t=${Date.now()}`;
+          document.head.appendChild(link);
         }
         if (config?.titleMusic) {
           setTitleMusic(config.titleMusic);
@@ -431,6 +459,7 @@ export default function GameScreen() {
             <TitleGui
               gameSlug={gameSlug}
               gameName={gameName}
+              logoUrl={gameLogoUrl || undefined}
               screenWidth={window.innerWidth}
               screenHeight={window.innerHeight}
               onNewGame={handleNewGame}
@@ -465,6 +494,7 @@ export default function GameScreen() {
             onClose={() => setTitleMenuVisible(false)}
             activeTab={titleMenuTab}
             onTabChange={setTitleMenuTab}
+            logoUrl={gameLogoUrl || undefined}
             gameSlug={gameSlug}
             canSave={false}
             onCollectSaveData={() => null}
@@ -475,12 +505,12 @@ export default function GameScreen() {
               return true;
             }}
             settingsProps={{
-              getMusicVolume: () => 0.7,
-              setMusicVolume: () => {},
-              getSoundVolume: () => 1.0,
-              setSoundVolume: () => {},
-              getAmbientVolume: () => 1.0,
-              setAmbientVolume: () => {},
+              getMusicVolume: getTitleMusicVolume,
+              setMusicVolume: setTitleMusicVolume,
+              getSoundVolume: () => loadAudioSettings().soundVolume,
+              setSoundVolume: (v) => saveAudioSettings({ soundVolume: v }),
+              getAmbientVolume: () => loadAudioSettings().ambientVolume,
+              setAmbientVolume: (v) => saveAudioSettings({ ambientVolume: v }),
               isAutoplayAllowed: () => false,
               requestAutoplayPermission: async () => false,
               currentResolution: gameResolution,

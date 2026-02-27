@@ -20,7 +20,7 @@ import type {
 import { createDefaultMagicExpConfig, exportPortraitIni, mergeGameConfig } from "@miu2d/types";
 import { NumberInput } from "@miu2d/ui";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { ResourceFilePicker, ScriptEditor } from "../../components/common";
 import { MiniAsfPreview } from "../../components/common/ResourceFilePicker/AsfPreviewTooltip";
 import { buildResourcePath } from "../../components/common/ResourceFilePicker/types";
@@ -376,14 +376,57 @@ function BasicInfoPanel({
   gameSlug: string;
 }) {
   const toast = useToast();
-  const [logoPreview, setLogoPreview] = useState<string>(config.logoUrl || "");
+  const navigate = useNavigate();
+  const { currentGame, setCurrentGame } = useDashboard();
+  const utils = trpc.useUtils();
   const [isUploading, setIsUploading] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
 
-  // 同步外部 config 变化
+  // Logo 从 slug 派生的 URL，加时间戳刷新
+  const [logoTimestamp, setLogoTimestamp] = useState(() => Date.now());
+  const logoSrc = gameSlug ? `/game/${gameSlug}/api/logo?_t=${logoTimestamp}` : "";
+  const [logoExists, setLogoExists] = useState(true);
+
+  // 空间名称编辑
+  const [nameValue, setNameValue] = useState(currentGame?.name ?? "");
   useEffect(() => {
-    setLogoPreview(config.logoUrl || "");
-  }, [config.logoUrl]);
+    if (currentGame?.name) setNameValue(currentGame.name);
+  }, [currentGame?.name]);
+
+  // 空间路由编辑
+  const [slugValue, setSlugValue] = useState(currentGame?.slug ?? "");
+  const [slugError, setSlugError] = useState("");
+  const slugRegex = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+  const isSlugValid = slugValue.length > 0 && slugRegex.test(slugValue);
+
+  useEffect(() => {
+    if (currentGame?.slug) setSlugValue(currentGame.slug);
+  }, [currentGame?.slug]);
+
+  const updateGameMutation = trpc.game.update.useMutation({
+    onSuccess: (updated) => {
+      toast.success("空间信息已保存");
+      setCurrentGame(updated);
+      utils.game.list.invalidate();
+      if (updated.slug !== currentGame?.slug) {
+        navigate(`/dashboard/${updated.slug}/game/basic`, { replace: true });
+      }
+    },
+    onError: (err) => {
+      setSlugError(err.message);
+    },
+  });
+
+  const handleNameSave = useCallback(() => {
+    if (!currentGame || !nameValue.trim()) return;
+    updateGameMutation.mutate({ id: currentGame.id, name: nameValue.trim() });
+  }, [currentGame, nameValue, updateGameMutation]);
+
+  const handleSlugSave = useCallback(() => {
+    if (!currentGame || !isSlugValid) return;
+    setSlugError("");
+    updateGameMutation.mutate({ id: currentGame.id, slug: slugValue });
+  }, [currentGame, isSlugValid, slugValue, updateGameMutation]);
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -408,10 +451,9 @@ function BasicInfoPanel({
         throw new Error(err.error || "Upload failed");
       }
 
-      const data = await res.json();
-      const logoUrl = `${data.logoUrl}?_t=${Date.now()}`;
-      setLogoPreview(logoUrl);
-      updateConfig("logoUrl", data.logoUrl);
+      await res.json();
+      setLogoExists(true);
+      setLogoTimestamp(Date.now());
       toast.success("Logo 上传成功");
     } catch (err) {
       toast.error(`Logo 上传失败: ${err instanceof Error ? err.message : "Unknown error"}`);
@@ -430,8 +472,8 @@ function BasicInfoPanel({
         credentials: "include",
       });
       if (!res.ok) throw new Error("Delete failed");
-      setLogoPreview("");
-      updateConfig("logoUrl", "");
+      setLogoExists(false);
+      setLogoTimestamp(Date.now());
       toast.success("Logo 已删除");
     } catch (err) {
       toast.error("Logo 删除失败");
@@ -449,6 +491,113 @@ function BasicInfoPanel({
   return (
     <div className="space-y-4">
       <SectionTitle />
+
+      {/* 空间信息 */}
+      <FormCard>
+        <div className="space-y-4">
+          <div className="text-sm font-medium text-[#cccccc] pb-2 border-b border-panel-border">
+            空间信息
+          </div>
+          <Field label="空间名称" desc="即游戏名称，将显示在标题界面、顶栏和游戏列表中">
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={nameValue}
+                onChange={(e) => setNameValue(e.target.value)}
+                className={`${inputCls} flex-1`}
+                placeholder="游戏名称"
+                onKeyDown={(e) => e.key === "Enter" && handleNameSave()}
+              />
+              <button
+                type="button"
+                onClick={handleNameSave}
+                disabled={!nameValue.trim() || nameValue === currentGame?.name || updateGameMutation.isPending}
+                className="px-3 py-2 bg-[#0e639c] hover:bg-[#1177bb] text-white text-sm rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
+              >
+                {updateGameMutation.isPending ? "保存中..." : "保存"}
+              </button>
+            </div>
+          </Field>
+          <Field label="空间 Logo" desc="上传空间 Logo，将作为网页图标和游戏标题界面标识显示。支持 PNG、JPG、WebP 等格式，最大 5MB">
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 rounded-lg border border-widget-border bg-[#1a1a1a] flex items-center justify-center overflow-hidden flex-shrink-0">
+                {logoSrc && logoExists ? (
+                  <img src={logoSrc} alt="Logo" className="w-full h-full object-contain" onError={() => setLogoExists(false)} />
+                ) : (
+                  <svg viewBox="0 0 24 24" fill="currentColor" className="w-8 h-8 text-[#444]">
+                    <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z" />
+                  </svg>
+                )}
+              </div>
+              <div className="flex flex-col gap-2">
+                <input ref={logoInputRef} type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
+                <button
+                  type="button"
+                  onClick={() => logoInputRef.current?.click()}
+                  disabled={isUploading}
+                  className="px-3 py-1.5 text-xs bg-[#0e639c] hover:bg-[#1177bb] text-white rounded-lg transition-colors disabled:opacity-50"
+                >
+                  {isUploading ? "上传中..." : logoExists ? "更换 Logo" : "上传 Logo"}
+                </button>
+                {logoExists && (
+                  <button
+                    type="button"
+                    onClick={handleLogoDelete}
+                    disabled={isUploading}
+                    className="px-3 py-1.5 text-xs bg-[#3c3c3c] hover:bg-[#5a1d1d] text-[#858585] hover:text-[#f48771] rounded-lg transition-colors disabled:opacity-50"
+                  >
+                    删除 Logo
+                  </button>
+                )}
+              </div>
+            </div>
+          </Field>
+          <Field
+            label="空间路由（Slug）"
+            desc="游戏访问路径 /game/[slug] 及编辑器路径 /dashboard/[slug]。仅支持小写字母、数字和连字符"
+          >
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={slugValue}
+                onChange={(e) => {
+                  setSlugValue(e.target.value.toLowerCase());
+                  setSlugError("");
+                }}
+                className={`flex-1 px-3 py-2 bg-[#3c3c3c] border rounded-lg text-white text-sm focus:outline-none transition-colors ${
+                  slugValue && !isSlugValid
+                    ? "border-red-500 focus:border-red-500"
+                    : "border-widget-border focus:border-focus-border"
+                }`}
+                placeholder="my-game"
+                onKeyDown={(e) => e.key === "Enter" && handleSlugSave()}
+              />
+              <button
+                type="button"
+                onClick={handleSlugSave}
+                disabled={
+                  !isSlugValid ||
+                  slugValue === gameSlug ||
+                  updateGameMutation.isPending
+                }
+                className="px-3 py-2 bg-[#0e639c] hover:bg-[#1177bb] text-white text-sm rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
+              >
+                {updateGameMutation.isPending ? "保存中..." : "保存"}
+              </button>
+            </div>
+            {slugError && <p className="mt-1 text-xs text-red-400">{slugError}</p>}
+            {slugValue && !isSlugValid && (
+              <p className="mt-1 text-xs text-red-400">
+                仅支持小写字母、数字和连字符，不能以连字符开头或结尾
+              </p>
+            )}
+            {slugValue !== gameSlug && isSlugValid && (
+              <p className="mt-1 text-xs text-amber-400">⚠ 修改路由后，所有旧链接将失效</p>
+            )}
+          </Field>
+        </div>
+      </FormCard>
+
       <FormCard>
         <div className="space-y-4">
           <div className="flex items-center justify-between py-2 border-b border-panel-border mb-2">
@@ -472,14 +621,6 @@ function BasicInfoPanel({
               />
             </button>
           </div>
-          <Field label="游戏名称">
-            <input
-              type="text"
-              value={config.gameName}
-              onChange={(e) => updateConfig("gameName", e.target.value)}
-              className={inputCls}
-            />
-          </Field>
           <Field label="游戏版本">
             <input
               type="text"
@@ -495,51 +636,6 @@ function BasicInfoPanel({
               onChange={(e) => updateConfig("gameDescription", e.target.value)}
               className={`${inputCls} resize-none`}
             />
-          </Field>
-          <Field
-            label="游戏 Logo"
-            desc="上传游戏 Logo，将作为网页图标和游戏左上角标识显示。支持 PNG、JPG、WebP 等格式，最大 5MB"
-          >
-            <div className="flex items-center gap-4">
-              {/* 预览 */}
-              <div className="w-16 h-16 rounded-lg border border-widget-border bg-[#1a1a1a] flex items-center justify-center overflow-hidden flex-shrink-0">
-                {logoPreview ? (
-                  <img src={logoPreview} alt="Logo" className="w-full h-full object-contain" />
-                ) : (
-                  <svg viewBox="0 0 24 24" fill="currentColor" className="w-8 h-8 text-[#444]">
-                    <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z" />
-                  </svg>
-                )}
-              </div>
-              {/* 操作按钮 */}
-              <div className="flex flex-col gap-2">
-                <input
-                  ref={logoInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleLogoUpload}
-                  className="hidden"
-                />
-                <button
-                  type="button"
-                  onClick={() => logoInputRef.current?.click()}
-                  disabled={isUploading}
-                  className="px-3 py-1.5 text-xs bg-[#0e639c] hover:bg-[#1177bb] text-white rounded-lg transition-colors disabled:opacity-50"
-                >
-                  {isUploading ? "上传中..." : logoPreview ? "更换 Logo" : "上传 Logo"}
-                </button>
-                {logoPreview && (
-                  <button
-                    type="button"
-                    onClick={handleLogoDelete}
-                    disabled={isUploading}
-                    className="px-3 py-1.5 text-xs bg-[#3c3c3c] hover:bg-[#5a1d1d] text-[#858585] hover:text-[#f48771] rounded-lg transition-colors disabled:opacity-50"
-                  >
-                    删除 Logo
-                  </button>
-                )}
-              </div>
-            </div>
           </Field>
           <Field label="游戏主角" desc="新游戏开始时使用的主角角色配置">
             <select

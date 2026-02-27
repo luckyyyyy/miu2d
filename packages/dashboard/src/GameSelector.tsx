@@ -7,7 +7,6 @@ import { trpc } from "@miu2d/shared";
 import type { Game } from "@miu2d/types";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { GameSettingsModal } from "./components/GameSettingsModal";
 import { useDashboard } from "./DashboardContext";
 import { DashboardIcons } from "./icons";
 
@@ -20,7 +19,6 @@ interface GameSelectorProps {
 export function GameSelector({ games, isLoading = false, onCreateGame }: GameSelectorProps) {
   const { currentGame, setCurrentGame } = useDashboard();
   const [isOpen, setIsOpen] = useState(false);
-  const [settingsGame, setSettingsGame] = useState<Game | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const { gameId } = useParams();
@@ -100,18 +98,7 @@ export function GameSelector({ games, isLoading = false, onCreateGame }: GameSel
                       <span className="text-[#0098ff] text-xs shrink-0">当前</span>
                     )}
                   </button>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setIsOpen(false);
-                      setSettingsGame(game);
-                    }}
-                    title="空间设置"
-                    className="p-1 rounded hover:bg-[#4a4a4a] text-[#858585] hover:text-white transition-colors shrink-0"
-                  >
-                    {DashboardIcons.settings}
-                  </button>
+
                 </div>
               ))
             )}
@@ -135,10 +122,7 @@ export function GameSelector({ games, isLoading = false, onCreateGame }: GameSel
           </div>
         </div>
       )}
-      {/* 空间设置弹窗 */}
-      {settingsGame && (
-        <GameSettingsModal game={settingsGame} onClose={() => setSettingsGame(null)} />
-      )}
+
     </div>
   );
 }

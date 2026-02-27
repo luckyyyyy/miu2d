@@ -1,8 +1,9 @@
 <p align="center">
-  <img src="packages/web/public/favicon.svg" width="80" alt="Miu2D Logo" />
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="logo-dark.svg" />
+    <img src="logo.svg" width="300" alt="Miu2D Logo" />
+  </picture>
 </p>
-
-<h1 align="center">Miu2D Engine</h1>
 
 <p align="center">
   <b>A from-scratch 2D RPG engine — raw WebGL, zero game-framework dependencies</b>
@@ -14,7 +15,7 @@
 
 ---
 
-Miu2D is a **183,000-line** 2D RPG engine written in TypeScript and Rust, rendering through **raw WebGL** with no dependency on Unity, Godot, Phaser, PixiJS, or any other game framework. Every subsystem — sprite batching, A* pathfinding, binary format decoders, scripting VM, weather particles, screen effects — is implemented from first principles.
+Miu2D is a **160,000-line** 2D RPG engine written in TypeScript and Rust, rendering through **raw WebGL** with no dependency on Unity, Godot, Phaser, PixiJS, or any other game framework. Every subsystem — sprite batching, A* pathfinding, binary format decoders, scripting VM, weather particles, screen effects — is implemented from first principles.
 
 As a proof of concept, we used Miu2D to rebuild **"Legend of Yue Ying"** (剑侠情缘外传：月影传说), a classic Chinese wuxia RPG originally released by Kingsoft (西山居) in 2001, making the entire game playable in any modern browser.
 
@@ -59,10 +60,10 @@ Most web game projects reach for PixiJS, Phaser, or a WASM-compiled Unity/Godot 
 ```
  ┌────────────────────────────────────────────────────────────────┐
  │  React 19 UI Layer (3 themes: Classic / Modern / Mobile)      │
- │  29,070 LOC · 29 Classic + 24 Modern + 7 Mobile components    │
+ │  31,174 LOC · 29 Classic + 20 Modern + 7 Mobile components   │
  ├────────────────────────────────────────────────────────────────┤
  │  @miu2d/engine — Pure TypeScript, no React dependency         │
- │  57,210 LOC · 213 source files                                │
+ │  59,342 LOC · 213 source files · 19 sub-modules               │
  │  ┌──────────┬────────────┬───────────┬──────────────────────┐ │
  │  │ Renderer │  Script VM │ Character │ Magic (22 MoveKinds) │ │
  │  │ WebGL +  │  182 cmds  │ 7-level   │ projectile, AoE,    │ │
@@ -71,13 +72,13 @@ Most web game projects reach for PixiJS, Phaser, or a WASM-compiled Unity/Godot 
  │  └──────────┴────────────┴───────────┴──────────────────────┘ │
  ├────────────────────────────────────────────────────────────────┤
  │  @miu2d/engine-wasm — Rust → WebAssembly (2,644 LOC)         │
- │  A* pathfinder · ASF/MPC/MSF decoders · SpatialHash          │
+ │  A* pathfinder · ASF/MPC/MSF decoders · SpatialHash · zstd   │
  ├────────────────────────────────────────────────────────────────┤
- │  @miu2d/server — NestJS + tRPC + Drizzle ORM (12,863 LOC)    │
- │  22 PostgreSQL tables · 19 type-safe API routes               │
+ │  @miu2d/server — Hono + tRPC + Drizzle ORM (13,700 LOC)      │
+ │  22 PostgreSQL tables · 17 type-safe tRPC routers             │
  ├────────────────────────────────────────────────────────────────┤
- │  @miu2d/dashboard — Full game data editor (33,201 LOC)        │
- │  VS Code-style layout · 12+ editing modules                   │
+ │  @miu2d/dashboard — Full game data editor (34,731 LOC)        │
+ │  VS Code-style layout · 13 editing modules                    │
  └────────────────────────────────────────────────────────────────┘
 ```
 
@@ -90,10 +91,37 @@ Most web game projects reach for PixiJS, Phaser, or a WASM-compiled Unity/Godot 
 | Rendering | Raw WebGL API (Canvas 2D fallback) |
 | Audio | Web Audio API (OGG Vorbis) |
 | Performance | Rust → WebAssembly (wasm-bindgen, zero-copy) |
-| Backend | NestJS (ESM) · tRPC · Drizzle ORM |
+| Backend | Hono (lightweight HTTP) · tRPC 11 · Drizzle ORM |
 | Database | PostgreSQL 16 · MinIO / S3 |
+| Validation | Zod 4 (shared schemas across client & server) |
 | Quality | Biome (lint + format) · TypeScript strict mode |
 | Monorepo | pnpm workspaces (11 packages) |
+
+---
+
+## Engine Systems
+
+Miu2D implements **17 integrated ARPG subsystems** entirely from first principles:
+
+| System | Module | Highlights |
+|--------|--------|------------|
+| **Rendering** | `renderer/` | Raw WebGL sprite batcher (~4,800 tiles → 1–5 draw calls), Canvas2D fallback, GLSL color filters (poison / freeze / petrify), screen effects (fade, flash, water ripple) |
+| **Character** | `character/` | 7-level inheritance chain (Sprite → CharacterBase → Movement → Combat → Character → Player/NPC); stats, status flags, bezier-curve movement |
+| **Combat** | `character/` | Hit detection, damage formula, knockback, death & respawn, party/enemy faction logic |
+| **Magic / Skill** | `magic/` | 22 MoveKind trajectories (line, spiral, homing, AoE, summon, time-stop…) × 10 SpecialKind effects; per-level config, passive XiuLian system |
+| **NPC & AI** | `npc/` | Behavior state machine (idle / patrol / chase / flee / dead), interaction scripts, spatial grid for fast neighbor lookup |
+| **Player** | `player/` | Controller, inventory (goods system), equipment slots, magic slots, experience & leveling |
+| **Map** | `map/` | Multi-layer tile parsing, obstacle grid, trap zones, event areas, layer-sorted rendering |
+| **Script / Event** | `script/` | Custom VM: parser + async executor, 182 commands across 9 categories (dialog, player, NPC, state, audio, effects, objects, items, misc) |
+| **Pathfinding** | `wasm/` | Rust WASM A* with zero-copy shared memory; 5 strategies (greedy → full A*); ~0.2 ms per query, ≈10× faster than TS |
+| **Collision** | `wasm/` | SpatialHash in Rust/WASM for O(1) broad-phase entity queries |
+| **Audio** | `audio/` | Web Audio API manager: streamed BGM (OGG/MP3), positional SFX (WAV/OGG), fade transitions |
+| **Weather / Particles** | `weather/` | Wind-driven rain + splash + lightning flash; wobbling snowflakes; screen-droplet lens effect |
+| **Object / Prop** | `obj/` | Interactable scene objects (chests, doors, barriers, traps) with script hooks and sprite animation |
+| **GUI / HUD** | `gui/` | Dialog system (branching choices, portraits), shop/buy panel, mini-map, status bars, UI bridge to React |
+| **Inventory / Items** | `player/` | 10 goods categories, equip/unequip, use effects, loot drops with configurable drop tables |
+| **Save / Load** | `storage/` | Multiple save slots, full game-state serialization to IndexedDB + server-side cloud saves |
+| **Resource Loading** | `resource/` | Async loader for 8 binary formats (ASF, MPC, MAP, SHD, XNB, MSF, MMF, INI/OBJ); GBK/UTF-8 decoding |
 
 ---
 
@@ -101,7 +129,7 @@ Most web game projects reach for PixiJS, Phaser, or a WASM-compiled Unity/Godot 
 
 ### Renderer — Raw WebGL with Automatic Batching
 
-The renderer is **674 lines** of direct `WebGLRenderingContext` calls — no wrapper library.
+The renderer is **685 lines** of direct `WebGLRenderingContext` calls — no wrapper library.
 
 - **SpriteBatcher** — accumulates vertex data and flushes per texture change; typical map frame: ~4,800 tiles → 1–5 draw calls
 - **RectBatcher** — weather particles and UI rectangles batched into a single draw call
@@ -128,7 +156,7 @@ A custom **parser** tokenizes game script files; an **executor** interprets them
 
 Scripts drive the entire game narrative — cutscenes, branching dialogs, NPC spawning, map transitions, combat triggers, and weather changes.
 
-### Magic System — 22 Movement Types × 9 Special Effects
+### Magic System — 22 Movement Types × 10 Special Effects
 
 Every magic attack follows one of **22 MoveKind** trajectories, each with its own physics and rendering:
 
@@ -147,7 +175,7 @@ Every magic attack follows one of **22 MoveKind** trajectories, each with its ow
 | VMove | V-shaped diverging spread |
 | *...and 11 more* | |
 
-Combined with **9 SpecialKind** status effects (freeze, poison, petrify, invisibility, heal, transform…), this produces hundreds of unique spell combinations. The system includes 4 specialized sprite factories, a collision handler, and a passive effect manager.
+Combined with **10 SpecialKind** effects (freeze, poison, petrify, invisibility, heal, buff, transform, remove-debuff…), this produces hundreds of unique spell combinations. The system includes specialized sprite factories, a collision handler, and a passive effect manager (XiuLian/修炼).
 
 ### Pathfinding — Rust WASM, Zero-Copy Memory
 
@@ -176,7 +204,7 @@ The engine parses **8 binary file formats** from the original game — all rever
 
 ### Weather System — Particle-Driven
 
-**1,491 LOC** of particle physics and rendering:
+**1,533 LOC** of particle physics and rendering:
 
 - **Rain** — wind-affected particles with splash on contact, periodic lightning flash illuminating the scene
 - **Screen droplets** — simulated refraction/lens effect of water running down the camera
@@ -200,7 +228,7 @@ Sprite (615 LOC)
 
 ## Game Data Editor (Dashboard)
 
-The project includes a **33,201-line** VS Code-style game editor with Activity Bar, Sidebar, and Content panels:
+The project includes a **34,731-line** VS Code-style game editor with Activity Bar, Sidebar, and Content panels:
 
 | Module | What it edits |
 |--------|---------------|
@@ -212,30 +240,56 @@ The project includes a **33,201-line** VS Code-style game editor with Activity B
 | Dialog Editor | Branching conversation trees + portrait assignment |
 | Player Editor | Starting stats, equipment, skill slots |
 | Level Editor | Experience curves and stat growth |
+| Game Config | Global game settings (drops, player defaults) |
 | File Manager | Full file tree with drag-and-drop upload |
+| Resources | Resource browser and viewer integration |
 | Statistics | Data overview dashboard |
 
 ---
 
 ## Project Structure
 
-11 packages in a pnpm monorepo, **~183,000 lines** total:
+11 packages in a pnpm monorepo, **~160,000 lines** total:
 
 | Package | LOC | Role |
 |---------|----:|------|
-| `@miu2d/engine` | 57,210 | Pure TS game engine (no React dependency) |
-| `@miu2d/dashboard` | 33,201 | VS Code-style game data editor |
-| `@miu2d/game` | 29,070 | Game runtime with 3 UI themes (classic/modern/mobile) |
-| `@miu2d/server` | 12,863 | NestJS + tRPC backend (22 tables, 19 routes) |
-| `@miu2d/types` | 5,990 | Shared Zod schemas (18 domain modules) |
-| `@miu2d/web` | 4,874 | App shell, routing, landing page |
-| `@miu2d/converter` | 3,952 | Rust CLI: ASF/MPC → MSF, MAP → MMF batch conversion |
-| `@miu2d/viewer` | 3,104 | Resource viewers (ASF/Map/MPC/Audio) |
-| `@miu2d/engine-wasm` | 2,644 | Rust → WASM performance modules |
-| `@miu2d/ui` | 1,153 | Generic UI components (no business deps) |
-| `@miu2d/shared` | 999 | i18n, tRPC client, React contexts |
+| `@miu2d/engine` | 59,342 | Pure TS game engine — 19 modules, no React dependency |
+| `@miu2d/dashboard` | 34,731 | VS Code-style game data editor (13 modules) |
+| `@miu2d/game` | 31,174 | Game runtime with 3 UI themes (classic/modern/mobile) |
+| `@miu2d/server` | 13,700 | Hono + tRPC backend (22 tables, 17 routers) |
+| `@miu2d/types` | 6,412 | Shared Zod 4 schemas (18 domain modules) |
+| `@miu2d/web` | 4,872 | App shell, routing, landing page |
+| `@miu2d/converter` | 3,975 | Rust CLI: ASF/MPC → MSF, MAP → MMF batch conversion |
+| `@miu2d/viewer` | 3,151 | Resource viewers (ASF/Map/MPC/Audio) |
+| `@miu2d/engine-wasm` | 2,644 | Rust → WASM: pathfinder, decoders, spatial hash, zstd |
+| `@miu2d/ui` | 1,210 | Generic UI components (no business deps) |
+| `@miu2d/shared` | 981 | i18n, tRPC client, React contexts |
 
-Also included: `resources/` (game assets), `docs/` (format specs).
+### Engine Module Breakdown
+
+| Module | LOC | Responsibility |
+|--------|----:|----------------|
+| `magic/` | 8,702 | 22 MoveKind trajectories, effects, passives, sprite factories |
+| `character/` | 6,415 | 7-level inheritance chain, stats, combat, movement |
+| `runtime/` | 6,208 | GameEngine, GameManager, InputHandler, CameraController |
+| `script/` | 5,879 | 182-command scripting VM (parser + executor + 9 command categories) |
+| `player/` | 5,842 | Player controller, inventory, magic slots, equipment |
+| `gui/` | 3,921 | GUI manager, dialog system, buy interface, UI bridge |
+| `npc/` | 3,838 | NPC AI, interaction scripts, spatial grid, magic cache |
+| `resource/` | 2,950 | Resource loader, 8 binary format decoders |
+| `renderer/` | 2,838 | WebGL + Canvas2D renderers, sprite/rect batchers, GLSL shaders |
+| `storage/` | 2,121 | Save/load system, game state persistence |
+| `obj/` | 1,981 | Scene objects (chests, doors, traps), manager + renderer |
+| `map/` | 1,638 | Map parsing, obstacle grid, tile rendering, trap zones |
+| `weather/` | 1,533 | Rain, snow, screen droplets, lightning |
+| `wasm/` | 1,202 | WASM bridge layer (pathfinder, decoders, collision) |
+| `core/` | 1,110 | Engine context, types, logger, game API |
+| `utils/` | 989 | Direction, distance, collision, INI parser |
+| `sprite/` | 873 | Base sprite class, edge detection |
+| `audio/` | 781 | Web Audio API manager (OGG/MP3/WAV) |
+| `data/` | 485 | Data models and config definitions |
+
+Also included: `resources/` (game assets), `docs/` (format specs), `JxqyHD/` (43,293 LOC C# reference from the original engine).
 
 ---
 
@@ -244,8 +298,8 @@ Also included: `resources/` (game assets), `docs/` (format specs).
 **Requirements:** Node.js 18+, pnpm 9+, modern browser with WebGL
 
 ```bash
-git clone https://github.com/patchoulib/game-jxqy.git
-cd game-jxqy
+git clone https://github.com/nicologies/miu2d.git
+cd miu2d
 pnpm install
 pnpm dev            # → http://localhost:5173
 ```
@@ -263,9 +317,10 @@ make dev            # web + server + db studio concurrently
 |---------|---------|
 | `pnpm dev` | Frontend dev server (port 5173) |
 | `make dev` | Full-stack dev (web + server + db) |
-| `pnpm tsc` | Type check all packages |
+| `make tsc` | Type check all packages |
 | `pnpm lint` | Biome lint |
-| `make convert` | Batch convert game resources |
+| `make test` | Run engine tests (vitest) |
+| `make convert` | Batch convert game resources (Rust CLI) |
 | `make convert-verify` | Pixel-perfect conversion verification |
 
 ---
@@ -289,7 +344,7 @@ make dev            # web + server + db studio concurrently
 | Target | Method |
 |--------|--------|
 | **Frontend** | Vercel — `pnpm build:web` → static SPA |
-| **Full Stack** | Docker Compose — PostgreSQL + MinIO + NestJS + Nginx |
+| **Full Stack** | Docker Compose — PostgreSQL + MinIO + Hono + Nginx |
 
 See [deploy/](deploy/) for production Docker configs.
 

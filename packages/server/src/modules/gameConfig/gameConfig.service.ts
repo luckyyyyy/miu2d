@@ -101,7 +101,7 @@ export class GameConfigService {
    */
   async getPublicBySlug(gameSlug: string): Promise<GameConfigData> {
     const [game] = await db
-      .select({ id: games.id })
+      .select({ id: games.id, name: games.name, slug: games.slug })
       .from(games)
       .where(eq(games.slug, gameSlug))
       .limit(1);
@@ -123,12 +123,14 @@ export class GameConfigService {
       if (!config.gameEnabled) {
         return { gameEnabled: false } as GameConfigData;
       }
+      // workspace name/logo override config fields
+      const overrides = { gameName: game.name, logoUrl: `/game/${game.slug}/api/logo` };
       // playerKey 未设置时，不返回 player/drop/magicExp 配置
       if (!config.playerKey) {
         const { player: _, drop: __, magicExp: ___, ...rest } = config;
-        return rest;
+        return { ...rest, ...overrides };
       }
-      return config;
+      return { ...config, ...overrides };
     }
 
     // 无配置记录 → 默认未开放

@@ -112,11 +112,15 @@
   },
   "demo": {
     "title": "Live Demo",
-    "subtitle": "Classic Wuxia RPG 'Legend of Moon Shadow' Web Remake",
+    "subtitle": "Classic Wuxia RPG Web Remake",
     "copyright": "Game resources are copyrighted by Kingsoft. For demonstration purposes only, not for commercial use.",
     "hint": "Click to move · Hold Shift to run · Alt+click for Qinggong",
     "loading": "Loading game...",
-    "fullscreen": "Fullscreen"
+    "fullscreen": "Fullscreen",
+    "tabs": {
+      "sword1": "New Legend of the Swordsman",
+      "yuying": "Legend of Moon Shadow"
+    }
   },
   "features": {
     "title": "Powerful Engine Features",

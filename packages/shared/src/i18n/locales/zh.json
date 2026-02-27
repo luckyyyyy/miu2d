@@ -112,11 +112,15 @@
   },
   "demo": {
     "title": "在线体验",
-    "subtitle": "经典武侠 RPG 《月影传说》Web 复刻版",
+    "subtitle": "经典武侠 RPG Web 复刻版",
     "copyright": "游戏资源版权归西山居 Kingsoft 所有，仅演示使用，不作为商业目的",
     "hint": "点击画面移动角色 · 按住 Shift 奔跑 · Alt+点击地面 轻功",
     "loading": "游戏加载中...",
-    "fullscreen": "全屏游玩"
+    "fullscreen": "全屏游玩",
+    "tabs": {
+      "sword1": "新剑侠情缘",
+      "yuying": "月影传说"
+    }
   },
   "features": {
     "title": "强大的引擎能力",

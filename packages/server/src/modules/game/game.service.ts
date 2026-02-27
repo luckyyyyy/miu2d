@@ -21,6 +21,19 @@ const slugify = (value: string) =>
     .replace(/(^-|-$)+/g, "");
 
 export class GameService {
+  private async isOwner(gameId: string, userId: string): Promise<boolean> {
+    // Check direct ownerId or gameMembers role
+    const [member] = await db
+      .select({ role: gameMembers.role, ownerId: games.ownerId })
+      .from(gameMembers)
+      .innerJoin(games, eq(gameMembers.gameId, games.id))
+      .where(and(eq(gameMembers.gameId, gameId), eq(gameMembers.userId, userId)))
+      .limit(1);
+
+    if (!member) return false;
+    return member.role === "owner" || member.ownerId === userId || member.ownerId === null;
+  }
+
   async listByUser(userId: string) {
     const rows = await db
       .select()
@@ -120,7 +133,7 @@ export class GameService {
       });
     }
 
-    if (game.ownerId !== userId) {
+    if (!(await this.isOwner(id, userId))) {
       throw new TRPCError({
         code: "FORBIDDEN",
         message: getMessage(language, "errors.game.onlyOwnerCanUpdate"),
@@ -167,7 +180,7 @@ export class GameService {
       });
     }
 
-    if (game.ownerId !== userId) {
+    if (!(await this.isOwner(id, userId))) {
       throw new TRPCError({
         code: "FORBIDDEN",
         message: getMessage(language, "errors.game.onlyOwnerCanDelete"),

@@ -13,7 +13,7 @@ export function Footer() {
   const links = {
     project: [
       { label: t("nav.features"), href: "#features" },
-      { label: t("nav.demo"), href: "/game/demo" },
+      { label: t("nav.demo"), href: "/game/sword1" },
       { label: "Roadmap", href: "#" },
     ],
     resources: [

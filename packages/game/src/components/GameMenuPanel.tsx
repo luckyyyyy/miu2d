@@ -16,6 +16,7 @@ export interface GameMenuPanelProps {
   onClose: () => void;
   activeTab: MenuTab;
   onTabChange: (tab: MenuTab) => void;
+  logoUrl?: string;
 
   // ---- save props ----
   gameSlug: string;
@@ -43,6 +44,7 @@ export function GameMenuPanel({
   onClose,
   activeTab,
   onTabChange,
+  logoUrl,
   gameSlug,
   canSave,
   onCollectSaveData,
@@ -78,6 +80,13 @@ export function GameMenuPanel({
       >
         {/* Tab 头部 */}
         <div className="flex items-center border-b border-white/10 flex-shrink-0">
+          {logoUrl && (
+            <img
+              src={logoUrl}
+              alt=""
+              className="w-6 h-6 ml-4 mr-1 rounded object-contain flex-shrink-0 opacity-80"
+            />
+          )}
           <div className="flex flex-1">
             {TABS.map((tab) => (
               <button
