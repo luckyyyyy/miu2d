@@ -206,7 +206,8 @@ export default function GameScreen() {
           document.title = config.gameName;
         }
         if (config?.logoUrl) {
-          setGameLogoUrl(config.logoUrl);
+          const logoUrl = getResourceUrl(config.logoUrl);
+          setGameLogoUrl(logoUrl);
           // Remove all existing favicon links then insert a fresh one
           // (just updating href is often ignored by browsers due to caching)
           document
@@ -214,7 +215,7 @@ export default function GameScreen() {
             .forEach((el) => el.remove());
           const link = document.createElement("link");
           link.rel = "icon";
-          link.href = `${config.logoUrl}?_t=${Date.now()}`;
+          link.href = `${logoUrl}?_t=${Date.now()}`;
           document.head.appendChild(link);
         }
         if (config?.titleMusic) {
