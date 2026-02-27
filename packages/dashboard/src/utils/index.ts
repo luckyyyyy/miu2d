@@ -9,6 +9,7 @@ export {
   buildMagicIconUrl,
   buildResourceUrl,
   buildUIResourceUrl,
+  getGameApiUrl,
   getResourceRoot,
   rewriteAsfToMsf,
 } from "./resourcePath";

@@ -25,6 +25,7 @@ import { ResourceFilePicker, ScriptEditor } from "../../components/common";
 import { MiniAsfPreview } from "../../components/common/ResourceFilePicker/AsfPreviewTooltip";
 import { buildResourcePath } from "../../components/common/ResourceFilePicker/types";
 import { useDashboard } from "../../DashboardContext";
+import { getGameApiUrl } from "../../utils/resourcePath";
 
 // ========== 配置分类 ==========
 
@@ -395,7 +396,7 @@ function BasicInfoPanel({
 
     setIsUploading(true);
     try {
-      const res = await fetch(`/game/${gameSlug}/api/logo`, {
+      const res = await fetch(getGameApiUrl(gameSlug, "logo"), {
         method: "POST",
         headers: { "Content-Type": file.type },
         body: file,
@@ -424,7 +425,7 @@ function BasicInfoPanel({
     if (!gameSlug) return;
     setIsUploading(true);
     try {
-      const res = await fetch(`/game/${gameSlug}/api/logo`, {
+      const res = await fetch(getGameApiUrl(gameSlug, "logo"), {
         method: "DELETE",
         credentials: "include",
       });

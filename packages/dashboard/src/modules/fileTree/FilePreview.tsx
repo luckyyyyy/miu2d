@@ -25,6 +25,7 @@ import { XnbAudioViewer } from "@miu2d/viewer/components/XnbAudioViewer";
 import Editor, { loader } from "@monaco-editor/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useDashboard } from "../../DashboardContext";
+import { getResourceRoot } from "../../utils/resourcePath";
 import {
   defineJxqyScriptTheme,
   JXQY_SCRIPT_LANGUAGE_ID,
@@ -124,7 +125,7 @@ export function FilePreview({ file }: FilePreviewProps) {
   const getUploadUrlMutation = trpc.file.getUploadUrl.useMutation();
 
   // 构建资源根目录
-  const resourceRoot = currentGame ? `/game/${currentGame.slug}/resources` : undefined;
+  const resourceRoot = currentGame ? getResourceRoot(currentGame.slug) : undefined;
 
   // 通用状态
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);

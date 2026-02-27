@@ -31,6 +31,11 @@ export function getResourceDomain(): string {
     // 移除尾部斜杠
     return domain.replace(/\/+$/, "");
   }
+  // 生产部署时前端和后端不同源，回退到 VITE_API_URL
+  const apiUrl = import.meta.env.VITE_API_URL as string | undefined;
+  if (apiUrl) {
+    return apiUrl.replace(/\/+$/, "");
+  }
   return "";
 }
 

@@ -7,12 +7,31 @@
  */
 
 /**
+ * 获取 API 基础 URL（生产部署时前端和后端不同源）
+ */
+function getApiBaseUrl(): string {
+  const apiUrl = import.meta.env.VITE_API_URL as string | undefined;
+  if (apiUrl) return apiUrl.replace(/\/+$/, "");
+  return "";
+}
+
+/**
  * 获取资源根路径
  * @param gameSlug 游戏标识符
- * @returns 资源根路径，例如 /game/william-chan/resources
+ * @returns 资源根路径，例如 https://api.example.com/game/william-chan/resources
  */
 export function getResourceRoot(gameSlug: string): string {
-  return `/game/${gameSlug}/resources`;
+  return `${getApiBaseUrl()}/game/${gameSlug}/resources`;
+}
+
+/**
+ * 获取游戏 API URL
+ * @param gameSlug 游戏标识符
+ * @param path API 路径，如 "logo"
+ * @returns 完整的 API URL
+ */
+export function getGameApiUrl(gameSlug: string, path: string): string {
+  return `${getApiBaseUrl()}/game/${gameSlug}/api/${path}`;
 }
 
 /**

@@ -21,6 +21,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { EntitySelectDialog } from "../../components/common/pickers/EntitySelectDialog";
 import { useDashboard } from "../../DashboardContext";
+import { getResourceRoot } from "../../utils/resourcePath";
 import { useNpcSimulation } from "../../hooks/useNpcSimulation";
 import { DashboardIcons } from "../../icons";
 import { ContextMenu } from "../fileTree/ContextMenu";
@@ -113,7 +114,7 @@ function SceneDetailContent() {
   } | null>(null);
 
   const mapName = scene?.mapFileName?.replace(/\.(map|mmf)$/i, "") ?? null;
-  const resourceRoot = gameSlug ? `/game/${gameSlug}/resources` : undefined;
+  const resourceRoot = gameSlug ? getResourceRoot(gameSlug) : undefined;
 
   const mapViewerRef = useRef<MapViewerHandle>(null);
 

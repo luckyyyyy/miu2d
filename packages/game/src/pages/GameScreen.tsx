@@ -16,6 +16,7 @@ import { initNpcLevelConfig } from "@miu2d/engine/character/level";
 import { logger } from "@miu2d/engine/core/logger";
 import { getGameConfig, loadGameConfig, loadGameData } from "@miu2d/engine/data";
 import { setResourcePaths } from "@miu2d/engine/resource";
+import { getResourceUrl } from "@miu2d/engine/resource/resource-paths";
 import { setUiSettingsIniContent } from "@miu2d/engine/gui/ui-settings";
 import type { SaveData } from "@miu2d/engine/storage";
 import { trpc, useMobile } from "@miu2d/shared";
@@ -124,7 +125,7 @@ export default function GameScreen() {
   const titleAudioRef = useRef<HTMLAudioElement | null>(null);
   useEffect(() => {
     if (gamePhase === "title" && titleMusic && gameSlug) {
-      const audio = new Audio(`/game/${gameSlug}/resources/content/music/${titleMusic}`);
+      const audio = new Audio(getResourceUrl(`/game/${gameSlug}/resources/content/music/${titleMusic}`));
       audio.loop = true;
       audio.volume = 0.7;
       titleAudioRef.current = audio;

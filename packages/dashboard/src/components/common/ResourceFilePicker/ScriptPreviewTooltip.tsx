@@ -5,6 +5,7 @@
 
 import Editor, { loader } from "@monaco-editor/react";
 import { useEffect, useState } from "react";
+import { getResourceRoot } from "../../../utils/resourcePath";
 import {
   defineJxqyScriptTheme,
   JXQY_SCRIPT_LANGUAGE_ID,
@@ -72,7 +73,7 @@ export function ScriptPreviewTooltip({
     const loadScript = async () => {
       try {
         // 需要 encodeURI 处理中文路径
-        const url = encodeURI(`/game/${gameSlug}/resources/${path.toLowerCase()}`);
+        const url = encodeURI(`${getResourceRoot(gameSlug)}/${path.toLowerCase()}`);
         const response = await fetch(url);
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}`);

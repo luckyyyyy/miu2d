@@ -7,6 +7,7 @@
 
 import { parseXnbAudio, xnbToAudioBuffer } from "@miu2d/engine/resource/format/xnb";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { getResourceRoot } from "../../../utils/resourcePath";
 
 interface AudioPreviewProps {
   /** 游戏 slug */
@@ -53,7 +54,7 @@ export function AudioPreview({ gameSlug, path, compact, autoPlay }: AudioPreview
       if (useOgg && finalPath.endsWith(".wav")) {
         finalPath = finalPath.replace(/\.wav$/, ".ogg");
       }
-      return `/game/${gameSlug}/resources/${finalPath}`;
+      return `${getResourceRoot(gameSlug)}/${finalPath}`;
     },
     [gameSlug]
   );
@@ -213,7 +214,7 @@ export function AudioPreview({ gameSlug, path, compact, autoPlay }: AudioPreview
       // 使用 XNB 解析器加载
       const loadXnb = async () => {
         try {
-          const url = `/game/${gameSlug}/resources/${lowerPath}`;
+          const url = `${getResourceRoot(gameSlug)}/${lowerPath}`;
           const response = await fetch(url);
           if (!response.ok) throw new Error(`HTTP ${response.status}`);
           const buffer = await response.arrayBuffer();

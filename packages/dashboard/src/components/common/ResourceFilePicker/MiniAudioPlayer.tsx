@@ -5,6 +5,7 @@
 
 import { parseXnbAudio, xnbToAudioBuffer } from "@miu2d/engine/resource/format/xnb";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { getResourceRoot } from "../../../utils/resourcePath";
 
 interface MiniAudioPlayerProps {
   gameSlug: string;
@@ -37,7 +38,7 @@ export function MiniAudioPlayer({ gameSlug, path }: MiniAudioPlayerProps) {
     setIsPlaying(false);
 
     const lowerPath = path.toLowerCase();
-    const url = `/game/${gameSlug}/resources/${lowerPath}`;
+    const url = `${getResourceRoot(gameSlug)}/${lowerPath}`;
 
     if (lowerPath.endsWith(".xnb")) {
       // XNB 格式
