@@ -22,6 +22,17 @@ export interface ScreenEffectsState {
   mapDrawColor: Color;
   spriteDrawColor: Color;
 
+  // Per-player luminance (SetPlayerLum command)
+  // 0 = player inherits scene brightness (default), 1-32 = extra glow
+  playerLum: number;
+
+  // Global scene luminance level (SetMainLum command), 0-32
+  mainLum: number;
+
+  // Fade target luminance (SetFadeLum command), 0-32
+  // Controls the target darkness of FadeIn/FadeOut transitions
+  fadeLum: number;
+
   // Screen flash
   isFlashing: boolean;
   flashColor: Color;
@@ -48,6 +59,9 @@ export class ScreenEffects {
       fadeTransparency: 0,
       mapDrawColor: { ...DEFAULT_COLOR },
       spriteDrawColor: { ...DEFAULT_COLOR },
+      playerLum: 32,
+      mainLum: 32,
+      fadeLum: 0,
       isFlashing: false,
       flashColor: { r: 255, g: 255, b: 255, a: 255 },
       flashDuration: 0,
@@ -128,11 +142,92 @@ export class ScreenEffects {
   }
 
   /**
+   * SetPlayerLum command — pure no-op.
+   * C++ reference: `void setPlayerLum(unsigned char lum) {}` (GameManager.h:222)
+   * The lum value is stored for completeness but never used visually.
+   */
+  setPlayerLum(level: number): void {
+    this.state.playerLum = Math.min(32, Math.max(0, level));
+  }
+
+  /** Get current player luminance (0-32) */
+  getPlayerLum(): number {
+    return this.state.playerLum;
+  }
+
+  /**
+   * SetFadeLum command — sets the target lum for FadeIn/FadeOut transitions.
+   * C++ formula (Weather.cpp:212-221):
+   *   fadeLum = l >= 31 ? 255 : l * 8
+   * At fadeLum=0 (default): FadeOut goes to full black, FadeIn comes from full black.
+   */
+  setFadeLum(level: number): void {
+    this.state.fadeLum = Math.min(32, Math.max(0, level));
+  }
+
+  /**
+   * Get the fade target transparency (0 = transparent, 1 = opaque black).
+   * C++ formula: internalFadeLum = fadeLum >= 31 ? 255 : fadeLum * 8
+   *             transparency = (255 - internalFadeLum) / 255
+   */
+  getFadeTargetTransparency(): number {
+    const l = this.state.fadeLum;
+    const internalLum = l >= 31 ? 255 : l * 8;
+    return (255 - internalLum) / 255;
+  }
+
+  /**
+   * SetMainLum command — controls scene darkness via a dark overlay.
+   * C++ formula (Weather.cpp:224-234):
+   *   lum = l >= 31 ? 255 : (l + 1) * 7 + 32
+   *   overlay alpha = (255 - lum) / 255
+   * Does NOT modify mapDrawColor / spriteDrawColor.
+   */
+  setMainLum(level: number): void {
+    this.state.mainLum = Math.min(32, Math.max(0, level));
+  }
+
+  /** Get current scene luminance (0-32) */
+  getMainLum(): number {
+    return this.state.mainLum;
+  }
+
+  /**
+   * Compute the dark overlay alpha for the current mainLum.
+   * Returns 0 when mainLum >= 31 (full brightness, no overlay).
+   */
+  private mainLumOverlayAlpha(): number {
+    const l = this.state.mainLum;
+    if (l >= 31) return 0;
+    const lum = (l + 1) * 7 + 32; // 0-255
+    return (255 - lum) / 255;
+  }
+
+  /**
+   * Draw the mainLum dark overlay on top of the scene.
+   * Must be called AFTER map/sprite rendering, BEFORE fade/flash overlays.
+   */
+  drawDarkOverlay(renderer: Renderer, width: number, height: number): void {
+    const alpha = this.mainLumOverlayAlpha();
+    if (alpha <= 0) return;
+    renderer.fillRect({
+      x: 0,
+      y: 0,
+      width,
+      height,
+      color: `rgba(0, 0, 0, ${alpha})`,
+    });
+  }
+
+  /**
    * Reset all colors to default
    */
   resetColors(): void {
     this.state.mapDrawColor = { ...DEFAULT_COLOR };
     this.state.spriteDrawColor = { ...DEFAULT_COLOR };
+    this.state.playerLum = 32;
+    this.state.mainLum = 32;
+    this.state.fadeLum = 0;
   }
 
   /**

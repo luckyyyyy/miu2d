@@ -21,6 +21,9 @@ export function createPlayerAPI(ctx: ScriptCommandContext, resolver: BlockingRes
     isMapObstacleForCharacter,
   } = ctx;
 
+  // In-memory snapshots for SavePlayer/LoadPlayer (shared across all scripts)
+  const playerSnapshots = new Map<string, Record<string, number>>();
+
   /**
    * C# Globals.PlayerKindCharacter 等效实现
    * 优先级: NPC with Kind=Player > ControledCharacter > ThePlayer
@@ -186,6 +189,12 @@ export function createPlayerAPI(ctx: ScriptCommandContext, resolver: BlockingRes
       player.addExp(amount);
     },
     getLevel: () => player?.level ?? 0,
+    setLevel: (level) => {
+      if (player) {
+        player.setLevelTo(level);
+        logger.log(`[GameAPI.player] setLevel: ${level}`);
+      }
+    },
     getStat: (stateName) => {
       if (!player) return 0;
       switch (stateName) {
@@ -298,6 +307,48 @@ export function createPlayerAPI(ctx: ScriptCommandContext, resolver: BlockingRes
           player.magicDirectionWhenBeAttacked = direction;
         }
       }
+    },
+
+    // In-memory snapshot (for SavePlayer / LoadPlayer commands)
+    saveSnapshot: (key) => {
+      if (!player) return;
+      const snapshot = {
+        level: player.level,
+        life: player.life,
+        lifeMax: player.lifeMax,
+        mana: player.mana,
+        manaMax: player.manaMax,
+        thew: player.thew,
+        thewMax: player.thewMax,
+        attack: player.attack,
+        defend: player.defend,
+        evade: player.evade,
+        exp: player.exp,
+        money: player.money,
+      };
+      playerSnapshots.set(key, snapshot);
+      logger.log(`[GameAPI.player] saveSnapshot: key=${key}`);
+    },
+    loadSnapshot: (key) => {
+      if (!player) return;
+      const snapshot = playerSnapshots.get(key);
+      if (!snapshot) {
+        logger.warn(`[GameAPI.player] loadSnapshot: no snapshot for key=${key}`);
+        return;
+      }
+      player.level = snapshot.level;
+      player.life = snapshot.life;
+      player.lifeMax = snapshot.lifeMax;
+      player.mana = snapshot.mana;
+      player.manaMax = snapshot.manaMax;
+      player.thew = snapshot.thew;
+      player.thewMax = snapshot.thewMax;
+      player.attack = snapshot.attack;
+      player.defend = snapshot.defend;
+      player.evade = snapshot.evade;
+      player.exp = snapshot.exp;
+      player.setMoney(snapshot.money);
+      logger.log(`[GameAPI.player] loadSnapshot: key=${key}`);
     },
   };
 }

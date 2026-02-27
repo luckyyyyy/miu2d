@@ -12,6 +12,9 @@ import type { ScriptCommandContext } from "./types";
 export function createGoodsAPI(ctx: ScriptCommandContext, resolver: BlockingResolver): GoodsAPI {
   const { player, guiManager, buyManager, goodsListManager, getCharacterByName } = ctx;
 
+  // In-memory snapshots for SaveGoods/LoadGoods
+  const goodsSnapshots = new Map<string, Array<{ fileName: string; count: number } | null>>();
+
   return {
     add: (goodsName, count) => {
       let addedGood: { name: string } | null = null;
@@ -84,6 +87,36 @@ export function createGoodsAPI(ctx: ScriptCommandContext, resolver: BlockingReso
     setDropEnabled: (enabled) => {
       if (enabled) ctx.enableDrop();
       else ctx.disableDrop();
+    },
+    saveSnapshot: (key) => {
+      const snapshot: Array<{ fileName: string; count: number } | null> = [];
+      const items = goodsListManager.getStoreItems();
+      for (const item of items) {
+        if (item) {
+          snapshot.push({ fileName: item.good.fileName, count: item.count });
+        } else {
+          snapshot.push(null);
+        }
+      }
+      goodsSnapshots.set(key, snapshot);
+      logger.log(`[GoodsAPI] saveSnapshot: key=${key}, items=${snapshot.filter(Boolean).length}`);
+    },
+    loadSnapshot: (key) => {
+      const snapshot = goodsSnapshots.get(key);
+      if (!snapshot) {
+        logger.warn(`[GoodsAPI] loadSnapshot: no snapshot for key=${key}`);
+        return;
+      }
+      // Clear current goods and re-add from snapshot
+      goodsListManager.renewList();
+      for (const item of snapshot) {
+        if (item) {
+          for (let i = 0; i < item.count; i++) {
+            goodsListManager.addGoodToList(item.fileName);
+          }
+        }
+      }
+      logger.log(`[GoodsAPI] loadSnapshot: key=${key}`);
     },
   };
 }

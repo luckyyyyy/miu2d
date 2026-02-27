@@ -875,6 +875,7 @@ export class GameManager {
   // ============= Audio and Effects =============
 
   drawScreenEffects(renderer: Renderer, width: number, height: number): void {
+    this.screenEffects.drawDarkOverlay(renderer, width, height);
     this.screenEffects.drawFade(renderer, width, height);
     this.screenEffects.drawFlash(renderer, width, height);
   }

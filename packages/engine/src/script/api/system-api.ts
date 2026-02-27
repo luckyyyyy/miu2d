@@ -177,5 +177,23 @@ export function createScriptRunnerAPI(
       if (win && cost > 0) ctx.player.addMoney(cost * 2);
       return win;
     },
+    updateState: () => {
+      // Force UI to refresh all player state
+      ctx.guiManager.setInterfaceVisible(true);
+      logger.log("[ScriptRunnerAPI] UpdateState: forced UI refresh");
+    },
+    showMouseCursor: () => {
+      // Web browsers always show cursor; no-op but log for awareness
+      if (typeof document !== "undefined") {
+        document.body.style.cursor = "auto";
+      }
+      logger.log("[ScriptRunnerAPI] ShowMouseCursor");
+    },
+    hideMouseCursor: () => {
+      if (typeof document !== "undefined") {
+        document.body.style.cursor = "none";
+      }
+      logger.log("[ScriptRunnerAPI] HideMouseCursor");
+    },
   };
 }

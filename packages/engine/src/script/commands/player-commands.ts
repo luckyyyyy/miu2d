@@ -2,6 +2,7 @@
  * Player Commands - Movement, Stats, Combat
  * Based on JxqyHD Engine/Script/ScriptExecuter.cs
  */
+import { logger } from "../../core/logger";
 import type { CommandHandler, CommandRegistry } from "./types";
 
 /**
@@ -385,6 +386,17 @@ const setWalkIsRunCommand: CommandHandler = (params, _result, helpers) => {
 };
 
 /**
+ * SetPlayerLevel - Set player level directly
+ * SetPlayerLevel(level)
+ */
+const setPlayerLevelCommand: CommandHandler = (params, _result, helpers) => {
+  const level = helpers.resolveNumber(params[0] || "1");
+  helpers.api.player.setLevel(level);
+  logger.log(`[ScriptExecutor] SetPlayerLevel: ${level}`);
+  return true;
+};
+
+/**
  * PlayerChange - Change player character
  * Loader.ChangePlayer(int.Parse(parameters[0]))
  */
@@ -447,6 +459,12 @@ export function registerPlayerCommands(registry: CommandRegistry): void {
   registry.set("setplayermagictousewhenbeatacked", setPlayerMagicToUseWhenBeAttackedCommand);
   registry.set("setwalkisrun", setWalkIsRunCommand);
 
+  // Level
+  registry.set("setplayerlevel", setPlayerLevelCommand);
+
   // Player change
   registry.set("playerchange", playerChangeCommand);
+
+  // Typo alias: SetPlayrDir -> SetPlayerDir
+  registry.set("setplayrdir", setPlayerDirCommand);
 }

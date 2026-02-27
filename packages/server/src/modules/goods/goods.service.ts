@@ -35,6 +35,8 @@ export class GoodsService {
     >;
     return {
       ...data,
+      // Sanitize: empty string part from legacy INI imports → null
+      part: data.part || null,
       id: row.id,
       gameId: row.gameId,
       key: row.key,
@@ -114,7 +116,7 @@ export class GoodsService {
         key: row.key,
         name: (data.name as string) ?? "",
         kind: row.kind as GoodKind,
-        part: (data.part as GoodListItem["part"]) ?? null,
+        part: (data.part as GoodListItem["part"]) || null,
         icon: (data.icon as string) ?? null,
         cost: (data.cost as number) ?? null,
         life: (data.life as number) ?? null,
@@ -367,7 +369,7 @@ export class GoodsService {
           break;
         // 装备字段
         case "Part":
-          result.part = value as Good["part"];
+          result.part = value ? (value as Good["part"]) : null;
           break;
         case "LifeMax":
           result.lifeMax = value ? parseInt(value, 10) : null;

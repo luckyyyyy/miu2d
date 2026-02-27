@@ -84,6 +84,37 @@ const showSnowCommand: CommandHandler = (params, _result, helpers) => {
   return true;
 };
 
+/**
+ * ShowRandomSnow - Show random snow effect (no params)
+ * Calls ShowSnow(true) with randomized particle positions
+ */
+const showRandomSnowCommand: CommandHandler = (_params, _result, helpers) => {
+  helpers.api.effects.showRandomSnow();
+  return true;
+};
+
+/**
+ * SetMainLum - Set map ambient light level (0~31)
+ * SetMainLum(level)
+ * 31 = full brightness, 0 = pitch black
+ */
+const setMainLumCommand: CommandHandler = (params, _result, helpers) => {
+  const level = helpers.resolveNumber(params[0] || "31");
+  helpers.api.effects.setMainLum(level);
+  return true;
+};
+
+/**
+ * SetPlayerLum - Set player sprite brightness (0~31)
+ * SetPlayerLum(level)
+ * 0 = dark/off, 31 = full brightness
+ */
+const setPlayerLumCommand: CommandHandler = (params, _result, helpers) => {
+  const level = helpers.resolveNumber(params[0] || "0");
+  helpers.api.effects.setPlayerLum(level);
+  return true;
+};
+
 // ============= Camera Extended =============
 
 /**
@@ -195,6 +226,11 @@ export function registerEffectCommands(registry: CommandRegistry): void {
   registry.set("beginrain", beginRainCommand);
   registry.set("endrain", endRainCommand);
   registry.set("showsnow", showSnowCommand);
+  registry.set("showrandomsnow", showRandomSnowCommand);
+
+  // Luminance
+  registry.set("setmainlum", setMainLumCommand);
+  registry.set("setplayerlum", setPlayerLumCommand);
 
   // Camera extended
   registry.set("movescreenex", moveScreenExCommand);

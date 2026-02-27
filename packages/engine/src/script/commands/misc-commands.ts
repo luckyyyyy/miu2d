@@ -192,19 +192,96 @@ const randRunCommand: CommandHandler = async (params, _result, helpers) => {
 
 /**
  * HideBottomWnd - Hide the bottom window bar
- * Only used in orphaned scripts; stub only.
+ * Paired with ShowBottomWnd
  */
-const hideBottomWndCommand: CommandHandler = (_params, _result, _helpers) => {
-  logger.log("[ScriptExecutor] HideBottomWnd: stub (not implemented)");
+const hideBottomWndCommand: CommandHandler = (_params, _result, helpers) => {
+  helpers.api.script.setInterfaceVisible(false);
   return true;
 };
 
 /**
- * SetFadeLum - Set fade luminance
- * Only used in orphaned scripts; stub only.
+ * ShowBottomWnd - Show the bottom window bar
+ * Paired with HideBottomWnd
  */
-const setFadeLumCommand: CommandHandler = (params, _result, _helpers) => {
-  logger.log(`[ScriptExecutor] SetFadeLum: stub (value=${params[0] ?? "?"})`);
+const showBottomWndCommand: CommandHandler = (_params, _result, helpers) => {
+  helpers.api.script.setInterfaceVisible(true);
+  return true;
+};
+
+/**
+ * MessageBox - Show a simple message box
+ * MessageBox("text")
+ */
+const messageBoxCommand: CommandHandler = (params, _result, helpers) => {
+  const text = helpers.resolveString(params[0] || "");
+  helpers.api.dialog.showMessage(text);
+  return true;
+};
+
+/**
+ * UpdateState - Force refresh UI state panels
+ * UpdateState()
+ */
+const updateStateCommand: CommandHandler = (_params, _result, helpers) => {
+  helpers.api.script.updateState();
+  return true;
+};
+
+/**
+ * ShowMouseCursor - Show mouse cursor
+ */
+const showMouseCursorCommand: CommandHandler = (_params, _result, helpers) => {
+  helpers.api.script.showMouseCursor();
+  return true;
+};
+
+/**
+ * HideMouseCursor - Hide mouse cursor
+ */
+const hideMouseCursorCommand: CommandHandler = (_params, _result, helpers) => {
+  helpers.api.script.hideMouseCursor();
+  return true;
+};
+
+/**
+ * SaveGoods - Save goods to in-memory snapshot
+ * SaveGoods(key) or SaveGoods("path")
+ */
+const saveGoodsCommand: CommandHandler = (params, _result, helpers) => {
+  const key = helpers.resolveString(params[0] || "default");
+  helpers.api.goods.saveSnapshot(key);
+  return true;
+};
+
+/**
+ * LoadGoods - Load goods from in-memory snapshot
+ * LoadGoods(key) or LoadGoods("path")
+ */
+const loadGoodsCommand: CommandHandler = (params, _result, helpers) => {
+  const key = helpers.resolveString(params[0] || "default");
+  helpers.api.goods.loadSnapshot(key);
+  return true;
+};
+
+/**
+ * SavePlayer - Save player state to in-memory snapshot
+ * SavePlayer(key)
+ */
+const savePlayerCommand: CommandHandler = (params, _result, helpers) => {
+  const key = helpers.resolveString(params[0] || "default");
+  helpers.api.player.saveSnapshot(key);
+  return true;
+};
+
+/**
+ * SetFadeLum - Set fade luminance level (0-32)
+ * C++ ref: gm->global.data.fadeLum via Weather::setFadeLum()
+ * Formula: internalLum = l >= 31 ? 255 : l * 8
+ * Controls the darkness level at start/end of FadeIn/FadeOut.
+ */
+const setFadeLumCommand: CommandHandler = (params, _result, helpers) => {
+  const level = Number(params[0] ?? 0);
+  helpers.api.effects.setFadeLum(level);
   return true;
 };
 
@@ -277,9 +354,21 @@ export function registerMiscCommands(registry: CommandRegistry): void {
 
   // Stubs (orphaned scripts only)
   registry.set("hidebottomwnd", hideBottomWndCommand);
+  registry.set("showbottomwnd", showBottomWndCommand);
   registry.set("setfadelum", setFadeLumCommand);
   registry.set("playeraddemotion", playerAddEmotionCommand);
   registry.set("playeraddjustice", playerAddJusticeCommand);
+
+  // Message / UI
+  registry.set("messagebox", messageBoxCommand);
+  registry.set("updatestate", updateStateCommand);
+  registry.set("showmousecursor", showMouseCursorCommand);
+  registry.set("hidemousecursor", hideMouseCursorCommand);
+
+  // Goods / Player save (in-memory)
+  registry.set("savegoods", saveGoodsCommand);
+  registry.set("loadgoods", loadGoodsCommand);
+  registry.set("saveplayer", savePlayerCommand);
 
   // Gamble stub
   registry.set("gamble", gambleCommand);

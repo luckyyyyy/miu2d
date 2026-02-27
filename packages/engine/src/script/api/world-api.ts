@@ -81,6 +81,15 @@ export function createObjAPI(ctx: ScriptCommandContext): ObjAPI {
         obj.setOffset({ x, y });
       }
     },
+    setKind: (objName, kind) => {
+      const obj = objManager.getObj(objName) || objManager.getObjById(objName);
+      if (obj) {
+        obj.kind = kind;
+        logger.log(`[ObjAPI] SetObjKind: obj=${objName}, kind=${kind}`);
+      } else {
+        logger.warn(`[ObjAPI] SetObjKind: obj not found: ${objName}`);
+      }
+    },
   };
 }
 
@@ -184,6 +193,27 @@ export function createEffectsAPI(
     },
     showSnow: (show) => {
       weatherManager.showSnow(show);
+    },
+    showRandomSnow: () => {
+      // ShowRandomSnow() — same as ShowSnow(true) with randomized particles
+      weatherManager.showSnow(true);
+    },
+    setMainLum: (level) => {
+      // SetMainLum: dark overlay alpha = (255 - lum) / 255, lum = l>=31 ? 255 : (l+1)*7+32
+      // C++ ref: Weather::setLum() + engine->drawMask(dayMask)
+      screenEffects.setMainLum(level);
+      logger.log(`[EffectsAPI] SetMainLum: level=${level}`);
+    },
+    setPlayerLum: (level) => {
+      // SetPlayerLum: pure no-op in C++ reference.
+      // C++ ref: GameManager.h:222 — `void setPlayerLum(unsigned char lum) {}`
+      // Value stored only; no visual effect.
+      screenEffects.setPlayerLum(level);
+    },
+    setFadeLum: (level) => {
+      // SetFadeLum: sets FadeIn/FadeOut target darkness.
+      // C++ formula: internalLum = l >= 31 ? 255 : l * 8
+      screenEffects.setFadeLum(level);
     },
     petrify: (ms) => {
       if (player) {

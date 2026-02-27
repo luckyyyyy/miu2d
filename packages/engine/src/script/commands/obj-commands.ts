@@ -120,6 +120,18 @@ const setObjScriptCommand: CommandHandler = (params, _result, helpers) => {
 };
 
 /**
+ * SetObjKind - Set object kind (type)
+ * SetObjKind("objName", kind)
+ * kind: 0=Dynamic, 1=Static, 2=Body, 3=LoopingSound, 4=RandSound, 5=Door, 6=Trap, 7=Drop
+ */
+const setObjKindCommand: CommandHandler = (params, _result, helpers) => {
+  const objName = helpers.resolveString(params[0] || "");
+  const kind = helpers.resolveNumber(params[1] || "0");
+  helpers.api.obj.setKind(objName, kind);
+  return true;
+};
+
+/**
  * SaveObj - Save object state
  * saves current objects to save file
  */
@@ -191,6 +203,7 @@ export function registerObjCommands(registry: CommandRegistry): void {
   registry.set("openobj", openBoxCommand); // alias: OpenObj calls OpenBox
   registry.set("closebox", closeBoxCommand);
   registry.set("setobjscript", setObjScriptCommand);
+  registry.set("setobjkind", setObjKindCommand);
   registry.set("saveobj", saveObjCommand);
   registry.set("setobjofs", setObjOfsCommand);
   registry.set("clearbody", clearBodyCommand);

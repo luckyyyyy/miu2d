@@ -76,6 +76,7 @@ export interface PlayerAPI {
   addMoveSpeedPercent(percent: number): void;
   isEquipWeapon(): boolean;
   getLevel(): number;
+  setLevel(level: number): void;
 
   // Abilities
   setFightEnabled(enabled: boolean): void;
@@ -84,6 +85,10 @@ export interface PlayerAPI {
 
   // Magic when attacked
   setMagicWhenAttacked(magicFile: string, direction: number): void;
+
+  // Save / Restore in-memory snapshot
+  saveSnapshot(key: string): void;
+  loadSnapshot(key: string): void;
 }
 
 // ===== NPC =====
@@ -152,6 +157,8 @@ export interface GoodsAPI {
   buy(buyFile: string, canSellSelfGoods: boolean): Promise<void>;
   setDropIni(name: string, dropFile: string): void;
   setDropEnabled(enabled: boolean): void;
+  saveSnapshot(key: string): void;
+  loadSnapshot(key: string): void;
 }
 
 // ===== Magic =====
@@ -201,6 +208,7 @@ export interface ObjAPI {
   clearBody(): void;
   getPosition(nameOrId: string): Vector2 | null;
   setOffset(objName: string, x: number, y: number): void;
+  setKind(objName: string, kind: number): void;
 }
 
 // ===== Camera =====
@@ -233,6 +241,10 @@ export interface EffectsAPI {
   beginRain(fileName: string): void;
   endRain(): void;
   showSnow(show: boolean): void;
+  showRandomSnow(): void;
+  setMainLum(level: number): void;
+  setPlayerLum(level: number): void;
+  setFadeLum(level: number): void;
   petrify(ms: number): void;
   poison(ms: number): void;
   frozen(ms: number): void;
@@ -309,6 +321,9 @@ export interface ScriptRunnerAPI {
   loadGame(index: number): Promise<void>;
   setInterfaceVisible(visible: boolean): void;
   saveGame(): void;
+  updateState(): void;
+  showMouseCursor(): void;
+  hideMouseCursor(): void;
   /** 打开赌博小游戏，等待玩家操作，返回是否赢 */
   showGamble(cost: number, npcType: number): Promise<boolean>;
 }
