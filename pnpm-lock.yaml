@@ -357,6 +357,9 @@ importers:
       '@miu2d/shared':
         specifier: workspace:*
         version: link:../shared
+      '@miu2d/types':
+        specifier: workspace:*
+        version: link:../types
       '@miu2d/ui':
         specifier: workspace:*
         version: link:../ui
