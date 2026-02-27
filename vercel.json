@@ -4,6 +4,9 @@
   "buildCommand": "pnpm build:web",
   "outputDirectory": "packages/web/dist",
   "framework": "vite",
+  "env": {
+    "VITE_API_URL": "https://miu2d.williamchan.me:10443"
+  },
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
   ]
