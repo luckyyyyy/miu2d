@@ -7,10 +7,14 @@
 import type {
   BatchImportPlayerInput,
   BatchImportPlayerResult,
+  ClearAllPlayersInput,
+  ClearAllPlayersResult,
   CreatePlayerInput,
   ImportPlayerInput,
   ListPlayerInput,
   Player,
+  PlayerInitialGood,
+  PlayerInitialMagic,
   PlayerListItem,
   UpdatePlayerInput,
 } from "@miu2d/types";
@@ -18,7 +22,7 @@ import { createDefaultPlayer } from "@miu2d/types";
 import { TRPCError } from "@trpc/server";
 import { and, eq, sql } from "drizzle-orm";
 import { db } from "../../db/client";
-import { games, players } from "../../db/schema";
+import { games, goods, magics, players } from "../../db/schema";
 import type { Language } from "../../i18n";
 import { getMessage } from "../../i18n";
 import { verifyGameAccess } from "../../utils/gameAccess";
@@ -228,6 +232,22 @@ export class PlayerService {
   }
 
   /**
+   * 清空游戏的所有玩家角色
+   */
+  async clearAll(
+    input: ClearAllPlayersInput,
+    userId: string,
+    language: Language
+  ): Promise<ClearAllPlayersResult> {
+    await verifyGameAccess(input.gameId, userId, language);
+    const deleted = await db
+      .delete(players)
+      .where(eq(players.gameId, input.gameId))
+      .returning({ id: players.id });
+    return { deletedCount: deleted.length };
+  }
+
+  /**
    * 从 INI 导入玩家角色
    */
   async importFromIni(
@@ -262,7 +282,7 @@ export class PlayerService {
   }
 
   /**
-   * 批量导入玩家角色
+   * 批量导入玩家角色（支持武功/物品 INI 和清空+导入）
    */
   async batchImportFromIni(
     input: BatchImportPlayerInput,
@@ -271,8 +291,18 @@ export class PlayerService {
   ): Promise<BatchImportPlayerResult> {
     await verifyGameAccess(input.gameId, userId, language);
 
+    // 清空现有角色
+    if (input.clearBeforeImport) {
+      await db.delete(players).where(eq(players.gameId, input.gameId));
+    }
+
+    // 预加载当前游戏的所有武功和物品，用于解析 iniFile 引用
+    const magicLookup = await this.buildMagicLookup(input.gameId);
+    const goodsLookup = await this.buildGoodsLookup(input.gameId);
+
     const success: BatchImportPlayerResult["success"] = [];
     const failed: BatchImportPlayerResult["failed"] = [];
+    const warnings: string[] = [];
 
     for (const item of input.items) {
       try {
@@ -286,6 +316,28 @@ export class PlayerService {
         const indexMatch = key.match(/Player(\d+)/i);
         const index = indexMatch ? parseInt(indexMatch[1], 10) : 0;
 
+        // 解析对应的武功 INI，并解析引用
+        const rawMagics = item.magicIniContent
+          ? this.parseMagicIni(item.magicIniContent)
+          : [];
+        const initialMagics = this.resolveMagicRefs(
+          rawMagics,
+          magicLookup,
+          item.fileName,
+          warnings,
+        );
+
+        // 解析对应的物品 INI，并解析引用
+        const rawGoods = item.goodsIniContent
+          ? this.parseGoodsIni(item.goodsIniContent)
+          : [];
+        const initialGoods = this.resolveGoodsRefs(
+          rawGoods,
+          goodsLookup,
+          item.fileName,
+          warnings,
+        );
+
         const player = await this.create(
           {
             gameId: input.gameId,
@@ -293,6 +345,8 @@ export class PlayerService {
             name: parsed.name ?? item.fileName.replace(/\.ini$/i, ""),
             index,
             ...parsed,
+            initialMagics,
+            initialGoods,
           },
           userId,
           language
@@ -312,7 +366,151 @@ export class PlayerService {
       }
     }
 
-    return { success, failed };
+    return { success, failed, warnings: warnings.length > 0 ? warnings : undefined };
+  }
+
+  /**
+   * 构建武功查找表：normalizedKey → dbKey, name → dbKey
+   */
+  private async buildMagicLookup(gameId: string): Promise<{
+    byKey: Map<string, string>;
+    byName: Map<string, string>;
+  }> {
+    const rows = await db
+      .select({ key: magics.key, name: magics.name })
+      .from(magics)
+      .where(eq(magics.gameId, gameId));
+
+    const byKey = new Map<string, string>();
+    const byName = new Map<string, string>();
+    for (const row of rows) {
+      byKey.set(row.key.toLowerCase(), row.key);
+      if (row.name) {
+        byName.set(row.name.toLowerCase(), row.key);
+      }
+    }
+    return { byKey, byName };
+  }
+
+  /**
+   * 构建物品查找表：normalizedKey → dbKey, name → dbKey
+   */
+  private async buildGoodsLookup(gameId: string): Promise<{
+    byKey: Map<string, string>;
+    byName: Map<string, string>;
+  }> {
+    const rows = await db
+      .select({
+        key: goods.key,
+        name: sql<string>`${goods.data}->>'name'`,
+      })
+      .from(goods)
+      .where(eq(goods.gameId, gameId));
+
+    const byKey = new Map<string, string>();
+    const byName = new Map<string, string>();
+    for (const row of rows) {
+      byKey.set(row.key.toLowerCase(), row.key);
+      if (row.name) {
+        byName.set(row.name.toLowerCase(), row.key);
+      }
+    }
+    return { byKey, byName };
+  }
+
+  /**
+   * 从 iniFile 文件名中提取中文名
+   * 如 "player-magic-清心咒.ini" → "清心咒"
+   * 如 "magic008_云蒸霞蔚.ini" → "云蒸霞蔚"
+   * 如 "Goods214_灵芝草.ini" → "灵芝草"
+   */
+  private extractNameFromIniFile(iniFile: string): string | null {
+    // 去掉 .ini 后缀
+    const base = iniFile.replace(/\.ini$/i, "");
+    // 匹配: 前缀-中文 或 前缀_中文
+    const match = base.match(/[-_]([^\d_-][\u4e00-\u9fff\w]+)$/);
+    if (match) return match[1];
+    // 最后一段
+    const parts = base.split(/[-_]/);
+    const last = parts[parts.length - 1];
+    if (last && /[\u4e00-\u9fff]/.test(last)) return last;
+    return null;
+  }
+
+  /**
+   * 解析武功引用：精确 key 匹配 → 名称回退匹配
+   */
+  private resolveMagicRefs(
+    parsed: PlayerInitialMagic[],
+    lookup: { byKey: Map<string, string>; byName: Map<string, string> },
+    playerFile: string,
+    warnings: string[],
+  ): PlayerInitialMagic[] {
+    return parsed.map((m) => {
+      const normalizedKey = m.iniFile.toLowerCase();
+
+      // 1. 精确 key 匹配（大小写不敏感）
+      const exactMatch = lookup.byKey.get(normalizedKey);
+      if (exactMatch) {
+        return { ...m, iniFile: exactMatch };
+      }
+
+      // 2. 名称回退匹配
+      const extractedName = this.extractNameFromIniFile(m.iniFile);
+      if (extractedName) {
+        const nameMatch = lookup.byName.get(extractedName.toLowerCase());
+        if (nameMatch) {
+          warnings.push(
+            `[${playerFile}] 武功 "${m.iniFile}" 未精确匹配，按名称"${extractedName}"匹配到 "${nameMatch}"`
+          );
+          return { ...m, iniFile: nameMatch };
+        }
+      }
+
+      // 3. 未匹配
+      warnings.push(
+        `[${playerFile}] 武功 "${m.iniFile}" 未在当前游戏中找到匹配（slot=${m.index}）`
+      );
+      return m;
+    });
+  }
+
+  /**
+   * 解析物品引用：精确 key 匹配 → 名称回退匹配
+   */
+  private resolveGoodsRefs(
+    parsed: PlayerInitialGood[],
+    lookup: { byKey: Map<string, string>; byName: Map<string, string> },
+    playerFile: string,
+    warnings: string[],
+  ): PlayerInitialGood[] {
+    return parsed.map((g) => {
+      const normalizedKey = g.iniFile.toLowerCase();
+
+      // 1. 精确 key 匹配（大小写不敏感）
+      const exactMatch = lookup.byKey.get(normalizedKey);
+      if (exactMatch) {
+        return { ...g, iniFile: exactMatch };
+      }
+
+      // 2. 名称回退匹配
+      const extractedName = this.extractNameFromIniFile(g.iniFile);
+      if (extractedName) {
+        const nameMatch = lookup.byName.get(extractedName.toLowerCase());
+        if (nameMatch) {
+          warnings.push(
+            `[${playerFile}] 物品 "${g.iniFile}" 未精确匹配，按名称"${extractedName}"匹配到 "${nameMatch}"`
+          );
+          return { ...g, iniFile: nameMatch };
+        }
+      }
+
+      // 3. 未匹配
+      warnings.push(
+        `[${playerFile}] 物品 "${g.iniFile}" 未在当前游戏中找到匹配（slot=${g.index ?? "auto"}）`
+      );
+      return g;
+    });
   }
 
   /**
@@ -490,6 +688,157 @@ export class PlayerService {
           result.secondAttack = value;
           break;
       }
+    }
+
+    return result;
+  }
+
+  /**
+   * 解析 MagicX.ini 内容 → PlayerInitialMagic[]
+   *
+   * 格式：
+   * [Head]
+   * Count=2
+   * [1]
+   * IniFile=player-magic-清心咒.ini
+   * Level=1
+   * Exp=0
+   * [2]
+   * IniFile=player-magic-烈火情天.ini
+   * Level=1
+   * Exp=0
+   */
+  parseMagicIni(content: string): PlayerInitialMagic[] {
+    const result: PlayerInitialMagic[] = [];
+    const lines = content.split(/\r?\n/);
+    let currentSection = "";
+    let currentSectionIndex = 0;
+    let currentItem: Partial<PlayerInitialMagic> = {};
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith("//") || trimmed.startsWith(";")) {
+        continue;
+      }
+
+      const sectionMatch = trimmed.match(/^\[(.+)\]$/);
+      if (sectionMatch) {
+        // 保存上一个条目
+        if (currentItem.iniFile) {
+          result.push({
+            iniFile: currentItem.iniFile,
+            index: currentItem.index ?? currentSectionIndex,
+            level: currentItem.level ?? 1,
+            exp: currentItem.exp ?? 0,
+          });
+        }
+        currentSection = sectionMatch[1].toUpperCase();
+        // 节名数字就是格子序号（如 [1], [2], [40], [61]）
+        const sectionNum = parseInt(sectionMatch[1], 10);
+        currentSectionIndex = Number.isNaN(sectionNum) ? 0 : sectionNum;
+        currentItem = {};
+        continue;
+      }
+
+      if (currentSection === "HEAD") continue;
+
+      const kvMatch = trimmed.match(/^([^=]+)=(.*)$/);
+      if (!kvMatch) continue;
+
+      const key = kvMatch[1].trim();
+      const value = kvMatch[2].trim();
+
+      switch (key) {
+        case "IniFile":
+          currentItem.iniFile = value;
+          break;
+        case "Level":
+          currentItem.level = parseInt(value, 10) || 1;
+          break;
+        case "Exp":
+          currentItem.exp = parseInt(value, 10) || 0;
+          break;
+      }
+    }
+
+    // 最后一个条目
+    if (currentItem.iniFile) {
+      result.push({
+        iniFile: currentItem.iniFile,
+        index: currentItem.index ?? currentSectionIndex,
+        level: currentItem.level ?? 1,
+        exp: currentItem.exp ?? 0,
+      });
+    }
+
+    return result;
+  }
+
+  /**
+   * 解析 GoodsX.ini 内容 → PlayerInitialGood[]
+   *
+   * 格式：
+   * [Head]
+   * Count=1
+   * [1]
+   * IniFile=goods-w12-桃木剑.ini
+   * Number=1
+   */
+  parseGoodsIni(content: string): PlayerInitialGood[] {
+    const result: PlayerInitialGood[] = [];
+    const lines = content.split(/\r?\n/);
+    let currentSection = "";
+    let currentSectionIndex = 0;
+    let currentItem: Partial<PlayerInitialGood> = {};
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith("//") || trimmed.startsWith(";")) {
+        continue;
+      }
+
+      const sectionMatch = trimmed.match(/^\[(.+)\]$/);
+      if (sectionMatch) {
+        // 保存上一个条目
+        if (currentItem.iniFile) {
+          result.push({
+            iniFile: currentItem.iniFile,
+            index: currentSectionIndex || undefined,
+            number: currentItem.number ?? 1,
+          });
+        }
+        currentSection = sectionMatch[1].toUpperCase();
+        const sectionNum = parseInt(sectionMatch[1], 10);
+        currentSectionIndex = Number.isNaN(sectionNum) ? 0 : sectionNum;
+        currentItem = {};
+        continue;
+      }
+
+      if (currentSection === "HEAD") continue;
+
+      const kvMatch = trimmed.match(/^([^=]+)=(.*)$/);
+      if (!kvMatch) continue;
+
+      const key = kvMatch[1].trim();
+      const value = kvMatch[2].trim();
+
+      switch (key) {
+        case "IniFile":
+          currentItem.iniFile = value;
+          break;
+        case "Number":
+          currentItem.number = parseInt(value, 10) || 1;
+          break;
+      }
+    }
+
+    // 最后一个条目
+    if (currentItem.iniFile) {
+      result.push({
+        iniFile: currentItem.iniFile,
+        index: currentSectionIndex || undefined,
+        number: currentItem.number ?? 1,
+      });
     }
 
     return result;

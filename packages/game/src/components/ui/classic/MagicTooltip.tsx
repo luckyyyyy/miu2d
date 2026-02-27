@@ -5,10 +5,15 @@
  * - Type2: Text-based (semi-transparent dark bg, colored text rows)
  */
 
-import { colorToCSS } from "@miu2d/engine/gui/ui-settings";
+import { colorToCSS, type UiColorRGBA } from "@miu2d/engine/gui/ui-settings";
+
+/** 强制 alpha=255，让文字完全不透明 */
+function solidColor(c: UiColorRGBA): string {
+  return `rgb(${c.r},${c.g},${c.b})`;
+}
 import type { MagicItemInfo } from "@miu2d/engine/magic";
 import type React from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useToolTipType2Config, useToolTipUseTypeConfig } from "./useUISettings";
 import { useAsfAnimation, useAsfImage } from "./hooks";
 
@@ -188,49 +193,68 @@ const MagicTooltipType1: React.FC<MagicTooltipProps> = ({ magicInfo, position, i
 const MagicTooltipType2: React.FC<MagicTooltipProps> = ({ magicInfo, position, isVisible }) => {
   const cfg = useToolTipType2Config();
   const magic = magicInfo?.magic;
+  const tooltipRef = useRef<HTMLDivElement>(null);
+
+  // Measure actual tooltip height and adjust position to stay within viewport
+  useLayoutEffect(() => {
+    const el = tooltipRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    let x = position.x + 10;
+    let y = position.y + 27;
+    if (x + rect.width > window.innerWidth - 10) {
+      x = window.innerWidth - rect.width - 10;
+    }
+    x = Math.max(10, x);
+    if (y + rect.height > window.innerHeight - 10) {
+      y = position.y - rect.height - 10;
+    }
+    y = Math.max(10, y);
+    el.style.left = `${x}px`;
+    el.style.top = `${y}px`;
+  }, [position, isVisible]);
 
   if (!isVisible || !magicInfo) return null;
 
-  const hPad = cfg.textHorizontalPadding;
-  const vPad = cfg.textVerticalPadding;
-  const lineHeight = 18;
-  const introLineH = 16;
+  const hPad = Math.max(cfg.textHorizontalPadding, 12);
+  const vPad = Math.max(cfg.textVerticalPadding, 10);
+  const lineHeight = 20;
+  const introLineH = 17;
 
   const name = magic?.name || "无名称";
   const levelText = `等级： ${magicInfo.level}`;
   const intro = magic?.intro || "";
 
-  // Estimate height: name row + level row + intro lines + padding
-  const introLines = intro ? intro.split("\n").length : 0;
-  const tooltipHeight =
-    vPad * 2 + lineHeight + vPad + lineHeight + (introLines > 0 ? vPad + introLines * introLineH : 0) + vPad;
-
   const tooltipWidth = cfg.width;
-  const adjustedX = Math.min(position.x + 10, window.innerWidth - tooltipWidth - 20);
-  const adjustedY = Math.min(position.y + 27, window.innerHeight - tooltipHeight - 20);
 
   return (
     <div
+      ref={tooltipRef}
       style={{
         position: "fixed",
-        left: adjustedX,
-        top: adjustedY,
+        left: position.x + 10,
+        top: position.y + 27,
         width: tooltipWidth,
-        minHeight: tooltipHeight,
         zIndex: 10000,
         pointerEvents: "none",
         backgroundColor: colorToCSS(cfg.backgroundColor),
+        backdropFilter: "blur(12px)",
+        WebkitBackdropFilter: "blur(12px)",
+        border: "1px solid rgba(255,255,255,0.15)",
+        borderRadius: 6,
+        boxShadow: "0 4px 20px rgba(0,0,0,0.5)",
         padding: `${vPad}px ${hPad}px`,
         boxSizing: "border-box",
         fontFamily: "SimSun, serif",
-        fontSize: 12,
+        fontSize: 13,
       }}
     >
       {/* Magic Name */}
       <div
         style={{
-          color: colorToCSS(cfg.magicNameColor),
+          color: solidColor(cfg.magicNameColor),
           lineHeight: `${lineHeight}px`,
+          fontWeight: 600,
           whiteSpace: "nowrap",
           overflow: "hidden",
         }}
@@ -238,11 +262,13 @@ const MagicTooltipType2: React.FC<MagicTooltipProps> = ({ magicInfo, position, i
         {name}
       </div>
 
+      {/* Divider */}
+      <div style={{ margin: `${Math.round(vPad * 0.6)}px 0`, height: 1, background: "rgba(255,255,255,0.12)" }} />
+
       {/* Level */}
       <div
         style={{
-          marginTop: vPad,
-          color: colorToCSS(cfg.magicLevelColor),
+          color: solidColor(cfg.magicLevelColor),
           lineHeight: `${lineHeight}px`,
           whiteSpace: "nowrap",
         }}
@@ -254,10 +280,11 @@ const MagicTooltipType2: React.FC<MagicTooltipProps> = ({ magicInfo, position, i
       {intro && (
         <div
           style={{
-            marginTop: vPad,
-            color: colorToCSS(cfg.magicIntroColor),
+            marginTop: Math.round(vPad * 0.5),
+            color: solidColor(cfg.magicIntroColor),
             fontSize: 11,
             lineHeight: `${introLineH}px`,
+            opacity: 0.85,
             whiteSpace: "pre-wrap",
             wordBreak: "break-word",
           }}

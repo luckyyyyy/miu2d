@@ -5,10 +5,15 @@
  * - Type2: Text-based (semi-transparent dark bg, colored text rows)
  */
 
-import { colorToCSS } from "@miu2d/engine/gui/ui-settings";
+import { colorToCSS, type UiColorRGBA } from "@miu2d/engine/gui/ui-settings";
+
+/** 强制 alpha=255，让文字完全不透明 */
+function solidColor(c: UiColorRGBA): string {
+  return `rgb(${c.r},${c.g},${c.b})`;
+}
 import type { Good } from "@miu2d/engine/player/goods";
 import type React from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useToolTipType2Config, useToolTipUseTypeConfig } from "./useUISettings";
 import { useAsfImage } from "./hooks";
 
@@ -211,6 +216,7 @@ const ItemTooltipType2: React.FC<ItemTooltipProps> = ({
   isVisible,
 }) => {
   const cfg = useToolTipType2Config();
+  const tooltipRef = useRef<HTMLDivElement>(null);
 
   const effectText = useMemo(() => {
     if (!good) return "";
@@ -223,37 +229,61 @@ const ItemTooltipType2: React.FC<ItemTooltipProps> = ({
     return (isRecycle ? "回收价格： " : "价格： ") + price;
   }, [good, isRecycle, shopPrice]);
 
+  // Measure actual tooltip height and adjust position to stay within viewport
+  useLayoutEffect(() => {
+    const el = tooltipRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    let x = position.x + 10;
+    let y = position.y + 27;
+    if (x + rect.width > window.innerWidth - 10) {
+      x = window.innerWidth - rect.width - 10;
+    }
+    x = Math.max(10, x);
+    if (y + rect.height > window.innerHeight - 10) {
+      y = position.y - rect.height - 10;
+    }
+    y = Math.max(10, y);
+    el.style.left = `${x}px`;
+    el.style.top = `${y}px`;
+  }, [position, isVisible]);
+
   if (!isVisible || !good) return null;
 
-  const hPad = cfg.textHorizontalPadding;
-  const vPad = cfg.textVerticalPadding;
-  const lineH = 18;
+  const hPad = Math.max(cfg.textHorizontalPadding, 12);
+  const vPad = Math.max(cfg.textVerticalPadding, 10);
+  const lineH = 20;
 
   const tooltipWidth = cfg.width;
-  const adjustedX = Math.min(position.x + 10, window.innerWidth - tooltipWidth - 20);
-  const adjustedY = Math.min(position.y + 27, window.innerHeight - 20);
 
   return (
     <div
+      ref={tooltipRef}
       style={{
         position: "fixed",
-        left: adjustedX,
-        top: adjustedY,
+        left: position.x + 10,
+        top: position.y + 27,
         width: tooltipWidth,
         zIndex: 10000,
         pointerEvents: "none",
         backgroundColor: colorToCSS(cfg.backgroundColor),
+        backdropFilter: "blur(12px)",
+        WebkitBackdropFilter: "blur(12px)",
+        border: "1px solid rgba(255,255,255,0.15)",
+        borderRadius: 6,
+        boxShadow: "0 4px 20px rgba(0,0,0,0.5)",
         padding: `${vPad}px ${hPad}px`,
         boxSizing: "border-box",
         fontFamily: "SimSun, serif",
-        fontSize: 12,
+        fontSize: 13,
       }}
     >
       {/* Item Name */}
       <div
         style={{
-          color: colorToCSS(cfg.goodNameColor),
+          color: solidColor(cfg.goodNameColor),
           lineHeight: `${lineH}px`,
+          fontWeight: 600,
           whiteSpace: "nowrap",
           overflow: "hidden",
         }}
@@ -261,11 +291,13 @@ const ItemTooltipType2: React.FC<ItemTooltipProps> = ({
         {good.name || "无名称"}
       </div>
 
+      {/* Divider */}
+      <div style={{ margin: `${Math.round(vPad * 0.6)}px 0`, height: 1, background: "rgba(255,255,255,0.12)" }} />
+
       {/* Price */}
       <div
         style={{
-          marginTop: vPad,
-          color: colorToCSS(cfg.goodPriceColor),
+          color: solidColor(cfg.goodPriceColor),
           lineHeight: `${lineH}px`,
           whiteSpace: "nowrap",
         }}
@@ -277,8 +309,8 @@ const ItemTooltipType2: React.FC<ItemTooltipProps> = ({
       {effectText && (
         <div
           style={{
-            marginTop: vPad,
-            color: colorToCSS(cfg.goodPropertyColor),
+            marginTop: Math.round(vPad * 0.5),
+            color: solidColor(cfg.goodPropertyColor),
             lineHeight: `${lineH}px`,
             whiteSpace: "nowrap",
             overflow: "hidden",
@@ -292,10 +324,11 @@ const ItemTooltipType2: React.FC<ItemTooltipProps> = ({
       {good.intro && (
         <div
           style={{
-            marginTop: vPad,
-            color: colorToCSS(cfg.goodIntroColor),
+            marginTop: Math.round(vPad * 0.5),
+            color: solidColor(cfg.goodIntroColor),
             fontSize: 11,
-            lineHeight: "16px",
+            lineHeight: "17px",
+            opacity: 0.85,
             whiteSpace: "pre-wrap",
             wordBreak: "break-word",
           }}

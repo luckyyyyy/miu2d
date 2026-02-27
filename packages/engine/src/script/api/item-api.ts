@@ -28,9 +28,8 @@ export function createGoodsAPI(ctx: ScriptCommandContext, resolver: BlockingReso
     remove: (goodsName, count) => {
       goodsListManager.deleteGoodByName(goodsName, count);
     },
-    equip: (goodsIndex, equipSlot) => {
-      const equipIndex = equipSlot + 200;
-      goodsListManager.exchangeListItemAndEquiping(goodsIndex, equipIndex);
+    equip: (goodListIndex) => {
+      goodsListManager.equipGood(goodListIndex);
     },
     getCountByFile: (goodsFile) => goodsListManager.getGoodsNum(goodsFile),
     getCountByName: (goodsName) => goodsListManager.getGoodsNumByName(goodsName),

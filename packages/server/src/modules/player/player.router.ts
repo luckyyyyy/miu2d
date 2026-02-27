@@ -5,6 +5,8 @@
 import {
   BatchImportPlayerInputSchema,
   BatchImportPlayerResultSchema,
+  ClearAllPlayersInputSchema,
+  ClearAllPlayersResultSchema,
   CreatePlayerInputSchema,
   DeletePlayerInputSchema,
   GetPlayerInputSchema,
@@ -93,5 +95,14 @@ export class PlayerRouter {
     @Ctx() ctx: Context
   ) {
     return playerService.batchImportFromIni(input, ctx.userId!, ctx.language);
+  }
+
+  /**
+   * 清空所有玩家角色
+   */
+  @UseMiddlewares(requireUser)
+  @Mutation({ input: ClearAllPlayersInputSchema, output: ClearAllPlayersResultSchema })
+  async clearAll(input: z.infer<typeof ClearAllPlayersInputSchema>, @Ctx() ctx: Context) {
+    return playerService.clearAll(input, ctx.userId!, ctx.language);
   }
 }

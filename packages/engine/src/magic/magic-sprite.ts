@@ -124,6 +124,12 @@ export class MagicSprite extends Sprite {
   /** 调试标记 */
   _debugRendered: boolean = false;
 
+  /**
+   * 渲染器尚未初始化真实的 frameCountsPerDirection（ASF 帧数），
+   * 此时不应执行 resetPlay()，待渲染器首次设置帧数后自动触发。
+   */
+  needsResetPlay: boolean = true;
+
   // ============= Constructor =============
 
   /**
@@ -464,6 +470,7 @@ export class MagicSprite extends Sprite {
 
     // PlayFrames(count) 设置 _leftFrameToPlay = count
     this.playFrames(Math.max(1, framesToPlay));
+    this.needsResetPlay = false;
   }
 
   /**
@@ -475,6 +482,8 @@ export class MagicSprite extends Sprite {
     const nonFlyingKinds = [
       MagicMoveKind.NoMove,
       MagicMoveKind.FixedPosition,
+      MagicMoveKind.FixedWall,
+      MagicMoveKind.WallMove,
       MagicMoveKind.RegionBased,
       MagicMoveKind.FollowCharacter,
       MagicMoveKind.SuperMode,

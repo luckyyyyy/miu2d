@@ -425,6 +425,8 @@ export {
 export type {
   BatchImportPlayerInput,
   BatchImportPlayerResult,
+  ClearAllPlayersInput,
+  ClearAllPlayersResult,
   CreatePlayerInput,
   DeletePlayerInput,
   GetPlayerInput,
@@ -442,6 +444,8 @@ export {
   BatchImportPlayerInputSchema,
   BatchImportPlayerItemSchema,
   BatchImportPlayerResultSchema,
+  ClearAllPlayersInputSchema,
+  ClearAllPlayersResultSchema,
   CreatePlayerInputSchema,
   createDefaultPlayer,
   DeletePlayerInputSchema,

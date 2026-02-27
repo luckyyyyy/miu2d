@@ -137,7 +137,7 @@ export class CharacterMemoryManager {
             fileName: m.iniFile,
             level: m.level,
             exp: m.exp,
-            index: i + 1, // 从 1 开始分配位置
+            index: m.index ?? i + 1,
           }));
           await loadMagicsFromJSON(magicItems, 0, magicInventory);
           magicLoaded = true;
@@ -174,6 +174,7 @@ export class CharacterMemoryManager {
           const goodsItems: GoodsItemData[] = apiPlayer.initialGoods.map((g) => ({
             fileName: g.iniFile,
             count: g.number,
+            index: g.index,
           }));
           loadGoodsFromJSON(goodsItems, [], goodsListManager);
           goodsLoaded = true;

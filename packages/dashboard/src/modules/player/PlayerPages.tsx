@@ -299,7 +299,11 @@ function InitialMagicsSection({
   const magics: PlayerInitialMagic[] = formData.initialMagics ?? [];
 
   const handleAdd = useCallback(() => {
-    updateField("initialMagics", [...magics, { iniFile: "", level: 1, exp: 0 }]);
+    // 自动计算下一个空闲格子序号
+    const usedIndices = new Set(magics.map((m) => m.index));
+    let nextIndex = 1;
+    while (usedIndices.has(nextIndex)) nextIndex++;
+    updateField("initialMagics", [...magics, { iniFile: "", index: nextIndex, level: 1, exp: 0 }]);
   }, [magics, updateField]);
 
   const handleRemove = useCallback(
@@ -352,9 +356,21 @@ function InitialMagicsSection({
                 key={index}
                 className="p-4 flex items-start gap-4 hover:bg-[#2a2d2e] transition-colors"
               >
-                {/* 序号 */}
-                <div className="w-6 h-6 rounded bg-[#3c3c3c] flex items-center justify-center text-xs text-[#808080] flex-shrink-0 mt-1">
-                  {index + 1}
+                {/* 格子序号 */}
+                <div className="flex flex-col items-center gap-1 flex-shrink-0 mt-1">
+                  <NumberInput
+                    min={1}
+                    value={magic.index}
+                    onChange={(val) => handleUpdateItem(index, { index: val ?? 1 })}
+                    className="w-12 text-center"
+                  />
+                  <span className="text-[10px] text-[#666]">
+                    {magic.index >= 40 && magic.index <= 44
+                      ? `快捷${magic.index - 40 + 1}`
+                      : magic.index === 61
+                        ? "修炼"
+                        : `存储${magic.index}`}
+                  </span>
                 </div>
 
                 {/* 武功选择器 + 参数 */}
@@ -416,7 +432,7 @@ function InitialMagicsSection({
         <p>
           初始武功对应存档 <code className="text-[#ce9178]">MagicX.ini</code> 文件，X 为角色索引。
         </p>
-        <p className="mt-1">每个武功有独立的等级和经验值，用于设定角色的起始武功配置。</p>
+        <p className="mt-1">格子序号 1-60 存储区，40-44 旧版快捷栏，61 修炼位。</p>
       </div>
     </div>
   );
@@ -490,9 +506,19 @@ function InitialGoodsSection({
                 key={index}
                 className="p-4 flex items-start gap-4 hover:bg-[#2a2d2e] transition-colors"
               >
-                {/* 序号 */}
-                <div className="w-6 h-6 rounded bg-[#3c3c3c] flex items-center justify-center text-xs text-[#808080] flex-shrink-0 mt-1">
-                  {index + 1}
+                {/* 格子序号 */}
+                <div className="flex flex-col items-center gap-1 flex-shrink-0 mt-1">
+                  <NumberInput
+                    min={1}
+                    value={item.index ?? index + 1}
+                    onChange={(val) => handleUpdateItem(index, { index: val ?? undefined })}
+                    className="w-12 text-center"
+                  />
+                  <span className="text-[10px] text-[#666]">
+                    {item.index && item.index >= 221 && item.index <= 223
+                      ? `快捷${item.index - 220}`
+                      : "背包"}
+                  </span>
                 </div>
 
                 {/* 物品选择器 + 数量 */}
@@ -549,7 +575,7 @@ function InitialGoodsSection({
         <p>
           初始物品对应存档 <code className="text-[#ce9178]">GoodsX.ini</code> 文件，X 为角色索引。
         </p>
-        <p className="mt-1">每个物品可设置数量，用于设定角色的起始背包物品。</p>
+        <p className="mt-1">格子序号 221-223 为快捷栏，其他为背包物品（自动分配）。</p>
       </div>
     </div>
   );

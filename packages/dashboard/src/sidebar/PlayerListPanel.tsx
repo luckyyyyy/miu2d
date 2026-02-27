@@ -1,5 +1,6 @@
 /**
  * 玩家角色列表侧边栏面板
+ * 支持从 save/game/ 目录导入 PlayerX.ini + MagicX.ini + GoodsX.ini
  */
 
 import { trpc } from "@miu2d/shared";
@@ -13,6 +14,14 @@ import {
 } from "../components/common";
 import { useDashboard } from "../DashboardContext";
 import { DashboardIcons } from "../icons";
+
+/** 批量导入项：包含 PlayerX.ini + 对应的 MagicX.ini / GoodsX.ini */
+interface PlayerImportItem {
+  fileName: string;
+  iniContent: string;
+  magicIniContent?: string;
+  goodsIniContent?: string;
+}
 
 export function PlayerListPanel({ basePath }: { basePath: string }) {
   const { currentGame } = useDashboard();
@@ -33,6 +42,12 @@ export function PlayerListPanel({ basePath }: { basePath: string }) {
       setShowImportModal(false);
       if (result.success.length > 0) {
         navigate(`${basePath}/${result.success[0].id}`);
+      }
+      // 显示导入警告（武功/物品引用未匹配）
+      if (result.warnings && result.warnings.length > 0) {
+        const warnText = result.warnings.join("\n");
+        console.warn("[Player Import Warnings]", warnText);
+        alert(`导入成功，但有 ${result.warnings.length} 条引用警告：\n\n${warnText}`);
       }
     },
   });
@@ -109,19 +124,69 @@ export function PlayerListPanel({ basePath }: { basePath: string }) {
 
       {/* INI 导入模态框 */}
       {showImportModal && (
-        <ImportIniModal<{ fileName: string; iniContent: string }>
+        <ImportIniModal<PlayerImportItem>
           title="从 INI 导入角色"
           icon="🎮"
-          dropHint="拖放 PlayerX.ini 文件或文件夹到此处"
-          dropSubHint="支持批量导入"
+          dropHint="拖放 save/game/ 目录到此处"
+          dropSubHint="自动匹配 PlayerX.ini + MagicX.ini + GoodsX.ini"
           entityLabel="角色"
           onClose={() => setShowImportModal(false)}
-          onImport={(items) => batchImportMutation.mutate({ gameId: gameId!, items })}
+          onImport={(items) =>
+            batchImportMutation.mutate({
+              gameId: gameId!,
+              items,
+              clearBeforeImport: true,
+            })
+          }
           isLoading={batchImportMutation.isPending}
           batchResult={batchImportMutation.data ?? null}
           processFiles={async (dt) => {
-            const files = await readDroppedFiles(dt, (name) => /^player\d*\.ini$/i.test(name));
-            return files.map((f) => ({ fileName: f.fileName, iniContent: f.content }));
+            // 读取所有 .ini 文件
+            const allFiles = await readDroppedFiles(dt, (name) =>
+              /\.(ini)$/i.test(name)
+            );
+
+            // 按文件名分类
+            const playerFiles = new Map<number, string>(); // index → iniContent
+            const magicFiles = new Map<number, string>();
+            const goodsFiles = new Map<number, string>();
+            const playerFileNames = new Map<number, string>(); // index → fileName
+
+            for (const f of allFiles) {
+              const playerMatch = f.fileName.match(/^Player(\d+)\.ini$/i);
+              if (playerMatch) {
+                const idx = parseInt(playerMatch[1], 10);
+                playerFiles.set(idx, f.content);
+                playerFileNames.set(idx, f.fileName);
+                continue;
+              }
+              const magicMatch = f.fileName.match(/^Magic(\d+)\.ini$/i);
+              if (magicMatch) {
+                const idx = parseInt(magicMatch[1], 10);
+                magicFiles.set(idx, f.content);
+                continue;
+              }
+              const goodsMatch = f.fileName.match(/^Goods(\d+)\.ini$/i);
+              if (goodsMatch) {
+                const idx = parseInt(goodsMatch[1], 10);
+                goodsFiles.set(idx, f.content);
+                continue;
+              }
+            }
+
+            // 组装：Player + 对应 Magic + Goods
+            const items: PlayerImportItem[] = [];
+            for (const [idx, iniContent] of [...playerFiles.entries()].sort(
+              (a, b) => a[0] - b[0]
+            )) {
+              items.push({
+                fileName: playerFileNames.get(idx) ?? `Player${idx}.ini`,
+                iniContent,
+                magicIniContent: magicFiles.get(idx),
+                goodsIniContent: goodsFiles.get(idx),
+              });
+            }
+            return items;
           }}
           renderItem={(item, _i, onRemove) => (
             <BatchItemRow
@@ -133,6 +198,13 @@ export function PlayerListPanel({ basePath }: { basePath: string }) {
                   角色
                 </span>
               }
+              extra={
+                <span className="text-xs text-[#858585] ml-1">
+                  {item.magicIniContent ? "⚔️武功" : ""}
+                  {item.magicIniContent && item.goodsIniContent ? " · " : ""}
+                  {item.goodsIniContent ? "🎒物品" : ""}
+                </span>
+              }
             />
           )}
           renderSuccessItem={(s) => (
@@ -142,17 +214,19 @@ export function PlayerListPanel({ basePath }: { basePath: string }) {
           )}
           description={
             <div className="text-xs text-[#858585] bg-[#1e1e1e] p-3 rounded">
-              <p className="mb-1">支持拖入以下文件：</p>
+              <p className="mb-1">支持拖入以下文件或目录：</p>
               <ul className="list-disc list-inside space-y-0.5">
                 <li>
-                  <code className="text-[#ce9178]">Player0.ini</code> - 主角
+                  <code className="text-[#ce9178]">save/game/</code> 目录 - 自动匹配所有角色
                 </li>
                 <li>
-                  <code className="text-[#ce9178]">Player1.ini</code> - 伙伴角色
+                  <code className="text-[#ce9178]">Player0.ini</code> +{" "}
+                  <code className="text-[#ce9178]">Magic0.ini</code> +{" "}
+                  <code className="text-[#ce9178]">Goods0.ini</code>
                 </li>
               </ul>
-              <p className="mt-2">
-                可从 <code className="text-[#ce9178]">save/game/</code> 目录拖入整个文件夹
+              <p className="mt-2 text-yellow-400/80">
+                ⚠️ 导入将清空现有所有角色数据后重新导入
               </p>
             </div>
           }

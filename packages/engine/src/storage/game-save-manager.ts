@@ -317,7 +317,7 @@ export class Loader {
               fileName: m.iniFile,
               level: m.level,
               exp: m.exp,
-              index: i + 1,
+              index: m.index ?? i + 1,
             }));
             await loadMagicsFromJSON(magicItems, 0, magicInventory);
           }
@@ -325,6 +325,7 @@ export class Loader {
             const goodsItems: GoodsItemData[] = apiPlayerData.initialGoods.map((g) => ({
               fileName: g.iniFile,
               count: g.number,
+              index: g.index,
             }));
             loadGoodsFromJSON(goodsItems, [], goodsListManager);
           }

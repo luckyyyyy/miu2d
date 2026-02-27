@@ -13,6 +13,8 @@ import { z } from "zod";
 export const PlayerInitialMagicSchema = z.object({
   /** 武功配置文件名（key） */
   iniFile: z.string(),
+  /** 格子序号（1-60 存储区, 40-44 旧版快捷栏, 61 修炼） */
+  index: z.number().int().min(1).default(1),
   /** 武功等级 */
   level: z.number().int().min(1).default(1),
   /** 武功经验 */
@@ -24,6 +26,8 @@ export type PlayerInitialMagic = z.infer<typeof PlayerInitialMagicSchema>;
 export const PlayerInitialGoodSchema = z.object({
   /** 物品配置文件名（key） */
   iniFile: z.string(),
+  /** 格子序号（1-220 背包, 221-223 快捷栏） */
+  index: z.number().int().min(1).optional(),
   /** 物品数量 */
   number: z.number().int().min(1).default(1),
 });
@@ -226,11 +230,17 @@ export type ImportPlayerInput = z.infer<typeof ImportPlayerInputSchema>;
 export const BatchImportPlayerItemSchema = z.object({
   fileName: z.string(),
   iniContent: z.string(),
+  /** 对应 MagicX.ini 的内容（X = PlayerX 的序号） */
+  magicIniContent: z.string().optional(),
+  /** 对应 GoodsX.ini 的内容（X = PlayerX 的序号） */
+  goodsIniContent: z.string().optional(),
 });
 
 export const BatchImportPlayerInputSchema = z.object({
   gameId: z.string().uuid(),
   items: z.array(BatchImportPlayerItemSchema),
+  /** 导入前清空所有已有角色 */
+  clearBeforeImport: z.boolean().optional(),
 });
 export type BatchImportPlayerInput = z.infer<typeof BatchImportPlayerInputSchema>;
 
@@ -249,8 +259,22 @@ export const BatchImportPlayerResultSchema = z.object({
       error: z.string(),
     })
   ),
+  /** 武功/物品引用解析的警告信息 */
+  warnings: z.array(z.string()).optional(),
 });
 export type BatchImportPlayerResult = z.infer<typeof BatchImportPlayerResultSchema>;
+
+// ========== 清空 Schema ==========
+
+export const ClearAllPlayersInputSchema = z.object({
+  gameId: z.string().uuid(),
+});
+export type ClearAllPlayersInput = z.infer<typeof ClearAllPlayersInputSchema>;
+
+export const ClearAllPlayersResultSchema = z.object({
+  deletedCount: z.number(),
+});
+export type ClearAllPlayersResult = z.infer<typeof ClearAllPlayersResultSchema>;
 
 // ========== 默认值工厂 ==========
 

@@ -248,8 +248,10 @@ export class MagicRenderer {
         if (sprite.currentFrameIndex >= asfFramesPerDirection) {
           sprite.currentFrameIndex = sprite.currentFrameIndex % asfFramesPerDirection;
         }
-        // 注意：不重置 leftFrameToPlay，因为 LifeFrame=0 表示无限飞行
-        // 让碰撞检测来决定生命结束
+        // 渲染器首次拿到真实帧数时，触发 resetPlay()（此前 updater 一直在等待）
+        if (sprite.needsResetPlay) {
+          sprite.resetPlay();
+        }
       }
     }
 

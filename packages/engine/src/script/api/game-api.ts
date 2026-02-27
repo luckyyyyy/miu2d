@@ -135,7 +135,7 @@ export interface NpcAPI {
 export interface GoodsAPI {
   add(goodsName: string, count: number): void;
   remove(goodsName: string, count: number): void;
-  equip(equipType: number, goodsId: number): void;
+  equip(goodListIndex: number): void;
   getCountByFile(goodsFile: string): number;
   getCountByName(goodsName: string): number;
   clear(): void;
