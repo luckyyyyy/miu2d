@@ -581,58 +581,73 @@ def step_talk(root: str, portrait_mapping: dict):
     stats.files_created += 1
     log(f"生成 TalkIndex.txt ({len(talkindex_lines)} 条)")
 
+    # Build global section lookup: section_name → (start_id, end_id)
+    # For same-name sections across maps, prefer same-map match
+    global_section_map = {}  # section_name_lower → [(map_folder, start_id, end_id)]
+    for (mf, sn), (sid, eid) in section_id_map.items():
+        global_section_map.setdefault(sn.lower(), []).append((mf, sid, eid))
+
+    def lookup_talk_ids(section_name: str, current_map: str | None) -> tuple[int, int] | None:
+        """查找 Talk section 的 ID 范围，优先同地图匹配"""
+        key_lower = section_name.lower()
+        candidates = global_section_map.get(key_lower, [])
+        if not candidates:
+            return None
+        # Prefer same-map match
+        if current_map:
+            for mf, sid, eid in candidates:
+                if mf == current_map:
+                    return (sid, eid)
+        # Fallback: first match from any map
+        return (candidates[0][1], candidates[0][2])
+
     # Phase 3: Rewrite scripts - Talk("SectionName") → Talk(startId, endId)
+    # Scan ALL .txt files under script/ (including 未找到的/ and other subdirs)
     rewritten_scripts = 0
     rewritten_calls = 0
 
-    for map_folder in map_folders:
-        map_dir = os.path.join(script_dir, map_folder)
-        for fn in sorted(os.listdir(map_dir)):
-            if fn.lower() == "talk.txt":
-                continue
+    script_base = os.path.join(root, "script")
+    all_script_files = []
+    for dirpath, _, filenames in os.walk(script_base):
+        for fn in sorted(filenames):
             if not fn.lower().endswith(".txt"):
                 continue
+            if fn.lower() == "talk.txt":
+                continue
+            all_script_files.append(os.path.join(dirpath, fn))
 
-            filepath = os.path.join(map_dir, fn)
-            text = read_gbk(filepath)
-            original = text
+    for filepath in all_script_files:
+        # Determine current map folder for same-map priority
+        rel = os.path.relpath(filepath, script_base)
+        parts = rel.split(os.sep)
+        current_map = parts[1] if len(parts) >= 3 and parts[0] == "map" else None
 
-            # Replace Talk("SectionName") with Talk(startId, endId)
-            def replace_talk(m):
-                nonlocal rewritten_calls
-                section_name = m.group(1)
-                key = (map_folder, section_name)
+        text = read_gbk(filepath)
+        original = text
 
-                # Try case-insensitive match
-                if key not in section_id_map:
-                    # Try case-insensitive
-                    for k, v in section_id_map.items():
-                        if k[0] == map_folder and k[1].lower() == section_name.lower():
-                            key = k
-                            break
+        # Replace Talk("SectionName") with Talk(startId, endId)
+        # Use [^"] to match ANY characters inside quotes (hyphens, dots, etc.)
+        def replace_talk(m, _current_map=current_map, _filepath=filepath):
+            nonlocal rewritten_calls
+            section_name = m.group(1)
 
-                if key in section_id_map:
-                    start_id, end_id = section_id_map[key]
-                    rewritten_calls += 1
-                    return f"Talk({start_id},{end_id})"
-                else:
-                    # Try other map folders (cross-map reference)
-                    for k, v in section_id_map.items():
-                        if k[1] == section_name or k[1].lower() == section_name.lower():
-                            start_id, end_id = v
-                            rewritten_calls += 1
-                            return f"Talk({start_id},{end_id})"
+            result = lookup_talk_ids(section_name, _current_map)
+            if result:
+                start_id, end_id = result
+                rewritten_calls += 1
+                return f"Talk({start_id},{end_id})"
+            else:
+                rel_path = os.path.relpath(_filepath, root)
+                stats.errors.append(f"未找到 Talk section: {rel_path} → Talk(\"{section_name}\")")
+                return m.group(0)  # Keep original
 
-                    stats.errors.append(f"未找到 Talk section: {map_folder}/{fn} → Talk(\"{section_name}\")")
-                    return m.group(0)  # Keep original
+        text = re.sub(r'Talk\("([^"]+)"\)', replace_talk, text)
 
-            text = re.sub(r'Talk\("(\w+)"\)', replace_talk, text)
-
-            if text != original:
-                if not DRY_RUN:
-                    with open(filepath, "w", encoding="utf-8", newline="\n") as f:
-                        f.write(text)
-                rewritten_scripts += 1
+        if text != original:
+            if not DRY_RUN:
+                with open(filepath, "w", encoding="utf-8", newline="\n") as f:
+                    f.write(text)
+            rewritten_scripts += 1
 
     stats.files_converted += rewritten_scripts
     log(f"改写 {rewritten_scripts} 个脚本文件，{rewritten_calls} 处 Talk() 调用")
