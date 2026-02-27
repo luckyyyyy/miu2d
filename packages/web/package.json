@@ -17,6 +17,7 @@
     "@miu2d/engine": "workspace:*",
     "@miu2d/game": "workspace:*",
     "@miu2d/shared": "workspace:*",
+    "@miu2d/types": "workspace:*",
     "@miu2d/ui": "workspace:*",
     "framer-motion": "^12.29.0",
     "i18next": "^25.8.0",
