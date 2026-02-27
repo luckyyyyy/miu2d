@@ -5,6 +5,8 @@
 import {
   BatchImportShopInputSchema,
   BatchImportShopResultSchema,
+  ClearAllShopsInputSchema,
+  ClearAllShopsResultSchema,
   CreateShopInputSchema,
   DeleteShopInputSchema,
   GetShopInputSchema,
@@ -90,5 +92,14 @@ export class ShopRouter {
   @Mutation({ input: BatchImportShopInputSchema, output: BatchImportShopResultSchema })
   async batchImportFromIni(input: z.infer<typeof BatchImportShopInputSchema>, @Ctx() ctx: Context) {
     return shopService.batchImportFromIni(input, ctx.userId!, ctx.language);
+  }
+
+  /**
+   * 清空所有商店
+   */
+  @UseMiddlewares(requireUser)
+  @Mutation({ input: ClearAllShopsInputSchema, output: ClearAllShopsResultSchema })
+  async clearAll(input: z.infer<typeof ClearAllShopsInputSchema>, @Ctx() ctx: Context) {
+    return shopService.clearAll(input, ctx.userId!, ctx.language);
   }
 }

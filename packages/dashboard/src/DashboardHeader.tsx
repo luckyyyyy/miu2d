@@ -2,17 +2,21 @@
  * Dashboard 顶部栏
  */
 
-import { useAuth } from "@miu2d/shared";
+import { trpc, useAuth } from "@miu2d/shared";
 import { Avatar } from "@miu2d/ui";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 import { AccountSettingsModal } from "./components/AccountSettingsModal";
+import { ImportAllModal } from "./components/ImportAllModal";
+import { useDashboard } from "./DashboardContext";
 import { GameSelectorWithData } from "./GameSelector";
 import { DashboardIcons } from "./icons";
 
 export function DashboardHeader() {
   const { t } = useTranslation();
   const { user, logout } = useAuth();
+  const { showImportAll, setShowImportAll } = useDashboard();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -46,6 +50,16 @@ export function DashboardHeader() {
           title={t("nav.features")}
         >
           {DashboardIcons.search}
+        </button>
+
+        {/* 批量导入按钮 */}
+        <button
+          type="button"
+          onClick={() => setShowImportAll(true)}
+          className="p-1.5 rounded hover:bg-[#4a4a4a] text-[#858585] hover:text-white transition-colors"
+          title="批量导入资源"
+        >
+          {DashboardIcons.upload}
         </button>
 
         {/* 用户菜单 */}
@@ -105,6 +119,14 @@ export function DashboardHeader() {
 
       {/* 账号设置弹窗 */}
       {showSettings && <AccountSettingsModal onClose={() => setShowSettings(false)} />}
+
+      {/* 批量导入弹窗 */}
+      {showImportAll && (
+        <ImportAllModal
+          onClose={() => setShowImportAll(false)}
+          onSuccess={() => {}}
+        />
+      )}
     </header>
   );
 }
@@ -116,22 +138,21 @@ interface CreateGameModalProps {
 function CreateGameModal({ onClose }: CreateGameModalProps) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const navigate = useNavigate();
+  const utils = trpc.useUtils();
+
+  const createGameMutation = trpc.game.create.useMutation({
+    onSuccess: (newGame) => {
+      utils.game.list.invalidate();
+      onClose();
+      navigate(`/dashboard/${newGame.slug}`);
+    },
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
-
-    setIsSubmitting(true);
-    try {
-      // TODO: 调用 API 创建游戏
-      console.log("创建游戏:", { name, description });
-      onClose();
-    } catch (error) {
-      console.error("创建游戏失败:", error);
-    } finally {
-      setIsSubmitting(false);
-    }
+    createGameMutation.mutate({ name: name.trim(), description: description.trim() || undefined });
   };
 
   return (
@@ -184,10 +205,10 @@ function CreateGameModal({ onClose }: CreateGameModalProps) {
             </button>
             <button
               type="submit"
-              disabled={isSubmitting || !name.trim()}
+              disabled={createGameMutation.isPending || !name.trim()}
               className="px-4 py-2 bg-[#0e639c] hover:bg-[#1177bb] disabled:opacity-50 disabled:cursor-not-allowed rounded text-sm transition-colors"
             >
-              {isSubmitting ? "创建中..." : "创建"}
+              {createGameMutation.isPending ? "创建中..." : "创建"}
             </button>
           </div>
         </form>

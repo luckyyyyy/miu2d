@@ -170,6 +170,18 @@ export const ImportLevelConfigInputSchema = z.object({
 
 export type ImportLevelConfigInput = z.infer<typeof ImportLevelConfigInputSchema>;
 
+// ========== 清空 ==========
+
+export const ClearAllLevelConfigsInputSchema = z.object({
+  gameId: z.string().uuid(),
+});
+export type ClearAllLevelConfigsInput = z.infer<typeof ClearAllLevelConfigsInputSchema>;
+
+export const ClearAllLevelConfigsResultSchema = z.object({
+  deletedCount: z.number(),
+});
+export type ClearAllLevelConfigsResult = z.infer<typeof ClearAllLevelConfigsResultSchema>;
+
 // ========== 工具函数 ==========
 
 /**

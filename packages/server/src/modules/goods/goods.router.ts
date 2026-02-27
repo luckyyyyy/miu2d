@@ -5,6 +5,8 @@
 import {
   BatchImportGoodInputSchema,
   BatchImportGoodResultSchema,
+  ClearAllGoodsInputSchema,
+  ClearAllGoodsResultSchema,
   CreateGoodInputSchema,
   DeleteGoodInputSchema,
   GetGoodInputSchema,
@@ -90,5 +92,14 @@ export class GoodsRouter {
   @Mutation({ input: BatchImportGoodInputSchema, output: BatchImportGoodResultSchema })
   async batchImportFromIni(input: z.infer<typeof BatchImportGoodInputSchema>, @Ctx() ctx: Context) {
     return goodsService.batchImportFromIni(input, ctx.userId!, ctx.language);
+  }
+
+  /**
+   * 清空所有物品
+   */
+  @UseMiddlewares(requireUser)
+  @Mutation({ input: ClearAllGoodsInputSchema, output: ClearAllGoodsResultSchema })
+  async clearAll(input: z.infer<typeof ClearAllGoodsInputSchema>, @Ctx() ctx: Context) {
+    return goodsService.clearAll(input, ctx.userId!, ctx.language);
   }
 }

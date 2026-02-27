@@ -5,6 +5,8 @@
 import {
   BatchImportObjInputSchema,
   BatchImportObjResultSchema,
+  ClearAllObjsInputSchema,
+  ClearAllObjsResultSchema,
   CreateObjInputSchema,
   DeleteObjInputSchema,
   GetObjInputSchema,
@@ -90,5 +92,14 @@ export class ObjRouter {
   @Mutation({ input: BatchImportObjInputSchema, output: BatchImportObjResultSchema })
   async batchImportFromIni(input: z.infer<typeof BatchImportObjInputSchema>, @Ctx() ctx: Context) {
     return objService.batchImportFromIni(input, ctx.userId!, ctx.language);
+  }
+
+  /**
+   * 清空所有 Object 和 Object 资源
+   */
+  @UseMiddlewares(requireUser)
+  @Mutation({ input: ClearAllObjsInputSchema, output: ClearAllObjsResultSchema })
+  async clearAll(input: z.infer<typeof ClearAllObjsInputSchema>, @Ctx() ctx: Context) {
+    return objService.clearAll(input, ctx.userId!, ctx.language);
   }
 }

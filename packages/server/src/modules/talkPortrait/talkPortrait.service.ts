@@ -109,6 +109,22 @@ export class TalkPortraitService {
       language
     );
   }
+
+  /**
+   * 清空头像映射
+   */
+  async clearAll(
+    input: { gameId: string },
+    userId: string,
+    language: Language
+  ): Promise<{ deletedCount: number }> {
+    await verifyGameAccess(input.gameId, userId, language);
+    const deleted = await db
+      .delete(talkPortraits)
+      .where(eq(talkPortraits.gameId, input.gameId))
+      .returning({ id: talkPortraits.id });
+    return { deletedCount: deleted.length };
+  }
 }
 
 export const talkPortraitService = new TalkPortraitService();

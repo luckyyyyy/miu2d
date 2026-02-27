@@ -509,6 +509,7 @@ export class GameManager {
       timerManager: this.timerManager,
       buyManager: this.buyManager,
       partnerList: this.partnerList,
+      magicSpriteManager: this.magicSpriteManager,
       levelManager: this.player.levelManager,
       goodsListManager: this.player.getGoodsListManager(),
       getCharacterByName,

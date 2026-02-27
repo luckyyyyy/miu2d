@@ -453,6 +453,18 @@ export const BatchImportGoodResultSchema = z.object({
 
 export type BatchImportGoodResult = z.infer<typeof BatchImportGoodResultSchema>;
 
+// ========== 清空 ==========
+
+export const ClearAllGoodsInputSchema = z.object({
+  gameId: z.string().uuid(),
+});
+export type ClearAllGoodsInput = z.infer<typeof ClearAllGoodsInputSchema>;
+
+export const ClearAllGoodsResultSchema = z.object({
+  deletedCount: z.number(),
+});
+export type ClearAllGoodsResult = z.infer<typeof ClearAllGoodsResultSchema>;
+
 // ========== 辅助函数 ==========
 
 /**

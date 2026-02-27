@@ -1,4 +1,6 @@
 import {
+  ClearAllTalksInputSchema,
+  ClearAllTalksResultSchema,
   CreateTalkEntryInputSchema,
   DeleteTalkEntryInputSchema,
   GetTalkDataInputSchema,
@@ -64,5 +66,14 @@ export class TalkRouter {
   @Mutation({ input: ImportTalkDataInputSchema, output: TalkDataResultSchema })
   async importFromTxt(input: z.infer<typeof ImportTalkDataInputSchema>, @Ctx() ctx: Context) {
     return talkService.importFromTxt(input, ctx.userId!, ctx.language);
+  }
+
+  /**
+   * 清空对话数据
+   */
+  @UseMiddlewares(requireUser)
+  @Mutation({ input: ClearAllTalksInputSchema, output: ClearAllTalksResultSchema })
+  async clearAll(input: z.infer<typeof ClearAllTalksInputSchema>, @Ctx() ctx: Context) {
+    return talkService.clearAll(input, ctx.userId!, ctx.language);
   }
 }

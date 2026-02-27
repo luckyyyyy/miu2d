@@ -601,6 +601,18 @@ export const BatchImportNpcResultSchema = z.object({
 
 export type BatchImportNpcResult = z.infer<typeof BatchImportNpcResultSchema>;
 
+// ========== 清空 ==========
+
+export const ClearAllNpcsInputSchema = z.object({
+  gameId: z.string().uuid(),
+});
+export type ClearAllNpcsInput = z.infer<typeof ClearAllNpcsInputSchema>;
+
+export const ClearAllNpcsResultSchema = z.object({
+  deletedCount: z.number(),
+});
+export type ClearAllNpcsResult = z.infer<typeof ClearAllNpcsResultSchema>;
+
 // ========== 工具函数 ==========
 
 /**

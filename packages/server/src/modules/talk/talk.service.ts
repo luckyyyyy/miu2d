@@ -223,6 +223,22 @@ export class TalkService {
     const parsed = parseTalkIndexTxt(input.content);
     return this.update({ gameId: input.gameId, entries: parsed }, userId, language);
   }
+
+  /**
+   * 清空对话数据
+   */
+  async clearAll(
+    input: { gameId: string },
+    userId: string,
+    language: Language
+  ): Promise<{ deletedCount: number }> {
+    await verifyGameAccess(input.gameId, userId, language);
+    const deleted = await db
+      .delete(talks)
+      .where(eq(talks.gameId, input.gameId))
+      .returning({ id: talks.id });
+    return { deletedCount: deleted.length };
+  }
 }
 
 export const talkService = new TalkService();

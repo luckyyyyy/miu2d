@@ -206,6 +206,14 @@ export function createEffectsAPI(
         player.statusEffects.setFrozenSeconds(seconds, true);
       }
     },
+    clearEffect: () => {
+      if (player) {
+        player.statusEffects.toNormalState();
+      }
+    },
+    moveMagic: (magicFile, direction) => {
+      ctx.magicSpriteManager.redirectMagicDirection(magicFile, direction);
+    },
     setLevelFile: async (file) => {
       await levelManager.setLevelFile(file);
     },

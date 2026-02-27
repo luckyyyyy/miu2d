@@ -5,6 +5,8 @@
 import {
   BatchImportNpcInputSchema,
   BatchImportNpcResultSchema,
+  ClearAllNpcsInputSchema,
+  ClearAllNpcsResultSchema,
   CreateNpcInputSchema,
   DeleteNpcInputSchema,
   GetNpcInputSchema,
@@ -90,5 +92,14 @@ export class NpcRouter {
   @Mutation({ input: BatchImportNpcInputSchema, output: BatchImportNpcResultSchema })
   async batchImportFromIni(input: z.infer<typeof BatchImportNpcInputSchema>, @Ctx() ctx: Context) {
     return npcService.batchImportFromIni(input, ctx.userId!, ctx.language);
+  }
+
+  /**
+   * 清空所有 NPC 和 NPC 资源
+   */
+  @UseMiddlewares(requireUser)
+  @Mutation({ input: ClearAllNpcsInputSchema, output: ClearAllNpcsResultSchema })
+  async clearAll(input: z.infer<typeof ClearAllNpcsInputSchema>, @Ctx() ctx: Context) {
+    return npcService.clearAll(input, ctx.userId!, ctx.language);
   }
 }

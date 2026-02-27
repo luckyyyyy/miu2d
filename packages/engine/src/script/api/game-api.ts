@@ -75,6 +75,7 @@ export interface PlayerAPI {
   limitMana(limit: boolean): void;
   addMoveSpeedPercent(percent: number): void;
   isEquipWeapon(): boolean;
+  getLevel(): number;
 
   // Abilities
   setFightEnabled(enabled: boolean): void;
@@ -122,6 +123,12 @@ export interface NpcAPI {
   follow(follower: string, target: string): void;
   setMagicWhenAttacked(name: string, magicFile: string, direction: number): void;
   addProperty(name: string, property: string, value: number): void;
+  addMagic(name: string, magicFile: string): Promise<void>;
+  setMagicLevel(name: string, magicFile: string, level: number): void;
+  setClickScript(name: string, scriptFile: string): void;
+  changeLife(name: string, amount: number): void;
+  changeMana(name: string, amount: number): void;
+  changeThew(name: string, amount: number): void;
   changeFlyIni(name: string, magicFile: string): void;
   changeFlyIni2(name: string, magicFile: string): void;
   addFlyInis(name: string, magicFile: string, distance: number): void;
@@ -229,6 +236,8 @@ export interface EffectsAPI {
   petrify(ms: number): void;
   poison(ms: number): void;
   frozen(ms: number): void;
+  clearEffect(): void;
+  moveMagic(magicFile: string, direction: number): void;
   setLevelFile(file: string): Promise<void>;
 }
 
@@ -298,4 +307,6 @@ export interface ScriptRunnerAPI {
   setShowMapPos(show: boolean): void;
   sleep(ms: number): Promise<void>;
   loadGame(index: number): Promise<void>;
+  setInterfaceVisible(visible: boolean): void;
+  saveGame(): void;
 }

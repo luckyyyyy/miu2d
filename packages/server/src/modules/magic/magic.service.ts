@@ -1066,6 +1066,22 @@ export class MagicService {
         break;
     }
   }
+
+  /**
+   * 清空所有武功
+   */
+  async clearAll(
+    input: { gameId: string },
+    userId: string,
+    language: Language
+  ): Promise<{ deletedCount: number }> {
+    await verifyGameAccess(input.gameId, userId, language);
+    const deleted = await db
+      .delete(magics)
+      .where(eq(magics.gameId, input.gameId))
+      .returning({ id: magics.id });
+    return { deletedCount: deleted.length };
+  }
 }
 
 export const magicService = new MagicService();

@@ -1166,8 +1166,7 @@ const PortraitEntryRow = memo(function PortraitEntryRow({
 export function PortraitMappingPanel({ gameId }: { gameId: string }) {
   const toast = useToast();
   const utils = trpc.useUtils();
-  const [isDragging, setIsDragging] = useState(false);
-  const { currentGame } = useDashboard();
+  const { currentGame, setShowImportAll } = useDashboard();
   const gameSlug = currentGame?.slug ?? "";
 
   // 查询
@@ -1194,17 +1193,6 @@ export function PortraitMappingPanel({ gameId }: { gameId: string }) {
       utils.talkPortrait.get.invalidate({ gameId });
     },
     onError: (err) => toast.error(`保存失败: ${err.message}`),
-  });
-
-  // 从 INI 导入
-  const importMutation = trpc.talkPortrait.importFromIni.useMutation({
-    onSuccess: (result) => {
-      setEntries(result.entries);
-      setIsDirty(false);
-      toast.success(`成功导入 ${result.entries.length} 个头像映射`);
-      utils.talkPortrait.get.invalidate({ gameId });
-    },
-    onError: (err) => toast.error(`导入失败: ${err.message}`),
   });
 
   const handleSave = () => {
@@ -1238,19 +1226,6 @@ export function PortraitMappingPanel({ gameId }: { gameId: string }) {
     []
   );
 
-  const handleImportIni = async () => {
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = ".ini";
-    input.onchange = async (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (!file) return;
-      const content = await file.text();
-      importMutation.mutate({ gameId, iniContent: content });
-    };
-    input.click();
-  };
-
   const handleExportIni = () => {
     const content = exportPortraitIni(entries);
     const blob = new Blob([content], { type: "text/plain" });
@@ -1262,35 +1237,6 @@ export function PortraitMappingPanel({ gameId }: { gameId: string }) {
     URL.revokeObjectURL(url);
   };
 
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.dataTransfer.types.includes("Files")) {
-      setIsDragging(true);
-    }
-  };
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
-  };
-
-  const handleDrop = async (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
-
-    const files = Array.from(e.dataTransfer.files);
-    const iniFile = files.find((f) => f.name.toLowerCase().endsWith(".ini"));
-    if (!iniFile) {
-      toast.error("请拖入 .ini 文件");
-      return;
-    }
-    const content = await iniFile.text();
-    importMutation.mutate({ gameId, iniContent: content });
-  };
-
   if (isLoading) {
     return <div className="text-[#858585]">加载中...</div>;
   }
@@ -1298,29 +1244,17 @@ export function PortraitMappingPanel({ gameId }: { gameId: string }) {
   return (
     <div
       className="space-y-4 relative"
-      onDragOver={handleDragOver}
-      onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
     >
-      {/* 拖拽覆盖层 */}
-      {isDragging && (
-        <div className="absolute inset-0 z-10 bg-[#0098ff]/10 border-2 border-dashed border-[#0098ff] rounded-lg flex items-center justify-center pointer-events-none">
-          <div className="text-[#0098ff] text-sm font-medium bg-[#252526] px-4 py-2 rounded-lg shadow-lg">
-            释放 .ini 文件以导入头像映射
-          </div>
-        </div>
-      )}
       <SectionTitle desc="Talk 脚本命令使用的角色头像索引映射（对应 HeadFile.ini）" />
 
       {/* 操作按钮 */}
       <div className="flex gap-2 flex-wrap">
         <button
           type="button"
-          onClick={handleImportIni}
-          disabled={importMutation.isPending}
-          className="px-3 py-1.5 text-xs bg-[#3c3c3c] hover:bg-[#4c4c4c] rounded text-[#cccccc] transition-colors disabled:opacity-50"
+          onClick={() => setShowImportAll(true)}
+          className="px-3 py-1.5 text-xs bg-[#3c3c3c] hover:bg-[#4c4c4c] rounded text-[#cccccc] transition-colors"
         >
-          {importMutation.isPending ? "导入中..." : "从 INI 导入"}
+          批量导入
         </button>
         <button
           type="button"

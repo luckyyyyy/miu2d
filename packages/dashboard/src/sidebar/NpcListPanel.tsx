@@ -1,26 +1,20 @@
 /**
  * NPC 列表侧边栏面板
- * NpcListPanel + ImportNpcModal + CreateNpcModal + CreateNpcResourceModal
+ * NpcListPanel + CreateNpcModal + CreateNpcResourceModal
  */
 
 import { trpc } from "@miu2d/shared";
 import { useMemo, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
-import {
-  BatchItemRow,
-  CreateEntityModal,
-  ImportIniModal,
-  readDroppedFiles,
-} from "../components/common";
+import { CreateEntityModal } from "../components/common";
 import { LazyAsfIcon } from "../components/common/LazyAsfIcon";
 import { useDashboard } from "../DashboardContext";
 import { DashboardIcons } from "../icons";
 
 export function NpcListPanel({ basePath }: { basePath: string }) {
-  const { currentGame } = useDashboard();
+  const { currentGame, setShowImportAll } = useDashboard();
   const navigate = useNavigate();
   const gameId = currentGame?.id;
-  const [showImportModal, setShowImportModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [createType, setCreateType] = useState<"npc" | "resource">("npc");
   const [filterKind, setFilterKind] = useState<"all" | "npc" | "resource">("all");
@@ -42,16 +36,6 @@ export function NpcListPanel({ basePath }: { basePath: string }) {
     refetchNpcs();
     refetchResources();
   };
-
-  const batchImportMutation = trpc.npc.batchImportFromIni.useMutation({
-    onSuccess: (result) => {
-      refetch();
-      setShowImportModal(false);
-      if (result.success.length > 0) {
-        navigate(`${basePath}/${result.success[0].id}`);
-      }
-    },
-  });
 
   // 按关系类型分组 NPC
   const groupedNpcs = useMemo(() => {
@@ -109,11 +93,11 @@ export function NpcListPanel({ basePath }: { basePath: string }) {
         <div className="flex flex-col gap-1 p-2 border-b border-panel-border">
           <button
             type="button"
-            onClick={() => setShowImportModal(true)}
+            onClick={() => setShowImportAll(true)}
             className="flex items-center gap-2 px-2 py-1.5 text-xs text-[#cccccc] hover:bg-[#3c3c3c] rounded transition-colors"
           >
             {DashboardIcons.upload}
-            <span>从 INI 导入</span>
+            <span>批量导入</span>
           </button>
           <button
             type="button"
@@ -293,74 +277,6 @@ export function NpcListPanel({ basePath }: { basePath: string }) {
         </div>
       </div>
 
-      {/* INI 导入模态框 */}
-      {showImportModal && (
-        <ImportIniModal<NpcImportItem>
-          title="从 INI 导入 NPC"
-          icon="🧙"
-          dropHint="拖放 npc 和 npcres 文件夹到此处"
-          dropSubHint="支持批量导入，自动合并资源"
-          entityLabel="NPC"
-          onClose={() => setShowImportModal(false)}
-          onImport={(items) => batchImportMutation.mutate({ gameId: gameId!, items })}
-          isLoading={batchImportMutation.isPending}
-          batchResult={batchImportMutation.data}
-          processFiles={processNpcDrop}
-          renderItem={(item, _index, onRemove) => (
-            <BatchItemRow
-              key={`${item.type}-${item.fileName}`}
-              fileName={item.fileName}
-              onRemove={onRemove}
-              badge={
-                item.type === "resource" ? (
-                  <span className="text-xs px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-400">
-                    外观
-                  </span>
-                ) : (
-                  <span className="text-xs px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400">
-                    NPC
-                  </span>
-                )
-              }
-              extra={
-                item.type === "npc" && item.npcResContent ? (
-                  <span className="text-xs text-green-400">+ 资源</span>
-                ) : undefined
-              }
-            />
-          )}
-          renderSuccessItem={(s) => {
-            const type = s.type as string;
-            const hasResources = s.hasResources as boolean;
-            return (
-              <div className="flex items-center gap-1">
-                <span
-                  className={`px-1 rounded text-[10px] ${type === "npc" ? "bg-blue-500/30 text-blue-300" : "bg-purple-500/30 text-purple-300"}`}
-                >
-                  {type === "npc" ? "NPC" : "外观"}
-                </span>
-                <span>{s.name}</span>
-                {hasResources && <span className="text-green-300">+ 资源</span>}
-              </div>
-            );
-          }}
-          description={
-            <div className="text-xs text-[#858585] bg-[#1e1e1e] p-3 rounded">
-              <p className="mb-1">支持拖入以下结构：</p>
-              <ul className="list-disc list-inside space-y-0.5">
-                <li>
-                  <code className="text-[#ce9178]">npc/</code> - NPC 配置目录
-                </li>
-                <li>
-                  <code className="text-[#ce9178]">npcres/</code> - NPC 外观配置目录
-                </li>
-              </ul>
-              <p className="mt-2">NPC 会自动关联同名外观，独立外观也会被导入</p>
-            </div>
-          }
-        />
-      )}
-
       {/* 新建模态框 */}
       {showCreateModal && createType === "npc" && (
         <CreateNpcModal
@@ -380,70 +296,6 @@ export function NpcListPanel({ basePath }: { basePath: string }) {
       )}
     </>
   );
-}
-
-// ===== NPC 导入辅助 =====
-
-interface NpcImportItem {
-  fileName: string;
-  type: "npc" | "resource";
-  iniContent?: string;
-  npcResContent?: string;
-}
-
-/** 判断文件属于 npc/ 还是 npcres/ 目录 */
-function getFileCategory(fullPath: string): "npc" | "npcres" | null {
-  const p = fullPath.toLowerCase();
-  if (p.match(/[/\\]npcres[/\\]/) || p.startsWith("npcres/") || p.startsWith("npcres\\"))
-    return "npcres";
-  if (p.match(/[/\\]npc[/\\]/) || p.startsWith("npc/") || p.startsWith("npc\\")) return "npc";
-  return null;
-}
-
-/** 从 npc ini 内容中解析 NpcIni 字段值 */
-function parseNpcIniField(content: string): string | null {
-  const match = content.match(/^\s*NpcIni\s*=\s*(.+?)\s*$/im);
-  return match ? match[1].toLowerCase() : null;
-}
-
-/** 处理 NPC 文件拖放，分类 npc/npcres 并合并 */
-async function processNpcDrop(dt: DataTransfer): Promise<NpcImportItem[]> {
-  const allFiles = await readDroppedFiles(dt);
-  const npcFiles = new Map<string, { fileName: string; content: string }>();
-  const npcResFiles = new Map<string, { fileName: string; content: string }>();
-
-  for (const f of allFiles) {
-    const cat = getFileCategory(f.fullPath);
-    if (cat === "npc")
-      npcFiles.set(f.fileName.toLowerCase(), { fileName: f.fileName, content: f.content });
-    else if (cat === "npcres")
-      npcResFiles.set(f.fileName.toLowerCase(), { fileName: f.fileName, content: f.content });
-  }
-
-  const items: NpcImportItem[] = [];
-
-  // NPC 文件 — 自动关联同名外观
-  for (const [_, npcInfo] of npcFiles) {
-    const npcIniField = parseNpcIniField(npcInfo.content);
-    const npcResInfo = npcIniField ? npcResFiles.get(npcIniField) : null;
-    items.push({
-      fileName: npcInfo.fileName,
-      type: "npc",
-      iniContent: npcInfo.content,
-      npcResContent: npcResInfo?.content,
-    });
-  }
-
-  // 所有 npcres 文件都作为独立外观导入
-  for (const [_, npcResInfo] of npcResFiles) {
-    items.push({
-      fileName: npcResInfo.fileName,
-      type: "resource",
-      npcResContent: npcResInfo.content,
-    });
-  }
-
-  return items;
 }
 
 // ===== 新建 NPC 弹窗 =====

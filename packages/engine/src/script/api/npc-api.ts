@@ -379,5 +379,54 @@ export function createNpcAPI(ctx: ScriptCommandContext, resolver: BlockingResolv
         character.keepAttackY = y;
       }
     },
+    addMagic: async (name, magicFile) => {
+      const character = getCharacterByName(name);
+      if (!character) {
+        logger.warn(`[GameAPI.npc] addMagic: character not found: ${name}`);
+        return;
+      }
+      // Player has its own magic inventory
+      if ("addMagic" in character && typeof (character as { addMagic: unknown }).addMagic === "function") {
+        await (character as { addMagic(file: string, level: number): Promise<boolean> }).addMagic(magicFile, 1);
+        return;
+      }
+      // NPC uses magic cache
+      const npcs = npcManager.getAllNpcsByName(name);
+      for (const npc of npcs) {
+        await npc.addMagicToCache(magicFile);
+      }
+    },
+    setMagicLevel: (name, _magicFile, level) => {
+      // For NPC: sets the attack level which governs which level magic data is used
+      const npcs = npcManager.getAllNpcsByName(name);
+      for (const npc of npcs) {
+        npc.setMagicAttackLevel(level);
+      }
+      // Player's magic level is managed separately; no-op here for player
+    },
+    setClickScript: (name, scriptFile) => {
+      const npcs = npcManager.getAllNpcsByName(name);
+      for (const npc of npcs) {
+        npc.scriptFile = scriptFile;
+      }
+    },
+    changeLife: (name, amount) => {
+      const characters = getCharactersByName(name);
+      for (const character of characters) {
+        character.addLife(amount);
+      }
+    },
+    changeMana: (name, amount) => {
+      const characters = getCharactersByName(name);
+      for (const character of characters) {
+        character.addMana(amount);
+      }
+    },
+    changeThew: (name, amount) => {
+      const characters = getCharactersByName(name);
+      for (const character of characters) {
+        character.addThew(amount);
+      }
+    },
   };
 }

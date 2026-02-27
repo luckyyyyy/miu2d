@@ -561,6 +561,26 @@ export class ObjService {
 
     return result;
   }
+
+  /**
+   * 清空所有 Object 和 Object 资源
+   */
+  async clearAll(
+    input: { gameId: string },
+    userId: string,
+    language: Language
+  ): Promise<{ deletedCount: number }> {
+    await verifyGameAccess(input.gameId, userId, language);
+    const deletedRes = await db
+      .delete(objResources)
+      .where(eq(objResources.gameId, input.gameId))
+      .returning({ id: objResources.id });
+    const deletedObjs = await db
+      .delete(objs)
+      .where(eq(objs.gameId, input.gameId))
+      .returning({ id: objs.id });
+    return { deletedCount: deletedObjs.length + deletedRes.length };
+  }
 }
 
 export const objService = new ObjService();

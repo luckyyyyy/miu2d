@@ -644,6 +644,18 @@ export const BatchImportMagicResultSchema = z.object({
 
 export type BatchImportMagicResult = z.infer<typeof BatchImportMagicResultSchema>;
 
+// ========== 清空 ==========
+
+export const ClearAllMagicsInputSchema = z.object({
+  gameId: z.string().uuid(),
+});
+export type ClearAllMagicsInput = z.infer<typeof ClearAllMagicsInputSchema>;
+
+export const ClearAllMagicsResultSchema = z.object({
+  deletedCount: z.number(),
+});
+export type ClearAllMagicsResult = z.infer<typeof ClearAllMagicsResultSchema>;
+
 /**
  * 获取武功输入
  */

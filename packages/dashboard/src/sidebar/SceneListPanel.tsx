@@ -19,7 +19,6 @@ import { LazyAsfIcon } from "../components/common/LazyAsfIcon";
 import { useDashboard } from "../DashboardContext";
 import { DashboardIcons } from "../icons";
 import { ContextMenu } from "../modules/fileTree/ContextMenu";
-import { ImportScenesModal } from "../modules/scenes";
 
 interface ContextMenuState {
   x: number;
@@ -43,14 +42,13 @@ const kindIcons: Record<SceneItemKind, keyof typeof DashboardIcons> = {
 const kindOrder: SceneItemKind[] = ["script", "trap", "npc", "obj"];
 
 export function SceneListPanel({ basePath }: { basePath: string }) {
-  const { currentGame } = useDashboard();
+  const { currentGame, setShowImportAll } = useDashboard();
   const navigate = useNavigate();
   const { sceneId: activeSceneId } = useParams();
   const [searchParams] = useSearchParams();
   const gameId = currentGame?.id;
   const toast = useToast();
 
-  const [showImportModal, setShowImportModal] = useState(false);
   const [expandedScenes, setExpandedScenes] = useState<Set<string>>(new Set());
   const [expandedKinds, setExpandedKinds] = useState<Set<string>>(new Set());
   /** 正在确认删除的场景 ID */
@@ -154,7 +152,7 @@ export function SceneListPanel({ basePath }: { basePath: string }) {
         <span className="text-xs font-medium uppercase tracking-wide text-[#bbbbbb]">场景编辑</span>
         <button
           type="button"
-          onClick={() => setShowImportModal(true)}
+          onClick={() => setShowImportAll(true)}
           className="flex items-center gap-1 px-2 py-0.5 rounded text-xs text-[#cccccc] hover:bg-[#3c3c3c] transition-colors"
           title="批量导入"
         >
@@ -172,7 +170,7 @@ export function SceneListPanel({ basePath }: { basePath: string }) {
             <p className="text-sm text-[#858585] mb-2">暂无场景数据</p>
             <button
               type="button"
-              onClick={() => setShowImportModal(true)}
+              onClick={() => setShowImportAll(true)}
               className="text-xs text-[#0098ff] hover:text-[#1177bb] transition-colors"
             >
               点击批量导入
@@ -203,16 +201,6 @@ export function SceneListPanel({ basePath }: { basePath: string }) {
 
       {/* 底部 NPC/OBJ 条目列表面板 */}
       {activeSceneId && gameId && <SceneEntryListPanels sceneId={activeSceneId} gameId={gameId} />}
-
-      {/* 导入弹窗 */}
-      {showImportModal && (
-        <ImportScenesModal
-          onClose={() => setShowImportModal(false)}
-          onSuccess={() => {
-            refetch();
-          }}
-        />
-      )}
     </div>
   );
 }

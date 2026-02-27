@@ -84,6 +84,18 @@ export type SearchTalkResult = z.infer<typeof SearchTalkResultSchema>;
 
 // ========== 解析 / 导出工具 ==========
 
+// ========== 清空 ==========
+
+export const ClearAllTalksInputSchema = z.object({
+  gameId: z.string().uuid(),
+});
+export type ClearAllTalksInput = z.infer<typeof ClearAllTalksInputSchema>;
+
+export const ClearAllTalksResultSchema = z.object({
+  deletedCount: z.number(),
+});
+export type ClearAllTalksResult = z.infer<typeof ClearAllTalksResultSchema>;
+
 /**
  * 解析 TalkIndex.txt 内容
  * 格式: [index,portraitIndex]text

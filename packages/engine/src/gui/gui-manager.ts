@@ -418,6 +418,19 @@ export class GuiManager {
     return this.state.panels.saveLoad;
   }
 
+  /**
+   * HideInterface / ShowInterface - 隐藏或显示整个 HUD 界面
+   * 对应脚本命令 HideInterface() / ShowInterface()
+   */
+  setInterfaceVisible(visible: boolean): void {
+    this.state.isVisible = visible;
+    this.emitPanelChange(null, visible);
+  }
+
+  isInterfaceVisible(): boolean {
+    return this.state.isVisible;
+  }
+
   closeAllPanels(): void {
     const wasBuyOpen = this.state.panels.buy;
     const panelKeys: (keyof GuiManagerState["panels"])[] = [

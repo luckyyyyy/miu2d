@@ -416,6 +416,22 @@ export class LevelConfigService {
 
     return levels;
   }
+
+  /**
+   * 清空所有等级配置
+   */
+  async clearAll(
+    input: { gameId: string },
+    userId: string,
+    language: Language
+  ): Promise<{ deletedCount: number }> {
+    await verifyGameAccess(input.gameId, userId, language);
+    const deleted = await db
+      .delete(levelConfigs)
+      .where(eq(levelConfigs.gameId, input.gameId))
+      .returning({ id: levelConfigs.id });
+    return { deletedCount: deleted.length };
+  }
 }
 
 export const levelConfigService = new LevelConfigService();

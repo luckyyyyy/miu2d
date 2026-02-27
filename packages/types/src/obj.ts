@@ -389,6 +389,18 @@ export const BatchImportObjResultSchema = z.object({
 
 export type BatchImportObjResult = z.infer<typeof BatchImportObjResultSchema>;
 
+// ========== 清空 ==========
+
+export const ClearAllObjsInputSchema = z.object({
+  gameId: z.string().uuid(),
+});
+export type ClearAllObjsInput = z.infer<typeof ClearAllObjsInputSchema>;
+
+export const ClearAllObjsResultSchema = z.object({
+  deletedCount: z.number(),
+});
+export type ClearAllObjsResult = z.infer<typeof ClearAllObjsResultSchema>;
+
 // ========== 工具函数 ==========
 
 /**

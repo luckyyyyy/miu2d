@@ -368,6 +368,22 @@ export class ShopService {
       items,
     };
   }
+
+  /**
+   * 清空所有商店
+   */
+  async clearAll(
+    input: { gameId: string },
+    userId: string,
+    language: Language
+  ): Promise<{ deletedCount: number }> {
+    await verifyGameAccess(input.gameId, userId, language);
+    const deleted = await db
+      .delete(shops)
+      .where(eq(shops.gameId, input.gameId))
+      .returning({ id: shops.id });
+    return { deletedCount: deleted.length };
+  }
 }
 
 export const shopService = new ShopService();

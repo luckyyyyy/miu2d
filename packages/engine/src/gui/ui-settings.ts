@@ -85,7 +85,7 @@ export async function loadUISettings(): Promise<Record<string, Record<string, st
       }
 
       cachedSettings = parseIni(customUiSettingsIniContent);
-      logger.debug("[UISettings] Parsed INI content from GameConfig");
+      logger.debug("[UISettings] Parsed INI content");
       return cachedSettings;
     } catch (error) {
       logger.error("Error parsing UI_Settings.ini content:", error);
@@ -1173,5 +1173,46 @@ export function parseToolTipType2Config(settings: Record<string, IniSection>): T
     goodUserColor: parseIniColor(sec["GoodUserColor"] ?? "255,255,255,160"),
     goodPropertyColor: parseIniColor(sec["GoodPropertyColor"] ?? "255,255,255,160"),
     goodIntroColor: parseIniColor(sec["GoodIntroColor"] ?? "255,255,255,160"),
+  };
+}
+
+// ============= Title GUI Config =============
+// 参考 C# TitleGui.cs：读取 [Title] 背景图 + 4 个按钮
+
+export interface TitleGuiConfig {
+  /** 背景图路径（jpg/png/asf），[Title] BackgroundImage */
+  backgroundImage: string;
+  /** 垂直偏移（可选），[Title] TopAdjust */
+  topAdjust: number;
+  /** 水平偏移（可选），[Title] LeftAdjust */
+  leftAdjust: number;
+  /** 开始游戏按钮 [Title_Btn_Begin] */
+  beginBtn: ButtonConfig;
+  /** 读取存档按钮 [Title_Btn_Load] */
+  loadBtn: ButtonConfig;
+  /** 制作组按钮 [Title_Btn_Team] */
+  teamBtn: ButtonConfig;
+  /** 退出按钮 [Title_Btn_Exit] */
+  exitBtn: ButtonConfig;
+}
+
+/**
+ * 解析 Title GUI 配置。
+ * 若 INI 中没有 [Title] 节或 BackgroundImage 为空，返回 null。
+ */
+export function parseTitleGuiConfig(settings: Record<string, IniSection>): TitleGuiConfig | null {
+  const titleSec = getSection(settings, "Title");
+  const bgImage = normalizeImagePath(titleSec.BackgroundImage || "");
+  if (!bgImage) return null;
+
+  const btnDefaults = { left: 0, top: 0, width: 80, height: 60, image: "", sound: "" };
+  return {
+    backgroundImage: bgImage,
+    topAdjust: parseInt2(titleSec.TopAdjust, 0),
+    leftAdjust: parseInt2(titleSec.LeftAdjust, 0),
+    beginBtn: buttonFrom(getSection(settings, "Title_Btn_Begin"), btnDefaults),
+    loadBtn: buttonFrom(getSection(settings, "Title_Btn_Load"), btnDefaults),
+    teamBtn: buttonFrom(getSection(settings, "Title_Btn_Team"), btnDefaults),
+    exitBtn: buttonFrom(getSection(settings, "Title_Btn_Exit"), btnDefaults),
   };
 }

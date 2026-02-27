@@ -1,13 +1,267 @@
 /**
- * TitleGui Component - Modern web title screen
- * Clean, no-resource title screen with game name and two menu options
+ * TitleGui Component
+ *
+ * 支持两种模式：
+ * 1. 经典模式：从 INI [Title] 配置读取背景图 + ASF 按钮精灵（参考 C# TitleGui.cs）
+ * 2. 现代模式：无资源依赖的 web 风格界面（粒子动画 + 文字标题）
+ *
+ * 模式自动切换：INI 中配置了 [Title] BackgroundImage → 经典模式，否则 → 现代模式
  */
 
+import { getResourceRoot } from "@miu2d/engine/resource";
+import type { ButtonConfig, TitleGuiConfig } from "@miu2d/engine/gui/ui-settings";
 import type React from "react";
-import { useEffect, useInsertionEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useInsertionEffect, useMemo, useRef, useState } from "react";
+import { getAsfFrameDataUrl, useAsfImage } from "./hooks";
+import { useTitleGuiConfig } from "./useUISettings";
 
-// 注入动画 CSS（一次性）
-const CSS = `
+// ================================================================
+// Props
+// ================================================================
+
+interface TitleGuiProps {
+  gameSlug?: string;
+  gameName?: string;
+  screenWidth?: number;
+  screenHeight?: number;
+  onNewGame: () => void;
+  onLoadGame: () => void;
+  onTeam?: () => void;
+  onExit?: () => void;
+  onMapViewer?: () => void;
+}
+
+export const TitleGui: React.FC<TitleGuiProps> = (props) => {
+  const titleConfig = useTitleGuiConfig();
+
+  if (titleConfig) {
+    return <ClassicTitle config={titleConfig} {...props} />;
+  }
+  return <ModernTitle {...props} />;
+};
+
+// ================================================================
+// Classic Title（INI 配置驱动）
+// ================================================================
+
+/**
+ * ASF 按钮组件：frame 0 = 普通态，frame 1 = hover 态
+ */
+const AsfButton: React.FC<{
+  config: ButtonConfig;
+  onClick: () => void;
+  scale: number;
+  offsetLeft: number;
+  offsetTop: number;
+}> = ({ config, onClick, scale, offsetLeft, offsetTop }) => {
+  const [hovered, setHovered] = useState(false);
+  const normalFrame = useAsfImage(config.image || null, 0);
+  const hoverAsf = normalFrame.asf;
+
+  // hover 时切换到 frame 1
+  const hoverDataUrl = useMemo(() => {
+    if (!hoverAsf || hoverAsf.frames.length < 2) return null;
+    return getAsfFrameDataUrl(hoverAsf, 1);
+  }, [hoverAsf]);
+
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const handleMouseEnter = useCallback(() => {
+    setHovered(true);
+    if (config.sound && !audioRef.current) {
+      const root = getResourceRoot();
+      const audio = new Audio(`${root}/content/sound/${config.sound}`);
+      audio.volume = 0.6;
+      audioRef.current = audio;
+      audio.play().catch(() => {});
+      audio.onended = () => {
+        audioRef.current = null;
+      };
+    }
+  }, [config.sound]);
+
+  const displayUrl = hovered && hoverDataUrl ? hoverDataUrl : normalFrame.dataUrl;
+
+  if (!displayUrl) return null;
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        position: "absolute",
+        left: (config.left + offsetLeft) * scale,
+        top: (config.top + offsetTop) * scale,
+        width: config.width * scale,
+        height: config.height * scale,
+        background: "transparent",
+        border: "none",
+        padding: 0,
+        cursor: "pointer",
+        imageRendering: "pixelated",
+      }}
+    >
+      <img
+        src={displayUrl}
+        alt=""
+        draggable={false}
+        style={{
+          width: "100%",
+          height: "100%",
+          objectFit: "contain",
+          imageRendering: "pixelated",
+          pointerEvents: "none",
+        }}
+      />
+    </button>
+  );
+};
+
+const ClassicTitle: React.FC<TitleGuiProps & { config: TitleGuiConfig }> = ({
+  config,
+  onNewGame,
+  onLoadGame,
+  onTeam,
+  onExit,
+}) => {
+  const [bgUrl, setBgUrl] = useState<string | null>(null);
+  const [bgSize, setBgSize] = useState<{ w: number; h: number } | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerSize, setContainerSize] = useState<{ w: number; h: number }>({ w: 0, h: 0 });
+
+  // 加载背景图（jpg/png 直接用 img 标签）
+  useEffect(() => {
+    const root = getResourceRoot();
+    const url = `${root}/${config.backgroundImage}`;
+    setBgUrl(url);
+
+    // 预加载获取原始尺寸
+    const img = new Image();
+    img.onload = () => {
+      setBgSize({ w: img.naturalWidth, h: img.naturalHeight });
+    };
+    img.src = url;
+  }, [config.backgroundImage]);
+
+  // 容器尺寸
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const obs = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (entry) {
+        setContainerSize({
+          w: entry.contentRect.width,
+          h: entry.contentRect.height,
+        });
+      }
+    });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+
+  // 计算缩放比（以背景图原始尺寸为基准，按 contain 模式适配容器）
+  const { scale, offsetLeft, offsetTop } = useMemo(() => {
+    if (!bgSize || containerSize.w === 0 || containerSize.h === 0) {
+      return { scale: 1, offsetLeft: 0, offsetTop: 0 };
+    }
+    const scaleX = containerSize.w / bgSize.w;
+    const scaleY = containerSize.h / bgSize.h;
+    const s = Math.min(scaleX, scaleY);
+    return {
+      scale: s,
+      offsetLeft: config.leftAdjust,
+      offsetTop: config.topAdjust,
+    };
+  }, [bgSize, containerSize, config.leftAdjust, config.topAdjust]);
+
+  // 背景图渲染尺寸
+  const renderedW = bgSize ? bgSize.w * scale : 0;
+  const renderedH = bgSize ? bgSize.h * scale : 0;
+  const marginLeft = (containerSize.w - renderedW) / 2;
+  const marginTop = (containerSize.h - renderedH) / 2;
+
+  return (
+    <div
+      ref={containerRef}
+      style={{
+        position: "absolute",
+        inset: 0,
+        overflow: "hidden",
+        background: "#000",
+      }}
+    >
+      {bgUrl && (
+        <div
+          style={{
+            position: "absolute",
+            left: marginLeft,
+            top: marginTop,
+            width: renderedW,
+            height: renderedH,
+          }}
+        >
+          {/* 背景图 */}
+          <img
+            src={bgUrl}
+            alt=""
+            draggable={false}
+            style={{
+              width: "100%",
+              height: "100%",
+              objectFit: "fill",
+              imageRendering: "auto",
+              display: "block",
+            }}
+          />
+
+          {/* ASF 按钮层 */}
+          <AsfButton
+            config={config.beginBtn}
+            onClick={onNewGame}
+            scale={scale}
+            offsetLeft={offsetLeft}
+            offsetTop={offsetTop}
+          />
+          <AsfButton
+            config={config.loadBtn}
+            onClick={onLoadGame}
+            scale={scale}
+            offsetLeft={offsetLeft}
+            offsetTop={offsetTop}
+          />
+          {onTeam && (
+            <AsfButton
+              config={config.teamBtn}
+              onClick={onTeam}
+              scale={scale}
+              offsetLeft={offsetLeft}
+              offsetTop={offsetTop}
+            />
+          )}
+          {onExit && (
+            <AsfButton
+              config={config.exitBtn}
+              onClick={onExit}
+              scale={scale}
+              offsetLeft={offsetLeft}
+              offsetTop={offsetTop}
+            />
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ================================================================
+// Modern Title（web 风格回退）
+// ================================================================
+
+const MODERN_CSS = `
 @keyframes titleGlow {
   0%, 100% { text-shadow: 0 0 30px rgba(200,150,60,0.4), 0 0 80px rgba(180,120,40,0.15), 0 2px 8px rgba(0,0,0,0.8); }
   50% { text-shadow: 0 0 60px rgba(220,170,70,0.7), 0 0 120px rgba(200,140,50,0.3), 0 2px 8px rgba(0,0,0,0.8); }
@@ -52,18 +306,6 @@ const CSS = `
 }
 `;
 
-interface TitleGuiProps {
-  gameSlug?: string;
-  gameName?: string;
-  screenWidth?: number;
-  screenHeight?: number;
-  onNewGame: () => void;
-  onLoadGame: () => void;
-  onTeam?: () => void;
-  onExit?: () => void;
-  onMapViewer?: () => void;
-}
-
 // 粒子类型
 interface Particle {
   x: number;
@@ -80,12 +322,11 @@ function useParticles(count: number) {
   const particlesRef = useRef<Particle[]>([]);
   const rafRef = useRef<number>(0);
 
-  // 注入动画 CSS
   useInsertionEffect(() => {
     if (document.getElementById("title-gui-css")) return;
     const style = document.createElement("style");
     style.id = "title-gui-css";
-    style.textContent = CSS;
+    style.textContent = MODERN_CSS;
     document.head.appendChild(style);
   }, []);
 
@@ -102,7 +343,6 @@ function useParticles(count: number) {
     resize();
     window.addEventListener("resize", resize);
 
-    // 初始化粒子
     particlesRef.current = Array.from({ length: count }, () => ({
       x: Math.random() * canvas.width,
       y: Math.random() * canvas.height,
@@ -272,11 +512,7 @@ const MenuButton: React.FC<MenuButtonProps> = ({ label, sub, onClick, primary = 
   );
 };
 
-export const TitleGui: React.FC<TitleGuiProps> = ({
-  gameName,
-  onNewGame,
-  onLoadGame,
-}) => {
+const ModernTitle: React.FC<TitleGuiProps> = ({ gameName, onNewGame, onLoadGame }) => {
   const canvasRef = useParticles(60);
   const [titleVisible, setTitleVisible] = useState(false);
 
@@ -309,8 +545,6 @@ export const TitleGui: React.FC<TitleGuiProps> = ({
       />
 
       {/* ── 光影层 ── */}
-
-      {/* 主光晕：左上角紫色大球 */}
       <div
         style={{
           position: "absolute",
@@ -318,12 +552,12 @@ export const TitleGui: React.FC<TitleGuiProps> = ({
           top: "-15%",
           width: "65%",
           height: "90%",
-          background: "radial-gradient(ellipse, rgba(90,45,140,0.35) 0%, rgba(60,20,100,0.15) 40%, transparent 70%)",
+          background:
+            "radial-gradient(ellipse, rgba(90,45,140,0.35) 0%, rgba(60,20,100,0.15) 40%, transparent 70%)",
           animation: "orbFloat1 14s ease-in-out infinite",
           pointerEvents: "none",
         }}
       />
-      {/* 副光晕：右下角橙红色 */}
       <div
         style={{
           position: "absolute",
@@ -331,12 +565,12 @@ export const TitleGui: React.FC<TitleGuiProps> = ({
           bottom: "-10%",
           width: "55%",
           height: "70%",
-          background: "radial-gradient(ellipse, rgba(160,70,20,0.28) 0%, rgba(120,40,10,0.12) 40%, transparent 70%)",
+          background:
+            "radial-gradient(ellipse, rgba(160,70,20,0.28) 0%, rgba(120,40,10,0.12) 40%, transparent 70%)",
           animation: "orbFloat2 18s ease-in-out infinite",
           pointerEvents: "none",
         }}
       />
-      {/* 中心蓝紫光晕 */}
       <div
         style={{
           position: "absolute",
@@ -349,7 +583,6 @@ export const TitleGui: React.FC<TitleGuiProps> = ({
           pointerEvents: "none",
         }}
       />
-      {/* 小焦点光：标题区域金色补光 */}
       <div
         style={{
           position: "absolute",
@@ -361,8 +594,7 @@ export const TitleGui: React.FC<TitleGuiProps> = ({
           pointerEvents: "none",
         }}
       />
-
-      {/* 极光带 1 */}
+      {/* 极光带 */}
       <div
         style={{
           position: "absolute",
@@ -370,13 +602,13 @@ export const TitleGui: React.FC<TitleGuiProps> = ({
           left: "-20%",
           width: "140%",
           height: "22%",
-          background: "linear-gradient(180deg, transparent 0%, rgba(100,60,180,0.12) 40%, rgba(80,140,200,0.1) 60%, transparent 100%)",
+          background:
+            "linear-gradient(180deg, transparent 0%, rgba(100,60,180,0.12) 40%, rgba(80,140,200,0.1) 60%, transparent 100%)",
           animation: "auroraShift 12s ease-in-out infinite",
           pointerEvents: "none",
           filter: "blur(12px)",
         }}
       />
-      {/* 极光带 2 */}
       <div
         style={{
           position: "absolute",
@@ -384,13 +616,13 @@ export const TitleGui: React.FC<TitleGuiProps> = ({
           left: "-20%",
           width: "140%",
           height: "18%",
-          background: "linear-gradient(180deg, transparent 0%, rgba(180,80,40,0.1) 30%, rgba(200,120,60,0.08) 60%, transparent 100%)",
+          background:
+            "linear-gradient(180deg, transparent 0%, rgba(180,80,40,0.1) 30%, rgba(200,120,60,0.08) 60%, transparent 100%)",
           animation: "auroraShift2 16s ease-in-out infinite",
           pointerEvents: "none",
           filter: "blur(16px)",
         }}
       />
-      {/* 极光带 3（蓝绿冷色调） */}
       <div
         style={{
           position: "absolute",
@@ -404,8 +636,7 @@ export const TitleGui: React.FC<TitleGuiProps> = ({
           filter: "blur(20px)",
         }}
       />
-
-      {/* 扫光线（慢速扫过） */}
+      {/* 扫光线 */}
       <div
         style={{
           position: "absolute",
@@ -413,14 +644,14 @@ export const TitleGui: React.FC<TitleGuiProps> = ({
           right: 0,
           top: 0,
           height: "2px",
-          background: "linear-gradient(90deg, transparent 0%, rgba(200,160,80,0.0) 20%, rgba(200,160,80,0.18) 50%, rgba(200,160,80,0.0) 80%, transparent 100%)",
+          background:
+            "linear-gradient(90deg, transparent 0%, rgba(200,160,80,0.0) 20%, rgba(200,160,80,0.18) 50%, rgba(200,160,80,0.0) 80%, transparent 100%)",
           animation: "scanSweep 10s linear infinite",
           pointerEvents: "none",
           filter: "blur(1px)",
         }}
       />
-
-      {/* 底部边缘光 */}
+      {/* 边缘光 */}
       <div
         style={{
           position: "absolute",
@@ -432,7 +663,6 @@ export const TitleGui: React.FC<TitleGuiProps> = ({
           pointerEvents: "none",
         }}
       />
-      {/* 顶部边缘光 */}
       <div
         style={{
           position: "absolute",
@@ -445,7 +675,7 @@ export const TitleGui: React.FC<TitleGuiProps> = ({
         }}
       />
 
-      {/* ── 主内容区（水平垂直居中） ── */}
+      {/* ── 主内容区 ── */}
       <div
         style={{
           position: "absolute",
@@ -466,7 +696,6 @@ export const TitleGui: React.FC<TitleGuiProps> = ({
             transition: "opacity 0.9s ease, transform 0.9s ease",
           }}
         >
-          {/* 上装饰线（有脉冲动画） */}
           <div
             style={{
               height: 1,
@@ -490,7 +719,6 @@ export const TitleGui: React.FC<TitleGuiProps> = ({
           >
             {displayName}
           </h1>
-          {/* 底部装饰 */}
           <div
             style={{
               marginTop: 14,
@@ -530,7 +758,7 @@ export const TitleGui: React.FC<TitleGuiProps> = ({
         </div>
       </div>
 
-      {/* 右侧暗角遮罩 */}
+      {/* 暗角遮罩 */}
       <div
         style={{
           position: "absolute",

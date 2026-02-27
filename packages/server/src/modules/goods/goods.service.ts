@@ -477,6 +477,22 @@ export class GoodsService {
 
     return result;
   }
+
+  /**
+   * 清空所有物品
+   */
+  async clearAll(
+    input: { gameId: string },
+    userId: string,
+    language: Language
+  ): Promise<{ deletedCount: number }> {
+    await verifyGameAccess(input.gameId, userId, language);
+    const deleted = await db
+      .delete(goods)
+      .where(eq(goods.gameId, input.gameId))
+      .returning({ id: goods.id });
+    return { deletedCount: deleted.length };
+  }
 }
 
 export const goodsService = new GoodsService();

@@ -10,6 +10,7 @@ import type { Vector2 } from "../../core/types";
 import type { GuiManager } from "../../gui/gui-manager";
 import type { MemoListManager } from "../../gui/memo-list-manager";
 import type { TalkTextListManager } from "../../gui/talk-text-list";
+import type { MagicSpriteManager } from "../../magic/manager/magic-sprite-manager";
 import type { Npc, NpcManager } from "../../npc";
 import type { ObjManager } from "../../obj";
 import type { GoodsListManager } from "../../player/goods";
@@ -38,6 +39,7 @@ export interface ScriptCommandContext
   memoListManager: MemoListManager;
   timerManager: TimerManager;
   partnerList: PartnerListManager;
+  magicSpriteManager: MagicSpriteManager;
 
   // === Derived from player ===
   levelManager: LevelManager;

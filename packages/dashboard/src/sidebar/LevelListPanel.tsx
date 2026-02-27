@@ -4,7 +4,7 @@
  */
 
 import { trpc } from "@miu2d/shared";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { ModalShell } from "../components/common";
 import { useDashboard } from "../DashboardContext";
@@ -26,35 +26,6 @@ function CreateLevelConfigModal({
 }) {
   const navigate = useNavigate();
   const [userType, setUserType] = useState<"player" | "npc">("player");
-  const [mode, setMode] = useState<"upload" | "manual">("upload");
-  const [isDragging, setIsDragging] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const importMutation = trpc.level.importFromIni.useMutation({
-    onSuccess: (data) => {
-      onSuccess(data.id);
-      onClose();
-    },
-  });
-
-  const handleFileSelect = async (file: File) => {
-    if (!file.name.toLowerCase().endsWith(".ini")) return;
-    const content = await file.text();
-    importMutation.mutate({
-      gameId,
-      fileName: file.name,
-      userType,
-      iniContent: content,
-    });
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
-    const file = e.dataTransfer.files[0];
-    if (file) handleFileSelect(file);
-  };
 
   const handleManualCreate = () => {
     navigate(`${basePath}/new?type=${userType}`);
@@ -96,98 +67,25 @@ function CreateLevelConfigModal({
         </div>
       </div>
 
-      {/* 创建方式选择 */}
-      <div>
-        <label className="block text-sm text-[#cccccc] mb-2">创建方式</label>
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={() => setMode("upload")}
-            className={`flex-1 px-3 py-2 text-sm rounded-lg border transition-colors ${
-              mode === "upload"
-                ? "bg-[#094771] border-[#0098ff] text-white"
-                : "bg-[#3c3c3c] border-[#555] text-[#cccccc] hover:border-[#666]"
-            }`}
-          >
-            📥 导入 INI
-          </button>
-          <button
-            type="button"
-            onClick={() => setMode("manual")}
-            className={`flex-1 px-3 py-2 text-sm rounded-lg border transition-colors ${
-              mode === "manual"
-                ? "bg-[#094771] border-[#0098ff] text-white"
-                : "bg-[#3c3c3c] border-[#555] text-[#cccccc] hover:border-[#666]"
-            }`}
-          >
-            ✏️ 手动创建
-          </button>
-        </div>
-      </div>
-
       {/* 内容区 */}
-      {mode === "upload" ? (
-        <div
-          className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
-            isDragging ? "border-[#0098ff] bg-[#0098ff]/10" : "border-[#555] hover:border-[#666]"
-          }`}
-          onDragOver={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            setIsDragging(true);
-          }}
-          onDragLeave={(e) => {
-            e.stopPropagation();
-            setIsDragging(false);
-          }}
-          onDrop={handleDrop}
+      <div className="space-y-3">
+        <p className="text-sm text-[#858585]">点击下方按钮进入编辑器，手动配置等级属性。</p>
+        <button
+          type="button"
+          onClick={handleManualCreate}
+          className="w-full px-4 py-2.5 text-sm bg-[#0e639c] hover:bg-[#1177bb] text-white rounded-lg transition-colors flex items-center justify-center gap-2"
         >
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".ini"
-            className="hidden"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) handleFileSelect(file);
-              e.target.value = "";
-            }}
-          />
-          <div className="text-3xl mb-2">📄</div>
-          <p className="text-sm text-[#cccccc] mb-1">拖放 INI 文件到这里</p>
-          <p className="text-xs text-[#858585] mb-3">或者</p>
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={importMutation.isPending}
-            className="px-4 py-2 text-sm bg-[#0e639c] hover:bg-[#1177bb] text-white rounded-lg transition-colors disabled:opacity-50"
-          >
-            {importMutation.isPending ? "导入中..." : "选择文件"}
-          </button>
-          {importMutation.isError && (
-            <p className="text-xs text-red-400 mt-2">导入失败: {importMutation.error.message}</p>
-          )}
-        </div>
-      ) : (
-        <div className="space-y-3">
-          <p className="text-sm text-[#858585]">点击下方按钮进入编辑器，手动配置等级属性。</p>
-          <button
-            type="button"
-            onClick={handleManualCreate}
-            className="w-full px-4 py-2.5 text-sm bg-[#0e639c] hover:bg-[#1177bb] text-white rounded-lg transition-colors flex items-center justify-center gap-2"
-          >
-            <span>开始创建</span>
-            <span>→</span>
-          </button>
-        </div>
-      )}
+          <span>开始创建</span>
+          <span>→</span>
+        </button>
+      </div>
     </ModalShell>
   );
 }
 
 // ========== 等级配置列表面板 ==========
 export function LevelListPanel({ basePath }: { basePath: string }) {
-  const { currentGame } = useDashboard();
+  const { currentGame, setShowImportAll } = useDashboard();
   const navigate = useNavigate();
   const gameId = currentGame?.id;
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -217,14 +115,24 @@ export function LevelListPanel({ basePath }: { basePath: string }) {
       {/* 标题栏 */}
       <div className="flex h-9 items-center justify-between px-4 border-b border-panel-border">
         <span className="text-xs font-medium uppercase tracking-wide text-[#bbbbbb]">等级配置</span>
-        <button
-          type="button"
-          onClick={() => setShowCreateModal(true)}
-          className="p-1 text-[#858585] hover:text-white hover:bg-[#3c3c3c] rounded transition-colors"
-          title="新建配置"
-        >
-          {DashboardIcons.add}
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => setShowImportAll(true)}
+            className="flex items-center gap-1 px-2 py-0.5 rounded text-xs text-[#cccccc] hover:bg-[#3c3c3c] transition-colors"
+            title="批量导入"
+          >
+            {DashboardIcons.upload}批量导入
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowCreateModal(true)}
+            className="p-1 text-[#858585] hover:text-white hover:bg-[#3c3c3c] rounded transition-colors"
+            title="新建配置"
+          >
+            {DashboardIcons.add}
+          </button>
+        </div>
       </div>
 
       {/* 列表 */}

@@ -161,5 +161,11 @@ export function createScriptRunnerAPI(
     loadGame: async (index) => {
       await ctx.loadGameSave(index);
     },
+    setInterfaceVisible: (visible) => {
+      ctx.guiManager.setInterfaceVisible(visible);
+    },
+    saveGame: () => {
+      ctx.guiManager.showSaveLoad(true);
+    },
   };
 }

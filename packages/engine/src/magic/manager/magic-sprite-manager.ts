@@ -220,6 +220,41 @@ export class MagicSpriteManager {
   }
 
   /**
+   * MoveMagic - 重定向活动武功方向（脚本命令）
+   * 找到所有与 magicFile 匹配的活动武功精灵，将其方向改为给定方向编号
+   * direction: 1-8 (1=上, 2=右上, ...) - 与 CharacterState 方向映射一致
+   */
+  redirectMagicDirection(magicFile: string, direction: number): void {
+    // 将方向编号转换为单位向量（基于 8 方向，1=上 按顺时针）
+    const directionToVector: { x: number; y: number }[] = [
+      { x: 0, y: 0 },   // 0 - unused
+      { x: 0, y: -1 },  // 1 - up
+      { x: 1, y: -1 },  // 2 - upper-right
+      { x: 1, y: 0 },   // 3 - right
+      { x: 1, y: 1 },   // 4 - lower-right
+      { x: 0, y: 1 },   // 5 - down
+      { x: -1, y: 1 },  // 6 - lower-left
+      { x: -1, y: 0 },  // 7 - left
+      { x: -1, y: -1 }, // 8 - upper-left
+    ];
+    const vec = directionToVector[direction] ?? { x: 0, y: 0 };
+    // Normalize diagonal vectors
+    const len = Math.sqrt(vec.x * vec.x + vec.y * vec.y);
+    const normalized = len > 0 ? { x: vec.x / len, y: vec.y / len } : { x: 0, y: 0 };
+
+    let found = false;
+    for (const sprite of this.state.magicSprites.values()) {
+      if (sprite.magic.fileName === magicFile) {
+        sprite.setMoveDirection(normalized);
+        found = true;
+      }
+    }
+    if (!found) {
+      logger.debug(`[MagicSpriteManager] redirectMagicDirection: no active sprite for ${magicFile}`);
+    }
+  }
+
+  /**
    * 清除所有武功
    */
   clear(): void {

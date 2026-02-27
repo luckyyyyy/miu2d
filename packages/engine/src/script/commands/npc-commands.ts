@@ -511,6 +511,84 @@ const setKeepAttackCommand: CommandHandler = (params, _result, helpers) => {
 };
 
 /**
+ * AddOneMagic - Add a magic to an NPC or partner by name
+ * AddOneMagic(name, magicFile)
+ */
+const addOneMagicCommand: CommandHandler = async (params, _result, helpers) => {
+  const npcName = helpers.resolveString(params[0] || "");
+  const magicFile = helpers.resolveString(params[1] || "");
+  await helpers.api.npc.addMagic(npcName, magicFile);
+  return true;
+};
+
+/**
+ * ChangeLife - Add/subtract life from NPC or partner
+ * ChangeLife(name, amount)
+ */
+const changeLifeCommand: CommandHandler = (params, _result, helpers) => {
+  const npcName = helpers.resolveString(params[0] || "");
+  const amount = helpers.resolveNumber(params[1] || "0");
+  helpers.api.npc.changeLife(npcName, amount);
+  return true;
+};
+
+/**
+ * ChangeMana - Add/subtract mana from NPC or partner
+ * ChangeMana(name, amount)
+ */
+const changeManaCommand: CommandHandler = (params, _result, helpers) => {
+  const npcName = helpers.resolveString(params[0] || "");
+  const amount = helpers.resolveNumber(params[1] || "0");
+  helpers.api.npc.changeMana(npcName, amount);
+  return true;
+};
+
+/**
+ * ChangeThew - Add/subtract thew from NPC or partner
+ * ChangeThew(name, amount)
+ */
+const changeThewCommand: CommandHandler = (params, _result, helpers) => {
+  const npcName = helpers.resolveString(params[0] || "");
+  const amount = helpers.resolveNumber(params[1] || "0");
+  helpers.api.npc.changeThew(npcName, amount);
+  return true;
+};
+
+/**
+ * SetNpcClickScript - Set NPC click (interaction) script
+ * SetNpcClickScript(name, scriptFile)
+ */
+const setNpcClickScriptCommand: CommandHandler = (params, _result, helpers) => {
+  const npcName = helpers.resolveString(params[0] || "");
+  const scriptFile = helpers.resolveString(params[1] || "");
+  helpers.api.npc.setClickScript(npcName, scriptFile);
+  return true;
+};
+
+/**
+ * SetNpcMagicLevel - Set NPC magic attack level
+ * SetNpcMagicLevel(name, magicFile, level)
+ */
+const setNpcMagicLevelCommand: CommandHandler = (params, _result, helpers) => {
+  const npcName = helpers.resolveString(params[0] || "");
+  const magicFile = helpers.resolveString(params[1] || "");
+  const level = helpers.resolveNumber(params[2] || "1");
+  helpers.api.npc.setMagicLevel(npcName, magicFile, level);
+  return true;
+};
+
+/**
+ * SetPartnerLevel - Set partner NPC level (same as SetNpcLevel)
+ * SetPartnerLevel(name, level)
+ */
+const setPartnerLevelCommand: CommandHandler = (params, _result, helpers) => {
+  const npcName = helpers.resolveString(params[0] || "");
+  const level = helpers.resolveNumber(params[1] || "1");
+  helpers.api.npc.setLevel(npcName, level);
+  return true;
+};
+
+/**
  * Register all NPC commands
  */
 export function registerNpcCommands(registry: CommandRegistry): void {
@@ -570,4 +648,14 @@ export function registerNpcCommands(registry: CommandRegistry): void {
   registry.set("setnpcdestination", setNpcDestinationCommand);
   registry.set("getnpccount", getNpcCountCommand);
   registry.set("setkeepattack", setKeepAttackCommand);
+
+  // New commands
+  registry.set("addonemogic", addOneMagicCommand); // original typo in audit kept for compatibility
+  registry.set("addonemagic", addOneMagicCommand);  // correct spelling used in scripts
+  registry.set("changelife", changeLifeCommand);
+  registry.set("changemana", changeManaCommand);
+  registry.set("changethew", changeThewCommand);
+  registry.set("setnpcclickscript", setNpcClickScriptCommand);
+  registry.set("setnpcmagiclevel", setNpcMagicLevelCommand);
+  registry.set("setpartnerlevel", setPartnerLevelCommand);
 }

@@ -31,12 +31,14 @@ import {
   parseNpcInfoShowConfig,
   parseStateGuiConfig,
   parseSystemGuiConfig,
+  parseTitleGuiConfig,
   parseToolTipType2Config,
   parseToolTipUseTypeConfig,
   parseTopGuiConfig,
   parseXiuLianGuiConfig,
   type StateGuiConfig,
   type SystemGuiConfig,
+  type TitleGuiConfig,
   type ToolTipType2Config,
   type ToolTipUseTypeConfig,
   type TopGuiConfig,
@@ -64,6 +66,7 @@ let cachedConfigs: {
   top?: TopGuiConfig;
   toolTipUseType?: ToolTipUseTypeConfig;
   toolTipType2?: ToolTipType2Config;
+  title?: TitleGuiConfig | null;
 } = {};
 
 let isLoaded = false;
@@ -106,6 +109,7 @@ async function ensureLoaded(): Promise<void> {
       top: parseTopGuiConfig(settings),
       toolTipUseType: parseToolTipUseTypeConfig(settings),
       toolTipType2: parseToolTipType2Config(settings),
+      title: parseTitleGuiConfig(settings),
     };
     isLoaded = true;
   })();
@@ -488,6 +492,26 @@ export function useToolTipType2Config(): ToolTipType2Config {
     }
     ensureLoaded().then(() => {
       setConfig(cachedConfigs.toolTipType2 ?? defaultType2);
+    });
+  }, []);
+
+  return config;
+}
+
+/**
+ * Hook to get Title GUI config (classic INI-driven title screen)
+ * Returns null if [Title] section is not configured in the INI
+ */
+export function useTitleGuiConfig(): TitleGuiConfig | null {
+  const [config, setConfig] = useState<TitleGuiConfig | null>(cachedConfigs.title ?? null);
+
+  useEffect(() => {
+    if (cachedConfigs.title !== undefined) {
+      setConfig(cachedConfigs.title ?? null);
+      return;
+    }
+    ensureLoaded().then(() => {
+      setConfig(cachedConfigs.title ?? null);
     });
   }, []);
 

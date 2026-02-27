@@ -800,6 +800,26 @@ export class NpcService {
 
     return result;
   }
+
+  /**
+   * 清空所有 NPC 和 NPC 资源
+   */
+  async clearAll(
+    input: { gameId: string },
+    userId: string,
+    language: Language
+  ): Promise<{ deletedCount: number }> {
+    await verifyGameAccess(input.gameId, userId, language);
+    const deletedRes = await db
+      .delete(npcResources)
+      .where(eq(npcResources.gameId, input.gameId))
+      .returning({ id: npcResources.id });
+    const deletedNpcs = await db
+      .delete(npcs)
+      .where(eq(npcs.gameId, input.gameId))
+      .returning({ id: npcs.id });
+    return { deletedCount: deletedNpcs.length + deletedRes.length };
+  }
 }
 
 export const npcService = new NpcService();

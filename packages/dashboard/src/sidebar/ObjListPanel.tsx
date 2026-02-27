@@ -1,26 +1,20 @@
 /**
  * Object 列表侧边栏面板
- * ObjListPanel + ImportObjModal + CreateObjModal + CreateObjResourceModal
+ * ObjListPanel + CreateObjModal + CreateObjResourceModal
  */
 
 import { trpc } from "@miu2d/shared";
 import { useMemo, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
-import {
-  BatchItemRow,
-  CreateEntityModal,
-  ImportIniModal,
-  readDroppedFiles,
-} from "../components/common";
+import { CreateEntityModal } from "../components/common";
 import { LazyAsfIcon } from "../components/common/LazyAsfIcon";
 import { useDashboard } from "../DashboardContext";
 import { DashboardIcons } from "../icons";
 
 export function ObjListPanel({ basePath }: { basePath: string }) {
-  const { currentGame } = useDashboard();
+  const { currentGame, setShowImportAll } = useDashboard();
   const navigate = useNavigate();
   const gameId = currentGame?.id;
-  const [showImportModal, setShowImportModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [createType, setCreateType] = useState<"obj" | "resource">("obj");
   const [filterKind, setFilterKind] = useState<"all" | "obj" | "resource">("all");
@@ -42,21 +36,6 @@ export function ObjListPanel({ basePath }: { basePath: string }) {
     refetchObjs();
     refetchResources();
   };
-
-  const batchImportMutation = trpc.obj.batchImportFromIni.useMutation({
-    onSuccess: (result) => {
-      refetch();
-      setShowImportModal(false);
-      if (result.success.length > 0) {
-        const first = result.success[0];
-        if (first.type === "resource") {
-          navigate(`${basePath}/resource/${first.id}`);
-        } else {
-          navigate(`${basePath}/${first.id}`);
-        }
-      }
-    },
-  });
 
   // 按类型分组
   const groupedObjs = useMemo(() => {
@@ -116,11 +95,11 @@ export function ObjListPanel({ basePath }: { basePath: string }) {
         <div className="flex flex-col gap-1 p-2 border-b border-panel-border">
           <button
             type="button"
-            onClick={() => setShowImportModal(true)}
+            onClick={() => setShowImportAll(true)}
             className="flex items-center gap-2 px-2 py-1.5 text-xs text-[#cccccc] hover:bg-[#3c3c3c] rounded transition-colors"
           >
             {DashboardIcons.upload}
-            <span>从 INI 导入</span>
+            <span>批量导入</span>
           </button>
           <button
             type="button"
@@ -293,56 +272,6 @@ export function ObjListPanel({ basePath }: { basePath: string }) {
         </div>
       </div>
 
-      {/* INI 导入模态框 */}
-      {showImportModal && (
-        <ImportIniModal<ObjImportItem>
-          title="从 INI 导入 Object"
-          icon="📦"
-          dropHint="拖放 obj 和 objres 文件夹到此处"
-          dropSubHint="支持批量导入，自动合并资源"
-          entityLabel="Object"
-          onClose={() => setShowImportModal(false)}
-          onImport={(items) => batchImportMutation.mutate({ gameId: gameId!, items })}
-          isLoading={batchImportMutation.isPending}
-          batchResult={batchImportMutation.data}
-          processFiles={processObjDrop}
-          renderItem={(item, _index, onRemove) => (
-            <BatchItemRow
-              key={item.fileName}
-              fileName={item.fileName}
-              onRemove={onRemove}
-              extra={
-                item.type === "resource" ? (
-                  <span className="text-xs text-blue-400">独立资源</span>
-                ) : item.objResContent ? (
-                  <span className="text-xs text-green-400">+ 资源</span>
-                ) : undefined
-              }
-            />
-          )}
-          renderSuccessItem={(s) => (
-            <span>
-              {s.name}{" "}
-              {(s.hasResources as boolean) && <span className="text-green-300">+ 资源</span>}
-            </span>
-          )}
-          description={
-            <div className="text-xs text-[#858585] bg-[#1e1e1e] p-3 rounded">
-              <p className="mb-1">支持拖入以下结构：</p>
-              <ul className="list-disc list-inside space-y-0.5">
-                <li>
-                  <code className="text-[#ce9178]">obj/</code> - Object 配置目录
-                </li>
-                <li>
-                  <code className="text-[#ce9178]">objres/</code> - Object 资源配置目录
-                </li>
-              </ul>
-              <p className="mt-2">同名的 .ini 文件会自动合并资源配置</p>
-            </div>
-          }
-        />
-      )}
-
       {/* 新建 Object 模态框 */}
       {showCreateModal && createType === "obj" && (
         <CreateObjModal
@@ -364,75 +293,6 @@ export function ObjListPanel({ basePath }: { basePath: string }) {
       )}
     </>
   );
-}
-
-// ===== Obj 导入辅助 =====
-
-interface ObjImportItem {
-  fileName: string;
-  /** 导入类型：obj = Object配置, resource = 独立资源配置 */
-  type?: "obj" | "resource";
-  iniContent?: string;
-  objResContent?: string;
-}
-
-/** 判断文件属于 obj/ 还是 objres/ 目录 */
-function getObjFileCategory(fullPath: string): "obj" | "objres" | null {
-  const p = fullPath.toLowerCase();
-  if (p.match(/[/\\]objres[/\\]/) || p.startsWith("objres/") || p.startsWith("objres\\"))
-    return "objres";
-  if (p.match(/[/\\]obj[/\\]/) || p.startsWith("obj/") || p.startsWith("obj\\")) return "obj";
-  return null;
-}
-
-/** 从 obj ini 内容中解析 ObjFile 字段值 */
-function parseObjFileField(content: string): string | null {
-  const match = content.match(/^\s*ObjFile\s*=\s*(.+?)\s*$/im);
-  return match ? match[1].toLowerCase() : null;
-}
-
-/** 处理 Object 文件拖放，分类 obj/objres 并合并 */
-async function processObjDrop(dt: DataTransfer): Promise<ObjImportItem[]> {
-  const allFiles = await readDroppedFiles(dt);
-  const objFiles = new Map<string, { fileName: string; content: string }>();
-  const objResFiles = new Map<string, { fileName: string; content: string }>();
-
-  for (const f of allFiles) {
-    const cat = getObjFileCategory(f.fullPath);
-    if (cat === "obj")
-      objFiles.set(f.fileName.toLowerCase(), { fileName: f.fileName, content: f.content });
-    else if (cat === "objres")
-      objResFiles.set(f.fileName.toLowerCase(), { fileName: f.fileName, content: f.content });
-  }
-
-  const items: ObjImportItem[] = [];
-  const usedObjResKeys = new Set<string>();
-
-  for (const [_, objInfo] of objFiles) {
-    const objFileField = parseObjFileField(objInfo.content);
-    const objResInfo = objFileField ? objResFiles.get(objFileField) : null;
-    if (objFileField && objResInfo) {
-      usedObjResKeys.add(objFileField);
-    }
-    items.push({
-      fileName: objInfo.fileName,
-      iniContent: objInfo.content,
-      objResContent: objResInfo?.content,
-    });
-  }
-
-  // 添加独立的 objres 文件（没有被任何 obj 的 ObjFile= 引用的）
-  for (const [key, resInfo] of objResFiles) {
-    if (!usedObjResKeys.has(key)) {
-      items.push({
-        fileName: resInfo.fileName,
-        type: "resource",
-        objResContent: resInfo.content,
-      });
-    }
-  }
-
-  return items;
 }
 
 // ===== 新建 Object 弹窗 =====

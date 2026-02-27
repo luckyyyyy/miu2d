@@ -3,6 +3,8 @@
  */
 
 import {
+  ClearAllTalkPortraitsInputSchema,
+  ClearAllTalkPortraitsResultSchema,
   GetPortraitMapInputSchema,
   ImportPortraitMapInputSchema,
   PortraitMapResultSchema,
@@ -48,5 +50,14 @@ export class TalkPortraitRouter {
   @Mutation({ input: ImportPortraitMapInputSchema, output: PortraitMapResultSchema })
   async importFromIni(input: z.infer<typeof ImportPortraitMapInputSchema>, @Ctx() ctx: Context) {
     return talkPortraitService.importFromIni(input, ctx.userId!, ctx.language);
+  }
+
+  /**
+   * 清空头像映射
+   */
+  @UseMiddlewares(requireUser)
+  @Mutation({ input: ClearAllTalkPortraitsInputSchema, output: ClearAllTalkPortraitsResultSchema })
+  async clearAll(input: z.infer<typeof ClearAllTalkPortraitsInputSchema>, @Ctx() ctx: Context) {
+    return talkPortraitService.clearAll(input, ctx.userId!, ctx.language);
   }
 }

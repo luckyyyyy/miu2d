@@ -245,6 +245,21 @@ export class Npc extends Character {
     this._magicCache.clear();
   }
 
+  /**
+   * 动态添加武功到缓存（供 AddOneMagic 脚本命令使用）
+   */
+  async addMagicToCache(magicIni: string): Promise<MagicData | null> {
+    return this._magicCache.add(magicIni);
+  }
+
+  /**
+   * 设置 NPC 武功等级（供 SetNpcMagicLevel 脚本命令使用）
+   * 会清除缓存并在下次加载时使用新等级
+   */
+  setMagicAttackLevel(level: number): void {
+    this._magicCache.setAttackLevel(level);
+  }
+
   // === Factory Methods ===
 
   /**

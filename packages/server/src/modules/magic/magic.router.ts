@@ -5,6 +5,8 @@
 import {
   BatchImportMagicInputSchema,
   BatchImportMagicResultSchema,
+  ClearAllMagicsInputSchema,
+  ClearAllMagicsResultSchema,
   CreateMagicInputSchema,
   DeleteMagicInputSchema,
   GetMagicInputSchema,
@@ -93,5 +95,14 @@ export class MagicRouter {
     @Ctx() ctx: Context
   ) {
     return magicService.batchImportFromIni(input, ctx.userId!, ctx.language);
+  }
+
+  /**
+   * 清空所有武功
+   */
+  @UseMiddlewares(requireUser)
+  @Mutation({ input: ClearAllMagicsInputSchema, output: ClearAllMagicsResultSchema })
+  async clearAll(input: z.infer<typeof ClearAllMagicsInputSchema>, @Ctx() ctx: Context) {
+    return magicService.clearAll(input, ctx.userId!, ctx.language);
   }
 }

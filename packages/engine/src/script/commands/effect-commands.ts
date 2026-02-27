@@ -163,6 +163,26 @@ const setShowMapPosCommand: CommandHandler = (params, _result, helpers) => {
   return true;
 };
 
+/**
+ * ClearEffect - Clear all status effects (poison, frozen, petrifaction) from player
+ * ClearEffect()
+ */
+const clearEffectCommand: CommandHandler = (_params, _result, helpers) => {
+  helpers.api.effects.clearEffect();
+  return true;
+};
+
+/**
+ * MoveMagic - Redirect an active magic sprite to a new direction
+ * MoveMagic(magicFile, direction)
+ */
+const moveMagicCommand: CommandHandler = (params, _result, helpers) => {
+  const magicFile = helpers.resolveString(params[0] || "");
+  const direction = helpers.resolveNumber(params[1] || "0");
+  helpers.api.effects.moveMagic(magicFile, direction);
+  return true;
+};
+
 export function registerEffectCommands(registry: CommandRegistry): void {
   // Screen effects
   registry.set("fadein", fadeInCommand);
@@ -186,6 +206,8 @@ export function registerEffectCommands(registry: CommandRegistry): void {
   registry.set("petrifymillisecond", petrifyMillisecondCommand);
   registry.set("poisonmillisecond", poisonMillisecondCommand);
   registry.set("frozenmillisecond", frozenMillisecondCommand);
+  registry.set("cleareffect", clearEffectCommand);
+  registry.set("movemagic", moveMagicCommand);
 
   // Display
   registry.set("setshowmappos", setShowMapPosCommand);

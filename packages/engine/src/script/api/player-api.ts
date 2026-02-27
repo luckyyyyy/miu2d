@@ -185,6 +185,7 @@ export function createPlayerAPI(ctx: ScriptCommandContext, resolver: BlockingRes
     addExp: (amount) => {
       player.addExp(amount);
     },
+    getLevel: () => player?.level ?? 0,
     getStat: (stateName) => {
       if (!player) return 0;
       switch (stateName) {

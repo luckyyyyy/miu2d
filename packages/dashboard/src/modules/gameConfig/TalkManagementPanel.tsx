@@ -421,7 +421,7 @@ function VirtualTalkList({
 export function TalkManagementPanel({ gameId }: { gameId: string }) {
   const toast = useToast();
   const utils = trpc.useUtils();
-  const { currentGame } = useDashboard();
+  const { currentGame, setShowImportAll } = useDashboard();
   const gameSlug = currentGame?.slug ?? "";
 
   // 状态
@@ -431,7 +431,6 @@ export function TalkManagementPanel({ gameId }: { gameId: string }) {
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [editingEntry, setEditingEntry] = useState<TalkEntry | null>(null);
   const [isCreating, setIsCreating] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
 
   // 查询对话数据
   const { data: talkData, isLoading } = trpc.talk.get.useQuery({ gameId }, { enabled: !!gameId });
@@ -508,29 +507,7 @@ export function TalkManagementPanel({ gameId }: { gameId: string }) {
     onError: (err) => toast.error(`保存失败: ${err.message}`),
   });
 
-  const importMutation = trpc.talk.importFromTxt.useMutation({
-    onSuccess: (result) => {
-      setEntries(result.entries);
-      toast.success(`成功导入 ${result.entries.length} 条对话`);
-      utils.talk.get.invalidate({ gameId });
-    },
-    onError: (err) => toast.error(`导入失败: ${err.message}`),
-  });
-
   // 操作处理
-  const handleImportTxt = () => {
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = ".txt";
-    input.onchange = async (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (!file) return;
-      const content = await file.text();
-      importMutation.mutate({ gameId, content });
-    };
-    input.click();
-  };
-
   const handleExportTxt = () => {
     const content = exportTalkIndexTxt(entries);
     const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
@@ -588,28 +565,6 @@ export function TalkManagementPanel({ gameId }: { gameId: string }) {
     setSelectedId((prev) => (prev === id ? null : id));
   }, []);
 
-  // 拖拽导入
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    if (e.dataTransfer.types.includes("Files")) setIsDragging(true);
-  };
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-  };
-  const handleDrop = async (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    const files = Array.from(e.dataTransfer.files);
-    const txtFile = files.find((f) => f.name.toLowerCase().endsWith(".txt"));
-    if (!txtFile) {
-      toast.error("请拖入 .txt 文件");
-      return;
-    }
-    const content = await txtFile.text();
-    importMutation.mutate({ gameId, content });
-  };
-
   if (isLoading) {
     return <div className="flex items-center justify-center h-full text-[#858585]">加载中...</div>;
   }
@@ -617,19 +572,7 @@ export function TalkManagementPanel({ gameId }: { gameId: string }) {
   return (
     <div
       className="flex flex-col h-full relative"
-      onDragOver={handleDragOver}
-      onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
     >
-      {/* 拖拽覆盖层 */}
-      {isDragging && (
-        <div className="absolute inset-0 z-10 bg-[#0098ff]/10 border-2 border-dashed border-[#0098ff] rounded-lg flex items-center justify-center pointer-events-none">
-          <div className="text-[#0098ff] text-sm font-medium bg-[#252526] px-4 py-2 rounded-lg shadow-lg">
-            释放 TalkIndex.txt 文件以导入对话数据
-          </div>
-        </div>
-      )}
-
       {/* 工具栏 */}
       <div className="flex-shrink-0 flex items-center gap-2 px-4 py-2 border-b border-panel-border bg-[#1e1e1e]">
         {/* 搜索框 */}
@@ -670,11 +613,10 @@ export function TalkManagementPanel({ gameId }: { gameId: string }) {
         {/* 操作按钮 */}
         <button
           type="button"
-          onClick={handleImportTxt}
-          disabled={importMutation.isPending}
-          className="px-2.5 py-1.5 text-xs bg-[#3c3c3c] hover:bg-[#4c4c4c] rounded text-[#ccc] transition-colors disabled:opacity-50"
+          onClick={() => setShowImportAll(true)}
+          className="px-2.5 py-1.5 text-xs bg-[#3c3c3c] hover:bg-[#4c4c4c] rounded text-[#ccc] transition-colors"
         >
-          {importMutation.isPending ? "导入中..." : "导入 TXT"}
+          批量导入
         </button>
         <button
           type="button"

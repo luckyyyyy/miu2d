@@ -153,6 +153,8 @@ export type {
   BatchImportGoodInput,
   BatchImportGoodItem,
   BatchImportGoodResult,
+  ClearAllGoodsInput,
+  ClearAllGoodsResult,
   CreateGoodInput,
   DeleteGoodInput,
   DrugData,
@@ -173,6 +175,8 @@ export {
   BatchImportGoodInputSchema,
   BatchImportGoodItemSchema,
   BatchImportGoodResultSchema,
+  ClearAllGoodsInputSchema,
+  ClearAllGoodsResultSchema,
   CreateGoodInputSchema,
   createDefaultGood,
   DeleteGoodInputSchema,
@@ -201,6 +205,8 @@ export {
 } from "./good.js";
 export type {
   CreateLevelConfigInput,
+  ClearAllLevelConfigsInput,
+  ClearAllLevelConfigsResult,
   DeleteLevelConfigInput,
   GetLevelConfigInput,
   ImportLevelConfigInput,
@@ -213,6 +219,8 @@ export type {
 } from "./level.js";
 // 等级配置类型
 export {
+  ClearAllLevelConfigsInputSchema,
+  ClearAllLevelConfigsResultSchema,
   CreateLevelConfigInputSchema,
   createDefaultLevelConfig,
   createDefaultLevelDetail,
@@ -232,6 +240,8 @@ export type {
   BatchImportMagicInput,
   BatchImportMagicItem,
   BatchImportMagicResult,
+  ClearAllMagicsInput,
+  ClearAllMagicsResult,
   CreateMagicInput,
   DeleteMagicInput,
   GetMagicInput,
@@ -254,6 +264,8 @@ export {
   BatchImportMagicInputSchema,
   BatchImportMagicItemSchema,
   BatchImportMagicResultSchema,
+  ClearAllMagicsInputSchema,
+  ClearAllMagicsResultSchema,
   CreateMagicInputSchema,
   createDefaultAttackFile,
   createDefaultLevels,
@@ -289,6 +301,8 @@ export {
 export type {
   BatchImportNpcInput,
   BatchImportNpcResult,
+  ClearAllNpcsInput,
+  ClearAllNpcsResult,
   CreateNpcInput,
   CreateNpcResInput,
   DeleteNpcInput,
@@ -316,6 +330,8 @@ export type {
 export {
   BatchImportNpcInputSchema,
   BatchImportNpcResultSchema,
+  ClearAllNpcsInputSchema,
+  ClearAllNpcsResultSchema,
   CreateNpcInputSchema,
   CreateNpcResInputSchema,
   createDefaultNpc,
@@ -359,6 +375,8 @@ export {
 export type {
   BatchImportObjInput,
   BatchImportObjResult,
+  ClearAllObjsInput,
+  ClearAllObjsResult,
   CreateObjInput,
   CreateObjResInput,
   DeleteObjInput,
@@ -385,6 +403,8 @@ export type {
 export {
   BatchImportObjInputSchema,
   BatchImportObjResultSchema,
+  ClearAllObjsInputSchema,
+  ClearAllObjsResultSchema,
   CreateObjInputSchema,
   CreateObjResInputSchema,
   createDefaultObj,
@@ -543,6 +563,8 @@ export type {
   BatchImportShopInput,
   BatchImportShopItem,
   BatchImportShopResult,
+  ClearAllShopsInput,
+  ClearAllShopsResult,
   CreateShopInput,
   DeleteShopInput,
   GetShopInput,
@@ -558,6 +580,8 @@ export {
   BatchImportShopInputSchema,
   BatchImportShopItemSchema,
   BatchImportShopResultSchema,
+  ClearAllShopsInputSchema,
+  ClearAllShopsResultSchema,
   CreateShopInputSchema,
   createDefaultShop,
   DeleteShopInputSchema,
@@ -570,6 +594,8 @@ export {
   UpdateShopInputSchema,
 } from "./shop.js";
 export type {
+  ClearAllTalksInput,
+  ClearAllTalksResult,
   CreateTalkEntryInput,
   DeleteTalkEntryInput,
   GetTalkDataInput,
@@ -584,6 +610,8 @@ export type {
 } from "./talk.js";
 // --- talk ---
 export {
+  ClearAllTalksInputSchema,
+  ClearAllTalksResultSchema,
   CreateTalkEntryInputSchema,
   DeleteTalkEntryInputSchema,
   exportTalkIndexTxt,
@@ -600,6 +628,8 @@ export {
   UpdateTalkEntryInputSchema,
 } from "./talk.js";
 export type {
+  ClearAllTalkPortraitsInput,
+  ClearAllTalkPortraitsResult,
   GetPortraitMapInput,
   ImportPortraitMapInput,
   PortraitEntry,
@@ -609,6 +639,8 @@ export type {
 } from "./talkPortrait.js";
 // 对话头像映射类型
 export {
+  ClearAllTalkPortraitsInputSchema,
+  ClearAllTalkPortraitsResultSchema,
   exportPortraitIni,
   GetPortraitMapInputSchema,
   ImportPortraitMapInputSchema,

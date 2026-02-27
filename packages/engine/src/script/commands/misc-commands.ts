@@ -140,6 +140,28 @@ const getPartnerIdxCommand: CommandHandler = (params, _result, helpers) => {
   return true;
 };
 
+// ============= Date / Season Commands =============
+
+/**
+ * CheckYear - Check if current date is within Spring Festival (Chinese New Year) period.
+ * CheckYear($varName)
+ * Sets variable to 1 if today is between Jan 20 and Feb 20 (Gregorian), 0 otherwise.
+ * This matches the original JxqyHD implementation used to trigger the newyear intro movie.
+ */
+const checkYearCommand: CommandHandler = (params, _result, helpers) => {
+  const varName = (params[0] || "").replace("$", "");
+  const now = new Date();
+  const month = now.getMonth() + 1; // 1-based
+  const day = now.getDate();
+  // Spring Festival window: January 20 ~ February 20
+  const isSpringFestival = (month === 1 && day >= 20) || (month === 2 && day <= 20);
+  helpers.api.variables.set(varName, isSpringFestival ? 1 : 0);
+  logger.log(
+    `[ScriptExecutor] CheckYear: ${now.toLocaleDateString()} → ${varName}=${isSpringFestival ? 1 : 0}`
+  );
+  return true;
+};
+
 // ============= Misc Extended =============
 
 /**
@@ -168,6 +190,76 @@ const randRunCommand: CommandHandler = async (params, _result, helpers) => {
   return false; // Script will continue from runScript
 };
 
+/**
+ * HideBottomWnd - Hide the bottom window bar
+ * Only used in orphaned scripts; stub only.
+ */
+const hideBottomWndCommand: CommandHandler = (_params, _result, _helpers) => {
+  logger.log("[ScriptExecutor] HideBottomWnd: stub (not implemented)");
+  return true;
+};
+
+/**
+ * SetFadeLum - Set fade luminance
+ * Only used in orphaned scripts; stub only.
+ */
+const setFadeLumCommand: CommandHandler = (params, _result, _helpers) => {
+  logger.log(`[ScriptExecutor] SetFadeLum: stub (value=${params[0] ?? "?"})`);
+  return true;
+};
+
+/**
+ * PlayerAddEmotion - Add emotion to player
+ * Only in orphaned scripts; stub only.
+ */
+const playerAddEmotionCommand: CommandHandler = (params, _result, _helpers) => {
+  logger.log(`[ScriptExecutor] PlayerAddEmotion: stub (${params.join(", ")})`);
+  return true;
+};
+
+/**
+ * PlayerAddJustice - Add justice to player
+ * Only in orphaned scripts; stub only.
+ */
+const playerAddJusticeCommand: CommandHandler = (params, _result, _helpers) => {
+  logger.log(`[ScriptExecutor] PlayerAddJustice: stub (${params.join(", ")})`);
+  return true;
+};
+
+/**
+ * Gamble - Gambling mini-game
+ * Gamble(cost, type, $result)
+ * Deducts `cost` money, randomly wins (50%) or loses.
+ * Win: returns cost*2 (net gain = cost), sets result=1.
+ * Loss: money stays deducted, sets result=0.
+ * type: 0=猜大小, 1=骰子 (mini-game UI not yet implemented, uses random).
+ */
+const gambleCommand: CommandHandler = (params, _result, helpers) => {
+  const cost = parseInt(params[0] || "0", 10);
+  // params[1] is the game type — reserved for future mini-game UI
+  const varName = (params[2] || "").trim().replace(/^\$/, "");
+
+  // Deduct the bet
+  if (cost > 0) {
+    helpers.api.player.addMoney(-cost);
+  }
+
+  // 50/50 random win or loss
+  const win = Math.random() < 0.5;
+
+  if (win) {
+    helpers.api.player.addMoney(cost * 2);
+    logger.info(`[Gamble] 赢！+${cost} 银两`);
+  } else {
+    logger.info(`[Gamble] 输！-${cost} 银两`);
+  }
+
+  if (varName) {
+    helpers.api.variables.set(varName, win ? 1 : 0);
+  }
+  return true;
+};
+
 export function registerMiscCommands(registry: CommandRegistry): void {
   // Memo
   registry.set("memo", memoCommand);
@@ -189,7 +281,19 @@ export function registerMiscCommands(registry: CommandRegistry): void {
   registry.set("clearallvar", clearAllVarCommand);
   registry.set("getpartneridx", getPartnerIdxCommand);
 
+  // Date / Season
+  registry.set("checkyear", checkYearCommand);
+
   // Misc
   registry.set("showsystemmsg", showSystemMsgCommand);
   registry.set("randrun", randRunCommand);
+
+  // Stubs (orphaned scripts only)
+  registry.set("hidebottomwnd", hideBottomWndCommand);
+  registry.set("setfadelum", setFadeLumCommand);
+  registry.set("playeraddemotion", playerAddEmotionCommand);
+  registry.set("playeraddjustice", playerAddJusticeCommand);
+
+  // Gamble stub
+  registry.set("gamble", gambleCommand);
 }

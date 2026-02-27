@@ -5,16 +5,15 @@
 import { trpc } from "@miu2d/shared";
 import { useMemo, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
-import { CreateEntityModal, ImportIniModal, readDroppedFiles } from "../components/common";
+import { CreateEntityModal } from "../components/common";
 import { LazyAsfIcon } from "../components/common/LazyAsfIcon";
 import { useDashboard } from "../DashboardContext";
 import { DashboardIcons } from "../icons";
 
 export function GoodsListPanel({ basePath }: { basePath: string }) {
-  const { currentGame } = useDashboard();
+  const { currentGame, setShowImportAll } = useDashboard();
   const navigate = useNavigate();
   const gameId = currentGame?.id;
-  const [showImportModal, setShowImportModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   // 分组折叠状态 (支持二级分组，如 "Equipment" 或 "Equipment:Hand")
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
@@ -79,16 +78,6 @@ export function GoodsListPanel({ basePath }: { basePath: string }) {
     setCollapsedGroups((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const batchImportMutation = trpc.goods.batchImportFromIni.useMutation({
-    onSuccess: (result) => {
-      refetch();
-      setShowImportModal(false);
-      if (result.success.length > 0) {
-        navigate(`${basePath}/${result.success[0].id}`);
-      }
-    },
-  });
-
   const kindLabels = {
     Consumable: "消耗品",
     Equipment: "装备",
@@ -115,11 +104,11 @@ export function GoodsListPanel({ basePath }: { basePath: string }) {
         <div className="flex flex-col gap-1 p-2 border-b border-panel-border">
           <button
             type="button"
-            onClick={() => setShowImportModal(true)}
+            onClick={() => setShowImportAll(true)}
             className="flex items-center gap-2 px-2 py-1.5 text-xs text-[#cccccc] hover:bg-[#3c3c3c] rounded transition-colors"
           >
             {DashboardIcons.upload}
-            <span>从 INI 导入</span>
+            <span>批量导入</span>
           </button>
           <button
             type="button"
@@ -293,25 +282,6 @@ export function GoodsListPanel({ basePath }: { basePath: string }) {
           )}
         </div>
       </div>
-
-      {/* INI 导入模态框 */}
-      {showImportModal && (
-        <ImportIniModal<{ fileName: string; iniContent: string }>
-          title="从 INI 导入物品"
-          icon="📦"
-          dropHint="拖放 INI 文件或文件夹到此处"
-          dropSubHint="支持批量导入"
-          entityLabel="物品"
-          onClose={() => setShowImportModal(false)}
-          onImport={(items) => batchImportMutation.mutate({ gameId: gameId!, items })}
-          isLoading={batchImportMutation.isPending}
-          batchResult={batchImportMutation.data}
-          processFiles={async (dt) => {
-            const files = await readDroppedFiles(dt);
-            return files.map((f) => ({ fileName: f.fileName, iniContent: f.content }));
-          }}
-        />
-      )}
 
       {/* 新建物品模态框 */}
       {showCreateModal && (

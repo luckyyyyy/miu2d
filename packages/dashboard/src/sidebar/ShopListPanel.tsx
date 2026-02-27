@@ -3,17 +3,14 @@
  */
 
 import { trpc } from "@miu2d/shared";
-import { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
-import { ImportIniModal, readDroppedFiles } from "../components/common";
 import { useDashboard } from "../DashboardContext";
 import { DashboardIcons } from "../icons";
 
 export function ShopListPanel({ basePath }: { basePath: string }) {
-  const { currentGame } = useDashboard();
+  const { currentGame, setShowImportAll } = useDashboard();
   const navigate = useNavigate();
   const gameId = currentGame?.id;
-  const [showImportModal, setShowImportModal] = useState(false);
 
   const {
     data: shopList,
@@ -25,16 +22,6 @@ export function ShopListPanel({ basePath }: { basePath: string }) {
     onSuccess: (data) => {
       refetch();
       navigate(`${basePath}/${data.id}`);
-    },
-  });
-
-  const batchImportMutation = trpc.shop.batchImportFromIni.useMutation({
-    onSuccess: (result) => {
-      refetch();
-      setShowImportModal(false);
-      if (result.success.length > 0) {
-        navigate(`${basePath}/${result.success[0].id}`);
-      }
     },
   });
 
@@ -61,11 +48,11 @@ export function ShopListPanel({ basePath }: { basePath: string }) {
         <div className="flex flex-col gap-1 p-2 border-b border-panel-border">
           <button
             type="button"
-            onClick={() => setShowImportModal(true)}
+            onClick={() => setShowImportAll(true)}
             className="flex items-center gap-2 px-2 py-1.5 text-xs text-[#cccccc] hover:bg-[#3c3c3c] rounded transition-colors"
           >
             {DashboardIcons.upload}
-            <span>从 INI 导入</span>
+            <span>批量导入</span>
           </button>
           <button
             type="button"
@@ -109,30 +96,6 @@ export function ShopListPanel({ basePath }: { basePath: string }) {
         </div>
       </div>
 
-      {/* INI 导入弹窗 */}
-      {showImportModal && gameId && (
-        <ImportIniModal<{ fileName: string; iniContent: string }>
-          title="从 INI 导入商店"
-          icon="📁"
-          dropHint="拖放 INI 文件或 buy 目录到这里"
-          dropSubHint="支持拖放整个 ini/buy 目录，批量导入所有商店配置"
-          entityLabel="商店"
-          onClose={() => setShowImportModal(false)}
-          onImport={(items) => batchImportMutation.mutate({ gameId: gameId!, items })}
-          isLoading={batchImportMutation.isPending}
-          batchResult={batchImportMutation.data}
-          processFiles={async (dt) => {
-            const files = await readDroppedFiles(dt);
-            return files.map((f) => ({ fileName: f.fileName, iniContent: f.content }));
-          }}
-          renderSuccessItem={(s) => (
-            <>
-              {s.name} ({(s as { itemCount?: number }).itemCount} 件商品)
-            </>
-          )}
-          width="w-[550px]"
-        />
-      )}
     </>
   );
 }

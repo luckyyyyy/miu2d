@@ -57,6 +57,18 @@ export type PortraitMapResult = z.infer<typeof PortraitMapResultSchema>;
 
 // ========== 默认值工厂 ==========
 
+// ========== 清空 ==========
+
+export const ClearAllTalkPortraitsInputSchema = z.object({
+  gameId: z.string().uuid(),
+});
+export type ClearAllTalkPortraitsInput = z.infer<typeof ClearAllTalkPortraitsInputSchema>;
+
+export const ClearAllTalkPortraitsResultSchema = z.object({
+  deletedCount: z.number(),
+});
+export type ClearAllTalkPortraitsResult = z.infer<typeof ClearAllTalkPortraitsResultSchema>;
+
 /**
  * 解析 HeadFile.ini 内容为 PortraitEntry 数组
  */

@@ -48,6 +48,10 @@ interface DashboardContextType {
 
   // 编辑数据缓存（跨 tab 持久化）
   editCache: EditCache;
+
+  // 批量导入弹窗
+  showImportAll: boolean;
+  setShowImportAll: (show: boolean) => void;
 }
 
 const DashboardContext = createContext<DashboardContextType | undefined>(undefined);
@@ -61,6 +65,7 @@ export function DashboardProvider({ children, initialGame = null }: DashboardPro
   const [currentGame, setCurrentGame] = useState<Game | null>(initialGame);
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
   const [activeModule, setActiveModule] = useState<string | null>("game-settings");
+  const [showImportAll, setShowImportAll] = useState(false);
 
   // 编辑数据缓存 - 使用 ref 避免重新渲染
   const editCacheRef = useRef<Map<string, unknown>>(new Map());
@@ -118,8 +123,10 @@ export function DashboardProvider({ children, initialGame = null }: DashboardPro
       activeModule,
       setActiveModule,
       editCache,
+      showImportAll,
+      setShowImportAll,
     }),
-    [currentGame, expandedNodes, activeModule, toggleNode, expandNode, collapseNode, editCache]
+    [currentGame, expandedNodes, activeModule, toggleNode, expandNode, collapseNode, editCache, showImportAll]
   );
 
   return <DashboardContext.Provider value={value}>{children}</DashboardContext.Provider>;

@@ -3,6 +3,8 @@
  */
 
 import {
+  ClearAllLevelConfigsInputSchema,
+  ClearAllLevelConfigsResultSchema,
   CreateLevelConfigInputSchema,
   DeleteLevelConfigInputSchema,
   GetLevelConfigInputSchema,
@@ -79,5 +81,14 @@ export class LevelRouter {
   @Mutation({ input: ImportLevelConfigInputSchema, output: LevelConfigSchema })
   async importFromIni(input: z.infer<typeof ImportLevelConfigInputSchema>, @Ctx() ctx: Context) {
     return levelConfigService.importFromIni(input, ctx.userId!, ctx.language);
+  }
+
+  /**
+   * 清空所有等级配置
+   */
+  @UseMiddlewares(requireUser)
+  @Mutation({ input: ClearAllLevelConfigsInputSchema, output: ClearAllLevelConfigsResultSchema })
+  async clearAll(input: z.infer<typeof ClearAllLevelConfigsInputSchema>, @Ctx() ctx: Context) {
+    return levelConfigService.clearAll(input, ctx.userId!, ctx.language);
   }
 }
