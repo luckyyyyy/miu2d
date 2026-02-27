@@ -147,6 +147,9 @@ export class MagicSprite extends Sprite {
     this.currentEffect3 = magic.effect3;
     this.currentEffectMana = magic.effectMana;
     this._waitMilliseconds = magic.waitFrame * 16;
+    // 哨兵值：让精灵保持 isInPlaying=true，防止在渲染器初始化真实帧数前被提前销毁。
+    // 移动和碰撞检测从第一帧起正常工作；渲染器加载 ASF 后通过 resetPlay() 纠正为正确值。
+    this._leftFrameToPlay = 9999;
   }
 
   /**

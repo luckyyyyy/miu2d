@@ -194,11 +194,6 @@ export class SpriteUpdater {
       return;
     }
 
-    // 等待渲染器首次设置真实的 frameCountsPerDirection 后才调用 resetPlay()
-    // 避免在 _frameEnd=0（framesPerDir=1）时提前 resetPlay() 导致仅播 1 帧就消失
-    if (sprite.needsResetPlay) {
-      return;
-    }
     if (sprite.leftFrameToPlay === 0 && sprite.elapsedMilliseconds === 0) {
       sprite.resetPlay();
     }
