@@ -274,8 +274,7 @@ export abstract class Character extends CharacterCombat {
         this.movedDistance = 0;
         this._positionInWorld = { x: to.x, y: to.y };
         const tile = pixelToTile(to.x, to.y);
-        this._mapX = tile.x;
-        this._mapY = tile.y;
+        this._rawSetTileCoords(tile.x, tile.y);
         isOver = true;
       }
 

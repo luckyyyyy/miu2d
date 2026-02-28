@@ -206,9 +206,11 @@ export class NpcManager {
    * 同时按行分组，供交错渲染使用
    */
   updateNpcsInView(viewRect: ViewRect): void {
-    // 清空上一帧的缓存
+    // 清空上一帧的缓存：复用已有数组对象，仅将长度重置为 0，避免每帧创建新数组
+    for (const arr of this._npcsByRow.values()) {
+      arr.length = 0;
+    }
     this._npcsInView.length = 0;
-    this._npcsByRow.clear();
 
     const viewRight = viewRect.x + viewRect.width;
     const viewBottom = viewRect.y + viewRect.height;

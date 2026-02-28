@@ -85,11 +85,12 @@ export function GamePlaying({
   const getDebugManager = useCallback(() => gameRef.current?.getDebugManager(), []);
   const getEngine = useCallback(() => gameRef.current?.getEngine(), []);
 
-  // 定期更新调试面板数据
+  // 定期更新调试面板数据（仅当调试面板打开时才启动，避免无调试时刷新整个组件树）
   useEffect(() => {
+    if (!showDebug) return;
     const interval = setInterval(() => forceUpdate({}), 500);
     return () => clearInterval(interval);
-  }, []);
+  }, [showDebug]);;
 
   // ESC 键全局处理（capture 阶段，优先于引擎和面板自身的 ESC 监听）
   // - 面板打开时：关闭面板，阻止事件传播

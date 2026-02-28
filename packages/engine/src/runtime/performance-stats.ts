@@ -51,6 +51,9 @@ export class PerformanceStats {
 
   // FPS 采样
   private fpsSamples: number[] = [];
+  /** 增量维护的滑动窗口最小値 / 最大値，避免 getStats() 中 spread + 全量扫描 */
+  private _fpsMin = 0;
+  private _fpsMax = 0;
   private lastFpsTime = 0;
   private frameCount = 0;
   private currentFps = 0;
@@ -138,7 +141,33 @@ export class PerformanceStats {
     // 每 500ms 更新一次 FPS
     if (elapsed >= 500) {
       this.currentFps = Math.round((this.frameCount * 1000) / elapsed);
+
+      // 增量维护 min/max：若最旧样本是极値则触发完整重算，否则 O(1) 更新
+      const willEvict = this.fpsSamples.length >= this.SAMPLE_SIZE;
+      const evicted = willEvict ? this.fpsSamples[0] : 0;
       this.addSample(this.fpsSamples, this.currentFps);
+
+      if (willEvict && (evicted === this._fpsMin || evicted === this._fpsMax)) {
+        // 被驱逐的样本是极値，重算整个窗口
+        let mn = this.fpsSamples[0];
+        let mx = this.fpsSamples[0];
+        for (let i = 1; i < this.fpsSamples.length; i++) {
+          const v = this.fpsSamples[i];
+          if (v < mn) mn = v;
+          if (v > mx) mx = v;
+        }
+        this._fpsMin = mn;
+        this._fpsMax = mx;
+      } else {
+        if (this.fpsSamples.length === 1) {
+          this._fpsMin = this.currentFps;
+          this._fpsMax = this.currentFps;
+        } else {
+          if (this.currentFps < this._fpsMin) this._fpsMin = this.currentFps;
+          if (this.currentFps > this._fpsMax) this._fpsMax = this.currentFps;
+        }
+      }
+
       this.frameCount = 0;
       this.lastFpsTime = now;
     }
@@ -166,8 +195,8 @@ export class PerformanceStats {
   }): PerformanceStatsData {
     return {
       fps: this.currentFps,
-      fpsMin: this.fpsSamples.length > 0 ? Math.min(...this.fpsSamples) : 0,
-      fpsMax: this.fpsSamples.length > 0 ? Math.max(...this.fpsSamples) : 0,
+      fpsMin: this.fpsSamples.length > 0 ? this._fpsMin : 0,
+      fpsMax: this.fpsSamples.length > 0 ? this._fpsMax : 0,
       fpsAvg: this.calculateAverage(this.fpsSamples),
 
       frameTime: this.currentFrameTime,
@@ -199,6 +228,8 @@ export class PerformanceStats {
    */
   reset(): void {
     this.fpsSamples = [];
+    this._fpsMin = 0;
+    this._fpsMax = 0;
     this.frameTimeSamples = [];
     this.updateTimeSamples = [];
     this.renderTimeSamples = [];

@@ -32,8 +32,12 @@ export class NpcSpatialGrid<T> {
   /** 网格存储：cellKey -> entries */
   private cells = new Map<number, SpatialEntry<T>[]>();
 
-  /** 当前所有条目（flat 列表，用于需要全量遍历的 fallback） */
-  private allEntries: SpatialEntry<T>[] = [];
+  /**
+   * 对象池：复用 SpatialEntry 实例，避免每帧 new 对象产生 GC 压力
+   * entryCount 记录本帧实际使用数量，rebuild() 重置为 0 而非清空数组
+   */
+  private entryPool: SpatialEntry<T>[] = [];
+  private entryCount = 0;
 
   constructor(cellSize: number = 640) {
     this.cellSize = cellSize;
@@ -55,6 +59,24 @@ export class NpcSpatialGrid<T> {
   }
 
   /**
+   * 从对象池获取（或创建）一个条目，并填充数据
+   * 池中对象被复用，不产生新的堆分配（池已预热后）
+   */
+  private acquireEntry(item: T, x: number, y: number): SpatialEntry<T> {
+    if (this.entryCount < this.entryPool.length) {
+      const e = this.entryPool[this.entryCount++];
+      e.item = item;
+      e.x = x;
+      e.y = y;
+      return e;
+    }
+    this.entryCount++;
+    const e: SpatialEntry<T> = { item, x, y };
+    this.entryPool.push(e);
+    return e;
+  }
+
+  /**
    * 完全重建网格
    *
    * 对于 N ≤ 100 的场景，全量重建比增量维护更快（无需跟踪旧位置、无 delete 开销）。
@@ -65,12 +87,12 @@ export class NpcSpatialGrid<T> {
     for (const arr of this.cells.values()) {
       arr.length = 0;
     }
-    this.allEntries.length = 0;
+    // 重置池计数器（不清空池数组，对象留待复用）
+    this.entryCount = 0;
 
     for (const item of items) {
       const pos = getPos(item);
-      const entry: SpatialEntry<T> = { item, x: pos.x, y: pos.y };
-      this.allEntries.push(entry);
+      const entry = this.acquireEntry(item, pos.x, pos.y);
 
       const cx = this.toCellCoord(pos.x);
       const cy = this.toCellCoord(pos.y);
@@ -88,7 +110,7 @@ export class NpcSpatialGrid<T> {
   /** 清空网格 */
   clear(): void {
     this.cells.clear();
-    this.allEntries.length = 0;
+    this.entryCount = 0;
   }
 
   /**
@@ -144,9 +166,10 @@ export class NpcSpatialGrid<T> {
   findClosestAll(x: number, y: number, filter: (item: T) => boolean): SpatialEntry<T> | null {
     let bestEntry: SpatialEntry<T> | null = null;
     let bestDistSq = Infinity;
-    const entries = this.allEntries;
+    const entries = this.entryPool;
+    const count = this.entryCount;
 
-    for (let i = 0; i < entries.length; i++) {
+    for (let i = 0; i < count; i++) {
       const entry = entries[i];
       if (!filter(entry.item)) continue;
 

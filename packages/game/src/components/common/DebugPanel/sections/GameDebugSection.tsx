@@ -6,7 +6,7 @@ import { getMagicFromApiCache } from "@miu2d/engine/magic";
 import { getMagicsData } from "@miu2d/engine/data";
 import { EquipPosition, GoodKind, getAllGoods } from "@miu2d/engine/player/goods";
 import type React from "react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { btnClass, btnPrimary, inputClass, selectClass } from "../constants";
 import { Section } from "../Section";
 
@@ -90,18 +90,26 @@ export const GameDebugSection: React.FC<GameDebugSectionProps> = ({
   const [isReloadingMagic, setIsReloadingMagic] = useState(false);
   const [isReloadingUILayout, setIsReloadingUILayout] = useState(false);
 
-  // 从 API 缓存获取物品列表（每次分类变化时重新计算）
-  const allGoods = getAllGoods().map((g) => ({
-    name: g.name,
-    file: g.fileName,
-    category: getGoodsCategory(g.kind, g.part),
-  }));
+  // 从 API 缓存获取物品列表（游戏数据加载后不变，用 useMemo 避免 500ms 重复计算）
+  const allGoods = useMemo(
+    () =>
+      getAllGoods().map((g) => ({
+        name: g.name,
+        file: g.fileName,
+        category: getGoodsCategory(g.kind, g.part),
+      })),
+    []
+  );
 
   // 从 API 数据获取所有玩家武功列表（userType === "player"），避免依赖 key 前缀约定
-  const allMagics = (getMagicsData()?.player ?? []).map((api) => {
-    const magic = getMagicFromApiCache(api.key);
-    return { name: magic?.name ?? api.name ?? api.key, file: api.key };
-  });
+  const allMagics = useMemo(
+    () =>
+      (getMagicsData()?.player ?? []).map((api) => {
+        const magic = getMagicFromApiCache(api.key);
+        return { name: magic?.name ?? api.name ?? api.key, file: api.key };
+      }),
+    []
+  );
 
   // 根据选择的分类过滤物品
   const filteredItems =
@@ -151,7 +159,7 @@ export const GameDebugSection: React.FC<GameDebugSectionProps> = ({
     try {
       await onReloadMagicConfig();
     } catch (e) {
-      // silent
+      console.error("[DebugPanel] reloadMagicConfig failed:", e);
     } finally {
       setIsReloadingMagic(false);
     }
@@ -163,7 +171,7 @@ export const GameDebugSection: React.FC<GameDebugSectionProps> = ({
     try {
       await onReloadUILayout();
     } catch (e) {
-      // silent
+      console.error("[DebugPanel] reloadUILayout failed:", e);
     } finally {
       setIsReloadingUILayout(false);
     }

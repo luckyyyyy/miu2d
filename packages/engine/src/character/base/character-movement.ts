@@ -88,8 +88,7 @@ export abstract class CharacterMovement extends CharacterBase {
    */
   setPosition(tileX: number, tileY: number): void {
     this.standingImmediately();
-    this._mapX = tileX;
-    this._mapY = tileY;
+    this._rawSetTileCoords(tileX, tileY);
     this._updatePositionFromTile();
     this.path = [];
   }
@@ -151,8 +150,7 @@ export abstract class CharacterMovement extends CharacterBase {
     this.movedDistance += distanceFromDelta(moveX, moveY);
 
     const tile = pixelToTile(this._positionInWorld.x, this._positionInWorld.y);
-    this._mapX = tile.x;
-    this._mapY = tile.y;
+    this._rawSetTileCoords(tile.x, tile.y);
   }
 
   /**
@@ -176,8 +174,7 @@ export abstract class CharacterMovement extends CharacterBase {
     this.movedDistance += distanceFromDelta(moveX, moveY);
 
     const tile = pixelToTile(this._positionInWorld.x, this._positionInWorld.y);
-    this._mapX = tile.x;
-    this._mapY = tile.y;
+    this._rawSetTileCoords(tile.x, tile.y);
   }
 
   /**
@@ -279,8 +276,7 @@ export abstract class CharacterMovement extends CharacterBase {
       if (dist < 1) {
         // 已在路点上，snap 并推进到下一段
         this._positionInWorld = { ...targetPixel };
-        this._mapX = target.x;
-        this._mapY = target.y;
+        this._rawSetTileCoords(target.x, target.y);
         this.movedDistance = 0;
         this.path.shift();
         result.moved = true;
@@ -309,8 +305,7 @@ export abstract class CharacterMovement extends CharacterBase {
       if (moveRemaining >= dist) {
         // 本帧预算足够到达当前路点
         this._positionInWorld = { ...targetPixel };
-        this._mapX = target.x;
-        this._mapY = target.y;
+        this._rawSetTileCoords(target.x, target.y);
         moveRemaining -= dist;
         this.movedDistance = 0;
         this.path.shift();
@@ -361,8 +356,7 @@ export abstract class CharacterMovement extends CharacterBase {
           (newTile.x === this._mapX && newTile.y === this._mapY) ||
           (newTile.x === target.x && newTile.y === target.y)
         ) {
-          this._mapX = newTile.x;
-          this._mapY = newTile.y;
+          this._rawSetTileCoords(newTile.x, newTile.y);
         }
         // else: 保持 _mapX/_mapY 不变，角色逻辑位置仍在上一个有效瓦片
       }

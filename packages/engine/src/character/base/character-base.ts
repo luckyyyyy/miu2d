@@ -914,8 +914,7 @@ export abstract class CharacterBase extends Sprite implements CharacterInstance 
   setPixelPosition(x: number, y: number): void {
     this._positionInWorld = { x, y };
     const tile = pixelToTile(x, y);
-    this._mapX = tile.x;
-    this._mapY = tile.y;
+    this._rawSetTileCoords(tile.x, tile.y);
   }
 
   // =============================================

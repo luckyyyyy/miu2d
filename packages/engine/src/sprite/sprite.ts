@@ -220,6 +220,8 @@ export class Sprite {
   protected _positionInWorld: Vector2 = { x: 0, y: 0 };
   protected _mapX: number = 0;
   protected _mapY: number = 0;
+  /** tilePosition 缓存：避免 getter 每次 new 对象产生 GC 压力 */
+  private _tilePositionCache: Vector2 = { x: 0, y: 0 };
   velocity: number = 0;
   protected _currentDirection: number = 0;
   protected _texture: AsfData | null = null;
@@ -248,6 +250,8 @@ export class Sprite {
     const tile = pixelToTile(value.x, value.y);
     this._mapX = tile.x;
     this._mapY = tile.y;
+    this._tilePositionCache.x = tile.x;
+    this._tilePositionCache.y = tile.y;
   }
 
   get mapX(): number {
@@ -256,6 +260,7 @@ export class Sprite {
 
   set mapX(value: number) {
     this._mapX = value;
+    this._tilePositionCache.x = value;
     this._updatePositionFromTile();
   }
 
@@ -265,21 +270,36 @@ export class Sprite {
 
   set mapY(value: number) {
     this._mapY = value;
+    this._tilePositionCache.y = value;
     this._updatePositionFromTile();
   }
 
   get tilePosition(): Vector2 {
-    return { x: this._mapX, y: this._mapY };
+    return this._tilePositionCache;
   }
 
   set tilePosition(value: Vector2) {
     this._mapX = value.x;
     this._mapY = value.y;
+    this._tilePositionCache.x = value.x;
+    this._tilePositionCache.y = value.y;
     this._updatePositionFromTile();
   }
 
   protected _updatePositionFromTile(): void {
     this._positionInWorld = tileToPixel(this._mapX, this._mapY);
+  }
+
+  /**
+   * 在子类中直接写入瓦片坐标的专用帮助方法
+   * 同时同步 _tilePositionCache，避免 getter 返回过期值
+   * 不调用 _updatePositionFromTile（调用方自行处理像素坐标）
+   */
+  protected _rawSetTileCoords(x: number, y: number): void {
+    this._mapX = x;
+    this._mapY = y;
+    this._tilePositionCache.x = x;
+    this._tilePositionCache.y = y;
   }
 
   // ============= 方向 =============
@@ -405,6 +425,8 @@ export class Sprite {
   setTilePosition(tileX: number, tileY: number): void {
     this._mapX = tileX;
     this._mapY = tileY;
+    this._tilePositionCache.x = tileX;
+    this._tilePositionCache.y = tileY;
     this._updatePositionFromTile();
   }
 
