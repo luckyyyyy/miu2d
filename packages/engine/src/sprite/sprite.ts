@@ -274,7 +274,11 @@ export class Sprite {
     this._updatePositionFromTile();
   }
 
-  get tilePosition(): Vector2 {
+  /**
+   * 当前瓦片坐标（只读共享对象，请勿直接写其 .x/.y）
+   * 如需设置位置，请使用 setter: `this.tilePosition = { x, y }`
+   */
+  get tilePosition(): Readonly<Vector2> {
     return this._tilePositionCache;
   }
 

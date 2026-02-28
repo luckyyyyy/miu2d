@@ -433,12 +433,12 @@ export class NpcManager {
       for (const id of toDelete) {
         this.npcs.delete(id);
       }
-      // DeathInfos.Clear()
-      this._deathInfos.length = 0;
-      this._deadNpcs.length = 0;
     } else {
       this.npcs.clear();
     }
+    // DeathInfos.Clear() + DeadNpcs.Clear() — 两种路径均需清除，避免殘留已销毁 NPC 引用
+    this._deathInfos.length = 0;
+    this._deadNpcs.length = 0;
     // 同步清理空间网格
     this._spatialGrid.clear();
   }
