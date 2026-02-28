@@ -62,13 +62,18 @@ const RESTORE_DEFAULT_COLORS = new Set([
 interface TextSegment {
   text: string;
   color: string;
+  isUrl?: boolean;
 }
+
+// Regex for splitting text by URLs (capturing group so split keeps the URLs)
+const URL_SPLIT_REGEX = /(https?:\/\/[^\s<>"]+)/g;
 
 // 解析带颜色标签的文本
 // 支持 <color=Red>红色文字<color=Default> 格式
 // 注意: <color=Black> 在原版脚本中用于恢复默认颜色
 function parseColoredText(text: string, defaultColor: string): TextSegment[] {
-  const segments: TextSegment[] = [];
+  // Step 1: parse <color=X> tags into color segments
+  const colorSegments: { text: string; color: string }[] = [];
   const regex = /<color=([^>]+)>/gi;
   let lastIndex = 0;
   let currentColor = defaultColor;
@@ -78,7 +83,7 @@ function parseColoredText(text: string, defaultColor: string): TextSegment[] {
     if (match.index > lastIndex) {
       const segment = text.substring(lastIndex, match.index);
       if (segment) {
-        segments.push({ text: segment, color: currentColor });
+        colorSegments.push({ text: segment, color: currentColor });
       }
     }
     // Handle colors that restore to default (Black, Default, etc.)
@@ -93,13 +98,24 @@ function parseColoredText(text: string, defaultColor: string): TextSegment[] {
   }
 
   if (lastIndex < text.length) {
-    segments.push({ text: text.substring(lastIndex), color: currentColor });
+    colorSegments.push({ text: text.substring(lastIndex), color: currentColor });
+  }
+
+  // Step 2: split each color segment further by URLs
+  const segments: TextSegment[] = [];
+  for (const seg of colorSegments) {
+    const parts = seg.text.split(URL_SPLIT_REGEX);
+    for (let i = 0; i < parts.length; i++) {
+      if (!parts[i]) continue;
+      // Odd indices are the captured URL matches
+      segments.push({ text: parts[i], color: seg.color, isUrl: i % 2 === 1 });
+    }
   }
 
   return segments;
 }
 
-// 渲染带颜色的文本
+// 渲染带颜色的文本（含可点击 URL）
 const ColoredText: React.FC<{ text: string; defaultColor?: string }> = ({
   text,
   defaultColor = "#ffffff",
@@ -109,6 +125,24 @@ const ColoredText: React.FC<{ text: string; defaultColor?: string }> = ({
   return (
     <>
       {segments.map((segment, index) => {
+        if (segment.isUrl) {
+          return (
+            <a
+              key={`url-${index}`}
+              href={segment.text}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                color: "#74b9ff",
+                textDecoration: "underline",
+                cursor: "pointer",
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {segment.text}
+            </a>
+          );
+        }
         const isHighlight = segment.color !== defaultColor;
         return (
           <span

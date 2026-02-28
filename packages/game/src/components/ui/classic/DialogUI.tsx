@@ -56,10 +56,15 @@ const colorMap: Record<string, string> = {
 interface TextSegment {
   text: string;
   color: string;
+  isUrl?: boolean;
 }
 
+// Regex for splitting text by URLs (capturing group so split keeps the URLs)
+const URL_SPLIT_REGEX = /(https?:\/\/[^\s<>"]+)/g;
+
 function parseColoredText(text: string, defaultColor: string = "#000000"): TextSegment[] {
-  const segments: TextSegment[] = [];
+  // Step 1: parse <color=X> tags into color segments
+  const colorSegments: { text: string; color: string }[] = [];
   const regex = /<color=([^>]+)>/gi;
   let lastIndex = 0;
   let currentColor = defaultColor;
@@ -69,7 +74,7 @@ function parseColoredText(text: string, defaultColor: string = "#000000"): TextS
     if (match.index > lastIndex) {
       const segment = text.substring(lastIndex, match.index);
       if (segment) {
-        segments.push({ text: segment, color: currentColor });
+        colorSegments.push({ text: segment, color: currentColor });
       }
     }
     // Handle <color=Default> to restore default color
@@ -84,13 +89,24 @@ function parseColoredText(text: string, defaultColor: string = "#000000"): TextS
   }
 
   if (lastIndex < text.length) {
-    segments.push({ text: text.substring(lastIndex), color: currentColor });
+    colorSegments.push({ text: text.substring(lastIndex), color: currentColor });
+  }
+
+  // Step 2: split each color segment further by URLs
+  const segments: TextSegment[] = [];
+  for (const seg of colorSegments) {
+    const parts = seg.text.split(URL_SPLIT_REGEX);
+    for (let i = 0; i < parts.length; i++) {
+      if (!parts[i]) continue;
+      // Odd indices are the captured URL matches
+      segments.push({ text: parts[i], color: seg.color, isUrl: i % 2 === 1 });
+    }
   }
 
   return segments;
 }
 
-// Render text with color segments
+// Render text with color segments and clickable URLs
 const ColoredText: React.FC<{ text: string; defaultColor?: string }> = ({
   text,
   defaultColor = "#000000",
@@ -99,11 +115,28 @@ const ColoredText: React.FC<{ text: string; defaultColor?: string }> = ({
 
   return (
     <>
-      {segments.map((segment, index) => (
-        <span key={`${segment.color}-${index}`} style={{ color: segment.color }}>
-          {segment.text}
-        </span>
-      ))}
+      {segments.map((segment, index) =>
+        segment.isUrl ? (
+          <a
+            key={`url-${index}`}
+            href={segment.text}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              color: "#4488ff",
+              textDecoration: "underline",
+              cursor: "pointer",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {segment.text}
+          </a>
+        ) : (
+          <span key={`${segment.color}-${index}`} style={{ color: segment.color }}>
+            {segment.text}
+          </span>
+        )
+      )}
     </>
   );
 };
