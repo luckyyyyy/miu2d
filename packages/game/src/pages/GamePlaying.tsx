@@ -76,6 +76,7 @@ export function GamePlaying({
   const [debugPanelWidth, setDebugPanelWidth] = useState(0);
   const [menuTab, setMenuTab] = useState<MenuTab>("save");
   const [, forceUpdate] = useState({});
+  const [engine, setEngine] = useState<ReturnType<GameHandle["getEngine"]>>(null);
   const { isAuthenticated } = useAuth();
 
   // 实际可用的游戏画布宽度（扣除调试面板占用）
@@ -85,12 +86,17 @@ export function GamePlaying({
   const getDebugManager = useCallback(() => gameRef.current?.getDebugManager(), []);
   const getEngine = useCallback(() => gameRef.current?.getEngine(), []);
 
+  // 引擎就绪回调：Game 组件内部 engine state 变化时主动通知，避免轮询
+  const handleEngineReady = useCallback((e: NonNullable<ReturnType<GameHandle["getEngine"]>>) => {
+    setEngine(e);
+  }, []);
+
   // 定期更新调试面板数据（仅当调试面板打开时才启动，避免无调试时刷新整个组件树）
   useEffect(() => {
     if (!showDebug) return;
     const interval = setInterval(() => forceUpdate({}), 500);
     return () => clearInterval(interval);
-  }, [showDebug]);;
+  }, [showDebug]);
 
   // ESC 键全局处理（capture 阶段，优先于引擎和面板自身的 ESC 监听）
   // - 面板打开时：关闭面板，阻止事件传播
@@ -455,6 +461,7 @@ export function GamePlaying({
                   uiTheme={uiTheme}
                   onOpenMenu={handleOpenMenu}
                   gameName={gameName}
+                  onEngineReady={handleEngineReady}
                 />
               ) : (
                 <div className="flex items-center justify-center w-full h-full text-gray-400">
@@ -466,7 +473,7 @@ export function GamePlaying({
             {/* 移动端控制层 */}
             {isMobile && (
               <MobileControls
-                engine={getEngine() ?? null}
+                engine={engine}
                 canvasSize={{ width: windowSize.width, height: windowSize.height }}
                 scale={windowSize.scale}
                 onOpenMenu={() => handleReturnToTitle()}
@@ -477,7 +484,7 @@ export function GamePlaying({
             {isMobile && <TouchDragIndicator />}
 
             {/* 视频播放器 - 放在 game area 层级，自适应可见区域 */}
-            {getEngine() && <VideoPlayer engine={getEngine()!} />}
+            {engine && <VideoPlayer engine={engine} />}
           </div>
         </div>
       </div>

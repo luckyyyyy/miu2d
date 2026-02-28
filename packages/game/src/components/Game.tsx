@@ -43,6 +43,8 @@ export interface GameProps {
   onOpenMenu?: (tab: "save" | "settings") => void;
   /** 游戏名称，显示在 loading overlay */
   gameName?: string;
+  /** 引擎就绪回调，GamePlaying 用于订阅引擎事件 */
+  onEngineReady?: (engine: GameEngine) => void;
 }
 
 /**
@@ -58,6 +60,7 @@ export const Game = forwardRef<GameHandle, GameProps>(
       uiTheme = "classic",
       onOpenMenu,
       gameName,
+      onEngineReady,
     },
     ref
   ) => {
@@ -71,6 +74,12 @@ export const Game = forwardRef<GameHandle, GameProps>(
       autoStart: true,
       initialSaveData,
     });
+
+    // 引擎就绪时通知父组件（onEngineReady 回调）
+    useEffect(() => {
+      if (!engine) return;
+      onEngineReady?.(engine);
+    }, [engine, onEngineReady]);
 
     // 监听返回标题事件
     useEffect(() => {
