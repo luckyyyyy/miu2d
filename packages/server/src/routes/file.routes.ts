@@ -5,11 +5,11 @@
  * 用于游戏客户端直接加载资源文件
  */
 
-import { and, eq, isNull, sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import { stream } from "hono/streaming";
 import { db } from "../db/client";
-import { files, games } from "../db/schema";
+import { type files, games } from "../db/schema";
 import * as s3 from "../storage/s3";
 import { Logger } from "../utils/logger";
 
@@ -103,8 +103,8 @@ fileRoutes.get(":gameSlug/resources/*", async (c) => {
 /**
  * 根据路径段解析文件（大小写不敏感）
  *
- * 对每个路径段做一次 DB 查询，避免递归 CTE 的 LIMIT/DISTINCT 限制。
- * 路径通常只有 2-6 段，N 次小查询开销可忽略不计。
+ * 使用递归 CTE 一次查询完成整条路径解析，避免 N+1。
+ * VALUES 通过 drizzle sql tag 参数化，防止 SQL 注入。
  */
 async function resolveFilePath(
   gameId: string,
@@ -112,45 +112,40 @@ async function resolveFilePath(
 ): Promise<typeof files.$inferSelect | null> {
   if (pathSegments.length === 0) return null;
 
-  let parentId: string | null = null;
+  // 用 drizzle sql tag 安全地构建 VALUES 列表
+  const segValues = pathSegments
+    .map((seg, i) => sql`(${i + 1}::int, ${seg.toLowerCase()})`)
+    .reduce((acc, cur) => sql`${acc}, ${cur}`);
 
-  for (let i = 0; i < pathSegments.length; i++) {
-    const seg = pathSegments[i];
-    const isLast = i === pathSegments.length - 1;
-    const segLower = seg.toLowerCase();
+  const result = await db.execute<typeof files.$inferSelect>(sql`
+    WITH RECURSIVE path_segments(depth, seg_name) AS (
+      VALUES ${segValues}
+    ),
+    resolve(depth, id) AS (
+      -- 基础 case：第 1 段，parent_id IS NULL
+      SELECT 1, f.id
+      FROM files f
+      JOIN path_segments ps ON ps.depth = 1
+      WHERE f.game_id = ${gameId}
+        AND f.parent_id IS NULL
+        AND LOWER(f.name) = ps.seg_name
+        AND f.deleted_at IS NULL
+      UNION ALL
+      -- 递归 case：后续路径段（注意：递归项里不能用 LIMIT）
+      SELECT r.depth + 1, f.id
+      FROM resolve r
+      JOIN path_segments ps ON ps.depth = r.depth + 1
+      JOIN files f ON f.parent_id = r.id
+        AND f.game_id = ${gameId}
+        AND LOWER(f.name) = ps.seg_name
+        AND f.deleted_at IS NULL
+    )
+    SELECT f.*
+    FROM resolve r
+    JOIN files f ON f.id = r.id
+    WHERE r.depth = ${pathSegments.length}
+    LIMIT 1
+  `);
 
-    let matchedRow: typeof files.$inferSelect | undefined;
-
-    if (parentId === null) {
-      const rows = await db
-        .select()
-        .from(files)
-        .where(and(
-          eq(files.gameId, gameId),
-          isNull(files.parentId),
-          sql`LOWER(${files.name}) = ${segLower}`,
-          isNull(files.deletedAt),
-        ))
-        .limit(1);
-      matchedRow = rows[0];
-    } else {
-      const rows = await db
-        .select()
-        .from(files)
-        .where(and(
-          eq(files.gameId, gameId),
-          eq(files.parentId, parentId),
-          sql`LOWER(${files.name}) = ${segLower}`,
-          isNull(files.deletedAt),
-        ))
-        .limit(1);
-      matchedRow = rows[0];
-    }
-
-    if (!matchedRow) return null;
-    if (isLast) return matchedRow;
-    parentId = matchedRow.id;
-  }
-
-  return null;
+  return result.rows?.[0] ?? null;
 }
