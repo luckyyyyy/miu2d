@@ -290,8 +290,9 @@ export const XiuLianGui: React.FC<XiuLianGuiProps> = ({
             onDragStart={!isMobile ? handleDragStart : undefined}
             style={{
               position: "absolute",
-              left: (config.magicImage.width - magicIcon.width) / 2,
-              top: (config.magicImage.height - magicIcon.height) / 2,
+              left: "50%",
+              top: "50%",
+              transform: "translate(-50%, -50%)",
               width: magicIcon.width,
               height: magicIcon.height,
               imageRendering: "pixelated",

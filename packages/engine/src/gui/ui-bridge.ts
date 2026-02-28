@@ -25,6 +25,7 @@ import {
 import { logger } from "../core/logger";
 import type { MemoListManager } from "../gui/memo-list-manager";
 import type { MagicItemInfo } from "../magic/types";
+import { MAGIC_LIST_CONFIG } from "../player/magic/magic-list-config";
 import {
   BOTTOM_INDEX_BEGIN,
   BOTTOM_INDEX_END,
@@ -437,23 +438,25 @@ export class UIBridgeImpl implements UIBridge {
   private buildMagicState(): UIMagicState {
     const magicInventory = this.deps.state.getPlayerMagicInventory();
 
-    // 武功仓库 (1-45)
+    // 武功仓库 (storeIndexBegin - storeIndexEnd)
     const storeMagics: (UIMagicSlot | null)[] = [];
-    for (let i = 1; i <= 45; i++) {
+    for (let i = MAGIC_LIST_CONFIG.storeIndexBegin; i <= MAGIC_LIST_CONFIG.storeIndexEnd; i++) {
       const info = magicInventory.getItemInfo(i);
       storeMagics.push(convertMagicInfoToSlot(info, i));
     }
 
-    // 底栏武功 (46-48)
+    // 底栏武功（独立引用槽，不占用存储区索引）
     const bottomMagics: (UIMagicSlot | null)[] = [];
-    for (let i = 46; i <= 48; i++) {
-      const info = magicInventory.getItemInfo(i);
-      bottomMagics.push(convertMagicInfoToSlot(info, i));
+    const bottomSlots = magicInventory.getBottomSlots();
+    const bottomItems = magicInventory.getBottomMagics();
+    for (let s = 0; s < bottomItems.length; s++) {
+      const storeIndex = bottomSlots[s] ?? 0;
+      bottomMagics.push(convertMagicInfoToSlot(bottomItems[s], storeIndex));
     }
 
-    // 修炼武功 (49)
-    const xiuLianInfo = magicInventory.getItemInfo(49);
-    const xiuLianMagic = convertMagicInfoToSlot(xiuLianInfo, 49);
+    // 修炼武功 (xiuLianIndex)
+    const xiuLianInfo = magicInventory.getItemInfo(MAGIC_LIST_CONFIG.xiuLianIndex);
+    const xiuLianMagic = convertMagicInfoToSlot(xiuLianInfo, MAGIC_LIST_CONFIG.xiuLianIndex);
 
     return {
       storeMagics,
