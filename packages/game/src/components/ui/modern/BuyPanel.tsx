@@ -19,10 +19,9 @@ export interface ShopItemData {
 
 interface BuyPanelProps {
   isVisible: boolean;
-  items: (ShopItemData | null)[]; // 商店物品列表
-  screenWidth: number;
-  buyPercent: number; // 购买价格百分比
-  numberValid: boolean; // 是否限制数量
+  items: (ShopItemData | null)[];
+  buyPercent: number;
+  numberValid: boolean;
   onItemClick?: (index: number) => void;
   onItemRightClick?: (index: number) => void; // 右键购买
   onItemMouseEnter?: (index: number, good: Good | null, rect: DOMRect) => void;
@@ -174,7 +173,6 @@ const ShopItemRow: React.FC<ShopItemRowProps> = ({
 export const BuyPanel: React.FC<BuyPanelProps> = ({
   isVisible,
   items,
-  screenWidth,
   buyPercent,
   numberValid,
   onItemClick,

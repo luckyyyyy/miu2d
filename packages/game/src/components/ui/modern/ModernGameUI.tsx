@@ -330,16 +330,7 @@ export const ModernGameUI: React.FC<ModernGameUIProps> = ({
       }}
     >
       {/* 顶部按钮栏 */}
-      <TopBar
-        screenWidth={screenWidth}
-        onStateClick={() => handlePanelToggle("state")}
-        onEquipClick={() => handlePanelToggle("equip")}
-        onXiuLianClick={() => handlePanelToggle("xiulian")}
-        onGoodsClick={() => handlePanelToggle("goods")}
-        onMagicClick={() => handlePanelToggle("magic")}
-        onMemoClick={() => handlePanelToggle("memo")}
-        onSystemClick={() => handlePanelToggle("system")}
-      />
+      <TopBar />
 
       {/* 底部快捷栏 */}
       <BottomBar
@@ -359,7 +350,6 @@ export const ModernGameUI: React.FC<ModernGameUIProps> = ({
         stats={playerStats}
         playerIndex={playerState?.playerIndex}
         playerName={playerState?.playerName}
-        screenWidth={screenWidth}
         onClose={closePanel}
       />
 
@@ -389,7 +379,6 @@ export const ModernGameUI: React.FC<ModernGameUIProps> = ({
             ? { good: goodsState.equips.foot.good as unknown as Good, count: 1 }
             : null,
         }}
-        screenWidth={screenWidth}
         onSlotClick={handleEquipClick}
         onSlotDrop={handleEquipDrop}
         onClose={closePanel}
@@ -401,7 +390,6 @@ export const ModernGameUI: React.FC<ModernGameUIProps> = ({
         isVisible={activePanel === "goods"}
         items={goodsItems}
         money={goodsState?.money ?? 0}
-        screenWidth={screenWidth}
         onItemClick={handleItemClick}
         onItemRightClick={handleItemRightClick}
         onItemDragStart={handleItemDragStart}
@@ -429,7 +417,6 @@ export const ModernGameUI: React.FC<ModernGameUIProps> = ({
               : null
           ) ?? []
         }
-        screenWidth={screenWidth}
         onMagicClick={(storeIndex: number) => onDispatch?.("magic.use", { storeIndex })}
         onMagicRightClick={(storeIndex: number) => onDispatch?.("magic.setXiuLian", { storeIndex })}
         onClose={closePanel}
@@ -451,7 +438,6 @@ export const ModernGameUI: React.FC<ModernGameUIProps> = ({
               }
             : null
         }
-        screenWidth={screenWidth}
         onClose={closePanel}
       />
 
@@ -459,15 +445,12 @@ export const ModernGameUI: React.FC<ModernGameUIProps> = ({
       <MemoPanel
         isVisible={activePanel === "memo"}
         memos={memoState?.memos?.map((e) => e.text) ?? []}
-        screenWidth={screenWidth}
         onClose={closePanel}
       />
 
       {/* 系统面板 */}
       <SystemPanel
         isVisible={activePanel === "system"}
-        screenWidth={screenWidth}
-        screenHeight={screenHeight}
         onSaveLoad={() => {
           onDispatch?.("system.saveLoad");
         }}
@@ -491,8 +474,6 @@ export const ModernGameUI: React.FC<ModernGameUIProps> = ({
           selectB: "",
           selection: -1,
         }}
-        screenWidth={screenWidth}
-        screenHeight={screenHeight}
         onClose={handleDialogClick}
       />
 
@@ -510,8 +491,6 @@ export const ModernGameUI: React.FC<ModernGameUIProps> = ({
           selectedIndex: selectionState?.selectedIndex ?? -1,
           hoveredIndex: selectionState?.hoveredIndex ?? -1,
         }}
-        screenWidth={screenWidth}
-        screenHeight={screenHeight}
         onSelect={handleSelectionSelect}
       />
 
@@ -520,8 +499,6 @@ export const ModernGameUI: React.FC<ModernGameUIProps> = ({
         isVisible={multiSelectionState?.isVisible ?? false}
         title={multiSelectionState?.message ?? "请选择"}
         options={multiSelectionState?.options?.map((o) => o.text) ?? []}
-        screenWidth={screenWidth}
-        screenHeight={screenHeight}
         onConfirm={handleSelectionMultipleConfirm}
         onCancel={handleSelectionMultipleCancel}
       />
@@ -530,8 +507,6 @@ export const ModernGameUI: React.FC<ModernGameUIProps> = ({
       <MessageBox
         isVisible={messageState?.isVisible ?? false}
         message={messageState?.text ?? ""}
-        screenWidth={screenWidth}
-        screenHeight={screenHeight}
       />
 
       {/* 商店 */}
@@ -544,7 +519,6 @@ export const ModernGameUI: React.FC<ModernGameUIProps> = ({
               : null
           ) ?? []
         }
-        screenWidth={screenWidth}
         buyPercent={shopState?.buyPercent ?? 100}
         numberValid={shopState?.numberValid ?? false}
         onItemClick={(index: number) => onDispatch?.("shop.select", { index })}
@@ -574,7 +548,6 @@ export const ModernGameUI: React.FC<ModernGameUIProps> = ({
           elapsedMilliseconds: 0,
           timeScripts: [],
         }}
-        screenWidth={screenWidth}
       />
 
       {/* 物品提示 */}
@@ -583,8 +556,6 @@ export const ModernGameUI: React.FC<ModernGameUIProps> = ({
           isVisible={true}
           good={tooltipItem.data as unknown as GoodItemData["good"]}
           position={tooltipItem.position}
-          screenWidth={screenWidth}
-          screenHeight={screenHeight}
         />
       )}
 
@@ -594,8 +565,6 @@ export const ModernGameUI: React.FC<ModernGameUIProps> = ({
           isVisible={true}
           magic={tooltipItem.data as unknown as UIMagicData}
           position={tooltipItem.position}
-          screenWidth={screenWidth}
-          screenHeight={screenHeight}
         />
       )}
     </div>

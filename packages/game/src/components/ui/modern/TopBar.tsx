@@ -4,18 +4,10 @@
  */
 import type React from "react";
 import { useMemo, useState } from "react";
+import { useGameUIContext } from "../../../contexts";
 import { borderRadius, glassEffect, modernColors, spacing, transitions } from "./theme";
 
-interface TopBarProps {
-  screenWidth: number;
-  onStateClick: () => void;
-  onEquipClick: () => void;
-  onXiuLianClick: () => void;
-  onGoodsClick: () => void;
-  onMagicClick: () => void;
-  onMemoClick: () => void;
-  onSystemClick: () => void;
-}
+// Props removed — screenWidth and panel toggles are read from GameUIContext
 
 interface TopButtonConfig {
   id: string;
@@ -65,35 +57,19 @@ const TopButton: React.FC<{ config: TopButtonConfig }> = ({ config }) => {
   );
 };
 
-export const TopBar: React.FC<TopBarProps> = ({
-  screenWidth,
-  onStateClick,
-  onEquipClick,
-  onXiuLianClick,
-  onGoodsClick,
-  onMagicClick,
-  onMemoClick,
-  onSystemClick,
-}) => {
+export const TopBar: React.FC = () => {
+  const { screenWidth, togglePanel } = useGameUIContext();
   const buttons: TopButtonConfig[] = useMemo(
     () => [
-      { id: "state", label: "状态", icon: "📊", shortcut: "F1/T", onClick: onStateClick },
-      { id: "equip", label: "装备", icon: "⚔️", shortcut: "F2/E", onClick: onEquipClick },
-      { id: "xiulian", label: "修炼", icon: "🧘", shortcut: "F3", onClick: onXiuLianClick },
-      { id: "goods", label: "物品", icon: "🎒", shortcut: "F5/I", onClick: onGoodsClick },
-      { id: "magic", label: "武功", icon: "✨", shortcut: "F6/M", onClick: onMagicClick },
-      { id: "memo", label: "任务", icon: "📜", shortcut: "F7", onClick: onMemoClick },
-      { id: "system", label: "系统", icon: "⚙️", shortcut: "ESC", onClick: onSystemClick },
+      { id: "state", label: "状态", icon: "📊", shortcut: "F1/T", onClick: () => togglePanel("state") },
+      { id: "equip", label: "装备", icon: "⚔️", shortcut: "F2/E", onClick: () => togglePanel("equip") },
+      { id: "xiulian", label: "修炼", icon: "🧘", shortcut: "F3", onClick: () => togglePanel("xiulian") },
+      { id: "goods", label: "物品", icon: "🎒", shortcut: "F5/I", onClick: () => togglePanel("goods") },
+      { id: "magic", label: "武功", icon: "✨", shortcut: "F6/M", onClick: () => togglePanel("magic") },
+      { id: "memo", label: "任务", icon: "📜", shortcut: "F7", onClick: () => togglePanel("memo") },
+      { id: "system", label: "系统", icon: "⚙️", shortcut: "ESC", onClick: () => togglePanel("system") },
     ],
-    [
-      onStateClick,
-      onEquipClick,
-      onXiuLianClick,
-      onGoodsClick,
-      onMagicClick,
-      onMemoClick,
-      onSystemClick,
-    ]
+    [togglePanel]
   );
 
   const panelWidth = 300;

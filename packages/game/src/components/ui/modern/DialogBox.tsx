@@ -6,14 +6,13 @@
 import type { DialogGuiState } from "@miu2d/engine/gui/ui-types";
 import type React from "react";
 import { useCallback, useMemo, useState } from "react";
+import { useGameUIContext } from "../../../contexts";
 import { useAsfImage } from "../classic/hooks";
 import { getPortraitPathByIndex } from "../portraitUtils";
 import { borderRadius, glassEffect, modernColors, spacing, typography } from "./theme";
 
 interface DialogBoxProps {
   state: DialogGuiState;
-  screenWidth?: number;
-  screenHeight?: number;
   onClose: () => void;
   onSelectionMade?: (selection: number) => void;
 }
@@ -213,11 +212,10 @@ function getDisplayedText(text: string, textProgress: number): string {
 
 export const DialogBox: React.FC<DialogBoxProps> = ({
   state,
-  screenWidth = 800,
-  screenHeight = 600,
   onClose,
   onSelectionMade,
 }) => {
+  const { screenWidth, screenHeight } = useGameUIContext();
   const {
     isVisible,
     text,

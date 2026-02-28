@@ -4,13 +4,12 @@
  */
 import type React from "react";
 import { useMemo, useState } from "react";
+import { useGameUIContext } from "../../../contexts";
 import { Divider, PanelHeader } from "./components";
 import { borderRadius, glassEffect, modernColors, spacing, typography } from "./theme";
 
 interface SystemPanelProps {
   isVisible: boolean;
-  screenWidth: number;
-  screenHeight: number;
   onSaveLoad: () => void;
   onOption: () => void;
   onExit: () => void;
@@ -73,13 +72,12 @@ const MenuButton: React.FC<MenuButtonProps> = ({ icon, label, onClick, color }) 
 
 export const SystemPanel: React.FC<SystemPanelProps> = ({
   isVisible,
-  screenWidth,
-  screenHeight,
   onSaveLoad,
   onOption,
   onExit,
   onReturn,
 }) => {
+  const { screenWidth, screenHeight } = useGameUIContext();
   const panelWidth = 280;
   const panelHeight = 320;
 

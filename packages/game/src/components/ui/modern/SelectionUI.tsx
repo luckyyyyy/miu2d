@@ -6,21 +6,19 @@
 import type { SelectionGuiState } from "@miu2d/engine/gui/ui-types";
 import type React from "react";
 import { useMemo, useState } from "react";
+import { useGameUIContext } from "../../../contexts";
 import { borderRadius, glassEffect, modernColors, spacing, typography } from "./theme";
 
 interface SelectionUIProps {
   state: SelectionGuiState;
-  screenWidth: number;
-  screenHeight: number;
   onSelect: (index: number) => void;
 }
 
 export const SelectionUI: React.FC<SelectionUIProps> = ({
   state,
-  screenWidth,
-  screenHeight,
   onSelect,
 }) => {
+  const { screenWidth, screenHeight } = useGameUIContext();
   const { isVisible, message, options, hoveredIndex: stateHoveredIndex } = state;
   const [hoveredIndex, setHoveredIndex] = useState<number>(-1);
   const panelWidth = 320;

@@ -7,6 +7,7 @@ import type { MagicItemInfo } from "@miu2d/engine/magic";
 import { MAGIC_LIST_CONFIG } from "@miu2d/engine/player/magic/magic-list-config";
 import type React from "react";
 import { useCallback, useMemo, useState } from "react";
+import { useGameUIContext } from "../../../contexts";
 import type { TouchDragData } from "../../../contexts";
 import { AsfAnimatedSprite } from "../classic/AsfAnimatedSprite";
 import type { MagicDragData } from "../classic/MagicGui";
@@ -36,7 +37,6 @@ interface XiuLianPanelProps {
   magic?: XiuLianMagic | null;
   // 新接口：直接传入 MagicItemInfo
   magicInfo?: MagicItemInfo | null;
-  screenWidth: number;
   onMagicClick?: () => void;
   onClose: () => void;
   // 拖放支持
@@ -373,7 +373,6 @@ export const XiuLianPanel: React.FC<XiuLianPanelProps> = ({
   isVisible,
   magic,
   magicInfo,
-  screenWidth,
   onMagicClick,
   onClose,
   onDrop,
@@ -385,6 +384,7 @@ export const XiuLianPanel: React.FC<XiuLianPanelProps> = ({
   onMagicLeave,
   onTouchDrop,
 }) => {
+  const { screenWidth } = useGameUIContext();
   const [isSlotHovered, setIsSlotHovered] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
   const panelWidth = 300;

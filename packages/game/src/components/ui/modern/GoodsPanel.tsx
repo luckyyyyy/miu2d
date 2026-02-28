@@ -6,6 +6,7 @@
 import type { Good } from "@miu2d/engine/player/goods";
 import type React from "react";
 import { useCallback, useMemo, useState } from "react";
+import { useGameUIContext } from "../../../contexts";
 import type { TouchDragData } from "../../../contexts";
 import type { DragData, GoodItemData } from "../classic";
 import { useAsfImage } from "../classic/hooks";
@@ -26,7 +27,6 @@ interface GoodsPanelProps {
   isVisible: boolean;
   items: (GoodItemData | null)[];
   money: number;
-  screenWidth: number;
   onItemClick?: (index: number) => void;
   onItemRightClick?: (index: number) => void;
   onItemDrop?: (targetIndex: number, dragData: DragData) => void;
@@ -254,7 +254,6 @@ export const GoodsPanel: React.FC<GoodsPanelProps> = ({
   isVisible,
   items,
   money,
-  screenWidth,
   onItemClick,
   onItemRightClick,
   onItemDrop,
@@ -266,6 +265,7 @@ export const GoodsPanel: React.FC<GoodsPanelProps> = ({
   onTouchDrop,
   onItemHover,
 }) => {
+  const { screenWidth } = useGameUIContext();
   const [scrollOffset, setScrollOffset] = useState(0);
 
   // 面板配置

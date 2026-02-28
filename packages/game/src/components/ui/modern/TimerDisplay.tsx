@@ -6,14 +6,15 @@
 import type { TimerState } from "@miu2d/engine/runtime/timer-manager";
 import type React from "react";
 import { useMemo } from "react";
+import { useGameUIContext } from "../../../contexts";
 import { borderRadius, glassEffect, modernColors, spacing, typography } from "./theme";
 
 interface TimerDisplayProps {
   timerState: TimerState;
-  screenWidth?: number;
 }
 
-export const TimerDisplay: React.FC<TimerDisplayProps> = ({ timerState, screenWidth = 800 }) => {
+export const TimerDisplay: React.FC<TimerDisplayProps> = ({ timerState }) => {
+  const { screenWidth } = useGameUIContext();
   // 格式化时间（与经典 UI 一致）
   const formattedTime = useMemo(() => {
     const totalSeconds = Math.max(0, Math.floor(timerState.seconds));

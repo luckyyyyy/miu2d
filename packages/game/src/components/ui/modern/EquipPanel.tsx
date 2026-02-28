@@ -6,6 +6,7 @@
 import type { Good } from "@miu2d/engine/player/goods";
 import type React from "react";
 import { useCallback, useMemo, useState } from "react";
+import { useGameUIContext } from "../../../contexts";
 import type { TouchDragData } from "../../../contexts";
 import type { DragData, EquipItemData, EquipSlots, EquipSlotType } from "../classic/EquipGui";
 import { slotTypeToEquipPosition } from "../classic/EquipGui";
@@ -27,7 +28,6 @@ const wuxiaAccent = {
 interface EquipPanelProps {
   isVisible: boolean;
   equips: EquipSlots;
-  screenWidth: number;
   onSlotClick?: (slot: EquipSlotType) => void;
   onSlotRightClick?: (slot: EquipSlotType) => void;
   onSlotDrop?: (slot: EquipSlotType, dragData: DragData) => void;
@@ -258,7 +258,6 @@ const EquipSlotItem: React.FC<EquipSlotItemProps> = ({
 export const EquipPanel: React.FC<EquipPanelProps> = ({
   isVisible,
   equips,
-  screenWidth,
   onSlotClick,
   onSlotRightClick,
   onSlotDrop,
@@ -269,6 +268,7 @@ export const EquipPanel: React.FC<EquipPanelProps> = ({
   dragData,
   onTouchDrop,
 }) => {
+  const { screenWidth } = useGameUIContext();
   const panelWidth = 260;
 
   // 位置: 屏幕中央偏左

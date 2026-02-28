@@ -306,20 +306,11 @@ export const ModernGameUIWrapper: React.FC<ModernGameUIWrapperProps> = ({
         }}
       >
       {/* 顶部按钮栏 */}
-      <TopBar
-        screenWidth={width}
-        onStateClick={() => togglePanel("state")}
-        onEquipClick={() => togglePanel("equip")}
-        onXiuLianClick={() => togglePanel("xiulian")}
-        onGoodsClick={() => togglePanel("goods")}
-        onMagicClick={() => togglePanel("magic")}
-        onMemoClick={() => togglePanel("memo")}
-        onSystemClick={() => togglePanel("system")}
-      />
+      <TopBar />
 
       {/* 计时器 */}
       {timerState.isRunning && !timerState.isHidden && (
-        <TimerDisplay timerState={timerState} screenWidth={width} />
+        <TimerDisplay timerState={timerState} />
       )}
 
       {/* NPC 血条 */}
@@ -379,7 +370,6 @@ export const ModernGameUIWrapper: React.FC<ModernGameUIWrapperProps> = ({
         stats={playerStats}
         playerIndex={uiPlayer?.playerIndex}
         playerName={uiPlayer?.playerName}
-        screenWidth={width}
         onClose={() => togglePanel("state")}
       />
 
@@ -395,7 +385,6 @@ export const ModernGameUIWrapper: React.FC<ModernGameUIWrapperProps> = ({
           wrist: goodsData.equips.wrist ? { good: goodsData.equips.wrist.good, count: 1 } : null,
           foot: goodsData.equips.foot ? { good: goodsData.equips.foot.good, count: 1 } : null,
         }}
-        screenWidth={width}
         onSlotClick={handleEquipRightClick}
         onSlotRightClick={handleEquipRightClick}
         onSlotDrop={handleEquipDrop}
@@ -412,7 +401,6 @@ export const ModernGameUIWrapper: React.FC<ModernGameUIWrapperProps> = ({
         isVisible={panels?.goods ?? false}
         items={goodsItems}
         money={goodsData.money}
-        screenWidth={width}
         onItemClick={(index) => logger.log("Item clicked:", index)}
         onItemRightClick={handleGoodsRightClick}
         onItemDragStart={handleGoodsDragStart}
@@ -428,7 +416,6 @@ export const ModernGameUIWrapper: React.FC<ModernGameUIWrapperProps> = ({
       <MagicPanel
         isVisible={panels?.magic ?? false}
         magicInfos={magicData.storeMagics}
-        screenWidth={width}
         onMagicClick={(storeIndex) => logger.log("Magic clicked:", storeIndex)}
         onMagicRightClick={(storeIndex) =>
           dispatch({ type: "SET_CURRENT_MAGIC", magicIndex: storeIndex })
@@ -448,7 +435,6 @@ export const ModernGameUIWrapper: React.FC<ModernGameUIWrapperProps> = ({
       <XiuLianPanel
         isVisible={panels?.xiulian ?? false}
         magicInfo={magicData.xiuLianMagic}
-        screenWidth={width}
         onClose={() => togglePanel("xiulian")}
         onDrop={handleMagicDropOnXiuLian}
         onDragStart={handleXiuLianDragStart}
@@ -464,7 +450,6 @@ export const ModernGameUIWrapper: React.FC<ModernGameUIWrapperProps> = ({
       <MemoPanel
         isVisible={panels?.memo ?? false}
         memos={engine?.memoListManager?.getAllMemos() ?? []}
-        screenWidth={width}
         onClose={() => togglePanel("memo")}
       />
 
@@ -486,8 +471,6 @@ export const ModernGameUIWrapper: React.FC<ModernGameUIWrapperProps> = ({
             selectB: dialog.selectB ?? "",
             selection: dialog.selection ?? -1,
           }}
-          screenWidth={width}
-          screenHeight={height}
           onClose={() => dispatch({ type: "DIALOG_CLICK" })}
           onSelectionMade={(sel: number) => {
             dispatch({ type: "DIALOG_SELECT", selection: sel });
@@ -509,8 +492,6 @@ export const ModernGameUIWrapper: React.FC<ModernGameUIWrapperProps> = ({
             selectedIndex: selection.selectedIndex ?? -1,
             hoveredIndex: selection.hoveredIndex ?? -1,
           }}
-          screenWidth={width}
-          screenHeight={height}
           onSelect={(index) => dispatch({ type: "SELECTION_CHOOSE", index })}
         />
       )}
@@ -521,8 +502,6 @@ export const ModernGameUIWrapper: React.FC<ModernGameUIWrapperProps> = ({
           isVisible={multiSelection.isVisible}
           title={multiSelection.message ?? "请选择"}
           options={multiSelection.options.map((o) => o.text)}
-          screenWidth={width}
-          screenHeight={height}
           onConfirm={(indices) => {
             // 循环 toggle 选中的项
             indices.forEach((index) => {
@@ -539,8 +518,6 @@ export const ModernGameUIWrapper: React.FC<ModernGameUIWrapperProps> = ({
       <MessageBox
         isVisible={message?.isVisible ?? false}
         message={message?.text ?? ""}
-        screenWidth={width}
-        screenHeight={height}
       />
 
       {/* 商店面板 */}
@@ -553,7 +530,6 @@ export const ModernGameUIWrapper: React.FC<ModernGameUIWrapperProps> = ({
             const effectivePrice = Math.floor((basePrice * buyData.buyPercent) / 100);
             return { good: item.good as Good, count: item.count, price: effectivePrice };
           })}
-          screenWidth={width}
           buyPercent={buyData.buyPercent}
           numberValid={buyData.numberValid}
           onItemClick={(index) => logger.log("Shop item clicked:", index)}
@@ -590,8 +566,6 @@ export const ModernGameUIWrapper: React.FC<ModernGameUIWrapperProps> = ({
         good={tooltip.good}
         shopPrice={tooltip.shopPrice}
         position={tooltip.position}
-        screenWidth={width}
-        screenHeight={height}
       />
 
       {/* 武功提示 */}
@@ -610,8 +584,6 @@ export const ModernGameUIWrapper: React.FC<ModernGameUIWrapperProps> = ({
             manaCost: magicTooltip.magicInfo.magic.manaCost ?? 0,
           }}
           position={magicTooltip.position}
-          screenWidth={width}
-          screenHeight={height}
         />
       )}
 

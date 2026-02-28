@@ -6,6 +6,7 @@
 import type { UIGoodData, UIMagicData } from "@miu2d/engine/gui/ui-types";
 import type React from "react";
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useGameUIContext } from "../../../contexts";
 import { useAsfImage } from "../classic/hooks";
 import { Divider, ProgressBar, StatRow } from "./components";
 import { borderRadius, glassEffect, modernColors, spacing, typography } from "./theme";
@@ -51,10 +52,8 @@ function calculateTooltipPosition(
 interface ItemTooltipProps {
   isVisible: boolean;
   good: UIGoodData | null;
-  shopPrice?: number; // 商店自定义价格（已含 buyPercent），覆盖 good.cost
+  shopPrice?: number;
   position: { x: number; y: number };
-  screenWidth: number;
-  screenHeight: number;
 }
 
 export const ItemTooltip: React.FC<ItemTooltipProps> = ({
@@ -62,9 +61,8 @@ export const ItemTooltip: React.FC<ItemTooltipProps> = ({
   good,
   shopPrice,
   position,
-  screenWidth,
-  screenHeight,
 }) => {
+  const { screenWidth, screenHeight } = useGameUIContext();
   const iconImage = useAsfImage(good?.iconPath ?? null, 0);
   const tooltipRef = useRef<HTMLDivElement>(null);
   const [tooltipSize, setTooltipSize] = useState({ width: 0, height: 0 });
@@ -210,17 +208,14 @@ interface MagicTooltipProps {
   isVisible: boolean;
   magic: UIMagicData | null;
   position: { x: number; y: number };
-  screenWidth: number;
-  screenHeight: number;
 }
 
 export const MagicTooltip: React.FC<MagicTooltipProps> = ({
   isVisible,
   magic,
   position,
-  screenWidth,
-  screenHeight,
 }) => {
+  const { screenWidth, screenHeight } = useGameUIContext();
   const iconImage = useAsfImage(magic?.iconPath ?? null, 0);
   const tooltipRef = useRef<HTMLDivElement>(null);
   const [tooltipSize, setTooltipSize] = useState({ width: 0, height: 0 });

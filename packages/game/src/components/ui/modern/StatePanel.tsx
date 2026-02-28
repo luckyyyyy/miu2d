@@ -12,7 +12,6 @@ interface StatePanelProps {
   isVisible: boolean;
   stats: PlayerStats;
   playerIndex?: number;
-  screenWidth: number;
   onClose: () => void;
   playerName?: string;
 }
@@ -261,7 +260,6 @@ function getPortraitPath(playerName: string): string {
 export const StatePanel: React.FC<StatePanelProps> = ({
   isVisible,
   stats,
-  screenWidth,
   onClose,
   playerName = "主角",
 }) => {

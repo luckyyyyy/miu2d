@@ -7,6 +7,7 @@ import type { MagicItemInfo } from "@miu2d/engine/magic";
 import { MAGIC_LIST_CONFIG } from "@miu2d/engine/player/magic/magic-list-config";
 import type React from "react";
 import { useCallback, useMemo, useState } from "react";
+import { useGameUIContext } from "../../../contexts";
 import type { TouchDragData } from "../../../contexts";
 import type { BottomMagicDragData } from "../../hooks";
 import { AsfAnimatedSprite } from "../classic/AsfAnimatedSprite";
@@ -19,7 +20,6 @@ interface MagicPanelProps {
   magics?: (MagicItem | null)[];
   // 新接口：直接传入MagicItemInfo
   magicInfos?: (MagicItemInfo | null)[];
-  screenWidth: number;
   onMagicClick?: (storeIndex: number) => void;
   onMagicRightClick?: (storeIndex: number) => void; // 右键添加到快捷栏
   onClose: () => void;
@@ -307,7 +307,6 @@ export const MagicPanel: React.FC<MagicPanelProps> = ({
   isVisible,
   magics,
   magicInfos,
-  screenWidth,
   onMagicClick,
   onMagicRightClick,
   onClose,
@@ -320,6 +319,7 @@ export const MagicPanel: React.FC<MagicPanelProps> = ({
   onMagicLeave,
   onTouchDrop,
 }) => {
+  const { screenWidth } = useGameUIContext();
   const [scrollOffset, setScrollOffset] = useState(0);
   const [localDragIndex, setLocalDragIndex] = useState<number | null>(null);
   const panelWidth = 280;

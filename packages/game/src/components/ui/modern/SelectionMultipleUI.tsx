@@ -4,6 +4,7 @@
  */
 import type React from "react";
 import { useCallback, useMemo, useState } from "react";
+import { useGameUIContext } from "../../../contexts";
 import { GlassButton } from "./components";
 import { borderRadius, glassEffect, modernColors, spacing, typography } from "./theme";
 
@@ -11,8 +12,6 @@ interface SelectionMultipleUIProps {
   isVisible: boolean;
   title: string;
   options: string[];
-  screenWidth: number;
-  screenHeight: number;
   onConfirm?: (selectedIndices: number[]) => void;
   onCancel?: () => void;
 }
@@ -21,11 +20,10 @@ export const SelectionMultipleUI: React.FC<SelectionMultipleUIProps> = ({
   isVisible,
   title,
   options,
-  screenWidth,
-  screenHeight,
   onConfirm,
   onCancel,
 }) => {
+  const { screenWidth, screenHeight } = useGameUIContext();
   const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set());
   const [hoveredIndex, setHoveredIndex] = useState<number>(-1);
 

@@ -3,16 +3,16 @@
  */
 import type React from "react";
 import { useEffect, useState } from "react";
+import { useGameUIContext } from "../../../contexts";
 import { borderRadius, glassEffect, modernColors, spacing, typography } from "./theme";
 
 interface MessageBoxProps {
   isVisible: boolean;
   message: string;
-  screenWidth: number;
-  screenHeight: number;
 }
 
-export const MessageBox: React.FC<MessageBoxProps> = ({ isVisible, message, screenWidth }) => {
+export const MessageBox: React.FC<MessageBoxProps> = ({ isVisible, message }) => {
+  const { screenWidth } = useGameUIContext();
   const [phase, setPhase] = useState<"hidden" | "in" | "visible" | "out">("hidden");
 
   useEffect(() => {

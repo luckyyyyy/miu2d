@@ -4,6 +4,7 @@
  */
 import type React from "react";
 import { useMemo, useState } from "react";
+import { useGameUIContext } from "../../../contexts";
 import { borderRadius, glassEffect, modernColors, spacing, transitions, typography } from "./theme";
 
 // 武侠风格配色
@@ -15,8 +16,7 @@ const wuxiaAccent = {
 
 interface MemoPanelProps {
   isVisible: boolean;
-  memos: string[]; // 任务记录列表，与经典UI一致
-  screenWidth: number;
+  memos: string[];
   onClose: () => void;
 }
 
@@ -106,7 +106,8 @@ const MemoItem: React.FC<{ text: string; index: number; isLast: boolean }> = ({
   );
 };
 
-export const MemoPanel: React.FC<MemoPanelProps> = ({ isVisible, memos, screenWidth, onClose }) => {
+export const MemoPanel: React.FC<MemoPanelProps> = ({ isVisible, memos, onClose }) => {
+  const { screenWidth } = useGameUIContext();
   const panelWidth = 310;
 
   // 位置: 屏幕中央偏右（与经典UI一致），顶部留出TopBar空间
