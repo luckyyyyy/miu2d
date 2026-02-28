@@ -22,6 +22,8 @@ import type React from "react";
 import { useCallback, useMemo, useState } from "react";
 import type { DragData, EquipSlotType, GoodItemData } from "../classic";
 import type { PlayerStats } from "../classic/StateGui";
+import { GameUIContext } from "../../../contexts";
+import type { MagicHoverData } from "../../../contexts";
 import { BottomBar } from "./BottomBar";
 import { BuyPanel } from "./BuyPanel";
 import { DialogBox } from "./DialogBox";
@@ -212,6 +214,31 @@ export const ModernGameUI: React.FC<ModernGameUIProps> = ({
     setTooltipItem(null);
   }, []);
 
+  const handleGoodsHover = useCallback((goodData: GoodItemData | null, x: number, y: number) => {
+    if (goodData?.good) {
+      setTooltipItem({
+        type: "item",
+        data: goodData.good as unknown as UIGoodData,
+        position: { x, y },
+      });
+    }
+  }, []);
+
+  const handleMagicHover = useCallback((magicInfo: MagicHoverData | null, x: number, y: number) => {
+    if (magicInfo?.magic?.name) {
+      const originalMagic = magicState?.bottomMagics?.find(
+        (slot) => slot?.magic?.name === magicInfo.magic?.name
+      )?.magic;
+      if (originalMagic) {
+        setTooltipItem({
+          type: "magic",
+          data: originalMagic as unknown as UIMagicData,
+          position: { x, y },
+        });
+      }
+    }
+  }, [magicState]);
+
   // 选择框操作
   const handleSelectionSelect = useCallback(
     (index: number) => {
@@ -273,7 +300,27 @@ export const ModernGameUI: React.FC<ModernGameUIProps> = ({
     );
   }, [magicState]);
 
+  // ======= GameUIContext value =======
+  const gameUIContextValue = {
+    screenWidth,
+    screenHeight,
+    togglePanel: (panel: string) => handlePanelToggle(panel as PanelType),
+    playerVitals: {
+      life: playerStats.life,
+      lifeMax: playerStats.lifeMax,
+      mana: playerStats.mana,
+      manaMax: playerStats.manaMax,
+      thew: playerStats.thew,
+      thewMax: playerStats.thewMax,
+    },
+    onMagicHover: handleMagicHover,
+    onMagicLeave: handleTooltipHide,
+    onGoodsHover: handleGoodsHover,
+    onGoodsLeave: handleTooltipHide,
+  };
+
   return (
+    <GameUIContext.Provider value={gameUIContextValue}>
     <div
       style={{
         position: "absolute",
@@ -296,56 +343,14 @@ export const ModernGameUI: React.FC<ModernGameUIProps> = ({
 
       {/* 底部快捷栏 */}
       <BottomBar
-        screenWidth={screenWidth}
-        screenHeight={screenHeight}
         goodsItems={bottomGoodsItems}
         magicItems={bottomMagicItems}
-        life={playerStats.life}
-        lifeMax={playerStats.lifeMax}
-        mana={playerStats.mana}
-        manaMax={playerStats.manaMax}
-        thew={playerStats.thew}
-        thewMax={playerStats.thewMax}
         onItemClick={(index: number) => onDispatch?.("bottomGoods.use", { index })}
         onItemRightClick={(index: number) => onDispatch?.("bottomGoods.remove", { index })}
         onMagicRightClick={(magicIndex: number) =>
           onDispatch?.("bottomMagic.remove", { index: magicIndex })
         }
         onDrop={() => setDragData(null)}
-        onGoodsHover={(goodData, x, y) => {
-          console.log("[ModernGameUI] onGoodsHover", { goodData, x, y });
-          if (goodData?.good) {
-            setTooltipItem({
-              type: "item",
-              data: goodData.good as unknown as UIGoodData,
-              position: { x, y },
-            });
-          }
-        }}
-        onGoodsLeave={handleTooltipHide}
-        onMagicHover={(magicInfo, x, y) => {
-          console.log("[ModernGameUI] onMagicHover", {
-            magicInfo,
-            x,
-            y,
-            bottomMagics: magicState?.bottomMagics,
-          });
-          // 从 magicInfo.magic.name 找到对应的原始 UIMagicData
-          if (magicInfo?.magic?.name) {
-            const originalMagic = magicState?.bottomMagics?.find(
-              (slot) => slot?.magic?.name === magicInfo.magic?.name
-            )?.magic;
-            console.log("[ModernGameUI] found originalMagic", originalMagic);
-            if (originalMagic) {
-              setTooltipItem({
-                type: "magic",
-                data: originalMagic as unknown as UIMagicData,
-                position: { x, y },
-              });
-            }
-          }
-        }}
-        onMagicLeave={handleTooltipHide}
       />
 
       {/* 状态面板 */}
@@ -594,5 +599,6 @@ export const ModernGameUI: React.FC<ModernGameUIProps> = ({
         />
       )}
     </div>
+  </GameUIContext.Provider>
   );
 };

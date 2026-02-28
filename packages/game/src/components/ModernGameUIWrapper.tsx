@@ -13,6 +13,7 @@ import { GoodKind } from "@miu2d/engine/player/goods";
 import type React from "react";
 import { useCallback, useMemo } from "react";
 import type { TouchDragData } from "../contexts";
+import { GameUIContext } from "../contexts";
 import type { GameUILogic } from "./hooks";
 import type { EquipSlotType, GoodItemData } from "./ui/classic";
 // 视频播放器是全屏组件，与 UI 风格无关，复用 classic 版本
@@ -152,11 +153,6 @@ export const ModernGameUIWrapper: React.FC<ModernGameUIWrapperProps> = ({
     );
   }, [goodsData]);
 
-  // 底部武功转换
-  const bottomMagicItems = useMemo(() => {
-    return magicData.bottomMagics.map((slot) => (slot?.magic ? { magic: slot.magic } : null));
-  }, [magicData]);
-
   // ============= Touch Drop Handlers =============
 
   const _handleBottomTouchDrop = useCallback(
@@ -271,15 +267,44 @@ export const ModernGameUIWrapper: React.FC<ModernGameUIWrapperProps> = ({
 
   if (!engine) return null;
 
+  // ======= GameUIContext value =======
+  const gameUIContextValue = {
+    screenWidth: width,
+    screenHeight: height,
+    togglePanel,
+    playerVitals: {
+      life: player?.life ?? 100,
+      lifeMax: player?.lifeMax ?? 100,
+      mana: player?.mana ?? 50,
+      manaMax: player?.manaMax ?? 50,
+      thew: player?.thew ?? 100,
+      thewMax: player?.thewMax ?? 100,
+    },
+    onMagicHover: handleMagicHover,
+    onMagicLeave: handleMagicLeave,
+    onGoodsHover: (goodData: GoodItemData | null, x: number, y: number) => {
+      if (goodData?.good) {
+        logic.setTooltip({
+          isVisible: true,
+          good: goodData.good,
+          isRecycle: false,
+          position: { x, y },
+        });
+      }
+    },
+    onGoodsLeave: handleMouseLeave,
+  };
+
   return (
-    <div
-      style={{
-        position: "absolute",
-        inset: 0,
-        pointerEvents: "none",
-        overflow: "hidden",
-      }}
-    >
+    <GameUIContext.Provider value={gameUIContextValue}>
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          pointerEvents: "none",
+          overflow: "hidden",
+        }}
+      >
       {/* 顶部按钮栏 */}
       <TopBar
         screenWidth={width}
@@ -302,16 +327,8 @@ export const ModernGameUIWrapper: React.FC<ModernGameUIWrapperProps> = ({
 
       {/* 底部快捷栏 */}
       <BottomBar
-        screenWidth={width}
-        screenHeight={height}
         goodsItems={bottomGoodsItems}
-        magicItems={bottomMagicItems as unknown as Parameters<typeof BottomBar>[0]["magicItems"]}
-        life={player?.life ?? 100}
-        lifeMax={player?.lifeMax ?? 100}
-        mana={player?.mana ?? 50}
-        manaMax={player?.manaMax ?? 50}
-        thew={player?.thew ?? 100}
-        thewMax={player?.thewMax ?? 100}
+        magicItems={magicData.bottomMagics}
         onItemClick={(index: number) => {
           if (index < 3) {
             handleUseBottomGood(index);
@@ -354,29 +371,6 @@ export const ModernGameUIWrapper: React.FC<ModernGameUIWrapperProps> = ({
           handleMagicDragEnd();
           setDragData(null);
         }}
-        onGoodsHover={(goodData, x, y) => {
-          if (goodData?.good) {
-            logic.setTooltip({
-              isVisible: true,
-              good: goodData.good,
-              isRecycle: false,
-              position: { x, y },
-            });
-          }
-        }}
-        onGoodsLeave={handleMouseLeave}
-        onMagicHover={(magicInfo, x, y) => {
-          if (magicInfo?.magic) {
-            // 从 bottomMagics 找到完整的 MagicItemInfo
-            const fullMagicInfo = magicData.bottomMagics?.find(
-              (slot) => slot?.magic?.name === magicInfo.magic?.name
-            );
-            if (fullMagicInfo) {
-              handleMagicHover(fullMagicInfo, x, y);
-            }
-          }
-        }}
-        onMagicLeave={handleMagicLeave}
       />
 
       {/* 状态面板 */}
@@ -640,5 +634,6 @@ export const ModernGameUIWrapper: React.FC<ModernGameUIWrapperProps> = ({
         Powered by Miu2D Engine
       </div>
     </div>
+    </GameUIContext.Provider>
   );
 };

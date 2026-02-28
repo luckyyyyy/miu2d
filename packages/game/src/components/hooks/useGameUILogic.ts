@@ -15,6 +15,7 @@ import { MAGIC_LIST_CONFIG } from "@miu2d/engine/player/magic/magic-list-config"
 import type { Vector2 } from "@miu2d/engine/core/types";
 import type { UIEquipSlotName } from "@miu2d/engine/gui/ui-types";
 import type { MagicItemInfo } from "@miu2d/engine/magic";
+import type { MagicHoverData } from "../../contexts";
 import type { MiuMapData } from "@miu2d/engine/map/types";
 import type { Npc } from "@miu2d/engine/npc";
 import type { Good } from "@miu2d/engine/player/goods";
@@ -784,11 +785,12 @@ export function useGameUILogic({ engine }: UseGameUILogicOptions) {
     setTooltip((prev) => ({ ...prev, isVisible: false }));
   }, []);
 
-  const handleMagicHover = useCallback((magicInfo: MagicItemInfo | null, x: number, y: number) => {
+  const handleMagicHover = useCallback((magicInfo: MagicHoverData | null, x: number, y: number) => {
     if (magicInfo?.magic) {
       setMagicTooltip({
         isVisible: true,
-        magicInfo,
+        // Safe cast: callers pass full MagicItemInfo (structurally extends MagicHoverData)
+        magicInfo: magicInfo as unknown as MagicItemInfo | null,
         position: { x, y },
       });
     }

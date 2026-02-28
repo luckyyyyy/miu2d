@@ -4,7 +4,8 @@
  */
 import type React from "react";
 import { useCallback, useMemo, useState } from "react";
-import type { TouchDragData } from "../../../contexts";
+import type { MagicHoverData, TouchDragData } from "../../../contexts";
+import { useGameUIContext } from "../../../contexts";
 import { AsfAnimatedSprite } from "../classic/AsfAnimatedSprite";
 import type { BottomSlotDragData } from "../classic/BottomGui";
 import type { GoodItemData } from "../classic/GoodsGui";
@@ -16,30 +17,14 @@ import { borderRadius, glassEffect, modernColors, spacing, transitions } from ".
 const SLOT_KEYS = ["Z", "X", "C", "A", "S", "D", "F", "G"];
 
 /**
- * 武功槽数据 - 简化版，用于 UI 显示
+ * 武功槽数据 - 兼容 MagicItemInfo 和 UIMagicData 派生对象，
+ * 仅包含 Tooltip 显示所需的最小字段集（与 MagicHoverData 同构）。
  */
-interface MagicSlotData {
-  magic: {
-    name: string;
-    icon?: string;
-    image?: string;
-    iconPath?: string;
-  } | null;
-  level: number;
-}
+export type MagicSlotData = MagicHoverData;
 
 interface BottomBarProps {
   goodsItems?: (GoodItemData | null)[];
   magicItems?: (MagicSlotData | null)[];
-  screenWidth: number;
-  screenHeight: number;
-  // 血蓝体力
-  life?: number;
-  lifeMax?: number;
-  mana?: number;
-  manaMax?: number;
-  thew?: number;
-  thewMax?: number;
   onItemClick: (index: number) => void;
   onItemRightClick: (index: number) => void;
   onMagicRightClick?: (magicIndex: number) => void;
@@ -47,10 +32,6 @@ interface BottomBarProps {
   onDragStart?: (data: BottomSlotDragData) => void;
   onDragEnd?: () => void;
   onTouchDrop?: (targetIndex: number, data: TouchDragData) => void;
-  onMagicHover?: (magicInfo: MagicSlotData | null, x: number, y: number) => void;
-  onMagicLeave?: () => void;
-  onGoodsHover?: (goodData: GoodItemData | null, x: number, y: number) => void;
-  onGoodsLeave?: () => void;
 }
 
 interface SlotItemProps {
@@ -89,7 +70,7 @@ const BottomSlot: React.FC<SlotItemProps> = ({
   const itemIconPath = goodsData?.good?.iconPath ?? goodsData?.good?.imagePath ?? null;
   const itemIcon = useAsfImage(isItemSlot ? itemIconPath : null, 0);
 
-  // 武功图标路径
+  // 武功图标路径：优先 icon（小图），fallback 到 image
   const magicIconPath = magicData?.magic?.icon ?? magicData?.magic?.image ?? null;
 
   // 获取物品品级颜色（仅物品槽位）
@@ -312,25 +293,21 @@ const BottomSlot: React.FC<SlotItemProps> = ({
 export const BottomBar: React.FC<BottomBarProps> = ({
   goodsItems = [],
   magicItems = [],
-  screenWidth,
-  screenHeight,
-  life = 100,
-  lifeMax = 100,
-  mana = 50,
-  manaMax = 50,
-  thew = 100,
-  thewMax = 100,
   onItemClick,
   onItemRightClick,
   onMagicRightClick,
   onDrop,
   onDragStart,
   onDragEnd,
-  onMagicHover,
-  onMagicLeave,
-  onGoodsHover,
-  onGoodsLeave,
 }) => {
+  const {
+    screenWidth,
+    playerVitals: { life, lifeMax, mana, manaMax, thew, thewMax },
+    onMagicHover,
+    onMagicLeave,
+    onGoodsHover,
+    onGoodsLeave,
+  } = useGameUIContext();
   // 动态计算宽度: 血蓝体力 + 8个槽位 + 间距 + 分隔线 + padding
   const slotWidth = 44;
   const slotGap = 8;
@@ -459,11 +436,11 @@ export const BottomBar: React.FC<BottomBarProps> = ({
               onMouseEnter={(e) => {
                 // 物品槽触发物品tooltip - 1:1 参考经典 UI
                 if (goodsData?.good) {
-                  onGoodsHover?.(goodsData, e.clientX, e.clientY);
+                  onGoodsHover(goodsData, e.clientX, e.clientY);
                 }
               }}
               onMouseLeave={() => {
-                onGoodsLeave?.();
+                onGoodsLeave();
               }}
               onDragStart={() => {
                 if (goodsData) {
@@ -503,11 +480,11 @@ export const BottomBar: React.FC<BottomBarProps> = ({
               onRightClick={() => onMagicRightClick?.(i)}
               onMouseEnter={(e) => {
                 if (magicData?.magic) {
-                  onMagicHover?.(magicData, e.clientX, e.clientY);
+                  onMagicHover(magicData, e.clientX, e.clientY);
                 }
               }}
               onMouseLeave={() => {
-                onMagicLeave?.();
+                onMagicLeave();
               }}
               onDragStart={() => {
                 if (magicData) {

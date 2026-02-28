@@ -9,12 +9,12 @@
  * Slots 3-7: Magic (from PlayerMagicInventory, indices BottomIndexBegin+0 to +4)
  */
 
-import type { HotbarItem } from "@miu2d/engine/gui/ui-types";
 import type { MagicItemInfo } from "@miu2d/engine/magic";
 import { useDevice } from "@miu2d/shared";
 import type React from "react";
 import { useCallback, useMemo, useState } from "react";
 import type { TouchDragData } from "../../../contexts";
+import { useGameUIContext } from "../../../contexts";
 import { useTouchDragSource, useTouchDropTarget } from "../../../hooks";
 import { AsfAnimatedSprite } from "./AsfAnimatedSprite";
 import type { GoodItemData } from "./GoodsGui";
@@ -33,13 +33,9 @@ export interface BottomSlotDragData {
 }
 
 interface BottomGuiProps {
-  // 旧接口（兼容）
-  items?: (HotbarItem | null)[];
-  // 新接口：直接传入物品和武功数据
+  // 物品和武功数据
   goodsItems?: (GoodItemData | null)[]; // 3个物品槽
   magicItems?: (MagicItemInfo | null)[]; // 5个武功槽
-  screenWidth: number;
-  screenHeight: number;
   onItemClick: (index: number) => void;
   onItemRightClick: (index: number) => void;
   // 武功右键 - 设置为当前使用
@@ -50,20 +46,6 @@ interface BottomGuiProps {
   onDragEnd?: () => void;
   // 移动端触摸拖拽回调
   onTouchDrop?: (targetIndex: number, data: TouchDragData) => void;
-  // Tooltip 回调
-  onMagicHover?: (magicInfo: MagicItemInfo | null, x: number, y: number) => void;
-  onMagicLeave?: () => void;
-  // 物品 Tooltip 回调
-  onGoodsHover?: (goodData: GoodItemData | null, x: number, y: number) => void;
-  onGoodsLeave?: () => void;
-  // 功能按钮 - 打开各面板（当按钮渲染在底部栏时使用）
-  onStateClick?: () => void;
-  onEquipClick?: () => void;
-  onXiuLianClick?: () => void;
-  onGoodsClick?: () => void;
-  onMagicClick?: () => void;
-  onMemoClick?: () => void;
-  onSystemClick?: () => void;
 }
 
 /**
@@ -71,7 +53,6 @@ interface BottomGuiProps {
  */
 interface SlotProps {
   index: number;
-  item: HotbarItem | null;
   goodsData?: GoodItemData | null; // 物品数据 (index 0-2)
   magicData?: MagicItemInfo | null; // 武功数据 (index 3-7)
   config: { left: number; top: number; width: number; height: number };
@@ -93,7 +74,6 @@ interface SlotProps {
 
 const Slot: React.FC<SlotProps> = ({
   index,
-  item,
   goodsData,
   magicData,
   config,
@@ -129,10 +109,6 @@ const Slot: React.FC<SlotProps> = ({
     iconPath = magicData.magic.icon ?? magicData.magic.image ?? null;
     displayName = `${magicData.magic.name} Lv.${magicData.level}`;
     level = magicData.level;
-  } else if (item) {
-    iconPath = item.iconPath ?? null;
-    displayName = item.name;
-    count = item.count;
   }
 
   // 加载物品图标（静态）- 武功图标使用 AsfAnimatedSprite 组件
@@ -244,7 +220,7 @@ const Slot: React.FC<SlotProps> = ({
       {...touchHandlers}
     >
       {/* 物品图标 - 静态图片 */}
-      {isItemSlot && (goodsData || item) && itemIcon.dataUrl && (
+      {isItemSlot && goodsData && itemIcon.dataUrl && (
         <img
           src={itemIcon.dataUrl}
           alt={displayName}
@@ -361,11 +337,8 @@ const Slot: React.FC<SlotProps> = ({
 };
 
 export const BottomGui: React.FC<BottomGuiProps> = ({
-  items,
   goodsItems,
   magicItems,
-  screenWidth,
-  screenHeight: _screenHeight,
   onItemClick,
   onItemRightClick,
   onMagicRightClick,
@@ -373,18 +346,15 @@ export const BottomGui: React.FC<BottomGuiProps> = ({
   onDragStart,
   onDragEnd,
   onTouchDrop,
-  onMagicHover,
-  onMagicLeave,
-  onGoodsHover,
-  onGoodsLeave,
-  onStateClick,
-  onEquipClick,
-  onXiuLianClick,
-  onGoodsClick,
-  onMagicClick,
-  onMemoClick,
-  onSystemClick,
 }) => {
+  const {
+    screenWidth,
+    togglePanel,
+    onMagicHover,
+    onMagicLeave,
+    onGoodsHover,
+    onGoodsLeave,
+  } = useGameUIContext();
   const [hoveredSlot, setHoveredSlot] = useState<number | null>(null);
   const [localDragIndex, setLocalDragIndex] = useState<number | null>(null);
 
@@ -491,7 +461,6 @@ export const BottomGui: React.FC<BottomGuiProps> = ({
           <Slot
             key={`slot-${index}-${contentKey}`}
             index={index}
-            item={items?.[index] ?? null}
             goodsData={goodsData}
             magicData={magicData}
             config={cfg}
@@ -504,17 +473,17 @@ export const BottomGui: React.FC<BottomGuiProps> = ({
               setHoveredSlot(index);
               // 武功槽触发武功tooltip
               if (isMagicSlot && magicData?.magic) {
-                onMagicHover?.(magicData, e.clientX, e.clientY);
+                onMagicHover(magicData, e.clientX, e.clientY);
               }
               // 物品槽触发物品tooltip
               if (isGoodsSlot && goodsData?.good) {
-                onGoodsHover?.(goodsData, e.clientX, e.clientY);
+                onGoodsHover(goodsData, e.clientX, e.clientY);
               }
             }}
             onMouseLeave={() => {
               setHoveredSlot(null);
-              onMagicLeave?.();
-              onGoodsLeave?.();
+              onMagicLeave();
+              onGoodsLeave();
             }}
             onDragStart={() => handleSlotDragStart(index)}
             onDragEnd={() => {
@@ -530,17 +499,9 @@ export const BottomGui: React.FC<BottomGuiProps> = ({
 
       {/* 功能按钮 (state/equip/xiulian/goods/magic/memo/system) */}
       {config?.buttons.map((btn, i) => {
-        const btnHandlers: Record<string, (() => void) | undefined> = {
-          state: onStateClick,
-          equip: onEquipClick,
-          xiulian: onXiuLianClick,
-          goods: onGoodsClick,
-          magic: onMagicClick,
-          memo: onMemoClick,
-          system: onSystemClick,
-        };
-        const handler = btnHandlers[BUTTON_IDS[i]];
-        if (!handler) return null;
+        const id = BUTTON_IDS[i];
+        if (!id) return null;
+        const handler = () => togglePanel(id);
         return (
           <TopButton
             key={BUTTON_IDS[i]}
