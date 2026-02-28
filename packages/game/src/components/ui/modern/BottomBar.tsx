@@ -358,8 +358,8 @@ export const BottomBar: React.FC<BottomBarProps> = ({
         }}
       >
         {([
-          { label: "气",  percent: lifePercent,  cur: life,  max: lifeMax,  fill: "rgba(220,80,80,0.75)",   dim: "rgba(220,80,80,0.4)" },
-          { label: "力",   percent: manaPercent,  cur: mana,  max: manaMax,  fill: "rgba(80,140,220,0.75)",  dim: "rgba(80,140,220,0.4)" },
+          { label: "命",  percent: lifePercent,  cur: life,  max: lifeMax,  fill: "rgba(220,80,80,0.75)",   dim: "rgba(220,80,80,0.4)" },
+          { label: "内",   percent: manaPercent,  cur: mana,  max: manaMax,  fill: "rgba(80,140,220,0.75)",  dim: "rgba(80,140,220,0.4)" },
           { label: "体",   percent: thewPercent,  cur: thew,  max: thewMax,  fill: "rgba(80,200,120,0.75)", dim: "rgba(80,200,120,0.4)" },
         ] as const).map(({ label, percent, cur, max, fill, dim }) => (
           <div key={label} style={{ display: "flex", alignItems: "center", gap: 5 }}>
