@@ -51,6 +51,7 @@ export const MemoGui: React.FC<MemoGuiProps> = ({ isVisible, memos, screenWidth 
       width: panelWidth,
       height: panelHeight,
       pointerEvents: "auto" as const,
+      zIndex: 100,
     };
   }, [screenWidth, panelImage.width, panelImage.height, config]);
 
@@ -109,6 +110,7 @@ export const MemoGui: React.FC<MemoGuiProps> = ({ isVisible, memos, screenWidth 
             height: overlayImage.height,
             imageRendering: "pixelated",
             pointerEvents: "none",
+            zIndex: 0,
           }}
         />
       )}
@@ -122,6 +124,7 @@ export const MemoGui: React.FC<MemoGuiProps> = ({ isVisible, memos, screenWidth 
           width: config.text.width,
           height: config.text.height,
           overflow: "hidden",
+          zIndex: 1,
         }}
       >
         <div
@@ -136,7 +139,7 @@ export const MemoGui: React.FC<MemoGuiProps> = ({ isVisible, memos, screenWidth 
               style={{
                 fontSize: 12,
                 fontFamily: "SimSun, serif",
-                color: "#000",
+                color: config.text.color,
                 lineHeight: `${16 + config.text.lineSpace}px`,
                 letterSpacing: config.text.charSpace,
                 whiteSpace: "pre-wrap",

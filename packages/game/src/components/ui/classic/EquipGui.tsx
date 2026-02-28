@@ -140,7 +140,8 @@ const EquipSlot: React.FC<EquipSlotProps> = ({
   onMouseLeave,
   onTouchDrop,
 }) => {
-  const itemImage = useAsfImage(item?.good?.imagePath ?? null, 0);
+  // Use small slot icon (iconPath = goods-xxx-xxxs.msf) for display; fall back to imagePath
+  const itemImage = useAsfImage((item?.good?.iconPath || item?.good?.imagePath) ?? null, 0);
   const { isMobile } = useDevice();
 
   // 触摸拖拽支持（仅移动端）

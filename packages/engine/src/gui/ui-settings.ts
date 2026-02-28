@@ -545,10 +545,10 @@ export function parseXiuLianGuiConfig(settings: Record<string, IniSection>): Xiu
   return {
     panel: panelFrom(getSection(settings, "XiuLian"), { image: "asf/ui/common/panel6.asf" }),
     magicImage: rectFrom(getSection(settings, "XiuLian_Magic_Image"), {
-      left: 115,
-      top: 75,
-      width: 60,
-      height: 75,
+      left: 52,
+      top: 53,
+      width: 30,
+      height: 38,
     }),
     levelText: textFrom(getSection(settings, "XiuLian_Level_Text"), {
       left: 126,
