@@ -4,6 +4,7 @@
  * 类型从 server 包的 @generated 目录导入
  */
 
+import { getResourceDomain } from "@miu2d/engine/resource/resource-paths";
 import type { AppRouter } from "@miu2d/server/trpc";
 import { httpBatchLink } from "@trpc/client";
 import { createTRPCReact } from "@trpc/react-query";
@@ -11,9 +12,9 @@ import { createTRPCReact } from "@trpc/react-query";
 export const trpc = createTRPCReact<AppRouter>();
 
 const getBaseUrl = () => {
-  // 优先级与 getResourceDomain() 保持一致
-  if (import.meta.env.VITE_DEMO_RESOURCES_DOMAIN) {
-    return import.meta.env.VITE_DEMO_RESOURCES_DOMAIN.replace(/\/+$/, "");
+  const domain = getResourceDomain();
+  if (domain) {
+    return domain;
   }
   if (typeof window !== "undefined") {
     // 浏览器环境：使用当前 origin，走 Vite 代理

@@ -8,7 +8,7 @@
 
 import { GameEvents, type UIVideoPlayEvent } from "@miu2d/engine/core/game-events";
 import { logger } from "@miu2d/engine/core/logger";
-import { ResourcePath } from "@miu2d/engine/resource/resource-paths";
+import { ResourcePath, getResourceUrl } from "@miu2d/engine/resource/resource-paths";
 import type { GameEngine } from "@miu2d/engine/runtime";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { loadAudioSettings, saveAudioSettings } from "../../common/SidePanel";
@@ -23,7 +23,7 @@ interface VideoPlayerProps {
  */
 function normalizeVideoPath(file: string): string {
   const baseName = file.replace(/\.(wmv|avi|mov|mp4)$/i, "").toLowerCase();
-  return ResourcePath.video(`${baseName}.webm`);
+  return getResourceUrl(ResourcePath.video(`${baseName}.webm`));
 }
 
 /** Format seconds to MM:SS */
