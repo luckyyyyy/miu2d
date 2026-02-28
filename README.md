@@ -83,7 +83,7 @@ A remake of the franchise's 1997 debut, rebuilt with the acclaimed real-time act
 
 ## Why Build a Game Engine from Scratch?
 
-Most web game projects reach for PixiJS, Phaser, or a WASM-compiled Unity/Godot build. Miu2D takes a different path: the entire rendering pipeline talks directly to `WebGLRenderingContext`, the pathfinder lives in Rust compiled to WASM with zero-copy shared memory, and the scripting engine interprets 182 game commands through a custom parser/executor pair. The result is a system whose every layer is visible, debuggable, and tailored to 2D RPG mechanics.
+Most web game projects reach for PixiJS, Phaser, or a WASM-compiled Unity/Godot build. Miu2D takes a different path: the entire rendering pipeline talks directly to `WebGLRenderingContext`, the pathfinder lives in Rust compiled to WASM with zero-copy shared memory, and the scripting engine supports both 218 DSL commands through a custom parser/executor pair and a full **Lua 5.4 runtime** (via wasmoon) sharing the same GameAPI. The result is a system whose every layer is visible, debuggable, and tailored to 2D RPG mechanics.
 
 **What this buys you:**
 
@@ -101,7 +101,7 @@ Most web game projects reach for PixiJS, Phaser, or a WASM-compiled Unity/Godot 
 | **UI** | `@miu2d/game` | React 19 · 3 themes (Classic / Modern / Mobile) · 84 components |
 | **Engine** | `@miu2d/engine` | Pure TypeScript · 215 files · 19 modules · no React dependency |
 | ↳ Renderer | `renderer/` | Raw WebGL · SpriteBatcher · Canvas2D fallback · GLSL filters |
-| ↳ Script VM | `script/` | 218 commands · custom parser + async executor |
+| ↳ Script VM | `script/` | 218 commands · custom parser + async executor · **Lua 5.4** (wasmoon WASM) |
 | ↳ Character | `character/` | 8-level inheritance chain · NPC AI · bezier movement |
 | ↳ Magic | `magic/` | 22 MoveKind trajectories · 10 SpecialKind effects |
 | **WASM** | `@miu2d/engine-wasm` | Rust → WebAssembly · A\* pathfinder · decoders · SpatialHash · zstd |
@@ -138,7 +138,7 @@ Miu2D implements **17 integrated ARPG subsystems** (218 script commands) entirel
 | **NPC & AI** | `npc/` | Behavior state machine (idle / patrol / chase / flee / dead), interaction scripts, spatial grid for fast neighbor lookup |
 | **Player** | `player/` | Controller, inventory (goods system), equipment slots, magic slots, experience & leveling |
 | **Map** | `map/` | Multi-layer tile parsing, obstacle grid, trap zones, event areas, layer-sorted rendering |
-| **Script / Event** | `script/` | Custom VM: parser + async executor, 218 commands across 9 categories (dialog, player, NPC, state, audio, effects, objects, items, misc) |
+| **Script / Event** | `script/` | Custom VM: parser + async executor, 218 commands across 9 categories (dialog, player, NPC, state, audio, effects, objects, items, misc); **Lua 5.4** scripting via wasmoon WASM with full GameAPI bindings (170 PascalCase functions) |
 | **Pathfinding** | `wasm/` | Rust WASM A* with zero-copy shared memory; 5 strategies (greedy → full A*); ~0.2 ms per query, ≈10× faster than TS |
 | **Collision** | `wasm/` | SpatialHash in Rust/WASM for O(1) broad-phase entity queries |
 | **Audio** | `audio/` | Web Audio API manager: streamed BGM (OGG/MP3), positional SFX (WAV/OGG), fade transitions |
@@ -169,12 +169,14 @@ The renderer directly calls `WebGLRenderingContext` — no wrapper library.
   - **Wave / Rectangle region**: 1-in-4 (`i % 2 !== 0 && j % 2 !== 0`)
   - **CircleMove** (e.g. 依风剑法): 1-in-8 of the 32 projectiles emit light
 
-### Script Engine — 218 Commands
+### Script Engine — 218 Commands + Lua 5.4
 
-A custom **parser** tokenizes game script files; an **executor** interprets them with blocking/async support. Commands span 9 categories:
+The engine supports two scripting modes that share the same GameAPI:
+
+**DSL Mode (`.txt` / `.npc`)** — A custom **parser** tokenizes game script files; an **executor** interprets them with blocking/async support. Commands span 9 categories:
 
 | Category | Examples |
-|----------|---------|
+|----------|----------|
 | Dialog | `Say`, `Talk`, `Choose`, `ChooseMultiple`, `DisplayMessage` |
 | Player | `AddLife`, `AddMana`, `SetPlayerPos`, `PlayerGoto`, `Equip` |
 | NPC | `AddNpc`, `DelNpc`, `SetNpcRelation`, `NpcAttack`, `MergeNpc` |
@@ -184,6 +186,22 @@ A custom **parser** tokenizes game script files; an **executor** interprets them
 | Objects | `AddObj`, `DelObj`, `OpenObj`, `SetObjScript` |
 | Items | `AddGoods`, `DelGoods`, `ClearGoods`, `AddRandGoods` |
 | Misc | `Sleep`, `Watch`, `PlayMovie`, `DisableInput`, `ReturnToTitle` |
+
+**Lua Mode (`.lua`)** — Full **Lua 5.4** runtime via [wasmoon](https://github.com/ceifa/wasmoon) (Lua compiled to WASM). All 170 GameAPI functions are exposed as PascalCase Lua globals. wasmoon's proxy system automatically bridges JS async functions to Lua coroutines — blocking operations like `PlayerWalkTo()` or `Talk()` just work with `co.await`-style transparency. Dispatched by file extension; the same `ScriptExecutor` routes `.lua` files to `LuaExecutor` and `.txt`/`.npc` files to the DSL executor.
+
+```lua
+-- Example Lua game script
+FadeOut()
+LoadMap("map/town.map")
+SetPlayerPos(10, 15)
+FadeIn()
+Talk(0, "Welcome to the village.")
+local choice = Choose("Join the quest?", "Yes", "No")
+if choice == 1 then
+  AddMagic("magic/fireball.ini")
+  AddExp(500)
+end
+```
 
 Scripts drive the entire game narrative — cutscenes, branching dialogs, NPC spawning, map transitions, combat triggers, and weather changes.
 
