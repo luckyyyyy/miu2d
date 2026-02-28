@@ -207,7 +207,7 @@ export const LUA_API_FUNCTIONS: LuaAPIFunction[] = [
 
   // ===== Dialog =====
   { name: "Say",  signature: "(text: string, portrait?: number)", description: "显示对话（阻塞，退出战斗状态）", category: "Dialog", blocking: true },
-  { name: "Talk", signature: "(portrait: number, text: string)", description: "显示对话（阻塞，portrait 在前，退出战斗状态）", category: "Dialog", blocking: true },
+  { name: "Talk", signature: "(text: string, portrait?: number)", description: "显示对话（阻塞，与 Say 相同，text 在前）", category: "Dialog", blocking: true },
   { name: "ShowTalk", signature: "(startId: number, endId: number)", description: "显示对话段（阻塞，退出战斗状态）", category: "Dialog", blocking: true },
   { name: "ShowMessage", signature: "(text: string)", description: "显示消息", category: "Dialog" },
   { name: "Choose", signature: "(message: string, selectA: string, selectB: string): number", description: "二选一（阻塞）", category: "Dialog", blocking: true },
@@ -429,15 +429,15 @@ export function registerLuaAPIBindings(
   setGlobal("SetLevelFile", (file: string) => api.effects.setLevelFile(file));
 
   // ===== Dialog =====
-  // Say(text, portrait?) — matches DSL sayCommand: params[0]=text, params[1]=portrait
-  // Talk(portrait, text) — portrait-first (matches README example & common Lua convention)
+  // Say(text, portrait?) — text first, portrait optional (same order as DSL sayCommand)
+  // Talk(text, portrait?) — same as Say for Lua convenience; consistent text-first convention
   setGlobal("Say", async (text: string, portraitIndex?: number) => {
     api.player.toNonFightingState();
     return api.dialog.show(text, portraitIndex ?? 0);
   });
-  setGlobal("Talk", async (portraitIndex: number, text: string) => {
+  setGlobal("Talk", async (text: string, portraitIndex?: number) => {
     api.player.toNonFightingState();
-    return api.dialog.show(text, portraitIndex);
+    return api.dialog.show(text, portraitIndex ?? 0);
   });
   setGlobal("ShowTalk", (startId: number, endId: number) => {
     api.player.toNonFightingState();

@@ -74,19 +74,12 @@ export const ScriptExecuteSection: React.FC<ScriptExecuteSectionProps> = ({
   );
 
   const [isExecuting, setIsExecuting] = useState(false);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const toastTimeoutRef = useRef<number | null>(null);
+  const [execResult, setExecResult] = useState<{ ok: boolean; message: string } | null>(null);
   const executeRef = useRef<() => void>(null);
 
   // --- derived ---
   const scriptContent = activeTab === "lua" ? luaContent : txtContent;
   const userScriptHistory = activeTab === "lua" ? luaHistory : txtHistory;
-
-  const showToast = useCallback((message: string, duration = 1500) => {
-    if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
-    setToastMessage(message);
-    toastTimeoutRef.current = window.setTimeout(() => setToastMessage(null), duration);
-  }, []);
 
   // 保存脚本内容到 localStorage
   const handleScriptContentChange = useCallback(
@@ -104,6 +97,9 @@ export const ScriptExecuteSection: React.FC<ScriptExecuteSectionProps> = ({
     },
     [activeTab],
   );
+
+  // 清除执行结果
+  const clearResult = useCallback(() => setExecResult(null), []);
 
   // 添加到历史记录
   const addToHistory = useCallback(
@@ -153,35 +149,34 @@ export const ScriptExecuteSection: React.FC<ScriptExecuteSectionProps> = ({
   const handleExecuteScript = useCallback(async () => {
     if (!scriptContent.trim()) return;
     if (isScriptRunning) {
-      alert("脚本正在执行中，请等待执行完成后再操作");
+      setExecResult({ ok: false, message: "脚本正在执行中，请等待执行完成后再操作" });
       return;
     }
     const executor =
       activeTab === "lua" ? onExecuteLuaScript : onExecuteScript;
     if (!executor) {
-      showToast("✗ 该模式不可用", 2000);
+      setExecResult({ ok: false, message: "该模式不可用" });
       return;
     }
     setIsExecuting(true);
+    setExecResult(null);
     try {
       const error = await executor(scriptContent.trim());
       if (error) {
         logger.warn(`[DebugPanel] 脚本执行返回错误: ${error}`);
-        await new Promise((resolve) => setTimeout(resolve, 100));
-        showToast(`✗ 脚本错误: ${error}`, 3000);
+        setExecResult({ ok: false, message: error });
       } else {
         addToHistory(scriptContent.trim());
-        await new Promise((resolve) => setTimeout(resolve, 100));
-        showToast("✓ 脚本执行完成");
+        setExecResult({ ok: true, message: "执行完成" });
       }
     } catch (e) {
       const errorMsg = e instanceof Error ? e.message : String(e);
       logger.error(`[DebugPanel] 脚本执行异常: ${errorMsg}`);
-      showToast(`✗ 脚本异常: ${errorMsg}`, 3000);
+      setExecResult({ ok: false, message: errorMsg });
     } finally {
       setIsExecuting(false);
     }
-  }, [scriptContent, isScriptRunning, activeTab, onExecuteScript, onExecuteLuaScript, addToHistory, showToast]);
+  }, [scriptContent, isScriptRunning, activeTab, onExecuteScript, onExecuteLuaScript, addToHistory]);
 
   executeRef.current = handleExecuteScript;
 
@@ -198,12 +193,11 @@ export const ScriptExecuteSection: React.FC<ScriptExecuteSectionProps> = ({
 
   const placeholder =
     activeTab === "lua"
-      ? 'Talk(0, "测试")\nSetMoney(10000)'
+      ? 'Talk("测试")\nSetMoney(10000)'
       : 'Talk(0,"测试")\nSetMoney(10000)';
 
   return (
-    <>
-      <Section title="执行脚本">
+    <Section title="执行脚本">
         {/* Tab 栏 */}
         <div className="flex items-center gap-0 mb-1 border-b border-[#2d2d2d]">
           <button
@@ -272,6 +266,27 @@ export const ScriptExecuteSection: React.FC<ScriptExecuteSectionProps> = ({
               清空
             </button>
           </div>
+
+          {/* 执行结果内联显示 */}
+          {execResult && (
+            <div
+              className={`flex items-start gap-1 rounded px-2 py-1 text-[11px] font-mono ${
+                execResult.ok
+                  ? "bg-[#1a2d1a] text-[#4ade80] border border-[#2d5a2d]"
+                  : "bg-[#2d1a1a] text-[#f87171] border border-[#5a2d2d]"
+              }`}
+            >
+              <span className="shrink-0">{execResult.ok ? "✓" : "✗"}</span>
+              <span className="break-all whitespace-pre-wrap">{execResult.message}</span>
+              <button
+                type="button"
+                onClick={clearResult}
+                className="ml-auto shrink-0 opacity-50 hover:opacity-100"
+              >
+                ×
+              </button>
+            </div>
+          )}
         </div>
 
         {/* 历史记录 */}
@@ -306,16 +321,6 @@ export const ScriptExecuteSection: React.FC<ScriptExecuteSectionProps> = ({
             </div>
           </div>
         )}
-      </Section>
-
-      {/* Toast 通知 */}
-      {toastMessage && (
-        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[9999] animate-fade-in">
-          <div className="bg-[#252526] text-[#4ade80] px-4 py-2 rounded-lg shadow-lg border border-[#333] text-sm font-medium">
-            {toastMessage}
-          </div>
-        </div>
-      )}
-    </>
+    </Section>
   );
 };
