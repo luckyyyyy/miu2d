@@ -7,12 +7,12 @@ import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 
 const GAMES = [
-  { slug: "demo", name: "月影传说" },
-  { slug: "sword1", name: "新剑侠情缘" },
-  { slug: "sword2", name: "剑侠情缘2" },
+  { slug: "demo", name: "月影传说", logo: "/screenshot/logo-yuying.webp" },
+  { slug: "sword1", name: "新剑侠情缘", logo: "/screenshot/logo-new-swords.png" },
+  { slug: "sword2", name: "剑侠情缘2", logo: "/screenshot/logo-sword2.png" },
 ] as const;
 
-function GameFooterLink({ slug, name }: { slug: string; name: string }) {
+function GameFooterLink({ slug, name, logo }: { slug: string; name: string; logo: string }) {
   return (
     <li>
       <a
@@ -22,7 +22,7 @@ function GameFooterLink({ slug, name }: { slug: string; name: string }) {
         className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors group"
       >
         <img
-          src={`/game/${slug}/api/logo`}
+          src={logo}
           alt={name}
           className="w-5 h-5 rounded object-cover ring-1 ring-zinc-200 dark:ring-zinc-700 group-hover:ring-orange-400 transition-all flex-shrink-0"
         />
@@ -74,7 +74,7 @@ export function Footer() {
             </h4>
             <ul className="mt-4 space-y-3">
               {GAMES.map((g) => (
-                <GameFooterLink key={g.slug} slug={g.slug} name={g.name} />
+                <GameFooterLink key={g.slug} slug={g.slug} name={g.name} logo={g.logo} />
               ))}
             </ul>
           </div>

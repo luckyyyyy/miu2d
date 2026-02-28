@@ -29,14 +29,13 @@ function _getCanvasId(canvas: HTMLCanvasElement | OffscreenCanvas): number {
 
 /**
  * 检查颜色是否透明（用于边缘检测）
- * alpha < 10
+ * alpha < 200
  *
- * 注意：SHD 阴影像素 alpha=153 (60% opacity)，必须视为"不透明"
- * 以避免在阴影-身体边界产生假边缘导致悬停时闪烁。
- * 仅 alpha 接近 0 的像素才视为真正透明的"外部"。
+ * 影子像素 alpha=153 < 200，视为"透明"背景，不触发描边。
+ * 真实角色像素 alpha≈255 >= 200，视为"不透明"，触发描边。
  */
 function isColorTransparent(alpha: number): boolean {
-  return alpha < 10;
+  return alpha < 200;
 }
 
 /**
@@ -162,9 +161,10 @@ export function getOuterEdge(
       edgePixels.push(w);
     }
     // 底边
-    const bottomAlpha = data[(beginBottom + w) * 4 + 3];
+    const bIdx = beginBottom + w;
+    const bottomAlpha = data[bIdx * 4 + 3];
     if (!isColorTransparent(bottomAlpha)) {
-      edgePixels.push(beginBottom + w);
+      edgePixels.push(bIdx);
     }
   }
 
