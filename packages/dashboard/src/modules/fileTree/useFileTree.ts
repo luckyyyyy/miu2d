@@ -122,7 +122,11 @@ export function useFileTree({ gameId }: UseFileTreeOptions) {
           if (aborted) return node;
           if (!node.isDirectory || !currentExpanded.has(node.id)) return node;
           try {
-            const children = await utils.file.list.fetch({ gameId, parentId: node.id });
+            // staleTime: 0 保证重建时拿到最新数据（特别是移动操作触发重建后）
+            const children = await utils.file.list.fetch(
+              { gameId, parentId: node.id },
+              { staleTime: 0 }
+            );
             if (aborted) return node;
             const childNodes = fileNodesToTreeNodes(children, depth + 1);
             const deepChildren = await loadExpanded(childNodes, depth + 1);
@@ -286,7 +290,8 @@ export function useFileTree({ gameId }: UseFileTreeOptions) {
       }
 
       // 非根目录：获取最新子节点，保留已展开目录的 children
-      const children = await utils.file.list.fetch({ gameId, parentId });
+      // staleTime: 0 确保 refreshFolder 始终发起网络请求而非返回缓存
+      const children = await utils.file.list.fetch({ gameId, parentId }, { staleTime: 0 });
       const childNodes = fileNodesToTreeNodes(children, 0);
 
       setTreeNodes((prev) => {

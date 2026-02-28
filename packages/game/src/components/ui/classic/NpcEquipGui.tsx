@@ -109,7 +109,7 @@ const EquipSlot: React.FC<EquipSlotProps> = ({
   onMouseEnter,
   onMouseLeave,
 }) => {
-  const itemImage = useAsfImage(item?.good?.imagePath ?? null, 0);
+  const itemImage = useAsfImage(item?.good?.iconPath || item?.good?.imagePath || null, 0);
   const { isMobile } = useDevice();
 
   // 触摸拖拽支持（仅移动端）
@@ -123,7 +123,7 @@ const EquipSlot: React.FC<EquipSlotProps> = ({
             source: "npcEquipGui",
             goodsInfo: item.good,
             displayName: item.good.name,
-            iconPath: item.good.imagePath,
+            iconPath: item.good.iconPath || item.good.imagePath,
           }
         : null,
     onClick,

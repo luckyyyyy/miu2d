@@ -76,8 +76,9 @@ const ItemSlot: React.FC<ItemSlotProps> = ({
   onTouchDragStart,
   onTouchDrop,
 }) => {
-  // Use small icon (iconPath = goods-xxx-xxxs.msf) for grid display; fall back to imagePath
-  const itemImage = useAsfImage((item?.good?.iconPath || item?.good?.imagePath) ?? null, 0);
+  // Use slot icon (iconPath) for goods grid; fall back to imagePath if no icon defined.
+  // Scale DOWN if icon is larger than slot, never UP.
+  const itemImage = useAsfImage(item?.good?.iconPath || item?.good?.imagePath || null, 0);
   const { isMobile } = useDevice();
 
   // 触摸拖拽支持（仅移动端）
@@ -91,7 +92,7 @@ const ItemSlot: React.FC<ItemSlotProps> = ({
             source: "goodsGui",
             goodsInfo: item.good,
             displayName: item.good.name,
-            iconPath: item.good.imagePath,
+            iconPath: item.good.iconPath || item.good.imagePath,
           }
         : null,
     onClick,
@@ -157,20 +158,30 @@ const ItemSlot: React.FC<ItemSlotProps> = ({
     >
       {item && itemImage.dataUrl && (
         <>
-          <img
-            src={itemImage.dataUrl}
-            alt={item.good.name}
-            draggable={false}
-            style={{
-              position: "absolute",
-              left: (config.width - itemImage.width) / 2,
-              top: (config.height - itemImage.height) / 2,
-              width: itemImage.width,
-              height: itemImage.height,
-              imageRendering: "pixelated",
-              cursor: "grab",
-            }}
-          />
+          {(() => {
+            const scale =
+              itemImage.width > 0 && itemImage.height > 0
+                ? Math.min(1, Math.min(config.width / itemImage.width, config.height / itemImage.height))
+                : 1;
+            const displayW = itemImage.width * scale;
+            const displayH = itemImage.height * scale;
+            return (
+              <img
+                src={itemImage.dataUrl}
+                alt={item.good.name}
+                draggable={false}
+                style={{
+                  position: "absolute",
+                  left: (config.width - displayW) / 2,
+                  top: (config.height - displayH) / 2,
+                  width: displayW,
+                  height: displayH,
+                  imageRendering: "pixelated",
+                  cursor: "grab",
+                }}
+              />
+            );
+          })()}
           {/* Count display - always show count like TopLeftText */}
           <span
             style={{
@@ -236,12 +247,15 @@ export const GoodsGui: React.FC<GoodsGuiProps> = ({
   // Calculate currently visible items
   const visibleItems = useMemo(() => {
     if (!config) return [];
-    const startIndex = scrollOffset * 3; // 3 items per row
+    const cols = config.cols ?? 3;
+    const startIndex = scrollOffset * cols;
     return config.items.map((_, idx) => items[startIndex + idx] ?? null);
   }, [items, scrollOffset, config]);
 
   // Calculate max scroll rows
-  const maxScrollRows = Math.max(0, Math.ceil(items.length / 3) - 3);
+  const cols = config?.cols ?? 3;
+  const rows = config?.rows ?? 3;
+  const maxScrollRows = Math.max(0, Math.ceil(items.length / cols) - rows);
 
   // Scroll handler
   const handleScroll = useCallback(
@@ -268,20 +282,20 @@ export const GoodsGui: React.FC<GoodsGuiProps> = ({
 
       if (dragData) {
         // 统一输出 1-based 背包索引
-        const bagIndex = scrollOffset * 3 + index + 1;
+        const bagIndex = scrollOffset * cols + index + 1;
         onItemDrop?.(bagIndex, dragData);
       }
     },
-    [dragData, scrollOffset, onItemDrop]
+    [dragData, scrollOffset, onItemDrop, cols]
   );
 
   // Handle drag start
   const handleDragStart = useCallback(
     (index: number) => (e: React.DragEvent) => {
       // 统一输出 1-based 背包索引
-      const bagIndex = scrollOffset * 3 + index + 1;
+      const bagIndex = scrollOffset * cols + index + 1;
       // items 数组是 0-based
-      const item = items[scrollOffset * 3 + index];
+      const item = items[scrollOffset * cols + index];
       if (item) {
         onItemDragStart?.(bagIndex, item.good);
         if (e.dataTransfer) {
@@ -293,20 +307,20 @@ export const GoodsGui: React.FC<GoodsGuiProps> = ({
         }
       }
     },
-    [items, scrollOffset, onItemDragStart]
+    [items, scrollOffset, onItemDragStart, cols]
   );
 
   // Handle mouse enter for tooltip
   const handleMouseEnter = useCallback(
     (index: number) => (e: React.MouseEvent) => {
       // 统一输出 1-based 背包索引
-      const bagIndex = scrollOffset * 3 + index + 1;
+      const bagIndex = scrollOffset * cols + index + 1;
       // items 数组是 0-based
-      const item = items[scrollOffset * 3 + index];
+      const item = items[scrollOffset * cols + index];
       const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
       onItemMouseEnter?.(bagIndex, item?.good ?? null, rect);
     },
-    [items, scrollOffset, onItemMouseEnter]
+    [items, scrollOffset, onItemMouseEnter, cols]
   );
 
   if (!isVisible || !config || !panelStyle) return null;
@@ -356,7 +370,7 @@ export const GoodsGui: React.FC<GoodsGuiProps> = ({
       {config.items.map((itemConfig, idx) => {
         const item = visibleItems[idx];
         // 背包索引从 1 开始 (STORE_INDEX_BEGIN = 1)
-        const actualIdx = scrollOffset * 3 + idx + 1;
+        const actualIdx = scrollOffset * cols + idx + 1;
         // 使用物品名称作为 key 的一部分，确保交换物品时组件正确重新渲染
         const contentKey = item?.good?.name ?? "empty";
         return (

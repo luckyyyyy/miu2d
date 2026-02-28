@@ -120,7 +120,7 @@ const Slot: React.FC<SlotProps> = ({
   let level: number | undefined;
 
   if (goodsData?.good) {
-    iconPath = goodsData.good.iconPath ?? goodsData.good.imagePath ?? null;
+    iconPath = goodsData.good.iconPath || goodsData.good.imagePath || null;
     displayName = goodsData.good.name;
     count = goodsData.count;
   } else if (magicData?.magic) {
@@ -152,7 +152,7 @@ const Slot: React.FC<SlotProps> = ({
           source: "bottomGui",
           goodsInfo: goodsData.good,
           displayName: goodsData.good.name,
-          iconPath: goodsData.good.imagePath,
+            iconPath: goodsData.good.iconPath || goodsData.good.imagePath,
         };
       }
       if (magicData?.magic) {

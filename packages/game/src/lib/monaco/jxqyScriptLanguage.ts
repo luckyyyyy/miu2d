@@ -233,6 +233,54 @@ export const SCRIPT_COMMANDS: Array<{
     description: "设置 NPC 持续攻击位置",
     category: "NPC",
   },
+  {
+    name: "AddOneMagic",
+    signature: "(name, magicFile)",
+    description: "NPC 获得一个武功",
+    category: "NPC",
+  },
+  {
+    name: "AddOneMogic",
+    signature: "(name, magicFile)",
+    description: "NPC 获得武功（原版拼写错误别名）",
+    category: "NPC",
+  },
+  {
+    name: "ChangeLife",
+    signature: "(name, amount)",
+    description: "改变 NPC 生命值（可负）",
+    category: "NPC",
+  },
+  {
+    name: "ChangeMana",
+    signature: "(name, amount)",
+    description: "改变 NPC 内力值（可负）",
+    category: "NPC",
+  },
+  {
+    name: "ChangeThew",
+    signature: "(name, amount)",
+    description: "改变 NPC 体力值（可负）",
+    category: "NPC",
+  },
+  {
+    name: "SetNpcClickScript",
+    signature: "(name, scriptFile)",
+    description: "设置 NPC 点击脚本",
+    category: "NPC",
+  },
+  {
+    name: "SetNpcMagicLevel",
+    signature: "(name, magicFile, level)",
+    description: "设置 NPC 武功等级",
+    category: "NPC",
+  },
+  {
+    name: "SetPartnerLevel",
+    signature: "(name, level)",
+    description: "设置同伴等级",
+    category: "NPC",
+  },
 
   // ===== 玩家命令 =====
   { name: "SetPlayerPos", signature: "(x, y)", description: "设置玩家位置", category: "Player" },
@@ -389,6 +437,7 @@ export const SCRIPT_COMMANDS: Array<{
   },
   { name: "SetWalkIsRun", signature: "(value)", description: "设置行走即奔跑", category: "Player" },
   { name: "PlayerChange", signature: "(index)", description: "切换玩家角色", category: "Player" },
+  { name: "SetPlayerLevel", signature: "(level)", description: "设置玩家等级", category: "Player" },
 
   // ===== 对话命令 =====
   {
@@ -498,6 +547,10 @@ export const SCRIPT_COMMANDS: Array<{
     description: "并行运行脚本",
     category: "GameState",
   },
+  { name: "GetPlayerLevel", signature: "($var)", description: "获取玩家等级", category: "GameState" },
+  { name: "HideInterface", signature: "()", description: "隐藏 HUD", category: "GameState" },
+  { name: "ShowInterface", signature: "()", description: "显示 HUD", category: "GameState" },
+  { name: "SaveGame", signature: "()", description: "打开存档界面", category: "GameState" },
 
   // ===== 音频命令 =====
   { name: "PlayMusic", signature: "(musicFile)", description: "播放背景音乐", category: "Audio" },
@@ -542,6 +595,8 @@ export const SCRIPT_COMMANDS: Array<{
     category: "Screen",
   },
   { name: "SetMapPos", signature: "(x, y)", description: "设置摄像机位置", category: "Screen" },
+  { name: "SetMainLum", signature: "(value)", description: "设置主体亮度", category: "Screen" },
+  { name: "SetPlayerLum", signature: "(value)", description: "设置玩家亮度", category: "Screen" },
 
   // ===== 天气命令 =====
   { name: "BeginRain", signature: "(rainIniFile)", description: "开始下雨", category: "Weather" },
@@ -550,6 +605,12 @@ export const SCRIPT_COMMANDS: Array<{
     name: "ShowSnow",
     signature: "(show)",
     description: "显示/隐藏下雪 (1/0)",
+    category: "Weather",
+  },
+  {
+    name: "ShowRandomSnow",
+    signature: "(show)",
+    description: "随机下雪效果 (1/0)",
     category: "Weather",
   },
 
@@ -727,6 +788,12 @@ export const SCRIPT_COMMANDS: Array<{
     description: "冰冻效果",
     category: "StatusEffect",
   },
+  {
+    name: "ClearEffect",
+    signature: "()",
+    description: "清除所有状态效果（毒/冻/石化）",
+    category: "StatusEffect",
+  },
 
   // ===== 其他命令 =====
   { name: "ClearBody", signature: "()", description: "清除尸体", category: "Misc" },
@@ -748,6 +815,28 @@ export const SCRIPT_COMMANDS: Array<{
     description: "随机运行脚本",
     category: "Misc",
   },
+  {
+    name: "MoveMagic",
+    signature: "(magicFile, direction)",
+    description: "改变飞行武功方向",
+    category: "Misc",
+  },
+
+  // ===== 杂项扩展命令 =====
+  { name: "CheckYear", signature: "($var)", description: "检查当前是否为春节期间→$var=1/0", category: "Misc" },
+  { name: "HideBottomWnd", signature: "()", description: "隐藏底部窗口", category: "Misc" },
+  { name: "ShowBottomWnd", signature: "()", description: "显示底部窗口", category: "Misc" },
+  { name: "SetFadeLum", signature: "(value)", description: "设置淡化亮度", category: "Screen" },
+  { name: "PlayerAddEmotion", signature: "(amount)", description: "增加玩家情感值", category: "Player" },
+  { name: "PlayerAddJustice", signature: "(amount)", description: "增加玩家正义值", category: "Player" },
+  { name: "MessageBox", signature: "(text)", description: "显示模态消息框", category: "Dialog" },
+  { name: "UpdateState", signature: "()", description: "更新 UI 状态显示", category: "Misc" },
+  { name: "ShowMouseCursor", signature: "()", description: "显示鼠标光标", category: "Misc" },
+  { name: "HideMouseCursor", signature: "()", description: "隐藏鼠标光标", category: "Misc" },
+  { name: "SaveGoods", signature: "()", description: "保存物品到内存", category: "Save" },
+  { name: "LoadGoods", signature: "()", description: "从内存加载物品", category: "Save" },
+  { name: "SavePlayer", signature: "()", description: "保存玩家到内存", category: "Save" },
+  { name: "Gamble", signature: "(cost, npcType, $var)", description: "赌博（赢/输→$var=1/0）", category: "Misc" },
 ];
 
 /**

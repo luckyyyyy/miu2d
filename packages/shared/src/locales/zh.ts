@@ -9,6 +9,7 @@ export const zh = {
       demo: "在线演示",
       docs: "文档",
       github: "GitHub",
+      games: "游戏",
       login: "登录",
       register: "注册",
       dashboard: "控制台",
@@ -93,6 +94,7 @@ export const zh = {
     footer: {
       copyright: "© 2026 Miu2D Engine. All rights reserved.",
       tagline: "AI 驱动的 2D RPG 游戏引擎",
+      about: "关于",
     },
   },
 };

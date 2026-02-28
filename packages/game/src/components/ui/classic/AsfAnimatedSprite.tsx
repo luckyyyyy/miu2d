@@ -74,6 +74,10 @@ export interface AsfAnimatedSpriteProps {
   className?: string;
   /** alt 文本（用于可访问性） */
   alt?: string;
+  /** 最大显示宽度（等比缩放，不超过此值） */
+  maxWidth?: number;
+  /** 最大显示高度（等比缩放，不超过此值） */
+  maxHeight?: number;
 }
 
 /**
@@ -82,7 +86,7 @@ export interface AsfAnimatedSpriteProps {
  * 使用 canvas 直接绘制，避免 React 重新渲染
  */
 export const AsfAnimatedSprite: React.FC<AsfAnimatedSpriteProps> = memo(
-  ({ path, autoPlay = true, loop = true, style, className, alt }) => {
+  ({ path, autoPlay = true, loop = true, style, className, alt, maxWidth, maxHeight }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const animationRef = useRef<number | null>(null);
     const frameIndexRef = useRef(0);
@@ -212,6 +216,17 @@ export const AsfAnimatedSprite: React.FC<AsfAnimatedSpriteProps> = memo(
       return null;
     }
 
+    // 计算 CSS 显示尺寸（等比缩放以适配 maxWidth/maxHeight）
+    const displayStyle: React.CSSProperties = { imageRendering: "pixelated", ...style };
+    if ((maxWidth !== undefined || maxHeight !== undefined) && dimensions.width > 0 && dimensions.height > 0) {
+      const scale = Math.min(
+        maxWidth !== undefined ? maxWidth / dimensions.width : Number.POSITIVE_INFINITY,
+        maxHeight !== undefined ? maxHeight / dimensions.height : Number.POSITIVE_INFINITY
+      );
+      displayStyle.width = dimensions.width * scale;
+      displayStyle.height = dimensions.height * scale;
+    }
+
     return (
       <canvas
         ref={canvasRef}
@@ -219,10 +234,7 @@ export const AsfAnimatedSprite: React.FC<AsfAnimatedSpriteProps> = memo(
         height={dimensions.height}
         className={className}
         aria-label={alt}
-        style={{
-          imageRendering: "pixelated",
-          ...style,
-        }}
+        style={displayStyle}
       />
     );
   }

@@ -746,14 +746,37 @@ function UISettingsPanel({
   config: GameConfigDataFull;
   updateConfig: <K extends keyof GameConfigDataFull>(k: K, v: GameConfigDataFull[K]) => void;
 }) {
+  // 将 uiTheme 对象序列化为 JSON 字符串供编辑器显示
+  const jsonStr =
+    config.uiTheme && typeof config.uiTheme === "object"
+      ? JSON.stringify(config.uiTheme, null, 2)
+      : "";
+
+  const handleJsonChange = useCallback(
+    (v: string) => {
+      if (!v.trim()) {
+        updateConfig("uiTheme", null);
+        return;
+      }
+      try {
+        const parsed = JSON.parse(v);
+        updateConfig("uiTheme", parsed);
+      } catch {
+        // JSON 格式错误时仍保存原文，下次打开会重新序列化（丢弃不合法的部分）
+        // 不阻塞编辑，Monaco 会标红语法错误
+      }
+    },
+    [updateConfig],
+  );
+
   return (
     <div className="flex flex-col h-full">
-      <SectionTitle desc="UI_Settings.ini 的内容。定义游戏界面各面板的位置、大小和图片资源。留空则自动从资源目录加载。" />
+      <SectionTitle desc="UI 主题配置（JSON 格式）。定义游戏界面各面板的位置、大小和图片资源。" />
       <div className="border border-widget-border rounded flex-1 min-h-0">
         <ScriptEditor
-          value={config.uiSettingsIni}
-          onChange={(v) => updateConfig("uiSettingsIni", v)}
-          language="ini"
+          value={jsonStr}
+          onChange={handleJsonChange}
+          language="json"
           height="100%"
           className="h-full"
         />

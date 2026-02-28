@@ -1,6 +1,6 @@
 /**
- * React Hook for loading UI Settings
- * Provides async loading of UI_Settings.ini with caching
+ * React Hooks for UI Settings
+ * 从 UiTheme（紧凑格式）→ resolveTheme() → ResolvedUiConfigs 提供各面板配置
  */
 
 import {
@@ -9,34 +9,18 @@ import {
   type BuySellGuiConfig,
   type DialogGuiConfig,
   type EquipGuiConfig,
+  getResolvedConfigs,
+  getUiTheme,
   type GoodsGuiConfig,
   type LittleMapGuiConfig,
-  loadUISettings,
   type MagicsGuiConfig,
   type MemoGuiConfig,
   type MessageGuiConfig,
   type NpcEquipGuiConfig,
   type NpcInfoShowConfig,
-  parseBottomGuiConfig,
-  parseBottomStateGuiConfig,
-  parseBuySellGuiConfig,
-  parseDialogGuiConfig,
-  parseEquipGuiConfig,
-  parseGoodsGuiConfig,
-  parseLittleMapGuiConfig,
-  parseMagicsGuiConfig,
-  parseMemoGuiConfig,
-  parseMessageGuiConfig,
-  parseNpcEquipGuiConfig,
-  parseNpcInfoShowConfig,
-  parseStateGuiConfig,
-  parseSystemGuiConfig,
-  parseTitleGuiConfig,
-  parseToolTipType1Config,
-  parseToolTipType2Config,
-  parseToolTipUseTypeConfig,
-  parseTopGuiConfig,
-  parseXiuLianGuiConfig,
+  type ResolvedUiConfigs,
+  type SaveLoadGuiConfig,
+  setUiTheme,
   type StateGuiConfig,
   type SystemGuiConfig,
   type TitleGuiConfig,
@@ -46,432 +30,182 @@ import {
   type TopGuiConfig,
   type XiuLianGuiConfig,
 } from "@miu2d/engine/gui/ui-settings";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
-// Cached parsed configs
-let cachedConfigs: {
-  system?: SystemGuiConfig;
-  state?: StateGuiConfig;
-  equip?: EquipGuiConfig;
-  npcEquip?: NpcEquipGuiConfig;
-  xiuLian?: XiuLianGuiConfig;
-  goods?: GoodsGuiConfig;
-  magics?: MagicsGuiConfig;
-  memo?: MemoGuiConfig;
-  dialog?: DialogGuiConfig;
-  message?: MessageGuiConfig;
-  npcInfoShow?: NpcInfoShowConfig;
-  littleMap?: LittleMapGuiConfig;
-  buySell?: BuySellGuiConfig;
-  bottom?: BottomGuiConfig;
-  bottomState?: BottomStateGuiConfig;
-  top?: TopGuiConfig;
-  toolTipUseType?: ToolTipUseTypeConfig;
-  toolTipType1?: ToolTipType1Config;
-  toolTipType2?: ToolTipType2Config;
-  title?: TitleGuiConfig | null;
-} = {};
-
+// Cached resolved configs
+let cachedConfigs: ResolvedUiConfigs | null = null;
 let isLoaded = false;
-let loadPromise: Promise<void> | null = null;
+
+// Subscribers notified when UI configs are reloaded
+const uiConfigListeners = new Set<() => void>();
 
 /**
  * 重置 UI 配置缓存（切换游戏时调用）
  */
 export function resetCachedUIConfigs(): void {
-  cachedConfigs = {};
+  cachedConfigs = null;
   isLoaded = false;
-  loadPromise = null;
 }
 
-async function ensureLoaded(): Promise<void> {
-  if (isLoaded) return;
-
-  if (loadPromise) {
-    return loadPromise;
+/**
+ * 重载 UI 布局配置并通知所有 hook 消费者重新渲染
+ */
+export function reloadUIConfigs(): void {
+  // 重新设置当前 theme，使引擎层的 cachedResolved 失效，强制 resolveTheme() 重跑
+  const currentTheme = getUiTheme();
+  if (currentTheme) {
+    setUiTheme(currentTheme);
   }
+  cachedConfigs = null;
+  isLoaded = false;
+  ensureLoaded();
+  for (const notify of uiConfigListeners) notify();
+}
 
-  loadPromise = (async () => {
-    const settings = await loadUISettings();
-    cachedConfigs = {
-      system: parseSystemGuiConfig(settings),
-      state: parseStateGuiConfig(settings),
-      equip: parseEquipGuiConfig(settings),
-      npcEquip: parseNpcEquipGuiConfig(settings),
-      xiuLian: parseXiuLianGuiConfig(settings),
-      goods: parseGoodsGuiConfig(settings),
-      magics: parseMagicsGuiConfig(settings),
-      memo: parseMemoGuiConfig(settings),
-      dialog: parseDialogGuiConfig(settings),
-      message: parseMessageGuiConfig(settings),
-      npcInfoShow: parseNpcInfoShowConfig(settings),
-      littleMap: parseLittleMapGuiConfig(settings),
-      buySell: parseBuySellGuiConfig(settings),
-      bottom: parseBottomGuiConfig(settings),
-      bottomState: parseBottomStateGuiConfig(settings),
-      top: parseTopGuiConfig(settings),
-      toolTipUseType: parseToolTipUseTypeConfig(settings),
-      toolTipType1: parseToolTipType1Config(settings),
-      toolTipType2: parseToolTipType2Config(settings),
-      title: parseTitleGuiConfig(settings),
+function ensureLoaded(): void {
+  if (isLoaded) return;
+  cachedConfigs = getResolvedConfigs();
+  isLoaded = true;
+}
+
+// ---------- 通用 hook 工厂 ----------
+
+function useConfig<T>(accessor: (c: ResolvedUiConfigs) => T): T | null {
+  const accessorRef = useRef(accessor);
+  accessorRef.current = accessor;
+
+  const [config, setConfig] = useState<T | null>(() => {
+    ensureLoaded();
+    return cachedConfigs ? accessor(cachedConfigs) : null;
+  });
+
+  useEffect(() => {
+    ensureLoaded();
+    if (cachedConfigs) setConfig(accessorRef.current(cachedConfigs));
+
+    const listener = () => {
+      if (cachedConfigs) setConfig(accessorRef.current(cachedConfigs));
     };
-    isLoaded = true;
-  })();
+    uiConfigListeners.add(listener);
+    return () => {
+      uiConfigListeners.delete(listener);
+    };
+  }, []);
 
-  return loadPromise;
+  return config;
 }
 
-/**
- * Hook to get System GUI config
- */
+function useConfigWithDefault<T>(accessor: (c: ResolvedUiConfigs) => T, defaultValue: T): T {
+  const accessorRef = useRef(accessor);
+  accessorRef.current = accessor;
+
+  const [config, setConfig] = useState<T>(() => {
+    ensureLoaded();
+    return cachedConfigs ? accessor(cachedConfigs) : defaultValue;
+  });
+
+  useEffect(() => {
+    ensureLoaded();
+    if (cachedConfigs) setConfig(accessorRef.current(cachedConfigs));
+
+    const listener = () => {
+      if (cachedConfigs) setConfig(accessorRef.current(cachedConfigs));
+    };
+    uiConfigListeners.add(listener);
+    return () => {
+      uiConfigListeners.delete(listener);
+    };
+  }, []);
+
+  return config;
+}
+
+// ---------- 各面板 hooks ----------
+
 export function useSystemGuiConfig(): SystemGuiConfig | null {
-  const [config, setConfig] = useState<SystemGuiConfig | null>(cachedConfigs.system || null);
-
-  useEffect(() => {
-    if (cachedConfigs.system) {
-      setConfig(cachedConfigs.system);
-      return;
-    }
-    ensureLoaded().then(() => {
-      setConfig(cachedConfigs.system || null);
-    });
-  }, []);
-
-  return config;
+  return useConfig((c) => c.system);
 }
 
-/**
- * Hook to get State GUI config
- */
 export function useStateGuiConfig(): StateGuiConfig | null {
-  const [config, setConfig] = useState<StateGuiConfig | null>(cachedConfigs.state || null);
-
-  useEffect(() => {
-    if (cachedConfigs.state) {
-      setConfig(cachedConfigs.state);
-      return;
-    }
-    ensureLoaded().then(() => {
-      setConfig(cachedConfigs.state || null);
-    });
-  }, []);
-
-  return config;
+  return useConfig((c) => c.state);
 }
 
-/**
- * Hook to get Equip GUI config
- */
 export function useEquipGuiConfig(): EquipGuiConfig | null {
-  const [config, setConfig] = useState<EquipGuiConfig | null>(cachedConfigs.equip || null);
-
-  useEffect(() => {
-    if (cachedConfigs.equip) {
-      setConfig(cachedConfigs.equip);
-      return;
-    }
-    ensureLoaded().then(() => {
-      setConfig(cachedConfigs.equip || null);
-    });
-  }, []);
-
-  return config;
+  return useConfig((c) => c.equip);
 }
 
-/**
- * Hook to get NPC Equip GUI config
- * Used for displaying NPC equipment slots
- */
 export function useNpcEquipGuiConfig(): NpcEquipGuiConfig | null {
-  const [config, setConfig] = useState<NpcEquipGuiConfig | null>(cachedConfigs.npcEquip || null);
-
-  useEffect(() => {
-    if (cachedConfigs.npcEquip) {
-      setConfig(cachedConfigs.npcEquip);
-      return;
-    }
-    ensureLoaded().then(() => {
-      setConfig(cachedConfigs.npcEquip || null);
-    });
-  }, []);
-
-  return config;
+  return useConfig((c) => c.npcEquip);
 }
 
-/**
- * Hook to get XiuLian GUI config
- */
 export function useXiuLianGuiConfig(): XiuLianGuiConfig | null {
-  const [config, setConfig] = useState<XiuLianGuiConfig | null>(cachedConfigs.xiuLian || null);
-
-  useEffect(() => {
-    if (cachedConfigs.xiuLian) {
-      setConfig(cachedConfigs.xiuLian);
-      return;
-    }
-    ensureLoaded().then(() => {
-      setConfig(cachedConfigs.xiuLian || null);
-    });
-  }, []);
-
-  return config;
+  return useConfig((c) => c.xiuLian);
 }
 
-/**
- * Hook to get Good GUI config
- */
 export function useGoodsGuiConfig(): GoodsGuiConfig | null {
-  const [config, setConfig] = useState<GoodsGuiConfig | null>(cachedConfigs.goods || null);
-
-  useEffect(() => {
-    if (cachedConfigs.goods) {
-      setConfig(cachedConfigs.goods);
-      return;
-    }
-    ensureLoaded().then(() => {
-      setConfig(cachedConfigs.goods || null);
-    });
-  }, []);
-
-  return config;
+  return useConfig((c) => c.goods);
 }
 
-/**
- * Hook to get Magics GUI config
- */
 export function useMagicsGuiConfig(): MagicsGuiConfig | null {
-  const [config, setConfig] = useState<MagicsGuiConfig | null>(cachedConfigs.magics || null);
-
-  useEffect(() => {
-    if (cachedConfigs.magics) {
-      setConfig(cachedConfigs.magics);
-      return;
-    }
-    ensureLoaded().then(() => {
-      setConfig(cachedConfigs.magics || null);
-    });
-  }, []);
-
-  return config;
+  return useConfig((c) => c.magics);
 }
 
-/**
- * Hook to get Memo GUI config
- */
 export function useMemoGuiConfig(): MemoGuiConfig | null {
-  const [config, setConfig] = useState<MemoGuiConfig | null>(cachedConfigs.memo || null);
-
-  useEffect(() => {
-    if (cachedConfigs.memo) {
-      setConfig(cachedConfigs.memo);
-      return;
-    }
-    ensureLoaded().then(() => {
-      setConfig(cachedConfigs.memo || null);
-    });
-  }, []);
-
-  return config;
+  return useConfig((c) => c.memo);
 }
 
-/**
- * Hook to get Dialog GUI config
- */
 export function useDialogGuiConfig(): DialogGuiConfig | null {
-  const [config, setConfig] = useState<DialogGuiConfig | null>(cachedConfigs.dialog || null);
-
-  useEffect(() => {
-    if (cachedConfigs.dialog) {
-      setConfig(cachedConfigs.dialog);
-      return;
-    }
-    ensureLoaded().then(() => {
-      setConfig(cachedConfigs.dialog || null);
-    });
-  }, []);
-
-  return config;
+  return useConfig((c) => c.dialog);
 }
 
-/**
- * Hook to get Message GUI config
- */
 export function useMessageGuiConfig(): MessageGuiConfig | null {
-  const [config, setConfig] = useState<MessageGuiConfig | null>(cachedConfigs.message || null);
-
-  useEffect(() => {
-    if (cachedConfigs.message) {
-      setConfig(cachedConfigs.message);
-      return;
-    }
-    ensureLoaded().then(() => {
-      setConfig(cachedConfigs.message || null);
-    });
-  }, []);
-
-  return config;
+  return useConfig((c) => c.message);
 }
 
-/**
- * Hook to get NPC Info Show config
- * Used for NPC life bar display at top of screen
- */
 export function useNpcInfoShowConfig(): NpcInfoShowConfig | null {
-  const [config, setConfig] = useState<NpcInfoShowConfig | null>(cachedConfigs.npcInfoShow || null);
-
-  useEffect(() => {
-    if (cachedConfigs.npcInfoShow) {
-      setConfig(cachedConfigs.npcInfoShow);
-      return;
-    }
-    ensureLoaded().then(() => {
-      setConfig(cachedConfigs.npcInfoShow || null);
-    });
-  }, []);
-
-  return config;
+  return useConfig((c) => c.npcInfoShow);
 }
 
-/**
- * Hook to get LittleMap (小地图) GUI config
- * Used for minimap display
- */
 export function useLittleMapGuiConfig(): LittleMapGuiConfig | null {
-  const [config, setConfig] = useState<LittleMapGuiConfig | null>(cachedConfigs.littleMap || null);
-
-  useEffect(() => {
-    if (cachedConfigs.littleMap) {
-      setConfig(cachedConfigs.littleMap);
-      return;
-    }
-    ensureLoaded().then(() => {
-      setConfig(cachedConfigs.littleMap || null);
-    });
-  }, []);
-
-  return config;
+  return useConfig((c) => c.littleMap);
 }
 
-/**
- * Hook to get all UI configs at once
- */
-export function useAllUIConfigs(): typeof cachedConfigs | null {
-  const [configs, setConfigs] = useState<typeof cachedConfigs | null>(
-    isLoaded ? cachedConfigs : null
-  );
+export function useAllUIConfigs(): ResolvedUiConfigs | null {
+  const [configs, setConfigs] = useState<ResolvedUiConfigs | null>(() => {
+    ensureLoaded();
+    return cachedConfigs;
+  });
 
   useEffect(() => {
-    if (isLoaded) {
+    ensureLoaded();
+    if (cachedConfigs) {
       setConfigs(cachedConfigs);
-      return;
     }
-    ensureLoaded().then(() => {
-      setConfigs({ ...cachedConfigs });
-    });
   }, []);
 
   return configs;
 }
 
-/**
- * Hook to get BuySell (商店) GUI config
- * Used for shop/buy interface display
- */
 export function useBuySellGuiConfig(): BuySellGuiConfig | null {
-  const [config, setConfig] = useState<BuySellGuiConfig | null>(cachedConfigs.buySell || null);
-
-  useEffect(() => {
-    if (cachedConfigs.buySell) {
-      setConfig(cachedConfigs.buySell);
-      return;
-    }
-    ensureLoaded().then(() => {
-      setConfig(cachedConfigs.buySell || null);
-    });
-  }, []);
-
-  return config;
+  return useConfig((c) => c.buySell);
 }
 
-/**
- * Hook to get Bottom (底部快捷栏) GUI config
- */
 export function useBottomGuiConfig(): BottomGuiConfig | null {
-  const [config, setConfig] = useState<BottomGuiConfig | null>(cachedConfigs.bottom || null);
-
-  useEffect(() => {
-    if (cachedConfigs.bottom) {
-      setConfig(cachedConfigs.bottom);
-      return;
-    }
-    ensureLoaded().then(() => {
-      setConfig(cachedConfigs.bottom || null);
-    });
-  }, []);
-
-  return config;
+  return useConfig((c) => c.bottom);
 }
 
-/**
- * Hook to get BottomState (血蓝条) GUI config
- */
 export function useBottomStateGuiConfig(): BottomStateGuiConfig | null {
-  const [config, setConfig] = useState<BottomStateGuiConfig | null>(cachedConfigs.bottomState || null);
-
-  useEffect(() => {
-    if (cachedConfigs.bottomState) {
-      setConfig(cachedConfigs.bottomState);
-      return;
-    }
-    ensureLoaded().then(() => {
-      setConfig(cachedConfigs.bottomState || null);
-    });
-  }, []);
-
-  return config;
+  return useConfig((c) => c.bottomState);
 }
 
-/**
- * Hook to get Top (功能按钮栏) GUI config
- */
 export function useTopGuiConfig(): TopGuiConfig | null {
-  const [config, setConfig] = useState<TopGuiConfig | null>(cachedConfigs.top || null);
-
-  useEffect(() => {
-    if (cachedConfigs.top) {
-      setConfig(cachedConfigs.top);
-      return;
-    }
-    ensureLoaded().then(() => {
-      setConfig(cachedConfigs.top || null);
-    });
-  }, []);
-
-  return config;
+  return useConfig((c) => c.top);
 }
 
-/**
- * Hook to get ToolTip use type (1=image-based/tipbox.asf, 2=text-based)
- */
 export function useToolTipUseTypeConfig(): ToolTipUseTypeConfig {
-  const [config, setConfig] = useState<ToolTipUseTypeConfig>(cachedConfigs.toolTipUseType ?? { useType: 1 });
-
-  useEffect(() => {
-    if (cachedConfigs.toolTipUseType) {
-      setConfig(cachedConfigs.toolTipUseType);
-      return;
-    }
-    ensureLoaded().then(() => {
-      setConfig(cachedConfigs.toolTipUseType ?? { useType: 1 });
-    });
-  }, []);
-
-  return config;
+  return useConfigWithDefault((c) => c.toolTipUseType, { useType: 1 });
 }
 
-/**
- * Hook to get ToolTip Type2 config (text-based tooltip colors and dimensions)
- */
 export function useToolTipType2Config(): ToolTipType2Config {
   const defaultType2: ToolTipType2Config = {
     width: 288,
@@ -487,25 +221,9 @@ export function useToolTipType2Config(): ToolTipType2Config {
     goodPropertyColor: { r: 255, g: 255, b: 255, a: 160 },
     goodIntroColor: { r: 255, g: 255, b: 255, a: 160 },
   };
-  const [config, setConfig] = useState<ToolTipType2Config>(cachedConfigs.toolTipType2 ?? defaultType2);
-
-  useEffect(() => {
-    if (cachedConfigs.toolTipType2) {
-      setConfig(cachedConfigs.toolTipType2);
-      return;
-    }
-    ensureLoaded().then(() => {
-      setConfig(cachedConfigs.toolTipType2 ?? defaultType2);
-    });
-  }, []);
-
-  return config;
+  return useConfigWithDefault((c) => c.toolTipType2, defaultType2);
 }
 
-/**
- * Hook to get ToolTip Type1 config (image-based tooltip layout with tipbox image)
- * Returns config with element positions for name, level, intro, and item icon
- */
 export function useToolTipType1Config(): ToolTipType1Config {
   const defaultType1: ToolTipType1Config = {
     image: "asf/ui/common/tipbox.asf",
@@ -516,37 +234,13 @@ export function useToolTipType1Config(): ToolTipType1Config {
     magicIntro: { left: 67, top: 255, width: 196, height: 80, charSpace: 0, lineSpace: 0, color: "rgb(52,21,14)" },
     goodIntro: { left: 67, top: 255, width: 196, height: 80, charSpace: 0, lineSpace: 0, color: "rgb(52,21,14)" },
   };
-  const [config, setConfig] = useState<ToolTipType1Config>(cachedConfigs.toolTipType1 ?? defaultType1);
-
-  useEffect(() => {
-    if (cachedConfigs.toolTipType1) {
-      setConfig(cachedConfigs.toolTipType1);
-      return;
-    }
-    ensureLoaded().then(() => {
-      setConfig(cachedConfigs.toolTipType1 ?? defaultType1);
-    });
-  }, []);
-
-  return config;
+  return useConfigWithDefault((c) => c.toolTipType1, defaultType1);
 }
 
-/**
- * Hook to get Title GUI config (classic INI-driven title screen)
- * Returns null if [Title] section is not configured in the INI
- */
 export function useTitleGuiConfig(): TitleGuiConfig | null {
-  const [config, setConfig] = useState<TitleGuiConfig | null>(cachedConfigs.title ?? null);
+  return useConfig((c) => c.title);
+}
 
-  useEffect(() => {
-    if (cachedConfigs.title !== undefined) {
-      setConfig(cachedConfigs.title ?? null);
-      return;
-    }
-    ensureLoaded().then(() => {
-      setConfig(cachedConfigs.title ?? null);
-    });
-  }, []);
-
-  return config;
+export function useSaveLoadGuiConfig(): SaveLoadGuiConfig | null {
+  return useConfig((c) => c.saveLoad);
 }

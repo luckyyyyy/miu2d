@@ -184,12 +184,16 @@ export function useFileOperations({
   // === 移动（拖拽） ===
   const moveNode = useCallback(
     async (nodeId: string, newParentId: string | null) => {
+      // 防止并发移动导致树状态错乱
+      if (operationLock.current) return;
+      operationLock.current = true;
+
       // 乐观：先移除再插入
       let movedNode: FileTreeNode | null = null;
       let oldParentId: string | null = null;
 
       setTreeNodes((prev) => {
-        // 找到节点
+        // 找到节点及其父节点 ID
         const findNode = (
           nodes: FileTreeNode[],
           parentId: string | null
@@ -212,22 +216,35 @@ export function useFileOperations({
 
       try {
         await moveMutation.mutateAsync({ fileId: nodeId, newParentId });
-        // 刷新 source 和 target 目录
+
+        // ★ 关键修复：移动成功后先让缓存失效，确保 refreshFolder 拿到服务端最新数据。
+        // 全局 staleTime=5min，若不主动失效，fetch 会直接返回 5 分钟内的旧缓存，
+        // 导致"树不刷新"或"旧目录旧数据覆盖乐观更新"等问题。
+        if (gameId) {
+          await utils.file.list.invalidate({ gameId, parentId: newParentId });
+          if (oldParentId !== newParentId) {
+            await utils.file.list.invalidate({ gameId, parentId: oldParentId });
+          }
+        }
+
+        // 刷新 source 和 target 目录（此时缓存已失效，一定会发起网络请求）
         await refreshFolder(newParentId);
         if (oldParentId !== newParentId) {
           await refreshFolder(oldParentId);
         }
       } catch {
         // 回滚：把节点移回原位
-        if (movedNode && oldParentId !== undefined) {
+        if (movedNode) {
           setTreeNodes((prev) => {
             const withoutNode = removeNodeFromTree(prev, nodeId);
             return insertNodeInTree(withoutNode, oldParentId, movedNode!);
           });
         }
+      } finally {
+        operationLock.current = false;
       }
     },
-    [setTreeNodes, removeNodeFromTree, insertNodeInTree, moveMutation, refreshFolder]
+    [gameId, utils.file.list, setTreeNodes, removeNodeFromTree, insertNodeInTree, moveMutation, refreshFolder]
   );
 
   return {

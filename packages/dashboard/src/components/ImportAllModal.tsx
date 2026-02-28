@@ -73,7 +73,7 @@ interface ParsedModuleData {
   level: { fileName: string; userType: "player" | "npc"; iniContent: string }[];
   talk: string | null;
   talkPortrait: string | null;
-  uiSettingsIni: string | null;
+  uiTheme: unknown;
   scene: ParsedScene[];
 }
 
@@ -239,7 +239,7 @@ async function parseResourcesFolder(
     level: [],
     talk: null,
     talkPortrait: null,
-    uiSettingsIni: null,
+    uiTheme: null,
     scene: [],
   };
 
@@ -504,8 +504,14 @@ async function parseResourcesFolder(
   // ===== 9b. UI 配置 content/ui/ui_settings.ini =====
   for (const f of byNorm) {
     if (f.norm === "content/ui/ui_settings.ini") {
-      data.uiSettingsIni = await f.file.text();
-      onProgress("找到 UI 配置 ui_settings.ini");
+      const iniText = await f.file.text();
+      try {
+        const { convertIniToTheme } = await import("@miu2d/engine/gui/ui-settings-legacy");
+        data.uiTheme = convertIniToTheme(iniText);
+        onProgress("找到 UI 配置 ui_settings.ini（已转换为紧凑 JSON 主题）");
+      } catch {
+        onProgress("找到 UI 配置 ui_settings.ini（JSON 转换失败）");
+      }
       break;
     }
   }
@@ -688,7 +694,7 @@ export function ImportAllModal({
   const importTalk = trpc.talk.importFromTxt.useMutation();
   const importPortrait = trpc.talkPortrait.importFromIni.useMutation();
   const importScene = trpc.scene.importScene.useMutation();
-  const setUiSettingsIni = trpc.gameConfig.setUiSettingsIni.useMutation();
+  const setUiTheme = trpc.gameConfig.setUiTheme.useMutation();
 
   const toggleModule = useCallback((key: ImportModuleKey) => {
     setSelectedModules((prev) => {
@@ -720,7 +726,7 @@ export function ImportAllModal({
       talk: parsedData.talk ? 1 : 0,
       talkPortrait: parsedData.talkPortrait ? 1 : 0,
       scene: parsedData.scene.length,
-      gameConfig: parsedData.uiSettingsIni ? 1 : 0,
+      gameConfig: parsedData.uiTheme ? 1 : 0,
     } as Record<ImportModuleKey, number>;
   }, [parsedData]);
 
@@ -861,7 +867,7 @@ export function ImportAllModal({
             await clearScene.mutateAsync({ gameId });
             break;
           case "gameConfig":
-            // gameConfig 无需清空，patchUiSettingsIni 直接覆盖字段
+            // gameConfig 无需清空，setUiTheme 直接覆盖字段
             break;
         }
       } catch (e) {
@@ -1066,8 +1072,8 @@ export function ImportAllModal({
           }
           case "gameConfig": {
             setImportStep("导入 UI 配置...");
-            if (parsedData.uiSettingsIni) {
-              await setUiSettingsIni.mutateAsync({ gameId, content: parsedData.uiSettingsIni });
+            if (parsedData.uiTheme) {
+              await setUiTheme.mutateAsync({ gameId, uiTheme: parsedData.uiTheme });
               currentStep++;
               setImportProgress(currentStep);
               allResults.push({ module: key, success: 1, failed: 0, errors: [] });
@@ -1123,7 +1129,7 @@ export function ImportAllModal({
     importTalk,
     importPortrait,
     importScene,
-    setUiSettingsIni,
+    setUiTheme,
     onSuccess,
   ]);
 

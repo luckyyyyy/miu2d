@@ -9,6 +9,30 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useDashboard } from "./DashboardContext";
 import { DashboardIcons } from "./icons";
+import { getGameApiUrl } from "./utils/resourcePath";
+
+/** 统一的游戏图标组件：有 logo 显示 logo，否则显示蓝色默认图标 */
+function GameLogoIcon({ slug, className = "w-5 h-5" }: { slug: string; className?: string }) {
+  const [status, setStatus] = useState<"loading" | "loaded" | "error">("loading");
+  return (
+    <div className={`${className} relative flex items-center justify-center flex-shrink-0`}>
+      {/* 默认蓝色图标：未加载或加载失败时显示 */}
+      {status !== "loaded" && (
+        <span className="text-[#0098ff]">{DashboardIcons.game}</span>
+      )}
+      {/* Logo 图片：加载中时透明叠加，加载成功后显示 */}
+      {status !== "error" && (
+        <img
+          src={getGameApiUrl(slug, "logo")}
+          alt=""
+          className={`absolute inset-0 w-full h-full object-contain transition-opacity ${status === "loaded" ? "opacity-100" : "opacity-0"}`}
+          onLoad={() => setStatus("loaded")}
+          onError={() => setStatus("error")}
+        />
+      )}
+    </div>
+  );
+}
 
 interface GameSelectorProps {
   games: Game[];
@@ -58,7 +82,11 @@ export function GameSelector({ games, isLoading = false, onCreateGame }: GameSel
         className="flex items-center gap-2 px-3 py-2 rounded-md bg-[#3c3c3c] hover:bg-[#4a4a4a] transition-colors min-w-[180px]"
         disabled={isLoading}
       >
-        <span className="text-[#0098ff]">{DashboardIcons.game}</span>
+        {currentGame ? (
+          <GameLogoIcon slug={currentGame.slug} />
+        ) : (
+          <span className="text-[#0098ff]">{DashboardIcons.game}</span>
+        )}
         <span className="flex-1 text-left truncate text-sm">
           {isLoading ? "加载中..." : currentGame ? currentGame.name : "选择游戏空间"}
         </span>
@@ -87,7 +115,7 @@ export function GameSelector({ games, isLoading = false, onCreateGame }: GameSel
                     onClick={() => handleSelectGame(game)}
                     className="flex-1 flex items-center gap-3 px-2 py-1 text-left min-w-0"
                   >
-                    <span className="text-[#0098ff]">{DashboardIcons.game}</span>
+                    <GameLogoIcon slug={game.slug} />
                     <div className="flex-1 min-w-0">
                       <div className="text-sm truncate">{game.name}</div>
                       {game.description && (

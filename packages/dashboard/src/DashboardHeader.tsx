@@ -3,7 +3,6 @@
  */
 
 import { trpc, useAuth } from "@miu2d/shared";
-import { getGameApiUrl } from "./utils/resourcePath";
 import { Avatar } from "@miu2d/ui";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -17,14 +16,11 @@ import { DashboardIcons } from "./icons";
 export function DashboardHeader() {
   const { t } = useTranslation();
   const { user, logout } = useAuth();
-  const { currentGame, showImportAll, setShowImportAll } = useDashboard();
+  const { showImportAll, setShowImportAll } = useDashboard();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-
-  // logo URL 直接从 slug 构建，未上传时 404 会触发 onError 自动隐藏
-  const gameLogoUrl = currentGame?.slug ? getGameApiUrl(currentGame.slug, "logo") : null;
 
   // 点击外部关闭菜单
   useEffect(() => {
@@ -41,16 +37,7 @@ export function DashboardHeader() {
   return (
     <header className="flex h-10 items-center justify-between border-b border-panel-border bg-[#3c3c3c] px-2">
       <div className="flex items-center gap-2">
-        {/* 当前游戏 Logo（左上角） */}
-        {gameLogoUrl && (
-          <img
-            src={gameLogoUrl}
-            alt=""
-            className="w-6 h-6 rounded object-contain flex-shrink-0"
-            onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
-          />
-        )}
-        {/* 游戏空间选择器 */}
+        {/* 游戏空间选择器（logo 集成在内部） */}
         <GameSelectorWithData onCreateGame={() => setShowCreateModal(true)} />
       </div>
 

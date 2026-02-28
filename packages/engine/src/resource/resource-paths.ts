@@ -364,14 +364,6 @@ export const DefaultPaths = {
   get levelNpc(): string {
     return ResourcePath.level("level-npc.ini");
   },
-  /** UI 设置文件 (Content) */
-  get uiSettingsContent(): string {
-    return ResourcePath.ui("ui_settings.ini");
-  },
-  /** UI 设置文件 (INI) */
-  get uiSettingsIni(): string {
-    return ResourcePath.ini("ui_settings.ini");
-  },
   /** 音乐基础路径 */
   get musicBasePath(): string {
     return buildPath(ResourceDirs.content.music);

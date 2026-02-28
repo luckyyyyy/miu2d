@@ -1,14 +1,17 @@
 /**
- * UI Settings Loader - loads and parses UI_Settings.ini
+ * UI Settings — 紧凑 JSON 主题格式 + 解析器
  *
+ * 存储格式（UiTheme）：使用网格定义、坐标元组、省略默认值
+ * 渲染格式（Resolved*Config）：展开为绝对坐标，渲染组件直接使用
  *
- * INI files in resources/ are now UTF-8 encoded.
+ * 数据流: DB JSONB → UiTheme → resolveTheme() → Resolved*Config → React hooks → 渲染
  */
 
 import { logger } from "../core/logger";
-import { parseIni } from "../utils";
 
-// ===== Types from ui-config (merged) =====
+// ============================================
+// 颜色工具
+// ============================================
 
 export interface UiColorRGBA {
   r: number;
@@ -17,11 +20,9 @@ export interface UiColorRGBA {
   a: number;
 }
 
-/**
- * 解析 INI 颜色字符串 "r,g,b,a" 或 "r,g,b" 为 UiColorRGBA (0-255 整数)
- */
+/** 解析 "r,g,b,a" 或 "r,g,b" 为 UiColorRGBA */
 export function parseIniColor(colorStr: string): UiColorRGBA {
-  const parts = colorStr.split(",").map((s) => parseInt(s.trim(), 10));
+  const parts = colorStr.split(",").map((s) => Number.parseInt(s.trim(), 10));
   return {
     r: parts[0] || 0,
     g: parts[1] || 0,
@@ -30,109 +31,14 @@ export function parseIniColor(colorStr: string): UiColorRGBA {
   };
 }
 
-/**
- * 颜色转CSS
- */
+/** UiColorRGBA → CSS rgba() */
 export function colorToCSS(color: UiColorRGBA): string {
   return `rgba(${color.r},${color.g},${color.b},${color.a / 255})`;
 }
 
-// Cache for loaded settings
-let cachedSettings: Record<string, Record<string, string>> | null = null;
-let loadingPromise: Promise<Record<string, Record<string, string>>> | null = null;
-
-/** 通过 GameConfig API 传入的 UI Settings INI 内容 */
-let customUiSettingsIniContent = "";
-
-/**
- * 设置 UI Settings INI 内容（从 GameConfig.uiSettingsIni 获取）
- * 调用后会清除已缓存的设置，下次 loadUISettings 将直接使用该内容
- */
-export function setUiSettingsIniContent(content: string): void {
-  if (content !== customUiSettingsIniContent) {
-    customUiSettingsIniContent = content;
-    resetUISettingsCache();
-  }
-}
-
-/**
- * 重置 UI Settings 缓存（切换游戏时调用）
- */
-export function resetUISettingsCache(): void {
-  cachedSettings = null;
-  loadingPromise = null;
-}
-
-/**
- * Load and parse UI Settings from GameConfig.uiSettingsIni content.
- * Must be set via setUiSettingsIniContent() before calling.
- */
-export async function loadUISettings(): Promise<Record<string, Record<string, string>>> {
-  if (cachedSettings) {
-    return cachedSettings;
-  }
-
-  if (loadingPromise) {
-    return loadingPromise;
-  }
-
-  loadingPromise = (async () => {
-    try {
-      if (!customUiSettingsIniContent) {
-        logger.error("[UISettings] uiSettingsIni not configured in GameConfig. Please set it in the dashboard.");
-        cachedSettings = {};
-        return cachedSettings;
-      }
-
-      cachedSettings = parseIni(customUiSettingsIniContent);
-      logger.debug("[UISettings] Parsed INI content");
-      return cachedSettings;
-    } catch (error) {
-      logger.error("Error parsing UI_Settings.ini content:", error);
-      return {};
-    } finally {
-      loadingPromise = null;
-    }
-  })();
-
-  return loadingPromise;
-}
-
-/**
- * Get a section from UI settings
- */
-export function getSection(
-  settings: Record<string, Record<string, string>>,
-  sectionName: string
-): Record<string, string> {
-  return settings[sectionName] || {};
-}
-
-/**
- * Parse a color string "r,g,b,a" to CSS rgba
- */
-export function parseColor(colorStr: string, defaultColor = "rgba(0,0,0,1)"): string {
-  if (!colorStr) return defaultColor;
-  const parts = colorStr.split(",");
-  if (parts.length < 3) return defaultColor;
-  return colorToCSS(parseIniColor(colorStr));
-}
-
-/**
- * Parse an integer with fallback
- */
-export function parseInt2(value: string | undefined, defaultValue: number): number {
-  if (value === undefined) return defaultValue;
-  const parsed = parseInt(value, 10);
-  return Number.isNaN(parsed) ? defaultValue : parsed;
-}
-
-/**
- * Normalize image path (convert backslashes to forward slashes)
- */
+/** Normalize image path (backslash → forward slash, strip leading /) */
 export function normalizeImagePath(path: string): string {
   if (!path) return "";
-  // Remove leading slash or backslash
   let normalized = path.replace(/\\/g, "/");
   if (normalized.startsWith("/")) {
     normalized = normalized.slice(1);
@@ -141,7 +47,304 @@ export function normalizeImagePath(path: string): string {
 }
 
 // ============================================
-// Type definitions for UI configurations
+// 紧凑 UiTheme 格式 — 存入 DB JSONB
+// ============================================
+
+/** 2D 坐标 [left, top] */
+type Pos = [number, number];
+/** 2D 尺寸 [width, height] */
+type Size = [number, number];
+
+/** 面板：纯字符串 = 仅图片路径；对象 = 带偏移/叠加层 */
+export type ThemePanel =
+  | string
+  | {
+      image: string;
+      offset?: Pos;
+      overlay?: string;
+      overlayOffset?: Pos;
+      size?: Size;
+      anchor?: "bottom";
+    };
+
+/** 按钮 */
+export interface ThemeButton {
+  pos: Pos;
+  size: Size;
+  image: string;
+  sound?: string;
+}
+
+/** 文本区域 */
+export interface ThemeText {
+  pos: Pos;
+  size: Size;
+  color?: string;
+  charSpace?: number;
+  lineSpace?: number;
+}
+
+/** 网格布局（替代 N 个独立 item） */
+export interface ThemeGrid {
+  origin: Pos;
+  cell: Size;
+  gap: Pos;
+  cols: number;
+  rows: number;
+}
+
+/** 滚动条 */
+export interface ThemeScrollBar {
+  pos: Pos;
+  size: Size;
+  button: string;
+}
+
+/** 矩形区域 */
+export interface ThemeRect {
+  pos: Pos;
+  size: Size;
+}
+
+/** 状态条 */
+export interface ThemeBar {
+  pos: Pos;
+  size: Size;
+  image: string;
+}
+
+/** 小地图按钮 */
+export interface ThemeMapButton {
+  pos: Pos;
+  image: string;
+  sound?: string;
+}
+
+/** 小地图文本 */
+export interface ThemeMapText {
+  pos: Pos;
+  size: Size;
+  color?: string;
+  align?: number;
+}
+
+// ---------- 各面板的紧凑定义 ----------
+
+export interface ThemeTitle {
+  background: string;
+  offset?: Pos;
+  buttons: {
+    begin: ThemeButton;
+    load: ThemeButton;
+    team: ThemeButton;
+    exit: ThemeButton;
+  };
+}
+
+export interface ThemeSaveLoad {
+  panel: ThemePanel;
+  snapshot: ThemeRect;
+  textList: {
+    text: string[];
+    pos: Pos;
+    size: Size;
+    charSpace?: number;
+    lineSpace?: number;
+    itemHeight: number;
+    color?: string;
+    selectedColor?: string;
+    sound?: string;
+  };
+  loadBtn: ThemeButton;
+  saveBtn: ThemeButton;
+  exitBtn: ThemeButton;
+  saveTimeText: ThemeText;
+  messageLine: ThemeText & { align?: number };
+}
+
+export interface ThemeSystem {
+  panel: ThemePanel;
+  saveLoadBtn: ThemeButton;
+  optionBtn: ThemeButton;
+  exitBtn: ThemeButton;
+  returnBtn: ThemeButton;
+}
+
+export interface ThemeState {
+  panel: ThemePanel;
+  color?: string;
+  level: ThemeText;
+  exp: ThemeText;
+  levelUp: ThemeText;
+  life: ThemeText;
+  thew: ThemeText;
+  mana: ThemeText;
+  attack: ThemeText;
+  defend: ThemeText;
+  evade: ThemeText;
+}
+
+export interface ThemeEquip {
+  panel: ThemePanel;
+  slotSize: Size;
+  slots: {
+    head: Pos;
+    neck: Pos;
+    body: Pos;
+    back: Pos;
+    hand: Pos;
+    wrist: Pos;
+    foot: Pos;
+  };
+}
+
+export interface ThemeXiuLian {
+  panel: ThemePanel;
+  magicImage: ThemeRect;
+  levelText: ThemeText;
+  expText: ThemeText;
+  nameText: ThemeText;
+  introText: ThemeText;
+}
+
+export interface ThemeGoods {
+  panel: ThemePanel;
+  grid: ThemeGrid;
+  scrollBar: ThemeScrollBar;
+  money: ThemeText;
+  goldIcon?: { pos: Pos; size: Size; image: string };
+}
+
+export interface ThemeMagics {
+  panel: ThemePanel;
+  grid: ThemeGrid;
+  scrollBar: ThemeScrollBar;
+}
+
+export interface ThemeMemo {
+  panel: ThemePanel;
+  text: ThemeText;
+  slider: ThemeRect & { imageBtn: string };
+  scrollBar?: ThemeRect;
+}
+
+export interface ThemeDialog {
+  panel: ThemePanel;
+  text: ThemeText;
+  selectA: ThemeText;
+  selectB: ThemeText;
+  portrait: ThemeRect;
+}
+
+export interface ThemeMessage {
+  panel: ThemePanel;
+  text: ThemeText;
+}
+
+export interface ThemeNpcInfoShow {
+  size: Size;
+  offset?: Pos;
+}
+
+export interface ThemeLittleMap {
+  panel: ThemePanel;
+  leftBtn: ThemeMapButton;
+  rightBtn: ThemeMapButton;
+  upBtn: ThemeMapButton;
+  downBtn: ThemeMapButton;
+  closeBtn: ThemeMapButton;
+  mapNameText: ThemeMapText;
+  bottomTipText: ThemeMapText;
+  messageTipText: ThemeMapText;
+}
+
+export interface ThemeBuySell {
+  panel: ThemePanel;
+  grid: ThemeGrid;
+  scrollBar: ThemeScrollBar;
+  closeBtn: ThemeMapButton;
+}
+
+export interface ThemeBottom {
+  panel: ThemePanel;
+  /** 快捷栏槽位（逐项定义，不是网格——因为物品槽/武功槽间距不同） */
+  items: ThemeButton[];
+  buttons: ThemeButton[];
+}
+
+export interface ThemeBottomState {
+  panel: ThemePanel;
+  life: ThemeBar;
+  thew: ThemeBar;
+  mana: ThemeBar;
+}
+
+export interface ThemeTop {
+  panel: ThemePanel;
+  buttons: ThemeButton[];
+}
+
+export interface ThemeTooltip2 {
+  width?: number;
+  textHorizontalPadding?: number;
+  textVerticalPadding?: number;
+  backgroundColor?: string;
+  magicNameColor?: string;
+  magicLevelColor?: string;
+  magicIntroColor?: string;
+  goodNameColor?: string;
+  goodPriceColor?: string;
+  goodUserColor?: string;
+  goodPropertyColor?: string;
+  goodIntroColor?: string;
+}
+
+export interface ThemeTooltip1 {
+  image?: string;
+  itemImage: ThemeRect;
+  name: ThemeText;
+  priceOrLevel: ThemeText;
+  effect: ThemeText;
+  magicIntro: ThemeText;
+  goodIntro: ThemeText;
+}
+
+/**
+ * 紧凑 UI 主题配置 — 存入 DB JSONB
+ *
+ * 特性：
+ * - 网格定义替代逐项坐标（9 items → 1 grid）
+ * - 位置/尺寸用 [x,y] 元组
+ * - 零值默认省略（charSpace=0, lineSpace=0 等）
+ * - 面板仅图片时用字符串简写
+ */
+export interface UiTheme {
+  title?: ThemeTitle;
+  saveLoad: ThemeSaveLoad;
+  system: ThemeSystem;
+  state: ThemeState;
+  equip: ThemeEquip;
+  npcEquip: ThemeEquip;
+  xiuLian: ThemeXiuLian;
+  goods: ThemeGoods;
+  magics: ThemeMagics;
+  memo: ThemeMemo;
+  dialog: ThemeDialog;
+  message: ThemeMessage;
+  npcInfoShow: ThemeNpcInfoShow;
+  littleMap: ThemeLittleMap;
+  buySell: ThemeBuySell;
+  bottom: ThemeBottom;
+  bottomState: ThemeBottomState;
+  top: ThemeTop;
+  tooltipMode: 1 | 2;
+  tooltip1: ThemeTooltip1;
+  tooltip2: ThemeTooltip2;
+}
+
+// ============================================
+// 展开后的渲染格式（React 组件直接使用）
+// 命名保持与旧版一致，渲染代码无需修改
 // ============================================
 
 export interface ButtonConfig {
@@ -165,27 +368,15 @@ export interface TextConfig {
 
 export interface PanelConfig {
   image: string;
-  /** Optional decorative overlay rendered on top of the base panel image */
   overlayImage?: string;
-  /** Horizontal offset of the overlay image within the panel (default 0) */
   overlayLeft?: number;
-  /** Vertical offset of the overlay image within the panel (default 0) */
   overlayTop?: number;
   leftAdjust: number;
   topAdjust: number;
-  /** Optional explicit panel dimensions from ini (override image size) */
   width?: number;
   height?: number;
-  /**
-   * Panel anchor - controls which screen edge the panel is positioned relative to.
-   * "Top" (default): top=topAdjust; "Bottom": bottom edge anchored
-   */
   anchor?: "Top" | "Bottom";
 }
-
-// ============================================
-// Parsed UI configurations
-// ============================================
 
 export interface SystemGuiConfig {
   panel: PanelConfig;
@@ -219,17 +410,7 @@ export interface EquipGuiConfig {
   foot: { left: number; top: number; width: number; height: number };
 }
 
-// NPC 装备界面配置 - 与 EquipGuiConfig 结构相同但读取不同配置节
-export interface NpcEquipGuiConfig {
-  panel: PanelConfig;
-  head: { left: number; top: number; width: number; height: number };
-  neck: { left: number; top: number; width: number; height: number };
-  body: { left: number; top: number; width: number; height: number };
-  back: { left: number; top: number; width: number; height: number };
-  hand: { left: number; top: number; width: number; height: number };
-  wrist: { left: number; top: number; width: number; height: number };
-  foot: { left: number; top: number; width: number; height: number };
-}
+export type NpcEquipGuiConfig = EquipGuiConfig;
 
 export interface XiuLianGuiConfig {
   panel: PanelConfig;
@@ -242,47 +423,33 @@ export interface XiuLianGuiConfig {
 
 export interface GoodsGuiConfig {
   panel: PanelConfig;
-  scrollBar: {
-    left: number;
-    top: number;
-    width: number;
-    height: number;
-    button: string;
-  };
+  scrollBar: { left: number; top: number; width: number; height: number; button: string };
+  /** 展开后的所有可见槽位（单页 = cols\*rows） */
   items: { left: number; top: number; width: number; height: number }[];
+  /** 列数（用于滚动计算） */
+  cols: number;
+  /** 行数（可见页的行数） */
+  rows: number;
   money: TextConfig;
   goldIcon?: { left: number; top: number; width: number; height: number; image: string };
 }
 
 export interface MagicsGuiConfig {
   panel: PanelConfig;
-  scrollBar: {
-    left: number;
-    top: number;
-    width: number;
-    height: number;
-    button: string;
-  };
+  scrollBar: { left: number; top: number; width: number; height: number; button: string };
+  /** 展开后的所有可见槽位（单页 = cols\*rows） */
   items: { left: number; top: number; width: number; height: number }[];
+  /** 列数（用于滚动计算） */
+  cols: number;
+  /** 行数（可见页的行数） */
+  rows: number;
 }
 
 export interface MemoGuiConfig {
   panel: PanelConfig;
   text: TextConfig;
-  slider: {
-    left: number;
-    top: number;
-    width: number;
-    height: number;
-    imageBtn: string;
-  };
-  // NOTE: scrollBar 用于滚动条显示，参考MemoGui.cs
-  scrollBar: {
-    left: number;
-    top: number;
-    width: number;
-    height: number;
-  };
+  slider: { left: number; top: number; width: number; height: number; imageBtn: string };
+  scrollBar: { left: number; top: number; width: number; height: number };
 }
 
 export interface DialogGuiConfig {
@@ -292,9 +459,6 @@ export interface DialogGuiConfig {
   selectB: TextConfig;
   portrait: { left: number; top: number; width: number; height: number };
 }
-
-// ============= SaveLoad GUI Config =============
-//  - shows save/load interface
 
 export interface SaveLoadGuiConfig {
   panel: PanelConfig;
@@ -319,526 +483,10 @@ export interface SaveLoadGuiConfig {
   messageLine: TextConfig & { align: number };
 }
 
-// ============================================
-// Internal shape parsers — DRY helpers for
-// recurring INI → config patterns
-// ============================================
-
-type IniSection = Record<string, string>;
-
-/** Parse a panel config from an INI section */
-function panelFrom(
-  s: IniSection,
-  defaults: { image: string; leftAdjust?: number; topAdjust?: number }
-): PanelConfig {
-  const rawWidth = parseInt2(s.Width, 0);
-  const rawHeight = parseInt2(s.Height, 0);
-  const rawAnchor = s.Anchor?.trim();
-  const rawOverlay = s.OverlayImage?.trim();
-  const rawOverlayLeft = parseInt2(s.OverlayLeft, 0);
-  const rawOverlayTop = parseInt2(s.OverlayTop, 0);
-  return {
-    image: normalizeImagePath(s.Image || defaults.image),
-    ...(rawOverlay ? { overlayImage: normalizeImagePath(rawOverlay) } : {}),
-    ...(rawOverlay && rawOverlayLeft !== 0 ? { overlayLeft: rawOverlayLeft } : {}),
-    ...(rawOverlay && rawOverlayTop !== 0 ? { overlayTop: rawOverlayTop } : {}),
-    leftAdjust: parseInt2(s.LeftAdjust, defaults.leftAdjust ?? 0),
-    topAdjust: parseInt2(s.TopAdjust, defaults.topAdjust ?? 0),
-    ...(rawWidth > 0 ? { width: rawWidth } : {}),
-    ...(rawHeight > 0 ? { height: rawHeight } : {}),
-    ...(rawAnchor === "Bottom" ? { anchor: "Bottom" as const } : {}),
-  };
-}
-
-/** Parse a button config ({left,top,width,height,image,sound?}) */
-function buttonFrom(
-  s: IniSection,
-  d: { left: number; top: number; width: number; height: number; image: string; sound?: string }
-): ButtonConfig {
-  return {
-    left: parseInt2(s.Left, d.left),
-    top: parseInt2(s.Top, d.top),
-    width: parseInt2(s.Width, d.width),
-    height: parseInt2(s.Height, d.height),
-    image: normalizeImagePath(s.Image || d.image),
-    sound: s.Sound || d.sound,
-  };
-}
-
-/** Parse a text config ({left,top,width,height,charSpace,lineSpace,color}) */
-function textFrom(
-  s: IniSection,
-  d: {
-    left: number;
-    top: number;
-    width: number;
-    height: number;
-    charSpace?: number;
-    lineSpace?: number;
-    color: string;
-  }
-): TextConfig {
-  return {
-    left: parseInt2(s.Left, d.left),
-    top: parseInt2(s.Top, d.top),
-    width: parseInt2(s.Width, d.width),
-    height: parseInt2(s.Height, d.height),
-    charSpace: parseInt2(s.CharSpace, d.charSpace ?? 0),
-    lineSpace: parseInt2(s.LineSpace, d.lineSpace ?? 0),
-    color: parseColor(s.Color, d.color),
-  };
-}
-
-/** Parse a rect ({left,top,width,height}) */
-function rectFrom(
-  s: IniSection,
-  d: { left: number; top: number; width: number; height: number }
-): { left: number; top: number; width: number; height: number } {
-  return {
-    left: parseInt2(s.Left, d.left),
-    top: parseInt2(s.Top, d.top),
-    width: parseInt2(s.Width, d.width),
-    height: parseInt2(s.Height, d.height),
-  };
-}
-
-/** Parse a scroll bar from a section using ScrollBarXxx keys */
-function scrollBarFrom(
-  s: IniSection,
-  d: { left: number; top: number; width: number; height: number; button: string }
-): { left: number; top: number; width: number; height: number; button: string } {
-  return {
-    left: parseInt2(s.ScrollBarLeft, d.left),
-    top: parseInt2(s.ScrollBarRight, d.top), // Note: config uses "ScrollBarRight" for top position
-    width: parseInt2(s.ScrollBarWidth, d.width),
-    height: parseInt2(s.ScrollBarHeight, d.height),
-    button: normalizeImagePath(s.ScrollBarButton || d.button),
-  };
-}
-
-/** Parse 7 equipment slots (head/neck/body/back/hand/wrist/foot) */
-function equipSlotsFrom(
-  settings: Record<string, IniSection>,
-  prefix: string
-): {
-  head: { left: number; top: number; width: number; height: number };
-  neck: { left: number; top: number; width: number; height: number };
-  body: { left: number; top: number; width: number; height: number };
-  back: { left: number; top: number; width: number; height: number };
-  hand: { left: number; top: number; width: number; height: number };
-  wrist: { left: number; top: number; width: number; height: number };
-  foot: { left: number; top: number; width: number; height: number };
-} {
-  const slot = (name: string, l: number, t: number) =>
-    rectFrom(getSection(settings, `${prefix}_${name}`), { left: l, top: t, width: 60, height: 75 });
-  return {
-    head: slot("Head", 47, 66),
-    neck: slot("Neck", 193, 66),
-    body: slot("Body", 121, 168),
-    back: slot("Back", 193, 267),
-    hand: slot("Hand", 193, 168),
-    wrist: slot("Wrist", 47, 168),
-    foot: slot("Foot", 47, 267),
-  };
-}
-
-/** Parse a LittleMap direction button ({left,top,image,sound}) */
-function mapBtnFrom(
-  s: IniSection,
-  d: { left: number; top: number; image: string; sound: string }
-): LittleMapButtonConfig {
-  return {
-    left: parseInt2(s.Left, d.left),
-    top: parseInt2(s.Top, d.top),
-    image: normalizeImagePath(s.Image || d.image),
-    sound: s.Sound || d.sound,
-  };
-}
-
-/** Parse a LittleMap text ({left,top,width,height,color,align}) */
-function mapTextFrom(
-  s: IniSection,
-  d: { left: number; top: number; width: number; height: number; color: string; align: number }
-): LittleMapTextConfig {
-  return {
-    left: parseInt2(s.Left, d.left),
-    top: parseInt2(s.Top, d.top),
-    width: parseInt2(s.Width, d.width),
-    height: parseInt2(s.Height, d.height),
-    color: parseColor(s.Color, d.color),
-    align: parseInt2(s.Align, d.align),
-  };
-}
-
-// ============================================
-// Config parsers
-// ============================================
-
-export function parseSystemGuiConfig(settings: Record<string, IniSection>): SystemGuiConfig {
-  return {
-    panel: panelFrom(getSection(settings, "System"), {
-      image: "asf/ui/common/panel.asf",
-      topAdjust: 26,
-    }),
-    saveLoadBtn: buttonFrom(getSection(settings, "System_SaveLoad_Btn"), {
-      left: 58,
-      top: 86,
-      width: 69,
-      height: 64,
-      image: "asf/ui/system/saveload.asf",
-    }),
-    optionBtn: buttonFrom(getSection(settings, "System_Option_Btn"), {
-      left: 58,
-      top: 150,
-      width: 69,
-      height: 54,
-      image: "asf/ui/system/option.asf",
-    }),
-    exitBtn: buttonFrom(getSection(settings, "System_Exit_Btn"), {
-      left: 58,
-      top: 213,
-      width: 69,
-      height: 54,
-      image: "asf/ui/system/quit.asf",
-    }),
-    returnBtn: buttonFrom(getSection(settings, "System_Return_Btn"), {
-      left: 58,
-      top: 276,
-      width: 69,
-      height: 54,
-      image: "asf/ui/system/return.asf",
-    }),
-  };
-}
-
-export function parseStateGuiConfig(settings: Record<string, IniSection>): StateGuiConfig {
-  const d = { left: 144, width: 100, height: 12, color: "rgba(0,0,0,0.7)" } as const;
-  return {
-    panel: panelFrom(getSection(settings, "State"), { image: "asf/ui/common/panel5.asf" }),
-    level: textFrom(getSection(settings, "State_Level"), { ...d, top: 219 }),
-    exp: textFrom(getSection(settings, "State_Exp"), { ...d, top: 234 }),
-    levelUp: textFrom(getSection(settings, "State_LevelUp"), { ...d, top: 249 }),
-    life: textFrom(getSection(settings, "State_Life"), { ...d, top: 264 }),
-    thew: textFrom(getSection(settings, "State_Thew"), { ...d, top: 279 }),
-    mana: textFrom(getSection(settings, "State_Mana"), { ...d, top: 294 }),
-    attack: textFrom(getSection(settings, "State_Attack"), { ...d, top: 309 }),
-    defend: textFrom(getSection(settings, "State_Defend"), { ...d, top: 324 }),
-    evade: textFrom(getSection(settings, "State_Evade"), { ...d, top: 339 }),
-  };
-}
-
-export function parseEquipGuiConfig(settings: Record<string, IniSection>): EquipGuiConfig {
-  return {
-    panel: panelFrom(getSection(settings, "Equip"), { image: "asf/ui/common/panel7.asf" }),
-    ...equipSlotsFrom(settings, "Equip"),
-  };
-}
-
-export function parseNpcEquipGuiConfig(settings: Record<string, IniSection>): NpcEquipGuiConfig {
-  return {
-    panel: panelFrom(getSection(settings, "NpcEquip"), { image: "asf/ui/common/panel7.asf" }),
-    ...equipSlotsFrom(settings, "NpcEquip"),
-  };
-}
-
-export function parseXiuLianGuiConfig(settings: Record<string, IniSection>): XiuLianGuiConfig {
-  return {
-    panel: panelFrom(getSection(settings, "XiuLian"), { image: "asf/ui/common/panel6.asf" }),
-    magicImage: rectFrom(getSection(settings, "XiuLian_Magic_Image"), {
-      left: 52,
-      top: 53,
-      width: 30,
-      height: 38,
-    }),
-    levelText: textFrom(getSection(settings, "XiuLian_Level_Text"), {
-      left: 126,
-      top: 224,
-      width: 80,
-      height: 12,
-      color: "rgba(0,0,0,0.8)",
-    }),
-    expText: textFrom(getSection(settings, "XiuLian_Exp_Text"), {
-      left: 126,
-      top: 243,
-      width: 80,
-      height: 12,
-      color: "rgba(0,0,0,0.8)",
-    }),
-    nameText: textFrom(getSection(settings, "XiuLian_Name_Text"), {
-      left: 105,
-      top: 256,
-      width: 200,
-      height: 20,
-      color: "rgba(88,32,32,0.9)",
-    }),
-    introText: textFrom(getSection(settings, "XiuLian_Intro_Text"), {
-      left: 75,
-      top: 275,
-      width: 145,
-      height: 120,
-      color: "rgba(47,32,88,0.9)",
-    }),
-  };
-}
-
-export function parseGoodsGuiConfig(settings: Record<string, IniSection>): GoodsGuiConfig {
-  const goods = getSection(settings, "Goods");
-  const listItems = getSection(settings, "Goods_List_Items");
-
-  // Parse 9 item slots (3x3 grid) — computed defaults per slot
-  const items = Array.from({ length: 9 }, (_, i) => ({
-    left: parseInt2(listItems[`Item_Left_${i + 1}`], 71 + (i % 3) * 65),
-    top: parseInt2(listItems[`Item_Top_${i + 1}`], 91 + Math.floor(i / 3) * 79),
-    width: parseInt2(listItems[`Item_Width_${i + 1}`], 60),
-    height: parseInt2(listItems[`Item_Height_${i + 1}`], 75),
-  }));
-
-  return {
-    panel: panelFrom(goods, { image: "asf/ui/common/panel3.asf" }),
-    scrollBar: scrollBarFrom(goods, {
-      left: 294,
-      top: 108,
-      width: 28,
-      height: 190,
-      button: "asf/ui/option/slidebtn.asf",
-    }),
-    items,
-    money: textFrom(getSection(settings, "Goods_Money"), {
-      left: 137,
-      top: 363,
-      width: 100,
-      height: 12,
-      color: "rgba(255,255,255,0.8)",
-    }),
-    ...(() => {
-      const gi = getSection(settings, "Goods_GoldIcon");
-      if (!gi.Image && !gi.Left) return {};
-      return {
-        goldIcon: {
-          left: parseInt2(gi.Left, 65),
-          top: parseInt2(gi.Top, 230),
-          width: parseInt2(gi.Width, 26),
-          height: parseInt2(gi.Height, 13),
-          image: normalizeImagePath(gi.Image || "asf/ui/goods/gold.asf"),
-        },
-      };
-    })(),
-  };
-}
-
-export function parseMagicsGuiConfig(settings: Record<string, IniSection>): MagicsGuiConfig {
-  const magics = getSection(settings, "Magics");
-  const listItems = getSection(settings, "Magics_List_Items");
-
-  // Parse 9 item slots (3x3 grid) — computed defaults per slot
-  const items = Array.from({ length: 9 }, (_, i) => ({
-    left: parseInt2(listItems[`Item_Left_${i + 1}`], 71 + (i % 3) * 65),
-    top: parseInt2(listItems[`Item_Top_${i + 1}`], 91 + Math.floor(i / 3) * 79),
-    width: parseInt2(listItems[`Item_Width_${i + 1}`], 60),
-    height: parseInt2(listItems[`Item_Height_${i + 1}`], 75),
-  }));
-
-  return {
-    panel: panelFrom(magics, { image: "asf/ui/common/panel2.asf" }),
-    scrollBar: scrollBarFrom(magics, {
-      left: 294,
-      top: 108,
-      width: 28,
-      height: 190,
-      button: "asf/ui/option/slidebtn.asf",
-    }),
-    items,
-  };
-}
-
-export function parseMemoGuiConfig(settings: Record<string, IniSection>): MemoGuiConfig {
-  const slider = getSection(settings, "Memo_Slider");
-  return {
-    panel: panelFrom(getSection(settings, "Memo"), { image: "asf/ui/common/panel4.asf" }),
-    text: textFrom(getSection(settings, "Memo_Text"), {
-      left: 90,
-      top: 155,
-      width: 150,
-      height: 180,
-      charSpace: 1,
-      lineSpace: 1,
-      color: "rgba(40,25,15,0.8)",
-    }),
-    slider: {
-      ...rectFrom(slider, { left: 295, top: 108, width: 28, height: 190 }),
-      imageBtn: normalizeImagePath(slider.Image_Btn || "asf/ui/option/slidebtn.asf"),
-    },
-    // NOTE: scrollBar 默认值，参考MemoGui.cs 的滚动条位置 (width default 10, different from slider's 28)
-    scrollBar: rectFrom(slider, { left: 295, top: 108, width: 10, height: 190 }),
-  };
-}
-
-export function parseDialogGuiConfig(settings: Record<string, IniSection>): DialogGuiConfig {
-  return {
-    panel: panelFrom(getSection(settings, "Dialog"), {
-      image: "asf/ui/dialog/panel.asf",
-      topAdjust: -208,
-    }),
-    text: {
-      ...textFrom(getSection(settings, "Dialog_Txt"), {
-        left: 65,
-        top: 30,
-        width: 310,
-        height: 70,
-        charSpace: -1,
-        color: "rgba(0,0,0,0.8)",
-      }),
-      charSpace: -1,
-    },
-    selectA: textFrom(getSection(settings, "Dialog_SelA"), {
-      left: 65,
-      top: 52,
-      width: 310,
-      height: 20,
-      charSpace: 1,
-      color: "rgba(0,0,255,0.8)",
-    }),
-    selectB: textFrom(getSection(settings, "Dialog_SelB"), {
-      left: 65,
-      top: 74,
-      width: 310,
-      height: 20,
-      charSpace: 1,
-      color: "rgba(0,0,255,0.8)",
-    }),
-    portrait: rectFrom(getSection(settings, "Dialog_Portrait"), {
-      left: 5,
-      top: -143,
-      width: 200,
-      height: 160,
-    }),
-  };
-}
-
-// ============= SaveLoad GUI Config Parser =============
-
-export function parseSaveLoadGuiConfig(settings: Record<string, IniSection>): SaveLoadGuiConfig {
-  const textList = getSection(settings, "SaveLoad_Text_List");
-  const messageLine = getSection(settings, "SaveLoad_Message_Line_Text");
-
-  // 解析文本列表项 (进度一/进度二/...)
-  const textItems = textList.Text?.split("/") ?? [
-    "进度一",
-    "进度二",
-    "进度三",
-    "进度四",
-    "进度五",
-    "进度六",
-    "进度七",
-  ];
-
-  return {
-    panel: panelFrom(getSection(settings, "SaveLoad"), { image: "asf/ui/saveload/panel.asf" }),
-    snapshot: rectFrom(getSection(settings, "Save_Snapshot"), {
-      left: 256,
-      top: 94,
-      width: 267,
-      height: 200,
-    }),
-    textList: {
-      text: textItems,
-      ...textFrom(textList, {
-        left: 135,
-        top: 118,
-        width: 80,
-        height: 189,
-        charSpace: 3,
-        color: "rgba(91,31,27,0.8)",
-      }),
-      itemHeight: parseInt2(textList.ItemHeight, 25),
-      selectedColor: parseColor(textList.SelectedColor, "rgba(102,73,212,0.8)"),
-      sound: textList.Sound || "界-浏览.wav",
-    },
-    loadBtn: buttonFrom(getSection(settings, "SaveLoad_Load_Btn"), {
-      left: 248,
-      top: 355,
-      width: 64,
-      height: 72,
-      image: "asf/ui/saveload/btnLoad.asf",
-      sound: "界-大按钮.wav",
-    }),
-    saveBtn: buttonFrom(getSection(settings, "SaveLoad_Save_Btn"), {
-      left: 366,
-      top: 355,
-      width: 64,
-      height: 72,
-      image: "asf/ui/saveload/btnSave.asf",
-      sound: "界-大按钮.wav",
-    }),
-    exitBtn: buttonFrom(getSection(settings, "SaveLoad_Exit_Btn"), {
-      left: 464,
-      top: 355,
-      width: 64,
-      height: 72,
-      image: "asf/ui/saveload/btnExit.asf",
-      sound: "界-大按钮.wav",
-    }),
-    saveTimeText: textFrom(getSection(settings, "SaveLoad_Save_Time_Text"), {
-      left: 254,
-      top: 310,
-      width: 350,
-      height: 30,
-      charSpace: 1,
-      color: "rgba(182,219,189,0.7)",
-    }),
-    messageLine: {
-      ...textFrom(messageLine, {
-        left: 0,
-        top: 440,
-        width: 640,
-        height: 40,
-        color: "rgba(255,215,0,0.8)",
-      }),
-      align: parseInt2(messageLine.Align, 1),
-    },
-  };
-}
-
-// ============= Message GUI Config =============
-//  - shows system messages like level up notifications
-
 export interface MessageGuiConfig {
-  panel: {
-    image: string;
-    leftAdjust: number;
-    topAdjust: number;
-  };
-  text: {
-    left: number;
-    top: number;
-    width: number;
-    height: number;
-    charSpace: number;
-    lineSpace: number;
-    color: string;
-  };
+  panel: { image: string; leftAdjust: number; topAdjust: number };
+  text: TextConfig;
 }
-
-export function parseMessageGuiConfig(settings: Record<string, IniSection>): MessageGuiConfig {
-  return {
-    panel: panelFrom(getSection(settings, "Message"), {
-      image: "asf/ui/message/msgbox.asf",
-      leftAdjust: -10,
-      topAdjust: -47,
-    }),
-    text: textFrom(getSection(settings, "Message_Text"), {
-      left: 46,
-      top: 32,
-      width: 148,
-      height: 50,
-      color: "rgba(155,34,22,0.8)",
-    }),
-  };
-}
-
-// ============= NPC Info Show Config =============
-//  - displays NPC life bar at top of screen
-// Reference: InfoDrawer.DrawLife() reads [NpcInfoShow] section
 
 export interface NpcInfoShowConfig {
   width: number;
@@ -846,19 +494,6 @@ export interface NpcInfoShowConfig {
   leftAdjust: number;
   topAdjust: number;
 }
-
-export function parseNpcInfoShowConfig(settings: Record<string, IniSection>): NpcInfoShowConfig {
-  const s = getSection(settings, "NpcInfoShow");
-  return {
-    width: parseInt2(s.Width, 300),
-    height: parseInt2(s.Height, 25),
-    leftAdjust: parseInt2(s.LeftAdjust, 0),
-    topAdjust: parseInt2(s.TopAdjust, 50),
-  };
-}
-
-// ============= LittleMap (小地图) Config =============
-//  - shows a mini map for navigation
 
 export interface LittleMapButtonConfig {
   left: number;
@@ -873,15 +508,11 @@ export interface LittleMapTextConfig {
   width: number;
   height: number;
   color: string;
-  align: number; // 0=left, 1=center, 2=right
+  align: number;
 }
 
 export interface LittleMapGuiConfig {
-  panel: {
-    image: string;
-    leftAdjust: number;
-    topAdjust: number;
-  };
+  panel: { image: string; leftAdjust: number; topAdjust: number };
   leftBtn: LittleMapButtonConfig;
   rightBtn: LittleMapButtonConfig;
   upBtn: LittleMapButtonConfig;
@@ -892,124 +523,12 @@ export interface LittleMapGuiConfig {
   messageTipText: LittleMapTextConfig;
 }
 
-export function parseLittleMapGuiConfig(settings: Record<string, IniSection>): LittleMapGuiConfig {
-  const snd = "界-浏览.wav";
-  return {
-    panel: panelFrom(getSection(settings, "LittleMap"), { image: "asf/ui/littlemap/panel.asf" }),
-    leftBtn: mapBtnFrom(getSection(settings, "LittleMap_Left_Btn"), {
-      left: 437,
-      top: 379,
-      image: "asf/ui/littlemap/btnleft.asf",
-      sound: snd,
-    }),
-    rightBtn: mapBtnFrom(getSection(settings, "LittleMap_Right_Btn"), {
-      left: 464,
-      top: 379,
-      image: "asf/ui/littlemap/btnright.asf",
-      sound: snd,
-    }),
-    upBtn: mapBtnFrom(getSection(settings, "LittleMap_Up_Btn"), {
-      left: 448,
-      top: 368,
-      image: "asf/ui/littlemap/btnup.asf",
-      sound: snd,
-    }),
-    downBtn: mapBtnFrom(getSection(settings, "LittleMap_Down_Btn"), {
-      left: 448,
-      top: 395,
-      image: "asf/ui/littlemap/btndown.asf",
-      sound: snd,
-    }),
-    closeBtn: mapBtnFrom(getSection(settings, "LittleMap_Close_Btn"), {
-      left: 448,
-      top: 379,
-      image: "asf/ui/littlemap/btnclose.asf",
-      sound: snd,
-    }),
-    mapNameText: mapTextFrom(getSection(settings, "LittleMap_Map_Name_Line_Text"), {
-      left: 210,
-      top: 92,
-      width: 220,
-      height: 30,
-      color: "rgba(76,56,48,0.8)",
-      align: 1,
-    }),
-    bottomTipText: mapTextFrom(getSection(settings, "LittleMap_Bottom_Tip_Line_Text"), {
-      left: 160,
-      top: 370,
-      width: 260,
-      height: 30,
-      color: "rgba(76,56,48,0.8)",
-      align: 0,
-    }),
-    messageTipText: mapTextFrom(getSection(settings, "LittleMap_Message_Tip_Line_Text"), {
-      left: 160,
-      top: 370,
-      width: 260,
-      height: 30,
-      color: "rgba(200,0,0,0.8)",
-      align: 2,
-    }),
-  };
-}
-
-// ============= BuySell (商店) Config =============
-//  - shows shop interface for buying/selling items
-
 export interface BuySellGuiConfig {
-  panel: {
-    image: string;
-    leftAdjust: number;
-    topAdjust: number;
-  };
-  scrollBar: {
-    left: number;
-    top: number;
-    width: number;
-    height: number;
-    button: string;
-  };
+  panel: { image: string; leftAdjust: number; topAdjust: number };
+  scrollBar: { left: number; top: number; width: number; height: number; button: string };
   items: { left: number; top: number; width: number; height: number }[];
-  closeBtn: {
-    left: number;
-    top: number;
-    image: string;
-    sound: string;
-  };
+  closeBtn: { left: number; top: number; image: string; sound: string };
 }
-
-export function parseBuySellGuiConfig(settings: Record<string, IniSection>): BuySellGuiConfig {
-  const buySell = getSection(settings, "BuySell");
-  const listItems = getSection(settings, "BuySell_List_Items");
-
-  // Parse 9 item slots (3x3 grid) — computed defaults per slot
-  const items = Array.from({ length: 9 }, (_, i) => ({
-    left: parseInt2(listItems[`Item_Left_${i + 1}`], 55 + (i % 3) * 65),
-    top: parseInt2(listItems[`Item_Top_${i + 1}`], 91 + Math.floor(i / 3) * 79),
-    width: parseInt2(listItems[`Item_Width_${i + 1}`], 60),
-    height: parseInt2(listItems[`Item_Height_${i + 1}`], 75),
-  }));
-
-  return {
-    panel: panelFrom(buySell, { image: "asf/ui/common/panel8.asf" }),
-    scrollBar: scrollBarFrom(buySell, {
-      left: 271,
-      top: 108,
-      width: 28,
-      height: 190,
-      button: "asf/ui/option/slidebtn.asf",
-    }),
-    items,
-    closeBtn: {
-      left: parseInt2(buySell.CloseLeft, 117),
-      top: parseInt2(buySell.CloseTop, 354),
-      image: normalizeImagePath(buySell.CloseImage || "asf/ui/buysell/CloseBtn.asf"),
-      sound: buySell.CloseSound || "界-大按钮.wav",
-    },
-  };
-}
-
-// ============= Bottom (底部快捷栏) Config =============
 
 export interface BottomSlotConfig {
   left: number;
@@ -1023,73 +542,6 @@ export interface BottomGuiConfig {
   items: BottomSlotConfig[];
   buttons: ButtonConfig[];
 }
-
-/** Button section names under [Bottom] for sword2-style layout */
-const BOTTOM_BUTTON_SECTIONS = [
-  "Bottom_State_Btn",
-  "Bottom_Equip_Btn",
-  "Bottom_XiuLian_Btn",
-  "Bottom_Goods_Btn",
-  "Bottom_Magic_Btn",
-  "Bottom_Memo_Btn",
-  "Bottom_System_Btn",
-] as const;
-
-const BOTTOM_BUTTON_DEFAULTS: {
-  left: number;
-  top: number;
-  width: number;
-  height: number;
-  image: string;
-  sound: string;
-}[] = [
-  { left: 43, top: 4, width: 30, height: 30, image: "asf/ui/bottom/BtnState.asf", sound: "" },
-  { left: 7, top: 36, width: 30, height: 30, image: "asf/ui/bottom/BtnEquip.asf", sound: "" },
-  { left: 40, top: 36, width: 30, height: 30, image: "asf/ui/bottom/BtnXiuLian.asf", sound: "" },
-  { left: 500, top: 0, width: 30, height: 30, image: "asf/ui/bottom/BtnGoods.asf", sound: "" },
-  { left: 534, top: 0, width: 30, height: 30, image: "asf/ui/bottom/BtnMagic.asf", sound: "" },
-  { left: 493, top: 32, width: 30, height: 30, image: "asf/ui/bottom/BtnNotes.asf", sound: "" },
-  { left: 526, top: 33, width: 30, height: 30, image: "asf/ui/bottom/BtnOption.asf", sound: "" },
-];
-
-export function parseBottomGuiConfig(settings: Record<string, IniSection>): BottomGuiConfig {
-  const bottomItems = getSection(settings, "Bottom_Items");
-
-  // 8 slots: 1-3 items, 4-8 magic (matching C# BottomGui)
-  const defaultSlots: BottomSlotConfig[] = [
-    { left: 7, top: 20, width: 30, height: 40 },
-    { left: 44, top: 20, width: 30, height: 40 },
-    { left: 82, top: 20, width: 30, height: 40 },
-    { left: 199, top: 20, width: 30, height: 40 },
-    { left: 238, top: 20, width: 30, height: 40 },
-    { left: 277, top: 20, width: 30, height: 40 },
-    { left: 316, top: 20, width: 30, height: 40 },
-    { left: 354, top: 20, width: 30, height: 40 },
-  ];
-
-  const items = Array.from({ length: 8 }, (_, i) => ({
-    left: parseInt2(bottomItems[`Item_Left_${i + 1}`], defaultSlots[i].left),
-    top: parseInt2(bottomItems[`Item_Top_${i + 1}`], defaultSlots[i].top),
-    width: parseInt2(bottomItems[`Item_Width_${i + 1}`], defaultSlots[i].width),
-    height: parseInt2(bottomItems[`Item_Height_${i + 1}`], defaultSlots[i].height),
-  }));
-
-  // Parse function buttons (sword2-style: buttons are part of the bottom bar)
-  const buttons = BOTTOM_BUTTON_SECTIONS.map((sec, i) =>
-    buttonFrom(getSection(settings, sec), BOTTOM_BUTTON_DEFAULTS[i])
-  );
-
-  return {
-    panel: panelFrom(getSection(settings, "Bottom"), {
-      image: "asf/ui/bottom/window.asf",
-      leftAdjust: 102,
-    }),
-    items,
-    buttons,
-  };
-}
-
-// ============= BottomState (血蓝条) Config =============
 
 export interface BottomStateBarConfig {
   image: string;
@@ -1106,93 +558,10 @@ export interface BottomStateGuiConfig {
   mana: BottomStateBarConfig;
 }
 
-export function parseBottomStateGuiConfig(settings: Record<string, IniSection>): BottomStateGuiConfig {
-  const barFrom = (s: IniSection, d: BottomStateBarConfig): BottomStateBarConfig => ({
-    image: normalizeImagePath(s.Image || d.image),
-    left: parseInt2(s.Left, d.left),
-    top: parseInt2(s.Top, d.top),
-    width: parseInt2(s.Width, d.width),
-    height: parseInt2(s.Height, d.height),
-  });
-
-  return {
-    panel: panelFrom(getSection(settings, "BottomState"), {
-      image: "asf/ui/column/panel9.asf",
-      leftAdjust: -320,
-    }),
-    life: barFrom(getSection(settings, "BottomState_Life"), {
-      image: "asf/ui/column/ColLife.asf",
-      left: 11,
-      top: 22,
-      width: 48,
-      height: 46,
-    }),
-    thew: barFrom(getSection(settings, "BottomState_Thew"), {
-      image: "asf/ui/column/ColThew.asf",
-      left: 59,
-      top: 22,
-      width: 48,
-      height: 46,
-    }),
-    mana: barFrom(getSection(settings, "BottomState_Mana"), {
-      image: "asf/ui/column/ColMana.asf",
-      left: 113,
-      top: 22,
-      width: 48,
-      height: 46,
-    }),
-  };
-}
-
-// ============= Top (顶部/侧边功能按钮栏) Config =============
-
 export interface TopGuiConfig {
   panel: PanelConfig;
   buttons: ButtonConfig[];
 }
-
-/** Button section names in C# order: State, Equip, XiuLian, Goods, Magic, Memo, System */
-const TOP_BUTTON_SECTIONS = [
-  "Top_State_Btn",
-  "Top_Equip_Btn",
-  "Top_XiuLian_Btn",
-  "Top_Goods_Btn",
-  "Top_Magic_Btn",
-  "Top_Memo_Btn",
-  "Top_System_Btn",
-] as const;
-
-const TOP_BUTTON_DEFAULTS: {
-  left: number;
-  top: number;
-  width: number;
-  height: number;
-  image: string;
-  sound: string;
-}[] = [
-  { left: 52, top: 0, width: 19, height: 19, image: "asf/ui/top/BtnState.asf", sound: "界-大按钮.wav" },
-  { left: 80, top: 0, width: 19, height: 19, image: "asf/ui/top/BtnEquip.asf", sound: "界-大按钮.wav" },
-  { left: 107, top: 0, width: 19, height: 19, image: "asf/ui/top/BtnXiuLian.asf", sound: "界-大按钮.wav" },
-  { left: 135, top: 0, width: 19, height: 19, image: "asf/ui/top/BtnGoods.asf", sound: "界-大按钮.wav" },
-  { left: 162, top: 0, width: 19, height: 19, image: "asf/ui/top/BtnMagic.asf", sound: "界-大按钮.wav" },
-  { left: 189, top: 0, width: 19, height: 19, image: "asf/ui/top/BtnNotes.asf", sound: "界-大按钮.wav" },
-  { left: 216, top: 0, width: 19, height: 19, image: "asf/ui/top/BtnOption.asf", sound: "界-大按钮.wav" },
-];
-
-export function parseTopGuiConfig(settings: Record<string, IniSection>): TopGuiConfig {
-  const buttons = TOP_BUTTON_SECTIONS.map((sec, i) =>
-    buttonFrom(getSection(settings, sec), TOP_BUTTON_DEFAULTS[i])
-  );
-
-  return {
-    panel: panelFrom(getSection(settings, "Top"), {
-      image: "asf/ui/top/window.asf",
-    }),
-    buttons,
-  };
-}
-
-// ============= ToolTip Config =============
 
 export interface ToolTipUseTypeConfig {
   useType: 1 | 2;
@@ -1213,108 +582,502 @@ export interface ToolTipType2Config {
   goodIntroColor: UiColorRGBA;
 }
 
-export function parseToolTipUseTypeConfig(settings: Record<string, IniSection>): ToolTipUseTypeConfig {
-  const sec = getSection(settings, "ToolTip_Use_Type");
-  const useType = parseInt2(sec["UseType"], 1);
-  return { useType: useType === 2 ? 2 : 1 };
-}
-
-export function parseToolTipType2Config(settings: Record<string, IniSection>): ToolTipType2Config {
-  const sec = getSection(settings, "ToolTip_Type2");
-  return {
-    width: parseInt2(sec["Width"], 288),
-    textHorizontalPadding: parseInt2(sec["TextHorizontalPadding"], 6),
-    textVerticalPadding: parseInt2(sec["TextVerticalPadding"], 4),
-    backgroundColor: parseIniColor(sec["BackgroundColor"] ?? "0,0,0,160"),
-    magicNameColor: parseIniColor(sec["MagicNameColor"] ?? "225,225,110,160"),
-    magicLevelColor: parseIniColor(sec["MagicLevelColor"] ?? "255,255,255,160"),
-    magicIntroColor: parseIniColor(sec["MagicIntroColor"] ?? "255,255,255,160"),
-    goodNameColor: parseIniColor(sec["GoodNameColor"] ?? "245,233,171,160"),
-    goodPriceColor: parseIniColor(sec["GoodPriceColor"] ?? "255,255,255,160"),
-    goodUserColor: parseIniColor(sec["GoodUserColor"] ?? "255,255,255,160"),
-    goodPropertyColor: parseIniColor(sec["GoodPropertyColor"] ?? "255,255,255,160"),
-    goodIntroColor: parseIniColor(sec["GoodIntroColor"] ?? "255,255,255,160"),
-  };
-}
-
-// ============= ToolTip Type1 Config =============
-// 图片背景式 tooltip（tipbox 图 + 内部文字/图标布局）
-// C# 参考: Engine/Gui/ToolTipGuiType1.cs
-
 export interface ToolTipType1Config {
-  /** 背景 tipbox 图路径 [ToolTip_Type1] Image */
   image: string;
-  /** 武功/物品图标区域 [ToolTip_Type1_Item_Image] */
   itemImage: { left: number; top: number; width: number; height: number };
-  /** 名称文字 [ToolTip_Type1_Item_Name] */
   name: TextConfig;
-  /** 等级/价格文字 [ToolTip_Type1_Item_PriceOrLevel] */
   priceOrLevel: TextConfig;
-  /** 物品效果文字 [ToolTip_Type1_Item_Effect] */
   effect: TextConfig;
-  /** 武功简介 [ToolTip_Type1_Item_Magic_Intro] */
   magicIntro: TextConfig;
-  /** 物品简介 [ToolTip_Type1_Item_Good_Intro] */
   goodIntro: TextConfig;
 }
 
-export function parseToolTipType1Config(settings: Record<string, IniSection>): ToolTipType1Config {
-  const sec = getSection(settings, "ToolTip_Type1");
-  const imageSec = getSection(settings, "ToolTip_Type1_Item_Image");
-  const nameSec = getSection(settings, "ToolTip_Type1_Item_Name");
-  const priceOrLevelSec = getSection(settings, "ToolTip_Type1_Item_PriceOrLevel");
-  const effectSec = getSection(settings, "ToolTip_Type1_Item_Effect");
-  const magicIntroSec = getSection(settings, "ToolTip_Type1_Item_Magic_Intro");
-  const goodIntroSec = getSection(settings, "ToolTip_Type1_Item_Good_Intro");
-
-  return {
-    image: normalizeImagePath(sec.Image ?? "asf/ui/common/tipbox.asf"),
-    itemImage: rectFrom(imageSec, { left: 132, top: 47, width: 60, height: 75 }),
-    name: textFrom(nameSec, { left: 67, top: 191, width: 90, height: 20, color: "rgb(102,73,212)" }),
-    priceOrLevel: textFrom(priceOrLevelSec, { left: 160, top: 191, width: 88, height: 20, color: "rgb(91,31,27)" }),
-    effect: textFrom(effectSec, { left: 67, top: 210, width: 196, height: 40, color: "rgb(52,21,14)" }),
-    magicIntro: textFrom(magicIntroSec, { left: 67, top: 255, width: 196, height: 80, color: "rgb(52,21,14)" }),
-    goodIntro: textFrom(goodIntroSec, { left: 67, top: 255, width: 196, height: 80, color: "rgb(52,21,14)" }),
-  };
-}
-
-// ============= Title GUI Config =============
-// 参考 C# TitleGui.cs：读取 [Title] 背景图 + 4 个按钮
-
 export interface TitleGuiConfig {
-  /** 背景图路径（jpg/png/asf），[Title] BackgroundImage */
   backgroundImage: string;
-  /** 垂直偏移（可选），[Title] TopAdjust */
   topAdjust: number;
-  /** 水平偏移（可选），[Title] LeftAdjust */
   leftAdjust: number;
-  /** 开始游戏按钮 [Title_Btn_Begin] */
   beginBtn: ButtonConfig;
-  /** 读取存档按钮 [Title_Btn_Load] */
   loadBtn: ButtonConfig;
-  /** 制作组按钮 [Title_Btn_Team] */
   teamBtn: ButtonConfig;
-  /** 退出按钮 [Title_Btn_Exit] */
   exitBtn: ButtonConfig;
 }
 
-/**
- * 解析 Title GUI 配置。
- * 若 INI 中没有 [Title] 节或 BackgroundImage 为空，返回 null。
- */
-export function parseTitleGuiConfig(settings: Record<string, IniSection>): TitleGuiConfig | null {
-  const titleSec = getSection(settings, "Title");
-  const bgImage = normalizeImagePath(titleSec.BackgroundImage || "");
-  if (!bgImage) return null;
+// ============================================
+// 解析器：UiTheme → 展开的渲染配置
+// ============================================
 
-  const btnDefaults = { left: 0, top: 0, width: 80, height: 60, image: "", sound: "" };
+/** 所有展开后的 UI 配置 */
+export interface ResolvedUiConfigs {
+  title: TitleGuiConfig | null;
+  saveLoad: SaveLoadGuiConfig;
+  system: SystemGuiConfig;
+  state: StateGuiConfig;
+  equip: EquipGuiConfig;
+  npcEquip: NpcEquipGuiConfig;
+  xiuLian: XiuLianGuiConfig;
+  goods: GoodsGuiConfig;
+  magics: MagicsGuiConfig;
+  memo: MemoGuiConfig;
+  dialog: DialogGuiConfig;
+  message: MessageGuiConfig;
+  npcInfoShow: NpcInfoShowConfig;
+  littleMap: LittleMapGuiConfig;
+  buySell: BuySellGuiConfig;
+  bottom: BottomGuiConfig;
+  bottomState: BottomStateGuiConfig;
+  top: TopGuiConfig;
+  toolTipUseType: ToolTipUseTypeConfig;
+  toolTipType1: ToolTipType1Config;
+  toolTipType2: ToolTipType2Config;
+}
+
+// ---------- 内部展开工具 ----------
+
+function resolvePanel(p: ThemePanel): PanelConfig {
+  if (typeof p === "string") {
+    return { image: p, leftAdjust: 0, topAdjust: 0 };
+  }
   return {
-    backgroundImage: bgImage,
-    topAdjust: parseInt2(titleSec.TopAdjust, 0),
-    leftAdjust: parseInt2(titleSec.LeftAdjust, 0),
-    beginBtn: buttonFrom(getSection(settings, "Title_Btn_Begin"), btnDefaults),
-    loadBtn: buttonFrom(getSection(settings, "Title_Btn_Load"), btnDefaults),
-    teamBtn: buttonFrom(getSection(settings, "Title_Btn_Team"), btnDefaults),
-    exitBtn: buttonFrom(getSection(settings, "Title_Btn_Exit"), btnDefaults),
+    image: p.image,
+    leftAdjust: p.offset?.[0] ?? 0,
+    topAdjust: p.offset?.[1] ?? 0,
+    ...(p.overlay ? { overlayImage: p.overlay } : {}),
+    ...(p.overlayOffset
+      ? { overlayLeft: p.overlayOffset[0], overlayTop: p.overlayOffset[1] }
+      : {}),
+    ...(p.size ? { width: p.size[0], height: p.size[1] } : {}),
+    ...(p.anchor === "bottom" ? { anchor: "Bottom" as const } : {}),
   };
+}
+
+function resolveButton(b: ThemeButton): ButtonConfig {
+  return {
+    left: b.pos[0],
+    top: b.pos[1],
+    width: b.size[0],
+    height: b.size[1],
+    image: b.image,
+    sound: b.sound,
+  };
+}
+
+function resolveText(t: ThemeText, defaultColor = "rgba(0,0,0,0.8)"): TextConfig {
+  return {
+    left: t.pos[0],
+    top: t.pos[1],
+    width: t.size[0],
+    height: t.size[1],
+    charSpace: t.charSpace ?? 0,
+    lineSpace: t.lineSpace ?? 0,
+    color: t.color ?? defaultColor,
+  };
+}
+
+function resolveRect(r: ThemeRect): {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+} {
+  return { left: r.pos[0], top: r.pos[1], width: r.size[0], height: r.size[1] };
+}
+
+/** 网格 → 逐项坐标数组 */
+function resolveGrid(g: ThemeGrid): {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+}[] {
+  const items: { left: number; top: number; width: number; height: number }[] =
+    [];
+  for (let row = 0; row < g.rows; row++) {
+    for (let col = 0; col < g.cols; col++) {
+      items.push({
+        left: g.origin[0] + col * (g.cell[0] + g.gap[0]),
+        top: g.origin[1] + row * (g.cell[1] + g.gap[1]),
+        width: g.cell[0],
+        height: g.cell[1],
+      });
+    }
+  }
+  return items;
+}
+
+function resolveMapBtn(b: ThemeMapButton): LittleMapButtonConfig {
+  return {
+    left: b.pos[0],
+    top: b.pos[1],
+    image: b.image,
+    sound: b.sound ?? "界-浏览.wav",
+  };
+}
+
+function resolveMapText(
+  t: ThemeMapText,
+  defaultColor = "rgba(76,56,48,0.8)",
+): LittleMapTextConfig {
+  return {
+    left: t.pos[0],
+    top: t.pos[1],
+    width: t.size[0],
+    height: t.size[1],
+    color: t.color ?? defaultColor,
+    align: t.align ?? 0,
+  };
+}
+
+function resolveBar(b: ThemeBar): BottomStateBarConfig {
+  return {
+    image: b.image,
+    left: b.pos[0],
+    top: b.pos[1],
+    width: b.size[0],
+    height: b.size[1],
+  };
+}
+
+function resolveScrollBar(sb: ThemeScrollBar): {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+  button: string;
+} {
+  return {
+    left: sb.pos[0],
+    top: sb.pos[1],
+    width: sb.size[0],
+    height: sb.size[1],
+    button: sb.button,
+  };
+}
+
+function resolveEquip(e: ThemeEquip): EquipGuiConfig {
+  const [sw, sh] = e.slotSize;
+  const slot = (p: Pos) => ({ left: p[0], top: p[1], width: sw, height: sh });
+  return {
+    panel: resolvePanel(e.panel),
+    head: slot(e.slots.head),
+    neck: slot(e.slots.neck),
+    body: slot(e.slots.body),
+    back: slot(e.slots.back),
+    hand: slot(e.slots.hand),
+    wrist: slot(e.slots.wrist),
+    foot: slot(e.slots.foot),
+  };
+}
+
+/** 支持 "rgba(r,g,b,a)" 和 "r,g,b,a" 两种颜色格式 */
+function parseColorStr(s: string): UiColorRGBA {
+  const rgbaMatch = s.match(/rgba?\(([^)]+)\)/);
+  if (rgbaMatch) {
+    const parts = rgbaMatch[1]
+      .split(",")
+      .map((p) => Number.parseFloat(p.trim()));
+    return {
+      r: Math.round(parts[0] ?? 0),
+      g: Math.round(parts[1] ?? 0),
+      b: Math.round(parts[2] ?? 0),
+      a: parts[3] !== undefined ? Math.round(parts[3] * 255) : 255,
+    };
+  }
+  return parseIniColor(s);
+}
+
+/**
+ * 将 UiTheme 展开为所有渲染配置
+ */
+export function resolveTheme(theme: UiTheme): ResolvedUiConfigs {
+  // --- title ---
+  const title: TitleGuiConfig | null = theme.title
+    ? {
+        backgroundImage: theme.title.background,
+        topAdjust: theme.title.offset?.[1] ?? 0,
+        leftAdjust: theme.title.offset?.[0] ?? 0,
+        beginBtn: resolveButton(theme.title.buttons.begin),
+        loadBtn: resolveButton(theme.title.buttons.load),
+        teamBtn: resolveButton(theme.title.buttons.team),
+        exitBtn: resolveButton(theme.title.buttons.exit),
+      }
+    : null;
+
+  // --- system ---
+  const system: SystemGuiConfig = {
+    panel: resolvePanel(theme.system.panel),
+    saveLoadBtn: resolveButton(theme.system.saveLoadBtn),
+    optionBtn: resolveButton(theme.system.optionBtn),
+    exitBtn: resolveButton(theme.system.exitBtn),
+    returnBtn: resolveButton(theme.system.returnBtn),
+  };
+
+  // --- state ---
+  const stateDefaultColor = theme.state.color ?? "rgba(0,0,0,0.7)";
+  const state: StateGuiConfig = {
+    panel: resolvePanel(theme.state.panel),
+    level: resolveText(theme.state.level, stateDefaultColor),
+    exp: resolveText(theme.state.exp, stateDefaultColor),
+    levelUp: resolveText(theme.state.levelUp, stateDefaultColor),
+    life: resolveText(theme.state.life, stateDefaultColor),
+    thew: resolveText(theme.state.thew, stateDefaultColor),
+    mana: resolveText(theme.state.mana, stateDefaultColor),
+    attack: resolveText(theme.state.attack, stateDefaultColor),
+    defend: resolveText(theme.state.defend, stateDefaultColor),
+    evade: resolveText(theme.state.evade, stateDefaultColor),
+  };
+
+  // --- goods ---
+  const goods: GoodsGuiConfig = {
+    panel: resolvePanel(theme.goods.panel),
+    scrollBar: resolveScrollBar(theme.goods.scrollBar),
+    items: resolveGrid(theme.goods.grid),
+    cols: theme.goods.grid.cols,
+    rows: theme.goods.grid.rows,
+    money: resolveText(theme.goods.money, "rgba(255,255,255,0.8)"),
+    ...(theme.goods.goldIcon
+      ? {
+          goldIcon: {
+            left: theme.goods.goldIcon.pos[0],
+            top: theme.goods.goldIcon.pos[1],
+            width: theme.goods.goldIcon.size[0],
+            height: theme.goods.goldIcon.size[1],
+            image: theme.goods.goldIcon.image,
+          },
+        }
+      : {}),
+  };
+
+  // --- magics ---
+  const magics: MagicsGuiConfig = {
+    panel: resolvePanel(theme.magics.panel),
+    scrollBar: resolveScrollBar(theme.magics.scrollBar),
+    items: resolveGrid(theme.magics.grid),
+    cols: theme.magics.grid.cols,
+    rows: theme.magics.grid.rows,
+  };
+
+  // --- memo ---
+  const memoSlider = resolveRect(theme.memo.slider);
+  const memo: MemoGuiConfig = {
+    panel: resolvePanel(theme.memo.panel),
+    text: resolveText(theme.memo.text, "rgba(40,25,15,0.8)"),
+    slider: { ...memoSlider, imageBtn: theme.memo.slider.imageBtn },
+    scrollBar: theme.memo.scrollBar
+      ? resolveRect(theme.memo.scrollBar)
+      : { ...memoSlider, width: 10 },
+  };
+
+  // --- dialog ---
+  const dialog: DialogGuiConfig = {
+    panel: resolvePanel(theme.dialog.panel),
+    text: resolveText(theme.dialog.text, "rgba(0,0,0,0.8)"),
+    selectA: resolveText(theme.dialog.selectA, "rgba(0,0,255,0.8)"),
+    selectB: resolveText(theme.dialog.selectB, "rgba(0,0,255,0.8)"),
+    portrait: resolveRect(theme.dialog.portrait),
+  };
+
+  // --- saveLoad ---
+  const sl = theme.saveLoad;
+  const saveLoad: SaveLoadGuiConfig = {
+    panel: resolvePanel(sl.panel),
+    snapshot: resolveRect(sl.snapshot),
+    textList: {
+      text: sl.textList.text,
+      left: sl.textList.pos[0],
+      top: sl.textList.pos[1],
+      width: sl.textList.size[0],
+      height: sl.textList.size[1],
+      charSpace: sl.textList.charSpace ?? 0,
+      lineSpace: sl.textList.lineSpace ?? 0,
+      itemHeight: sl.textList.itemHeight,
+      color: sl.textList.color ?? "rgba(91,31,27,0.8)",
+      selectedColor: sl.textList.selectedColor ?? "rgba(102,73,212,0.8)",
+      sound: sl.textList.sound ?? "界-浏览.wav",
+    },
+    loadBtn: resolveButton(sl.loadBtn),
+    saveBtn: resolveButton(sl.saveBtn),
+    exitBtn: resolveButton(sl.exitBtn),
+    saveTimeText: resolveText(sl.saveTimeText, "rgba(182,219,189,0.7)"),
+    messageLine: {
+      ...resolveText(sl.messageLine, "rgba(255,215,0,0.8)"),
+      align: sl.messageLine.align ?? 1,
+    },
+  };
+
+  // --- message ---
+  const message: MessageGuiConfig = {
+    panel: resolvePanel(theme.message.panel),
+    text: resolveText(theme.message.text, "rgba(155,34,22,0.8)"),
+  };
+
+  // --- npcInfoShow ---
+  const npcInfoShow: NpcInfoShowConfig = {
+    width: theme.npcInfoShow.size[0],
+    height: theme.npcInfoShow.size[1],
+    leftAdjust: theme.npcInfoShow.offset?.[0] ?? 0,
+    topAdjust: theme.npcInfoShow.offset?.[1] ?? 0,
+  };
+
+  // --- littleMap ---
+  const littleMap: LittleMapGuiConfig = {
+    panel: resolvePanel(theme.littleMap.panel),
+    leftBtn: resolveMapBtn(theme.littleMap.leftBtn),
+    rightBtn: resolveMapBtn(theme.littleMap.rightBtn),
+    upBtn: resolveMapBtn(theme.littleMap.upBtn),
+    downBtn: resolveMapBtn(theme.littleMap.downBtn),
+    closeBtn: resolveMapBtn(theme.littleMap.closeBtn),
+    mapNameText: resolveMapText(theme.littleMap.mapNameText),
+    bottomTipText: resolveMapText(theme.littleMap.bottomTipText),
+    messageTipText: resolveMapText(
+      theme.littleMap.messageTipText,
+      "rgba(200,0,0,0.8)",
+    ),
+  };
+
+  // --- buySell ---
+  const buySell: BuySellGuiConfig = {
+    panel: resolvePanel(theme.buySell.panel),
+    scrollBar: resolveScrollBar(theme.buySell.scrollBar),
+    items: resolveGrid(theme.buySell.grid),
+    closeBtn: resolveMapBtn(theme.buySell.closeBtn),
+  };
+
+  // --- bottom ---
+  const bottom: BottomGuiConfig = {
+    panel: resolvePanel(theme.bottom.panel),
+    items: theme.bottom.items.map((item) => ({
+      left: item.pos[0],
+      top: item.pos[1],
+      width: item.size[0],
+      height: item.size[1],
+    })),
+    buttons: theme.bottom.buttons.map(resolveButton),
+  };
+
+  // --- bottomState ---
+  const bottomState: BottomStateGuiConfig = {
+    panel: resolvePanel(theme.bottomState.panel),
+    life: resolveBar(theme.bottomState.life),
+    thew: resolveBar(theme.bottomState.thew),
+    mana: resolveBar(theme.bottomState.mana),
+  };
+
+  // --- top ---
+  const top: TopGuiConfig = {
+    panel: resolvePanel(theme.top.panel),
+    buttons: theme.top.buttons.map(resolveButton),
+  };
+
+  // --- tooltips ---
+  const toolTipUseType: ToolTipUseTypeConfig = { useType: theme.tooltipMode };
+
+  const t2 = theme.tooltip2;
+  const toolTipType2: ToolTipType2Config = {
+    width: t2.width ?? 288,
+    textHorizontalPadding: t2.textHorizontalPadding ?? 6,
+    textVerticalPadding: t2.textVerticalPadding ?? 4,
+    backgroundColor: parseColorStr(t2.backgroundColor ?? "rgba(0,0,0,0.63)"),
+    magicNameColor: parseColorStr(t2.magicNameColor ?? "rgba(225,225,110,0.63)"),
+    magicLevelColor: parseColorStr(
+      t2.magicLevelColor ?? "rgba(255,255,255,0.63)",
+    ),
+    magicIntroColor: parseColorStr(
+      t2.magicIntroColor ?? "rgba(255,255,255,0.63)",
+    ),
+    goodNameColor: parseColorStr(t2.goodNameColor ?? "rgba(245,233,171,0.63)"),
+    goodPriceColor: parseColorStr(
+      t2.goodPriceColor ?? "rgba(255,255,255,0.63)",
+    ),
+    goodUserColor: parseColorStr(t2.goodUserColor ?? "rgba(255,255,255,0.63)"),
+    goodPropertyColor: parseColorStr(
+      t2.goodPropertyColor ?? "rgba(255,255,255,0.63)",
+    ),
+    goodIntroColor: parseColorStr(
+      t2.goodIntroColor ?? "rgba(255,255,255,0.63)",
+    ),
+  };
+
+  const t1 = theme.tooltip1;
+  const toolTipType1: ToolTipType1Config = {
+    image: t1.image ?? "asf/ui/common/tipbox.asf",
+    itemImage: resolveRect(t1.itemImage),
+    name: resolveText(t1.name, "rgb(102,73,212)"),
+    priceOrLevel: resolveText(t1.priceOrLevel, "rgb(91,31,27)"),
+    effect: resolveText(t1.effect, "rgb(52,21,14)"),
+    magicIntro: resolveText(t1.magicIntro, "rgb(52,21,14)"),
+    goodIntro: resolveText(t1.goodIntro, "rgb(52,21,14)"),
+  };
+
+  return {
+    title,
+    saveLoad,
+    system,
+    state,
+    equip: resolveEquip(theme.equip),
+    npcEquip: resolveEquip(theme.npcEquip),
+    xiuLian: {
+      panel: resolvePanel(theme.xiuLian.panel),
+      magicImage: resolveRect(theme.xiuLian.magicImage),
+      levelText: resolveText(theme.xiuLian.levelText, "rgba(0,0,0,0.8)"),
+      expText: resolveText(theme.xiuLian.expText, "rgba(0,0,0,0.8)"),
+      nameText: resolveText(theme.xiuLian.nameText, "rgba(88,32,32,0.9)"),
+      introText: resolveText(theme.xiuLian.introText, "rgba(47,32,88,0.9)"),
+    },
+    goods,
+    magics,
+    memo,
+    dialog,
+    message,
+    npcInfoShow,
+    littleMap,
+    buySell,
+    bottom,
+    bottomState,
+    top,
+    toolTipUseType,
+    toolTipType1,
+    toolTipType2,
+  };
+}
+
+// ============================================
+// 主题缓存管理
+// ============================================
+
+let cachedTheme: UiTheme | null = null;
+let cachedResolved: ResolvedUiConfigs | null = null;
+
+/**
+ * 设置 UI 主题（从 GameConfig.uiTheme 加载）
+ */
+export function setUiTheme(theme: UiTheme): void {
+  cachedTheme = theme;
+  cachedResolved = null;
+}
+
+/**
+ * 获取已设置的 UiTheme
+ */
+export function getUiTheme(): UiTheme | null {
+  return cachedTheme;
+}
+
+/**
+ * 获取展开后的渲染配置（懒解析，首次调用时展开）
+ */
+export function getResolvedConfigs(): ResolvedUiConfigs | null {
+  if (!cachedTheme) return null;
+  if (!cachedResolved) {
+    cachedResolved = resolveTheme(cachedTheme);
+    logger.debug("[UISettings] Theme resolved");
+  }
+  return cachedResolved;
+}
+
+/**
+ * 重置缓存（切换游戏时调用）
+ */
+export function resetUISettingsCache(): void {
+  cachedTheme = null;
+  cachedResolved = null;
 }

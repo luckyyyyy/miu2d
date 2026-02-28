@@ -10,7 +10,8 @@
  */
 
 import { logger } from "@miu2d/engine/core/logger";
-import { reloadGameData } from "@miu2d/engine/data";
+import { getGameConfig, loadGameConfig, reloadGameData } from "@miu2d/engine/data";
+import { setUiTheme, type UiTheme } from "@miu2d/engine/gui/ui-settings";
 import { resourceLoader } from "@miu2d/engine/resource/resource-loader";
 import type { SaveData } from "@miu2d/engine/storage";
 import { useAuth } from "@miu2d/shared";
@@ -28,6 +29,7 @@ import {
 import type { MenuTab } from "../components/GameMenuPanel";
 import type { UITheme } from "../components/ui";
 import { VideoPlayer } from "../components/ui/classic";
+import { reloadUIConfigs } from "../components/ui/classic/useUISettings";
 
 // 当前展开的面板类型（不含调试面板，调试面板独立管理）
 type ActivePanel = "none" | "menu";
@@ -407,6 +409,15 @@ export function GamePlaying({
             onXiuLianLevelDown={() => getDebugManager()?.xiuLianLevelDown()}
             onReloadMagicConfig={async () => {
               if (gameSlug) await reloadGameData(gameSlug);
+            }}
+            onReloadUILayout={async () => {
+              if (!gameSlug) return;
+              await loadGameConfig(gameSlug, true);
+              const config = getGameConfig();
+              if (config?.uiTheme && typeof config.uiTheme === "object") {
+                setUiTheme(config.uiTheme as UiTheme);
+              }
+              reloadUIConfigs();
             }}
           />
         </DockedPanel>

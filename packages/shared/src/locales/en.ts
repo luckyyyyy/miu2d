@@ -11,6 +11,7 @@ export const en: TranslationSchema = {
       demo: "Demo",
       docs: "Docs",
       github: "GitHub",
+      games: "Games",
       login: "Sign in",
       register: "Sign up",
       dashboard: "Dashboard",
@@ -95,6 +96,7 @@ export const en: TranslationSchema = {
     footer: {
       copyright: "© 2026 Miu2D Engine. All rights reserved.",
       tagline: "AI-powered 2D RPG Game Engine",
+      about: "About",
     },
   },
 };

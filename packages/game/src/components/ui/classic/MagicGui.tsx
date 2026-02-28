@@ -289,6 +289,8 @@ const MagicSlot: React.FC<MagicSlotProps> = ({
               path={iconPath}
               autoPlay={true}
               loop={true}
+              maxWidth={config.width}
+              maxHeight={config.height}
               style={{
                 position: "absolute",
                 left: "50%",
@@ -370,9 +372,11 @@ export const MagicGui: React.FC<MagicGuiProps> = ({
   }, [screenWidth, panelImage.width, panelImage.height, config]);
 
   // 计算当前显示的武功（使用新数据源）
+  const cols = config?.cols ?? 3;
+  const rows = config?.rows ?? 3;
   const visibleData = useMemo(() => {
     if (!config) return [];
-    const startIndex = scrollOffset * 3; // 每行3个
+    const startIndex = scrollOffset * cols;
 
     return config.items.map((_, idx) => {
       const dataIndex = startIndex + idx;
@@ -382,11 +386,11 @@ export const MagicGui: React.FC<MagicGuiProps> = ({
         storeIndex: dataIndex + 1, // Store index从1开始
       };
     });
-  }, [magics, magicInfos, scrollOffset, config]);
+  }, [magics, magicInfos, scrollOffset, config, cols]);
 
   // 计算最大滚动行数
   const itemCount = Math.max(magics?.length ?? 0, magicInfos?.length ?? 0);
-  const maxScrollRows = Math.max(0, Math.ceil(itemCount / 3) - 3);
+  const maxScrollRows = Math.max(0, Math.ceil(itemCount / cols) - rows);
 
   // 滚动处理
   const handleScroll = useCallback(
@@ -492,7 +496,7 @@ export const MagicGui: React.FC<MagicGuiProps> = ({
             key={slotKey}
             magic={data?.magic ?? null}
             magicInfo={data?.magicInfo ?? null}
-            storeIndex={data?.storeIndex ?? scrollOffset * 3 + idx + 1}
+            storeIndex={data?.storeIndex ?? scrollOffset * cols + idx + 1}
             config={itemConfig}
             onClick={() => onMagicClick?.(data?.storeIndex ?? 0)}
             onRightClick={() => onMagicRightClick?.(data?.storeIndex ?? 0)}

@@ -17,7 +17,8 @@ import { logger } from "@miu2d/engine/core/logger";
 import { getGameConfig, loadGameConfig, loadGameData } from "@miu2d/engine/data";
 import { setResourcePaths } from "@miu2d/engine/resource";
 import { getResourceUrl } from "@miu2d/engine/resource/resource-paths";
-import { setUiSettingsIniContent } from "@miu2d/engine/gui/ui-settings";
+import { setUiTheme } from "@miu2d/engine/gui/ui-settings";
+import type { UiTheme } from "@miu2d/engine/gui/ui-settings";
 import type { SaveData } from "@miu2d/engine/storage";
 import { trpc, useMobile } from "@miu2d/shared";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -222,8 +223,10 @@ export default function GameScreen() {
           setTitleMusic(config.titleMusic);
         }
 
-        // 设置自定义 UI Settings INI 内容（切换游戏时自动清除缓存）
-        setUiSettingsIniContent(config?.uiSettingsIni || "");
+        // 设置 UI 主题配置
+        if (config?.uiTheme && typeof config.uiTheme === "object" && config.uiTheme !== null) {
+          setUiTheme(config.uiTheme as UiTheme);
+        }
         resetCachedUIConfigs();
 
         // 2. 并行加载游戏数据 + NPC 等级配置

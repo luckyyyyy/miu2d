@@ -6,7 +6,9 @@
 //! Performs all conversions in order:
 //! 1. Text encoding: GBK → UTF-8 (.ini, .txt, .npc, .obj)
 //! 2. ASF → MSF v2 (sprite animations, Indexed8Alpha8 2bpp + zstd)
-//! 3. MPC → MSF v2 (map tiles, Indexed8 1bpp + zstd)
+//! 3. MPC → MSF v2 (map/sprite tiles, Rgba8 + zstd)
+//!    mpc/effect/ uses palette 4th-byte alpha (magic fly/vanish animations)
+//!    all other mpc/ dirs use binary transparency (RLE skip only)
 //! 4. MAP → MMF (map data, with embedded trap table, zstd)
 //! 5. Media: WMV → WebM (VP9 + Opus), WMA → OGG (via ffmpeg)
 //! 6. Cleanup: delete old .asf, .map, .mpc, .wmv, .wma files (if --delete-originals)
@@ -1316,16 +1318,32 @@ fn convert_mpc_files(resources_dir: &Path) -> (usize, usize) {
         let shd_bytes = std::fs::read(&shd_path).ok();
         let shd_data = shd_bytes.as_deref();
 
-        // The original C# engine (TextureBase.LoadPalette) always skips the 4th
-        // palette byte and hard-codes A = 0xFF for every MPC entry:
-        //   Palette[i].B = buf[offset++];
-        //   Palette[i].G = buf[offset++];
-        //   Palette[i].R = buf[offset++];
-        //   Palette[i].A = 0xFF;
-        //   offset++;   ← 4th byte discarded
-        // MPC transparency comes only from the RLE stream (byte > 0x80 = skip).
-        // Palette alpha is never meaningful for MPC files.
-        let use_palette_alpha = false;
+        // Whether to honour the palette 4th-byte as per-pixel alpha:
+        //
+        // mpc/effect/ — magic fly/vanish effect animations (FlyingImage, VanishImage,
+        //   SuperModeImage, LeapImage, HitCountFlyingImage, HitCountVanishImage).
+        //   These files store rich semi-transparent palette alpha values (e.g. 11..251)
+        //   that produce smooth gradients when rendered with AlphaBlend=1.
+        //   The original C# engine loaded these as Asf (Utils.GetAsf), but the
+        //   Asf class would silently fail on MPC-format files (wrong signature).
+        //   For the TS engine we decode the palette alpha to give smooth effects.
+        //
+        // All other directories (mpc/map/, mpc/magic/, mpc/character/, mpc/goods/,
+        //   mpc/object/, mpc/portrait/, mpc/ui/) follow the original C# convention:
+        //   transparent = RLE skip (byte > 0x80), visible = opaque (alpha = 0xFF).
+        //   Icons (mpc/magic/*s.mpc) intentionally stay opaque — they are shown in
+        //   UI panels against a dark background and never use AlphaBlend rendering.
+        let use_palette_alpha = {
+            if let Ok(rel) = mpc_path.strip_prefix(&resources_dir.join("mpc")) {
+                rel.components()
+                    .next()
+                    .and_then(|c| c.as_os_str().to_str())
+                    .map(|s| s.eq_ignore_ascii_case("effect"))
+                    .unwrap_or(false)
+            } else {
+                false
+            }
+        };
         match std::fs::read(mpc_path) {
             Ok(mpc_data) => {
                 match mpc_msf::convert_mpc_to_msf(&mpc_data, shd_data, use_palette_alpha) {

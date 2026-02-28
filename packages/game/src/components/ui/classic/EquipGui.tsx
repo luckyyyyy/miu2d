@@ -140,8 +140,9 @@ const EquipSlot: React.FC<EquipSlotProps> = ({
   onMouseLeave,
   onTouchDrop,
 }) => {
-  // Use small slot icon (iconPath = goods-xxx-xxxs.msf) for display; fall back to imagePath
-  const itemImage = useAsfImage((item?.good?.iconPath || item?.good?.imagePath) ?? null, 0);
+  // Use slot icon (iconPath) for equip slots; fall back to imagePath if no icon defined.
+  // Scale to 85% of slot so the slot border frame remains visible.
+  const itemImage = useAsfImage(item?.good?.iconPath || item?.good?.imagePath || null, 0);
   const { isMobile } = useDevice();
 
   // 触摸拖拽支持（仅移动端）
@@ -155,7 +156,7 @@ const EquipSlot: React.FC<EquipSlotProps> = ({
             source: "equipGui",
             goodsInfo: item.good,
             displayName: item.good.name,
-            iconPath: item.good.imagePath,
+            iconPath: item.good.iconPath || item.good.imagePath,
           }
         : null,
     onClick,
@@ -219,21 +220,31 @@ const EquipSlot: React.FC<EquipSlotProps> = ({
     >
       {item && itemImage.dataUrl && (
         <>
-          <img
-            src={itemImage.dataUrl}
-            alt={item.good.name}
-            draggable={!isMobile}
-            onDragStart={!isMobile ? onDragStart : undefined}
-            style={{
-              position: "absolute",
-              left: (config.width - itemImage.width) / 2,
-              top: (config.height - itemImage.height) / 2,
-              width: itemImage.width,
-              height: itemImage.height,
-              imageRendering: "pixelated",
-              cursor: "grab",
-            }}
-          />
+          {(() => {
+            const scale =
+              itemImage.width > 0 && itemImage.height > 0
+                ? Math.min(1, Math.min(config.width / itemImage.width, config.height / itemImage.height))
+                : 1;
+            const displayW = itemImage.width * scale;
+            const displayH = itemImage.height * scale;
+            return (
+              <img
+                src={itemImage.dataUrl}
+                alt={item.good.name}
+                draggable={!isMobile}
+                onDragStart={!isMobile ? onDragStart : undefined}
+                style={{
+                  position: "absolute",
+                  left: (config.width - displayW) / 2,
+                  top: (config.height - displayH) / 2,
+                  width: displayW,
+                  height: displayH,
+                  imageRendering: "pixelated",
+                  cursor: "grab",
+                }}
+              />
+            );
+          })()}
           {/* Count display - always show count like TopLeftText */}
           <span
             style={{

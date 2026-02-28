@@ -75,4 +75,5 @@ export interface DebugPanelProps {
   onXiuLianLevelUp?: () => void;
   onXiuLianLevelDown?: () => void;
   onReloadMagicConfig?: () => Promise<void>;
+  onReloadUILayout?: () => Promise<void>;
 }

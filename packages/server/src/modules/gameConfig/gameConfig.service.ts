@@ -95,17 +95,17 @@ export class GameConfigService {
     return this.toGameConfig(newRow);
   }
   /**
-   * 仅更新 uiSettingsIni 字段（保留其他配置不变）
+   * 仅更新 uiTheme 字段（JSON 主题）
    */
-  async patchUiSettingsIni(
+  async patchUiTheme(
     gameId: string,
-    content: string,
+    uiTheme: unknown,
     userId: string,
     language: Language
   ): Promise<GameConfig> {
     const current = await this.get(gameId, userId, language);
     return this.update(
-      { gameId, data: { ...current.data, uiSettingsIni: content } },
+      { gameId, data: { ...current.data, uiTheme } },
       userId,
       language
     );

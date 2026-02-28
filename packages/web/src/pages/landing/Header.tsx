@@ -4,10 +4,34 @@
 
 import { useAuth, useTheme } from "@miu2d/shared";
 import { type Locale, supportedLanguages } from "@miu2d/shared/i18n";
-import { Avatar, GitHubIcon, GlobeIcon, MoonIcon, SunIcon } from "@miu2d/ui";
+import { Avatar, GlobeIcon, MoonIcon, SunIcon } from "@miu2d/ui";
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
+
+const GAMES = [
+  { slug: "demo", name: "月影传说" },
+  { slug: "sword1", name: "新剑侠情缘" },
+  { slug: "sword2", name: "剑侠情缘2" },
+] as const;
+
+function GameNavLink({ slug, name }: { slug: string; name: string }) {
+  return (
+    <a
+      href={`/game/${slug}`}
+      target="_blank"
+      rel="noreferrer"
+      className="flex items-center gap-1.5 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors group"
+    >
+      <img
+        src={`/game/${slug}/api/logo`}
+        alt={name}
+        className="w-7 h-7 rounded object-cover ring-1 ring-zinc-200 dark:ring-zinc-700 group-hover:ring-orange-400 transition-all"
+      />
+      <span className="text-sm font-medium">{name}</span>
+    </a>
+  );
+}
 
 export function Header() {
   const { theme, toggleTheme } = useTheme();
@@ -45,7 +69,7 @@ export function Header() {
           </motion.button>
 
           {/* Navigation */}
-          <nav className="hidden md:flex items-center gap-8">
+          <nav className="hidden md:flex items-center gap-6">
             <button
               type="button"
               onClick={() => scrollTo("features")}
@@ -60,15 +84,15 @@ export function Header() {
             >
               {t("nav.demo")}
             </button>
-            <a
-              href="https://github.com/luckyyyyy/miu2d"
-              target="_blank"
-              rel="noreferrer"
-              className="text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors flex items-center gap-1"
-            >
-              <GitHubIcon className="w-5 h-5" />
-              {t("nav.github")}
-            </a>
+
+            {/* 分隔线 */}
+            <div className="w-px h-4 bg-zinc-200 dark:bg-zinc-700" />
+
+            {/* 直接展示各游戏链接 */}
+            {GAMES.map((g) => (
+              <GameNavLink key={g.slug} slug={g.slug} name={g.name} />
+            ))}
+
           </nav>
 
           {/* Actions */}

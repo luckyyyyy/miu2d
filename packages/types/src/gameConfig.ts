@@ -262,8 +262,12 @@ export const GameConfigDataSchema = z.object({
   newGameScript: z.string().default(""),
   /** 对话头像 ASF 路径 */
   portraitAsf: z.string().default(""),
-  /** UI 设置 INI 内容（直接存储 UI_Settings.ini 的文本内容，留空则从资源文件加载） */
-  uiSettingsIni: z.string().default(""),
+  /**
+   * UI 主题配置（紧凑 JSON 格式）
+   * 存储所有面板的完整配置。
+   * 类型为 engine 中的 UiTheme，此处用 z.unknown() 避免跨包依赖。
+   */
+  uiTheme: z.unknown().default(null),
   /** 游戏设置（设置 playerKey 后生效） */
   player: PlayerConfigSchema.optional(),
   /** 掉落系统配置（设置 playerKey 后生效） */
@@ -420,7 +424,7 @@ export function createDefaultGameConfig(): GameConfigData {
     titleMusic: "",
     newGameScript: "",
     portraitAsf: "",
-    uiSettingsIni: "",
+    uiTheme: null,
   };
 }
 

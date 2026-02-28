@@ -16,7 +16,9 @@ convert-sword2.py — 将 resources-sword2 转换为 resources-xin 兼容格式
     6. talk        — talk.txt → TalkIndex.txt + 脚本 Talk("x") → Talk(start,end)
     7. npcres      — npcres 格式调整 (.mpc→.asf 引用, 移除 Shade)
     8. goods       — goods 格式调整 (.mpc→.asf 引用)
-    9. magic       — magic 格式调整 (.mpc→.asf 引用)
+    9. magic       — magic 格式调整 (.mpc→.msf 引用);
+                     注意: mpc/effect/ 的飞行/爆炸特效由 Rust 转换器以 palette-alpha
+                     模式转换（支持半透明），mpc/magic/ 的图标保持二进制透明度
    10. save        — 存档格式适配 (Game.ini [Option] → option.ini)
    11. misc        — 杂项:
                      • MapName.ini / Rain.ini 生成
@@ -1645,6 +1647,25 @@ def step_goods(root: str):
 # ============================================================
 
 def step_magic(root: str):
+    """Magic INI 格式调整：将所有 .mpc / .asf 文件引用改为 .msf。
+
+    字段说明（参考 C# Magic.cs 的 Utils.GetAsf 调用路径）：
+      - Image / Icon         → asf/magic/   (主体精灵 + 图标)
+      - FlyingImage          → asf/effect/  (飞行特效，含半透明 palette alpha)
+      - VanishImage          → asf/effect/  (爆炸/消失特效，含半透明 palette alpha)
+      - SuperModeImage       → asf/effect/
+      - LeapImage            → asf/effect/
+      - HitCountFlyingImage  → asf/effect/
+      - HitCountVanishImage  → asf/effect/
+
+    透明度说明：
+      mpc/effect/ 目录的 MPC 文件（飞行/爆炸动画）在调色板第 4 字节中存储了
+      丰富的半透明 alpha 值，配合 AlphaBlend=1 渲染模式产生光晕/渐变效果。
+      Rust 转换器会对 mpc/effect/ 使用 use_palette_alpha=true，其余目录（包括
+      mpc/magic/ 的图标文件）保持二进制透明度（0 or 255）。
+
+      C# 原引擎因 MPC 类不支持 alpha 而完全忽略了此数据，但 TS 引擎可以利用。
+    """
     log_step("magic", "magic 格式调整 (.mpc→.msf)")
 
     magic_dir = os.path.join(root, "ini", "magic")

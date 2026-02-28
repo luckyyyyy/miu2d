@@ -4,10 +4,28 @@
  */
 
 import { trpc, useAuth } from "@miu2d/shared";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { DashboardIcons } from "./icons";
 import { getGameApiUrl } from "./utils/resourcePath";
+
+function GameLogo({ slug }: { slug: string }) {
+  const [loaded, setLoaded] = useState(false);
+  return (
+    <div
+      className={`w-12 h-12 relative rounded-lg flex items-center justify-center text-white flex-shrink-0 overflow-hidden ${loaded ? "" : "bg-[#0e639c]"}`}
+    >
+      {!loaded && DashboardIcons.game}
+      <img
+        src={getGameApiUrl(slug, "logo")}
+        alt=""
+        className="absolute inset-0 w-full h-full object-contain"
+        onLoad={() => setLoaded(true)}
+        onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+      />
+    </div>
+  );
+}
 
 export function GameListPage() {
   const navigate = useNavigate();
@@ -100,15 +118,7 @@ export function GameListPage() {
               onClick={() => navigate(`/dashboard/${game.slug}`)}
               className="flex items-center gap-4 p-4 bg-[#252526] hover:bg-[#2a2d2e] border border-widget-border rounded-lg transition-colors text-left group"
             >
-              <div className="w-12 h-12 relative bg-[#0e639c] rounded-lg flex items-center justify-center text-white text-xl flex-shrink-0 overflow-hidden">
-                {DashboardIcons.game}
-                <img
-                  src={getGameApiUrl(game.slug, "logo")}
-                  alt=""
-                  className="absolute inset-0 w-full h-full object-contain"
-                  onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
-                />
-              </div>
+              <GameLogo slug={game.slug} />
               <div className="flex-1 min-w-0">
                 <h2 className="text-lg font-semibold text-white truncate group-hover:text-[#0098ff] transition-colors">
                   {game.name}

@@ -63,6 +63,7 @@ interface GameDebugSectionProps {
   onAddMagic?: (magicFile: string) => Promise<void>;
   onAddAllMagics?: () => Promise<void>;
   onReloadMagicConfig?: () => Promise<void>;
+  onReloadUILayout?: () => Promise<void>;
 }
 
 export const GameDebugSection: React.FC<GameDebugSectionProps> = ({
@@ -77,6 +78,7 @@ export const GameDebugSection: React.FC<GameDebugSectionProps> = ({
   onAddMagic,
   onAddAllMagics,
   onReloadMagicConfig,
+  onReloadUILayout,
 }) => {
   const [moneyAmount, setMoneyAmount] = useState("1000");
   const [targetLevel, setTargetLevel] = useState("80");
@@ -86,6 +88,7 @@ export const GameDebugSection: React.FC<GameDebugSectionProps> = ({
   const [selectedMagic, setSelectedMagic] = useState("");
   const [isAddingMagic, setIsAddingMagic] = useState(false);
   const [isReloadingMagic, setIsReloadingMagic] = useState(false);
+  const [isReloadingUILayout, setIsReloadingUILayout] = useState(false);
 
   // 从 API 缓存获取物品列表（每次分类变化时重新计算）
   const allGoods = getAllGoods().map((g) => ({
@@ -147,11 +150,22 @@ export const GameDebugSection: React.FC<GameDebugSectionProps> = ({
     setIsReloadingMagic(true);
     try {
       await onReloadMagicConfig();
-      alert("武功配置重载成功");
     } catch (e) {
-      alert(`重载失败:\n${e instanceof Error ? e.message : String(e)}`);
+      // silent
     } finally {
       setIsReloadingMagic(false);
+    }
+  };
+
+  const handleReloadUILayout = async () => {
+    if (!onReloadUILayout) return;
+    setIsReloadingUILayout(true);
+    try {
+      await onReloadUILayout();
+    } catch (e) {
+      // silent
+    } finally {
+      setIsReloadingUILayout(false);
     }
   };
 
@@ -313,6 +327,21 @@ export const GameDebugSection: React.FC<GameDebugSectionProps> = ({
               className={`${btnClass} w-full text-[#93c5fd]`}
             >
               {isReloadingMagic ? "重载中..." : "武功配置重载"}
+            </button>
+          </>
+        )}
+
+        {/* 重载UI布局 */}
+        {onReloadUILayout && (
+          <>
+            <hr className="border-[#2d2d2d] my-2" />
+            <button
+              type="button"
+              onClick={handleReloadUILayout}
+              disabled={isReloadingUILayout}
+              className={`${btnClass} w-full text-[#86efac]`}
+            >
+              {isReloadingUILayout ? "重载中..." : "重载UI布局"}
             </button>
           </>
         )}

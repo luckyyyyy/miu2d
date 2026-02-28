@@ -41,20 +41,20 @@ export class GameConfigRouter {
   }
 
   /**
-   * 仅更新 uiSettingsIni 字段（ImportAllModal 使用）
+   * 仅更新 uiTheme 字段（JSON 主题，ImportAllModal 使用）
    */
   @UseMiddlewares(requireUser)
   @Mutation({
-    input: z.object({ gameId: z.string(), content: z.string() }),
+    input: z.object({ gameId: z.string(), uiTheme: z.unknown() }),
     output: GameConfigSchema,
   })
-  async setUiSettingsIni(
-    input: { gameId: string; content: string },
+  async setUiTheme(
+    input: { gameId: string; uiTheme: unknown },
     @Ctx() ctx: Context
   ) {
-    return gameConfigService.patchUiSettingsIni(
+    return gameConfigService.patchUiTheme(
       input.gameId,
-      input.content,
+      input.uiTheme,
       ctx.userId!,
       ctx.language
     );

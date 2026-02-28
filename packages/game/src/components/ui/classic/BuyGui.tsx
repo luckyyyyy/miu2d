@@ -68,7 +68,7 @@ const ShopItemSlot: React.FC<ShopItemSlotProps> = ({
   onMouseEnter,
   onMouseLeave,
 }) => {
-  const itemImage = useAsfImage(item?.good?.imagePath ?? null, 0);
+  const itemImage = useAsfImage(item?.good?.iconPath || item?.good?.imagePath || null, 0);
   const isSoldOut = numberValid && item && item.count <= 0;
 
   return (
