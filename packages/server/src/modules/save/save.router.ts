@@ -20,7 +20,7 @@ import {
 import { z } from "zod";
 import type { Context } from "../../trpc/context";
 import { Ctx, Mutation, Query, Router, UseMiddlewares } from "../../trpc/decorators";
-import { requireUser } from "../../trpc/middlewares";
+import { requireAdmin, requireUser } from "../../trpc/middlewares";
 import { Logger } from "../../utils/logger.js";
 import { saveService } from "./save.service";
 
@@ -93,7 +93,7 @@ export class SaveRouter {
   /**
    * 管理员列出所有存档
    */
-  @UseMiddlewares(requireUser)
+  @UseMiddlewares(requireAdmin)
   @Query({ input: AdminListSavesInputSchema, output: AdminListSavesOutputSchema })
   async adminList(input: z.infer<typeof AdminListSavesInputSchema>, @Ctx() ctx: Context) {
     return saveService.adminList(input, ctx.userId!);
@@ -102,7 +102,7 @@ export class SaveRouter {
   /**
    * 管理员获取完整存档数据
    */
-  @UseMiddlewares(requireUser)
+  @UseMiddlewares(requireAdmin)
   @Query({
     input: GetSaveInputSchema,
     output: SaveDataResponseSchema.extend({ userName: z.string().optional() }),
@@ -114,7 +114,7 @@ export class SaveRouter {
   /**
    * 管理员设置存档分享状态
    */
-  @UseMiddlewares(requireUser)
+  @UseMiddlewares(requireAdmin)
   @Mutation({ input: ShareSaveInputSchema, output: SaveSlotSchema })
   async adminShare(input: z.infer<typeof ShareSaveInputSchema>, @Ctx() ctx: Context) {
     return saveService.adminSetShared(input.saveId, input.isShared, ctx.userId!);
@@ -123,7 +123,7 @@ export class SaveRouter {
   /**
    * 管理员创建存档
    */
-  @UseMiddlewares(requireUser)
+  @UseMiddlewares(requireAdmin)
   @Mutation({ input: AdminCreateSaveInputSchema, output: SaveSlotSchema })
   async adminCreate(input: z.infer<typeof AdminCreateSaveInputSchema>, @Ctx() ctx: Context) {
     return saveService.adminCreate(input, ctx.userId!);
@@ -132,7 +132,7 @@ export class SaveRouter {
   /**
    * 管理员更新存档数据
    */
-  @UseMiddlewares(requireUser)
+  @UseMiddlewares(requireAdmin)
   @Mutation({ input: AdminUpdateSaveInputSchema, output: SaveSlotSchema })
   async adminUpdate(input: z.infer<typeof AdminUpdateSaveInputSchema>, @Ctx() ctx: Context) {
     return saveService.adminUpdate(input, ctx.userId!);
@@ -141,7 +141,7 @@ export class SaveRouter {
   /**
    * 管理员删除存档
    */
-  @UseMiddlewares(requireUser)
+  @UseMiddlewares(requireAdmin)
   @Mutation({ input: AdminDeleteSaveInputSchema, output: z.object({ id: z.string() }) })
   async adminDelete(input: z.infer<typeof AdminDeleteSaveInputSchema>, @Ctx() ctx: Context) {
     return saveService.adminDelete(input.saveId, ctx.userId!);
