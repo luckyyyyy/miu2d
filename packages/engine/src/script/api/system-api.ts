@@ -13,17 +13,29 @@ export function createDialogAPI(ctx: ScriptCommandContext, resolver: BlockingRes
 
   return {
     show: async (text, portraitIndex) => {
-      ctx.clearMouseInput?.();
-      guiManager.showDialog(text, portraitIndex);
-      await resolver.waitForEvent(BlockingEvent.DIALOG_CLOSED);
+      // 按 <Enter>/<enter>（大小写不敏感）拆分为多页，逐页展示（同 TalkLabel.splitTalkString）
+      const pages = text.split(/<enter>/i);
+      for (const page of pages) {
+        const trimmed = page.trim();
+        if (!trimmed) continue;
+        ctx.clearMouseInput?.();
+        guiManager.showDialog(trimmed, portraitIndex);
+        await resolver.waitForEvent(BlockingEvent.DIALOG_CLOSED);
+      }
     },
 
     showTalk: async (startId, endId) => {
       const details = talkTextList.getTextDetails(startId, endId);
       for (const detail of details) {
-        ctx.clearMouseInput?.();
-        guiManager.showDialog(detail.text, detail.portraitIndex);
-        await resolver.waitForEvent(BlockingEvent.DIALOG_CLOSED);
+        // 同 show()，按 <Enter> 拆分为多页
+        const pages = detail.text.split(/<enter>/i);
+        for (const page of pages) {
+          const trimmed = page.trim();
+          if (!trimmed) continue;
+          ctx.clearMouseInput?.();
+          guiManager.showDialog(trimmed, detail.portraitIndex);
+          await resolver.waitForEvent(BlockingEvent.DIALOG_CLOSED);
+        }
       }
     },
 

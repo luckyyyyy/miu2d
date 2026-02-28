@@ -95,10 +95,6 @@ export function setMagicLevel(deps: MagicListExpDeps, fileName: string, level: n
 
 /**
  * 增加武功经验（直接操作 MagicItemInfo 对象）
- * Reference C#: Player.AddMagicExp(MagicListManager.MagicItemInfo info, int amount)
- *
- * C# 始终通过对象引用直接操作，不做 fileName 查找，
- * 保证修炼武功和当前使用武功的经验一定加到正确的对象上。
  *
  * @returns 是否升级
  */
@@ -112,7 +108,6 @@ export function addMagicExpDirect(
   // if (info.TheMagic.LevelupExp == 0) 已满级
   if (info.magic.levelupExp === 0) return false;
 
-  // C#: if (amount == 0) return;
   if (expToAdd === 0) return false;
 
   info.exp += expToAdd;
@@ -132,7 +127,6 @@ export function addMagicExpDirect(
       deps.callbacks.onMagicLevelUp(oldMagic, newMagic);
     }
 
-    // Reference C#: if (info.TheMagic.LevelupExp == 0) info.Exp = levelupExp;
     // 满级时经验封顶为升级经验；非满级时保留累积经验（不重置）
     if (newMagic.levelupExp === 0) {
       info.exp = levelupExp;

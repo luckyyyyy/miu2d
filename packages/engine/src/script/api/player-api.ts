@@ -25,7 +25,7 @@ export function createPlayerAPI(ctx: ScriptCommandContext, resolver: BlockingRes
   const playerSnapshots = new Map<string, Record<string, number>>();
 
   /**
-   * C# Globals.PlayerKindCharacter 等效实现
+   * 获取当前玩家角色
    * 优先级: NPC with Kind=Player > ControledCharacter > ThePlayer
    * PlayerGoto/PlayerRunTo/SetPlayerScn 等命令都作用于此角色
    */
@@ -66,7 +66,6 @@ export function createPlayerAPI(ctx: ScriptCommandContext, resolver: BlockingRes
       }
       checkTrap({ x, y });
     },
-    // C# SetPlayerDir always uses ThePlayer directly
     setDirection: (direction) => {
       player.setDirection(direction);
     },
@@ -75,7 +74,6 @@ export function createPlayerAPI(ctx: ScriptCommandContext, resolver: BlockingRes
     },
 
     // Blocking movement → Promise
-    // C#: Globals.PlayerKindCharacter.WalkTo(...)
     walkTo: async (x, y) => {
       const target = getPlayerKindCharacter();
       const destination = { x, y };

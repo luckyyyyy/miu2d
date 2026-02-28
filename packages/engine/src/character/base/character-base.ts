@@ -87,7 +87,7 @@ export abstract class CharacterBase extends Sprite implements CharacterInstance 
   // === Movement ===
   // =============================================
   private _walkSpeed: number = 1;
-  /** WalkSpeed - 最小值为 1，与 C# 一致 (value < 1 ? 1 : value) */
+  /** WalkSpeed - 最小値为 1 (value < 1 ? 1 : value) */
   get walkSpeed(): number {
     return this._walkSpeed;
   }
@@ -531,7 +531,7 @@ export abstract class CharacterBase extends Sprite implements CharacterInstance 
     return this._destinationMoveTilePosition;
   }
 
-  /** C# DestinationMapPosX - proxy for save/load */
+  /** DestinationMapPosX - proxy for save/load */
   get destinationMapPosX(): number {
     return this._destinationMoveTilePosition.x;
   }
@@ -539,7 +539,7 @@ export abstract class CharacterBase extends Sprite implements CharacterInstance 
     this._destinationMoveTilePosition.x = value;
   }
 
-  /** C# DestinationMapPosY - proxy for save/load */
+  /** DestinationMapPosY - proxy for save/load */
   get destinationMapPosY(): number {
     return this._destinationMoveTilePosition.y;
   }
@@ -883,7 +883,6 @@ export abstract class CharacterBase extends Sprite implements CharacterInstance 
 
   /**
    * 更新当前状态的贴图
-   * C# 参考: SetState() 直接从 NpcIni[state].Image 读取
    * 我们直接从 _spriteSet 读取，因为 setNpcActionFile 已经直接修改了 _spriteSet
    */
   protected _updateTextureForState(state: CharacterState): void {

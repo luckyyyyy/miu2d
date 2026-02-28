@@ -220,7 +220,6 @@ export abstract class CharacterMovement extends CharacterBase {
     const tileTo = this.path[0];
     const tileFrom = { x: this._mapX, y: this._mapY };
 
-    // === C# Reference: if (TilePosition == tileFrom && tileFrom != tileTo) ===
     // 在 tileFrom 时检查 tileTo 的障碍物
     if (tileFrom.x !== tileTo.x || tileFrom.y !== tileTo.y) {
       const hasObs = this.hasObstacle(tileTo);

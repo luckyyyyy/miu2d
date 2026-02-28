@@ -338,7 +338,6 @@ export class ScreenEffects {
 
   /**
    * Check if map color is black (0,0,0) → should use grayscale shader
-   * In C#: when DrawColor == Color.Black, switches to GrayScaleEffect shader
    */
   isMapGrayscale(): boolean {
     const c = this.state.mapDrawColor;

@@ -1,7 +1,7 @@
 /**
  * 武功高级字段定义 — 用于 FieldGroupList 数据驱动渲染
  *
- * 定义所有 MagicSchema 扩展字段（119 个），按 C# 功能模块分组。
+ * 定义所有 MagicSchema 扩展字段（119 个），按功能模块分组。
  * 每个字段都标注了用途说明作为 tooltip。
  */
 import type { FieldGroup } from "../../components/common/FieldGrid";

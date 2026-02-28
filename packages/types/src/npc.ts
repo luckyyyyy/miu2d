@@ -15,13 +15,13 @@ import { z } from "zod";
  * 决定 NPC 的行为模式和 AI
  */
 export const NpcKindEnum = z.enum([
-  "Normal", // C# Normal=0 - 普通 NPC（可对话）
-  "Fighter", // C# Fighter=1 - 战斗型 NPC
-  "Follower", // C# Follower=3 - 跟随者
-  "GroundAnimal", // C# GroundAnimal=4 - 地面动物（如狼、蛙）
-  "Eventer", // C# Eventer=5 - 事件/装饰性 NPC
-  "AfraidPlayerAnimal", // C# AfraidPlayerAnimal=6 - 怕玩家的动物
-  "Flyer", // C# Flyer=7 - 飞行类（如蝙蝠、蜜蜂）
+  "Normal", // 0 - 普通 NPC（可对话）
+  "Fighter", // 1 - 战斗型 NPC
+  "Follower", // 3 - 跟随者
+  "GroundAnimal", // 4 - 地面动物（如狼、蛙）
+  "Eventer", // 5 - 事件/装饰性 NPC
+  "AfraidPlayerAnimal", // 6 - 怕玩家的动物
+  "Flyer", // 7 - 飞行类（如蝠蝠、蜜蜂）
 ]);
 
 export type NpcKind = z.infer<typeof NpcKindEnum>;
@@ -55,10 +55,10 @@ export const NpcKindLabels: Record<NpcKind, string> = {
  * 决定 NPC 与玩家的交互方式
  */
 export const NpcRelationEnum = z.enum([
-  "Friend", // C# Friend=0 - 友好（可对话、不可攻击）
-  "Enemy", // C# Enemy=1 - 敌对（主动攻击玩家）
-  "Neutral", // C# Neutral=2 - 中立（不主动攻击）
-  "None", // C# None=3 - 攻击所有非同阵营
+  "Friend", // 0 - 友好（可对话、不可攻击）
+  "Enemy", // 1 - 敌对（主动攻击玩家）
+  "Neutral", // 2 - 中立（不主动攻击）
+  "None", // 3 - 攻击所有非同阵营
 ]);
 
 export type NpcRelation = z.infer<typeof NpcRelationEnum>;
@@ -680,7 +680,6 @@ export function createDefaultNpcResource(): NpcResource {
 
 /**
  * NPC 资源路径默认前缀
- * 参考 C# 引擎 ResFile.cs
  */
 export const NpcResourcePaths = {
   /** ASF 图像默认路径 */
@@ -779,7 +778,6 @@ export function normalizeNpcSoundPath(soundPath: string | null | undefined): str
   }
 
   // 相对路径：去掉扩展名，添加默认前缀和 .xnb 扩展名
-  // C# 引擎: Path.GetFileNameWithoutExtension(wavFileName)
   const baseName = path.replace(/\.[^/.]+$/, "");
   return `${NpcResourcePaths.sound}${baseName}.xnb`.toLowerCase();
 }

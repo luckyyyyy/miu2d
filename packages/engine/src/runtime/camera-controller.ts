@@ -165,7 +165,6 @@ export class CameraController {
   /**
    * Update position-based camera movement (MoveScreenEx)
    * Reference: Carmera.UpdateMoveTo()
-   * C# original moves _moveSpeed pixels per frame at ~60fps
    */
   private updateMoveToPosition(
     currentX: number,
@@ -183,7 +182,7 @@ export class CameraController {
       return { x: this.moveToDestination.x, y: this.moveToDestination.y };
     }
 
-    // Normalize and move (frame-rate independent: C# runs at ~60fps)
+    // Normalize and move (frame-rate independent, ~60fps)
     const framesThisTick = (deltaTime / 1000) * 60;
     const moveAmount = this.moveToSpeed * framesThisTick;
     const dirX = dx / distance;
@@ -191,7 +190,6 @@ export class CameraController {
     const newX = currentX + dirX * moveAmount;
     const newY = currentY + dirY * moveAmount;
 
-    // C# stuck detection: if (CarmeraBeginPositionInWorld == last) IsInMoveTo = false;
     // 当目标被地图边界 clamp 后相机无法移动时，防止死循环
     if (Math.abs(newX - currentX) < 0.01 && Math.abs(newY - currentY) < 0.01) {
       this.isMovingToPosition = false;

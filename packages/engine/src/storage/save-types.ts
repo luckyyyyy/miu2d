@@ -248,19 +248,16 @@ export interface MagicItemData {
   index: number;
   /**
    * 隐藏计数（装备关联武功的引用计数）
-   * 参考 C# PlayerMagicInventory.MagicItemInfo.HideCount
    * 默认为 1（可见），脱装备 -1，穿装备 +1，= 0 时移入隐藏列表
    */
   hideCount?: number;
   /**
    * 隐藏前的列表原始索引
-   * 参考 C# PlayerMagicInventory.MagicItemInfo.LastIndexWhenHide
    * 用于显示时恢复到原来的位置
    */
   lastIndexWhenHide?: number;
   /**
    * 是否在隐藏列表中
-   * 对应 C# HideStartIndex(1000+) 的武功
    */
   isHidden?: boolean;
 }

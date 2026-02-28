@@ -3,7 +3,7 @@
  * Manages game memo/quest log entries
  *
  * Memos are prefixed with "●" bullet point.
- * Unlike the original C# code which splits text into 10-char-wide lines for
+ * Unlike the original which splits text into 10-char-wide lines for
  * fixed-width pixel rendering, we store each memo as a complete string and
  * let CSS handle text wrapping.
  */
@@ -13,7 +13,7 @@ import type { TalkTextListManager } from "./talk-text-list";
 
 /**
  * Merge split memo lines back into complete entries.
- * Old save data (from original C# engine or earlier TS versions) stored each
+ * Old save data (from earlier versions) stored each
  * 10-char-wide line as a separate entry. Lines that don't start with "●" are
  * continuations of the previous "●" entry and should be merged.
  */

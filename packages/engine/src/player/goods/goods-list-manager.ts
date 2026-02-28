@@ -599,7 +599,6 @@ export class GoodsListManager {
 
       case GoodKind.Event:
         // ScriptManager.RunScript(good.Script)
-        // C# 参考: Utils.cs line 493-494 - Good 脚本路径固定为 script/goods/
         if (good.script) {
           const engine = this.engine;
           if (engine) {

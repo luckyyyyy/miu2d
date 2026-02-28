@@ -764,8 +764,7 @@ export class GameManager {
     // Check for special action completion (non-blocking NpcSpecialAction)
     this.updateSpecialActions();
 
-    // Update script executor — AFTER character updates (matches C# update order)
-    // C# 中 ScriptManager.Update 在角色更新之后运行，确保同帧内检测到动画结束
+    // Update script executor — AFTER character updates
     this.scriptExecutor.update(deltaTime * 1000);
 
     // Reset trap flag when trap script finishes

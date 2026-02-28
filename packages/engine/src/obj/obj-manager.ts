@@ -74,7 +74,6 @@ export class ObjManager {
 
   /**
    * Obj 分组存储
-   * 模拟 C# 原版的 save/game/{fileName} 文件系统
    * 脚本调用 SaveObj() 时将当前 Obj 列表序列化存入，LoadObj() 时优先从此读取
    */
   private objGroups: Map<string, ObjSaveItem[]> = new Map();
@@ -157,7 +156,6 @@ export class ObjManager {
   async load(fileName: string): Promise<boolean> {
     logger.log(`[ObjManager] Loading obj file: ${fileName}`);
 
-    // C#: if (string.IsNullOrEmpty(fileName)) return false;
     if (!fileName) {
       return false;
     }
@@ -165,7 +163,7 @@ export class ObjManager {
     this.clearAll();
     this.fileName = fileName;
 
-    // 1. 优先从 Obj 分组存储加载（模拟 C# 的 save/game/ 目录）
+    // 1. 优先从 Obj 分组存储加载
     const storedData = this.objGroups.get(fileName);
     if (storedData) {
       logger.log(`[ObjManager] Loading ${storedData.length} Objs from groups: ${fileName}`);
@@ -778,7 +776,6 @@ export class ObjManager {
   /**
    * Save object state to memory file store
    * 将当前 Obj 列表序列化到内存文件存储中
-   * 对应 C# 原版: ObjManager.Save(fileName) -> File.WriteAllText("save/game/" + fileName)
    *
    * 脚本流程: SaveObj() -> LoadMap() -> LoadObj(同文件名) -> 读到刚存的数据
    */

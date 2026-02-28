@@ -17,6 +17,7 @@ import { resourceLoader } from "@miu2d/engine/resource/resource-loader";
 import { normalizeImagePath } from "@miu2d/engine/gui/ui-settings";
 import { parseIni } from "@miu2d/engine/utils/ini-parser";
 import { AsfAnimatedSprite } from "./AsfAnimatedSprite";
+import { playUiSound } from "./hooks";
 
 // ---- Config types ----
 
@@ -407,6 +408,7 @@ export const GambleGui: React.FC<GambleGuiProps> = ({
                 borderRadius: 4,
               }}
               onClick={() => handleChoose("big")}
+              onMouseEnter={() => { if (config.gambleBig.sound) playUiSound(config.gambleBig.sound); }}
             >
               大
             </button>
@@ -427,6 +429,7 @@ export const GambleGui: React.FC<GambleGuiProps> = ({
                 borderRadius: 4,
               }}
               onClick={() => handleChoose("small")}
+              onMouseEnter={() => { if (config.gambleSmall.sound) playUiSound(config.gambleSmall.sound); }}
             >
               小
             </button>
@@ -528,6 +531,7 @@ export const GambleGui: React.FC<GambleGuiProps> = ({
               cursor: "pointer",
             }}
             onClick={handleQuit}
+            onMouseEnter={() => { if (config.quit.sound) playUiSound(config.quit.sound); }}
           >
             <AsfAnimatedSprite
               path={config.quit.image}

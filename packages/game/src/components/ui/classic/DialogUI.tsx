@@ -6,7 +6,7 @@
  * Resources loaded from UI_Settings.ini
  */
 import type React from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { getPortraitPathByIndex } from "../portraitUtils";
 
 // 统一楷体字体样式
@@ -154,6 +154,7 @@ export const DialogUI: React.FC<DialogUIProps> = ({
   const [displayedText, setDisplayedText] = useState("");
   const [hoveredSelection, setHoveredSelection] = useState<number>(-1);
   const [keyboardSelection, setKeyboardSelection] = useState<number>(0); // 默认选中第一项
+  const textScrollRef = useRef<HTMLDivElement>(null);
 
   // 从 UI_Settings.ini 加载配置
   const config = useDialogGuiConfig();
@@ -244,6 +245,13 @@ export const DialogUI: React.FC<DialogUIProps> = ({
 
     setDisplayedText(state.text.substring(0, originalIndex));
   }, [state.text, state.textProgress, state.isVisible]);
+
+  // 每次文字更新时自动滚动到底部
+  useEffect(() => {
+    if (textScrollRef.current) {
+      textScrollRef.current.scrollTop = textScrollRef.current.scrollHeight;
+    }
+  }, [displayedText]);
 
   // 处理选择点击
   const handleSelectionClick = (selection: number) => {
@@ -342,14 +350,18 @@ export const DialogUI: React.FC<DialogUIProps> = ({
 
         {/* 对话文本 */}
         <div
+          ref={textScrollRef}
+          className="dialog-text-scroll"
           style={{
             position: "absolute",
             left: config.text.left,
             top: config.text.top,
             width: config.text.width,
             height: config.text.height,
-            overflow: "hidden",
-            pointerEvents: "none",
+            overflow: "auto",
+            pointerEvents: "auto",
+            // 隐藏滚动条但保留滚动功能（Firefox），维持原版 UI 视觉
+            scrollbarWidth: "none",
           }}
         >
           <p
@@ -357,8 +369,8 @@ export const DialogUI: React.FC<DialogUIProps> = ({
               margin: 0,
               fontFamily: KAITI_FONT,
               fontSize: 14,
-              fontWeight: "bold",
               lineHeight: 1.6,
+              textShadow: "0 0 1px rgba(0,0,0,0.5)",
               letterSpacing: config.text.charSpace,
               color: config.text.color,
             }}
@@ -453,6 +465,10 @@ export const DialogUI: React.FC<DialogUIProps> = ({
           @keyframes blink {
             0%, 50% { opacity: 1; }
             51%, 100% { opacity: 0; }
+          }
+          /* 隐藏 Webkit 浏览器滚动条，但保留滚动功能 */
+          .dialog-text-scroll::-webkit-scrollbar {
+            display: none;
           }
         `}
         </style>

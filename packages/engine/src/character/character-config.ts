@@ -182,7 +182,6 @@ export const FIELD_DEFS: FieldDef[] = [
 
   // =============================================
   // Runtime State Fields (saved/loaded, not from INI config)
-  // C# loads these via reflection default case in AssignToValue()
   // =============================================
   { key: "state", prop: "state", type: "int", target: "config" },
   { key: "currentfixedposindex", prop: "currentFixedPosIndex", type: "int", target: "config" },

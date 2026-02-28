@@ -9,7 +9,6 @@ import type { Vector2 } from "../../core/types";
 
 /**
  * Check if a character has finished moving to destination and is standing.
- * Shared implementation of C# IsCharacterMoveEndAndStanding.
  *
  * @param character The character to check
  * @param destination Target tile position

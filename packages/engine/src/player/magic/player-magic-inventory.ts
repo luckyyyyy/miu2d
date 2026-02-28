@@ -648,7 +648,6 @@ export class PlayerMagicInventory {
 
   /**
    * 增加武功经验（直接操作 MagicItemInfo 对象）
-   * Reference C#: Player.AddMagicExp(MagicListManager.MagicItemInfo info, int amount)
    */
   addMagicExp(info: MagicItemInfo, expToAdd: number): boolean {
     return _addMagicExpDirect(this.expDeps, info, expToAdd);

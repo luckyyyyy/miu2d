@@ -43,7 +43,6 @@ export class EngineCamera {
 
   /**
    * 获取当前相机跟踪的角色位置
-   * C# Globals.PlayerKindCharacter / Globals.PlayerPositionInWorld
    * 优先级: NPC with Kind=Player > ControledCharacter > ThePlayer
    */
   getPlayerKindPosition(): Vector2 {
@@ -87,9 +86,7 @@ export class EngineCamera {
         camera.x = newCameraPos.x;
         camera.y = newCameraPos.y;
       }
-      // C# 中 UpdatePlayerView 在每帧都会执行（包括 MoveScreenEx 期间），
-      // 始终更新 _lastPlayerPosition。TS 中需要同步更新以防止
-      // MoveScreenEx 结束后因 lastPlayerPosition 过时导致相机跳跃。
+      // 每帧都更新 lastPlayerPosition，防止 MoveScreenEx 结束后相机跳跃
       this.lastPlayerPosition = { ...playerPos };
     } else {
       // 正常跟随 PlayerKindCharacter

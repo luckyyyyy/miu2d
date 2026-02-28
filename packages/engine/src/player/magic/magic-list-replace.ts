@@ -1,7 +1,5 @@
 /**
  * MagicListReplace — 变身/变形时的武功列表临时替换系统
- *
- * 从 PlayerMagicInventory 提取，对应 C#: PlayerMagicInventory.ReplaceListTo / StopReplace
  */
 
 import { logger } from "../../core/logger";

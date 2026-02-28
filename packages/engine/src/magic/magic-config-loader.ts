@@ -523,7 +523,6 @@ function getRenderer(): MagicRenderer {
 /**
  * 获取指定等级的武功数据
  *
- * C# 参考：Magic.EffectLevel = _effectLevel > 0 ? _effectLevel : CurrentLevel
  * CurrentLevel 是武功自身的等级（1-10），不是角色的等级。
  * 当请求的等级超过武功最大等级时，回退到最高可用等级。
  */

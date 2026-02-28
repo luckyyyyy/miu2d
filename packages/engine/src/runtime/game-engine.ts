@@ -210,7 +210,6 @@ export class GameEngine implements EngineContext {
 
     this._map = new MapBase();
     // 同步 MapBase 视口尺寸到实际画布尺寸
-    // C# 中 Carmera.ViewWidth/ViewHeight 由游戏初始化设置
     // 避免 MoveScreenEx 等命令使用默认 800x600 计算半屏偏移导致位置偏移
     this._map.viewWidth = this.config.width;
     this._map.viewHeight = this.config.height;

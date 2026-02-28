@@ -482,7 +482,15 @@ fn main() {
         let shd_data = shd_bytes.as_deref();
 
         let path_str = mpc_path.to_string_lossy();
-        let use_palette_alpha = path_str.contains("/magic/") || path_str.contains("/effect/");
+        // Use palette alpha ONLY for specific types that intentionally use it:
+        // - magic/ and effect/: semi-transparent particle/glow effects
+        // - ui/column/column2: glass highlight overlay effect
+        // All other MPC files force alpha=0xFF, matching original engine behavior
+        // (TextureBase.cs LoadPalette: Palette[i].A = 0xFF ignores palette alpha byte).
+        let path_lower = path_str.to_lowercase();
+        let use_palette_alpha = path_lower.contains("/magic/")
+            || path_lower.contains("/effect/")
+            || path_lower.ends_with("/ui/column/column2.mpc");
         match std::fs::read(mpc_path) {
             Ok(mpc_data) => {
                 let mpc_size = mpc_data.len();

@@ -585,7 +585,6 @@ export class MagicCollisionHandler implements CollisionHandler {
     }
 
     if (isPlayerCaster) {
-      // Reference C#: player.AddMagicExp(info, amount) — 直接操作对象引用
       const currentMagicInfo = this.magicInventory.getCurrentMagicInUse();
       if (currentMagicInfo?.magic) {
         const magicExp = this.magicInventory.getMagicExp(target.level);

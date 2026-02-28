@@ -39,7 +39,6 @@ export function getHiddenItemInfo(deps: MagicListHideDeps, index: number): Magic
 
 /**
  * 添加武功到隐藏列表（用于读档恢复隐藏武功）
- * 参考 C# PlayerMagicInventory.LoadList 中 HideStartIndex 区域的加载逻辑
  */
 export async function addHiddenMagic(
   deps: MagicListHideDeps,

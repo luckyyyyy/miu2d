@@ -560,7 +560,6 @@ export abstract class Character extends CharacterCombat {
     this.npcIni = iniFile;
 
     // 刷新贴图，使用新加载的 _spriteSet
-    // C# 参考: SetRes() 调用 SetState(State, true) 强制刷新
     this._updateTextureForState(this._state);
 
     if (this.bodyIni) {
@@ -700,14 +699,11 @@ export abstract class Character extends CharacterCombat {
 
   /**
    * 设置 NPC 动作文件
-   * C# 参考: ResFile.SetNpcStateImage(NpcIni, state, fileName) 直接修改 NpcIni 字典
-   *          然后调用 SetState((CharacterState)State, true) 强制刷新当前状态的贴图
    * 我们直接加载 ASF 并设置到 _spriteSet 对应槽位，然后刷新当前状态贴图
    */
   async setNpcActionFile(stateType: number, asfFile: string): Promise<void> {
     const key = stateToSpriteSetKey(stateType as CharacterState);
 
-    // C# 参考: Utils.GetAsf() 对空文件名直接返回 null，不加载也不报错
     // 脚本中 SetNpcActionFile("xxx", 10, "") 是用来清除该状态的动画
     if (!asfFile) {
       this._spriteSet[key] = undefined as never;
@@ -723,7 +719,6 @@ export abstract class Character extends CharacterCombat {
 
       logger.debug(`[Character] SetNpcActionFile: state=${stateType} -> ${asfFile}`);
 
-      // C# 参考: SetState((CharacterState)State, true) 总是强制刷新当前状态的贴图
       if (!this.isInSpecialAction) {
         this._updateTextureForState(this._state);
       }

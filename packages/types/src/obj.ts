@@ -13,7 +13,6 @@ import { z } from "zod";
 /**
  * Object 类型
  * 决定 Object 的行为模式
- * 参考 C# Engine/Obj.cs ObjKind 枚举
  */
 export const ObjKindEnum = z.enum([
   "Dynamic", // 0 - 动画物体，可阻挡（如篝火、喷泉）
@@ -56,7 +55,6 @@ export const ObjKindLabels: Record<ObjKind, string> = {
 
 /**
  * Object 资源状态类型
- * 参考 C# Engine/ResFile.cs
  */
 export const ObjStateEnum = z.enum([
   "Common", // 通用/默认状态

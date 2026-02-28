@@ -40,7 +40,6 @@ export class NpcManager {
 
   /**
    * NPC 分组存储
-   * 模拟 C# 原版的 save/game/{fileName} 文件系统
    * 脚本调用 SaveNpc() 时将当前 NPC 列表序列化存入，LoadNpc() 时优先从此读取
    * 存档时持久化到 localStorage，读档时恢复
    */
@@ -415,10 +414,8 @@ export class NpcManager {
 
   /**
    * Clear all NPCs
-   * 参考 C#: NpcManager.ClearAllNpc(keepPartner) — 始终清空 _fileName
    */
   clearAllNpc(keepPartner: boolean = false): void {
-    // C# 原版: _fileName = string.Empty; 始终清空
     this.fileName = "";
 
     if (keepPartner) {
@@ -800,7 +797,6 @@ export class NpcManager {
 
   /**
    * Set NPC action file for a specific state
-   * C# 参考: ResFile.SetNpcStateImage(NpcIni, state, fileName) 直接修改 NpcIni 字典
    * 我们的 setNpcActionFile 直接加载 ASF 并设置到 _spriteSet
    */
   async setNpcActionFile(name: string, stateType: number, asfFile: string): Promise<boolean> {

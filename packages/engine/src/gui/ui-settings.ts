@@ -274,6 +274,8 @@ export interface ThemeBottom {
 
 export interface ThemeBottomState {
   panel: ThemePanel;
+  /** 前景装饰层图片（叠在血条上方），如剑侠情缘2的 column2.msf */
+  overlay?: string;
   life: ThemeBar;
   thew: ThemeBar;
   mana: ThemeBar;
@@ -553,6 +555,8 @@ export interface BottomStateBarConfig {
 
 export interface BottomStateGuiConfig {
   panel: PanelConfig;
+  /** 前景装饰层图片路径，渲染在血条上方 */
+  overlay?: string;
   life: BottomStateBarConfig;
   thew: BottomStateBarConfig;
   mana: BottomStateBarConfig;
@@ -957,6 +961,7 @@ export function resolveTheme(theme: UiTheme): ResolvedUiConfigs {
   // --- bottomState ---
   const bottomState: BottomStateGuiConfig = {
     panel: resolvePanel(theme.bottomState.panel),
+    ...(theme.bottomState.overlay ? { overlay: theme.bottomState.overlay } : {}),
     life: resolveBar(theme.bottomState.life),
     thew: resolveBar(theme.bottomState.thew),
     mana: resolveBar(theme.bottomState.mana),

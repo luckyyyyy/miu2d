@@ -189,8 +189,11 @@ export class MagicRenderer {
       : sprite.flyingAsfPath || sprite.magic.flyingImage;
 
     if (!asfPath) {
-      // 没有图像（如普通攻击），跳过渲染
-      // 中使用 Asf.Empty 代表空精灵，不绘制任何东西
+      // 没有飞行图像（如 FlyingImage= 为空的区域武功），跳过渲染
+      // 但仍需触发 resetPlay() 推进生命周期，否则精灵会卡在 9999 帧无法进入销毁动画
+      if (!sprite.isInDestroy && sprite.needsResetPlay) {
+        sprite.resetPlay();
+      }
       return;
     }
 

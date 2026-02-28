@@ -281,7 +281,6 @@ const showInterfaceCommand: CommandHandler = (_params, _result, helpers) => {
 
 /**
  * SaveGame - Open the save/load panel for the player to save
- * SaveGame()  (C# opens SaveLoad GUI)
  */
 const saveGameCommand: CommandHandler = (_params, _result, helpers) => {
   helpers.api.script.saveGame();

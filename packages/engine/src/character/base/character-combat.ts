@@ -475,7 +475,6 @@ export abstract class CharacterCombat extends CharacterMovement {
     logger.log(`[Character] ${this.name} died${killer ? ` (killed by ${killer.name})` : ""}`);
 
     // 特殊动作播放中死亡：延迟到动作结束再处理
-    // C# 中 ScriptManager.Update 在 Character.Update 之后运行，同帧内就处理完
     // TS 中脚本更新在角色更新之前，且用 async/await 微任务，需要延迟死亡处理
     if (this.isInSpecialAction) {
       // 只标记待处理死亡，不设置 isDeath（避免 isDraw 返回 false 导致角色消失）

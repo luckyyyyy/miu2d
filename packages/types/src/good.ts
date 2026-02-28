@@ -118,7 +118,6 @@ export const GoodEffectTypeLabels: Record<GoodEffectType, string> = {
 
 /**
  * 根据 Kind + Part + EffectType 计算实际效果类型
- * 这个逻辑来自 C# 的 Good.cs TheEffectType 属性
  */
 export function getActualEffectType(
   kind: GoodKind,

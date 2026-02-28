@@ -103,7 +103,6 @@ async function loadNpcFileInternal(
 ): Promise<boolean> {
   logger.log(`[NpcManager] Loading NPC file: ${fileName} (clear=${clearCurrentNpcs})`);
 
-  // C#: LoadNpc("") means clear all NPCs (keep partners) without loading any file
   if (!fileName) {
     if (clearCurrentNpcs) {
       deps.clearAllNpcAndKeepPartner();
@@ -112,7 +111,7 @@ async function loadNpcFileInternal(
     return true;
   }
 
-  // 1. 优先从 NPC 分组存储加载（模拟 C# 的 save/game/ 目录）
+  // 1. 优先从 NPC 分组存储加载
   const storedData = deps.npcGroups.get(fileName);
   if (storedData) {
     if (clearCurrentNpcs) {

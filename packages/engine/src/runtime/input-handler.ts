@@ -433,7 +433,6 @@ export class InputHandler {
     // Alt+Left Click = jump
     if (button === "left" && altKey) {
       // 跳跃会打断待处理的交互和自动攻击
-      // Reference: C# _autoAttackTarget = null; character.JumpTo(mouseTilePosition);
       this.cancelPendingInteraction();
       player.cancelAutoAttack();
       // 只打断攻击动画，不打断施法（Magic 状态不可打断）
@@ -452,7 +451,6 @@ export class InputHandler {
     // Note: This is an IMMEDIATE attack in place, NOT walk-then-attack
     if (button === "left" && ctrlKey) {
       // 攻击会打断待处理的交互和自动攻击
-      // Reference: C# _autoAttackTarget = null; character.PerformeAttack(...)
       this.cancelPendingInteraction();
       player.cancelAutoAttack();
       // Perform attack immediately at clicked world position (no walking)
@@ -492,7 +490,6 @@ export class InputHandler {
 
       // 没有悬停目标时，移动到点击位置
       // 主动移动会打断任何待处理的交互和自动攻击
-      // Reference: C# _autoAttackTarget = null; character.WalkTo/RunTo(mouseTilePosition);
       this.cancelPendingInteraction();
       player.cancelAutoAttack();
       // 只打断攻击动画，不打断施法（Magic 状态不可打断）
@@ -619,7 +616,6 @@ export class InputHandler {
     const guiManager = this.engine.guiManager;
     const player = this.engine.player as Player;
 
-    // Reference: C# _autoAttackTarget = null; character.InteractWith(...)
     player.cancelAutoAttack();
 
     const scriptFile = useRightScript ? npc.scriptFileRight : npc.scriptFile;
@@ -689,7 +685,6 @@ export class InputHandler {
   async interactWithObj(obj: Obj, useRightScript: boolean = false): Promise<void> {
     const player = this.player;
 
-    // Reference: C# _autoAttackTarget = null; character.InteractWith(...)
     player.cancelAutoAttack();
 
     // Use Obj.canInteract() to check if interaction is possible

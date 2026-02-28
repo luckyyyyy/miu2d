@@ -288,10 +288,6 @@ export class Player extends PlayerCombat {
    * Override loadSpritesFromNpcIni to update NpcIniIndex and SpecialAttackTexture
    * Reference: Player.SetNpcIni() - 当通过 SetNpcRes 脚本命令改变玩家资源时，
    * 需要更新 NpcIniIndex 和刷新修炼武功的 SpecialAttackTexture
-   *
-   * C# 原版: Player.SetNpcIni(fileName) 调用 base.SetNpcIni 后执行：
-   *   NpcIniIndex = value;  // 从文件名提取数字
-   *   XiuLianMagic = XiuLianMagic;  // 触发 setter 刷新 SpecialAttackTexture
    */
   override async loadSpritesFromNpcIni(npcIni?: string): Promise<boolean> {
     const result = await super.loadSpritesFromNpcIni(npcIni);
@@ -363,9 +359,6 @@ export class Player extends PlayerCombat {
   addExp(amount: number, addMagicExp: boolean = false): void {
     // 如果 addMagicExp 为 true，给修炼武功和当前使用武功增加经验
     if (addMagicExp) {
-      // Reference C#: Player.AddExp → AddMagicExp(XiuLianMagic, ...) / AddMagicExp(CurrentMagicInUse, ...)
-      // C# 直接传递对象引用，不做 fileName 查找，避免替换武功列表时找错对象
-
       // 给修炼中的武功增加经验
       const xiuLianMagic = this._magicInventory.getXiuLianMagic();
       if (xiuLianMagic?.magic) {

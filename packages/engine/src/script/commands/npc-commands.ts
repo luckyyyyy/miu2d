@@ -152,7 +152,7 @@ const npcGotoDirCommand: CommandHandler = async (params, _result, helpers) => {
 
 /**
  * SetNpcActionFile - Set NPC animation file for a state
- * 不等待 ASF 加载完成，立即继续执行脚本（匹配 C# 同步行为）
+ * 不等待 ASF 加载完成，立即继续执行脚本
  * 这样后续的 NpcSpecialAction 等命令能在同一帧内执行，
  * 避免因异步加载导致中间帧闪烁
  */

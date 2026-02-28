@@ -53,7 +53,6 @@ const delGoodsCommand: CommandHandler = (params, _result, helpers) => {
 
 /**
  * EquipGoods - Equip an item
- * C#: EquipGoods(goodListIndex, part)
  * Checks CanEquip then calls EquipInterface.EquipGood(goodListIndex)
  */
 const equipGoodsCommand: CommandHandler = (params, _result, helpers) => {

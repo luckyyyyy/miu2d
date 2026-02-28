@@ -56,6 +56,29 @@ const ColumnView: React.FC<ColumnViewProps> = ({ imagePath, percent, left, top }
   );
 };
 
+/**
+ * 前景装饰层 — 叠在血条上方（对应 Column.ini / column2.msf）
+ */
+const OverlayImage: React.FC<{ imagePath: string }> = ({ imagePath }) => {
+  const { dataUrl, width, height, isLoading } = useAsfImage(imagePath);
+  if (isLoading || !dataUrl) return null;
+  return (
+    <img
+      src={dataUrl}
+      alt=""
+      style={{
+        position: "absolute",
+        left: 0,
+        top: 0,
+        width: width,
+        height: height,
+        pointerEvents: "none",
+        imageRendering: "pixelated",
+      }}
+    />
+  );
+};
+
 export const BottomStateGui: React.FC<BottomStateGuiProps> = ({
   life,
   maxLife,
@@ -155,6 +178,11 @@ export const BottomStateGui: React.FC<BottomStateGuiProps> = ({
           left={config.mana.left}
           top={config.mana.top}
         />
+      )}
+
+      {/* 前景装饰层 - 叠在血条上方（如剑侠情缘2 column2.msf） */}
+      {config?.overlay && (
+        <OverlayImage imagePath={config.overlay} />
       )}
     </div>
   );

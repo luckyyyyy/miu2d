@@ -306,9 +306,6 @@ export class Npc extends Character {
   override death(killer: Character | null = null): void {
     if (this.isDeathInvoked) return;
 
-    // C# 原版 Character.Death() 中，AddDead、死亡脚本、死亡武功都在召唤物检查之前执行
-    // 即所有 NPC（包括召唤物、无死亡动画的 NPC）都会执行这些逻辑
-
     // NpcManager.AddDead(this)
     this.npcManager.addDead(this);
 
@@ -439,19 +436,11 @@ export class Npc extends Character {
 
   /**
    * Attacking(destinationTilePosition)
-   * C# Reference: Character.Attacking(Vector2 destinationTilePosition, bool isRun = false)
-   *
-   * C# 中 Attacking 统一调用 AttackingIsOk → PerformeAttack，
    * 始终使用 Attack/Attack1/Attack2 状态（而非 Magic 状态）。
    * 武功在攻击动画结束时通过 _magicToUseWhenAttack 发射。
-   *
    * CharacterState.Magic 仅用于玩家手动释放武功（UseMagic），NPC 不应使用。
    */
   attacking(destinationTilePosition: Vector2): void {
-    // C#: if (PerformActionOk() &&
-    //         (IsStateImageOk(CharacterState.Attack) ||
-    //          IsStateImageOk(CharacterState.Attack1) ||
-    //          IsStateImageOk(CharacterState.Attack2)))
     if (
       !this.canPerformAction() ||
       !(
@@ -465,7 +454,6 @@ export class Npc extends Character {
 
     this._destinationAttackTilePosition = destinationTilePosition;
 
-    // C#: AttackingIsOk(out magicToUse) → PerformeAttack(magicToUse)
     const result = this.attackingIsOk();
     if (result.isOk) {
       this.performAttack(destinationTilePosition, result.magicIni ?? undefined);

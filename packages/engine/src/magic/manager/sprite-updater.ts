@@ -112,16 +112,8 @@ export class SpriteUpdater {
       return;
     }
 
-    // 处理工作队列
-    const readyItems: WorkItem[] = [];
-    this.state.workList = this.state.workList.filter((item) => {
-      item.leftMilliseconds -= deltaMs;
-      if (item.leftMilliseconds <= 0) {
-        readyItems.push(item);
-        return false;
-      }
-      return true;
-    });
+    // 注意：工作队列由 MagicSpriteManager.update() 通过 getReadyWorkItems() 统一处理，
+    // 此处不再重复处理工作队列，避免 leftMilliseconds 被双倍递减导致精灵丢失。
 
     // 更新武功精灵
     const toRemove: number[] = [];

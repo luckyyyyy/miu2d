@@ -84,7 +84,7 @@ export function getClosestEnemy(
 
 /**
  * Get live closest enemy from a different group
- * NpcManager.GetLiveClosestOtherGropEnemy (typo preserved from C#)
+ * NpcManager.GetLiveClosestOtherGropEnemy (typo preserved from original)
  */
 export function getLiveClosestOtherGropEnemy(
   ctx: NpcAiQueryContext,
@@ -123,7 +123,7 @@ export function getLiveClosestPlayerOrFighterFriend(
 
 /**
  * Get closest non-neutral fighter
- * NpcManager.GetLiveClosestNonneturalFighter (typo preserved from C#)
+ * NpcManager.GetLiveClosestNonneturalFighter (typo preserved from original)
  */
 export function getLiveClosestNonneturalFighter(
   ctx: NpcAiQueryContext,

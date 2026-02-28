@@ -550,6 +550,7 @@ export const BottomGui: React.FC<BottomGuiProps> = ({
             width={btn.width}
             height={btn.height}
             title={BUTTON_TITLES[i]}
+            sound={btn.sound}
             onClick={handler}
           />
         );
