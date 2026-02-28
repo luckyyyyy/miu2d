@@ -12,8 +12,10 @@ import { GoodKind } from "@miu2d/engine/player/goods";
 import type React from "react";
 import { useCallback, useEffect } from "react";
 import type { TouchDragData } from "../contexts";
+import { GameUIContext } from "../contexts";
 import type { GameUILogic } from "./hooks";
 import type { EquipSlotType } from "./ui/classic";
+import type { GoodItemData } from "./ui/classic";
 import { useEquipGuiConfig, useStateGuiConfig } from "./ui/classic/useUISettings";
 import {
   BottomGui,
@@ -244,8 +246,36 @@ export const ClassicGameUI: React.FC<ClassicGameUIProps> = ({ logic, width, heig
 
   if (!engine) return null;
 
+  // ======= GameUIContext value =======
+  const gameUIContextValue = {
+    screenWidth: width,
+    screenHeight: height,
+    togglePanel,
+    playerVitals: {
+      life: player?.life ?? 100,
+      lifeMax: player?.lifeMax ?? 100,
+      mana: player?.mana ?? 50,
+      manaMax: player?.manaMax ?? 50,
+      thew: player?.thew ?? 100,
+      thewMax: player?.thewMax ?? 100,
+    },
+    onMagicHover: handleMagicHover,
+    onMagicLeave: handleMagicLeave,
+    onGoodsHover: (goodData: GoodItemData | null, x: number, y: number) => {
+      if (goodData?.good) {
+        logic.setTooltip({
+          isVisible: true,
+          good: goodData.good,
+          isRecycle: false,
+          position: { x, y },
+        });
+      }
+    },
+    onGoodsLeave: handleMouseLeave,
+  };
+
   return (
-    <>
+    <GameUIContext.Provider value={gameUIContextValue}>
       {/* Top GUI */}
       <TopGui
         screenWidth={width}
@@ -297,8 +327,6 @@ export const ClassicGameUI: React.FC<ClassicGameUIProps> = ({ logic, width, heig
       <BottomGui
         goodsItems={goodsData.bottomGoods}
         magicItems={magicData.bottomMagics}
-        screenWidth={width}
-        screenHeight={height}
         onItemClick={(index) => {
           if (index < 3) {
             handleUseBottomGood(index);
@@ -341,26 +369,6 @@ export const ClassicGameUI: React.FC<ClassicGameUIProps> = ({ logic, width, heig
           handleMagicDragEnd();
           setDragData(null);
         }}
-        onMagicHover={handleMagicHover}
-        onMagicLeave={handleMagicLeave}
-        onGoodsHover={(goodData, x, y) => {
-          if (goodData?.good) {
-            logic.setTooltip({
-              isVisible: true,
-              good: goodData.good,
-              isRecycle: false,
-              position: { x, y },
-            });
-          }
-        }}
-        onGoodsLeave={handleMouseLeave}
-        onStateClick={() => togglePanel("state")}
-        onEquipClick={() => togglePanel("equip")}
-        onXiuLianClick={() => togglePanel("xiulian")}
-        onGoodsClick={() => togglePanel("goods")}
-        onMagicClick={() => togglePanel("magic")}
-        onMemoClick={() => togglePanel("memo")}
-        onSystemClick={() => togglePanel("system")}
       />
 
       {/* State Panel - 整合模式下由 EquipGui 通过 overlayStats 渲染文字，此处仅在非整合模式显示 */}
@@ -634,6 +642,6 @@ export const ClassicGameUI: React.FC<ClassicGameUIProps> = ({ logic, width, heig
       >
         Powered by Miu2D Engine
       </div>
-    </>
+    </GameUIContext.Provider>
   );
 };
