@@ -138,7 +138,11 @@ export interface ThemeTitle {
     load: ThemeButton;
     team: ThemeButton;
     exit: ThemeButton;
+    /** 制作人员按钮（可选），点击后播放 creditsVideo */
+    credits?: ThemeButton;
   };
+  /** 制作人员视频文件路径（相对资源根），点击 credits 按钮时播放 */
+  creditsVideo?: string;
 }
 
 export interface ThemeSaveLoad {
@@ -604,6 +608,10 @@ export interface TitleGuiConfig {
   loadBtn: ButtonConfig;
   teamBtn: ButtonConfig;
   exitBtn: ButtonConfig;
+  /** 制作人员按钮（可选）*/
+  creditsBtn?: ButtonConfig;
+  /** 制作人员视频文件路径（相对资源根）*/
+  creditsVideo?: string;
 }
 
 // ============================================
@@ -803,6 +811,12 @@ export function resolveTheme(theme: UiTheme): ResolvedUiConfigs {
         loadBtn: resolveButton(theme.title.buttons.load),
         teamBtn: resolveButton(theme.title.buttons.team),
         exitBtn: resolveButton(theme.title.buttons.exit),
+        ...(theme.title.buttons.credits
+          ? { creditsBtn: resolveButton(theme.title.buttons.credits) }
+          : {}),
+        ...(theme.title.creditsVideo
+          ? { creditsVideo: theme.title.creditsVideo }
+          : {}),
       }
     : null;
 

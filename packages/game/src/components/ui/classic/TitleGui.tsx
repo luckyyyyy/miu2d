@@ -8,6 +8,7 @@
  * 模式自动切换：INI 中配置了 [Title] BackgroundImage → 经典模式，否则 → 现代模式
  */
 
+import { logger } from "@miu2d/engine/core/logger";
 import { getResourceRoot, getResourceUrl } from "@miu2d/engine/resource";
 import type { ButtonConfig, TitleGuiConfig } from "@miu2d/engine/gui/ui-settings";
 import type React from "react";
@@ -120,6 +121,8 @@ const ClassicTitle: React.FC<TitleGuiProps & { config: TitleGuiConfig }> = ({
   const [bgSize, setBgSize] = useState<{ w: number; h: number } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerSize, setContainerSize] = useState<{ w: number; h: number }>({ w: 0, h: 0 });
+  const [creditsVideoUrl, setCreditsVideoUrl] = useState<string | null>(null);
+  const creditsVideoRef = useRef<HTMLVideoElement>(null);
 
   // 加载背景图（jpg/png 直接用 img 标签）
   useEffect(() => {
@@ -166,6 +169,37 @@ const ClassicTitle: React.FC<TitleGuiProps & { config: TitleGuiConfig }> = ({
       offsetTop: config.topAdjust,
     };
   }, [bgSize, containerSize, config.leftAdjust, config.topAdjust]);
+
+  // 制作人员按钮点击：构建视频 URL 并展示
+  const handleCreditsClick = useCallback(() => {
+    if (!config.creditsVideo) return;
+    const url = getResourceUrl(`${getResourceRoot()}/${config.creditsVideo}`);
+    setCreditsVideoUrl(url);
+  }, [config.creditsVideo]);
+
+  // 视频播放完毕或点击关闭
+  const handleCreditsClose = useCallback(() => {
+    setCreditsVideoUrl(null);
+  }, []);
+
+  // ESC 键关闭视频
+  useEffect(() => {
+    if (!creditsVideoUrl) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") handleCreditsClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [creditsVideoUrl, handleCreditsClose]);
+
+  // 视频出现后自动播放
+  useEffect(() => {
+    if (creditsVideoUrl && creditsVideoRef.current) {
+      creditsVideoRef.current.play().catch((err) => {
+        logger.warn(`[TitleGui] Credits video autoplay failed: ${err}`);
+      });
+    }
+  }, [creditsVideoUrl]);
 
   // 背景图渲染尺寸
   const renderedW = bgSize ? bgSize.w * scale : 0;
@@ -240,6 +274,45 @@ const ClassicTitle: React.FC<TitleGuiProps & { config: TitleGuiConfig }> = ({
               offsetTop={offsetTop}
             />
           )}
+          {config.creditsBtn && config.creditsVideo && (
+            <AsfButton
+              config={config.creditsBtn}
+              onClick={handleCreditsClick}
+              scale={scale}
+              offsetLeft={offsetLeft}
+              offsetTop={offsetTop}
+            />
+          )}
+        </div>
+      )}
+
+      {/* 制作人员视频遮罩 */}
+      {creditsVideoUrl && (
+        <div
+          onClick={handleCreditsClose}
+          style={{
+            position: "absolute",
+            inset: 0,
+            background: "#000",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 100,
+            cursor: "pointer",
+          }}
+        >
+          <video
+            ref={creditsVideoRef}
+            src={creditsVideoUrl}
+            onEnded={handleCreditsClose}
+            aria-label="制作人员"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              maxWidth: "100%",
+              maxHeight: "100%",
+              objectFit: "contain",
+            }}
+          />
         </div>
       )}
     </div>
