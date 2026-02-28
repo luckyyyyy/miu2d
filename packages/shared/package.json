@@ -19,7 +19,6 @@
     "check": "biome check --write ."
   },
   "dependencies": {
-    "@miu2d/engine": "workspace:*",
     "@miu2d/server": "workspace:*",
     "@miu2d/types": "workspace:*",
     "@tanstack/react-query": "^5.80.7",

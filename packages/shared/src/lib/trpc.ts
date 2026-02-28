@@ -4,7 +4,6 @@
  * 类型从 server 包的 @generated 目录导入
  */
 
-import { getResourceDomain } from "@miu2d/engine/resource/resource-paths";
 import type { AppRouter } from "@miu2d/server/trpc";
 import { httpBatchLink } from "@trpc/client";
 import { createTRPCReact } from "@trpc/react-query";
@@ -12,7 +11,7 @@ import { createTRPCReact } from "@trpc/react-query";
 export const trpc = createTRPCReact<AppRouter>();
 
 const getBaseUrl = () => {
-  const domain = getResourceDomain();
+  const domain = (import.meta.env.VITE_DEMO_RESOURCES_DOMAIN as string | undefined)?.replace(/\/+$/, "");
   if (domain) {
     return domain;
   }
