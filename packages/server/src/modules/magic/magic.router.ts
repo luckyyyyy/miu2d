@@ -17,7 +17,7 @@ import {
   UpdateMagicInputSchema,
 } from "@miu2d/types";
 import { z } from "zod";
-import type { Context } from "../../trpc/context";
+import type { AuthenticatedContext } from "../../trpc/context";
 import { Ctx, Mutation, Query, Router, UseMiddlewares } from "../../trpc/decorators";
 import { requireUser } from "../../trpc/middlewares";
 import { Logger } from "../../utils/logger.js";
@@ -36,8 +36,8 @@ export class MagicRouter {
    */
   @UseMiddlewares(requireUser)
   @Query({ input: ListMagicInputSchema, output: z.array(MagicListItemSchema) })
-  async list(input: z.infer<typeof ListMagicInputSchema>, @Ctx() ctx: Context) {
-    return magicService.list(input, ctx.userId!, ctx.language);
+  async list(input: z.infer<typeof ListMagicInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+    return magicService.list(input, ctx.userId, ctx.language);
   }
 
   /**
@@ -45,8 +45,8 @@ export class MagicRouter {
    */
   @UseMiddlewares(requireUser)
   @Query({ input: GetMagicInputSchema, output: MagicSchema.nullable() })
-  async get(input: z.infer<typeof GetMagicInputSchema>, @Ctx() ctx: Context) {
-    return magicService.get(input.gameId, input.id, ctx.userId!, ctx.language);
+  async get(input: z.infer<typeof GetMagicInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+    return magicService.get(input.gameId, input.id, ctx.userId, ctx.language);
   }
 
   /**
@@ -54,8 +54,8 @@ export class MagicRouter {
    */
   @UseMiddlewares(requireUser)
   @Mutation({ input: CreateMagicInputSchema, output: MagicSchema })
-  async create(input: z.infer<typeof CreateMagicInputSchema>, @Ctx() ctx: Context) {
-    return magicService.create(input, ctx.userId!, ctx.language);
+  async create(input: z.infer<typeof CreateMagicInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+    return magicService.create(input, ctx.userId, ctx.language);
   }
 
   /**
@@ -63,8 +63,8 @@ export class MagicRouter {
    */
   @UseMiddlewares(requireUser)
   @Mutation({ input: UpdateMagicInputSchema, output: MagicSchema })
-  async update(input: z.infer<typeof UpdateMagicInputSchema>, @Ctx() ctx: Context) {
-    return magicService.update(input, ctx.userId!, ctx.language);
+  async update(input: z.infer<typeof UpdateMagicInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+    return magicService.update(input, ctx.userId, ctx.language);
   }
 
   /**
@@ -72,8 +72,8 @@ export class MagicRouter {
    */
   @UseMiddlewares(requireUser)
   @Mutation({ input: DeleteMagicInputSchema, output: z.object({ id: z.string() }) })
-  async delete(input: z.infer<typeof DeleteMagicInputSchema>, @Ctx() ctx: Context) {
-    return magicService.delete(input.gameId, input.id, ctx.userId!, ctx.language);
+  async delete(input: z.infer<typeof DeleteMagicInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+    return magicService.delete(input.gameId, input.id, ctx.userId, ctx.language);
   }
 
   /**
@@ -81,8 +81,8 @@ export class MagicRouter {
    */
   @UseMiddlewares(requireUser)
   @Mutation({ input: ImportMagicInputSchema, output: MagicSchema })
-  async importFromIni(input: z.infer<typeof ImportMagicInputSchema>, @Ctx() ctx: Context) {
-    return magicService.importFromIni(input, ctx.userId!, ctx.language);
+  async importFromIni(input: z.infer<typeof ImportMagicInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+    return magicService.importFromIni(input, ctx.userId, ctx.language);
   }
 
   /**
@@ -92,9 +92,9 @@ export class MagicRouter {
   @Mutation({ input: BatchImportMagicInputSchema, output: BatchImportMagicResultSchema })
   async batchImportFromIni(
     input: z.infer<typeof BatchImportMagicInputSchema>,
-    @Ctx() ctx: Context
+    @Ctx() ctx: AuthenticatedContext
   ) {
-    return magicService.batchImportFromIni(input, ctx.userId!, ctx.language);
+    return magicService.batchImportFromIni(input, ctx.userId, ctx.language);
   }
 
   /**
@@ -102,7 +102,7 @@ export class MagicRouter {
    */
   @UseMiddlewares(requireUser)
   @Mutation({ input: ClearAllMagicsInputSchema, output: ClearAllMagicsResultSchema })
-  async clearAll(input: z.infer<typeof ClearAllMagicsInputSchema>, @Ctx() ctx: Context) {
-    return magicService.clearAll(input, ctx.userId!, ctx.language);
+  async clearAll(input: z.infer<typeof ClearAllMagicsInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+    return magicService.clearAll(input, ctx.userId, ctx.language);
   }
 }

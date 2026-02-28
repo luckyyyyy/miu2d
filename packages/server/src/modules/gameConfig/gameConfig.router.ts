@@ -8,7 +8,7 @@ import {
   UpdateGameConfigInputSchema,
 } from "@miu2d/types";
 import { z } from "zod";
-import type { Context } from "../../trpc/context";
+import type { AuthenticatedContext } from "../../trpc/context";
 import { Ctx, Mutation, Query, Router, UseMiddlewares } from "../../trpc/decorators";
 import { requireUser } from "../../trpc/middlewares";
 import { Logger } from "../../utils/logger.js";
@@ -27,8 +27,8 @@ export class GameConfigRouter {
    */
   @UseMiddlewares(requireUser)
   @Query({ input: GetGameConfigInputSchema, output: GameConfigSchema })
-  async get(input: z.infer<typeof GetGameConfigInputSchema>, @Ctx() ctx: Context) {
-    return gameConfigService.get(input.gameId, ctx.userId!, ctx.language);
+  async get(input: z.infer<typeof GetGameConfigInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+    return gameConfigService.get(input.gameId, ctx.userId, ctx.language);
   }
 
   /**
@@ -36,8 +36,8 @@ export class GameConfigRouter {
    */
   @UseMiddlewares(requireUser)
   @Mutation({ input: UpdateGameConfigInputSchema, output: GameConfigSchema })
-  async update(input: z.infer<typeof UpdateGameConfigInputSchema>, @Ctx() ctx: Context) {
-    return gameConfigService.update(input, ctx.userId!, ctx.language);
+  async update(input: z.infer<typeof UpdateGameConfigInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+    return gameConfigService.update(input, ctx.userId, ctx.language);
   }
 
   /**
@@ -50,12 +50,12 @@ export class GameConfigRouter {
   })
   async setUiTheme(
     input: { gameId: string; uiTheme: unknown },
-    @Ctx() ctx: Context
+    @Ctx() ctx: AuthenticatedContext
   ) {
     return gameConfigService.patchUiTheme(
       input.gameId,
       input.uiTheme,
-      ctx.userId!,
+      ctx.userId,
       ctx.language
     );
   }

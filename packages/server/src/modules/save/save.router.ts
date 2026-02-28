@@ -18,7 +18,7 @@ import {
   UpsertSaveInputSchema,
 } from "@miu2d/types";
 import { z } from "zod";
-import type { Context } from "../../trpc/context";
+import type { AuthenticatedContext } from "../../trpc/context";
 import { Ctx, Mutation, Query, Router, UseMiddlewares } from "../../trpc/decorators";
 import { requireAdmin, requireUser } from "../../trpc/middlewares";
 import { Logger } from "../../utils/logger.js";
@@ -37,8 +37,8 @@ export class SaveRouter {
    */
   @UseMiddlewares(requireUser)
   @Query({ input: ListSavesInputSchema, output: z.array(SaveSlotSchema) })
-  async list(input: z.infer<typeof ListSavesInputSchema>, @Ctx() ctx: Context) {
-    return saveService.listByUser(input.gameSlug, ctx.userId!);
+  async list(input: z.infer<typeof ListSavesInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+    return saveService.listByUser(input.gameSlug, ctx.userId);
   }
 
   /**
@@ -46,8 +46,8 @@ export class SaveRouter {
    */
   @UseMiddlewares(requireUser)
   @Query({ input: GetSaveInputSchema, output: SaveDataResponseSchema })
-  async get(input: z.infer<typeof GetSaveInputSchema>, @Ctx() ctx: Context) {
-    return saveService.get(input.saveId, ctx.userId!);
+  async get(input: z.infer<typeof GetSaveInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+    return saveService.get(input.saveId, ctx.userId);
   }
 
   /**
@@ -55,8 +55,8 @@ export class SaveRouter {
    */
   @UseMiddlewares(requireUser)
   @Mutation({ input: UpsertSaveInputSchema, output: SaveSlotSchema })
-  async upsert(input: z.infer<typeof UpsertSaveInputSchema>, @Ctx() ctx: Context) {
-    return saveService.upsert(input, ctx.userId!);
+  async upsert(input: z.infer<typeof UpsertSaveInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+    return saveService.upsert(input, ctx.userId);
   }
 
   /**
@@ -64,8 +64,8 @@ export class SaveRouter {
    */
   @UseMiddlewares(requireUser)
   @Mutation({ input: DeleteSaveInputSchema, output: z.object({ id: z.string() }) })
-  async delete(input: z.infer<typeof DeleteSaveInputSchema>, @Ctx() ctx: Context) {
-    return saveService.delete(input.saveId, ctx.userId!);
+  async delete(input: z.infer<typeof DeleteSaveInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+    return saveService.delete(input.saveId, ctx.userId);
   }
 
   /**
@@ -73,8 +73,8 @@ export class SaveRouter {
    */
   @UseMiddlewares(requireUser)
   @Mutation({ input: ShareSaveInputSchema, output: SaveSlotSchema })
-  async share(input: z.infer<typeof ShareSaveInputSchema>, @Ctx() ctx: Context) {
-    return saveService.setShared(input.saveId, input.isShared, ctx.userId!);
+  async share(input: z.infer<typeof ShareSaveInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+    return saveService.setShared(input.saveId, input.isShared, ctx.userId);
   }
 
   /**
@@ -95,8 +95,8 @@ export class SaveRouter {
    */
   @UseMiddlewares(requireAdmin)
   @Query({ input: AdminListSavesInputSchema, output: AdminListSavesOutputSchema })
-  async adminList(input: z.infer<typeof AdminListSavesInputSchema>, @Ctx() ctx: Context) {
-    return saveService.adminList(input, ctx.userId!);
+  async adminList(input: z.infer<typeof AdminListSavesInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+    return saveService.adminList(input, ctx.userId);
   }
 
   /**
@@ -107,8 +107,8 @@ export class SaveRouter {
     input: GetSaveInputSchema,
     output: SaveDataResponseSchema.extend({ userName: z.string().optional() }),
   })
-  async adminGet(input: z.infer<typeof GetSaveInputSchema>, @Ctx() ctx: Context) {
-    return saveService.adminGet(input.saveId, ctx.userId!);
+  async adminGet(input: z.infer<typeof GetSaveInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+    return saveService.adminGet(input.saveId, ctx.userId);
   }
 
   /**
@@ -116,8 +116,8 @@ export class SaveRouter {
    */
   @UseMiddlewares(requireAdmin)
   @Mutation({ input: ShareSaveInputSchema, output: SaveSlotSchema })
-  async adminShare(input: z.infer<typeof ShareSaveInputSchema>, @Ctx() ctx: Context) {
-    return saveService.adminSetShared(input.saveId, input.isShared, ctx.userId!);
+  async adminShare(input: z.infer<typeof ShareSaveInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+    return saveService.adminSetShared(input.saveId, input.isShared, ctx.userId);
   }
 
   /**
@@ -125,8 +125,8 @@ export class SaveRouter {
    */
   @UseMiddlewares(requireAdmin)
   @Mutation({ input: AdminCreateSaveInputSchema, output: SaveSlotSchema })
-  async adminCreate(input: z.infer<typeof AdminCreateSaveInputSchema>, @Ctx() ctx: Context) {
-    return saveService.adminCreate(input, ctx.userId!);
+  async adminCreate(input: z.infer<typeof AdminCreateSaveInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+    return saveService.adminCreate(input, ctx.userId);
   }
 
   /**
@@ -134,8 +134,8 @@ export class SaveRouter {
    */
   @UseMiddlewares(requireAdmin)
   @Mutation({ input: AdminUpdateSaveInputSchema, output: SaveSlotSchema })
-  async adminUpdate(input: z.infer<typeof AdminUpdateSaveInputSchema>, @Ctx() ctx: Context) {
-    return saveService.adminUpdate(input, ctx.userId!);
+  async adminUpdate(input: z.infer<typeof AdminUpdateSaveInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+    return saveService.adminUpdate(input, ctx.userId);
   }
 
   /**
@@ -143,7 +143,7 @@ export class SaveRouter {
    */
   @UseMiddlewares(requireAdmin)
   @Mutation({ input: AdminDeleteSaveInputSchema, output: z.object({ id: z.string() }) })
-  async adminDelete(input: z.infer<typeof AdminDeleteSaveInputSchema>, @Ctx() ctx: Context) {
-    return saveService.adminDelete(input.saveId, ctx.userId!);
+  async adminDelete(input: z.infer<typeof AdminDeleteSaveInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+    return saveService.adminDelete(input.saveId, ctx.userId);
   }
 }

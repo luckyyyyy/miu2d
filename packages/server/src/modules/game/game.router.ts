@@ -6,7 +6,7 @@ import {
   UpdateGameInputSchema,
 } from "@miu2d/types";
 import { z } from "zod";
-import type { Context } from "../../trpc/context";
+import type { AuthenticatedContext } from "../../trpc/context";
 import { Ctx, Mutation, Query, Router, UseMiddlewares } from "../../trpc/decorators";
 import { requireUser } from "../../trpc/middlewares";
 import { Logger } from "../../utils/logger.js";
@@ -41,8 +41,8 @@ export class GameRouter {
 
   @UseMiddlewares(requireUser)
   @Query({ output: z.array(GameSchema) })
-  async list(@Ctx() ctx: Context) {
-    const games = await gameService.listByUser(ctx.userId!);
+  async list(@Ctx() ctx: AuthenticatedContext) {
+    const games = await gameService.listByUser(ctx.userId);
     return games.map(toGameOutput);
   }
 
@@ -51,38 +51,38 @@ export class GameRouter {
     input: z.object({ slug: z.string() }),
     output: GameSchema.nullable(),
   })
-  async getBySlug(input: { slug: string }, @Ctx() ctx: Context) {
-    const game = await gameService.getBySlug(input.slug, ctx.userId!);
+  async getBySlug(input: { slug: string }, @Ctx() ctx: AuthenticatedContext) {
+    const game = await gameService.getBySlug(input.slug, ctx.userId);
     return game ? toGameOutput(game) : null;
   }
 
   @UseMiddlewares(requireUser)
   @Mutation({ input: CreateGameInputSchema, output: GameSchema })
-  async create(input: z.infer<typeof CreateGameInputSchema>, @Ctx() ctx: Context) {
-    const game = await gameService.create(input, ctx.userId!);
+  async create(input: z.infer<typeof CreateGameInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+    const game = await gameService.create(input, ctx.userId);
     return toGameOutput(game);
   }
 
   @UseMiddlewares(requireUser)
   @Mutation({ input: UpdateGameInputSchema, output: GameSchema })
-  async update(input: z.infer<typeof UpdateGameInputSchema>, @Ctx() ctx: Context) {
-    const updated = await gameService.update(input.id, input, ctx.userId!, ctx.language);
+  async update(input: z.infer<typeof UpdateGameInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+    const updated = await gameService.update(input.id, input, ctx.userId, ctx.language);
     return toGameOutput(updated);
   }
 
   @UseMiddlewares(requireUser)
   @Mutation({ input: DeleteGameInputSchema, output: z.object({ id: z.string() }) })
-  async delete(input: z.infer<typeof DeleteGameInputSchema>, @Ctx() ctx: Context) {
-    return gameService.delete(input.id, ctx.userId!, ctx.language);
+  async delete(input: z.infer<typeof DeleteGameInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+    return gameService.delete(input.id, ctx.userId, ctx.language);
   }
 
   @UseMiddlewares(requireUser)
   @Mutation({ input: TransferOwnerInputSchema, output: GameSchema })
-  async transferOwner(input: z.infer<typeof TransferOwnerInputSchema>, @Ctx() ctx: Context) {
+  async transferOwner(input: z.infer<typeof TransferOwnerInputSchema>, @Ctx() ctx: AuthenticatedContext) {
     const updated = await gameService.transferOwner(
       input.id,
       input.newOwnerId,
-      ctx.userId!,
+      ctx.userId,
       ctx.language
     );
     return toGameOutput(updated);

@@ -10,7 +10,7 @@ import {
 } from "@miu2d/types";
 import { TRPCError } from "@trpc/server";
 import { getMessage } from "../../i18n";
-import type { Context } from "../../trpc/context";
+import type { AuthenticatedContext } from "../../trpc/context";
 import { Ctx, Mutation, Query, Router, UseMiddlewares } from "../../trpc/decorators";
 import { requireUser } from "../../trpc/middlewares";
 import { Logger } from "../../utils/logger.js";
@@ -26,8 +26,8 @@ export class UserRouter {
   }
   @Query({ output: UserSchema })
   @UseMiddlewares(requireUser)
-  async getProfile(@Ctx() ctx: Context) {
-    const user = await userService.getById(ctx.userId!);
+  async getProfile(@Ctx() ctx: AuthenticatedContext) {
+    const user = await userService.getById(ctx.userId);
     if (!user) {
       throw new TRPCError({
         code: "NOT_FOUND",
@@ -39,10 +39,10 @@ export class UserRouter {
 
   @Mutation({ input: UserUpdateInputSchema, output: UserSchema })
   @UseMiddlewares(requireUser)
-  async updateProfile(input: UserUpdateInput, @Ctx() ctx: Context) {
+  async updateProfile(input: UserUpdateInput, @Ctx() ctx: AuthenticatedContext) {
     // 邮箱已验证后不能直接修改邮箱，必须通过 requestChangeEmail 流程
     if (input.email) {
-      const user = await userService.getById(ctx.userId!);
+      const user = await userService.getById(ctx.userId);
       if (user?.emailVerified) {
         throw new TRPCError({
           code: "BAD_REQUEST",
@@ -52,7 +52,7 @@ export class UserRouter {
     }
 
     const updated = await userService.updateProfile(
-      ctx.userId!,
+      ctx.userId,
       {
         name: input.name,
         email: input.email,
@@ -73,8 +73,8 @@ export class UserRouter {
 
   @Mutation({ output: UserSchema })
   @UseMiddlewares(requireUser)
-  async deleteAvatar(@Ctx() ctx: Context) {
-    const updated = await userService.deleteAvatar(ctx.userId!, ctx.language);
+  async deleteAvatar(@Ctx() ctx: AuthenticatedContext) {
+    const updated = await userService.deleteAvatar(ctx.userId, ctx.language);
     return toUserOutput(updated);
   }
 
@@ -83,9 +83,9 @@ export class UserRouter {
     output: SuccessResponseSchema,
   })
   @UseMiddlewares(requireUser)
-  async changePassword(input: ChangePasswordInput, @Ctx() ctx: Context) {
+  async changePassword(input: ChangePasswordInput, @Ctx() ctx: AuthenticatedContext) {
     await userService.changePassword(
-      ctx.userId!,
+      ctx.userId,
       input.currentPassword,
       input.newPassword,
       ctx.language
@@ -99,8 +99,8 @@ export class UserRouter {
    */
   @Mutation({ output: MessageResponseSchema })
   @UseMiddlewares(requireUser)
-  async sendVerifyEmail(@Ctx() ctx: Context) {
-    const user = await userService.getById(ctx.userId!);
+  async sendVerifyEmail(@Ctx() ctx: AuthenticatedContext) {
+    const user = await userService.getById(ctx.userId);
     if (!user) {
       throw new TRPCError({
         code: "NOT_FOUND",
@@ -134,8 +134,8 @@ export class UserRouter {
     output: MessageResponseSchema,
   })
   @UseMiddlewares(requireUser)
-  async requestChangeEmail(input: { newEmail: string }, @Ctx() ctx: Context) {
-    const user = await userService.getById(ctx.userId!);
+  async requestChangeEmail(input: { newEmail: string }, @Ctx() ctx: AuthenticatedContext) {
+    const user = await userService.getById(ctx.userId);
     if (!user) {
       throw new TRPCError({
         code: "NOT_FOUND",

@@ -17,7 +17,7 @@ import {
   UpdatePlayerInputSchema,
 } from "@miu2d/types";
 import { z } from "zod";
-import type { Context } from "../../trpc/context";
+import type { AuthenticatedContext } from "../../trpc/context";
 import { Ctx, Mutation, Query, Router, UseMiddlewares } from "../../trpc/decorators";
 import { requireUser } from "../../trpc/middlewares";
 import { Logger } from "../../utils/logger.js";
@@ -36,8 +36,8 @@ export class PlayerRouter {
    */
   @UseMiddlewares(requireUser)
   @Query({ input: ListPlayerInputSchema, output: z.array(PlayerListItemSchema) })
-  async list(input: z.infer<typeof ListPlayerInputSchema>, @Ctx() ctx: Context) {
-    return playerService.list(input, ctx.userId!, ctx.language);
+  async list(input: z.infer<typeof ListPlayerInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+    return playerService.list(input, ctx.userId, ctx.language);
   }
 
   /**
@@ -45,8 +45,8 @@ export class PlayerRouter {
    */
   @UseMiddlewares(requireUser)
   @Query({ input: GetPlayerInputSchema, output: PlayerSchema.nullable() })
-  async get(input: z.infer<typeof GetPlayerInputSchema>, @Ctx() ctx: Context) {
-    return playerService.get(input.gameId, input.id, ctx.userId!, ctx.language);
+  async get(input: z.infer<typeof GetPlayerInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+    return playerService.get(input.gameId, input.id, ctx.userId, ctx.language);
   }
 
   /**
@@ -54,8 +54,8 @@ export class PlayerRouter {
    */
   @UseMiddlewares(requireUser)
   @Mutation({ input: CreatePlayerInputSchema, output: PlayerSchema })
-  async create(input: z.infer<typeof CreatePlayerInputSchema>, @Ctx() ctx: Context) {
-    return playerService.create(input, ctx.userId!, ctx.language);
+  async create(input: z.infer<typeof CreatePlayerInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+    return playerService.create(input, ctx.userId, ctx.language);
   }
 
   /**
@@ -63,8 +63,8 @@ export class PlayerRouter {
    */
   @UseMiddlewares(requireUser)
   @Mutation({ input: UpdatePlayerInputSchema, output: PlayerSchema })
-  async update(input: z.infer<typeof UpdatePlayerInputSchema>, @Ctx() ctx: Context) {
-    return playerService.update(input, ctx.userId!, ctx.language);
+  async update(input: z.infer<typeof UpdatePlayerInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+    return playerService.update(input, ctx.userId, ctx.language);
   }
 
   /**
@@ -72,8 +72,8 @@ export class PlayerRouter {
    */
   @UseMiddlewares(requireUser)
   @Mutation({ input: DeletePlayerInputSchema, output: z.object({ id: z.string() }) })
-  async delete(input: z.infer<typeof DeletePlayerInputSchema>, @Ctx() ctx: Context) {
-    return playerService.delete(input.gameId, input.id, ctx.userId!, ctx.language);
+  async delete(input: z.infer<typeof DeletePlayerInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+    return playerService.delete(input.gameId, input.id, ctx.userId, ctx.language);
   }
 
   /**
@@ -81,8 +81,8 @@ export class PlayerRouter {
    */
   @UseMiddlewares(requireUser)
   @Mutation({ input: ImportPlayerInputSchema, output: PlayerSchema })
-  async importFromIni(input: z.infer<typeof ImportPlayerInputSchema>, @Ctx() ctx: Context) {
-    return playerService.importFromIni(input, ctx.userId!, ctx.language);
+  async importFromIni(input: z.infer<typeof ImportPlayerInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+    return playerService.importFromIni(input, ctx.userId, ctx.language);
   }
 
   /**
@@ -92,9 +92,9 @@ export class PlayerRouter {
   @Mutation({ input: BatchImportPlayerInputSchema, output: BatchImportPlayerResultSchema })
   async batchImportFromIni(
     input: z.infer<typeof BatchImportPlayerInputSchema>,
-    @Ctx() ctx: Context
+    @Ctx() ctx: AuthenticatedContext
   ) {
-    return playerService.batchImportFromIni(input, ctx.userId!, ctx.language);
+    return playerService.batchImportFromIni(input, ctx.userId, ctx.language);
   }
 
   /**
@@ -102,7 +102,7 @@ export class PlayerRouter {
    */
   @UseMiddlewares(requireUser)
   @Mutation({ input: ClearAllPlayersInputSchema, output: ClearAllPlayersResultSchema })
-  async clearAll(input: z.infer<typeof ClearAllPlayersInputSchema>, @Ctx() ctx: Context) {
-    return playerService.clearAll(input, ctx.userId!, ctx.language);
+  async clearAll(input: z.infer<typeof ClearAllPlayersInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+    return playerService.clearAll(input, ctx.userId, ctx.language);
   }
 }

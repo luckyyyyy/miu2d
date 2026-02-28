@@ -26,7 +26,7 @@ import {
   RenameFileInputSchema,
 } from "@miu2d/types";
 import { z } from "zod";
-import type { Context } from "../../trpc/context";
+import type { AuthenticatedContext } from "../../trpc/context";
 import { Ctx, Mutation, Query, Router, UseMiddlewares } from "../../trpc/decorators";
 import { requireUser } from "../../trpc/middlewares";
 import { Logger } from "../../utils/logger.js";
@@ -45,8 +45,8 @@ export class FileRouter {
    */
   @UseMiddlewares(requireUser)
   @Query({ input: ListFilesInputSchema, output: z.array(FileNodeSchema) })
-  async list(input: z.infer<typeof ListFilesInputSchema>, @Ctx() ctx: Context) {
-    return fileService.listFiles(input.gameId, input.parentId, ctx.userId!, ctx.language);
+  async list(input: z.infer<typeof ListFilesInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+    return fileService.listFiles(input.gameId, input.parentId, ctx.userId, ctx.language);
   }
 
   /**
@@ -57,8 +57,8 @@ export class FileRouter {
     input: z.object({ fileId: z.string().uuid() }),
     output: FileNodeSchema,
   })
-  async get(input: { fileId: string }, @Ctx() ctx: Context) {
-    return fileService.getFile(input.fileId, ctx.userId!, ctx.language);
+  async get(input: { fileId: string }, @Ctx() ctx: AuthenticatedContext) {
+    return fileService.getFile(input.fileId, ctx.userId, ctx.language);
   }
 
   /**
@@ -66,8 +66,8 @@ export class FileRouter {
    */
   @UseMiddlewares(requireUser)
   @Query({ input: GetFilePathInputSchema, output: GetFilePathOutputSchema })
-  async getPath(input: z.infer<typeof GetFilePathInputSchema>, @Ctx() ctx: Context) {
-    return fileService.getFilePath(input.fileId, ctx.userId!, ctx.language);
+  async getPath(input: z.infer<typeof GetFilePathInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+    return fileService.getFilePath(input.fileId, ctx.userId, ctx.language);
   }
 
   /**
@@ -75,12 +75,12 @@ export class FileRouter {
    */
   @UseMiddlewares(requireUser)
   @Mutation({ input: CreateFolderInputSchema, output: FileNodeSchema })
-  async createFolder(input: z.infer<typeof CreateFolderInputSchema>, @Ctx() ctx: Context) {
+  async createFolder(input: z.infer<typeof CreateFolderInputSchema>, @Ctx() ctx: AuthenticatedContext) {
     return fileService.createFolder(
       input.gameId,
       input.parentId,
       input.name,
-      ctx.userId!,
+      ctx.userId,
       ctx.language
     );
   }
@@ -90,14 +90,14 @@ export class FileRouter {
    */
   @UseMiddlewares(requireUser)
   @Mutation({ input: PrepareUploadInputSchema, output: PrepareUploadOutputSchema })
-  async prepareUpload(input: z.infer<typeof PrepareUploadInputSchema>, @Ctx() ctx: Context) {
+  async prepareUpload(input: z.infer<typeof PrepareUploadInputSchema>, @Ctx() ctx: AuthenticatedContext) {
     return fileService.prepareUpload(
       input.gameId,
       input.parentId,
       input.name,
       input.size,
       input.mimeType,
-      ctx.userId!,
+      ctx.userId,
       ctx.language
     );
   }
@@ -107,8 +107,8 @@ export class FileRouter {
    */
   @UseMiddlewares(requireUser)
   @Mutation({ input: ConfirmUploadInputSchema, output: FileNodeSchema })
-  async confirmUpload(input: z.infer<typeof ConfirmUploadInputSchema>, @Ctx() ctx: Context) {
-    return fileService.confirmUpload(input.fileId, ctx.userId!, ctx.language);
+  async confirmUpload(input: z.infer<typeof ConfirmUploadInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+    return fileService.confirmUpload(input.fileId, ctx.userId, ctx.language);
   }
 
   /**
@@ -116,8 +116,8 @@ export class FileRouter {
    */
   @UseMiddlewares(requireUser)
   @Mutation({ input: GetDownloadUrlInputSchema, output: GetDownloadUrlOutputSchema })
-  async getDownloadUrl(input: z.infer<typeof GetDownloadUrlInputSchema>, @Ctx() ctx: Context) {
-    const downloadUrl = await fileService.getDownloadUrl(input.fileId, ctx.userId!, ctx.language);
+  async getDownloadUrl(input: z.infer<typeof GetDownloadUrlInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+    const downloadUrl = await fileService.getDownloadUrl(input.fileId, ctx.userId, ctx.language);
     return { downloadUrl };
   }
 
@@ -126,12 +126,12 @@ export class FileRouter {
    */
   @UseMiddlewares(requireUser)
   @Mutation({ input: GetUploadUrlInputSchema, output: GetUploadUrlOutputSchema })
-  async getUploadUrl(input: z.infer<typeof GetUploadUrlInputSchema>, @Ctx() ctx: Context) {
+  async getUploadUrl(input: z.infer<typeof GetUploadUrlInputSchema>, @Ctx() ctx: AuthenticatedContext) {
     return fileService.getUploadUrl(
       input.fileId,
       input.size,
       input.mimeType,
-      ctx.userId!,
+      ctx.userId,
       ctx.language
     );
   }
@@ -141,8 +141,8 @@ export class FileRouter {
    */
   @UseMiddlewares(requireUser)
   @Mutation({ input: RenameFileInputSchema, output: FileNodeSchema })
-  async rename(input: z.infer<typeof RenameFileInputSchema>, @Ctx() ctx: Context) {
-    return fileService.rename(input.fileId, input.newName, ctx.userId!, ctx.language);
+  async rename(input: z.infer<typeof RenameFileInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+    return fileService.rename(input.fileId, input.newName, ctx.userId, ctx.language);
   }
 
   /**
@@ -150,8 +150,8 @@ export class FileRouter {
    */
   @UseMiddlewares(requireUser)
   @Mutation({ input: MoveFileInputSchema, output: FileNodeSchema })
-  async move(input: z.infer<typeof MoveFileInputSchema>, @Ctx() ctx: Context) {
-    return fileService.move(input.fileId, input.newParentId, ctx.userId!, ctx.language);
+  async move(input: z.infer<typeof MoveFileInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+    return fileService.move(input.fileId, input.newParentId, ctx.userId, ctx.language);
   }
 
   /**
@@ -162,8 +162,8 @@ export class FileRouter {
     input: DeleteFileInputSchema,
     output: z.object({ id: z.string().uuid() }),
   })
-  async delete(input: z.infer<typeof DeleteFileInputSchema>, @Ctx() ctx: Context) {
-    return fileService.delete(input.fileId, ctx.userId!, ctx.language);
+  async delete(input: z.infer<typeof DeleteFileInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+    return fileService.delete(input.fileId, ctx.userId, ctx.language);
   }
 
   /**
@@ -174,7 +174,7 @@ export class FileRouter {
   @Mutation({ input: BatchPrepareUploadInputSchema, output: BatchPrepareUploadOutputSchema })
   async batchPrepareUpload(
     input: z.infer<typeof BatchPrepareUploadInputSchema>,
-    @Ctx() ctx: Context
+    @Ctx() ctx: AuthenticatedContext
   ) {
     const results = await fileService.batchPrepareUpload(
       input.gameId,
@@ -186,7 +186,7 @@ export class FileRouter {
         mimeType: f.mimeType,
       })),
       input.skipExisting ?? false,
-      ctx.userId!,
+      ctx.userId,
       ctx.language
     );
     return { results };
@@ -199,11 +199,11 @@ export class FileRouter {
   @Mutation({ input: BatchConfirmUploadInputSchema, output: BatchConfirmUploadOutputSchema })
   async batchConfirmUpload(
     input: z.infer<typeof BatchConfirmUploadInputSchema>,
-    @Ctx() ctx: Context
+    @Ctx() ctx: AuthenticatedContext
   ) {
     const confirmed = await fileService.batchConfirmUpload(
       input.fileIds,
-      ctx.userId!,
+      ctx.userId,
       ctx.language
     );
     return { confirmed };
@@ -214,12 +214,12 @@ export class FileRouter {
    */
   @UseMiddlewares(requireUser)
   @Mutation({ input: EnsureFolderPathInputSchema, output: EnsureFolderPathOutputSchema })
-  async ensureFolderPath(input: z.infer<typeof EnsureFolderPathInputSchema>, @Ctx() ctx: Context) {
+  async ensureFolderPath(input: z.infer<typeof EnsureFolderPathInputSchema>, @Ctx() ctx: AuthenticatedContext) {
     const folderId = await fileService.ensureFolderPath(
       input.gameId,
       input.parentId ?? null,
       input.pathParts,
-      ctx.userId!,
+      ctx.userId,
       ctx.language
     );
     return { folderId };

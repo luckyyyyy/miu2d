@@ -54,3 +54,10 @@ export const createContext = async ({ req }: FetchCreateContextFnOptions) => {
 };
 
 export type Context = Awaited<ReturnType<typeof createContext>>;
+
+/**
+ * requireUser / requireAdmin / requireGame 中间件执行后的上下文类型。
+ * 这些中间件会在 userId 为 undefined 时抛出 UNAUTHORIZED，
+ * 因此在受保护的 handler 中 userId 一定是 string。
+ */
+export type AuthenticatedContext = Omit<Context, "userId"> & { userId: string };
