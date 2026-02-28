@@ -37,11 +37,21 @@ export interface PlayerVitals {
   thewMax: number;
 }
 
+export type PanelType =
+  | "state"
+  | "equip"
+  | "xiulian"
+  | "goods"
+  | "magic"
+  | "memo"
+  | "system"
+  | "littleMap";
+
 export interface GameUIContextValue {
   screenWidth: number;
   screenHeight: number;
   /** 切换面板开/关 */
-  togglePanel: (panel: string) => void;
+  togglePanel: (panel: PanelType) => void;
   /** 玩家生命/法力/体力数值，用于 BottomBar 状态栏 */
   playerVitals: PlayerVitals;
   /** 武功 Tooltip 回调 */
