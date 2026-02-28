@@ -25,7 +25,10 @@ export const STATE_NAMES: Record<number, string> = {
 
 // localStorage keys
 export const LS_SCRIPT_CONTENT = "debug_script_content";
+export const LS_SCRIPT_CONTENT_LUA = "debug_script_content_lua";
 export const LS_SCRIPT_HISTORY = "debug_script_history";
+export const LS_SCRIPT_HISTORY_LUA = "debug_script_history_lua";
+export const LS_SCRIPT_TAB = "debug_script_tab";
 export const MAX_HISTORY = 20;
 
 // 样式类 — VS Code Dark Theme

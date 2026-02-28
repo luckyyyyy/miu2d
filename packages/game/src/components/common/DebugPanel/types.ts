@@ -69,6 +69,7 @@ export interface DebugPanelProps {
   onReduceLife: () => void;
   onKillAllEnemies: () => void;
   onExecuteScript?: (scriptPath: string) => Promise<string | null>;
+  onExecuteLuaScript?: (script: string) => Promise<string | null>;
   onAddItem?: (itemFile: string) => Promise<void>;
   onAddMagic?: (magicFile: string) => Promise<void>;
   onAddAllMagics?: () => Promise<void>;

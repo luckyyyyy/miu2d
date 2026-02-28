@@ -27,6 +27,7 @@ import type { GoodsListManager } from "../player/goods";
 import type { PlayerMagicInventory } from "../player/magic/player-magic-inventory";
 import type { Player, PlayerStatsInfo } from "../player/player";
 import type { ScriptExecutor } from "../script/executor";
+import { LuaExecutor } from "../script/lua";
 
 export interface DebugManagerConfig {
   onMessage?: (message: string) => void;
@@ -54,6 +55,7 @@ export class DebugManager {
   private godMode: boolean = false;
   // Player, NpcManager, ObjManager, GuiManager 现在通过 EngineContext 获取
   private scriptExecutor: ScriptExecutor | null = null;
+  private luaExecutor: LuaExecutor | null = null;
   private getVariables: (() => GameVariables) | null = null;
   private setVariableCallback: ((name: string, value: number) => void) | null = null;
   private getMapInfo: (() => { mapName: string; mapPath: string }) | null = null;
@@ -546,7 +548,7 @@ export class DebugManager {
   // ============= 脚本系统 =============
 
   /**
-   * 执行脚本
+   * 执行 TXT 脚本
    */
   async executeScript(scriptContent: string): Promise<string | null> {
     if (!this.scriptExecutor) {
@@ -561,6 +563,33 @@ export class DebugManager {
       // skipHistory=true: 调试执行的脚本不记录到历史
       await this.scriptExecutor.runScriptContent(trimmed, "[调试]", true);
       return null; // 成功
+    } catch (error) {
+      return error instanceof Error ? error.message : String(error);
+    }
+  }
+
+  /**
+   * 执行 Lua 脚本
+   */
+  async executeLuaScript(scriptContent: string): Promise<string | null> {
+    if (!this.scriptExecutor) {
+      return "脚本执行器未就绪";
+    }
+
+    try {
+      const trimmed = scriptContent.trim();
+      if (!trimmed) {
+        return "脚本内容为空";
+      }
+
+      // 懒初始化 LuaExecutor
+      if (!this.luaExecutor) {
+        const api = this.scriptExecutor.getGameAPI();
+        this.luaExecutor = new LuaExecutor(api);
+      }
+      await this.luaExecutor.init();
+      await this.luaExecutor.runString(trimmed, "[调试-lua]");
+      return null;
     } catch (error) {
       return error instanceof Error ? error.message : String(error);
     }

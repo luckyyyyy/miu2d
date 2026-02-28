@@ -152,17 +152,17 @@ export function useGameUILogic({ engine }: UseGameUILogicOptions) {
     return () => unsubs.forEach((unsub) => unsub());
   }, [engine]);
 
-  // 定期刷新 player 状态
-  // 当状态面板打开时，每 200ms 刷新一次
+  // 定期刷新 player 状态（血量/体力/内力底栏实时更新）
+  // 始终保持运行，确保底部状态栏在任何面板状态下都即时反映引擎数据
   useEffect(() => {
-    if (!panels?.state) return;
+    if (!engine) return;
 
     const intervalId = setInterval(() => {
       setUpdateTrigger((v) => v + 1);
     }, 200);
 
     return () => clearInterval(intervalId);
-  }, [panels?.state]);
+  }, [engine]);
 
   // ============= Data Getters =============
 

@@ -206,6 +206,13 @@ export class ScriptExecutor {
   }
 
   /**
+   * Get the GameAPI instance (for LuaExecutor sharing)
+   */
+  getGameAPI(): GameAPI {
+    return this.api;
+  }
+
+  /**
    * Check if script is running
    */
   isRunning(): boolean {

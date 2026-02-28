@@ -403,6 +403,11 @@ export function GamePlaying({
               if (!dm) return "DebugManager not initialized";
               return await dm.executeScript(script);
             }}
+            onExecuteLuaScript={async (script) => {
+              const dm = getDebugManager();
+              if (!dm) return "DebugManager not initialized";
+              return await dm.executeLuaScript(script);
+            }}
             onAddItem={async (itemFile) => {
               await getDebugManager()?.addItem(itemFile);
             }}

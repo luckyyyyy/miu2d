@@ -38,6 +38,7 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({
   onToggleGodMode,
   onKillAllEnemies,
   onExecuteScript,
+  onExecuteLuaScript,
   onAddItem,
   onAddMagic,
   onAddAllMagics,
@@ -113,6 +114,7 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({
           <ScriptExecuteSection
             isScriptRunning={isScriptRunning}
             onExecuteScript={onExecuteScript}
+            onExecuteLuaScript={onExecuteLuaScript}
           />
         )}
       </div>

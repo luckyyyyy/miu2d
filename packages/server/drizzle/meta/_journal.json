@@ -43,6 +43,20 @@
       "when": 1772287996714,
       "tag": "0005_drop_games_owner_id",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1772317622542,
+      "tag": "0006_add_missing_indexes",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1772317622543,
+      "tag": "0007_add_missing_indexes_v2",
+      "breakpoints": true
     }
   ]
 }

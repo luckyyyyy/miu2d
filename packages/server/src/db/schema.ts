@@ -1,5 +1,6 @@
 import {
   boolean,
+  index,
   integer,
   jsonb,
   pgTable,
@@ -20,31 +21,39 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 
-export const sessions = pgTable("sessions", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  userId: uuid("user_id")
-    .references(() => users.id)
-    .notNull(),
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
-  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
-});
+export const sessions = pgTable(
+  "sessions",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id")
+      .references(() => users.id)
+      .notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  },
+  (t) => [index("sessions_user_id_expires_at_idx").on(t.userId, t.expiresAt)]
+);
 
 /**
  * 邮箱验证令牌表
  * type: "verify" = 验证当前邮箱, "change" = 修改邮箱
  */
-export const emailTokens = pgTable("email_tokens", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  userId: uuid("user_id")
-    .references(() => users.id, { onDelete: "cascade" })
-    .notNull(),
-  token: text("token").notNull().unique(),
-  type: text("type", { enum: ["verify", "change"] }).notNull(),
-  /** 修改邮箱时记录新邮箱地址 */
-  newEmail: text("new_email"),
-  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
-});
+export const emailTokens = pgTable(
+  "email_tokens",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id")
+      .references(() => users.id, { onDelete: "cascade" })
+      .notNull(),
+    token: text("token").notNull().unique(),
+    type: text("type", { enum: ["verify", "change"] }).notNull(),
+    /** 修改邮箱时记录新邮箱地址 */
+    newEmail: text("new_email"),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  },
+  (t) => [index("email_tokens_user_id_idx").on(t.userId)]
+);
 
 /**
  * 游戏表（原 workspaces，重命名为 games）
@@ -60,50 +69,61 @@ export const games = pgTable("games", {
 /**
  * 游戏成员表
  */
-export const gameMembers = pgTable("game_members", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  gameId: uuid("game_id")
-    .references(() => games.id)
-    .notNull(),
-  userId: uuid("user_id")
-    .references(() => users.id)
-    .notNull(),
-  role: text("role").notNull().default("member"),
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
-});
+export const gameMembers = pgTable(
+  "game_members",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    gameId: uuid("game_id")
+      .references(() => games.id)
+      .notNull(),
+    userId: uuid("user_id")
+      .references(() => users.id)
+      .notNull(),
+    role: text("role").notNull().default("member"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  },
+  (t) => [
+    index("game_members_game_id_user_id_idx").on(t.gameId, t.userId),
+    index("game_members_user_id_idx").on(t.userId),
+  ]
+);
 
 /**
  * 文件系统表
  * 使用 PostgreSQL 存储文件元数据，S3 只存储文件内容
  * 这样重命名、移动等操作只需修改 PG 记录，无需操作 S3
  */
-export const files = pgTable("files", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  /** 所属游戏 */
-  gameId: uuid("game_id")
-    .references(() => games.id, { onDelete: "cascade" })
-    .notNull(),
-  /** 父目录 ID，null 表示根目录（自引用外键，应用层处理级联删除） */
-  parentId: uuid("parent_id"),
-  /** 文件/目录名 */
-  name: text("name").notNull(),
-  /** 类型：file 或 folder */
-  type: text("type", { enum: ["file", "folder"] }).notNull(),
-  /** S3 存储键，仅文件有值，格式: {gameId}/{fileId} */
-  storageKey: text("storage_key"),
-  /** 文件大小（字节），仅文件有值 */
-  size: text("size"),
-  /** MIME 类型，仅文件有值 */
-  mimeType: text("mime_type"),
-  /** 文件内容校验和（SHA-256），仅文件有值 */
-  checksum: text("checksum"),
-  /** 创建时间 */
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
-  /** 更新时间 */
-  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
-  /** 软删除时间，null 表示未删除 */
-  deletedAt: timestamp("deleted_at", { withTimezone: true }),
-});
+export const files = pgTable(
+  "files",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    /** 所属游戏 */
+    gameId: uuid("game_id")
+      .references(() => games.id, { onDelete: "cascade" })
+      .notNull(),
+    /** 父目录 ID，null 表示根目录（自引用外键，应用层处理级联删除） */
+    parentId: uuid("parent_id"),
+    /** 文件/目录名 */
+    name: text("name").notNull(),
+    /** 类型：file 或 folder */
+    type: text("type", { enum: ["file", "folder"] }).notNull(),
+    /** S3 存储键，仅文件有值，格式: {gameId}/{fileId} */
+    storageKey: text("storage_key"),
+    /** 文件大小（字节），仅文件有值 */
+    size: text("size"),
+    /** MIME 类型，仅文件有值 */
+    mimeType: text("mime_type"),
+    /** 文件内容校验和（SHA-256），仅文件有值 */
+    checksum: text("checksum"),
+    /** 创建时间 */
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+    /** 更新时间 */
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+    /** 软删除时间，null 表示未删除 */
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+  },
+  (t) => [index("files_game_id_parent_id_idx").on(t.gameId, t.parentId)]
+);
 
 /**
  * 游戏全局配置表
@@ -457,37 +477,44 @@ export const talks = pgTable("talks", {
  * 存储用户的服务端存档
  * 元数据存 PG，完整存档数据也存 JSONB（一般 < 1MB）
  */
-export const saves = pgTable("saves", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  /** 所属游戏 */
-  gameId: uuid("game_id")
-    .references(() => games.id, { onDelete: "cascade" })
-    .notNull(),
-  /** 所属用户 */
-  userId: uuid("user_id")
-    .references(() => users.id, { onDelete: "cascade" })
-    .notNull(),
-  /** 存档名称（用户自定义） */
-  name: text("name").notNull(),
-  /** 地图名称（便于预览） */
-  mapName: text("map_name"),
-  /** 玩家等级 */
-  level: integer("level"),
-  /** 玩家名称 */
-  playerName: text("player_name"),
-  /** 截图 (base64 JPEG, ~50KB) */
-  screenshot: text("screenshot"),
-  /** 是否公开分享 */
-  isShared: boolean("is_shared").notNull().default(false),
-  /** 分享码（随机生成，用于分享链接） */
-  shareCode: text("share_code").unique(),
-  /** 完整存档数据（JSONB，存储引擎 SaveData） */
-  data: jsonb("data").notNull(),
-  /** 创建时间 */
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
-  /** 更新时间 */
-  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
-});
+export const saves = pgTable(
+  "saves",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    /** 所属游戏 */
+    gameId: uuid("game_id")
+      .references(() => games.id, { onDelete: "cascade" })
+      .notNull(),
+    /** 所属用户 */
+    userId: uuid("user_id")
+      .references(() => users.id, { onDelete: "cascade" })
+      .notNull(),
+    /** 存档名称（用户自定义） */
+    name: text("name").notNull(),
+    /** 地图名称（便于预览） */
+    mapName: text("map_name"),
+    /** 玩家等级 */
+    level: integer("level"),
+    /** 玩家名称 */
+    playerName: text("player_name"),
+    /** 截图 (base64 JPEG, ~50KB) */
+    screenshot: text("screenshot"),
+    /** 是否公开分享 */
+    isShared: boolean("is_shared").notNull().default(false),
+    /** 分享码（随机生成，用于分享链接） */
+    shareCode: text("share_code").unique(),
+    /** 完整存档数据（JSONB，存储引擎 SaveData） */
+    data: jsonb("data").notNull(),
+    /** 创建时间 */
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+    /** 更新时间 */
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+  },
+  (t) => [
+    index("saves_game_id_user_id_idx").on(t.gameId, t.userId),
+    index("saves_user_id_idx").on(t.userId),
+  ]
+);
 
 // ============= 场景系统 =============
 

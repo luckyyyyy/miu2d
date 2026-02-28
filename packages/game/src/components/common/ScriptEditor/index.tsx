@@ -16,6 +16,10 @@ import {
   JXQY_SCRIPT_LANGUAGE_ID,
   registerJxqyScriptLanguage,
 } from "@miu2d/shared/lib/monaco/jxqyScriptLanguage";
+import {
+  defineLuaTheme,
+  registerLuaLanguage,
+} from "@miu2d/shared/lib/monaco/luaLanguage";
 
 export interface ScriptEditorProps {
   /** 编辑器内容 */
@@ -70,6 +74,8 @@ export function ScriptEditor({
     loader.init().then((monaco) => {
       registerJxqyScriptLanguage(monaco);
       defineJxqyScriptTheme(monaco);
+      registerLuaLanguage(monaco);
+      defineLuaTheme(monaco);
     });
   }, []);
 

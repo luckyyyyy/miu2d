@@ -1,8 +1,9 @@
 /**
- * 执行脚本区块
+ * 执行脚本区块 — 支持 TXT (DSL) / Lua 双模式 tab 切换
  */
 
 import { logger } from "@miu2d/engine/core/logger";
+import { LUA_LANGUAGE_ID } from "@miu2d/shared/lib/monaco/luaLanguage";
 import type { OnMount } from "@monaco-editor/react";
 import type React from "react";
 import { useCallback, useRef, useState } from "react";
@@ -11,91 +12,139 @@ import {
   btnClass,
   btnPrimary,
   LS_SCRIPT_CONTENT,
+  LS_SCRIPT_CONTENT_LUA,
   LS_SCRIPT_HISTORY,
+  LS_SCRIPT_HISTORY_LUA,
+  LS_SCRIPT_TAB,
   MAX_HISTORY,
 } from "../constants";
 import { Section } from "../Section";
 
+type ScriptTab = "txt" | "lua";
+
 interface ScriptExecuteSectionProps {
   isScriptRunning: boolean;
   onExecuteScript: (script: string) => Promise<string | null>;
+  onExecuteLuaScript?: (script: string) => Promise<string | null>;
 }
+
+// --- helpers for per-tab localStorage keys ---
+const contentKey = (tab: ScriptTab) =>
+  tab === "lua" ? LS_SCRIPT_CONTENT_LUA : LS_SCRIPT_CONTENT;
+const historyKey = (tab: ScriptTab) =>
+  tab === "lua" ? LS_SCRIPT_HISTORY_LUA : LS_SCRIPT_HISTORY;
+
+const readLS = (key: string, fallback: string) => {
+  try {
+    return localStorage.getItem(key) ?? fallback;
+  } catch {
+    return fallback;
+  }
+};
+
+const readLSJson = <T,>(key: string, fallback: T): T => {
+  try {
+    const saved = localStorage.getItem(key);
+    return saved ? JSON.parse(saved) : fallback;
+  } catch {
+    return fallback;
+  }
+};
 
 export const ScriptExecuteSection: React.FC<ScriptExecuteSectionProps> = ({
   isScriptRunning,
   onExecuteScript,
+  onExecuteLuaScript,
 }) => {
-  // 从 localStorage 初始化脚本内容
-  const [scriptContent, setScriptContent] = useState(() => {
-    try {
-      return localStorage.getItem(LS_SCRIPT_CONTENT) || "";
-    } catch {
-      return "";
-    }
-  });
+  // 当前 tab
+  const [activeTab, setActiveTab] = useState<ScriptTab>(() =>
+    (readLS(LS_SCRIPT_TAB, "txt") as ScriptTab) === "lua" ? "lua" : "txt",
+  );
 
-  // 从 localStorage 初始化用户输入的脚本历史记录
-  const [userScriptHistory, setUserScriptHistory] = useState<string[]>(() => {
-    try {
-      const saved = localStorage.getItem(LS_SCRIPT_HISTORY);
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
+  // 每个 tab 独立的脚本内容
+  const [txtContent, setTxtContent] = useState(() => readLS(LS_SCRIPT_CONTENT, ""));
+  const [luaContent, setLuaContent] = useState(() => readLS(LS_SCRIPT_CONTENT_LUA, ""));
+
+  // 每个 tab 独立的历史记录
+  const [txtHistory, setTxtHistory] = useState<string[]>(() =>
+    readLSJson(LS_SCRIPT_HISTORY, []),
+  );
+  const [luaHistory, setLuaHistory] = useState<string[]>(() =>
+    readLSJson(LS_SCRIPT_HISTORY_LUA, []),
+  );
 
   const [isExecuting, setIsExecuting] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const toastTimeoutRef = useRef<number | null>(null);
-  // 用于在 keybinding 中调用最新的 execute 函数
   const executeRef = useRef<() => void>(null);
 
-  const showToast = (message: string, duration = 1500) => {
-    if (toastTimeoutRef.current) {
-      clearTimeout(toastTimeoutRef.current);
-    }
+  // --- derived ---
+  const scriptContent = activeTab === "lua" ? luaContent : txtContent;
+  const userScriptHistory = activeTab === "lua" ? luaHistory : txtHistory;
+
+  const showToast = useCallback((message: string, duration = 1500) => {
+    if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
     setToastMessage(message);
-    toastTimeoutRef.current = window.setTimeout(() => {
-      setToastMessage(null);
-    }, duration);
-  };
+    toastTimeoutRef.current = window.setTimeout(() => setToastMessage(null), duration);
+  }, []);
 
   // 保存脚本内容到 localStorage
-  const handleScriptContentChange = (value: string) => {
-    setScriptContent(value);
+  const handleScriptContentChange = useCallback(
+    (value: string) => {
+      if (activeTab === "lua") {
+        setLuaContent(value);
+      } else {
+        setTxtContent(value);
+      }
+      try {
+        localStorage.setItem(contentKey(activeTab), value);
+      } catch {
+        // ignore
+      }
+    },
+    [activeTab],
+  );
+
+  // 添加到历史记录
+  const addToHistory = useCallback(
+    (script: string) => {
+      const trimmed = script.trim();
+      if (!trimmed) return;
+      const setter = activeTab === "lua" ? setLuaHistory : setTxtHistory;
+      setter((prev) => {
+        const filtered = prev.filter((s) => s !== trimmed);
+        const newHistory = [trimmed, ...filtered].slice(0, MAX_HISTORY);
+        try {
+          localStorage.setItem(historyKey(activeTab), JSON.stringify(newHistory));
+        } catch {
+          // ignore
+        }
+        return newHistory;
+      });
+    },
+    [activeTab],
+  );
+
+  const restoreFromHistory = (script: string) => handleScriptContentChange(script);
+
+  const clearHistory = () => {
+    if (activeTab === "lua") {
+      setLuaHistory([]);
+    } else {
+      setTxtHistory([]);
+    }
     try {
-      localStorage.setItem(LS_SCRIPT_CONTENT, value);
+      localStorage.removeItem(historyKey(activeTab));
     } catch {
       // ignore
     }
   };
 
-  // 添加到历史记录
-  const addToHistory = (script: string) => {
-    const trimmed = script.trim();
-    if (!trimmed) return;
-    setUserScriptHistory((prev) => {
-      const filtered = prev.filter((s) => s !== trimmed);
-      const newHistory = [trimmed, ...filtered].slice(0, MAX_HISTORY);
-      try {
-        localStorage.setItem(LS_SCRIPT_HISTORY, JSON.stringify(newHistory));
-      } catch {
-        // ignore
-      }
-      return newHistory;
-    });
-  };
-
-  // 从历史记录恢复
-  const restoreFromHistory = (script: string) => {
-    handleScriptContentChange(script);
-  };
-
-  // 清空历史记录
-  const clearHistory = () => {
-    setUserScriptHistory([]);
+  // 切换 tab
+  const switchTab = (tab: ScriptTab) => {
+    setActiveTab(tab);
     try {
-      localStorage.removeItem(LS_SCRIPT_HISTORY);
+      localStorage.setItem(LS_SCRIPT_TAB, tab);
     } catch {
       // ignore
     }
@@ -107,9 +156,15 @@ export const ScriptExecuteSection: React.FC<ScriptExecuteSectionProps> = ({
       alert("脚本正在执行中，请等待执行完成后再操作");
       return;
     }
+    const executor =
+      activeTab === "lua" ? onExecuteLuaScript : onExecuteScript;
+    if (!executor) {
+      showToast("✗ 该模式不可用", 2000);
+      return;
+    }
     setIsExecuting(true);
     try {
-      const error = await onExecuteScript(scriptContent.trim());
+      const error = await executor(scriptContent.trim());
       if (error) {
         logger.warn(`[DebugPanel] 脚本执行返回错误: ${error}`);
         await new Promise((resolve) => setTimeout(resolve, 100));
@@ -126,12 +181,10 @@ export const ScriptExecuteSection: React.FC<ScriptExecuteSectionProps> = ({
     } finally {
       setIsExecuting(false);
     }
-  }, [scriptContent, isScriptRunning, onExecuteScript, addToHistory, showToast]);
+  }, [scriptContent, isScriptRunning, activeTab, onExecuteScript, onExecuteLuaScript, addToHistory, showToast]);
 
-  // 保持 ref 始终指向最新的执行函数
   executeRef.current = handleExecuteScript;
 
-  // Monaco 编辑器挂载时注册 Ctrl+Enter 快捷键
   const handleEditorMount: OnMount = useCallback((editor, monaco) => {
     editor.addAction({
       id: "execute-script",
@@ -143,13 +196,46 @@ export const ScriptExecuteSection: React.FC<ScriptExecuteSectionProps> = ({
     });
   }, []);
 
+  const placeholder =
+    activeTab === "lua"
+      ? 'Talk(0, "测试")\nSetMoney(10000)'
+      : 'Talk(0,"测试")\nSetMoney(10000)';
+
   return (
     <>
       <Section title="执行脚本">
+        {/* Tab 栏 */}
+        <div className="flex items-center gap-0 mb-1 border-b border-[#2d2d2d]">
+          <button
+            type="button"
+            onClick={() => switchTab("txt")}
+            className={`px-3 py-1 text-[11px] transition-colors border-b-2 ${
+              activeTab === "txt"
+                ? "text-[#d4d4d4] border-[#007acc]"
+                : "text-[#969696] border-transparent hover:text-[#d4d4d4]"
+            }`}
+          >
+            TXT 脚本
+          </button>
+          <button
+            type="button"
+            onClick={() => switchTab("lua")}
+            className={`px-3 py-1 text-[11px] transition-colors border-b-2 ${
+              activeTab === "lua"
+                ? "text-[#d4d4d4] border-[#007acc]"
+                : "text-[#969696] border-transparent hover:text-[#d4d4d4]"
+            }`}
+          >
+            Lua 脚本
+          </button>
+        </div>
+
         <div className="space-y-1">
           <ScriptEditor
+            key={activeTab}
             value={scriptContent}
             onChange={handleScriptContentChange}
+            language={activeTab === "lua" ? LUA_LANGUAGE_ID : undefined}
             height={180}
             fontSize={12}
             minimap={false}
@@ -165,7 +251,7 @@ export const ScriptExecuteSection: React.FC<ScriptExecuteSectionProps> = ({
               overviewRulerBorder: false,
               scrollbar: { vertical: "hidden", horizontal: "auto" },
               padding: { top: 4, bottom: 4 },
-              placeholder: 'Talk(0,"测试")\nSetMoney(10000)',
+              placeholder,
             }}
             className="border border-[#333] rounded"
           />
