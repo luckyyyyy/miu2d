@@ -4,7 +4,7 @@
 
 import { useAuth, useTheme } from "@miu2d/shared";
 import { type Locale, supportedLanguages } from "@miu2d/shared/i18n";
-import { Avatar, GlobeIcon, MoonIcon, SunIcon } from "@miu2d/ui";
+import { Avatar, GitHubIcon, GlobeIcon, MoonIcon, SunIcon } from "@miu2d/ui";
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
@@ -97,6 +97,19 @@ export function Header() {
 
           {/* Actions */}
           <div className="flex items-center gap-2">
+            {/* GitHub */}
+            <motion.a
+              href="https://github.com/luckyyyyy/JXQY-WEB"
+              target="_blank"
+              rel="noreferrer"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+              aria-label="GitHub"
+            >
+              <GitHubIcon className="w-5 h-5 text-zinc-600 dark:text-zinc-400" />
+            </motion.a>
+
             {/* Language Selector */}
             <div className="relative group">
               <motion.button
