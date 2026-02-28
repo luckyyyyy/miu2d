@@ -17,7 +17,7 @@ import {
   UpdateNpcInputSchema,
 } from "@miu2d/types";
 import { z } from "zod";
-import type { Context } from "../../trpc/context";
+import type { AuthenticatedContext } from "../../trpc/context";
 import { Ctx, Mutation, Query, Router, UseMiddlewares } from "../../trpc/decorators";
 import { requireUser } from "../../trpc/middlewares";
 import { Logger } from "../../utils/logger.js";
@@ -36,8 +36,8 @@ export class NpcRouter {
    */
   @UseMiddlewares(requireUser)
   @Query({ input: ListNpcInputSchema, output: z.array(NpcListItemSchema) })
-  async list(input: z.infer<typeof ListNpcInputSchema>, @Ctx() ctx: Context) {
-    return npcService.list(input, ctx.userId!, ctx.language);
+  async list(input: z.infer<typeof ListNpcInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+    return npcService.list(input, ctx.userId, ctx.language);
   }
 
   /**
@@ -45,8 +45,8 @@ export class NpcRouter {
    */
   @UseMiddlewares(requireUser)
   @Query({ input: GetNpcInputSchema, output: NpcSchema.nullable() })
-  async get(input: z.infer<typeof GetNpcInputSchema>, @Ctx() ctx: Context) {
-    return npcService.get(input.gameId, input.id, ctx.userId!, ctx.language);
+  async get(input: z.infer<typeof GetNpcInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+    return npcService.get(input.gameId, input.id, ctx.userId, ctx.language);
   }
 
   /**
@@ -54,8 +54,8 @@ export class NpcRouter {
    */
   @UseMiddlewares(requireUser)
   @Mutation({ input: CreateNpcInputSchema, output: NpcSchema })
-  async create(input: z.infer<typeof CreateNpcInputSchema>, @Ctx() ctx: Context) {
-    return npcService.create(input, ctx.userId!, ctx.language);
+  async create(input: z.infer<typeof CreateNpcInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+    return npcService.create(input, ctx.userId, ctx.language);
   }
 
   /**
@@ -63,8 +63,8 @@ export class NpcRouter {
    */
   @UseMiddlewares(requireUser)
   @Mutation({ input: UpdateNpcInputSchema, output: NpcSchema })
-  async update(input: z.infer<typeof UpdateNpcInputSchema>, @Ctx() ctx: Context) {
-    return npcService.update(input, ctx.userId!, ctx.language);
+  async update(input: z.infer<typeof UpdateNpcInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+    return npcService.update(input, ctx.userId, ctx.language);
   }
 
   /**
@@ -72,8 +72,8 @@ export class NpcRouter {
    */
   @UseMiddlewares(requireUser)
   @Mutation({ input: DeleteNpcInputSchema, output: z.object({ id: z.string() }) })
-  async delete(input: z.infer<typeof DeleteNpcInputSchema>, @Ctx() ctx: Context) {
-    return npcService.delete(input.gameId, input.id, ctx.userId!, ctx.language);
+  async delete(input: z.infer<typeof DeleteNpcInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+    return npcService.delete(input.gameId, input.id, ctx.userId, ctx.language);
   }
 
   /**
@@ -81,8 +81,8 @@ export class NpcRouter {
    */
   @UseMiddlewares(requireUser)
   @Mutation({ input: ImportNpcInputSchema, output: NpcSchema })
-  async importFromIni(input: z.infer<typeof ImportNpcInputSchema>, @Ctx() ctx: Context) {
-    return npcService.importFromIni(input, ctx.userId!, ctx.language);
+  async importFromIni(input: z.infer<typeof ImportNpcInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+    return npcService.importFromIni(input, ctx.userId, ctx.language);
   }
 
   /**
@@ -90,8 +90,8 @@ export class NpcRouter {
    */
   @UseMiddlewares(requireUser)
   @Mutation({ input: BatchImportNpcInputSchema, output: BatchImportNpcResultSchema })
-  async batchImportFromIni(input: z.infer<typeof BatchImportNpcInputSchema>, @Ctx() ctx: Context) {
-    return npcService.batchImportFromIni(input, ctx.userId!, ctx.language);
+  async batchImportFromIni(input: z.infer<typeof BatchImportNpcInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+    return npcService.batchImportFromIni(input, ctx.userId, ctx.language);
   }
 
   /**
@@ -99,7 +99,7 @@ export class NpcRouter {
    */
   @UseMiddlewares(requireUser)
   @Mutation({ input: ClearAllNpcsInputSchema, output: ClearAllNpcsResultSchema })
-  async clearAll(input: z.infer<typeof ClearAllNpcsInputSchema>, @Ctx() ctx: Context) {
-    return npcService.clearAll(input, ctx.userId!, ctx.language);
+  async clearAll(input: z.infer<typeof ClearAllNpcsInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+    return npcService.clearAll(input, ctx.userId, ctx.language);
   }
 }

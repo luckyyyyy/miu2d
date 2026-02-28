@@ -6,7 +6,7 @@
  */
 
 import { z } from "zod";
-import type { Context } from "../../trpc/context";
+import type { AuthenticatedContext } from "../../trpc/context";
 import { Ctx, Query, Router, UseMiddlewares } from "../../trpc/decorators";
 import { requireUser } from "../../trpc/middlewares";
 import { Logger } from "../../utils/logger.js";
@@ -28,7 +28,7 @@ export class DataRouter {
    */
   @UseMiddlewares(requireUser)
   @Query({ input: z.object({ gameSlug: z.string().min(1) }) })
-  async getAll(input: { gameSlug: string }, @Ctx() _ctx: Context) {
+  async getAll(input: { gameSlug: string }, @Ctx() _ctx: AuthenticatedContext) {
     this.logger.debug(`[getAll] gameSlug=${input.gameSlug}`);
     return buildGameData(input.gameSlug);
   }

@@ -17,7 +17,7 @@ import {
   UpdateShopInputSchema,
 } from "@miu2d/types";
 import { z } from "zod";
-import type { Context } from "../../trpc/context";
+import type { AuthenticatedContext } from "../../trpc/context";
 import { Ctx, Mutation, Query, Router, UseMiddlewares } from "../../trpc/decorators";
 import { requireUser } from "../../trpc/middlewares";
 import { Logger } from "../../utils/logger.js";
@@ -36,8 +36,8 @@ export class ShopRouter {
    */
   @UseMiddlewares(requireUser)
   @Query({ input: ListShopInputSchema, output: z.array(ShopListItemSchema) })
-  async list(input: z.infer<typeof ListShopInputSchema>, @Ctx() ctx: Context) {
-    return shopService.list(input, ctx.userId!, ctx.language);
+  async list(input: z.infer<typeof ListShopInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+    return shopService.list(input, ctx.userId, ctx.language);
   }
 
   /**
@@ -45,8 +45,8 @@ export class ShopRouter {
    */
   @UseMiddlewares(requireUser)
   @Query({ input: GetShopInputSchema, output: ShopSchema.nullable() })
-  async get(input: z.infer<typeof GetShopInputSchema>, @Ctx() ctx: Context) {
-    return shopService.get(input.gameId, input.id, ctx.userId!, ctx.language);
+  async get(input: z.infer<typeof GetShopInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+    return shopService.get(input.gameId, input.id, ctx.userId, ctx.language);
   }
 
   /**
@@ -54,8 +54,8 @@ export class ShopRouter {
    */
   @UseMiddlewares(requireUser)
   @Mutation({ input: CreateShopInputSchema, output: ShopSchema })
-  async create(input: z.infer<typeof CreateShopInputSchema>, @Ctx() ctx: Context) {
-    return shopService.create(input, ctx.userId!, ctx.language);
+  async create(input: z.infer<typeof CreateShopInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+    return shopService.create(input, ctx.userId, ctx.language);
   }
 
   /**
@@ -63,8 +63,8 @@ export class ShopRouter {
    */
   @UseMiddlewares(requireUser)
   @Mutation({ input: UpdateShopInputSchema, output: ShopSchema })
-  async update(input: z.infer<typeof UpdateShopInputSchema>, @Ctx() ctx: Context) {
-    return shopService.update(input, ctx.userId!, ctx.language);
+  async update(input: z.infer<typeof UpdateShopInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+    return shopService.update(input, ctx.userId, ctx.language);
   }
 
   /**
@@ -72,8 +72,8 @@ export class ShopRouter {
    */
   @UseMiddlewares(requireUser)
   @Mutation({ input: DeleteShopInputSchema, output: z.object({ id: z.string() }) })
-  async delete(input: z.infer<typeof DeleteShopInputSchema>, @Ctx() ctx: Context) {
-    return shopService.delete(input.gameId, input.id, ctx.userId!, ctx.language);
+  async delete(input: z.infer<typeof DeleteShopInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+    return shopService.delete(input.gameId, input.id, ctx.userId, ctx.language);
   }
 
   /**
@@ -81,8 +81,8 @@ export class ShopRouter {
    */
   @UseMiddlewares(requireUser)
   @Mutation({ input: ImportShopInputSchema, output: ShopSchema })
-  async importFromIni(input: z.infer<typeof ImportShopInputSchema>, @Ctx() ctx: Context) {
-    return shopService.importFromIni(input, ctx.userId!, ctx.language);
+  async importFromIni(input: z.infer<typeof ImportShopInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+    return shopService.importFromIni(input, ctx.userId, ctx.language);
   }
 
   /**
@@ -90,8 +90,8 @@ export class ShopRouter {
    */
   @UseMiddlewares(requireUser)
   @Mutation({ input: BatchImportShopInputSchema, output: BatchImportShopResultSchema })
-  async batchImportFromIni(input: z.infer<typeof BatchImportShopInputSchema>, @Ctx() ctx: Context) {
-    return shopService.batchImportFromIni(input, ctx.userId!, ctx.language);
+  async batchImportFromIni(input: z.infer<typeof BatchImportShopInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+    return shopService.batchImportFromIni(input, ctx.userId, ctx.language);
   }
 
   /**
@@ -99,7 +99,7 @@ export class ShopRouter {
    */
   @UseMiddlewares(requireUser)
   @Mutation({ input: ClearAllShopsInputSchema, output: ClearAllShopsResultSchema })
-  async clearAll(input: z.infer<typeof ClearAllShopsInputSchema>, @Ctx() ctx: Context) {
-    return shopService.clearAll(input, ctx.userId!, ctx.language);
+  async clearAll(input: z.infer<typeof ClearAllShopsInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+    return shopService.clearAll(input, ctx.userId, ctx.language);
   }
 }

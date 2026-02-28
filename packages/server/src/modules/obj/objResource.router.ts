@@ -12,7 +12,7 @@ import {
   UpdateObjResInputSchema,
 } from "@miu2d/types";
 import { z } from "zod";
-import type { Context } from "../../trpc/context";
+import type { AuthenticatedContext } from "../../trpc/context";
 import { Ctx, Mutation, Query, Router, UseMiddlewares } from "../../trpc/decorators";
 import { requireUser } from "../../trpc/middlewares";
 import { Logger } from "../../utils/logger.js";
@@ -31,8 +31,8 @@ export class ObjResourceRouter {
    */
   @UseMiddlewares(requireUser)
   @Query({ input: ListObjResInputSchema, output: z.array(ObjResListItemSchema) })
-  async list(input: z.infer<typeof ListObjResInputSchema>, @Ctx() ctx: Context) {
-    return objResourceService.list(input, ctx.userId!, ctx.language);
+  async list(input: z.infer<typeof ListObjResInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+    return objResourceService.list(input, ctx.userId, ctx.language);
   }
 
   /**
@@ -40,8 +40,8 @@ export class ObjResourceRouter {
    */
   @UseMiddlewares(requireUser)
   @Query({ input: GetObjResInputSchema, output: ObjResSchema.nullable() })
-  async get(input: z.infer<typeof GetObjResInputSchema>, @Ctx() ctx: Context) {
-    return objResourceService.get(input.gameId, input.id, ctx.userId!, ctx.language);
+  async get(input: z.infer<typeof GetObjResInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+    return objResourceService.get(input.gameId, input.id, ctx.userId, ctx.language);
   }
 
   /**
@@ -49,8 +49,8 @@ export class ObjResourceRouter {
    */
   @UseMiddlewares(requireUser)
   @Mutation({ input: CreateObjResInputSchema, output: ObjResSchema })
-  async create(input: z.infer<typeof CreateObjResInputSchema>, @Ctx() ctx: Context) {
-    return objResourceService.create(input, ctx.userId!, ctx.language);
+  async create(input: z.infer<typeof CreateObjResInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+    return objResourceService.create(input, ctx.userId, ctx.language);
   }
 
   /**
@@ -58,8 +58,8 @@ export class ObjResourceRouter {
    */
   @UseMiddlewares(requireUser)
   @Mutation({ input: UpdateObjResInputSchema, output: ObjResSchema })
-  async update(input: z.infer<typeof UpdateObjResInputSchema>, @Ctx() ctx: Context) {
-    return objResourceService.update(input, ctx.userId!, ctx.language);
+  async update(input: z.infer<typeof UpdateObjResInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+    return objResourceService.update(input, ctx.userId, ctx.language);
   }
 
   /**
@@ -67,7 +67,7 @@ export class ObjResourceRouter {
    */
   @UseMiddlewares(requireUser)
   @Mutation({ input: DeleteObjResInputSchema, output: z.object({ id: z.string() }) })
-  async delete(input: z.infer<typeof DeleteObjResInputSchema>, @Ctx() ctx: Context) {
-    return objResourceService.delete(input.gameId, input.id, ctx.userId!, ctx.language);
+  async delete(input: z.infer<typeof DeleteObjResInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+    return objResourceService.delete(input.gameId, input.id, ctx.userId, ctx.language);
   }
 }

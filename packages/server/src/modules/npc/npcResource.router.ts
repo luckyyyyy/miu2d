@@ -12,7 +12,7 @@ import {
   UpdateNpcResInputSchema,
 } from "@miu2d/types";
 import { z } from "zod";
-import type { Context } from "../../trpc/context";
+import type { AuthenticatedContext } from "../../trpc/context";
 import { Ctx, Mutation, Query, Router, UseMiddlewares } from "../../trpc/decorators";
 import { requireUser } from "../../trpc/middlewares";
 import { Logger } from "../../utils/logger.js";
@@ -31,8 +31,8 @@ export class NpcResourceRouter {
    */
   @UseMiddlewares(requireUser)
   @Query({ input: ListNpcResInputSchema, output: z.array(NpcResListItemSchema) })
-  async list(input: z.infer<typeof ListNpcResInputSchema>, @Ctx() ctx: Context) {
-    return npcResourceService.list(input, ctx.userId!, ctx.language);
+  async list(input: z.infer<typeof ListNpcResInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+    return npcResourceService.list(input, ctx.userId, ctx.language);
   }
 
   /**
@@ -40,8 +40,8 @@ export class NpcResourceRouter {
    */
   @UseMiddlewares(requireUser)
   @Query({ input: GetNpcResInputSchema, output: NpcResSchema.nullable() })
-  async get(input: z.infer<typeof GetNpcResInputSchema>, @Ctx() ctx: Context) {
-    return npcResourceService.get(input.gameId, input.id, ctx.userId!, ctx.language);
+  async get(input: z.infer<typeof GetNpcResInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+    return npcResourceService.get(input.gameId, input.id, ctx.userId, ctx.language);
   }
 
   /**
@@ -49,8 +49,8 @@ export class NpcResourceRouter {
    */
   @UseMiddlewares(requireUser)
   @Mutation({ input: CreateNpcResInputSchema, output: NpcResSchema })
-  async create(input: z.infer<typeof CreateNpcResInputSchema>, @Ctx() ctx: Context) {
-    return npcResourceService.create(input, ctx.userId!, ctx.language);
+  async create(input: z.infer<typeof CreateNpcResInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+    return npcResourceService.create(input, ctx.userId, ctx.language);
   }
 
   /**
@@ -58,8 +58,8 @@ export class NpcResourceRouter {
    */
   @UseMiddlewares(requireUser)
   @Mutation({ input: UpdateNpcResInputSchema, output: NpcResSchema })
-  async update(input: z.infer<typeof UpdateNpcResInputSchema>, @Ctx() ctx: Context) {
-    return npcResourceService.update(input, ctx.userId!, ctx.language);
+  async update(input: z.infer<typeof UpdateNpcResInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+    return npcResourceService.update(input, ctx.userId, ctx.language);
   }
 
   /**
@@ -67,7 +67,7 @@ export class NpcResourceRouter {
    */
   @UseMiddlewares(requireUser)
   @Mutation({ input: DeleteNpcResInputSchema, output: z.object({ id: z.string() }) })
-  async delete(input: z.infer<typeof DeleteNpcResInputSchema>, @Ctx() ctx: Context) {
-    return npcResourceService.delete(input.gameId, input.id, ctx.userId!, ctx.language);
+  async delete(input: z.infer<typeof DeleteNpcResInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+    return npcResourceService.delete(input.gameId, input.id, ctx.userId, ctx.language);
   }
 }
