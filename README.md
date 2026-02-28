@@ -25,9 +25,8 @@ As a proof of concept, Miu2D has been used to rebuild **three classic Kingsoft (
 
 ### <img src="packages/web/public/screenshot/logo-yuying.webp" height="32" style="vertical-align:middle"> Legend of Yue Ying (剑侠情缘外传：月影传说) · 2001
 
-| | |
-|---|---|
 | **Developer** | Xishanju (西山居 / Kingsoft) |
+|---|---|
 | **Genre** | Action RPG |
 | **Highlights** | 7+ endings · 100+ story events · 30-person team (20+ artists) · 14-month production |
 
@@ -39,9 +38,8 @@ The largest production Xishanju had ever mounted at the time. The story branches
 
 ### <img src="packages/web/public/screenshot/logo-sword2.png" height="32" style="vertical-align:middle"> Swords of Legends 2 (剑侠情缘贰) · 1998
 
-| | |
-|---|---|
 | **Developer** | Xishanju (西山居 / Kingsoft) |
+|---|---|
 | **Genre** | Action RPG |
 | **Highlights** | Diablo-style real-time combat · 200+ NPCs · 640×480 16-bit color · theme song by 谢雨欣 |
 
@@ -53,9 +51,8 @@ Set twenty years after the original, hero 南宫飞云 — son of the first game
 
 ### <img src="packages/web/public/screenshot/logo-new-swords.png" height="32" style="vertical-align:middle"> New Swords of Legends (新剑侠情缘) · 2001
 
-| | |
-|---|---|
 | **Developer** | Xishanju (西山居 / Kingsoft) |
+|---|---|
 | **Genre** | Action RPG |
 | **Highlights** | Remake of the 1997 original · 110+ maps · indoor map system · real-time combat engine from Swords 2 |
 
