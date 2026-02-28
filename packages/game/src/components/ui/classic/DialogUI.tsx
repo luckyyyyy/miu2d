@@ -106,6 +106,29 @@ function parseColoredText(text: string, defaultColor: string = "#000000"): TextS
   return segments;
 }
 
+// Clickable URL link with hover effect
+const UrlLink: React.FC<{ url: string }> = ({ url }) => {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      style={{
+        color: hovered ? "#66aaff" : "#4488ff",
+        textDecoration: hovered ? "underline" : "none",
+        cursor: "pointer",
+        transition: "color 0.15s ease",
+      }}
+      onClick={(e) => e.stopPropagation()}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      {url}
+    </a>
+  );
+};
+
 // Render text with color segments and clickable URLs
 const ColoredText: React.FC<{ text: string; defaultColor?: string }> = ({
   text,
@@ -117,20 +140,7 @@ const ColoredText: React.FC<{ text: string; defaultColor?: string }> = ({
     <>
       {segments.map((segment, index) =>
         segment.isUrl ? (
-          <a
-            key={`url-${index}`}
-            href={segment.text}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              color: "#4488ff",
-              textDecoration: "underline",
-              cursor: "pointer",
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {segment.text}
-          </a>
+          <UrlLink key={`url-${index}`} url={segment.text} />
         ) : (
           <span key={`${segment.color}-${index}`} style={{ color: segment.color }}>
             {segment.text}
