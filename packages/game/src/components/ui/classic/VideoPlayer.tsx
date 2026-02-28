@@ -363,7 +363,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ engine }) => {
       <video
         ref={videoRef}
         src={videoFile}
-        className="max-w-full max-h-full object-contain"
+        className="w-full h-full object-contain"
         onEnded={handleVideoEnd}
         onError={handleVideoEnd}
         onTimeUpdate={handleTimeUpdate}
