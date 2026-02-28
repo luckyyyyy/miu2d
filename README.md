@@ -96,17 +96,17 @@ Most web game projects reach for PixiJS, Phaser, or a WASM-compiled Unity/Godot 
 
 ## Architecture at a Glance
 
-| Layer | Package | LOC | Details |
-|---|---|---:|---|
-| **UI** | `@miu2d/game` | 31,615 | React 19 · 3 themes (Classic / Modern / Mobile) · 84 components |
-| **Engine** | `@miu2d/engine` | 64,650 | Pure TypeScript · 215 files · 19 modules · no React dependency |
-| ↳ Renderer | `renderer/` | 3,135 | Raw WebGL · SpriteBatcher · Canvas2D fallback · GLSL filters |
-| ↳ Script VM | `script/` | 6,205 | 218 commands · custom parser + async executor |
-| ↳ Character | `character/` | 6,410 | 8-level inheritance chain · NPC AI · bezier movement |
-| ↳ Magic | `magic/` | 8,798 | 22 MoveKind trajectories · 10 SpecialKind effects |
-| **WASM** | `@miu2d/engine-wasm` | 3,160 | Rust → WebAssembly · A\* pathfinder · decoders · SpatialHash · zstd |
-| **Backend** | `@miu2d/server` | 14,143 | Hono + tRPC + Drizzle ORM · 21 PostgreSQL tables · 19 routers |
-| **Editor** | `@miu2d/dashboard` | 35,150 | VS Code-style layout · 13 editing modules |
+| Layer | Package | Details |
+|---|---|---|
+| **UI** | `@miu2d/game` | React 19 · 3 themes (Classic / Modern / Mobile) · 84 components |
+| **Engine** | `@miu2d/engine` | Pure TypeScript · 215 files · 19 modules · no React dependency |
+| ↳ Renderer | `renderer/` | Raw WebGL · SpriteBatcher · Canvas2D fallback · GLSL filters |
+| ↳ Script VM | `script/` | 218 commands · custom parser + async executor |
+| ↳ Character | `character/` | 8-level inheritance chain · NPC AI · bezier movement |
+| ↳ Magic | `magic/` | 22 MoveKind trajectories · 10 SpecialKind effects |
+| **WASM** | `@miu2d/engine-wasm` | Rust → WebAssembly · A\* pathfinder · decoders · SpatialHash · zstd |
+| **Backend** | `@miu2d/server` | Hono + tRPC + Drizzle ORM · 21 PostgreSQL tables · 19 routers |
+| **Editor** | `@miu2d/dashboard` | VS Code-style layout · 13 editing modules |
 
 ### Tech Stack
 
@@ -155,7 +155,7 @@ Miu2D implements **17 integrated ARPG subsystems** (218 script commands) entirel
 
 ### Renderer — Raw WebGL with Automatic Batching
 
-The renderer is **685 lines** of direct `WebGLRenderingContext` calls — no wrapper library.
+The renderer directly calls `WebGLRenderingContext` — no wrapper library.
 
 - **SpriteBatcher** — accumulates vertex data and flushes per texture change; typical map frame: ~4,800 tiles → 1–5 draw calls
 - **RectBatcher** — weather particles and UI rectangles batched into a single draw call
@@ -210,7 +210,7 @@ Combined with **10 SpecialKind** effects (freeze, poison, petrify, invisibility,
 
 ### Pathfinding — Rust WASM, Zero-Copy Memory
 
-The A* pathfinder is **1,144 lines of Rust**, compiled to WebAssembly. It eliminates all FFI overhead through shared linear memory:
+The A* pathfinder is written in Rust, compiled to WebAssembly. It eliminates all FFI overhead through shared linear memory:
 
 1. JavaScript writes obstacle bitmaps directly into WASM linear memory via `Uint8Array` views on `wasm.memory.buffer`
 2. WASM executes A* in-place on shared memory
@@ -235,7 +235,7 @@ The engine parses **8 binary file formats** from the original game — all rever
 
 ### Weather System — Particle-Driven
 
-**1,533 LOC** of particle physics and rendering:
+Particle physics and rendering:
 
 - **Rain** — wind-affected particles with splash on contact, periodic lightning flash illuminating the scene
 - **Screen droplets** — simulated refraction/lens effect of water running down the camera
@@ -246,20 +246,20 @@ The engine parses **8 binary file formats** from the original game — all rever
 A deep, well-structured class hierarchy with clear separation of concerns:
 
 ```
-Sprite (656 LOC)
- └─ CharacterBase (963) — stats, properties, status flags
-     └─ CharacterMovement (1,051) — A* pathfinding, tile walking, bezier curves
-         └─ CharacterCombat (784) — attack, damage calc, status effects
-             └─ Character (987) — shared NPC/Player logic [abstract]
-                 ├─ PlayerBase → PlayerCombat → Player (2,696 combined)
-                 └─ Npc (659) — AI behavior, interaction scripts, spatial grid
+Sprite
+ └─ CharacterBase — stats, properties, status flags
+     └─ CharacterMovement — A* pathfinding, tile walking, bezier curves
+         └─ CharacterCombat — attack, damage calc, status effects
+             └─ Character — shared NPC/Player logic [abstract]
+                 ├─ PlayerBase → PlayerCombat → Player
+                 └─ Npc — AI behavior, interaction scripts, spatial grid
 ```
 
 ---
 
 ## Game Data Editor (Dashboard)
 
-The project includes a **35,150-line** VS Code-style game editor with Activity Bar, Sidebar, and Content panels:
+The project includes a VS Code-style game editor with Activity Bar, Sidebar, and Content panels:
 
 | Module | What it edits |
 |--------|---------------|
@@ -282,45 +282,21 @@ The project includes a **35,150-line** VS Code-style game editor with Activity B
 
 11 packages in a pnpm monorepo, **~176,000 lines** total:
 
-| Package | LOC | Role |
-|---------|----:|------|
-| `@miu2d/engine` | 64,650 | Pure TS game engine — 19 modules, no React dependency |
-| `@miu2d/dashboard` | 35,150 | VS Code-style game data editor (13 modules) |
-| `@miu2d/game` | 31,615 | Game runtime with 3 UI themes (classic/modern/mobile) |
-| `@miu2d/server` | 14,143 | Hono + tRPC backend (21 tables, 19 routers) |
-| `@miu2d/types` | 12,183 | Shared Zod 4 schemas (18 domain modules) |
-| `@miu2d/web` | 4,973 | App shell, routing, landing page |
-| `@miu2d/converter` | 4,354 | Rust CLI: ASF/MPC → MSF, MAP → MMF batch conversion |
-| `@miu2d/engine-wasm` | 3,160 | Rust → WASM: pathfinder, decoders, spatial hash, zstd |
-| `@miu2d/viewer` | 3,151 | Resource viewers (ASF/Map/MPC/Audio) |
-| `@miu2d/ui` | 1,775 | Generic UI components (no business deps) |
-| `@miu2d/shared` | 990 | i18n, tRPC client, React contexts |
+| Package | Role |
+|---------|------|
+| `@miu2d/engine` | Pure TS game engine — 19 modules, no React dependency |
+| `@miu2d/dashboard` | VS Code-style game data editor (13 modules) |
+| `@miu2d/game` | Game runtime with 3 UI themes (classic/modern/mobile) |
+| `@miu2d/server` | Hono + tRPC backend (21 tables, 19 routers) |
+| `@miu2d/types` | Shared Zod 4 schemas (18 domain modules) |
+| `@miu2d/web` | App shell, routing, landing page |
+| `@miu2d/converter` | Rust CLI: ASF/MPC → MSF, MAP → MMF batch conversion |
+| `@miu2d/engine-wasm` | Rust → WASM: pathfinder, decoders, spatial hash, zstd |
+| `@miu2d/viewer` | Resource viewers (ASF/Map/MPC/Audio) |
+| `@miu2d/ui` | Generic UI components (no business deps) |
+| `@miu2d/shared` | i18n, tRPC client, React contexts |
 
-### Engine Module Breakdown
-
-| Module | LOC | Responsibility |
-|--------|----:|----------------|
-| `magic/` | 8,798 | 22 MoveKind trajectories, effects, passives, sprite factories |
-| `character/` | 6,410 | 8-level inheritance chain, stats, combat, movement |
-| `runtime/` | 6,252 | GameEngine, GameManager, InputHandler, CameraController |
-| `script/` | 6,205 | 218-command scripting VM (parser + executor + 9 command categories) |
-| `player/` | 5,839 | Player controller, inventory, magic slots, equipment |
-| `gui/` | 4,560 | GUI manager, dialog system, buy interface, UI bridge |
-| `npc/` | 3,843 | NPC AI, interaction scripts, spatial grid, magic cache |
-| `renderer/` | 3,135 | WebGL + Canvas2D renderers, sprite/rect batchers, GLSL shaders |
-| `resource/` | 2,940 | Resource loader, 8 binary format decoders |
-| `storage/` | 2,132 | Save/load system, game state persistence |
-| `obj/` | 1,978 | Scene objects (chests, doors, traps), manager + renderer |
-| `map/` | 1,638 | Map parsing, obstacle grid, tile rendering, trap zones |
-| `weather/` | 1,533 | Rain, snow, screen droplets, lightning |
-| `wasm/` | 1,202 | WASM bridge layer (pathfinder, decoders, collision) |
-| `core/` | 1,109 | Engine context, types, logger, game API |
-| `utils/` | 989 | Direction, distance, collision, INI parser |
-| `sprite/` | 903 | Base sprite class, edge detection |
-| `audio/` | 782 | Web Audio API manager (OGG/MP3/WAV) |
-| `data/` | 485 | Data models and config definitions |
-
-Also included: `resources/` (game assets), `docs/` (format specs), `JxqyHD/` (43,293 LOC C# reference from the original engine).
+Also included: `resources/` (game assets), `docs/` (format specs), `JxqyHD/` (C# reference from the original engine).
 
 ---
 
