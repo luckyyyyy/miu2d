@@ -1,5 +1,5 @@
 /**
- * Legacy INI → UiTheme 转换器
+ * Legacy INI → UiTheme 转换器（迁移自 @miu2d/engine）
  *
  * 仅用于：
  * - 批量导入 (ImportAllModal) 从 ZIP 中读取 INI 并转换
@@ -8,8 +8,8 @@
  * 运行时不使用此文件，游戏仅使用 ui-settings.ts 中的 UiTheme + resolveTheme()
  */
 
-import { parseIni } from "../utils";
-import { colorToCSS, normalizeImagePath, parseIniColor } from "./ui-settings";
+import { parseIni } from "@miu2d/engine/utils";
+import { colorToCSS, normalizeImagePath, parseIniColor } from "@miu2d/engine/gui/ui-settings";
 import type {
   ThemeBar,
   ThemeBottom,
@@ -40,7 +40,7 @@ import type {
   ThemeTop,
   ThemeXiuLian,
   UiTheme,
-} from "./ui-settings";
+} from "@miu2d/engine/gui/ui-settings";
 
 // ============================================
 // INI 解析工具函数
@@ -197,7 +197,7 @@ function detectGrid(
 }
 
 /**
- * 从 INI 逆向推断列数：比较 item1 和 item2 的 Top 崐，如果相同则其删同行，否则 1列
+ * 从 INI 逆向推断列数：比较 item1 和 item2 的 Top，如果相同则同行，否则 1列
  * @param s INI section
  * @param prefix key prefix (e.g. "Item")
  * @param count total items
@@ -405,7 +405,7 @@ function convertMagics(settings: IniSettings): ThemeMagics {
   let count = 9;
   while (listItems[`Item_Left_${count + 1}`] !== undefined) count++;
 
-  // 自动推断列数（新剑侠情缘 = 2列，月影传说/剑侠惁缘 2 = 3列）
+  // 自动推断列数（新剑侠情缘 = 2列，月影传说/剑侠情缘 2 = 3列）
   const cols = detectCols(listItems, "Item", count, 3);
 
   return {
@@ -579,11 +579,11 @@ const BOTTOM_BUTTON_SECTIONS = [
   "Bottom_Goods_Btn", "Bottom_Magic_Btn", "Bottom_Memo_Btn", "Bottom_System_Btn",
 ] as const;
 
-/** 面板中没有按鈕定义时，不输出该按鈕（避免展示错误游戏的按鈕） */
+/** 面板中没有按钮定义时，不输出该按钮（避免展示错误游戏的按钮） */
 function convertBottom(settings: IniSettings): ThemeBottom {
   const bottomItems = getSection(settings, "Bottom_Items");
 
-  // 快捷栏: 读全部 8 个 slot的独立坐标（物品槽 1-3 / 武功槽 4-8跨跳不规则间距，不能用单一网格）
+  // 快捷栏: 读全部 8 个 slot 的独立坐标（物品槽 1-3 / 武功槽 4-8 跨跳不规则间距，不能用单一网格）
   const items: ThemeButton[] = [];
   for (let i = 1; i <= 8; i++) {
     const l = bottomItems[`Item_Left_${i}`];
@@ -599,18 +599,18 @@ function convertBottom(settings: IniSettings): ThemeBottom {
       });
     }
   }
-  // 如果没有任何 item，用月影传说后备用布局
+  // 如果没有任何 item，用月影传说后备布局
   if (items.length === 0) {
     for (let i = 0; i < 8; i++) {
       items.push({ pos: [7 + i * 37, 20], size: [30, 40], image: "" });
     }
   }
 
-  // 按鈕：只读实际有定义的按鈕节
+  // 按钮：只读实际有定义的按钮节
   const buttons: ThemeButton[] = [];
   for (let i = 0; i < BOTTOM_BUTTON_SECTIONS.length; i++) {
     const sec = getSection(settings, BOTTOM_BUTTON_SECTIONS[i]);
-    // 只有当该游戏实际有 Image 项时才输出按鈕
+    // 只有当该游戏实际有 Image 项时才输出按钮
     if (sec.Image) {
       buttons.push({
         pos: [int2(sec.Left, 0), int2(sec.Top, 0)],

@@ -506,7 +506,7 @@ async function parseResourcesFolder(
     if (f.norm === "content/ui/ui_settings.ini") {
       const iniText = await f.file.text();
       try {
-        const { convertIniToTheme } = await import("@miu2d/engine/gui/ui-settings-legacy");
+        const { convertIniToTheme } = await import("../lib/ui-settings-legacy");
         data.uiTheme = convertIniToTheme(iniText);
         onProgress("找到 UI 配置 ui_settings.ini（已转换为紧凑 JSON 主题）");
       } catch {

@@ -24,7 +24,7 @@ const __dirname = path.dirname(__filename);
 // 所以我们直接内联 parseIni + 各 parse 函数的调用
 
 // parseIni is a pure function, import it directly
-import { convertIniToTheme } from "../packages/engine/src/gui/ui-settings-legacy";
+import { convertIniToTheme } from "../packages/dashboard/src/lib/ui-settings-legacy";
 
 function convertFile(iniPath: string, outputPath?: string): void {
   const resolvedIni = path.resolve(iniPath);
