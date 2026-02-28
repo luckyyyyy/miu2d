@@ -17,11 +17,53 @@
 
 Miu2D is a **160,000-line** 2D RPG engine written in TypeScript and Rust, rendering through **raw WebGL** with no dependency on Unity, Godot, Phaser, PixiJS, or any other game framework. Every subsystem — sprite batching, A* pathfinding, binary format decoders, scripting VM, weather particles, screen effects — is implemented from first principles.
 
-As a proof of concept, we used Miu2D to rebuild **"Legend of Yue Ying"** (剑侠情缘外传：月影传说), a classic Chinese wuxia RPG originally released by Kingsoft (西山居) in 2001, making the entire game playable in any modern browser.
+As a proof of concept, Miu2D has been used to rebuild **three classic Kingsoft (西山居) wuxia RPGs**, all fully playable in any modern browser.
 
 > **Vibe Coding** — This project is developed with AI-assisted programming from day one.
 
-![Desktop Gameplay](packages/web/public/screenshot/screenshot.png)
+---
+
+### 🌙 Legend of Yue Ying (剑侠情缘外传：月影传说) · 2001
+
+| | |
+|---|---|
+| **Developer** | Xishanju (西山居 / Kingsoft) |
+| **Genre** | Action RPG |
+| **Highlights** | 7+ endings · 100+ story events · 30-person team (20+ artists) · 14-month production |
+
+The largest production Xishanju had ever mounted at the time. The story branches dramatically based on player choices — loyalty, love, wealth — shaping the protagonist's morality and emotional alignment to produce seven or more distinct endings. Scenes were built with a pioneering 3D+2D hybrid rendering technique, and the soundtrack blended classical Chinese instruments with contemporary pop production.
+
+![Legend of Yue Ying](packages/web/public/screenshot/game-yuying.png)
+
+---
+
+### ⚔️ Swords of Legends 2 (剑侠情缘贰) · 1998
+
+| | |
+|---|---|
+| **Developer** | Xishanju (西山居 / Kingsoft) |
+| **Genre** | Action RPG |
+| **Highlights** | Diablo-style real-time combat · 200+ NPCs · 640×480 16-bit color · theme song by 谢雨欣 |
+
+Set twenty years after the original, hero 南宫飞云 — son of the first game's protagonists — stumbles into a perilous journey after rescuing a mysterious girl named 若雪. The sequel boldly abandoned turn-based combat for a real-time action system inspired by *Diablo*, a revolutionary move for Chinese RPGs of the era. Three years in development with a budget of nearly ¥3 million and a team of 30.
+
+![Swords of Legends 2](packages/web/public/screenshot/game-sword2.png)
+
+---
+
+### 🗡️ New Swords of Legends (新剑侠情缘) · 2001
+
+| | |
+|---|---|
+| **Developer** | Xishanju (西山居 / Kingsoft) |
+| **Genre** | Action RPG |
+| **Highlights** | Remake of the 1997 original · 110+ maps · indoor map system · real-time combat engine from Swords 2 |
+
+A remake of the franchise's 1997 debut, rebuilt with the acclaimed real-time action combat engine from *Swords of Legends 2*. The story remains faithful to the original while greatly expanding the map count to 110+ scenes and introducing seamless indoor/outdoor transitions.
+
+![New Swords of Legends](packages/web/public/screenshot/game-new-swords.png)
+
+---
 
 <details>
 <summary><b>Mobile & Editor Screenshots</b></summary>
