@@ -19,7 +19,6 @@
     "check": "biome check --write ."
   },
   "dependencies": {
-    "@miu2d/server": "workspace:*",
     "@miu2d/types": "workspace:*",
     "@tanstack/react-query": "^5.80.7",
     "@trpc/client": "^11.9.0",
@@ -33,6 +32,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.3.13",
+    "@miu2d/server": "workspace:*",
     "@types/react": "^19.2.5",
     "@types/react-dom": "^19.2.3",
     "monaco-editor": "^0.55.1",

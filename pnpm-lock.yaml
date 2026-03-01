@@ -233,9 +233,6 @@ importers:
 
   packages/shared:
     dependencies:
-      '@miu2d/server':
-        specifier: workspace:*
-        version: link:../server
       '@miu2d/types':
         specifier: workspace:*
         version: link:../types
@@ -270,6 +267,9 @@ importers:
       '@biomejs/biome':
         specifier: ^2.3.13
         version: 2.3.13
+      '@miu2d/server':
+        specifier: workspace:*
+        version: link:../server
       '@types/react':
         specifier: ^19.2.5
         version: 19.2.10
