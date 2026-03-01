@@ -98,5 +98,10 @@ export const en: TranslationSchema = {
       tagline: "AI-powered 2D RPG Game Engine",
       about: "About",
     },
+    pwa: {
+      updateMessage: "Game engine updated. Refresh to get the latest version.",
+      updateButton: "Refresh now",
+      dismissButton: "Dismiss",
+    },
   },
 };

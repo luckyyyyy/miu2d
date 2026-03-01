@@ -96,6 +96,11 @@ export const zh = {
       tagline: "AI 驱动的 2D RPG 游戏引擎",
       about: "关于",
     },
+    pwa: {
+      updateMessage: "游戏引擎已更新，刷新以获取最新版本",
+      updateButton: "立即刷新",
+      dismissButton: "关闭",
+    },
   },
 };
 
