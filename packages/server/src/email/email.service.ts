@@ -7,30 +7,32 @@ import { LoginNotification } from "./templates/LoginNotification";
 import { VerifyEmail } from "./templates/VerifyEmail";
 import { WelcomeEmail } from "./templates/WelcomeEmail";
 
+import { env } from "../env";
+
 const logger = new Logger("EmailService");
 
 function getTransporter(): Transporter {
   return createTransport({
-    host: process.env.SMTP_HOST,
-    port: Number(process.env.SMTP_PORT || 587),
-    secure: process.env.SMTP_SECURE === "true",
+    host: env.smtpHost,
+    port: env.smtpPort,
+    secure: env.smtpSecure,
     auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
+      user: env.smtpUser,
+      pass: env.smtpPass,
     },
   });
 }
 
 function getFromAddress(): string {
-  return process.env.SMTP_FROM || `Miu2D Engine <noreply@miu2d.com>`;
+  return env.smtpFrom;
 }
 
 function getAppUrl(): string {
-  return process.env.APP_URL || "http://localhost:5173";
+  return env.appUrl;
 }
 
 function isEmailEnabled(): boolean {
-  return !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
+  return env.isEmailEnabled;
 }
 
 async function sendMail(to: string, subject: string, html: string) {

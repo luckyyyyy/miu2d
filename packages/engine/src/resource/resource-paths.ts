@@ -19,26 +19,9 @@
 // =============================================================================
 
 /**
- * 获取资源域名 — 实现在 core/env-config.ts，此处 re-export 保持向后兼容
+ * 资源域名 & URL 工具 — 实现在 @miu2d/shared/lib/game-api，此处 re-export 保持向后兼容
  */
-import { getResourceDomain } from "../core/env-config";
-export { getResourceDomain };
-
-/**
- * 获取完整的资源 URL
- * @param path 资源路径（如 /resources/xxx 或 resources/xxx）
- * @returns 完整的资源 URL
- */
-export function getResourceUrl(path: string): string {
-  const domain = getResourceDomain();
-  // 确保 path 以 / 开头
-  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
-
-  if (domain) {
-    return `${domain}${normalizedPath}`;
-  }
-  return normalizedPath;
-}
+export { getResourceDomain, getResourceUrl } from "@miu2d/shared/lib/game-api";
 
 // =============================================================================
 // 资源根目录配置

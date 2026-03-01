@@ -81,8 +81,10 @@ export function WebSaveLoadPanel({
   const savesQuery = trpc.save.list.useQuery({ gameSlug }, { enabled: visible && isAuthenticated });
 
   const upsertMutation = trpc.save.upsert.useMutation({
-    onSuccess: () => {
+    onSuccess: (data) => {
       utils.save.list.invalidate({ gameSlug });
+      // invalidate 对应存档的详情缓存，避免立即读档时命中旧缓存
+      utils.save.get.invalidate({ saveId: data.id });
       setMessage({ text: "存档成功", type: "success" });
       setSaveName("");
     },
@@ -179,7 +181,8 @@ export function WebSaveLoadPanel({
       setOperatingId(saveId);
       setConfirmAction(null);
       try {
-        const result = await utils.save.get.fetch({ saveId });
+        // staleTime: 0 强制绕过缓存，防止读到 5 分钟内的旧存档数据
+        const result = await utils.save.get.fetch({ saveId }, { staleTime: 0 });
         if (result?.data) {
           const success = await onLoadSaveData(result.data as Record<string, unknown>);
           if (success) {

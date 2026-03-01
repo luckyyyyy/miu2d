@@ -32,6 +32,7 @@ interface PendingInteraction {
   target: Npc | Obj;
   useRightScript: boolean;
   interactDistance: number; // 1 for obj, dialogRadius for NPC
+  isRun: boolean;
 }
 
 /**
@@ -156,7 +157,12 @@ export class InputHandler {
 
       if (destTile) {
         // Found a walkable destination, try again
-        player.walkToTile(destTile.x, destTile.y);
+        const retryIsRun = this.pendingInteraction.isRun && player.canRunCheck();
+        if (retryIsRun) {
+          player.runToTile(destTile.x, destTile.y);
+        } else {
+          player.walkToTile(destTile.x, destTile.y);
+        }
         logger.log(
           `[InputHandler] Retrying path to (${destTile.x}, ${destTile.y}) for target at (${targetTile.x}, ${targetTile.y})`
         );
@@ -572,11 +578,11 @@ export class InputHandler {
     actor: Character,
     npc: Npc,
     useRightScript: boolean,
-    _isRun: boolean
+    isRun: boolean
   ): Promise<void> {
     // 被控角色也可以触发交互（如对话）
     // 实际上还是使用玩家的交互逻辑，只是距离检测基于被控角色
-    await this.interactWithNpc(npc, useRightScript);
+    await this.interactWithNpc(npc, useRightScript, isRun);
   }
 
   /**
@@ -586,9 +592,9 @@ export class InputHandler {
     actor: Character,
     obj: Obj,
     useRightScript: boolean,
-    _isRun: boolean
+    isRun: boolean
   ): Promise<void> {
-    await this.interactWithObj(obj, useRightScript);
+    await this.interactWithObj(obj, useRightScript, isRun);
   }
 
   /**
@@ -612,7 +618,7 @@ export class InputHandler {
    * @param npc The NPC to interact with
    * @param useRightScript Use ScriptFileRight instead of ScriptFile
    */
-  async interactWithNpc(npc: Npc, useRightScript: boolean = false): Promise<void> {
+  async interactWithNpc(npc: Npc, useRightScript: boolean = false, isRun: boolean = false): Promise<void> {
     const guiManager = this.engine.guiManager;
     const player = this.engine.player;
 
@@ -637,15 +643,16 @@ export class InputHandler {
       // Close enough - interact immediately
       await this.executeNpcInteraction(npc, useRightScript);
     } else {
-      // Too far - walk to NPC first
+      // Too far - walk/run to NPC first
       this.pendingInteraction = {
         type: "npc",
         target: npc,
         useRightScript,
         interactDistance,
+        isRun,
       };
-      // Walk towards NPC (stop at interactDistance away)
-      this.walkToTarget(npcTile, interactDistance);
+      // Walk/run towards NPC (stop at interactDistance away)
+      this.walkToTarget(npcTile, interactDistance, isRun);
     }
   }
 
@@ -682,7 +689,7 @@ export class InputHandler {
    * @param obj The object to interact with
    * @param useRightScript Use ScriptFileRight instead of ScriptFile
    */
-  async interactWithObj(obj: Obj, useRightScript: boolean = false): Promise<void> {
+  async interactWithObj(obj: Obj, useRightScript: boolean = false, isRun: boolean = false): Promise<void> {
     const player = this.player;
 
     player.cancelAutoAttack();
@@ -705,15 +712,16 @@ export class InputHandler {
       // Close enough - interact immediately
       await this.executeObjInteraction(obj, useRightScript);
     } else {
-      // Too far - walk to Object first
+      // Too far - walk/run to Object first
       this.pendingInteraction = {
         type: "obj",
         target: obj,
         useRightScript,
         interactDistance,
+        isRun,
       };
-      // Walk towards Object (stop at interactDistance away)
-      this.walkToTarget(objTile, interactDistance);
+      // Walk/run towards Object (stop at interactDistance away)
+      this.walkToTarget(objTile, interactDistance, isRun);
     }
   }
 
@@ -759,7 +767,7 @@ export class InputHandler {
    * 2. 如果该位置是障碍物，尝试所有 8 个方向
    * 3. 如果所有方向都不可达，放弃交互
    */
-  private walkToTarget(targetTile: Vector2, interactDistance: number): void {
+  private walkToTarget(targetTile: Vector2, interactDistance: number, isRun: boolean = false): void {
     const player = this.player;
 
     // Use isometric tile distance
@@ -782,11 +790,18 @@ export class InputHandler {
       return;
     }
 
-    // Walk to destination
-    player.walkToTile(destTile.x, destTile.y);
-    logger.log(
-      `[InputHandler] Walking to (${destTile.x}, ${destTile.y}) to interact with target at (${targetTile.x}, ${targetTile.y})`
-    );
+    // Walk or run to destination
+    if (isRun && player.canRunCheck()) {
+      player.runToTile(destTile.x, destTile.y);
+      logger.log(
+        `[InputHandler] Running to (${destTile.x}, ${destTile.y}) to interact with target at (${targetTile.x}, ${targetTile.y})`
+      );
+    } else {
+      player.walkToTile(destTile.x, destTile.y);
+      logger.log(
+        `[InputHandler] Walking to (${destTile.x}, ${destTile.y}) to interact with target at (${targetTile.x}, ${targetTile.y})`
+      );
+    }
   }
 
   /**

@@ -20,7 +20,7 @@
 
 import { logger } from "../core/logger";
 import type { Vector2 } from "../core/types";
-import { OBSTACLE, TRANS } from "../core/map-constants";
+import { CAN_OVER_OBSTACLE, CAN_OVER_TRANS, OBSTACLE, TRANS } from "../core/map-constants";
 import { PathType } from "../utils/path-finder";
 import type { WasmModule } from "./wasm-manager";
 import { ensureWasmReady, getWasmMemory } from "./wasm-manager";
@@ -51,6 +51,8 @@ interface MagicSpriteManagerForSync {
     {
       readonly magic: { readonly bodyRadius: number };
       readonly tilePosition: { readonly x: number; readonly y: number };
+      readonly isDestroyed: boolean;
+      readonly isInDestroy: boolean;
     }
   >;
 }
@@ -234,17 +236,22 @@ export function syncStaticObstacles(barriers: Uint8Array, cols: number, rows: nu
 
   // 逐 tile 设置 bit
   for (let i = 0; i < totalTiles; i++) {
-    const barrier = barriers[i] ?? 0xff;
+    const barrier = barriers[i] ?? 0xff; // 原始 byte，与 C++ 一致：精确值比较自然忽略低位噪声
     const byteIdx = i >> 3;
     const bitMask = 1 << (i & 7);
 
-    // isObstacleForCharacter: OBSTACLE | TRANS
-    if ((barrier & (OBSTACLE | TRANS)) !== 0) {
+    // isObstacleForCharacter (C++ canWalk): blocks toTrans/toJumpTrans/toObstacle/toJumpOpaque
+    if (
+      barrier === TRANS ||
+      barrier === CAN_OVER_TRANS ||
+      barrier === OBSTACLE ||
+      barrier === CAN_OVER_OBSTACLE
+    ) {
       obstacleBitmapView[byteIdx] |= bitMask;
     }
 
-    // isObstacle (hard): only OBSTACLE
-    if ((barrier & OBSTACLE) !== 0) {
+    // isObstacle/hard (C++ toObstacle/toJumpOpaque only)
+    if (barrier === OBSTACLE || barrier === CAN_OVER_OBSTACLE) {
       hardObstacleBitmapView[byteIdx] |= bitMask;
     }
   }
@@ -305,6 +312,7 @@ export function syncDynamicObstacles(
 
   // --- Magic 位置 ---
   for (const sprite of magicSpriteManager.getMagicSprites().values()) {
+    if (sprite.isDestroyed || sprite.isInDestroy) continue;
     if (sprite.magic.bodyRadius <= 0) continue;
     const { x, y } = sprite.tilePosition;
     if (x >= 0 && y >= 0 && x < w && y < h) {

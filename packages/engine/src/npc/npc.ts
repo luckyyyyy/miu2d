@@ -77,6 +77,42 @@ export class Npc extends Character {
     return this.canViewTarget(startTile, endTile, visionRadius);
   }
 
+  /**
+   * NPC 寻路失败时直接停止，不使用方向回退
+   * 避免 NPC 对着墙壁鬼畜式移动
+   */
+  protected override shouldFallbackToDirectionWalk(): boolean {
+    return false;
+  }
+
+  /**
+   * NPC walkTo 优化：避免每帧重跑 A* 导致方向抖动（鬼畜）
+   *
+   * 当 NPC 已经在走路时：
+   * - 目标 tile 未变：跳过，不重算路径
+   * - 目标 tile 变了（玩家移动）：立即重算路径追击
+   */
+  override walkTo(destTile: Vector2, pathTypeOverride: PathType = PathType.End): boolean {
+    if ((this.isWalking() || this.isRunning()) && this.path.length > 0) {
+      if (!this.performActionOk()) return false;
+      if (this._mapX === destTile.x && this._mapY === destTile.y) return true;
+
+      if (
+        destTile.x === this._destinationMoveTilePosition.x &&
+        destTile.y === this._destinationMoveTilePosition.y
+      ) {
+        // 目标未变：跳过重算
+        return true;
+      }
+
+      // 目标变了：立即重算路径
+      logger.debug(
+        `[NpcAI] ${this._id} walkTo: target moved to (${destTile.x},${destTile.y}), repathing`
+      );
+    }
+    return super.walkTo(destTile, pathTypeOverride);
+  }
+
   getRandTilePathForAI(count: number, isFlyer: boolean, maxOffset: number = -1): Vector2[] {
     return this.getRandTilePath(count, isFlyer, maxOffset);
   }

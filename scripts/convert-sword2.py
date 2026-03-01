@@ -1322,12 +1322,19 @@ def step_talk(root: str, portrait_mapping: dict):
     map_folders = sorted([d for d in os.listdir(script_dir)
                          if os.path.isdir(os.path.join(script_dir, d))])
 
+    def find_talk_file(map_dir: str) -> str | None:
+        """Case-insensitive search for talk.txt (also matches Talk.txt, TALK.TXT, etc.)"""
+        for fn in os.listdir(map_dir):
+            if fn.lower() == "talk.txt":
+                return os.path.join(map_dir, fn)
+        return None
+
     total_sections = 0
     total_lines = 0
 
     for map_folder in map_folders:
-        talk_path = os.path.join(script_dir, map_folder, "talk.txt")
-        if not os.path.exists(talk_path):
+        talk_path = find_talk_file(os.path.join(script_dir, map_folder))
+        if talk_path is None:
             continue
 
         text = read_gbk(talk_path)
@@ -1484,8 +1491,8 @@ def step_talk(root: str, portrait_mapping: dict):
     # Phase 4: Remove talk.txt files (no longer needed)
     removed = 0
     for map_folder in map_folders:
-        talk_path = os.path.join(script_dir, map_folder, "talk.txt")
-        if os.path.exists(talk_path):
+        talk_path = find_talk_file(os.path.join(script_dir, map_folder))
+        if talk_path is not None:
             if not DRY_RUN:
                 os.remove(talk_path)
             removed += 1
@@ -2074,29 +2081,35 @@ def step_map_tiles(root: str):
             os.makedirs(dst_map_dir, exist_ok=True)
 
         if not tile_bytes:
-            # Map has no tile pack (e.g., 沙漠之战, 龙门客栈-长安)
-            log(f"  {map_name}: 无 tile 包 (空目录)")
-            total_maps += 1
-            continue
+            # .map file has no embedded tile pack path — fall back to same-name mpc/map/ dir
+            fallback_dir = os.path.join(mpc_map_root, map_name)
+            if os.path.isdir(fallback_dir):
+                src_pack_dir = fallback_dir
+                pack_name = map_name
+                # Fall through to the copy logic below
+            else:
+                log(f"  {map_name}: 无 tile 包且无同名 mpc/map/ 目录，跳过")
+                total_maps += 1
+                continue
+        else:
+            try:
+                tile_path_raw = tile_bytes.decode("gbk", errors="replace")
+            except Exception:
+                warnings.append(f"{map_name}: GBK 解码失败")
+                continue
 
-        try:
-            tile_path_raw = tile_bytes.decode("gbk", errors="replace")
-        except Exception:
-            warnings.append(f"{map_name}: GBK 解码失败")
-            continue
+            # Extract last path component (e.g., "\\mpc\\map\\长安" or "\\mpc\\map\\狂沙镇\\" → "狂沙镇")
+            pack_name = tile_path_raw.replace("\\\\", "/").replace("\\", "/").rstrip("/").split("/")[-1].strip()
+            if not pack_name:
+                log(f"  {map_name}: tile 包路径解析失败 (raw={tile_path_raw!r})")
+                total_maps += 1
+                continue
 
-        # Extract last path component (e.g., "\\mpc\\map\\长安" or "\\mpc\\map\\狂沙镇\\" → "狂沙镇")
-        pack_name = tile_path_raw.replace("\\\\", "/").replace("\\", "/").rstrip("/").split("/")[-1].strip()
-        if not pack_name:
-            log(f"  {map_name}: tile 包路径解析失败 (raw={tile_path_raw!r})")
-            total_maps += 1
-            continue
-
-        src_pack_dir = os.path.join(mpc_map_root, pack_name)
-        if not os.path.isdir(src_pack_dir):
-            warnings.append(f"{map_name}: tile 包目录不存在 mpc/map/{pack_name}")
-            total_maps += 1
-            continue
+            src_pack_dir = os.path.join(mpc_map_root, pack_name)
+            if not os.path.isdir(src_pack_dir):
+                warnings.append(f"{map_name}: tile 包目录不存在 mpc/map/{pack_name}")
+                total_maps += 1
+                continue
 
         # Copy all .msf tiles from mpc/map/{packName}/ → msf/map/{mapName}/
         copied = 0

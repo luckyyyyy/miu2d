@@ -185,10 +185,7 @@ struct TrapEntry {
     script_path: String,
 }
 
-fn convert_map_to_mmf(
-    map_data: &OldMapData,
-    trap_entries: &[TrapEntry],
-) -> Vec<u8> {
+fn convert_map_to_mmf(map_data: &OldMapData, trap_entries: &[TrapEntry]) -> Vec<u8> {
     // Step 1: Compact MSF table - only include used MPC entries
     // Build old_index -> new_index mapping (new index is 1-based, 0 = empty)
     let mut old_to_new: HashMap<u8, u8> = HashMap::new();
@@ -359,7 +356,10 @@ fn main() {
         };
         parse_traps_ini(&content)
     } else {
-        println!("Warning: Traps.ini not found at {:?}, continuing without traps", traps_path);
+        println!(
+            "Warning: Traps.ini not found at {:?}, continuing without traps",
+            traps_path
+        );
         HashMap::new()
     };
 
@@ -388,10 +388,7 @@ fn main() {
 
     map_files.par_iter().for_each(|map_path| {
         // Extract map name without extension for trap lookup
-        let map_name = map_path
-            .file_stem()
-            .and_then(|s| s.to_str())
-            .unwrap_or("");
+        let map_name = map_path.file_stem().and_then(|s| s.to_str()).unwrap_or("");
 
         // Try to match trap section by map name
         // The Traps.ini sections use the map file name without extension
@@ -412,6 +409,15 @@ fn main() {
         match std::fs::read(map_path) {
             Ok(map_data_raw) => {
                 let map_size = map_data_raw.len();
+                // Skip files that don't look like MAP format (wrong header or too small)
+                let is_map = map_data_raw.len() >= 12
+                    && std::str::from_utf8(&map_data_raw[0..12])
+                        .map(|h| h == "MAP File Ver")
+                        .unwrap_or(false);
+                if !is_map {
+                    eprintln!("  SKIP (not a MAP file, {} bytes) {:?}", map_size, map_path);
+                    return;
+                }
                 match parse_old_map(&map_data_raw) {
                     Some(map_data) => {
                         let mmf_data = convert_map_to_mmf(&map_data, &trap_entries);

@@ -439,7 +439,7 @@ export abstract class PlayerBase extends Character {
   /**
    * Check if player has enough thew to run
    */
-  protected canRunCheck(): boolean {
+  canRunCheck(): boolean {
     if (this._isRunDisabled) return false;
     if (this._isNotUseThewWhenRun) return true;
     return this.thew > 0;

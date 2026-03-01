@@ -15,9 +15,11 @@ export const DEMO_SLUG = "demo";
 /** 开发模式下未登录用户的虚拟 userId */
 export const DEMO_DEV_USER_ID = "00000000-0000-0000-0000-000000000000";
 
+import { env } from "../env";
+
 /** 是否为非生产环境 */
 export function isDev(): boolean {
-  return process.env.NODE_ENV !== "production";
+  return env.isDev;
 }
 
 /**

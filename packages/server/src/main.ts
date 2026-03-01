@@ -17,6 +17,7 @@ import { sceneRoutes } from "./routes/scene.routes";
 import { createContext, setPendingRes } from "./trpc/context";
 import { appRouter } from "./trpc/router";
 import { seedDemoData } from "./utils/demo";
+import { env } from "./env";
 import { createRateLimiter } from "./utils/rate-limiter";
 
 const app = new Hono();
@@ -94,7 +95,7 @@ async function bootstrap() {
   // 开发模式：seed demo 用户 + 游戏 + 成员，使 "demo" 空间无需登录即可操作
   await seedDemoData();
 
-  const port = Number(process.env.PORT || 4000);
+  const port = env.port;
   serve({ fetch: app.fetch, port, hostname: "0.0.0.0" }, () => {
     console.log(`Application is running on: http://0.0.0.0:${port}`);
   });

@@ -300,8 +300,9 @@ export class MapBase {
     if (!this.isTileInMapViewRange(col, row)) {
       return true; // 越界视为障碍
     }
-    const barrier = this.getBarrierType(col, row);
-    return (barrier & OBSTACLE) !== 0;
+    const barrier = this.getBarrierType(col, row); // 原始 byte，与 C++ 一致：无掩码，精确值比较自然忽略低位噪声
+    // C++ exact-value: toObstacle(0x80) | toJumpOpaque(0xA0) 阻挡硬碰撞
+    return barrier === OBSTACLE || barrier === CAN_OVER_OBSTACLE;
   }
 
   /**
@@ -314,8 +315,14 @@ export class MapBase {
     if (!this.isTileInMapViewRange(col, row)) {
       return true; // 越界视为障碍
     }
-    const barrier = this.getBarrierType(col, row);
-    return (barrier & (OBSTACLE + TRANS)) !== 0;
+    const barrier = this.getBarrierType(col, row); // 原始 byte，与 C++ 一致
+    // C++ exact-value: canWalk 被 toTrans(0x40)/toJumpTrans(0x60)/toObstacle(0x80)/toJumpOpaque(0xA0) 阻挡
+    return (
+      barrier === TRANS ||
+      barrier === CAN_OVER_TRANS ||
+      barrier === OBSTACLE ||
+      barrier === CAN_OVER_OBSTACLE
+    );
   }
 
   /**
@@ -328,8 +335,14 @@ export class MapBase {
       return true;
     }
     const idx = col + row * mapData.mapColumnCounts;
-    const barrier = mapData.barriers[idx] ?? 0xff;
-    return (barrier & (OBSTACLE + TRANS)) !== 0;
+    const barrier = mapData.barriers[idx] ?? 0xff; // 原始 byte，与 C++ 一致
+    // C++ exact-value: same as isObstacleForCharacter
+    return (
+      barrier === TRANS ||
+      barrier === CAN_OVER_TRANS ||
+      barrier === OBSTACLE ||
+      barrier === CAN_OVER_OBSTACLE
+    );
   }
 
   /**
@@ -342,8 +355,9 @@ export class MapBase {
       return true;
     }
     const idx = col + row * mapData.mapColumnCounts;
-    const barrier = mapData.barriers[idx] ?? 0xff;
-    return (barrier & OBSTACLE) !== 0;
+    const barrier = mapData.barriers[idx] ?? 0xff; // 原始 byte，与 C++ 一致
+    // C++ exact-value: toObstacle(0x80) | toJumpOpaque(0xA0)
+    return barrier === OBSTACLE || barrier === CAN_OVER_OBSTACLE;
   }
 
   /**
@@ -353,13 +367,16 @@ export class MapBase {
     if (!this.isTileInMapViewRange(col, row)) {
       return `tile(${col},${row}) 越界`;
     }
-    const bt = this.getBarrierType(col, row);
+    const bt = this.getBarrierType(col, row); // 原始 byte
     const flags: string[] = [];
     if (bt === NONE) flags.push("NONE");
-    if ((bt & OBSTACLE) !== 0) flags.push("OBSTACLE");
-    if ((bt & TRANS) !== 0) flags.push("TRANS");
-    if ((bt & CAN_OVER) !== 0) flags.push("CAN_OVER");
-    const isCharObstacle = (bt & (OBSTACLE + TRANS)) !== 0;
+    if (bt === OBSTACLE) flags.push("OBSTACLE");
+    if (bt === CAN_OVER_OBSTACLE) flags.push("CAN_OVER_OBSTACLE");
+    if (bt === TRANS) flags.push("TRANS");
+    if (bt === CAN_OVER_TRANS) flags.push("CAN_OVER_TRANS");
+    if (bt === CAN_OVER) flags.push("CAN_OVER");
+    if (flags.length === 0) flags.push(`unknown(0x${bt.toString(16)})`);
+    const isCharObstacle = bt === TRANS || bt === CAN_OVER_TRANS || bt === OBSTACLE || bt === CAN_OVER_OBSTACLE;
     return `tile(${col},${row}) barrierType=0x${bt.toString(16)} [${flags.join("|") || "0"}] isCharObstacle=${isCharObstacle}`;
   }
 
@@ -373,11 +390,10 @@ export class MapBase {
     if (!this.isTileInMapViewRange(col, row)) {
       return true; // 越界视为障碍
     }
-    const barrier = this.getBarrierType(col, row);
-    if (barrier === NONE || (barrier & CAN_OVER) !== 0) {
-      return false; // 可跳过
-    }
-    return true;
+    const barrier = this.getBarrierType(col, row); // 原始 byte，与 C++ 一致
+    // C++ exact-value: canJump 只被 toTrans(0x40) 和 toObstacle(0x80) 阻挡
+    // toJumpTrans(0x60) 和 toJumpOpaque(0xA0) 均允许跳跃越过
+    return barrier === TRANS || barrier === OBSTACLE;
   }
 
   /**
@@ -390,11 +406,10 @@ export class MapBase {
     if (!this.isTileInMapViewRange(col, row)) {
       return true; // 越界视为障碍
     }
-    const barrier = this.getBarrierType(col, row);
-    if (barrier === NONE || (barrier & TRANS) !== 0) {
-      return false; // 武功可通过
-    }
-    return true;
+    const barrier = this.getBarrierType(col, row); // 原始 byte，与 C++ 一致
+    // C++ exact-value: canFly 只被 toObstacle(0x80) 和 toJumpOpaque(0xA0) 阻挡
+    // NONE(0x00)/CAN_OVER(0x20)/TRANS(0x40)/CAN_OVER_TRANS(0x60) 均允许武功通过
+    return barrier === OBSTACLE || barrier === CAN_OVER_OBSTACLE;
   }
 
   // ============= 聚合碰撞检测 =============

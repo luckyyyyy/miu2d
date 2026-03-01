@@ -184,6 +184,18 @@ export abstract class CharacterMovement extends CharacterBase {
     this._currentDirection = getDirectionFromVector({ x: dx, y: dy });
   }
 
+  /**
+   * 面向目标瓦片（不移动，只改方向）
+   */
+  setDirectionByDestination(destTile: Vector2): void {
+    const destPixel = tileToPixel(destTile.x, destTile.y);
+    const dx = destPixel.x - this._positionInWorld.x;
+    const dy = destPixel.y - this._positionInWorld.y;
+    if (dx !== 0 || dy !== 0) {
+      this._currentDirection = getDirectionFromVector({ x: dx, y: dy });
+    }
+  }
+
   // =============================================
   // === Path Following ===
   // =============================================
@@ -466,7 +478,8 @@ export abstract class CharacterMovement extends CharacterBase {
 
     // 如果寻路失败（目标可能是障碍物），尝试沿方向行走
     // 这样点击障碍物时角色会朝那个方向尽可能走远，而不是完全不动
-    if (path.length === 0) {
+    // 注意：仅对玩家启用此回退，NPC 寻路失败应直接停止，避免鬼畜行为
+    if (path.length === 0 && this.shouldFallbackToDirectionWalk()) {
       const isMapObstacle = (tile: Vector2): boolean => this.checkMapObstacleForCharacter(tile);
       const isHardObstacle = (tile: Vector2): boolean => this.checkHardObstacle(tile);
       const directionResult = findPathInDirection(
@@ -908,15 +921,67 @@ export abstract class CharacterMovement extends CharacterBase {
   // === Distance Utilities ===
   // =============================================
 
+  /**
+   * 寻路失败时是否回退到方向行走
+   * 玩家返回 true（点击障碍物时朝那个方向走，体验更好）
+   * NPC 返回 false（寻路失败直接停止，避免鬼畜行为）
+   */
+  protected shouldFallbackToDirectionWalk(): boolean {
+    return true;
+  }
+
+  /**
+   * 检查从 startTile 到 endTile 是否有视线（无墙壁阻挡）
+   *
+   * 匹配 C# PathFinder.CanViewTarget() 实现：
+   * 贪心最优先搜索，沿途检查地图障碍物（墙壁），
+   * 如果中途遇到障碍则返回 false（不可视）
+   */
   protected canViewTarget(startTile: Vector2, endTile: Vector2, visionRadius: number): boolean {
     const maxVisionRadius = 80;
     if (visionRadius > maxVisionRadius) return false;
 
     if (startTile.x === endTile.x && startTile.y === endTile.y) return true;
-    if (this.checkMapObstacleForCharacter(endTile)) return false;
 
-    const distance = getViewTileDistance(startTile, endTile);
-    return distance <= visionRadius;
+    // C# 使用 IsObstacleForMagic 检查终点（仅硬障碍物阻挡视线，TRANS 不阻挡）
+    if (this.engine.map.isObstacleForMagic(endTile.x, endTile.y)) return false;
+
+    // 贪心最优先搜索：从起点向终点逐格行走，检查墙壁
+    // 每步选择距离终点最近的邻居（像素距离，匹配 C# GetTilePositionCost）
+    const endPixel = tileToPixel(endTile.x, endTile.y);
+    let currentX = startTile.x;
+    let currentY = startTile.y;
+
+    for (let step = 0; step < visionRadius; step++) {
+      if (currentX === endTile.x && currentY === endTile.y) return true;
+
+      // C# 使用 IsObstacle 检查中间瓦片（仅 OBSTACLE 标志，TRANS 不阻挡视线）
+      if (this.engine.map.isObstacle(currentX, currentY)) return false;
+
+      // 选择距终点最近的邻居（贪心）
+      const neighbors = getNeighbors({ x: currentX, y: currentY });
+      let bestCost = Number.POSITIVE_INFINITY;
+      let bestX = currentX;
+      let bestY = currentY;
+
+      for (let i = 0; i < 8; i++) {
+        const np = tileToPixel(neighbors[i].x, neighbors[i].y);
+        const dx = np.x - endPixel.x;
+        const dy = np.y - endPixel.y;
+        const cost = dx * dx + dy * dy;
+        if (cost < bestCost) {
+          bestCost = cost;
+          bestX = neighbors[i].x;
+          bestY = neighbors[i].y;
+        }
+      }
+
+      currentX = bestX;
+      currentY = bestY;
+    }
+
+    // 最后一步可能刚好到达终点
+    return currentX === endTile.x && currentY === endTile.y;
   }
 
   // =============================================
