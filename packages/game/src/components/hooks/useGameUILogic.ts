@@ -774,7 +774,7 @@ export function useGameUILogic({ engine }: UseGameUILogicOptions) {
         let occupiedBottomSlot = -1;
         if (engine && fromIndex !== xiuLianIndex) {
           const slots = engine.getGameManager().magicInventory.getBottomSlots();
-          occupiedBottomSlot = slots.findIndex((idx) => idx === fromIndex);
+          occupiedBottomSlot = slots.indexOf(fromIndex);
         }
         dispatch({ type: "SWAP_MAGIC", fromIndex, toIndex: xiuLianIndex });
         // SWAP 后清除该快捷栏槽位，保证武功只在修炼栏

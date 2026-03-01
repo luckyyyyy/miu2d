@@ -197,6 +197,7 @@ const MagicTooltipType2: React.FC<MagicTooltipProps> = ({ magicInfo, position, i
   const tooltipRef = useRef<HTMLDivElement>(null);
 
   // Measure actual tooltip height and adjust position to stay within viewport
+  // biome-ignore lint/correctness/useExhaustiveDependencies: isVisible is a trigger dep (re-measure when tooltip appears)
   useLayoutEffect(() => {
     const el = tooltipRef.current;
     if (!el) return;

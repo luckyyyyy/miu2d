@@ -290,6 +290,7 @@ export const DialogUI: React.FC<DialogUIProps> = ({
   }, [state.text, state.textProgress, state.isVisible]);
 
   // 每次文字更新时自动滚动到底部
+  // biome-ignore lint/correctness/useExhaustiveDependencies: displayedText is used as a scroll trigger
   useEffect(() => {
     if (textScrollRef.current) {
       textScrollRef.current.scrollTop = textScrollRef.current.scrollHeight;

@@ -55,14 +55,14 @@ interface GambleLittleGameConfig {
 
 function parseElementConfig(content: string): ElementConfig {
   const sections = parseIni(content);
-  const init = sections["Init"] ?? {};
+  const init = sections.Init ?? {};
   return {
-    left: Number(init["Left"] ?? 0),
-    top: Number(init["Top"] ?? 0),
-    width: Number(init["Width"] ?? 0),
-    height: Number(init["Height"] ?? 0),
-    image: normalizeImagePath(init["Image"] ?? ""),
-    sound: normalizeImagePath(init["Sound"] ?? "") || undefined,
+    left: Number(init.Left ?? 0),
+    top: Number(init.Top ?? 0),
+    width: Number(init.Width ?? 0),
+    height: Number(init.Height ?? 0),
+    image: normalizeImagePath(init.Image ?? ""),
+    sound: normalizeImagePath(init.Sound ?? "") || undefined,
   };
 }
 

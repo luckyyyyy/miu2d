@@ -35,8 +35,7 @@ export function ShopListPanel({ basePath }: { basePath: string }) {
   };
 
   return (
-    <>
-      <div className="flex h-full w-60 flex-col bg-[#252526] border-r border-panel-border">
+    <div className="flex h-full w-60 flex-col bg-[#252526] border-r border-panel-border">
         {/* 标题栏 */}
         <div className="flex h-9 items-center justify-between px-4 border-b border-panel-border">
           <span className="text-xs font-medium uppercase tracking-wide text-[#bbbbbb]">
@@ -94,8 +93,6 @@ export function ShopListPanel({ basePath }: { basePath: string }) {
             ))
           )}
         </div>
-      </div>
-
-    </>
+    </div>
   );
 }

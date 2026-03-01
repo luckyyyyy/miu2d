@@ -232,6 +232,7 @@ const ItemTooltipType2: React.FC<ItemTooltipProps> = ({
   }, [good, isRecycle, shopPrice]);
 
   // Measure actual tooltip height and adjust position to stay within viewport
+  // biome-ignore lint/correctness/useExhaustiveDependencies: isVisible is a trigger dep (re-measure when tooltip appears)
   useLayoutEffect(() => {
     const el = tooltipRef.current;
     if (!el) return;
