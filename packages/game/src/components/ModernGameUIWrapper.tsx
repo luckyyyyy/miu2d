@@ -458,7 +458,7 @@ export const ModernGameUIWrapper: React.FC<ModernGameUIWrapperProps> = ({
           letterSpacing: 0.5,
         }}
       >
-        Powered by Miu2D Engine
+        Powered by Miu2D Engine · v{__APP_VERSION__} · #{__COMMIT_HASH__}
       </div>
     </div>
     </GameUIContext.Provider>

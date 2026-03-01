@@ -1,11 +1,30 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { execSync } from "node:child_process";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react-oxc";
 import { defineConfig, type Plugin } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
 
 const __dirname = path.dirname(new URL(import.meta.url).pathname);
+
+function getGitCommit(): string {
+  try {
+    return execSync("git rev-parse --short HEAD").toString().trim();
+  } catch {
+    return "unknown";
+  }
+}
+
+function getAppVersion(): string {
+  try {
+    const pkgPath = path.join(__dirname, "package.json");
+    const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf-8")) as { version?: string };
+    return pkg.version ?? "0.0.0";
+  } catch {
+    return "0.0.0";
+  }
+}
 
 /**
  * Custom plugin to return 404 for missing resources
@@ -41,6 +60,10 @@ function resources404Plugin(): Plugin {
 
 // https://vite.dev/config/
 export default defineConfig({
+  define: {
+    __COMMIT_HASH__: JSON.stringify(getGitCommit()),
+    __APP_VERSION__: JSON.stringify(getAppVersion()),
+  },
   plugins: [
     resources404Plugin(),
     tailwindcss(),
