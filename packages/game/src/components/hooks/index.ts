@@ -14,5 +14,5 @@ export type {
   TooltipState,
 } from "./useGameUILogic";
 export { equipSlotToUISlot, useGameUILogic } from "./useGameUILogic";
-export { buildGameUIContextValue } from "./buildGameUIContextValue";
+export { useBuildGameUIContextValue } from "./buildGameUIContextValue";
 export { useTouchDropHandlers } from "./useTouchDropHandlers";

@@ -9,7 +9,7 @@ import { logger } from "@miu2d/engine/core/logger";
 import type React from "react";
 import { useEffect } from "react";
 import { GameUIContext } from "../contexts";
-import { buildGameUIContextValue, useTouchDropHandlers } from "./hooks";
+import { useBuildGameUIContextValue, useTouchDropHandlers } from "./hooks";
 import type { GameUILogic } from "./hooks";
 import { useEquipGuiConfig, useStateGuiConfig } from "./ui/classic/useUISettings";
 import {
@@ -120,10 +120,10 @@ export const ClassicGameUI: React.FC<ClassicGameUIProps> = ({ logic, width, heig
     handleXiuLianTouchDrop,
   } = useTouchDropHandlers(logic);
 
-  if (!engine) return null;
+  // ======= GameUIContext value ======= (must be before early-return to satisfy Rules of Hooks)
+  const gameUIContextValue = useBuildGameUIContextValue(logic, width, height);
 
-  // ======= GameUIContext value =======
-  const gameUIContextValue = buildGameUIContextValue(logic, width, height);
+  if (!engine) return null;
 
   return (
     <GameUIContext.Provider value={gameUIContextValue}>

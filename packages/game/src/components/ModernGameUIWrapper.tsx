@@ -6,11 +6,10 @@
  */
 
 import { logger } from "@miu2d/engine/core/logger";
-import type { Good } from "@miu2d/engine/player/goods";
 import type React from "react";
 import { useMemo } from "react";
 import { GameUIContext } from "../contexts";
-import { buildGameUIContextValue, useTouchDropHandlers } from "./hooks";
+import { useBuildGameUIContextValue, useTouchDropHandlers } from "./hooks";
 import type { GameUILogic } from "./hooks";
 import type { GoodItemData } from "./ui/classic";
 // 视频播放器是全屏组件，与 UI 风格无关，复用 classic 版本
@@ -146,10 +145,10 @@ export const ModernGameUIWrapper: React.FC<ModernGameUIWrapperProps> = ({
     handleXiuLianTouchDrop,
   } = useTouchDropHandlers(logic);
 
-  if (!engine) return null;
+  // ======= GameUIContext value ======= (must be before early-return to satisfy Rules of Hooks)
+  const gameUIContextValue = useBuildGameUIContextValue(logic, width, height);
 
-  // ======= GameUIContext value =======
-  const gameUIContextValue = buildGameUIContextValue(logic, width, height);
+  if (!engine) return null;
 
   return (
     <GameUIContext.Provider value={gameUIContextValue}>
@@ -384,7 +383,7 @@ export const ModernGameUIWrapper: React.FC<ModernGameUIWrapperProps> = ({
             if (!item) return null;
             const basePrice = item.price > 0 ? item.price : item.good.cost;
             const effectivePrice = Math.floor((basePrice * buyData.buyPercent) / 100);
-            return { good: item.good as Good, count: item.count, price: effectivePrice };
+            return { good: item.good, count: item.count, price: effectivePrice };
           })}
           buyPercent={buyData.buyPercent}
           numberValid={buyData.numberValid}
