@@ -55,18 +55,10 @@ export default defineConfig({
       workbox: {
         // Precache all static assets produced by Vite build
         globPatterns: ["**/*.{js,css,html,wasm}"],
-        // Don't precache large game resource files or Monaco editor workers
-        // (Monaco workers are code-editing tools, not needed for offline game play)
-        globIgnores: [
-          "**/resources/**",
-          "**/ts.worker-*.js",
-          "**/html.worker-*.js",
-          "**/css.worker-*.js",
-          "**/json.worker-*.js",
-          "**/editor.worker-*.js",
-        ],
-        // Allow the main app bundle (~6 MB) through; Monaco workers are excluded above
-        maximumFileSizeToCacheInBytes: 8 * 1024 * 1024,
+        // Don't precache large game resource files (fetched at runtime via CacheFirst below)
+        globIgnores: ["**/resources/**"],
+        // ts.worker is ~7 MB; raise the limit to cover it and the main bundle (~6 MB)
+        maximumFileSizeToCacheInBytes: 10 * 1024 * 1024,
         runtimeCaching: [
           // WASM files: CacheFirst (content-hashed by build)
           {
