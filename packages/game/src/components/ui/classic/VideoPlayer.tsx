@@ -15,6 +15,10 @@ import { loadAudioSettings, saveAudioSettings } from "../../common/SidePanel";
 
 interface VideoPlayerProps {
   engine: GameEngine | null;
+  /** 受控模式：直接指定完整 URL（不走 engine 事件，用于标题画面等无引擎场景） */
+  controlledVideoUrl?: string | null;
+  /** 受控模式：视频播放完毕或用户关闭时回调 */
+  onControlledEnd?: () => void;
 }
 
 /**
@@ -33,7 +37,7 @@ function formatTime(seconds: number): string {
   return `${mins}:${secs.toString().padStart(2, "0")}`;
 }
 
-export const VideoPlayer: React.FC<VideoPlayerProps> = ({ engine }) => {
+export const VideoPlayer: React.FC<VideoPlayerProps> = ({ engine, controlledVideoUrl, onControlledEnd }) => {
   const [videoFile, setVideoFile] = useState<string | null>(null);
   const [isVisible, setIsVisible] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -47,6 +51,21 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ engine }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const controlsTimeoutRef = useRef<number | null>(null);
   const progressBarRef = useRef<HTMLDivElement>(null);
+
+  // 受控模式：外部传入 URL 时直接播放，URL 清除时关闭
+  useEffect(() => {
+    if (controlledVideoUrl) {
+      setVideoFile(controlledVideoUrl);
+      setIsVisible(true);
+      setIsPaused(false);
+      setProgress(0);
+      setCurrentTime(0);
+      setDuration(0);
+    } else if (controlledVideoUrl === null) {
+      setIsVisible(false);
+      setVideoFile(null);
+    }
+  }, [controlledVideoUrl]);
 
   // Load saved volume on mount
   useEffect(() => {
@@ -74,13 +93,15 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ engine }) => {
     setCurrentTime(0);
     setDuration(0);
     setIsPaused(false);
-    // Emit video end event so scripts can continue
+    // Emit video end event so engine scripts can continue
     if (engine?.events) {
       engine.events.emit(GameEvents.UI_VIDEO_END, {});
-    } else {
+    } else if (!onControlledEnd) {
       logger.warn("[VideoPlayer] Cannot emit UI_VIDEO_END: engine.events not available");
     }
-  }, [engine]);
+    // 受控模式回调
+    onControlledEnd?.();
+  }, [engine, onControlledEnd]);
 
   // Update progress bar and time
   const handleTimeUpdate = useCallback(() => {
