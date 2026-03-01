@@ -26,7 +26,7 @@ export type { Locale } from "./i18n";
 // ============= i18n =============
 export { supportedLanguages } from "./i18n";
 // ============= Lib =============
-export { trpc, trpcClient } from "./lib";
+export { isPWA, trpc, trpcClient } from "./lib";
 export type { TranslationSchema } from "./locales";
 // ============= Server Locales =============
 export { en, zh } from "./locales";

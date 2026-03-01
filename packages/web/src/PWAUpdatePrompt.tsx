@@ -1,3 +1,4 @@
+import { isPWA } from "@miu2d/shared";
 import { useTranslation } from "react-i18next";
 import { useRegisterSW } from "virtual:pwa-register/react";
 
@@ -7,12 +8,6 @@ import { useRegisterSW } from "virtual:pwa-register/react";
  * 由于引擎迭代频繁，当检测到新版本时主动提示用户，
  * 避免用户长时间使用旧版缓存。
  */
-function isStandalone(): boolean {
-  return (
-    window.matchMedia("(display-mode: standalone)").matches ||
-    ("standalone" in navigator && (navigator as { standalone?: boolean }).standalone === true)
-  );
-}
 
 export function PWAUpdatePrompt() {
   const { t } = useTranslation();
@@ -23,7 +18,7 @@ export function PWAUpdatePrompt() {
 
   // 普通浏览器始终能通过刷新获取最新资源，提示无必要；
   // 只在已安装的 PWA（standalone 模式）中才显示更新提示。
-  if (!needRefresh || !isStandalone()) {
+  if (!needRefresh || !isPWA) {
     return null;
   }
 

@@ -1,3 +1,4 @@
+import { isPWA } from "@miu2d/shared";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -88,10 +89,7 @@ export function PWAInstallPrompt({ gameName, logoUrl, ready }: PWAInstallPromptP
     return null;
   }
 
-  if (
-    window.matchMedia("(display-mode: standalone)").matches ||
-    ("standalone" in navigator && (navigator as { standalone?: boolean }).standalone === true)
-  ) {
+  if (isPWA) {
     return null;
   }
 
