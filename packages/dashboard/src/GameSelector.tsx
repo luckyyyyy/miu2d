@@ -23,7 +23,7 @@ function GameLogoIcon({ slug, className = "w-5 h-5" }: { slug: string; className
       {/* Logo 图片：加载中时透明叠加，加载成功后显示 */}
       {status !== "error" && (
         <img
-          src={getGameApiUrl(slug, "logo")}
+          src={getGameApiUrl(slug, "logo/128")}
           alt=""
           className={`absolute inset-0 w-full h-full object-contain transition-opacity ${status === "loaded" ? "opacity-100" : "opacity-0"}`}
           onLoad={() => setStatus("loaded")}

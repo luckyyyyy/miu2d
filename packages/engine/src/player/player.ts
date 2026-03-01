@@ -17,7 +17,7 @@ import { applyFlatDataToCharacter } from "../character/character-config";
 import { logger } from "../core/logger";
 import type { Vector2 } from "../core/types";
 import { CharacterState, RUN_SPEED_FOLD } from "../core/types";
-import { getEffectAmount } from "../magic/effect-calc";
+import { getEffectAmount } from "../core/effect-calc";
 import type { MagicSprite } from "../magic/magic-sprite";
 import type { MagicData } from "../magic/types";
 import { MagicMoveKind, MagicSpecialKind } from "../magic/types";

@@ -10,7 +10,7 @@ import { getEngineContext } from "../core/engine-context";
 import { logger } from "../core/logger";
 import type { CharacterConfig, Vector2 } from "../core/types";
 import { CharacterKind, type CharacterState, type Direction } from "../core/types";
-import { type DropCharacter, getDropObj } from "../player/goods/good-drop";
+import { type DropCharacter, getDropObj } from "../obj/good-drop";
 import { resolveScriptPath } from "../resource/resource-paths";
 import type { NpcSaveItem } from "../storage/save-types";
 import { getViewTileDistance } from "../utils";

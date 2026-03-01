@@ -6,7 +6,7 @@
  */
 
 import { logger } from "../core/logger";
-import { setZstdDecompressor } from "../resource/format/mmf";
+import { setZstdDecompressor } from "../core/zstd";
 
 /** MSF v2 magic bytes: "MSF2" (little-endian) */
 export const MSF_MAGIC = 0x3246534d;

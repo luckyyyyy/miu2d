@@ -5,7 +5,7 @@
  */
 
 import { logger } from "../../core/logger";
-import { MAGIC_LIST_CONFIG } from "../../player/magic/magic-list-config";
+import { MAGIC_LIST_CONFIG } from "../magic-list-config";
 import type { MagicData, MagicItemInfo } from "../types";
 import type {
   AttackContext,

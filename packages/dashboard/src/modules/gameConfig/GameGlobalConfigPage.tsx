@@ -384,7 +384,7 @@ function BasicInfoPanel({
 
   // Logo 从 slug 派生的 URL，加时间戳刷新
   const [logoTimestamp, setLogoTimestamp] = useState(() => Date.now());
-  const logoSrc = gameSlug ? `${getGameApiUrl(gameSlug, "logo")}?_t=${logoTimestamp}` : "";
+  const logoSrc = gameSlug ? `${getGameApiUrl(gameSlug, "logo/128")}?_t=${logoTimestamp}` : "";
   const [logoExists, setLogoExists] = useState(true);
 
   // 空间名称编辑

@@ -23,7 +23,7 @@ import type {
   Shop,
 } from "@miu2d/types";
 import { logger } from "../core/logger";
-import { getResourceDomain } from "../resource/resource-paths";
+import { getResourceDomain } from "../core/env-config";
 
 // ==================== 数据类型 ====================
 

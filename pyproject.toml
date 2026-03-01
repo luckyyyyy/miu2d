@@ -1,0 +1,64 @@
+[project]
+name = "miu2d-scripts"
+version = "0.1.0"
+description = "Miu2D 工具脚本集合"
+requires-python = ">=3.12"
+# 项目本身无运行时依赖，所有依赖通过 dependency-groups 按需安装
+dependencies = []
+
+# ─────────────────────────────────────────────
+# 依赖分组说明
+# ─────────────────────────────────────────────
+# base ……… 轻量图像处理（check-alpha.py / export-training-data.py）
+# ai ……………… GPU 图像放大（extract-and-upscale-icon.py）
+# lora ………… LoRA 训练 & 生成（train-lora-magic.py）
+# dev ……………… 开发 / lint 工具
+# ─────────────────────────────────────────────
+
+[dependency-groups]
+base = [
+  "Pillow>=10.4",
+  "numpy>=2.0",
+  "zstandard>=0.22",
+]
+
+ai = [
+  { include-group = "base" },
+  "pefile>=2024.8",
+  "torch>=2.10",
+  "torchvision>=0.25",
+  "basicsr>=1.4.2",
+  "realesrgan>=0.3.0",
+]
+
+lora = [
+  { include-group = "ai" },
+  "diffusers>=0.36",
+  "peft>=0.18",
+  "transformers>=5.0",
+  "accelerate>=1.0",
+  "bitsandbytes>=0.49",
+]
+
+dev = [
+  { include-group = "base" },
+]
+
+# ─────────────────────────────────────────────
+# PyTorch CUDA 12.8 专用索引（ai / lora 组必须）
+# 安装 ai/lora 组时 uv 会自动从此索引拉取 torch
+# ─────────────────────────────────────────────
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
+
+[tool.uv.sources]
+torch      = [{ index = "pytorch-cu128" }]
+torchvision = [{ index = "pytorch-cu128" }]
+
+[tool.uv]
+# uv sync 时默认只安装 base 组（轻量依赖）
+# AI / LoRA 组体积巨大（含 torch + CUDA），请按需以 uv pip install 安装
+# 详见 docs/python-scripts.md
+default-groups = ["base"]

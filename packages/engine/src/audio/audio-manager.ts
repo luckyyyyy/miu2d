@@ -760,16 +760,6 @@ export class AudioManager {
 
   // ==================== 兼容性接口 ====================
 
-  /** 检查是否允许自动播放（总是返回 true，简化处理） */
-  isAutoplayAllowed(): boolean {
-    return true;
-  }
-
-  /** 请求自动播放权限（空实现，用户交互时自动解锁） */
-  async requestAutoplayPermission(): Promise<boolean> {
-    return true;
-  }
-
   updateAll3DSounds(): void {
     // 由 ObjManager 逐个更新位置，这里不需要实现
   }

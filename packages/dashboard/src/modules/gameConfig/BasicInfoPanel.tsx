@@ -31,7 +31,7 @@ export function BasicInfoPanel({
 
   // Logo 从 slug 派生的 URL，加时间戳刷新
   const [logoTimestamp, setLogoTimestamp] = useState(() => Date.now());
-  const logoSrc = gameSlug ? `${getGameApiUrl(gameSlug, "logo")}?_t=${logoTimestamp}` : "";
+  const logoSrc = gameSlug ? `${getGameApiUrl(gameSlug, "logo/128")}?_t=${logoTimestamp}` : "";
   const [logoExists, setLogoExists] = useState(true);
 
   // 空间名称编辑
@@ -165,7 +165,7 @@ export function BasicInfoPanel({
               </button>
             </div>
           </Field>
-          <Field label="空间 Logo" desc="上传空间 Logo，将作为网页图标和游戏标题界面标识显示。支持 PNG、JPG、WebP 等格式，最大 5MB">
+          <Field label="空间 Logo" desc="上传空间 Logo，将作为网页图标和 PWA 安装图标显示。要求最小 512×512 像素，支持 PNG、JPG、WebP 等格式，最大 5MB">
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 rounded-lg border border-widget-border bg-[#1a1a1a] flex items-center justify-center overflow-hidden flex-shrink-0">
                 {logoSrc && logoExists ? (

@@ -8,10 +8,20 @@ import NotFoundPage from "./pages/NotFoundPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { LandingPage } from "./pages/landing";
 
-const GameScreen = lazy(() => import("@miu2d/game").then((m) => ({ default: m.GameScreen })));
-const DashboardApp = lazy(() =>
-  import("@miu2d/dashboard").then((m) => ({ default: m.DashboardApp })),
-);
+const GameScreen = lazy(async () => {
+  const [m] = await Promise.all([
+    import("@miu2d/game"),
+    import("./monaco-setup"), // Monaco Editor 本地化（仅在 game 加载时初始化）
+  ]);
+  return { default: m.GameScreen };
+});
+const DashboardApp = lazy(async () => {
+  const [m] = await Promise.all([
+    import("@miu2d/dashboard"),
+    import("./monaco-setup"), // Monaco Editor 本地化（仅在 dashboard 加载时初始化）
+  ]);
+  return { default: m.DashboardApp };
+});
 
 export default function App() {
   return (

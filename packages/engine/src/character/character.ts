@@ -14,7 +14,7 @@
 import { logger } from "../core/logger";
 import type { CharacterConfig, Vector2 } from "../core/types";
 import { CharacterState, RUN_SPEED_FOLD, TILE_WIDTH } from "../core/types";
-import { getCharacterDeathExp } from "../magic/effect-calc";
+import { getCharacterDeathExp } from "../core/effect-calc";
 import type { MagicSprite } from "../magic/magic-sprite";
 import type { MagicData } from "../magic/types";
 import { Obj } from "../obj/obj";

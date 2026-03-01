@@ -192,3 +192,18 @@ logger.info("[Module] 信息");   // 避免在 update loop 中调用
 
 - 类: `PascalCase` | 函数/变量: `camelCase` | 常量: `UPPER_SNAKE_CASE`
 - 文件: TS `kebab-case.ts`, React `PascalCase.tsx`
+
+---
+
+## scripts/ Python 脚本
+
+`scripts/` 目录存放**本地临时工具脚本**，不属于项目主体代码。
+
+### AI 操作规范
+
+- **禁止修改已有脚本**：目录中现有的 `.py` 文件由开发者维护，不得重构、删除或添加功能
+- **可以新建临时脚本**：需要批量操作（数据迁移、格式转换、文件处理等）时，可在此目录创建新的 `.py` 脚本
+- **用完即清理**：任务完成后，判断新建脚本是否还有保留价值；若为一次性操作，**主动删除**，不留垃圾文件
+- **禁止迁移到 `packages/`**：这些脚本的逻辑不属于引擎/应用代码，不得移入任何业务包
+
+**Python 环境**由 [uv](https://docs.astral.sh/uv/) 统一管理，配置见 `pyproject.toml`，使用说明见 `docs/python-scripts.md`。如用户问起如何运行这些脚本，参考该文档。

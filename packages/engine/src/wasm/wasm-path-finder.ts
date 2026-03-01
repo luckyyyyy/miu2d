@@ -20,7 +20,7 @@
 
 import { logger } from "../core/logger";
 import type { Vector2 } from "../core/types";
-import { OBSTACLE, TRANS } from "../map/map-base";
+import { OBSTACLE, TRANS } from "../core/map-constants";
 import { PathType } from "../utils/path-finder";
 import type { WasmModule } from "./wasm-manager";
 import { ensureWasmReady, getWasmMemory } from "./wasm-manager";

@@ -17,7 +17,7 @@ function GameLogo({ slug }: { slug: string }) {
     >
       {!loaded && DashboardIcons.game}
       <img
-        src={getGameApiUrl(slug, "logo")}
+        src={getGameApiUrl(slug, "logo/128")}
         alt=""
         className="absolute inset-0 w-full h-full object-contain"
         onLoad={() => setLoaded(true)}

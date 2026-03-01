@@ -6,7 +6,6 @@
  */
 
 import type { Character } from "../character";
-import type { CharacterBase } from "../character/base";
 import type { Vector2 } from "../core/types";
 import { distanceSquared, getViewTileDistance } from "../utils";
 import type { Npc } from "./npc";
@@ -35,21 +34,8 @@ export interface ViewRect {
 
 // ============= Pure Functions =============
 
-/**
- * Check if two characters are enemies (pure function)
- */
-export function isEnemy(a: CharacterBase, b: CharacterBase): boolean {
-  // 非战斗者不是敌人
-  if ((!a.isPlayer && !a.isFighter) || (!b.isPlayer && !b.isFighter)) return false;
-  // 玩家或友方 vs 非玩家、非伙伴、非友方
-  if ((a.isPlayer || a.isFighterFriend) && !b.isPlayer && !b.isPartner && !b.isFighterFriend)
-    return true;
-  // 反过来
-  if ((b.isPlayer || b.isFighterFriend) && !a.isPlayer && !a.isPartner && !a.isFighterFriend)
-    return true;
-  // 不同组
-  return a.group !== b.group;
-}
+/** Check if two characters are enemies — 实现已移至 core/combat-utils */
+export { isEnemy } from "../core/combat-utils";
 
 // ============= Spatial Search =============
 

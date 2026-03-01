@@ -7,8 +7,19 @@
 
     <!-- PWA -->
     <link rel="manifest" href="/manifest.webmanifest" />
-    <meta name="theme-color" content="#1a1a2e" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <!-- 根据 URL 立即切换游戏专属 manifest，Chrome 读标签时已是正确图标 -->
+    <script>
+      (function () {
+        var m = location.pathname.match(/^\/game\/([^/]+)/);
+        if (m) {
+          var slug = m[1];
+          document.querySelector('link[rel="manifest"]').href = '/game/' + slug + '/api/manifest';
+          document.querySelector('link[rel="apple-touch-icon"]').href = '/game/' + slug + '/api/logo/192';
+        }
+      })();
+    </script>
+    <meta name="theme-color" content="#1a1a2e" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Miu2D" />

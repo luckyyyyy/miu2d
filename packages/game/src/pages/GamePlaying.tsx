@@ -286,16 +286,6 @@ export function GamePlaying({
     (v: number) => getEngine()?.getAudioManager()?.setAmbientVolume(v),
     [getEngine]
   );
-  const isAutoplayAllowed = useCallback(
-    () => getEngine()?.getAudioManager()?.isAutoplayAllowed() ?? false,
-    [getEngine]
-  );
-  const requestAutoplayPermission = useCallback(async () => {
-    const audioManager = getEngine()?.getAudioManager();
-    if (audioManager) return await audioManager.requestAutoplayPermission();
-    return false;
-  }, [getEngine]);
-
   // ===== 调试数据 =====
   const debugManager = getDebugManager();
 
@@ -511,8 +501,6 @@ export function GamePlaying({
           setSoundVolume,
           getAmbientVolume,
           setAmbientVolume,
-          isAutoplayAllowed,
-          requestAutoplayPermission,
           currentResolution: gameResolution,
           setResolution,
           currentTheme: uiTheme,

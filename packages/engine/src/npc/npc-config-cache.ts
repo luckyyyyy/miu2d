@@ -6,6 +6,7 @@
 
 import type { NpcResource } from "@miu2d/types";
 import { buildCharacterConfigFromFlatData } from "../character/character-config";
+import { registerNpcResLoader } from "../character/character-res-loader";
 import type { NpcResStateInfo } from "../character/character-res-loader";
 import type { CharacterConfig, CharacterStats } from "../core/types";
 import {
@@ -227,3 +228,7 @@ export function isNpcConfigLoaded(): boolean {
 export function getAllNpcConfigKeys(): string[] {
   return npcConfigCacheStore.allKeys();
 }
+
+// 模块初始化：将 getNpcResFromCache 注入 character-res-loader
+// 消除 character → npc 的直接 import（character 不再引用 npc 模块）
+registerNpcResLoader(getNpcResFromCache);

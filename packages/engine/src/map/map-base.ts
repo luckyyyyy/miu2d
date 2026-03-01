@@ -21,19 +21,9 @@ import { resolveScriptPath } from "../resource/resource-paths";
 import { pixelToTile, tileToPixel } from "../utils";
 import type { MiuMapData } from "./types";
 
-// ============= 障碍类型常量 =============
-/** 无障碍 */
-const NONE = 0x00;
-/** 完全障碍 */
-export const OBSTACLE = 0x80;
-/** 可跳过的障碍 */
-const _CAN_OVER_OBSTACLE = 0xa0;
-/** 透明障碍（武功可穿，人不能过） */
-export const TRANS = 0x40;
-/** 可跳过的透明障碍 */
-const _CAN_OVER_TRANS = 0x60;
-/** 可跳过 */
-const CAN_OVER = 0x20;
+// ============= 障碍类型常量（定义在 core/map-constants.ts，此处导入以供本模块内部使用并 re-export）=============
+import { CAN_OVER, CAN_OVER_OBSTACLE, CAN_OVER_TRANS, NONE, OBSTACLE, TRANS } from "../core/map-constants";
+export { CAN_OVER, CAN_OVER_OBSTACLE, CAN_OVER_TRANS, NONE, OBSTACLE, TRANS };
 
 // ============= 图层常量 =============
 /** 最大图层数 */

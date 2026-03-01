@@ -6,7 +6,6 @@
  */
 
 import { logger } from "../core/logger";
-import { getNpcResFromCache } from "../npc/npc-config-cache";
 import { type AsfData, loadAsf } from "../resource/format/asf";
 import { loadMpcWithShadow } from "../resource/format/mpc";
 import { ResourcePath } from "../resource/resource-paths";
@@ -112,9 +111,23 @@ function mpcToAsfData(mpc: import("../map/types").Mpc): AsfData {
 }
 
 /**
+ * NpcRes 加载器注入点 — 实现由 npc/npc-config-cache 在模块初始化时注册，
+ * 消除 character → npc 循环依赖（character 不再直接 import npc 模块）。
+ */
+type NpcResLoaderFn = (npcIni: string) => Map<number, NpcResStateInfo> | null;
+let _npcResLoader: NpcResLoaderFn | null = null;
+
+/**
+ * 注册 NpcRes 加载实现（由 npc/npc-config-cache.ts 在模块加载时调用）
+ */
+export function registerNpcResLoader(fn: NpcResLoaderFn): void {
+  _npcResLoader = fn;
+}
+
+/**
  * 获取 NpcRes 状态映射（state -> ASF/Sound）
  * 从 API 缓存获取，替代原有的 INI 文件加载
  */
 export async function loadNpcRes(npcIni: string): Promise<Map<number, NpcResStateInfo> | null> {
-  return getNpcResFromCache(npcIni);
+  return _npcResLoader ? _npcResLoader(npcIni) : null;
 }

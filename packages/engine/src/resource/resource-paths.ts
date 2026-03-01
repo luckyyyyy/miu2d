@@ -19,20 +19,10 @@
 // =============================================================================
 
 /**
- * 获取资源域名（从环境变量读取）
- * 环境变量: VITE_DEMO_RESOURCES_DOMAIN
- * 例如: https://yych.example.com
- *
- * @returns 资源域名（不带尾部斜杠），如果未配置返回空字符串
+ * 获取资源域名 — 实现在 core/env-config.ts，此处 re-export 保持向后兼容
  */
-export function getResourceDomain(): string {
-  const domain = import.meta.env.VITE_DEMO_RESOURCES_DOMAIN as string | undefined;
-  if (domain) {
-    // 移除尾部斜杠
-    return domain.replace(/\/+$/, "");
-  }
-  return "";
-}
+import { getResourceDomain } from "../core/env-config";
+export { getResourceDomain };
 
 /**
  * 获取完整的资源 URL

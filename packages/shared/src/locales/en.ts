@@ -102,6 +102,8 @@ export const en: TranslationSchema = {
       updateMessage: "Game engine updated. Refresh to get the latest version.",
       updateButton: "Refresh now",
       dismissButton: "Dismiss",
+      installMessage: "Add \"{{gameName}}\" to your home screen for quick access!",
+      installButton: "Add to Home Screen",
     },
   },
 };

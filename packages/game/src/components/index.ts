@@ -3,6 +3,7 @@
  */
 
 export { AuthModal } from "./AuthModal";
+export { PWAInstallPrompt } from "./PWAInstallPrompt";
 // UI 适配器
 export * from "./adapters";
 export { ClassicGameUI } from "./ClassicGameUI";

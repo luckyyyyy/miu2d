@@ -20,10 +20,10 @@ import { setUiTheme } from "@miu2d/engine/gui/ui-settings";
 import type { UiTheme } from "@miu2d/engine/gui/ui-settings";
 import type { SaveData } from "@miu2d/engine/storage";
 import { trpc, useMobile } from "@miu2d/shared";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import type { ToolbarButton } from "../components";
-import { AuthModal, GameMenuPanel, GameTopBar, loadAudioSettings, loadUITheme, saveAudioSettings, TitleGui } from "../components";
+import { AuthModal, GameMenuPanel, GameTopBar, loadAudioSettings, loadUITheme, PWAInstallPrompt, saveAudioSettings, TitleGui } from "../components";
 import { resetCachedUIConfigs } from "../components/ui/classic/useUISettings";
 import type { MenuTab } from "../components/GameMenuPanel";
 import type { UITheme } from "../components/ui";
@@ -168,16 +168,22 @@ export default function GameScreen() {
     }
   }, [gamePhase, titleMusic, gameSlug]);
 
-  // ===== 离开游戏时恢复默认 favicon 和标题 =====
+  // ===== 离开游戏时恢复默认 favicon、manifest 和标题 =====
   useEffect(() => {
     return () => {
       document.title = "Miu2D Engine";
+      // 恢复 favicon
       document.querySelectorAll<HTMLLinkElement>("link[rel~='icon']").forEach((el) => el.remove());
       const link = document.createElement("link");
       link.rel = "icon";
       link.href =
         "data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎮</text></svg>";
       document.head.appendChild(link);
+      // 恢复默认 manifest
+      const manifestEl = document.querySelector<HTMLLinkElement>("link[rel='manifest']");
+      if (manifestEl) {
+        manifestEl.href = "/manifest.webmanifest";
+      }
     };
   }, []);
 
@@ -215,8 +221,18 @@ export default function GameScreen() {
             .forEach((el) => el.remove());
           const link = document.createElement("link");
           link.rel = "icon";
-          link.href = `${logoUrl}?_t=${Date.now()}`;
+          link.href = `${logoUrl}/128?_t=${Date.now()}`;
           document.head.appendChild(link);
+          // 注入游戏专属 PWA manifest，包含游戏名称、图标和 start_url
+          const manifestEl = document.querySelector<HTMLLinkElement>("link[rel='manifest']");
+          if (manifestEl) {
+            manifestEl.href = `/game/${gameSlug}/api/manifest`;
+          } else {
+            const m = document.createElement("link");
+            m.rel = "manifest";
+            m.href = `/game/${gameSlug}/api/manifest`;
+            document.head.appendChild(m);
+          }
         }
         if (config?.titleMusic) {
           setTitleMusic(config.titleMusic);
@@ -369,6 +385,23 @@ export default function GameScreen() {
     setTitleMenuVisible(true);
   }, []);
 
+  const handleTitleSettings = useCallback(() => {
+    setTitleMenuTab("settings");
+    setTitleMenuVisible(true);
+  }, []);
+
+  const titleToolbarButtons = useMemo<ToolbarButton[]>(
+    () => [
+      {
+        id: "settings",
+        icon: <span className="text-base">⚙️</span>,
+        tooltip: "设置",
+        onClick: handleTitleSettings,
+      },
+    ],
+    [handleTitleSettings]
+  );
+
   // ===== 从 playing 返回 title =====
   const handleReturnToTitle = useCallback(() => {
     setGamePhase("title");
@@ -406,8 +439,8 @@ export default function GameScreen() {
           >
             <GameTopBar
               gameName={gameName}
-              logoUrl={gameLogoUrl}
-              toolbarButtons={gamePhase === "playing" ? toolbarButtons : undefined}
+              logoUrl={gameLogoUrl ? `${gameLogoUrl}/128` : undefined}
+              toolbarButtons={gamePhase === "playing" ? toolbarButtons : gamePhase === "title" ? titleToolbarButtons : undefined}
               onLoginClick={() => setShowAuthModal(true)}
             />
           </div>
@@ -463,7 +496,7 @@ export default function GameScreen() {
             <TitleGui
               gameSlug={gameSlug}
               gameName={gameName}
-              logoUrl={gameLogoUrl || undefined}
+              logoUrl={gameLogoUrl ? `${gameLogoUrl}/192` : undefined}
               screenWidth={window.innerWidth}
               screenHeight={window.innerHeight}
               onNewGame={handleNewGame}
@@ -499,7 +532,7 @@ export default function GameScreen() {
             onClose={() => setTitleMenuVisible(false)}
             activeTab={titleMenuTab}
             onTabChange={setTitleMenuTab}
-            logoUrl={gameLogoUrl || undefined}
+            logoUrl={gameLogoUrl ? `${gameLogoUrl}/128` : undefined}
             gameSlug={gameSlug}
             canSave={false}
             onCollectSaveData={() => null}
@@ -516,8 +549,6 @@ export default function GameScreen() {
               setSoundVolume: (v) => saveAudioSettings({ soundVolume: v }),
               getAmbientVolume: () => loadAudioSettings().ambientVolume,
               setAmbientVolume: (v) => saveAudioSettings({ ambientVolume: v }),
-              isAutoplayAllowed: () => false,
-              requestAutoplayPermission: async () => false,
               currentResolution: gameResolution,
               setResolution: handleSetResolution,
               currentTheme: uiTheme,
@@ -533,6 +564,13 @@ export default function GameScreen() {
 
         {/* 登录弹窗 */}
         <AuthModal visible={showAuthModal} onClose={() => setShowAuthModal(false)} />
+
+        {/* PWA 安装提示（游戏配置加载完成后展示，7天内不重复提示） */}
+        <PWAInstallPrompt
+          gameName={gameName}
+          logoUrl={gameLogoUrl ? `${gameLogoUrl}/128` : undefined}
+          ready={gamePhase === "title" || gamePhase === "playing"}
+        />
       </div>
     </TouchDragProvider>
   );

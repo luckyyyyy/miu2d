@@ -11,7 +11,7 @@ import { getEngineContext } from "../../core/engine-context";
 import { logger } from "../../core/logger";
 import type { Vector2 } from "../../core/types";
 import type { Npc, NpcManager } from "../../npc";
-import { isEnemy } from "../../npc/npc-query-helpers";
+import { isEnemy } from "../../core/combat-utils";
 import type { PlayerMagicInventory } from "../../player/magic/player-magic-inventory";
 import type { Player } from "../../player/player";
 import { getDirectionFromVector, getNeighbors, vectorLength } from "../../utils";
@@ -23,7 +23,7 @@ import {
   findDistanceTileInDirection,
   findNeighborInDirection,
 } from "../../utils/path-finder";
-import { getCharacterDeathExp } from "../effect-calc";
+import { getCharacterDeathExp } from "../../core/effect-calc";
 import {
   type ApplyContext,
   applyStatusEffect,

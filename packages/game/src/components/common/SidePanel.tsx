@@ -79,8 +79,6 @@ export interface SettingsPanelProps {
   setSoundVolume?: (volume: number) => void;
   getAmbientVolume?: () => number;
   setAmbientVolume?: (volume: number) => void;
-  isAutoplayAllowed?: () => boolean;
-  requestAutoplayPermission?: () => Promise<boolean>;
   // 分辨率设置
   currentResolution?: { width: number; height: number };
   setResolution?: (width: number, height: number) => void;
@@ -129,8 +127,6 @@ export function SettingsPanel({
   setSoundVolume,
   getAmbientVolume,
   setAmbientVolume,
-  isAutoplayAllowed,
-  requestAutoplayPermission,
   currentResolution,
   setResolution,
   currentTheme,
@@ -141,7 +137,6 @@ export function SettingsPanel({
   const [musicVolume, setMusicVolumeLocal] = useState(0.7);
   const [soundVolume, setSoundVolumeLocal] = useState(1.0);
   const [ambientVolume, setAmbientVolumeLocal] = useState(1.0);
-  const [autoplayAllowed, setAutoplayAllowed] = useState(false);
   const [logLevel, setLogLevel] = useState<LogLevel>(logger.getMinLevel());
   const [uiTheme, setUIThemeLocal] = useState<UITheme>(currentTheme ?? loadUITheme());
 
@@ -178,8 +173,7 @@ export function SettingsPanel({
     if (getMusicVolume) setMusicVolumeLocal(getMusicVolume());
     if (getSoundVolume) setSoundVolumeLocal(getSoundVolume());
     if (getAmbientVolume) setAmbientVolumeLocal(getAmbientVolume());
-    if (isAutoplayAllowed) setAutoplayAllowed(isAutoplayAllowed());
-  }, [getMusicVolume, getSoundVolume, getAmbientVolume, isAutoplayAllowed]);
+  }, [getMusicVolume, getSoundVolume, getAmbientVolume]);
 
   // 音乐音量
   const handleMusicVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -205,14 +199,6 @@ export function SettingsPanel({
     saveAudioSettings({ ambientVolume: value });
   };
 
-  // 请求自动播放权限
-  const handleRequestAutoplay = async () => {
-    if (requestAutoplayPermission) {
-      const allowed = await requestAutoplayPermission();
-      setAutoplayAllowed(allowed);
-    }
-  };
-
   // UI 主题切换
   const handleThemeChange = (theme: UITheme) => {
     setUIThemeLocal(theme);
@@ -226,21 +212,6 @@ export function SettingsPanel({
         {/* 音频设置 */}
         <div>
           <h3 className="text-xs font-medium text-white/40 uppercase tracking-wider mb-3">音频</h3>
-
-          {/* 自动播放权限 */}
-          {!autoplayAllowed && (
-            <div className="mb-3 p-2 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
-              <div className="text-xs text-yellow-200/80 mb-2">
-                由于浏览器安全策略，需要先与页面交互才能播放音频
-              </div>
-              <button
-                onClick={handleRequestAutoplay}
-                className="w-full px-2 py-1 text-xs bg-yellow-500/20 text-yellow-200 rounded-lg hover:bg-yellow-500/30 transition-colors border border-yellow-500/20"
-              >
-                点击启用音频
-              </button>
-            </div>
-          )}
 
           {/* 音乐音量 */}
           <div className="mb-3">

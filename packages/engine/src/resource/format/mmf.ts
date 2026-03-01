@@ -12,6 +12,7 @@
  */
 
 import { logger } from "../../core/logger";
+import { getZstdDecompressor } from "../../core/zstd";
 import type { MiuMapData, MsfEntry, TrapEntry } from "../../map/types";
 import { resourceLoader } from "../resource-loader";
 import { calcMapPixelSize } from "./binary-utils";
@@ -299,16 +300,7 @@ export function serializeMMF(mapData: MiuMapData): ArrayBuffer {
 
 // ============= zstd compression/decompression =============
 
-let _zstdDecompress: ((data: Uint8Array) => Uint8Array) | null = null;
 let _zstdCompress: ((data: Uint8Array) => Uint8Array) | null = null;
-
-/**
- * Set the zstd decompression function.
- * Should be called at engine init with the actual zstd implementation.
- */
-export function setZstdDecompressor(fn: (data: Uint8Array) => Uint8Array): void {
-  _zstdDecompress = fn;
-}
 
 /**
  * Set the zstd compression function.
@@ -319,8 +311,9 @@ export function setZstdCompressor(fn: (data: Uint8Array) => Uint8Array): void {
 }
 
 function decompressZstd(data: Uint8Array): Uint8Array {
-  if (_zstdDecompress) {
-    return _zstdDecompress(data);
+  const decompress = getZstdDecompressor();
+  if (decompress) {
+    return decompress(data);
   }
   throw new Error(
     "[MMF] No zstd decompressor registered. Call setZstdDecompressor() at engine init."

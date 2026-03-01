@@ -100,6 +100,8 @@ export const zh = {
       updateMessage: "游戏引擎已更新，刷新以获取最新版本",
       updateButton: "立即刷新",
       dismissButton: "关闭",
+      installMessage: "将「{{gameName}}」添加到桌面，随时畅玩！",
+      installButton: "添加到桌面",
     },
   },
 };

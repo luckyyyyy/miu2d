@@ -10,9 +10,13 @@ pnpm-debug.log*
 lerna-debug.log*
 ui_demo
 __pycache__
+*.pyc
+*.pyo
+.venv
 node_modules
 dist
 dist-ssr
+dev-dist
 *.local
 *.tsbuildinfo
 
