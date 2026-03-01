@@ -256,28 +256,18 @@ const ClassicTitle: React.FC<TitleGuiProps & { config: TitleGuiConfig }> = ({
             offsetLeft={offsetLeft}
             offsetTop={offsetTop}
           />
-          {onTeam && (
-            <AsfButton
-              config={config.teamBtn}
-              onClick={onTeam}
-              scale={scale}
-              offsetLeft={offsetLeft}
-              offsetTop={offsetTop}
-            />
-          )}
+          {/* teamBtn 无论如何渲染：有 creditsVideo 则播视频，否则回调 onTeam */}
+          <AsfButton
+            config={config.teamBtn}
+            onClick={config.creditsVideo ? handleCreditsClick : (onTeam ?? (() => {}))}
+            scale={scale}
+            offsetLeft={offsetLeft}
+            offsetTop={offsetTop}
+          />
           {onExit && (
             <AsfButton
               config={config.exitBtn}
               onClick={onExit}
-              scale={scale}
-              offsetLeft={offsetLeft}
-              offsetTop={offsetTop}
-            />
-          )}
-          {config.creditsBtn && config.creditsVideo && (
-            <AsfButton
-              config={config.creditsBtn}
-              onClick={handleCreditsClick}
               scale={scale}
               offsetLeft={offsetLeft}
               offsetTop={offsetTop}
