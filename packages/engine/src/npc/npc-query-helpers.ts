@@ -34,8 +34,8 @@ export interface ViewRect {
 
 // ============= Pure Functions =============
 
-/** Check if two characters are enemies — 实现已移至 core/combat-utils */
-export { isEnemy } from "../core/combat-utils";
+/** Check if two characters are enemies — 实现位于 combat/combat-utils */
+export { isEnemy } from "../combat/combat-utils";
 
 // ============= Spatial Search =============
 

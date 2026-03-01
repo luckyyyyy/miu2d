@@ -3,7 +3,7 @@
  * 用于游戏引擎与UI层之间的通信
  */
 
-import { logger } from "./logger";
+import { logger } from "../core/logger";
 export type EventCallback<T> = (data: T) => void;
 
 export class TypedEventEmitter<EventMap extends object> {

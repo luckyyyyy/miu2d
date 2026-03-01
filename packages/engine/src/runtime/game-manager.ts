@@ -31,8 +31,8 @@
  */
 
 import type { AudioManager } from "../audio";
-import type { TypedEventEmitter } from "../core/event-emitter";
-import { type GameEventMap, GameEvents } from "../core/game-events";
+import type { TypedEventEmitter } from "../events/event-emitter";
+import { type GameEventMap, GameEvents } from "../events/game-events";
 import { logger } from "../core/logger";
 import type { GameVariables, Vector2 } from "../core/types";
 import { CharacterState } from "../core/types";
@@ -69,11 +69,11 @@ import { Loader } from "../storage/game-save-manager";
 import type { SaveData } from "../storage/save-types";
 import type { WeatherManager } from "../weather";
 import { CameraController } from "./camera-controller";
-import type { DebugManager } from "./debug-manager";
+import type { DebugManager } from "../debug/debug-manager";
 import { InputHandler } from "./input-handler";
 import type { InputState } from "./input-types";
 import { InteractionManager } from "./interaction-manager";
-import { ItemActionHandler } from "./item-action-handler";
+import { ItemActionHandler } from "../gui/item-action-handler";
 import type { TimerManager } from "./timer-manager";
 
 export interface GameManagerConfig {

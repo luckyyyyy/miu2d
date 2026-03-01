@@ -5,9 +5,9 @@
  */
 
 import type { Character } from "../../character/character";
-import { getEffectAmount } from "../../core/effect-calc";
+import { getEffectAmount } from "../../combat/effect-calc";
 
-export { addMagicEffect, type EffectCharacter, getEffectAmount } from "../../core/effect-calc";
+export { addMagicEffect, type EffectCharacter, getEffectAmount } from "../../combat/effect-calc";
 
 import type { ApplyContext, CastContext, CharacterRef } from "./types";
 import {

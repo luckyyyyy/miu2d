@@ -24,6 +24,9 @@ export * from "./ui-types";
 // 商店管理
 export * from "./buy-manager";
 
+// 物品/商店操作处理器
+export * from "./item-action-handler";
+
 // 任务日志 & 对话文本
 export * from "./memo-list-manager";
 export * from "./talk-text-list";

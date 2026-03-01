@@ -1,8 +1,8 @@
 /**
  * GoodDrop - NPC击杀后的物品掉落系统
  *
- * 从 player/goods/good-drop.ts 移至 obj/ 模块，
- * 消除 npc ↔ player 循环依赖（npc-manager 只依赖 obj，不依赖 player）。
+ * 独立的 loot 模块，负责 NPC 死亡时的物品掉落。
+ * 消除 npc ↔ player 循环依赖（npc-manager 只依赖 loot，不依赖 player）。
  *
  * 掉落逻辑：
  * 1. 只有敌人（IsEnemy）死亡时才会掉落
@@ -15,7 +15,7 @@
 
 import { logger } from "../core/logger";
 import type { Vector2 } from "../core/types";
-import { Obj } from "./obj";
+import { Obj } from "../obj/obj";
 
 /** 物品类型枚举*/
 export enum GoodType {

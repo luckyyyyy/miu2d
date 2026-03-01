@@ -1,9 +1,13 @@
 export * from "./audio";
 export * from "./character";
 export * from "./character/level";
+export * from "./combat";
 export * from "./core";
 export * from "./data";
+export * from "./debug";
+export * from "./events";
 export * from "./gui";
+export * from "./loot";
 export * from "./map";
 export * from "./player";
 export type {

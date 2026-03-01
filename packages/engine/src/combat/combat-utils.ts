@@ -1,7 +1,7 @@
 /**
  * Combat Utilities - 战斗相关纯函数
  *
- * 放在 core/ 中以消除 magic ↔ npc 循环依赖。
+ * 独立的 combat 模块，消除 magic ↔ npc 循环依赖。
  * 使用最小接口而非具体类，避免对 character/ 模块的依赖。
  */
 

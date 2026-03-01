@@ -4,8 +4,8 @@
  */
 
 import { logger } from "../core/logger";
-import type { BuyManager } from "../gui/buy-manager";
-import type { GuiManager } from "../gui/gui-manager";
+import type { BuyManager } from "./buy-manager";
+import type { GuiManager } from "./gui-manager";
 import type { NpcManager } from "../npc";
 import { GoodKind, type GoodsListManager } from "../player/goods";
 import { getEquipSlotIndex } from "../player/goods/goods-list-manager";

@@ -3,7 +3,7 @@
  */
 
 import { getEngineContext } from "../core/engine-context";
-import type { TypedEventEmitter } from "../core/event-emitter";
+import type { TypedEventEmitter } from "../events/event-emitter";
 import {
   type GameEventMap,
   GameEvents,
@@ -17,7 +17,7 @@ import {
   type UIPanelChangeEvent,
   type UISelectionChangeEvent,
   type UIVideoPlayEvent,
-} from "../core/game-events";
+} from "../events/game-events";
 import { logger } from "../core/logger";
 import type { MemoListManager } from "../gui/memo-list-manager";
 import type { GuiManagerState, SelectionOptionData } from "./ui-types";

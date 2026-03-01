@@ -9,8 +9,8 @@
  * - Map MPC/MSF resource loading with progress reporting
  */
 
-import type { TypedEventEmitter } from "../core/event-emitter";
-import type { GameEventMap } from "../core/game-events";
+import type { TypedEventEmitter } from "../events/event-emitter";
+import type { GameEventMap } from "../events/game-events";
 import { logger } from "../core/logger";
 import { getGameSlug, loadSceneMapMmf } from "../data/game-data-api";
 import type { MapBase } from "../map";

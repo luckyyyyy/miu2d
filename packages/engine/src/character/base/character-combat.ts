@@ -7,7 +7,7 @@
 
 import { logger } from "../../core/logger";
 import { CharacterState } from "../../core/types";
-import { getCharacterDeathExp, getEffectAmount } from "../../core/effect-calc";
+import { getCharacterDeathExp, getEffectAmount } from "../../combat/effect-calc";
 import { type AsfData, getCachedAsf, loadAsf } from "../../resource/format/asf";
 import { ResourcePath } from "../../resource/resource-paths";
 import { distance, getViewTileDistance, tileToPixel } from "../../utils";

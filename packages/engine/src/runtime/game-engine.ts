@@ -36,8 +36,8 @@
 // 子系统
 import { AudioManager } from "../audio";
 import { type EngineContext, setEngineContext } from "../core/engine-context";
-import { TypedEventEmitter } from "../core/event-emitter";
-import { type GameEventMap, GameEvents } from "../core/game-events";
+import { TypedEventEmitter } from "../events/event-emitter";
+import { type GameEventMap, GameEvents } from "../events/game-events";
 import { logger } from "../core/logger";
 import type { Direction, Vector2 } from "../core/types";
 import type { BuyManager } from "../gui/buy-manager";
@@ -73,7 +73,7 @@ import { Sprite } from "../sprite/sprite";
 import type { SaveData } from "../storage/save-types";
 import { disposeWasmPathfinder } from "../wasm/wasm-path-finder";
 import { WeatherManager } from "../weather";
-import { DebugManager } from "./debug-manager";
+import { DebugManager } from "../debug/debug-manager";
 import { EngineCamera } from "./engine-camera";
 import { EngineGameLoader } from "./engine-game-loader";
 import { EngineInput } from "./engine-input";

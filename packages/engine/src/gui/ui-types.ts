@@ -16,14 +16,14 @@
 import type { Vector2 } from "../core/types";
 import type { Good } from "../player/goods/good";
 
-// 从 core/ 重新导出事件共享类型（保持向后兼容）
+// 从 events/ 重新导出事件共享类型（保持向后兼容）
 export type {
   DialogGuiState,
   MultiSelectionGuiState,
   PanelState,
   SelectionGuiState,
   SelectionOptionData,
-} from "../core/gui-state-types";
+} from "../events/gui-state-types";
 
 import type {
   DialogGuiState,
@@ -31,7 +31,7 @@ import type {
   PanelState,
   SelectionGuiState,
   SelectionOptionData,
-} from "../core/gui-state-types";
+} from "../events/gui-state-types";
 
 // =============================================================================
 // 内部 GUI 管理器类型

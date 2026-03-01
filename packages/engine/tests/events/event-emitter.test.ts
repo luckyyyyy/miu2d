@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { EventEmitter } from "../../src/core/event-emitter";
+import { EventEmitter } from "../../src/events/event-emitter";
 
 // Mock logger
 vi.mock("../../src/core/logger", () => ({

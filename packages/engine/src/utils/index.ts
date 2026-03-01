@@ -46,4 +46,3 @@ export {
 export { getNeighbors } from "./neighbors";
 // Path finding
 export * from "./path-finder";
-// debug-manager has been moved to runtime/ where it logically belongs.

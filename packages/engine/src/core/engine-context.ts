@@ -15,7 +15,7 @@ import type { MapRenderer } from "../map/map-renderer";
 import type { NpcManager } from "../npc/npc-manager";
 import type { ObjManager } from "../obj/obj-manager";
 import type { Player } from "../player/player";
-import type { DebugManager } from "../runtime/debug-manager";
+import type { DebugManager } from "../debug/debug-manager";
 import type { InteractionManager } from "../runtime/interaction-manager";
 import type { ScriptExecutor } from "../script/executor";
 import type { WeatherManager } from "../weather/weather-manager";

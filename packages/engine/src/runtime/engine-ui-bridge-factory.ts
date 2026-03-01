@@ -3,8 +3,8 @@
  * 从 GameEngine.createUIBridge() 提取，降低主文件复杂度
  */
 
-import type { TypedEventEmitter } from "../core/event-emitter";
-import { type GameEventMap, GameEvents } from "../core/game-events";
+import type { TypedEventEmitter } from "../events/event-emitter";
+import { type GameEventMap, GameEvents } from "../events/game-events";
 import type { MemoListManager } from "../gui/memo-list-manager";
 import { type UIBridgeDeps, UIBridgeImpl } from "../gui/ui-bridge";
 import type { GuiManagerState, UIBridge } from "../gui/ui-types";

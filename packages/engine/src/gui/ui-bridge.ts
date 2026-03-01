@@ -9,7 +9,7 @@
  * 这是引擎暴露给 UI 层的唯一接口，UI 层不应直接访问引擎内部。
  */
 
-import type { TypedEventEmitter } from "../core/event-emitter";
+import type { TypedEventEmitter } from "../events/event-emitter";
 import {
   type GameEventMap,
   GameEvents,
@@ -21,7 +21,7 @@ import {
   type UIPanelChangeEvent,
   type UISelectionChangeEvent,
   type UIVideoPlayEvent,
-} from "../core/game-events";
+} from "../events/game-events";
 import { logger } from "../core/logger";
 import type { MemoListManager } from "../gui/memo-list-manager";
 import type { MagicItemInfo } from "../magic/types";

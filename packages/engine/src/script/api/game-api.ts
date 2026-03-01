@@ -10,7 +10,7 @@
  * - No engine internals leaked - only script-level operations
  */
 
-import type { SelectionOptionData } from "../../core/gui-state-types";
+import type { SelectionOptionData } from "../../events/gui-state-types";
 import type { Vector2 } from "../../core/types";
 import type { TalkTextListManager } from "../../gui/talk-text-list";
 

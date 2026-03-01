@@ -1,8 +1,8 @@
 /**
  * Effect Calculation - 效果计算纯函数
  *
- * 从 magic/effects/common.ts 提取的纯计算函数
- * 放在 core/ 中以消除 character ↔ magic 循环依赖
+ * 从 magic/effects/common.ts 提取的纯计算函数。
+ * 独立的 combat 模块，消除 character ↔ magic 循环依赖。
  */
 
 /**
