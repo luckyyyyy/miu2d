@@ -20,9 +20,10 @@ import { createDefaultObj, createDefaultObjResource, ObjKindFromValue } from "@m
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, sql } from "drizzle-orm";
 import { db } from "../../db/client";
-import { games, objResources, objs } from "../../db/schema";
+import { objResources, objs } from "../../db/schema";
 import type { Language } from "../../i18n";
 import { getMessage } from "../../i18n";
+import { requireGameIdBySlug } from "../../utils/game";
 import { verifyGameAccess } from "../../utils/gameAccess";
 import { objResourceService } from "./objResource.service";
 
@@ -52,25 +53,18 @@ export class ObjService {
    * 公开接口：通过 slug 列出游戏的所有 Object（无需认证）
    * 用于游戏客户端加载 Object 数据
    */
-  async listPublicBySlug(gameSlug: string): Promise<Obj[]> {
-    // 通过 slug 查找游戏
-    const [game] = await db
-      .select({ id: games.id })
-      .from(games)
-      .where(eq(games.slug, gameSlug))
-      .limit(1);
-
-    if (!game) {
-      throw new Error("Game not found");
-    }
-
+  async listPublicByGameId(gameId: string): Promise<Obj[]> {
     const rows = await db
       .select()
       .from(objs)
-      .where(eq(objs.gameId, game.id))
+      .where(eq(objs.gameId, gameId))
       .orderBy(desc(objs.updatedAt));
 
     return rows.map((row) => this.toObj(row));
+  }
+
+  async listPublicBySlug(gameSlug: string): Promise<Obj[]> {
+    return this.listPublicByGameId(await requireGameIdBySlug(gameSlug));
   }
 
   /**

@@ -24,9 +24,10 @@ import { getSceneDataCounts } from "@miu2d/types";
 import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import { db } from "../../db/client";
-import { games, scenes } from "../../db/schema";
+import { scenes } from "../../db/schema";
 import type { Language } from "../../i18n";
 import { getMessage } from "../../i18n";
+import { getGameIdBySlug } from "../../utils/game";
 import { verifyGameAccess } from "../../utils/gameAccess";
 import { parseMmfToDto, serializeDtoToMmf } from "./mmf-helper";
 
@@ -279,24 +280,12 @@ export class SceneService {
   // ============= 公开 REST API（无需认证） =============
 
   /**
-   * 通过 gameSlug 获取 gameId
-   */
-  private async getGameIdBySlug(gameSlug: string): Promise<string | null> {
-    const [game] = await db
-      .select({ id: games.id })
-      .from(games)
-      .where(eq(games.slug, gameSlug))
-      .limit(1);
-    return game?.id ?? null;
-  }
-
-  /**
    * 获取 MMF 地图二进制数据（公开接口）
    *
    * 从 scenes.mmfData (base64) 解码为 Buffer 直接返回
    */
   async getMmfBinaryBySlug(gameSlug: string, sceneKey: string): Promise<Buffer | null> {
-    const gameId = await this.getGameIdBySlug(gameSlug);
+    const gameId = await getGameIdBySlug(gameSlug);
     if (!gameId) return null;
 
     const [row] = await db
@@ -320,7 +309,7 @@ export class SceneService {
     sceneKey: string,
     npcKey: string
   ): Promise<SceneNpcEntry[] | null> {
-    const gameId = await this.getGameIdBySlug(gameSlug);
+    const gameId = await getGameIdBySlug(gameSlug);
     if (!gameId) return null;
 
     const [row] = await db
@@ -354,7 +343,7 @@ export class SceneService {
     sceneKey: string,
     objKey: string
   ): Promise<SceneObjEntry[] | null> {
-    const gameId = await this.getGameIdBySlug(gameSlug);
+    const gameId = await getGameIdBySlug(gameSlug);
     if (!gameId) return null;
 
     const [row] = await db

@@ -26,9 +26,10 @@ import {
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, sql } from "drizzle-orm";
 import { db } from "../../db/client";
-import { games, npcResources, npcs } from "../../db/schema";
+import { npcResources, npcs } from "../../db/schema";
 import type { Language } from "../../i18n";
 import { getMessage } from "../../i18n";
+import { requireGameIdBySlug } from "../../utils/game";
 import { verifyGameAccess } from "../../utils/gameAccess";
 import { npcResourceService } from "./npcResource.service";
 
@@ -64,28 +65,24 @@ export class NpcService {
   }
 
   /**
+   * 公开接口：通过 gameId 列出游戏的所有 NPC（无需认证）
+   */
+  async listPublicByGameId(gameId: string): Promise<Npc[]> {
+    const rows = await db
+      .select()
+      .from(npcs)
+      .where(eq(npcs.gameId, gameId))
+      .orderBy(desc(npcs.updatedAt));
+
+    return rows.map((row) => this.toNpc(row));
+  }
+
+  /**
    * 公开接口：通过 slug 列出游戏的所有 NPC（无需认证）
    * 用于游戏客户端加载 NPC 数据
    */
   async listPublicBySlug(gameSlug: string): Promise<Npc[]> {
-    // 通过 slug 查找游戏
-    const [game] = await db
-      .select({ id: games.id })
-      .from(games)
-      .where(eq(games.slug, gameSlug))
-      .limit(1);
-
-    if (!game) {
-      throw new Error("Game not found");
-    }
-
-    const rows = await db
-      .select()
-      .from(npcs)
-      .where(eq(npcs.gameId, game.id))
-      .orderBy(desc(npcs.updatedAt));
-
-    return rows.map((row) => this.toNpc(row));
+    return this.listPublicByGameId(await requireGameIdBySlug(gameSlug));
   }
 
   /**

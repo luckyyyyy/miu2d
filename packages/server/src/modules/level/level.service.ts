@@ -17,8 +17,9 @@ import { createDefaultLevelConfigLevels } from "@miu2d/types";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq } from "drizzle-orm";
 import { db } from "../../db/client";
-import { games, levelConfigs } from "../../db/schema";
+import { levelConfigs } from "../../db/schema";
 import type { Language } from "../../i18n";
+import { requireGameIdBySlug } from "../../utils/game";
 import { verifyGameAccess } from "../../utils/gameAccess";
 
 export class LevelConfigService {
@@ -44,20 +45,12 @@ export class LevelConfigService {
    * 公开接口：通过 slug 列出游戏的所有等级配置（无需认证）
    */
   async listPublicBySlug(gameSlug: string): Promise<LevelConfig[]> {
-    const [game] = await db
-      .select({ id: games.id })
-      .from(games)
-      .where(eq(games.slug, gameSlug))
-      .limit(1);
-
-    if (!game) {
-      throw new Error("Game not found");
-    }
+    const gameId = await requireGameIdBySlug(gameSlug);
 
     const rows = await db
       .select()
       .from(levelConfigs)
-      .where(eq(levelConfigs.gameId, game.id))
+      .where(eq(levelConfigs.gameId, gameId))
       .orderBy(desc(levelConfigs.updatedAt));
 
     return rows.map((row) => this.toLevelConfig(row));
@@ -67,20 +60,12 @@ export class LevelConfigService {
    * 公开接口：通过 slug 和 key 获取单个等级配置（无需认证）
    */
   async getPublicBySlugAndKey(gameSlug: string, key: string): Promise<LevelConfig | null> {
-    const [game] = await db
-      .select({ id: games.id })
-      .from(games)
-      .where(eq(games.slug, gameSlug))
-      .limit(1);
-
-    if (!game) {
-      throw new Error("Game not found");
-    }
+    const gameId = await requireGameIdBySlug(gameSlug);
 
     const [row] = await db
       .select()
       .from(levelConfigs)
-      .where(and(eq(levelConfigs.gameId, game.id), eq(levelConfigs.key, key)))
+      .where(and(eq(levelConfigs.gameId, gameId), eq(levelConfigs.key, key)))
       .limit(1);
 
     if (!row) return null;

@@ -14,9 +14,10 @@ import { parseTalkIndexTxt } from "@miu2d/types";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { db } from "../../db/client";
-import { games, talks } from "../../db/schema";
+import { talks } from "../../db/schema";
 import type { Language } from "../../i18n";
 import { verifyGameAccess } from "../../utils/gameAccess";
+import { requireGameIdBySlug } from "../../utils/game";
 
 export class TalkService {
   /**
@@ -75,20 +76,13 @@ export class TalkService {
   /**
    * 公开接口：通过 slug 获取对话数据（无需认证）
    */
-  async getPublicBySlug(gameSlug: string): Promise<TalkEntry[]> {
-    const [game] = await db
-      .select({ id: games.id })
-      .from(games)
-      .where(eq(games.slug, gameSlug))
-      .limit(1);
-
-    if (!game) {
-      throw new Error("Game not found");
-    }
-
-    const [row] = await db.select().from(talks).where(eq(talks.gameId, game.id)).limit(1);
-
+  async getPublicByGameId(gameId: string): Promise<TalkEntry[]> {
+    const [row] = await db.select().from(talks).where(eq(talks.gameId, gameId)).limit(1);
     return row ? (row.data as TalkEntry[]) : [];
+  }
+
+  async getPublicBySlug(gameSlug: string): Promise<TalkEntry[]> {
+    return this.getPublicByGameId(await requireGameIdBySlug(gameSlug));
   }
 
   /**

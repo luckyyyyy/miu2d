@@ -19,9 +19,10 @@ import { createDefaultShop } from "@miu2d/types";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, sql } from "drizzle-orm";
 import { db } from "../../db/client";
-import { games, shops } from "../../db/schema";
+import { shops } from "../../db/schema";
 import type { Language } from "../../i18n";
 import { getMessage } from "../../i18n";
+import { requireGameIdBySlug } from "../../utils/game";
 import { verifyGameAccess } from "../../utils/gameAccess";
 
 export class ShopService {
@@ -47,27 +48,24 @@ export class ShopService {
   }
 
   /**
+   * 公开接口：通过 gameId 列出游戏的所有商店（无需认证）
+   */
+  async listPublicByGameId(gameId: string): Promise<Shop[]> {
+    const rows = await db
+      .select()
+      .from(shops)
+      .where(eq(shops.gameId, gameId))
+      .orderBy(desc(shops.updatedAt));
+
+    return rows.map((row) => this.toShop(row));
+  }
+
+  /**
    * 公开接口：通过 slug 列出游戏的所有商店（无需认证）
    * 用于游戏客户端加载商店数据
    */
   async listPublicBySlug(gameSlug: string): Promise<Shop[]> {
-    const [game] = await db
-      .select({ id: games.id })
-      .from(games)
-      .where(eq(games.slug, gameSlug))
-      .limit(1);
-
-    if (!game) {
-      throw new Error("Game not found");
-    }
-
-    const rows = await db
-      .select()
-      .from(shops)
-      .where(eq(shops.gameId, game.id))
-      .orderBy(desc(shops.updatedAt));
-
-    return rows.map((row) => this.toShop(row));
+    return this.listPublicByGameId(await requireGameIdBySlug(gameSlug));
   }
 
   /**
