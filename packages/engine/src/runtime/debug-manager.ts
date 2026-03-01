@@ -63,19 +63,19 @@ export class DebugManager {
   private config: DebugManagerConfig;
 
   private get player(): Player {
-    return this.engine.player as Player;
+    return this.engine.player;
   }
 
   private get npcManager(): NpcManager {
-    return this.engine.npcManager as NpcManager;
+    return this.engine.npcManager;
   }
 
   private get objManager(): ObjManager {
-    return this.engine.objManager as ObjManager;
+    return this.engine.objManager;
   }
 
   private get guiManager(): GuiManager {
-    return this.engine.guiManager as GuiManager;
+    return this.engine.guiManager;
   }
 
   // 脚本执行历史（包含完整内容，最多20条）

@@ -11,7 +11,6 @@ import { getEngineContext } from "../../core/engine-context";
 import { logger } from "../../core/logger";
 import type { Vector2 } from "../../core/types";
 import type { GuiManager } from "../../gui/gui-manager";
-import type { NpcManager } from "../../npc";
 import type { Player } from "../../player/player";
 import type { ScreenEffects } from "../../renderer/screen-effects";
 import { pixelToTile, tileToPixel } from "../../utils";
@@ -879,7 +878,7 @@ export class SpriteUpdater {
     centerTile: Vector2,
     tileDistance: number
   ): Character[] {
-    const npcManager = this.engine.npcManager as NpcManager;
+    const npcManager = this.engine.npcManager;
     return npcManager.findFriendsInTileDistance(finder, centerTile, tileDistance);
   }
 
@@ -891,7 +890,7 @@ export class SpriteUpdater {
     centerTile: Vector2,
     tileDistance: number
   ): Character[] {
-    const npcManager = this.engine.npcManager as NpcManager;
+    const npcManager = this.engine.npcManager;
     return npcManager.findEnemiesInTileDistance(finder, centerTile, tileDistance);
   }
 
@@ -899,7 +898,7 @@ export class SpriteUpdater {
    * 查找范围内的所有战斗单位 — 委托给 NpcManager
    */
   private findFightersInTileDistance(centerTile: Vector2, tileDistance: number): Character[] {
-    const npcManager = this.engine.npcManager as NpcManager;
+    const npcManager = this.engine.npcManager;
     return npcManager.findFightersInTileDistance(centerTile, tileDistance);
   }
 }

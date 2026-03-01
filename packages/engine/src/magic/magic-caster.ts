@@ -12,7 +12,6 @@ import type { GuiManager } from "../gui/gui-manager";
 import type { PlayerMagicInventory } from "../player/magic/player-magic-inventory";
 import type { Player } from "../player/player";
 import type { InputState } from "../runtime/input-types";
-import type { InteractionManager } from "../runtime/interaction-manager";
 import { getDirectionFromVector, pixelToTile, tileToPixel } from "../utils";
 import type { MagicItemInfo } from "./";
 
@@ -36,11 +35,11 @@ export class MagicCaster {
   private getLastInput: () => InputState;
 
   private get player(): Player {
-    return this.engine.player as Player;
+    return this.engine.player;
   }
 
   private get guiManager(): GuiManager {
-    return this.engine.guiManager as GuiManager;
+    return this.engine.guiManager;
   }
 
   /**
@@ -122,7 +121,7 @@ export class MagicCaster {
     // if (Globals.OutEdgeNpc != null)
     //     UseMagic(CurrentMagicInUse.TheMagic, Globals.OutEdgeNpc.TilePosition, Globals.OutEdgeNpc);
     // else UseMagic(CurrentMagicInUse.TheMagic, mouseTilePosition);
-    const interactionManager = this.engine.interactionManager as InteractionManager;
+    const interactionManager = this.engine.interactionManager;
     const hoverTarget = interactionManager.getHoverTarget();
 
     // lines 1407-1419

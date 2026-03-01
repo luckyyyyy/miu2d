@@ -73,7 +73,7 @@ export class NpcManager {
    * 获取 Player（通过 EngineContext）
    */
   private get _player(): Character {
-    return this.engine.player as unknown as Character;
+    return this.engine.player;
   }
 
   /** AI 查询上下文（传给 npc-ai-queries 的纯函数）*/

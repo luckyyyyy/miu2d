@@ -303,7 +303,7 @@ export abstract class PlayerBase extends Character {
    * 获取 NpcManager（通过 EngineContext）
    */
   protected get npcManager(): NpcManager {
-    return this.engine.npcManager as NpcManager;
+    return this.engine.npcManager;
   }
 
   /**

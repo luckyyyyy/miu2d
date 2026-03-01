@@ -64,14 +64,14 @@ export class InputHandler {
   private lastLeftButtonDown: boolean = false;
   private lastRightButtonDown: boolean = false;
 
-  /** 便捷访问: Player（需要类型转换） */
+  /** 便捷访问: Player */
   private get player(): Player {
-    return this.engine.player as Player;
+    return this.engine.player;
   }
 
-  /** 便捷访问: NpcManager（需要类型转换） */
+  /** 便捷访问: NpcManager */
   private get npcManager(): NpcManager {
-    return this.engine.npcManager as NpcManager;
+    return this.engine.npcManager;
   }
 
   constructor(deps: InputHandlerDependencies) {
@@ -289,7 +289,7 @@ export class InputHandler {
     const player = this.player;
     const goodsListManager = player.getGoodsListManager();
     await goodsListManager.useBottomSlot(slotIndex, player, (fn) =>
-      (this.engine.npcManager as NpcManager).forEachPartner(fn)
+      this.engine.npcManager.forEachPartner(fn)
     );
   }
 
@@ -307,7 +307,7 @@ export class InputHandler {
     worldY: number,
     viewRect: { x: number; y: number; width: number; height: number }
   ): void {
-    const npcManager = this.engine.npcManager as NpcManager;
+    const npcManager = this.engine.npcManager;
     const objManager = this.engine.objManager;
     const interactionManager = this.engine.interactionManager;
     const guiManager = this.engine.guiManager;
@@ -387,7 +387,7 @@ export class InputHandler {
   ): void {
     const guiManager = this.engine.guiManager;
     const interactionManager = this.engine.interactionManager;
-    const player = this.engine.player as Player;
+    const player = this.engine.player;
     const scriptExecutor = this.engine.scriptExecutor;
     const magicCaster = this.engine.magicCaster;
 
@@ -614,7 +614,7 @@ export class InputHandler {
    */
   async interactWithNpc(npc: Npc, useRightScript: boolean = false): Promise<void> {
     const guiManager = this.engine.guiManager;
-    const player = this.engine.player as Player;
+    const player = this.engine.player;
 
     player.cancelAutoAttack();
 
@@ -721,7 +721,7 @@ export class InputHandler {
    * Execute the actual Object interaction (turn, run script)
    */
   private async executeObjInteraction(obj: Obj, useRightScript: boolean): Promise<void> {
-    const player = this.engine.player as Player;
+    const player = this.engine.player;
     const interactionManager = this.engine.interactionManager;
     const audioManager = this.engine.audio;
 
@@ -879,7 +879,7 @@ export class InputHandler {
    * Interact with closest object (Q key)
    */
   private async interactWithClosestObj(): Promise<void> {
-    const player = this.engine.player as Player;
+    const player = this.engine.player;
     const objManager = this.engine.objManager;
     const closestObj = objManager.getClosestInteractableObj(player.tilePosition, 13);
     if (closestObj) {
@@ -891,8 +891,8 @@ export class InputHandler {
    * Interact with closest NPC (E key)
    */
   private async interactWithClosestNpc(): Promise<void> {
-    const player = this.engine.player as Player;
-    const npcManager = this.engine.npcManager as NpcManager;
+    const player = this.engine.player;
+    const npcManager = this.engine.npcManager;
     // Get closest interactive NPC within 13 tiles
     let closestNpc: Npc | null = null;
     let closestDist = 13;

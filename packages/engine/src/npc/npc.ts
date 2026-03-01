@@ -63,14 +63,14 @@ export class Npc extends Character {
    * 获取 NpcManager（通过 EngineContext）
    */
   get npcManager(): NpcManager {
-    return this.engine.npcManager as NpcManager;
+    return this.engine.npcManager;
   }
 
   /**
    * 获取 Player（通过 EngineContext）
    */
   get player(): Character {
-    return this.engine.player as unknown as Character;
+    return this.engine.player;
   }
 
   canViewTargetForAI(startTile: Vector2, endTile: Vector2, visionRadius: number): boolean {

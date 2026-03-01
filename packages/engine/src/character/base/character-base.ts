@@ -359,7 +359,7 @@ export abstract class CharacterBase extends Sprite implements CharacterInstance 
   // =============================================
 
   protected get audioManager(): AudioManager {
-    return this.engine.audio as AudioManager;
+    return this.engine.audio;
   }
 
   // === Relation Properties ===
