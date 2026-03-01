@@ -99,7 +99,7 @@ gameConfigRoutes.get(":gameSlug/api/manifest", async (c) => {
       return c.json({ error: "Game not found" }, 404);
     }
 
-    const startUrl = `/game/${gameSlug}`;
+    const startUrl = `/game/${gameSlug}/`;
 
     // 检查游戏是否有自定义 logo（上传时已自动生成 192/512 变体）
     let hasLogo = false;
@@ -129,7 +129,7 @@ gameConfigRoutes.get(":gameSlug/api/manifest", async (c) => {
       short_name: game.name,
       description: `Play ${game.name} online`,
       start_url: startUrl,
-      scope: "/",
+      scope: `/game/${gameSlug}/`,
       display: "standalone",
       orientation: "landscape",
       background_color: "#000000",
