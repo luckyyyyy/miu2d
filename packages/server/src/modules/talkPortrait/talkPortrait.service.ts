@@ -2,9 +2,10 @@ import type { ImportPortraitMapInput, PortraitEntry, UpdatePortraitMapInput } fr
 import { parsePortraitIni } from "@miu2d/types";
 import { eq } from "drizzle-orm";
 import { db } from "../../db/client";
-import { games, talkPortraits } from "../../db/schema";
+import { talkPortraits } from "../../db/schema";
 import type { Language } from "../../i18n";
 import { verifyGameAccess } from "../../utils/gameAccess";
+import { requireGameIdBySlug } from "../../utils/game";
 
 export class TalkPortraitService {
   /**
@@ -32,24 +33,18 @@ export class TalkPortraitService {
   /**
    * 公开接口：通过 slug 获取头像映射（无需认证）
    */
-  async getPublicBySlug(gameSlug: string): Promise<PortraitEntry[]> {
-    const [game] = await db
-      .select({ id: games.id })
-      .from(games)
-      .where(eq(games.slug, gameSlug))
-      .limit(1);
-
-    if (!game) {
-      throw new Error("Game not found");
-    }
-
+  async getPublicByGameId(gameId: string): Promise<PortraitEntry[]> {
     const [row] = await db
       .select()
       .from(talkPortraits)
-      .where(eq(talkPortraits.gameId, game.id))
+      .where(eq(talkPortraits.gameId, gameId))
       .limit(1);
 
     return row ? (row.data as PortraitEntry[]) : [];
+  }
+
+  async getPublicBySlug(gameSlug: string): Promise<PortraitEntry[]> {
+    return this.getPublicByGameId(await requireGameIdBySlug(gameSlug));
   }
 
   /**

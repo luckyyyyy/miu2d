@@ -19,9 +19,10 @@ import { createDefaultGood, GoodKindFromValue } from "@miu2d/types";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, sql } from "drizzle-orm";
 import { db } from "../../db/client";
-import { games, goods } from "../../db/schema";
+import { goods } from "../../db/schema";
 import type { Language } from "../../i18n";
 import { getMessage } from "../../i18n";
+import { requireGameIdBySlug } from "../../utils/game";
 import { verifyGameAccess } from "../../utils/gameAccess";
 
 export class GoodsService {
@@ -47,28 +48,24 @@ export class GoodsService {
   }
 
   /**
+   * 公开接口：通过 gameId 列出游戏的所有物品（无需认证）
+   */
+  async listPublicByGameId(gameId: string): Promise<Good[]> {
+    const rows = await db
+      .select()
+      .from(goods)
+      .where(eq(goods.gameId, gameId))
+      .orderBy(desc(goods.updatedAt));
+
+    return rows.map((row) => this.toGoods(row));
+  }
+
+  /**
    * 公开接口：通过 slug 列出游戏的所有物品（无需认证）
    * 用于游戏客户端加载物品数据
    */
   async listPublicBySlug(gameSlug: string): Promise<Good[]> {
-    // 通过 slug 查找游戏
-    const [game] = await db
-      .select({ id: games.id })
-      .from(games)
-      .where(eq(games.slug, gameSlug))
-      .limit(1);
-
-    if (!game) {
-      throw new Error("Game not found");
-    }
-
-    const rows = await db
-      .select()
-      .from(goods)
-      .where(eq(goods.gameId, game.id))
-      .orderBy(desc(goods.updatedAt));
-
-    return rows.map((row) => this.toGoods(row));
+    return this.listPublicByGameId(await requireGameIdBySlug(gameSlug));
   }
 
   /**

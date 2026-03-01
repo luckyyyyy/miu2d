@@ -16,9 +16,10 @@ import { createDefaultObjResource } from "@miu2d/types";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq } from "drizzle-orm";
 import { db } from "../../db/client";
-import { games, objResources } from "../../db/schema";
+import { objResources } from "../../db/schema";
 import type { Language } from "../../i18n";
 import { getMessage } from "../../i18n";
+import { requireGameIdBySlug } from "../../utils/game";
 import { verifyGameAccess } from "../../utils/gameAccess";
 
 export class ObjResourceService {
@@ -42,25 +43,18 @@ export class ObjResourceService {
    * 公开接口：通过 slug 列出游戏的所有 Object 资源配置（无需认证）
    * 用于游戏客户端加载 Object 资源数据
    */
-  async listPublicBySlug(gameSlug: string): Promise<ObjRes[]> {
-    // 通过 slug 查找游戏
-    const [game] = await db
-      .select({ id: games.id })
-      .from(games)
-      .where(eq(games.slug, gameSlug))
-      .limit(1);
-
-    if (!game) {
-      throw new Error("Game not found");
-    }
-
+  async listPublicByGameId(gameId: string): Promise<ObjRes[]> {
     const rows = await db
       .select()
       .from(objResources)
-      .where(eq(objResources.gameId, game.id))
+      .where(eq(objResources.gameId, gameId))
       .orderBy(desc(objResources.updatedAt));
 
     return rows.map((row) => this.toObjRes(row));
+  }
+
+  async listPublicBySlug(gameSlug: string): Promise<ObjRes[]> {
+    return this.listPublicByGameId(await requireGameIdBySlug(gameSlug));
   }
 
   /**

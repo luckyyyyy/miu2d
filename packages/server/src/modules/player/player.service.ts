@@ -22,9 +22,10 @@ import { createDefaultPlayer } from "@miu2d/types";
 import { TRPCError } from "@trpc/server";
 import { and, eq, sql } from "drizzle-orm";
 import { db } from "../../db/client";
-import { games, goods, magics, players } from "../../db/schema";
+import { goods, magics, players } from "../../db/schema";
 import type { Language } from "../../i18n";
 import { getMessage } from "../../i18n";
+import { requireGameIdBySlug } from "../../utils/game";
 import { verifyGameAccess } from "../../utils/gameAccess";
 
 export class PlayerService {
@@ -52,24 +53,18 @@ export class PlayerService {
    * 公开接口：通过 slug 列出游戏的所有玩家角色（无需认证）
    * 用于游戏客户端加载角色数据
    */
-  async listPublicBySlug(gameSlug: string): Promise<Player[]> {
-    const [game] = await db
-      .select({ id: games.id })
-      .from(games)
-      .where(eq(games.slug, gameSlug))
-      .limit(1);
-
-    if (!game) {
-      throw new Error("Game not found");
-    }
-
+  async listPublicByGameId(gameId: string): Promise<Player[]> {
     const rows = await db
       .select()
       .from(players)
-      .where(eq(players.gameId, game.id))
+      .where(eq(players.gameId, gameId))
       .orderBy(players.index);
 
     return rows.map((row) => this.toPlayer(row));
+  }
+
+  async listPublicBySlug(gameSlug: string): Promise<Player[]> {
+    return this.listPublicByGameId(await requireGameIdBySlug(gameSlug));
   }
 
   /**

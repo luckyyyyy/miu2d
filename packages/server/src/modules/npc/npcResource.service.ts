@@ -16,9 +16,10 @@ import { createDefaultNpcResource } from "@miu2d/types";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq } from "drizzle-orm";
 import { db } from "../../db/client";
-import { games, npcResources } from "../../db/schema";
+import { npcResources } from "../../db/schema";
 import type { Language } from "../../i18n";
 import { getMessage } from "../../i18n";
+import { requireGameIdBySlug } from "../../utils/game";
 import { verifyGameAccess } from "../../utils/gameAccess";
 
 export class NpcResourceService {
@@ -42,25 +43,18 @@ export class NpcResourceService {
    * 公开接口：通过 slug 列出游戏的所有 NPC 资源配置（无需认证）
    * 用于游戏客户端加载 NPC 资源数据
    */
-  async listPublicBySlug(gameSlug: string): Promise<NpcRes[]> {
-    // 通过 slug 查找游戏
-    const [game] = await db
-      .select({ id: games.id })
-      .from(games)
-      .where(eq(games.slug, gameSlug))
-      .limit(1);
-
-    if (!game) {
-      throw new Error("Game not found");
-    }
-
+  async listPublicByGameId(gameId: string): Promise<NpcRes[]> {
     const rows = await db
       .select()
       .from(npcResources)
-      .where(eq(npcResources.gameId, game.id))
+      .where(eq(npcResources.gameId, gameId))
       .orderBy(desc(npcResources.updatedAt));
 
     return rows.map((row) => this.toNpcRes(row));
+  }
+
+  async listPublicBySlug(gameSlug: string): Promise<NpcRes[]> {
+    return this.listPublicByGameId(await requireGameIdBySlug(gameSlug));
   }
 
   /**

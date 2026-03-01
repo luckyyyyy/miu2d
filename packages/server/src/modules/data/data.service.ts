@@ -12,6 +12,7 @@ import { playerService } from "../player";
 import { shopService } from "../shop/shop.service";
 import { talkService } from "../talk";
 import { talkPortraitService } from "../talkPortrait";
+import { requireGameIdBySlug } from "../../utils/game";
 
 /**
  * 聚合游戏所有配置数据（武功、物品、商店、NPC、物体、玩家、头像、对话）
@@ -19,6 +20,9 @@ import { talkPortraitService } from "../talkPortrait";
  * 复用各模块 service，返回统一结构
  */
 export async function buildGameData(gameSlug: string) {
+  // slug → gameId 只查一次，后续 10 个服务共用此 id
+  const gameId = await requireGameIdBySlug(gameSlug);
+
   const [
     magics,
     goods,
@@ -31,16 +35,16 @@ export async function buildGameData(gameSlug: string) {
     portraitEntries,
     talkEntries,
   ] = await Promise.all([
-    magicService.listPublicBySlug(gameSlug),
-    goodsService.listPublicBySlug(gameSlug),
-    shopService.listPublicBySlug(gameSlug),
-    npcService.listPublicBySlug(gameSlug),
-    npcResourceService.listPublicBySlug(gameSlug),
-    objService.listPublicBySlug(gameSlug),
-    objResourceService.listPublicBySlug(gameSlug),
-    playerService.listPublicBySlug(gameSlug),
-    talkPortraitService.getPublicBySlug(gameSlug),
-    talkService.getPublicBySlug(gameSlug),
+    magicService.listPublicByGameId(gameId),
+    goodsService.listPublicByGameId(gameId),
+    shopService.listPublicByGameId(gameId),
+    npcService.listPublicByGameId(gameId),
+    npcResourceService.listPublicByGameId(gameId),
+    objService.listPublicByGameId(gameId),
+    objResourceService.listPublicByGameId(gameId),
+    playerService.listPublicByGameId(gameId),
+    talkPortraitService.getPublicByGameId(gameId),
+    talkService.getPublicByGameId(gameId),
   ]);
 
   // 构建 objResources 的 id -> { resources, key } 映射

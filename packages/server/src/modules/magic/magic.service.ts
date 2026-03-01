@@ -27,9 +27,10 @@ import {
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, sql } from "drizzle-orm";
 import { db } from "../../db/client";
-import { games, magics } from "../../db/schema";
+import { magics } from "../../db/schema";
 import type { Language } from "../../i18n";
 import { getMessage } from "../../i18n";
+import { requireGameIdBySlug } from "../../utils/game";
 import { verifyGameAccess } from "../../utils/gameAccess";
 
 export class MagicService {
@@ -54,28 +55,24 @@ export class MagicService {
   }
 
   /**
+   * 公开接口：通过 gameId 列出游戏的所有武功（无需认证）
+   */
+  async listPublicByGameId(gameId: string): Promise<Magic[]> {
+    const rows = await db
+      .select()
+      .from(magics)
+      .where(eq(magics.gameId, gameId))
+      .orderBy(desc(magics.updatedAt));
+
+    return rows.map((row) => this.toMagic(row));
+  }
+
+  /**
    * 公开接口：通过 slug 列出游戏的所有武功（无需认证）
    * 用于游戏客户端加载武功数据
    */
   async listPublicBySlug(gameSlug: string): Promise<Magic[]> {
-    // 通过 slug 查找游戏
-    const [game] = await db
-      .select({ id: games.id })
-      .from(games)
-      .where(eq(games.slug, gameSlug))
-      .limit(1);
-
-    if (!game) {
-      throw new Error("Game not found");
-    }
-
-    const rows = await db
-      .select()
-      .from(magics)
-      .where(eq(magics.gameId, game.id))
-      .orderBy(desc(magics.updatedAt));
-
-    return rows.map((row) => this.toMagic(row));
+    return this.listPublicByGameId(await requireGameIdBySlug(gameSlug));
   }
 
   /**
