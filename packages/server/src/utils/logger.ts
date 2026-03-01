@@ -8,7 +8,9 @@
  * - logger.error(message)  → 红色 ERROR
  */
 
-const isDev = process.env.NODE_ENV !== "production";
+import { env } from "../env";
+
+const isDev = env.isDev;
 
 // ANSI 颜色码
 const RESET = "\x1b[0m";

@@ -6,7 +6,7 @@
  * 这个格式在游戏运行时和后台编辑器中都是一致的
  */
 
-import { getResourceDomain } from "@miu2d/engine/resource/resource-paths";
+import { getResourceDomain } from "@miu2d/shared/lib/game-api";
 
 export function getResourceRoot(gameSlug: string): string {
   return `${getResourceDomain()}/game/${gameSlug}/resources`;

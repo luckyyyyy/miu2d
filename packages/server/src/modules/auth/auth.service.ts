@@ -2,6 +2,7 @@ import type { UserSettings } from "@miu2d/types";
 import { eq } from "drizzle-orm";
 import { db } from "../../db/client";
 import { gameMembers, games, sessions, users } from "../../db/schema";
+import { env } from "../../env";
 import { hashPassword } from "../../utils/password";
 
 const SESSION_COOKIE_NAME = "SESSION_ID";
@@ -114,9 +115,7 @@ export class AuthService {
     sessionId: string
   ) {
     if (!res) return;
-    const cookieSecure = process.env.SESSION_COOKIE_SECURE
-      ? process.env.SESSION_COOKIE_SECURE === "true"
-      : process.env.NODE_ENV === "production";
+    const cookieSecure = env.cookieSecure;
     res.setCookie(SESSION_COOKIE_NAME, sessionId, {
       httpOnly: true,
       sameSite: "lax",
@@ -130,9 +129,7 @@ export class AuthService {
     res: { deleteCookie: (name: string, options: Record<string, unknown>) => void } | undefined
   ) {
     if (!res) return;
-    const cookieSecure = process.env.SESSION_COOKIE_SECURE
-      ? process.env.SESSION_COOKIE_SECURE === "true"
-      : process.env.NODE_ENV === "production";
+    const cookieSecure = env.cookieSecure;
     res.deleteCookie(SESSION_COOKIE_NAME, {
       httpOnly: true,
       sameSite: "lax",

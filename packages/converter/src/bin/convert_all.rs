@@ -1157,21 +1157,36 @@ mod map_mmf {
                 .unwrap_or_default();
 
             match std::fs::read(map_path) {
-                Ok(raw) => match parse_old_map(&raw) {
-                    Some(map_data) => {
-                        let mmf_data = convert_map_to_mmf(&map_data, &trap_entries);
-                        let mut mmf_path = map_path.clone();
-                        mmf_path.set_extension("mmf");
-                        if std::fs::write(&mmf_path, &mmf_data).is_ok() {
-                            converted.fetch_add(1, Ordering::Relaxed);
-                        } else {
+                Ok(raw) => {
+                    // Skip files that don't look like MAP format (wrong header or too small)
+                    let is_map = raw.len() >= 12
+                        && std::str::from_utf8(&raw[0..12])
+                            .map(|h| h == "MAP File Ver")
+                            .unwrap_or(false);
+                    if !is_map {
+                        eprintln!(
+                            "  SKIP (not a MAP file, {} bytes) {:?}",
+                            raw.len(),
+                            map_path
+                        );
+                        return;
+                    }
+                    match parse_old_map(&raw) {
+                        Some(map_data) => {
+                            let mmf_data = convert_map_to_mmf(&map_data, &trap_entries);
+                            let mut mmf_path = map_path.clone();
+                            mmf_path.set_extension("mmf");
+                            if std::fs::write(&mmf_path, &mmf_data).is_ok() {
+                                converted.fetch_add(1, Ordering::Relaxed);
+                            } else {
+                                failed.fetch_add(1, Ordering::Relaxed);
+                            }
+                        }
+                        None => {
                             failed.fetch_add(1, Ordering::Relaxed);
                         }
                     }
-                    None => {
-                        failed.fetch_add(1, Ordering::Relaxed);
-                    }
-                },
+                }
                 Err(_) => {
                     failed.fetch_add(1, Ordering::Relaxed);
                 }

@@ -308,6 +308,7 @@ export class MagicSpriteManager {
    */
   isObstacle(tile: Vector2): boolean {
     for (const sprite of this.state.magicSprites.values()) {
+      if (sprite.isDestroyed || sprite.isInDestroy) continue;
       if (sprite.magic.bodyRadius > 0) {
         if (sprite.tilePosition.x === tile.x && sprite.tilePosition.y === tile.y) {
           return true;

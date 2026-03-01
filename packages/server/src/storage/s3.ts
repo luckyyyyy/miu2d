@@ -16,22 +16,24 @@ import {
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { Logger } from "../utils/logger.js";
 
+import { env } from "../env";
+
 const logger = new Logger("S3Storage");
 
 /**
  * S3 内部配置（server-to-MinIO，用于实际数据传输）
  */
 const s3Config = {
-  endpoint: process.env.S3_ENDPOINT || "http://localhost:9000",
-  region: process.env.S3_REGION || "us-east-1",
+  endpoint: env.s3Endpoint,
+  region: env.s3Region,
   credentials: {
-    accessKeyId: process.env.MINIO_ROOT_USER || "minio",
-    secretAccessKey: process.env.MINIO_ROOT_PASSWORD || "minio123",
+    accessKeyId: env.s3AccessKey,
+    secretAccessKey: env.s3SecretKey,
   },
   forcePathStyle: true, // MinIO 需要
 };
 
-const bucket = process.env.MINIO_BUCKET || "miu2d";
+const bucket = env.s3Bucket;
 
 /**
  * 公开访问的 S3 endpoint
@@ -40,7 +42,7 @@ const bucket = process.env.MINIO_BUCKET || "miu2d";
  *
  * 注意：presigned URL 必须用此 endpoint 生成签名，否则 host 不匹配导致 403
  */
-const s3PublicEndpoint = process.env.S3_PUBLIC_ENDPOINT || "/s3";
+const s3PublicEndpoint = env.s3PublicEndpoint;
 
 /**
  * S3 客户端单例（内部使用，用于服务端直接上传/下载）

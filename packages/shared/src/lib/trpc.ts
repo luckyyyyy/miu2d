@@ -7,11 +7,12 @@
 import type { AppRouter } from "@miu2d/server/trpc";
 import { httpBatchLink } from "@trpc/client";
 import { createTRPCReact } from "@trpc/react-query";
+import { getResourceDomain } from "./game-api";
 
 export const trpc = createTRPCReact<AppRouter>();
 
 const getBaseUrl = () => {
-  const domain = (import.meta.env.VITE_DEMO_RESOURCES_DOMAIN as string | undefined)?.replace(/\/+$/, "");
+  const domain = getResourceDomain();
   if (domain) {
     return domain;
   }

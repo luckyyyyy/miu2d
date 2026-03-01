@@ -5,154 +5,41 @@
  * 并缓存供引擎各模块使用。
  *
  * 与 ResourceLoader（底层 fetch/缓存）分离，专注于「游戏业务数据」的获取和管理。
- */
-
-import type {
-  DropConfig,
-  Good,
-  LevelConfig,
-  LevelDetail,
-  Magic,
-  MagicExpConfig,
-  Npc,
-  NpcResource,
-  Obj,
-  ObjRes,
-  Player,
-  PlayerConfig,
-  Shop,
-} from "@miu2d/types";
-import { logger } from "../core/logger";
-import { getResourceDomain } from "../core/env-config";
-
-// ==================== 数据类型 ====================
-
-/**
- * NPC 数据（继承 Npc 类型 + 服务端注入的 npcIni）
- */
-export type NpcData = Npc & {
-  /** 资源文件名（npcRes key），由 data endpoint 注入 */
-  npcIni?: string | null;
-};
-
-/**
- * Obj 数据（继承 Obj 类型 + 服务端注入的 objFile）
- */
-export type ObjData = Obj & {
-  /** 资源文件名（objRes key），由 data endpoint 注入 */
-  objFile?: string | null;
-};
-
-export interface MagicResponse {
-  player: Magic[];
-  npc: Magic[];
-}
-
-/** NPC 资源文件数据（npcres） */
-export interface NpcResData {
-  id: string;
-  gameId: string;
-  key: string;
-  name: string;
-  resources: NpcResource;
-  createdAt?: string;
-  updatedAt?: string;
-}
-
-export interface NpcResponse {
-  npcs: NpcData[];
-  resources: NpcResData[];
-}
-
-/** Obj 资源文件数据（objres）— 直接复用 @miu2d/types */
-export type ObjResData = ObjRes;
-
-export interface ObjResponse {
-  objs: ObjData[];
-  resources: ObjResData[];
-}
-
-/**
- * API 返回的游戏全局配置
- */
-export interface GameConfigResponse {
-  gameEnabled: boolean;
-  gameName: string;
-  gameVersion: string;
-  gameDescription: string;
-  logoUrl: string;
-  playerKey: string;
-  initialMap: string;
-  initialNpc: string;
-  initialObj: string;
-  initialBgm: string;
-  titleMusic: string;
-  newGameScript: string;
-  portraitAsf: string;
-  uiTheme: unknown;
-  player: PlayerConfig;
-  drop: DropConfig;
-  magicExp?: MagicExpConfig;
-}
-
-export interface GameDataResponse {
-  magics: MagicResponse;
-  goods: Good[];
-  shops: Shop[];
-  npcs: NpcResponse;
-  objs: ObjResponse;
-  players: Player[];
-  portraits: Array<{ index: number; asfFile: string }>;
-  talks: Array<{ id: number; portraitIndex: number; text: string }>;
-}
-
-/** 等级配置 */
-export interface LevelConfigData {
-  id: LevelConfig["id"];
-  gameId: LevelConfig["gameId"];
-  key: LevelConfig["key"];
-  name: LevelConfig["name"];
-  userType: LevelConfig["userType"];
-  maxLevel?: LevelConfig["maxLevel"];
-  levels: LevelDetail[];
-  createdAt?: string;
-  updatedAt?: string;
-}
-
-/** API 返回的等级配置列表 */
-export interface LevelResponse {
-  player: LevelConfigData[];
-  npc: LevelConfigData[];
-}
-
-// ========== 公共 fetch 入口 ==========
-
-/**
- * 统一的游戏 API JSON 请求入口
  *
- * @param gameSlug - 游戏 slug
- * @param path    - 相对于 `/game/:slug/api/` 的路径，例如 `config`、`scenes/npc/xxx/yyy`
+ * 类型定义和底层 fetch 工具已统一迁移至 @miu2d/shared/lib/game-api，
+ * 本模块 re-export 以保持引擎内部向后兼容。
  */
-export async function fetchGameApi<T>(gameSlug: string, path: string): Promise<T> {
-  const apiUrl = `${getResourceDomain()}/game/${gameSlug}/api/${path}${path.includes("?") ? "&" : "?"}_t=${Date.now()}`;
-  const response = await fetch(apiUrl, { credentials: "include" });
-  if (!response.ok) {
-    throw new Error(`[GameDataApi] ${apiUrl} → HTTP ${response.status}: ${response.statusText}`);
-  }
-  return response.json() as Promise<T>;
-}
 
-/**
- * 统一的游戏 API 二进制请求入口（返回 ArrayBuffer）
- */
-export async function fetchGameApiBinary(gameSlug: string, path: string): Promise<ArrayBuffer> {
-  const apiUrl = `${getResourceDomain()}/game/${gameSlug}/api/${path}${path.includes("?") ? "&" : "?"}_t=${Date.now()}`;
-  const response = await fetch(apiUrl, { credentials: "include" });
-  if (!response.ok) {
-    throw new Error(`[GameDataApi] ${apiUrl} → HTTP ${response.status}: ${response.statusText}`);
-  }
-  return response.arrayBuffer();
-}
+import type { Good, Magic, Player, Shop } from "@miu2d/types";
+import { logger } from "../core/logger";
+
+// ==================== 从 shared 导入并 re-export ====================
+
+export { fetchGameApi, fetchGameApiBinary } from "@miu2d/shared/lib/game-api";
+
+export type {
+  GameConfigResponse,
+  GameDataResponse,
+  LevelConfigData,
+  LevelResponse,
+  MagicResponse,
+  NpcData,
+  NpcResData,
+  NpcResponse,
+  ObjData,
+  ObjResData,
+  ObjResponse,
+} from "@miu2d/shared/lib/game-api";
+
+import { fetchGameApi, fetchGameApiBinary } from "@miu2d/shared/lib/game-api";
+import type {
+  GameConfigResponse,
+  GameDataResponse,
+  LevelResponse,
+  MagicResponse,
+  NpcResponse,
+  ObjResponse,
+} from "@miu2d/shared/lib/game-api";
 
 // ==================== 可变状态（集中管理） ====================
 
