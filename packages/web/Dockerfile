@@ -73,9 +73,13 @@ RUN pnpm --filter @miu2d/server gen:trpc
 COPY packages/web/src ./packages/web/src
 COPY packages/web/public ./packages/web/public
 
+# 接收构建参数（commit hash / 版本号）
+ARG COMMIT_HASH=unknown
+ARG APP_VERSION=0.0.0
+
 # 构建 web 应用
 WORKDIR /app/packages/web
-RUN pnpm build
+RUN COMMIT_HASH=$COMMIT_HASH APP_VERSION=$APP_VERSION pnpm build
 
 # 生产阶段 - 使用 nginx 静态服务
 FROM nginx:alpine AS runner

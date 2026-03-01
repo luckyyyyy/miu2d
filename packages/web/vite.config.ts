@@ -9,6 +9,8 @@ import { VitePWA } from "vite-plugin-pwa";
 const __dirname = path.dirname(new URL(import.meta.url).pathname);
 
 function getGitCommit(): string {
+  // Docker build injects COMMIT_HASH env var; fall back to git for local dev
+  if (process.env.COMMIT_HASH) return process.env.COMMIT_HASH;
   try {
     return execSync("git rev-parse --short HEAD").toString().trim();
   } catch {
@@ -17,6 +19,8 @@ function getGitCommit(): string {
 }
 
 function getAppVersion(): string {
+  // Docker build injects APP_VERSION env var; fall back to package.json for local dev
+  if (process.env.APP_VERSION) return process.env.APP_VERSION;
   try {
     const pkgPath = path.join(__dirname, "package.json");
     const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf-8")) as { version?: string };
