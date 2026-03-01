@@ -14,11 +14,11 @@ import { logger } from "@miu2d/engine/core/logger";
 import { MAGIC_LIST_CONFIG } from "@miu2d/engine/player/magic/magic-list-config";
 import type { Vector2 } from "@miu2d/engine/core/types";
 import type { UIEquipSlotName } from "@miu2d/engine/gui/ui-types";
+import type { UIGoodData } from "@miu2d/engine/gui/ui-types";
 import type { MagicItemInfo } from "@miu2d/engine/magic";
-import type { MagicHoverData } from "../../contexts";
+import type { MagicHoverData, PlayerVitals } from "../../contexts";
 import type { MiuMapData } from "@miu2d/engine/map/types";
 import type { Npc } from "@miu2d/engine/npc";
-import type { Good } from "@miu2d/engine/player/goods";
 import { GoodKind } from "@miu2d/engine/player/goods";
 import { DefaultPaths } from "@miu2d/engine/resource";
 import { resourceLoader } from "@miu2d/engine/resource/resource-loader";
@@ -45,7 +45,7 @@ export interface BottomMagicDragData {
 
 export interface TooltipState {
   isVisible: boolean;
-  good: Good | null;
+  good: UIGoodData | null;
   isRecycle: boolean;
   shopPrice?: number; // 商店自定义价格（已含 buyPercent），用于覆盖 good.cost 显示
   position: { x: number; y: number };
@@ -76,9 +76,9 @@ export interface PartnerData {
 
 // GoodsData 用于渲染物品相关 UI
 export interface GoodsData {
-  items: ({ good: Good; count: number } | null)[];
-  equips: Partial<Record<EquipSlotType, { good: Good; count: number } | null>>;
-  bottomGoods: ({ good: Good; count: number } | null)[];
+  items: ({ good: UIGoodData; count: number } | null)[];
+  equips: Partial<Record<EquipSlotType, { good: UIGoodData; count: number } | null>>;
+  bottomGoods: ({ good: UIGoodData; count: number } | null)[];
   money: number;
 }
 
@@ -96,6 +96,9 @@ export interface BuyData {
   numberValid: boolean;
   canSellSelfGoods: boolean;
 }
+
+// PlayerVitals 定义在 GameUIContext.tsx，此处通过 contexts 导入共享
+export type { PlayerVitals };
 
 // ============= Utility Functions =============
 
@@ -152,16 +155,53 @@ export function useGameUILogic({ engine }: UseGameUILogicOptions) {
     return () => unsubs.forEach((unsub) => unsub());
   }, [engine]);
 
-  // 定期刷新 player 状态（血量/体力/内力底栏实时更新）
-  // 始终保持运行，确保底部状态栏在任何面板状态下都即时反映引擎数据
+  // 血量/体力/内力实时状态 — 用 rAF 驱动，值不变时不触发 re-render
+  const [playerVitals, setPlayerVitals] = useState<PlayerVitals>({
+    life: 100,
+    lifeMax: 100,
+    mana: 50,
+    manaMax: 50,
+    thew: 100,
+    thewMax: 100,
+  });
+
   useEffect(() => {
     if (!engine) return;
 
-    const intervalId = setInterval(() => {
-      setUpdateTrigger((v) => v + 1);
-    }, 200);
+    let animationFrameId: number;
 
-    return () => clearInterval(intervalId);
+    const updateVitals = () => {
+      const p = engine.player;
+      if (p) {
+        setPlayerVitals((prev) => {
+          if (
+            prev.life === p.life &&
+            prev.lifeMax === p.lifeMax &&
+            prev.mana === p.mana &&
+            prev.manaMax === p.manaMax &&
+            prev.thew === p.thew &&
+            prev.thewMax === p.thewMax
+          ) {
+            return prev;
+          }
+          return {
+            life: p.life,
+            lifeMax: p.lifeMax,
+            mana: p.mana,
+            manaMax: p.manaMax,
+            thew: p.thew,
+            thewMax: p.thewMax,
+          };
+        });
+      }
+      animationFrameId = requestAnimationFrame(updateVitals);
+    };
+
+    animationFrameId = requestAnimationFrame(updateVitals);
+
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+    };
   }, [engine]);
 
   // ============= Data Getters =============
@@ -180,7 +220,7 @@ export function useGameUILogic({ engine }: UseGameUILogicOptions) {
     }
 
     // 底栏物品
-    const bottomGoods: ({ good: Good; count: number } | null)[] = [];
+    const bottomGoods: ({ good: UIGoodData; count: number } | null)[] = [];
     for (let i = 221; i <= 223; i++) {
       const entry = goodsManager.getItemInfo(i);
       if (entry?.good) {
@@ -191,7 +231,7 @@ export function useGameUILogic({ engine }: UseGameUILogicOptions) {
     }
 
     // 背包物品
-    const items: ({ good: Good; count: number } | null)[] = [];
+    const items: ({ good: UIGoodData; count: number } | null)[] = [];
     for (let i = 1; i <= 198; i++) {
       const entry = goodsManager.getItemInfo(i);
       if (entry?.good) {
@@ -202,7 +242,7 @@ export function useGameUILogic({ engine }: UseGameUILogicOptions) {
     }
 
     // 装备
-    type EquipSlots = Partial<Record<EquipSlotType, { good: Good; count: number } | null>>;
+    type EquipSlots = Partial<Record<EquipSlotType, { good: UIGoodData; count: number } | null>>;
     const equips: EquipSlots = {};
     const equipIndices = [201, 202, 203, 204, 205, 206, 207];
     const equipSlots: EquipSlotType[] = ["head", "neck", "body", "back", "hand", "wrist", "foot"];
@@ -562,7 +602,7 @@ export function useGameUILogic({ engine }: UseGameUILogicOptions) {
     [dispatch]
   );
 
-  const handleEquipDragStart = useCallback((slot: EquipSlotType, good: Good) => {
+  const handleEquipDragStart = useCallback((slot: EquipSlotType, good: UIGoodData) => {
     const slotIndex = slotTypeToEquipPosition(slot) + 200;
     setDragData({
       type: "equip",
@@ -605,7 +645,7 @@ export function useGameUILogic({ engine }: UseGameUILogicOptions) {
     [dispatch]
   );
 
-  const handleGoodsDragStart = useCallback((index: number, good: Good) => {
+  const handleGoodsDragStart = useCallback((index: number, good: UIGoodData) => {
     setDragData({
       type: "goods",
       index,
@@ -767,7 +807,7 @@ export function useGameUILogic({ engine }: UseGameUILogicOptions) {
   // ============= Tooltip Handlers =============
 
   const handleMouseEnter = useCallback(
-    (_: number | EquipSlotType, good: Good | null, rect: DOMRect) => {
+    (_: number | EquipSlotType, good: UIGoodData | null, rect: DOMRect) => {
       if (good) {
         setTooltip({
           isVisible: true,
@@ -816,7 +856,7 @@ export function useGameUILogic({ engine }: UseGameUILogicOptions) {
   // ============= Shop Handlers =============
 
   const handleShopItemMouseEnter = useCallback(
-    (_index: number, good: Good | null, rect: DOMRect) => {
+    (_index: number, good: UIGoodData | null, rect: DOMRect) => {
       if (good) {
         // 查找当前商店物品的自定义价格
         const shopItem = buyData.items[_index];
@@ -866,8 +906,11 @@ export function useGameUILogic({ engine }: UseGameUILogicOptions) {
     buyData,
     partnersData,
 
-    // Update trigger (用于强制刷新 player 状态)
+    // Update trigger (事件驱动：goods/magic/buy/panel/player 变化)
     updateTrigger,
+
+    // Player vitals (rAF 驱动，只有值变化才 re-render)
+    playerVitals,
 
     // NPC hover
     hoveredNpc,

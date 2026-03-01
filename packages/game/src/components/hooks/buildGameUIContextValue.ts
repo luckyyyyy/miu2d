@@ -1,45 +1,36 @@
 /**
- * buildGameUIContextValue - 构建 GameUIContext 所需数据（Classic / Modern 共享）
+ * useBuildGameUIContextValue - 构建 GameUIContext 所需数据（Classic / Modern 共享）
  *
  * 将 ClassicGameUI 和 ModernGameUIWrapper 中完全相同的 gameUIContextValue
- * 构建逻辑提取到此函数，消除重复代码。
+ * 构建逻辑提取到此 hook，消除重复代码，并用 useMemo/useCallback 稳定引用。
  *
- * 纯函数，无 React Hook，可在组件渲染阶段直接调用。
+ * - onGoodsHover 用 useCallback 稳定（setTooltip 为 useState setter，永不变）
+ * - 整体 useMemo deps：各稳定回调 + playerVitals 实际值 + width/height
+ *   只有值真正变化时 context 对象才更新，consumer 才重渲染
  */
 
+import { useCallback, useMemo } from "react";
 import type { GameUIContextValue } from "../../contexts";
 import type { GoodItemData } from "../ui/classic";
 import type { GameUILogic } from "./useGameUILogic";
 
-export function buildGameUIContextValue(
+export function useBuildGameUIContextValue(
   logic: GameUILogic,
   width: number,
   height: number,
 ): GameUIContextValue {
   const {
     togglePanel,
-    player,
+    playerVitals,
     handleMagicHover,
     handleMagicLeave,
     handleMouseLeave,
     setTooltip,
   } = logic;
 
-  return {
-    screenWidth: width,
-    screenHeight: height,
-    togglePanel,
-    playerVitals: {
-      life: player?.life ?? 100,
-      lifeMax: player?.lifeMax ?? 100,
-      mana: player?.mana ?? 50,
-      manaMax: player?.manaMax ?? 50,
-      thew: player?.thew ?? 100,
-      thewMax: player?.thewMax ?? 100,
-    },
-    onMagicHover: handleMagicHover,
-    onMagicLeave: handleMagicLeave,
-    onGoodsHover: (goodData: GoodItemData | null, x: number, y: number) => {
+  // setTooltip 是 useState setter，永远稳定，onGoodsHover 只需声明一次
+  const onGoodsHover = useCallback(
+    (goodData: GoodItemData | null, x: number, y: number) => {
       if (goodData?.good) {
         setTooltip({
           isVisible: true,
@@ -49,6 +40,29 @@ export function buildGameUIContextValue(
         });
       }
     },
-    onGoodsLeave: handleMouseLeave,
-  };
+    [setTooltip],
+  );
+
+  return useMemo(
+    () => ({
+      screenWidth: width,
+      screenHeight: height,
+      togglePanel,
+      playerVitals,
+      onMagicHover: handleMagicHover,
+      onMagicLeave: handleMagicLeave,
+      onGoodsHover,
+      onGoodsLeave: handleMouseLeave,
+    }),
+    [
+      width,
+      height,
+      togglePanel,
+      playerVitals,
+      handleMagicHover,
+      handleMagicLeave,
+      onGoodsHover,
+      handleMouseLeave,
+    ],
+  );
 }
