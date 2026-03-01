@@ -1,80 +1,88 @@
-import { isPWA } from "@miu2d/shared";
 import { useTranslation } from "react-i18next";
+import { useState } from "react";
 import { useRegisterSW } from "virtual:pwa-register/react";
 
 /**
- * PWAUpdatePrompt - 监听 Service Worker 更新，提示用户刷新以获取新版本
+ * PWAUpdatePrompt - 监听 Service Worker 更新，全屏阻挡提示用户必须刷新
  *
- * 由于引擎迭代频繁，当检测到新版本时主动提示用户，
- * 避免用户长时间使用旧版缓存。
+ * 由于引擎迭代频繁，当检测到新版本时以全屏遮罩强制提示用户刷新，
+ * 避免用户使用旧版缓存导致异常。
  */
 
 export function PWAUpdatePrompt() {
   const { t } = useTranslation();
+  const [isUpdating, setIsUpdating] = useState(false);
   const {
-    needRefresh: [needRefresh, setNeedRefresh],
+    needRefresh: [needRefresh],
     updateServiceWorker,
   } = useRegisterSW();
 
-  // 普通浏览器始终能通过刷新获取最新资源，提示无必要；
-  // 只在已安装的 PWA（standalone 模式）中才显示更新提示。
-  if (!needRefresh || !isPWA) {
+  if (!needRefresh) {
     return null;
   }
 
+  const handleUpdate = () => {
+    if (isUpdating) return;
+    setIsUpdating(true);
+    // 先直接 reload，不等待 SW 异步回调，避免用户感知延迟
+    updateServiceWorker(true);
+    window.location.reload();
+  };
+
   return (
+    // 全屏遮罩，阻挡所有交互
     <div
       style={{
         position: "fixed",
-        bottom: "1rem",
-        right: "1rem",
-        zIndex: 9999,
-        background: "#1a1a2e",
-        border: "1px solid #4a4a8a",
-        borderRadius: "8px",
-        padding: "12px 16px",
-        color: "#e0e0ff",
+        inset: 0,
+        zIndex: 99999,
+        background: "rgba(0, 0, 0, 0.85)",
         display: "flex",
         alignItems: "center",
-        gap: "12px",
-        boxShadow: "0 4px 20px rgba(0,0,0,0.6)",
-        fontSize: "14px",
-        maxWidth: "320px",
+        justifyContent: "center",
       }}
     >
-      <span>🎮 {t("pwa.updateMessage")}</span>
-      <button
-        type="button"
-        onClick={() => updateServiceWorker(true)}
+      <div
         style={{
-          background: "#4a4aff",
-          border: "none",
-          borderRadius: "4px",
-          color: "#fff",
-          cursor: "pointer",
-          padding: "4px 12px",
-          fontSize: "13px",
-          whiteSpace: "nowrap",
+          background: "#1a1a2e",
+          border: "1px solid #4a4a8a",
+          borderRadius: "12px",
+          padding: "32px 40px",
+          color: "#e0e0ff",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: "16px",
+          boxShadow: "0 8px 40px rgba(0,0,0,0.8)",
+          maxWidth: "360px",
+          textAlign: "center",
         }}
       >
-        {t("pwa.updateButton")}
-      </button>
-      <button
-        type="button"
-        onClick={() => setNeedRefresh(false)}
-        style={{
-          background: "transparent",
-          border: "none",
-          color: "#a0a0c0",
-          cursor: "pointer",
-          fontSize: "16px",
-          lineHeight: 1,
-          padding: "0 4px",
-        }}
-        aria-label={t("pwa.dismissButton")}
-      >
-        ×
-      </button>
+        <span style={{ fontSize: "40px" }}>🎮</span>
+        <p style={{ margin: 0, fontSize: "15px", lineHeight: 1.6 }}>
+          {t("pwa.updateMessage")}
+        </p>
+        <button
+          type="button"
+          onClick={handleUpdate}
+          disabled={isUpdating}
+          style={{
+            background: isUpdating ? "#3a3a8a" : "#4a4aff",
+            border: "none",
+            borderRadius: "6px",
+            color: "#fff",
+            cursor: isUpdating ? "default" : "pointer",
+            padding: "10px 28px",
+            fontSize: "14px",
+            fontWeight: 600,
+            whiteSpace: "nowrap",
+            opacity: isUpdating ? 0.7 : 1,
+            transition: "opacity 0.15s",
+          }}
+        >
+          {isUpdating ? "..." : t("pwa.updateButton")}
+        </button>
+      </div>
     </div>
   );
 }
