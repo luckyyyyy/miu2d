@@ -267,6 +267,23 @@ const ClassicTitle: React.FC<TitleGuiProps & { config: TitleGuiConfig }> = ({
 
       {/* 制作人员视频（复用通用 VideoPlayer 控件） */}
       <VideoPlayer engine={null} controlledVideoUrl={creditsVideoUrl} onControlledEnd={handleCreditsClose} />
+
+      {/* Version Badge */}
+      <div
+        style={{
+          position: "absolute",
+          right: 8,
+          bottom: 4,
+          fontSize: 10,
+          color: "rgba(255, 255, 255, 0.25)",
+          pointerEvents: "none",
+          userSelect: "none",
+          fontFamily: "sans-serif",
+          letterSpacing: 0.5,
+        }}
+      >
+        Powered by Miu2D Engine · v{__APP_VERSION__} · #{__COMMIT_HASH__}
+      </div>
     </div>
   );
 };
@@ -796,6 +813,24 @@ const ModernTitle: React.FC<TitleGuiProps> = ({ gameName, logoUrl, onNewGame, on
           pointerEvents: "none",
         }}
       />
+
+      {/* Version Badge */}
+      <div
+        style={{
+          position: "absolute",
+          right: 8,
+          bottom: 4,
+          fontSize: 10,
+          color: "rgba(255, 255, 255, 0.2)",
+          pointerEvents: "none",
+          userSelect: "none",
+          fontFamily: "sans-serif",
+          letterSpacing: 0.5,
+          zIndex: 10,
+        }}
+      >
+        Powered by Miu2D Engine · v{__APP_VERSION__} · #{__COMMIT_HASH__}
+      </div>
     </div>
   );
 };

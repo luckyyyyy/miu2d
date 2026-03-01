@@ -471,7 +471,7 @@ export const ClassicGameUI: React.FC<ClassicGameUIProps> = ({ logic, width, heig
           letterSpacing: 0.5,
         }}
       >
-        Powered by Miu2D Engine
+        Powered by Miu2D Engine · v{__APP_VERSION__} · #{__COMMIT_HASH__}
       </div>
     </GameUIContext.Provider>
   );
