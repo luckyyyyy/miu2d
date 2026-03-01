@@ -31,6 +31,10 @@ interface TitleGuiProps {
   onTeam?: () => void;
   onExit?: () => void;
   onMapViewer?: () => void;
+  /** 制作人员视频开始播放时回调（用于暂停标题背景音乐） */
+  onCreditsOpen?: () => void;
+  /** 制作人员视频关闭后回调（用于恢复标题背景音乐） */
+  onCreditsClose?: () => void;
 }
 
 export const TitleGui: React.FC<TitleGuiProps> = (props) => {
@@ -116,6 +120,8 @@ const ClassicTitle: React.FC<TitleGuiProps & { config: TitleGuiConfig }> = ({
   onLoadGame,
   onTeam,
   onExit,
+  onCreditsOpen,
+  onCreditsClose,
 }) => {
   const [bgUrl, setBgUrl] = useState<string | null>(null);
   const [bgSize, setBgSize] = useState<{ w: number; h: number } | null>(null);
@@ -175,12 +181,14 @@ const ClassicTitle: React.FC<TitleGuiProps & { config: TitleGuiConfig }> = ({
       ? getResourceUrl(`${getResourceRoot()}/${config.creditsVideo}`)
       : getResourceUrl(ResourcePath.video("team.webm"));
     setCreditsVideoUrl(url);
-  }, [config.creditsVideo]);
+    onCreditsOpen?.();
+  }, [config.creditsVideo, onCreditsOpen]);
 
   // 视频播放完毕或点击关闭
   const handleCreditsClose = useCallback(() => {
     setCreditsVideoUrl(null);
-  }, []);
+    onCreditsClose?.();
+  }, [onCreditsClose]);
 
   // 背景图渲染尺寸
   const renderedW = bgSize ? bgSize.w * scale : 0;

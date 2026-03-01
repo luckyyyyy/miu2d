@@ -136,6 +136,20 @@ export default function GameScreen() {
     saveAudioSettings({ musicVolume: v });
   }, []);
 
+  // 制作人员视频开始时暂停标题背景音乐
+  const handleTitleCreditsOpen = useCallback(() => {
+    if (titleAudioRef.current) {
+      titleAudioRef.current.pause();
+    }
+  }, []);
+
+  // 制作人员视频关闭后恢复标题背景音乐
+  const handleTitleCreditsClose = useCallback(() => {
+    if (titleAudioRef.current) {
+      titleAudioRef.current.play().catch(() => {});
+    }
+  }, []);
+
   useEffect(() => {
     if (gamePhase === "title" && titleMusic && gameSlug) {
       const audio = new Audio(getResourceUrl(ResourcePath.music(titleMusic)));
@@ -501,6 +515,8 @@ export default function GameScreen() {
               screenHeight={window.innerHeight}
               onNewGame={handleNewGame}
               onLoadGame={handleLoadGame}
+              onCreditsOpen={handleTitleCreditsOpen}
+              onCreditsClose={handleTitleCreditsClose}
             />
           </div>
         )}
