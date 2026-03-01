@@ -3,7 +3,7 @@
  * 使用毛玻璃效果 + 武侠配色，参考MagicPanel/StatePanel设计
  */
 
-import type { Good } from "@miu2d/engine/player/goods";
+import type { UIGoodData } from "@miu2d/engine/gui/ui-types";
 import type React from "react";
 import { useCallback, useMemo, useState } from "react";
 import { useGameUIContext } from "../../../contexts";
@@ -31,8 +31,8 @@ interface EquipPanelProps {
   onSlotClick?: (slot: EquipSlotType) => void;
   onSlotRightClick?: (slot: EquipSlotType) => void;
   onSlotDrop?: (slot: EquipSlotType, dragData: DragData) => void;
-  onSlotDragStart?: (slot: EquipSlotType, good: Good) => void;
-  onSlotMouseEnter?: (slot: EquipSlotType, good: Good | null, rect: DOMRect) => void;
+  onSlotDragStart?: (slot: EquipSlotType, good: UIGoodData) => void;
+  onSlotMouseEnter?: (slot: EquipSlotType, good: UIGoodData | null, rect: DOMRect) => void;
   onSlotMouseLeave?: () => void;
   onClose: () => void;
   dragData?: DragData | null;
