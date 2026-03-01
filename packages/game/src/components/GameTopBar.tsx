@@ -4,11 +4,7 @@
  * 左侧显示游戏名字，中间显示工具栏图标，右侧显示登录头像
  */
 
-import { useAuth } from "@miu2d/shared";
-
-const isPWA =
-  window.matchMedia("(display-mode: standalone)").matches ||
-  ("standalone" in navigator && (navigator as { standalone?: boolean }).standalone === true);
+import { isPWA, useAuth } from "@miu2d/shared";
 
 export interface ToolbarButton {
   id: string;
