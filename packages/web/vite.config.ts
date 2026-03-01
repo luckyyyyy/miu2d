@@ -110,6 +110,41 @@ export default defineConfig({
       },
     }),
   ],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id: string) {
+          // @miu2d/engine — game engine core (large, changes independently)
+          if (id.includes("/packages/engine/src/")) return "engine";
+          // @miu2d/game — game runtime / GameScreen
+          if (id.includes("/packages/game/src/")) return "game";
+          // @miu2d/dashboard — admin / dashboard
+          if (id.includes("/packages/dashboard/src/")) return "dashboard";
+          // @miu2d/shared + @miu2d/ui + @miu2d/types — shared utilities
+          if (
+            id.includes("/packages/shared/src/") ||
+            id.includes("/packages/ui/src/") ||
+            id.includes("/packages/types/src/")
+          )
+            return "shared";
+          // Monaco editor (shared by game and dashboard)
+          if (
+            id.includes("node_modules/monaco-editor/") ||
+            id.includes("node_modules/@monaco-editor/")
+          )
+            return "monaco";
+          // React ecosystem
+          if (
+            id.includes("node_modules/react/") ||
+            id.includes("node_modules/react-dom/") ||
+            id.includes("node_modules/react-router") ||
+            id.includes("node_modules/scheduler/")
+          )
+            return "vendor-react";
+        },
+      },
+    },
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
