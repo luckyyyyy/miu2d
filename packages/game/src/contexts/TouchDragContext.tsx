@@ -6,7 +6,7 @@
  */
 
 import type { MagicItemInfo } from "@miu2d/engine/magic";
-import type { Good } from "@miu2d/engine/player/goods";
+import type { UIGoodData } from "@miu2d/engine/gui/ui-types";
 import { createContext, type ReactNode, useCallback, useContext, useRef, useState } from "react";
 
 /** 拖拽数据类型 */
@@ -25,7 +25,7 @@ export interface TouchDragData {
   /** 技能详细信息（用于显示） */
   magicInfo?: MagicItemInfo | null;
   /** 物品详细信息（用于显示） */
-  goodsInfo?: Good | null;
+  goodsInfo?: UIGoodData | null;
   /** 显示名称 */
   displayName?: string;
   /** 图标路径 */

@@ -3,7 +3,7 @@
  * 参考 StatePanel 的设计风格
  */
 
-import type { Good } from "@miu2d/engine/player/goods";
+import type { UIGoodData } from "@miu2d/engine/gui/ui-types";
 import type React from "react";
 import { useCallback, useMemo, useState } from "react";
 import { useGameUIContext } from "../../../contexts";
@@ -30,14 +30,14 @@ interface GoodsPanelProps {
   onItemClick?: (index: number) => void;
   onItemRightClick?: (index: number) => void;
   onItemDrop?: (targetIndex: number, dragData: DragData) => void;
-  onItemDragStart?: (index: number, good: Good) => void;
+  onItemDragStart?: (index: number, good: UIGoodData) => void;
   /** @deprecated 使用 onItemHover 替代 */
-  onItemMouseEnter?: (index: number, good: Good | null, rect: DOMRect) => void;
+  onItemMouseEnter?: (index: number, good: UIGoodData | null, rect: DOMRect) => void;
   onItemMouseLeave?: () => void;
   onClose: () => void;
   dragData?: DragData | null;
   onTouchDrop?: (targetIndex: number, data: TouchDragData) => void;
-  onItemHover?: (good: Good | null, x: number, y: number) => void;
+  onItemHover?: (good: UIGoodData | null, x: number, y: number) => void;
 }
 
 interface ItemSlotProps {

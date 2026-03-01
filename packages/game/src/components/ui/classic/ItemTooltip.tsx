@@ -11,14 +11,14 @@ import { colorToCSS, type UiColorRGBA } from "@miu2d/engine/gui/ui-settings";
 function solidColor(c: UiColorRGBA): string {
   return `rgb(${c.r},${c.g},${c.b})`;
 }
-import type { Good } from "@miu2d/engine/player/goods";
+import type { UIGoodData } from "@miu2d/engine/gui/ui-types";
 import type React from "react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useToolTipType1Config, useToolTipType2Config, useToolTipUseTypeConfig } from "./useUISettings";
 import { useAsfImage } from "./hooks";
 
 interface ItemTooltipProps {
-  good: Good | null;
+  good: UIGoodData | null;
   isRecycle?: boolean;
   shopPrice?: number;
   position: { x: number; y: number };
@@ -356,7 +356,7 @@ export const ItemTooltip: React.FC<ItemTooltipProps> = (props) => {
 // ============= Tooltip Manager State =============
 
 export interface TooltipState {
-  good: Good | null;
+  good: UIGoodData | null;
   isRecycle: boolean;
   position: { x: number; y: number };
   isVisible: boolean;

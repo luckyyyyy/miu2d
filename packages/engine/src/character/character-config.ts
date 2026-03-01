@@ -436,6 +436,25 @@ export async function loadCharacterConfig(url: string): Promise<CharacterConfig 
 
 // ============= Apply to Character =============
 
+// ============= Private Type Boundary Helpers =============
+// FIELD_DEFS drives all field reads/writes dynamically via string keys.
+// Typed interfaces (CharacterConfig, CharacterStats, CharacterInstance) have no
+// index signatures, so string-keyed access requires a cast at the boundary.
+// These three helpers centralise the cast to a single point each; all function
+// bodies below use these helpers instead of repeating double-casts.
+
+function asConfigRecord(config: CharacterConfig): Record<string, unknown> {
+  return config as unknown as Record<string, unknown>;
+}
+
+function asStatsRecord(stats: CharacterStats): Record<string, number | undefined> {
+  return stats as unknown as Record<string, number | undefined>;
+}
+
+function asInstanceRecord(instance: CharacterInstance): Record<string, unknown> {
+  return instance as unknown as Record<string, unknown>;
+}
+
 /**
  * Apply fields from config to character record
  * Pure assignment, no side effects
@@ -451,9 +470,9 @@ function applyFields(
     let value: string | number | boolean | undefined;
 
     if (def.target === "stats" && stats) {
-      value = (stats as unknown as Record<string, number>)[def.prop];
+      value = asStatsRecord(stats)[def.prop];
     } else {
-      value = (config as unknown as Record<string, string | number | boolean>)[def.prop];
+      value = asConfigRecord(config)[def.prop] as string | number | boolean | undefined;
     }
 
     if (value !== undefined && value !== null) {
@@ -471,7 +490,7 @@ export function applyConfigToCharacter(
   config: CharacterConfig,
   character: CharacterInstance
 ): void {
-  applyFields(CHAR_FIELDS, config, character as unknown as Record<string, unknown>);
+  applyFields(CHAR_FIELDS, config, asInstanceRecord(character));
 }
 
 /**
@@ -491,7 +510,7 @@ export function applyFlatDataToCharacter(
   includePlayerFields: boolean = false
 ): void {
   const props = includePlayerFields ? ALL_PROPS : CHAR_PROPS;
-  const charRecord = character as unknown as Record<string, unknown>;
+  const charRecord = asInstanceRecord(character);
 
   for (const prop of props) {
     const value = data[prop];
@@ -525,9 +544,9 @@ export function buildCharacterConfigFromFlatData(
     if (parsed === undefined) continue;
 
     if (def.target === "stats") {
-      (config.stats as unknown as Record<string, unknown>)[def.prop] = parsed;
+      asStatsRecord(config.stats)[def.prop] = parsed as number;
     } else {
-      (config as unknown as Record<string, unknown>)[def.prop] = parsed;
+      asConfigRecord(config)[def.prop] = parsed;
     }
   }
 
@@ -543,12 +562,9 @@ export function extractConfigFromCharacter(
   character: CharacterInstance,
   isPlayer: boolean = false
 ): CharacterConfig {
-  const config: Record<string, string | number | boolean | CharacterStats> = {};
-  const stats: Record<string, number> = {};
-  const charRecord = character as unknown as Record<
-    string,
-    string | number | boolean | ((...args: unknown[]) => unknown)
-  >;
+  const rawConfig: Record<string, unknown> = {};
+  const rawStats: Record<string, number> = {};
+  const charRecord = asInstanceRecord(character);
 
   for (const def of FIELD_DEFS) {
     // Skip player-only fields if not a player
@@ -558,36 +574,33 @@ export function extractConfigFromCharacter(
     if (typeof value === "function") continue;
 
     if (def.target === "stats") {
-      stats[def.prop] = value as number;
+      rawStats[def.prop] = value as number;
     } else {
-      config[def.prop] = value as string | number | boolean;
+      rawConfig[def.prop] = value;
     }
   }
 
-  config.stats = stats as unknown as CharacterStats;
-  return config as unknown as CharacterConfig;
+  rawConfig.stats = rawStats;
+  return rawConfig as unknown as CharacterConfig;
 }
 
 /**
  * Extract CharacterStats from a Character instance
  */
 export function extractStatsFromCharacter(character: CharacterInstance): CharacterStats {
-  const stats: Record<string, number> = {};
-  const charRecord = character as unknown as Record<
-    string,
-    string | number | boolean | ((...args: unknown[]) => unknown)
-  >;
+  const rawStats: Record<string, number> = {};
+  const charRecord = asInstanceRecord(character);
 
   for (const def of FIELD_DEFS) {
     if (def.target === "stats") {
       const value = charRecord[def.prop];
       if (typeof value !== "function") {
-        stats[def.prop] = value as number;
+        rawStats[def.prop] = value as number;
       }
     }
   }
 
-  return stats as unknown as CharacterStats;
+  return rawStats as unknown as CharacterStats;
 }
 
 /**
@@ -605,7 +618,7 @@ export function extractFlatDataFromCharacter(
   includePlayerFields: boolean = false
 ): Record<string, unknown> {
   const props = includePlayerFields ? ALL_PROPS : CHAR_PROPS;
-  const charRecord = character as unknown as Record<string, unknown>;
+  const charRecord = asInstanceRecord(character);
   const result: Record<string, unknown> = {};
 
   for (const prop of props) {

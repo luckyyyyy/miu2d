@@ -17,10 +17,10 @@ import type {
   UIShopState,
   UITimerState,
 } from "@miu2d/engine/gui/ui-types";
-import type { Good } from "@miu2d/engine/player/goods";
 import type React from "react";
 import { useCallback, useMemo, useState } from "react";
-import type { DragData, EquipSlotType, GoodItemData } from "../classic";
+import type { DragData, EquipSlotType, GoodItemData, MagicItem } from "../classic";
+import type { XiuLianMagic } from "../classic/XiuLianGui";
 import type { PlayerStats } from "../classic/StateGui";
 import { GameUIContext } from "../../../contexts";
 import type { MagicHoverData } from "../../../contexts";
@@ -87,12 +87,12 @@ export const ModernGameUI: React.FC<ModernGameUIProps> = ({
   // 拖拽状态
   const [dragData, setDragData] = useState<DragData | null>(null);
 
-  // Tooltip状态
-  const [tooltipItem, setTooltipItem] = useState<{
-    type: "item" | "magic";
-    data: UIGoodData | UIMagicData;
-    position: { x: number; y: number };
-  } | null>(null);
+  // Tooltip状态 - 判别联合，消除 as unknown as 类型断言
+  const [tooltipItem, setTooltipItem] = useState<
+    | { type: "item"; data: UIGoodData; position: { x: number; y: number } }
+    | { type: "magic"; data: UIMagicData; position: { x: number; y: number } }
+    | null
+  >(null);
 
   // 转换玩家状态为 PlayerStats
   const playerStats: PlayerStats = useMemo(
@@ -118,7 +118,7 @@ export const ModernGameUI: React.FC<ModernGameUIProps> = ({
   const goodsItems = useMemo((): (GoodItemData | null)[] => {
     if (!goodsState) return [];
     return goodsState.items.map((slot) =>
-      slot?.good ? { good: slot.good as unknown as GoodItemData["good"], count: slot.count } : null
+      slot?.good ? { good: slot.good, count: slot.count } : null
     );
   }, [goodsState]);
 
@@ -194,7 +194,7 @@ export const ModernGameUI: React.FC<ModernGameUIProps> = ({
     if (good) {
       setTooltipItem({
         type: "item",
-        data: good as unknown as UIGoodData,
+        data: good,
         position: { x: x + 16, y },
       });
     } else {
@@ -218,7 +218,7 @@ export const ModernGameUI: React.FC<ModernGameUIProps> = ({
     if (goodData?.good) {
       setTooltipItem({
         type: "item",
-        data: goodData.good as unknown as UIGoodData,
+        data: goodData.good,
         position: { x, y },
       });
     }
@@ -232,7 +232,7 @@ export const ModernGameUI: React.FC<ModernGameUIProps> = ({
       if (originalMagic) {
         setTooltipItem({
           type: "magic",
-          data: originalMagic as unknown as UIMagicData,
+          data: originalMagic,
           position: { x, y },
         });
       }
@@ -279,7 +279,7 @@ export const ModernGameUI: React.FC<ModernGameUIProps> = ({
   const bottomGoodsItems = useMemo(() => {
     if (!goodsState?.bottomGoods) return [];
     return goodsState.bottomGoods.map((slot) =>
-      slot?.good ? { good: slot.good as unknown as GoodItemData["good"], count: slot.count } : null
+      slot?.good ? { good: slot.good, count: slot.count } : null
     );
   }, [goodsState]);
 
@@ -357,26 +357,26 @@ export const ModernGameUI: React.FC<ModernGameUIProps> = ({
       <EquipPanel
         isVisible={activePanel === "equip"}
         equips={{
-          head: goodsState?.equips?.head
-            ? { good: goodsState.equips.head.good as unknown as Good, count: 1 }
+          head: goodsState?.equips?.head?.good
+            ? { good: goodsState.equips.head.good, count: 1 }
             : null,
-          neck: goodsState?.equips?.neck
-            ? { good: goodsState.equips.neck.good as unknown as Good, count: 1 }
+          neck: goodsState?.equips?.neck?.good
+            ? { good: goodsState.equips.neck.good, count: 1 }
             : null,
-          body: goodsState?.equips?.body
-            ? { good: goodsState.equips.body.good as unknown as Good, count: 1 }
+          body: goodsState?.equips?.body?.good
+            ? { good: goodsState.equips.body.good, count: 1 }
             : null,
-          back: goodsState?.equips?.back
-            ? { good: goodsState.equips.back.good as unknown as Good, count: 1 }
+          back: goodsState?.equips?.back?.good
+            ? { good: goodsState.equips.back.good, count: 1 }
             : null,
-          hand: goodsState?.equips?.hand
-            ? { good: goodsState.equips.hand.good as unknown as Good, count: 1 }
+          hand: goodsState?.equips?.hand?.good
+            ? { good: goodsState.equips.hand.good, count: 1 }
             : null,
-          wrist: goodsState?.equips?.wrist
-            ? { good: goodsState.equips.wrist.good as unknown as Good, count: 1 }
+          wrist: goodsState?.equips?.wrist?.good
+            ? { good: goodsState.equips.wrist.good, count: 1 }
             : null,
-          foot: goodsState?.equips?.foot
-            ? { good: goodsState.equips.foot.good as unknown as Good, count: 1 }
+          foot: goodsState?.equips?.foot?.good
+            ? { good: goodsState.equips.foot.good, count: 1 }
             : null,
         }}
         onSlotClick={handleEquipClick}
@@ -403,16 +403,14 @@ export const ModernGameUI: React.FC<ModernGameUIProps> = ({
       {/* 武功面板 */}
       <MagicPanel
         isVisible={activePanel === "magic"}
-        magicInfos={
-          magicState?.storeMagics?.map((slot) =>
+        magics={
+          magicState?.storeMagics?.map((slot): MagicItem | null =>
             slot?.magic
               ? {
-                  magic: slot.magic as unknown as import("@miu2d/engine/magic").MagicData,
+                  id: slot.magic.fileName,
+                  name: slot.magic.name,
+                  iconPath: slot.magic.iconPath,
                   level: slot.magic.level ?? 0,
-                  exp: slot.magic.currentLevelExp ?? 0,
-                  remainColdMilliseconds: 0,
-                  hideCount: 0,
-                  lastIndexWhenHide: 0,
                 }
               : null
           ) ?? []
@@ -425,17 +423,17 @@ export const ModernGameUI: React.FC<ModernGameUIProps> = ({
       {/* 修炼面板 */}
       <XiuLianPanel
         isVisible={activePanel === "xiulian"}
-        magicInfo={
+        magic={
           magicState?.xiuLianMagic?.magic
-            ? {
-                magic: magicState.xiuLianMagic
-                  .magic as unknown as import("@miu2d/engine/magic").MagicData,
+            ? ({
+                id: magicState.xiuLianMagic.magic.fileName,
+                name: magicState.xiuLianMagic.magic.name,
+                iconPath: magicState.xiuLianMagic.magic.iconPath,
                 level: magicState.xiuLianMagic.magic.level ?? 0,
                 exp: magicState.xiuLianMagic.magic.currentLevelExp ?? 0,
-                remainColdMilliseconds: 0,
-                hideCount: 0,
-                lastIndexWhenHide: 0,
-              }
+                levelUpExp: magicState.xiuLianMagic.magic.levelUpExp ?? 0,
+                intro: magicState.xiuLianMagic.magic.intro ?? "",
+              } satisfies XiuLianMagic)
             : null
         }
         onClose={closePanel}
@@ -515,7 +513,7 @@ export const ModernGameUI: React.FC<ModernGameUIProps> = ({
         items={
           shopState?.items?.map((item) =>
             item
-              ? { good: item.good as unknown as Good, count: item.count, price: item.price }
+              ? { good: item.good, count: item.count, price: item.price }
               : null
           ) ?? []
         }
@@ -554,7 +552,7 @@ export const ModernGameUI: React.FC<ModernGameUIProps> = ({
       {tooltipItem?.type === "item" && (
         <ItemTooltip
           isVisible={true}
-          good={tooltipItem.data as unknown as GoodItemData["good"]}
+          good={tooltipItem.data}
           position={tooltipItem.position}
         />
       )}
@@ -563,7 +561,7 @@ export const ModernGameUI: React.FC<ModernGameUIProps> = ({
       {tooltipItem?.type === "magic" && (
         <MagicTooltip
           isVisible={true}
-          magic={tooltipItem.data as unknown as UIMagicData}
+          magic={tooltipItem.data}
           position={tooltipItem.position}
         />
       )}

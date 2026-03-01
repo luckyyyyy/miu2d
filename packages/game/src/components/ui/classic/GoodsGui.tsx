@@ -6,7 +6,7 @@
  * Resources loaded from UI_Settings.ini
  */
 
-import type { Good } from "@miu2d/engine/player/goods";
+import type { UIGoodData } from "@miu2d/engine/gui/ui-types";
 import { useDevice } from "@miu2d/shared";
 import type React from "react";
 import { useCallback, useMemo, useState } from "react";
@@ -19,7 +19,7 @@ import { useGoodsGuiConfig } from "./useUISettings";
 
 // Item data with Good reference
 export interface GoodItemData {
-  good: Good;
+  good: UIGoodData;
   count: number;
 }
 
@@ -31,8 +31,8 @@ interface GoodsGuiProps {
   onItemClick?: (index: number) => void;
   onItemRightClick?: (index: number) => void;
   onItemDrop?: (targetIndex: number, dragData: DragData) => void;
-  onItemDragStart?: (index: number, good: Good) => void;
-  onItemMouseEnter?: (index: number, good: Good | null, rect: DOMRect) => void;
+  onItemDragStart?: (index: number, good: UIGoodData) => void;
+  onItemMouseEnter?: (index: number, good: UIGoodData | null, rect: DOMRect) => void;
   onItemMouseLeave?: () => void;
   onClose: () => void;
   dragData?: DragData | null;

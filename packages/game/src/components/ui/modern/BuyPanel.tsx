@@ -3,7 +3,7 @@
  * Props 与经典 BuyGui 完全一致
  */
 
-import type { Good } from "@miu2d/engine/player/goods";
+import type { UIGoodData } from "@miu2d/engine/gui/ui-types";
 import type React from "react";
 import { useCallback, useMemo, useState } from "react";
 import { useAsfImage } from "../classic/hooks";
@@ -12,7 +12,7 @@ import { borderRadius, glassEffect, modernColors, spacing, typography } from "./
 
 // 商店物品数据（与经典 UI 一致）
 export interface ShopItemData {
-  good: Good;
+  good: UIGoodData;
   count: number; // -1 表示无限数量
   price: number; // 已计算好的最终价格（含自定义价格 + buyPercent）
 }
@@ -24,7 +24,7 @@ interface BuyPanelProps {
   numberValid: boolean;
   onItemClick?: (index: number) => void;
   onItemRightClick?: (index: number) => void; // 右键购买
-  onItemMouseEnter?: (index: number, good: Good | null, rect: DOMRect) => void;
+  onItemMouseEnter?: (index: number, good: UIGoodData | null, rect: DOMRect) => void;
   onItemMouseLeave?: () => void;
   onClose: () => void;
 }

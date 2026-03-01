@@ -6,7 +6,7 @@
  * Resources loaded from UI_Settings.ini
  */
 
-import type { Good } from "@miu2d/engine/player/goods";
+import type { UIGoodData } from "@miu2d/engine/gui/ui-types";
 import { useDevice } from "@miu2d/shared";
 import type React from "react";
 import { useCallback, useMemo } from "react";
@@ -62,7 +62,7 @@ export function slotTypeToEquipPosition(slot: EquipSlotType): number {
 
 // Equipped item data
 export interface EquipItemData {
-  good: Good;
+  good: UIGoodData;
   count: number;
 }
 
@@ -73,7 +73,7 @@ export type EquipSlots = Partial<Record<EquipSlotType, EquipItemData | null>>;
 export interface DragData {
   type: "equip" | "goods" | "bottom";
   index: number;
-  good: Good;
+  good: UIGoodData;
   sourceSlot?: EquipSlotType;
 }
 
@@ -84,8 +84,8 @@ interface EquipGuiProps {
   onSlotClick?: (slot: EquipSlotType) => void;
   onSlotRightClick?: (slot: EquipSlotType) => void;
   onSlotDrop?: (slot: EquipSlotType, dragData: DragData) => void;
-  onSlotDragStart?: (slot: EquipSlotType, good: Good) => void;
-  onSlotMouseEnter?: (slot: EquipSlotType, good: Good | null, rect: DOMRect) => void;
+  onSlotDragStart?: (slot: EquipSlotType, good: UIGoodData) => void;
+  onSlotMouseEnter?: (slot: EquipSlotType, good: UIGoodData | null, rect: DOMRect) => void;
   onSlotMouseLeave?: () => void;
   onClose: () => void;
   dragData?: DragData | null;
