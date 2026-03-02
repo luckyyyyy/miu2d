@@ -434,7 +434,7 @@ export default function GameScreen() {
   }, []);
 
   // ===== 顶栏显示 =====
-  const showTopBar = !isEmbed && (gamePhase === "title" || gamePhase === "playing");
+  const showTopBar = !isEmbed && !isMobile && (gamePhase === "title" || gamePhase === "playing");
 
   return (
     <TouchDragProvider>
