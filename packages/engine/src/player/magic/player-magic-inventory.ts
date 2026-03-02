@@ -813,7 +813,7 @@ export class PlayerMagicInventory {
   assignMagicToBottomSlot(storeIndex: number, slotIndex: number): boolean {
     if (slotIndex < 0 || slotIndex >= MAGIC_LIST_CONFIG.bottomSlotCount) return false;
 
-    // 将槽位现有物品归还面板
+    // 将槽位现有物品归还面板（若无空位则拒绝操作）
     const existing = this.bottomSlots[slotIndex];
     if (existing !== null) {
       const freeIdx = this.getFreeIndex();
@@ -821,6 +821,7 @@ export class PlayerMagicInventory {
         this.getActiveMagicList()[freeIdx] = existing;
       } else {
         logger.warn(`[PlayerMagicInventory] No free panel slot to return bottom item: ${existing.magic?.fileName}`);
+        return false;
       }
     }
 
@@ -899,7 +900,11 @@ export class PlayerMagicInventory {
   // ============= 快捷栏存档支持 =============
 
   /**
-   * 获取快捷栏引用数组（向后兼容 ui-bridge.ts：非空槽位返回虚拟 id 1-5，空槽位返回 null）
+   * 获取快捷栏引用数组（向后兼容 ui-bridge.ts）
+   *
+   * 注意：新架构下快捷栏物理持有物品，不再有 storeIndex 引用。
+   * 为保持与 ui-bridge.ts 的类型兼容，非空槽位返回虚拟槽位 id（1-5），空槽位返回 null。
+   * UI 层改造由独立任务处理（参见 ui-bridge.ts）。
    */
   getBottomSlots(): (number | null)[] {
     return this.bottomSlots.map((item, s) => (item !== null ? s + 1 : null));
@@ -925,7 +930,7 @@ export class PlayerMagicInventory {
   /**
    * 从存档直接设置快捷栏物品（用于 loadMagicContainer，绕过物理移动逻辑）
    */
-  _setBottomSlotDirect(slot: number, item: MagicItemInfo | null): void {
+  setBottomSlotForLoad(slot: number, item: MagicItemInfo | null): void {
     if (slot >= 0 && slot < MAGIC_LIST_CONFIG.bottomSlotCount) {
       this.bottomSlots[slot] = item;
     }

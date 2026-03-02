@@ -189,8 +189,8 @@ export class SaveDataCollector {
     // 快捷栏物品（独立 bottomItems）
     const bottomItemsArr: (GoodsSaveItem | null)[] = [];
     for (let s = 0; s < BOTTOM_ITEMS_COUNT; s++) {
-      const info = goodsListManager.getBottomItemAtSlot(s);
-      bottomItemsArr.push(info?.good ? { fileName: info.good.fileName, count: info.count } : null);
+      const slotItemInfo = goodsListManager.getBottomItemAtSlot(s);
+      bottomItemsArr.push(slotItemInfo?.good ? { fileName: slotItemInfo.good.fileName, count: slotItemInfo.count } : null);
     }
 
     return { bagItems, equipItems, bottomItems: bottomItemsArr };

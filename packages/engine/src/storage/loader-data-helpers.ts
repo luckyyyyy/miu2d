@@ -74,7 +74,7 @@ export async function loadPlayerFromJSON(data: PlayerSaveData, player: Player): 
  * 旧存档兼容：
  * - 旧版快捷栏占用 magicList[40..44]，加载时保留在原 store 索引并重建 bottomSlots
  * - xiuLianIndex=49 在新设计中仍为有效 store 索引（1..60），自动兼容
- * - index=61 的武功直接作为修炼武功（通过 _placeMagicItemSync 特殊处理）
+ * - index=61 的武功会被 visibleMagics 过滤掉；修炼武功由最后的 setXiuLianIndex 调用设置
  */
 export async function loadMagicsFromJSON(
   magics: MagicItemData[],
@@ -120,7 +120,7 @@ export async function loadMagicsFromJSON(
     );
   }
 
-  // 设置修炼武功（index=61 已由 _placeMagicItemSync 处理；其他索引物理移出面板）
+  // 设置修炼武功（setXiuLianIndex 将面板武功物理移出并设为修炼；index=0 表示清空修炼武功）
   magicInventory.setXiuLianIndex(xiuLianIndex);
 
   // 恢复快捷栏（物理移动面板武功到快捷栏）
@@ -342,7 +342,7 @@ export async function loadMagicContainer(
     const itemInfo = createDefaultMagicItemInfo(levelMagic, item.level);
     itemInfo.exp = item.exp;
     // 直接设置快捷栏物品（绕过物理移动逻辑，适用于存档加载）
-    inventory._setBottomSlotDirect(s, itemInfo);
+    inventory.setBottomSlotForLoad(s, itemInfo);
   }
 
   // 加载隐藏武功
