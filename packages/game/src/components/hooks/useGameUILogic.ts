@@ -219,10 +219,10 @@ export function useGameUILogic({ engine }: UseGameUILogicOptions) {
       return { items: [], equips: {}, bottomGoods: [], money: 0 };
     }
 
-    // 底栏物品
+    // 底栏物品（独立容器，3 个槽位）
     const bottomGoods: ({ good: UIGoodData; count: number } | null)[] = [];
-    for (let i = 221; i <= 223; i++) {
-      const entry = goodsManager.getItemInfo(i);
+    for (let i = 0; i < 3; i++) {
+      const entry = goodsManager.getBottomItemAtSlot(i);
       if (entry?.good) {
         bottomGoods.push({ good: entry.good, count: entry.count });
       } else {
@@ -230,9 +230,9 @@ export function useGameUILogic({ engine }: UseGameUILogicOptions) {
       }
     }
 
-    // 背包物品
+    // 背包物品（1-500）
     const items: ({ good: UIGoodData; count: number } | null)[] = [];
-    for (let i = 1; i <= 198; i++) {
+    for (let i = 1; i <= 500; i++) {
       const entry = goodsManager.getItemInfo(i);
       if (entry?.good) {
         items.push({ good: entry.good, count: entry.count });
