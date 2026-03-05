@@ -8,7 +8,7 @@
     "dev:web": "pnpm --filter @miu2d/web dev",
     "dev:server": "pnpm --filter @miu2d/server dev",
     "build": "pnpm -r build",
-    "build:web": "pnpm --filter @miu2d/server gen:trpc && pnpm --filter @miu2d/engine build && pnpm --filter @miu2d/web build",
+    "build:web": "pnpm --filter @miu2d/server db:generate && pnpm --filter @miu2d/server gen:trpc && pnpm --filter @miu2d/engine build && pnpm --filter @miu2d/web build",
     "build:wasm": "bash scripts/build-wasm.sh",
     "lint": "biome lint packages/",
     "format": "biome format --write packages/",

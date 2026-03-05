@@ -105,7 +105,7 @@ Most web game projects reach for PixiJS, Phaser, or a WASM-compiled Unity/Godot 
 | ↳ Character | `character/` | 8-level inheritance chain · NPC AI · bezier movement |
 | ↳ Magic | `magic/` | 22 MoveKind trajectories · 10 SpecialKind effects |
 | **WASM** | `@miu2d/engine-wasm` | Rust → WebAssembly · A\* pathfinder · decoders · SpatialHash · zstd |
-| **Backend** | `@miu2d/server` | Hono + tRPC + Drizzle ORM · 21 PostgreSQL tables · 19 routers |
+| **Backend** | `@miu2d/server` | Hono + tRPC + Prisma ORM · 21 PostgreSQL tables · 19 routers |
 | **Editor** | `@miu2d/dashboard` | VS Code-style layout · 13 editing modules |
 
 ### Tech Stack
@@ -117,7 +117,7 @@ Most web game projects reach for PixiJS, Phaser, or a WASM-compiled Unity/Godot 
 | Rendering | Raw WebGL API (Canvas 2D fallback) |
 | Audio | Web Audio API (OGG Vorbis) |
 | Performance | Rust → WebAssembly (wasm-bindgen, zero-copy) |
-| Backend | Hono (lightweight HTTP) · tRPC 11 · Drizzle ORM |
+| Backend | Hono (lightweight HTTP) · tRPC 11 · Prisma ORM |
 | Database | PostgreSQL 16 · MinIO / S3 |
 | Validation | Zod 4 (shared schemas across client & server) |
 | Quality | Biome (lint + format) · TypeScript strict mode |
