@@ -6,10 +6,10 @@
  */
 
 import type { FileNode } from "@miu2d/types";
+import { Prisma } from "@prisma/client";
+import type { File as PrismaFile } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
-import { and, eq, inArray, isNull } from "drizzle-orm";
 import { db } from "../../db/client";
-import { files } from "../../db/schema";
 import { getMessage, type Language } from "../../i18n";
 import * as s3 from "../../storage/s3";
 import { verifyGameAccess } from "../../utils/gameAccess";
@@ -19,7 +19,7 @@ import { verifyGameAccess } from "../../utils/gameAccess";
  * @param dbFile 数据库文件记录
  * @param path 文件完整路径（可选，默认为文件名）
  */
-export function toFileNodeOutput(dbFile: typeof files.$inferSelect, path?: string): FileNode {
+export function toFileNodeOutput(dbFile: PrismaFile, path?: string): FileNode {
   return {
     id: dbFile.id,
     gameId: dbFile.gameId,
@@ -46,11 +46,10 @@ export class FileService {
     let currentId: string | null = fileId;
 
     while (currentId) {
-      const [file] = await db
-        .select({ id: files.id, name: files.name, parentId: files.parentId })
-        .from(files)
-        .where(eq(files.id, currentId))
-        .limit(1);
+      const file: { id: string; name: string; parentId: string | null } | null = await db.file.findFirst({
+        where: { id: currentId },
+        select: { id: true, name: true, parentId: true },
+      });
 
       if (!file) break;
 
@@ -83,11 +82,11 @@ export class FileService {
     // 获取父目录路径
     const parentPath = await this.getDirectoryPath(parentId ?? null);
 
-    const condition = parentId
-      ? and(eq(files.gameId, gameId), eq(files.parentId, parentId), isNull(files.deletedAt))
-      : and(eq(files.gameId, gameId), isNull(files.parentId), isNull(files.deletedAt));
+    const condition = parentId !== undefined && parentId !== null
+      ? { gameId, parentId, deletedAt: null as null }
+      : { gameId, parentId: null as null, deletedAt: null as null };
 
-    const rows = await db.select().from(files).where(condition);
+    const rows = await db.file.findMany({ where: condition });
     return rows.map((row) => toFileNodeOutput(row, `${parentPath}/${row.name}`));
   }
 
@@ -106,15 +105,9 @@ export class FileService {
     // 检查同名文件/目录
     await this.checkNameConflict(gameId, parentId ?? null, name, language);
 
-    const [folder] = await db
-      .insert(files)
-      .values({
-        gameId,
-        parentId: parentId ?? null,
-        name,
-        type: "folder",
-      })
-      .returning();
+    const folder = await db.file.create({
+      data: { gameId, parentId: parentId ?? null, name, type: "folder" },
+    });
 
     const parentPath = await this.getDirectoryPath(parentId ?? null);
     return toFileNodeOutput(folder, `${parentPath}/${folder.name}`);
@@ -130,21 +123,11 @@ export class FileService {
     language: Language,
     excludeId?: string
   ): Promise<void> {
-    const condition = parentId
-      ? and(
-          eq(files.gameId, gameId),
-          eq(files.parentId, parentId),
-          eq(files.name, name),
-          isNull(files.deletedAt)
-        )
-      : and(
-          eq(files.gameId, gameId),
-          isNull(files.parentId),
-          eq(files.name, name),
-          isNull(files.deletedAt)
-        );
+    const condition = parentId !== null
+      ? { gameId, parentId, name, deletedAt: null as null }
+      : { gameId, parentId: null as null, name, deletedAt: null as null };
 
-    const [existing] = await db.select({ id: files.id }).from(files).where(condition).limit(1);
+    const existing = await db.file.findFirst({ where: condition, select: { id: true } });
 
     if (existing && existing.id !== excludeId) {
       throw new TRPCError({
@@ -172,23 +155,22 @@ export class FileService {
     await this.checkNameConflict(gameId, parentId ?? null, name, language);
 
     // 创建文件记录（待确认状态）
-    const [file] = await db
-      .insert(files)
-      .values({
+    const file = await db.file.create({
+      data: {
         gameId,
         parentId: parentId ?? null,
         name,
         type: "file",
         size: size.toString(),
         mimeType: mimeType ?? "application/octet-stream",
-      })
-      .returning();
+      },
+    });
 
     // 生成 S3 存储键
     const storageKey = s3.generateStorageKey(gameId, file.id);
 
     // 更新存储键
-    await db.update(files).set({ storageKey }).where(eq(files.id, file.id));
+    await db.file.update({ where: { id: file.id }, data: { storageKey } });
 
     // 获取预签名上传 URL
     const uploadUrl = await s3.getUploadUrl(storageKey, mimeType);
@@ -201,11 +183,7 @@ export class FileService {
    */
   async confirmUpload(fileId: string, userId: string, language: Language): Promise<FileNode> {
     // 获取文件记录
-    const [file] = await db
-      .select()
-      .from(files)
-      .where(and(eq(files.id, fileId), isNull(files.deletedAt)))
-      .limit(1);
+    const file = await db.file.findFirst({ where: { id: fileId, deletedAt: null } });
 
     if (!file) {
       throw new TRPCError({
@@ -225,11 +203,7 @@ export class FileService {
     }
 
     // 更新 updatedAt
-    const [updated] = await db
-      .update(files)
-      .set({ updatedAt: new Date() })
-      .where(eq(files.id, fileId))
-      .returning();
+    const updated = await db.file.update({ where: { id: fileId }, data: { updatedAt: new Date() } });
 
     const path = await this.buildFilePath(updated.id);
     return toFileNodeOutput(updated, path);
@@ -239,11 +213,7 @@ export class FileService {
    * 获取下载 URL
    */
   async getDownloadUrl(fileId: string, userId: string, language: Language): Promise<string> {
-    const [file] = await db
-      .select()
-      .from(files)
-      .where(and(eq(files.id, fileId), isNull(files.deletedAt)))
-      .limit(1);
+    const file = await db.file.findFirst({ where: { id: fileId, deletedAt: null } });
 
     if (!file) {
       throw new TRPCError({
@@ -274,11 +244,7 @@ export class FileService {
     userId: string,
     language: Language
   ): Promise<{ uploadUrl: string; storageKey: string }> {
-    const [file] = await db
-      .select()
-      .from(files)
-      .where(and(eq(files.id, fileId), isNull(files.deletedAt)))
-      .limit(1);
+    const file = await db.file.findFirst({ where: { id: fileId, deletedAt: null } });
 
     if (!file) {
       throw new TRPCError({
@@ -300,15 +266,15 @@ export class FileService {
     const newStorageKey = s3.generateStorageKey(file.gameId, `${fileId}-${Date.now()}`);
 
     // 更新文件元数据和新的 storageKey
-    await db
-      .update(files)
-      .set({
+    await db.file.update({
+      where: { id: fileId },
+      data: {
         storageKey: newStorageKey,
         ...(size !== undefined && { size: size.toString() }),
         ...(mimeType !== undefined && { mimeType }),
         updatedAt: new Date(),
-      })
-      .where(eq(files.id, fileId));
+      },
+    });
 
     const uploadUrl = await s3.getUploadUrl(newStorageKey, mimeType);
     return { uploadUrl, storageKey: newStorageKey };
@@ -323,11 +289,7 @@ export class FileService {
     userId: string,
     language: Language
   ): Promise<FileNode> {
-    const [file] = await db
-      .select()
-      .from(files)
-      .where(and(eq(files.id, fileId), isNull(files.deletedAt)))
-      .limit(1);
+    const file = await db.file.findFirst({ where: { id: fileId, deletedAt: null } });
 
     if (!file) {
       throw new TRPCError({
@@ -341,11 +303,7 @@ export class FileService {
     // 检查同名冲突
     await this.checkNameConflict(file.gameId, file.parentId, newName, language, fileId);
 
-    const [updated] = await db
-      .update(files)
-      .set({ name: newName, updatedAt: new Date() })
-      .where(eq(files.id, fileId))
-      .returning();
+    const updated = await db.file.update({ where: { id: fileId }, data: { name: newName, updatedAt: new Date() } });
 
     const path = await this.buildFilePath(updated.id);
     return toFileNodeOutput(updated, path);
@@ -360,11 +318,7 @@ export class FileService {
     userId: string,
     language: Language
   ): Promise<FileNode> {
-    const [file] = await db
-      .select()
-      .from(files)
-      .where(and(eq(files.id, fileId), isNull(files.deletedAt)))
-      .limit(1);
+    const file = await db.file.findFirst({ where: { id: fileId, deletedAt: null } });
 
     if (!file) {
       throw new TRPCError({
@@ -377,13 +331,9 @@ export class FileService {
 
     // 验证目标目录存在且是目录
     if (newParentId) {
-      const [parent] = await db
-        .select()
-        .from(files)
-        .where(
-          and(eq(files.id, newParentId), eq(files.gameId, file.gameId), isNull(files.deletedAt))
-        )
-        .limit(1);
+      const parent = await db.file.findFirst({
+        where: { id: newParentId, gameId: file.gameId, deletedAt: null },
+      });
 
       if (!parent) {
         throw new TRPCError({
@@ -414,11 +364,7 @@ export class FileService {
     // 检查同名冲突
     await this.checkNameConflict(file.gameId, newParentId, file.name, language, fileId);
 
-    const [updated] = await db
-      .update(files)
-      .set({ parentId: newParentId, updatedAt: new Date() })
-      .where(eq(files.id, fileId))
-      .returning();
+    const updated = await db.file.update({ where: { id: fileId }, data: { parentId: newParentId, updatedAt: new Date() } });
 
     const path = await this.buildFilePath(updated.id);
     return toFileNodeOutput(updated, path);
@@ -436,11 +382,10 @@ export class FileService {
       if (visited.has(currentId)) break; // 防止循环
       visited.add(currentId);
 
-      const [file] = await db
-        .select({ parentId: files.parentId })
-        .from(files)
-        .where(eq(files.id, currentId))
-        .limit(1);
+      const file: { parentId: string | null } | null = await db.file.findFirst({
+        where: { id: currentId },
+        select: { parentId: true },
+      });
 
       currentId = file?.parentId ?? null;
     }
@@ -452,11 +397,7 @@ export class FileService {
    * 删除文件/目录
    */
   async delete(fileId: string, userId: string, language: Language): Promise<{ id: string }> {
-    const [file] = await db
-      .select()
-      .from(files)
-      .where(and(eq(files.id, fileId), isNull(files.deletedAt)))
-      .limit(1);
+    const file = await db.file.findFirst({ where: { id: fileId, deletedAt: null } });
 
     if (!file) {
       throw new TRPCError({
@@ -479,10 +420,10 @@ export class FileService {
   private async collectAllIds(fileId: string): Promise<string[]> {
     const ids: string[] = [fileId];
 
-    const children = await db
-      .select({ id: files.id })
-      .from(files)
-      .where(and(eq(files.parentId, fileId), isNull(files.deletedAt)));
+    const children = await db.file.findMany({
+      where: { parentId: fileId, deletedAt: null },
+      select: { id: true },
+    });
 
     for (const child of children) {
       const childIds = await this.collectAllIds(child.id);
@@ -500,11 +441,8 @@ export class FileService {
     const allIds = await this.collectAllIds(fileId);
     const now = new Date();
 
-    await db.transaction(async (tx) => {
-      await tx
-        .update(files)
-        .set({ deletedAt: now })
-        .where(inArray(files.id, allIds));
+    await db.$transaction(async (tx) => {
+      await tx.file.updateMany({ where: { id: { in: allIds } }, data: { deletedAt: now } });
     });
   }
 
@@ -512,17 +450,14 @@ export class FileService {
    * 递归收集需要删除的 S3 存储键
    */
   private async collectStorageKeys(fileId: string, keys: string[]): Promise<void> {
-    const [file] = await db.select().from(files).where(eq(files.id, fileId)).limit(1);
+    const file = await db.file.findFirst({ where: { id: fileId } });
     if (!file) return;
 
     if (file.type === "file" && file.storageKey) {
       keys.push(file.storageKey);
     } else if (file.type === "folder") {
       // 获取所有子文件
-      const children = await db
-        .select()
-        .from(files)
-        .where(and(eq(files.parentId, fileId), isNull(files.deletedAt)));
+      const children = await db.file.findMany({ where: { parentId: fileId, deletedAt: null } });
 
       for (const child of children) {
         await this.collectStorageKeys(child.id, keys);
@@ -538,11 +473,7 @@ export class FileService {
     userId: string,
     language: Language
   ): Promise<{ path: Array<{ id: string; name: string }> }> {
-    const [file] = await db
-      .select()
-      .from(files)
-      .where(and(eq(files.id, fileId), isNull(files.deletedAt)))
-      .limit(1);
+    const file = await db.file.findFirst({ where: { id: fileId, deletedAt: null } });
 
     if (!file) {
       throw new TRPCError({
@@ -558,11 +489,10 @@ export class FileService {
     let currentId: string | null = fileId;
 
     while (currentId) {
-      const [current] = await db
-        .select({ id: files.id, name: files.name, parentId: files.parentId })
-        .from(files)
-        .where(eq(files.id, currentId))
-        .limit(1);
+      const current: { id: string; name: string; parentId: string | null } | null = await db.file.findFirst({
+        where: { id: currentId },
+        select: { id: true, name: true, parentId: true },
+      });
 
       if (!current) break;
 
@@ -577,11 +507,7 @@ export class FileService {
    * 获取文件信息
    */
   async getFile(fileId: string, userId: string, language: Language): Promise<FileNode> {
-    const [file] = await db
-      .select()
-      .from(files)
-      .where(and(eq(files.id, fileId), isNull(files.deletedAt)))
-      .limit(1);
+    const file = await db.file.findFirst({ where: { id: fileId, deletedAt: null } });
 
     if (!file) {
       throw new TRPCError({
@@ -645,24 +571,12 @@ export class FileService {
       const names = items.map((i) => i.name);
 
       // 批量查询该目录下已存在的文件名
-      const condition = parentId
-        ? and(
-            eq(files.gameId, gameId),
-            eq(files.parentId, parentId),
-            isNull(files.deletedAt),
-            inArray(files.name, names)
-          )
-        : and(
-            eq(files.gameId, gameId),
-            isNull(files.parentId),
-            isNull(files.deletedAt),
-            inArray(files.name, names)
-          );
-
-      const existingFiles = await db
-        .select({ id: files.id, name: files.name, storageKey: files.storageKey })
-        .from(files)
-        .where(condition);
+      const existingFiles = await db.file.findMany({
+        where: parentId
+          ? { gameId, parentId, deletedAt: null, name: { in: names } }
+          : { gameId, parentId: null, deletedAt: null, name: { in: names } },
+        select: { id: true, name: true, storageKey: true },
+      });
 
       const existingByName = new Map(existingFiles.map((f) => [f.name, f]));
 
@@ -715,7 +629,7 @@ export class FileService {
       });
 
       // 一次批量 INSERT
-      await db.insert(files).values(newFileRows.map((f) => f.row));
+      await db.file.createMany({ data: newFileRows.map((f) => f.row) });
 
       // 并行获取所有 presigned URL
       const uploadUrls = await Promise.all(
@@ -745,10 +659,9 @@ export class FileService {
     if (fileIds.length === 0) return 0;
 
     // 验证所有文件存在且用户有权限
-    const fileRecords = await db
-      .select()
-      .from(files)
-      .where(and(inArray(files.id, fileIds), isNull(files.deletedAt)));
+    const fileRecords = await db.file.findMany({
+      where: { id: { in: fileIds }, deletedAt: null },
+    });
 
     if (fileRecords.length === 0) return 0;
 
@@ -770,7 +683,7 @@ export class FileService {
     if (validFileIds.length === 0) return 0;
 
     // 批量更新 updatedAt
-    await db.update(files).set({ updatedAt: new Date() }).where(inArray(files.id, validFileIds));
+    await db.file.updateMany({ where: { id: { in: validFileIds } }, data: { updatedAt: new Date() } });
 
     return validFileIds.length;
   }
@@ -792,36 +705,19 @@ export class FileService {
 
     for (const folderName of pathParts) {
       // 检查此层是否已存在
-      const condition = currentParentId
-        ? and(
-            eq(files.gameId, gameId),
-            eq(files.parentId, currentParentId),
-            eq(files.name, folderName),
-            eq(files.type, "folder"),
-            isNull(files.deletedAt)
-          )
-        : and(
-            eq(files.gameId, gameId),
-            isNull(files.parentId),
-            eq(files.name, folderName),
-            eq(files.type, "folder"),
-            isNull(files.deletedAt)
-          );
-
-      const [existing] = await db.select({ id: files.id }).from(files).where(condition).limit(1);
+      const existing = await db.file.findFirst({
+        where: currentParentId
+          ? { gameId, parentId: currentParentId, name: folderName, type: "folder", deletedAt: null }
+          : { gameId, parentId: null, name: folderName, type: "folder", deletedAt: null },
+        select: { id: true },
+      });
 
       if (existing) {
         currentParentId = existing.id;
       } else {
-        const [folder] = await db
-          .insert(files)
-          .values({
-            gameId,
-            parentId: currentParentId,
-            name: folderName,
-            type: "folder",
-          })
-          .returning();
+        const folder = await db.file.create({
+          data: { gameId, parentId: currentParentId, name: folderName, type: "folder" },
+        });
         currentParentId = folder.id;
       }
     }

@@ -1,10 +1,9 @@
 import { TRPCError } from "@trpc/server";
-import { and, eq } from "drizzle-orm";
+import type { Game } from "@prisma/client";
 import { db } from "../../db/client";
-import { gameMembers, games, users } from "../../db/schema";
 import { getMessage, type Language } from "../../i18n";
 
-export const toGameOutput = (dbGame: typeof games.$inferSelect) => ({
+export const toGameOutput = (dbGame: Game) => ({
   id: dbGame.id,
   slug: dbGame.slug,
   name: dbGame.name,
@@ -21,39 +20,31 @@ const slugify = (value: string) =>
 
 export class GameService {
   private async isOwner(gameId: string, userId: string): Promise<boolean> {
-    const [member] = await db
-      .select({ role: gameMembers.role })
-      .from(gameMembers)
-      .where(and(eq(gameMembers.gameId, gameId), eq(gameMembers.userId, userId)))
-      .limit(1);
-
+    const member = await db.gameMember.findFirst({
+      where: { gameId, userId },
+      select: { role: true },
+    });
     return member?.role === "owner";
   }
 
   async listByUser(userId: string) {
-    const rows = await db
-      .select()
-      .from(gameMembers)
-      .innerJoin(games, eq(gameMembers.gameId, games.id))
-      .where(eq(gameMembers.userId, userId));
-
-    return rows.map((row) => row.games);
+    const members = await db.gameMember.findMany({
+      where: { userId },
+      include: { game: true },
+    });
+    return members.map((m) => m.game);
   }
 
   async getBySlug(slug: string, userId: string) {
-    const [row] = await db
-      .select()
-      .from(gameMembers)
-      .innerJoin(games, eq(gameMembers.gameId, games.id))
-      .where(and(eq(gameMembers.userId, userId), eq(games.slug, slug)))
-      .limit(1);
-
-    return row?.games ?? null;
+    const member = await db.gameMember.findFirst({
+      where: { userId, game: { slug } },
+      include: { game: true },
+    });
+    return member?.game ?? null;
   }
 
   async getById(id: string) {
-    const [game] = await db.select().from(games).where(eq(games.id, id)).limit(1);
-
+    const game = await db.game.findFirst({ where: { id } });
     return game ?? null;
   }
 
@@ -61,8 +52,7 @@ export class GameService {
    * 公开查询：通过 slug 查找游戏（不需要登录）
    */
   async getPublicBySlug(slug: string) {
-    const [game] = await db.select().from(games).where(eq(games.slug, slug)).limit(1);
-
+    const game = await db.game.findFirst({ where: { slug } });
     return game ?? null;
   }
 
@@ -72,11 +62,7 @@ export class GameService {
 
     // eslint-disable-next-line no-constant-condition
     while (true) {
-      const [existing] = await db
-        .select({ id: games.id })
-        .from(games)
-        .where(eq(games.slug, slug))
-        .limit(1);
+      const existing = await db.game.findFirst({ where: { slug }, select: { id: true } });
       if (!existing) break;
       suffix += 1;
       slug = `${baseSlug}-${suffix}`;
@@ -92,20 +78,21 @@ export class GameService {
     const baseSlug = input.slug?.trim() || slugify(input.name) || "game";
     const slug = await this.ensureUniqueSlug(baseSlug);
 
-    const result = await db.transaction(async (tx) => {
-      const [game] = await tx
-        .insert(games)
-        .values({
+    const result = await db.$transaction(async (tx) => {
+      const game = await tx.game.create({
+        data: {
           name: input.name,
           slug,
           description: input.description ?? null,
-        })
-        .returning();
+        },
+      });
 
-      await tx.insert(gameMembers).values({
-        gameId: game.id,
-        userId,
-        role: "owner",
+      await tx.gameMember.create({
+        data: {
+          gameId: game.id,
+          userId,
+          role: "owner",
+        },
       });
 
       return game;
@@ -137,11 +124,10 @@ export class GameService {
 
     let newSlug = game.slug;
     if (input.slug && input.slug !== game.slug) {
-      const [existing] = await db
-        .select({ id: games.id })
-        .from(games)
-        .where(eq(games.slug, input.slug))
-        .limit(1);
+      const existing = await db.game.findFirst({
+        where: { slug: input.slug },
+        select: { id: true },
+      });
 
       if (existing) {
         throw new TRPCError({
@@ -153,15 +139,14 @@ export class GameService {
       newSlug = input.slug;
     }
 
-    const [updated] = await db
-      .update(games)
-      .set({
+    const updated = await db.game.update({
+      where: { id },
+      data: {
         name: input.name ?? game.name,
         slug: newSlug,
         description: input.description !== undefined ? input.description : game.description,
-      })
-      .where(eq(games.id, id))
-      .returning();
+      },
+    });
 
     return updated;
   }
@@ -182,9 +167,9 @@ export class GameService {
       });
     }
 
-    await db.transaction(async (tx) => {
-      await tx.delete(gameMembers).where(eq(gameMembers.gameId, id));
-      await tx.delete(games).where(eq(games.id, id));
+    await db.$transaction(async (tx) => {
+      await tx.gameMember.deleteMany({ where: { gameId: id } });
+      await tx.game.delete({ where: { id } });
     });
 
     return { id };
@@ -215,11 +200,10 @@ export class GameService {
     }
 
     // 验证新所有者存在
-    const [targetUser] = await db
-      .select({ id: users.id })
-      .from(users)
-      .where(eq(users.id, newOwnerId))
-      .limit(1);
+    const targetUser = await db.user.findFirst({
+      where: { id: newOwnerId },
+      select: { id: true },
+    });
 
     if (!targetUser) {
       throw new TRPCError({
@@ -228,30 +212,31 @@ export class GameService {
       });
     }
 
-    return db.transaction(async (tx) => {
+    return db.$transaction(async (tx) => {
       // 1. 把当前所有者降为 member
-      await tx
-        .update(gameMembers)
-        .set({ role: "member" })
-        .where(and(eq(gameMembers.gameId, id), eq(gameMembers.userId, currentUserId)));
+      await tx.gameMember.updateMany({
+        where: { gameId: id, userId: currentUserId },
+        data: { role: "member" },
+      });
 
       // 2. 新所有者：已是成员则升级，否则插入
-      const [existingMember] = await tx
-        .select({ id: gameMembers.id })
-        .from(gameMembers)
-        .where(and(eq(gameMembers.gameId, id), eq(gameMembers.userId, newOwnerId)))
-        .limit(1);
+      const existingMember = await tx.gameMember.findFirst({
+        where: { gameId: id, userId: newOwnerId },
+        select: { id: true },
+      });
 
       if (existingMember) {
-        await tx
-          .update(gameMembers)
-          .set({ role: "owner" })
-          .where(and(eq(gameMembers.gameId, id), eq(gameMembers.userId, newOwnerId)));
+        await tx.gameMember.updateMany({
+          where: { gameId: id, userId: newOwnerId },
+          data: { role: "owner" },
+        });
       } else {
-        await tx.insert(gameMembers).values({
-          gameId: id,
-          userId: newOwnerId,
-          role: "owner",
+        await tx.gameMember.create({
+          data: {
+            gameId: id,
+            userId: newOwnerId,
+            role: "owner",
+          },
         });
       }
 

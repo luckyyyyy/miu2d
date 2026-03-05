@@ -1,8 +1,7 @@
 import type { ImportPortraitMapInput, PortraitEntry, UpdatePortraitMapInput } from "@miu2d/types";
 import { parsePortraitIni } from "@miu2d/types";
-import { eq } from "drizzle-orm";
+import { Prisma } from "@prisma/client";
 import { db } from "../../db/client";
-import { talkPortraits } from "../../db/schema";
 import type { Language } from "../../i18n";
 import { verifyGameAccess } from "../../utils/gameAccess";
 import { requireGameIdBySlug } from "../../utils/game";
@@ -18,11 +17,7 @@ export class TalkPortraitService {
   ): Promise<{ gameId: string; entries: PortraitEntry[] }> {
     await verifyGameAccess(gameId, userId, language);
 
-    const [row] = await db
-      .select()
-      .from(talkPortraits)
-      .where(eq(talkPortraits.gameId, gameId))
-      .limit(1);
+    const row = await db.talkPortrait.findFirst({ where: { gameId } });
 
     return {
       gameId,
@@ -34,12 +29,7 @@ export class TalkPortraitService {
    * 公开接口：通过 slug 获取头像映射（无需认证）
    */
   async getPublicByGameId(gameId: string): Promise<PortraitEntry[]> {
-    const [row] = await db
-      .select()
-      .from(talkPortraits)
-      .where(eq(talkPortraits.gameId, gameId))
-      .limit(1);
-
+    const row = await db.talkPortrait.findFirst({ where: { gameId } });
     return row ? (row.data as PortraitEntry[]) : [];
   }
 
@@ -59,25 +49,12 @@ export class TalkPortraitService {
 
     const sorted = [...input.entries].sort((a, b) => a.idx - b.idx);
 
-    const [existing] = await db
-      .select()
-      .from(talkPortraits)
-      .where(eq(talkPortraits.gameId, input.gameId))
-      .limit(1);
+    const existing = await db.talkPortrait.findFirst({ where: { gameId: input.gameId } });
 
     if (existing) {
-      await db
-        .update(talkPortraits)
-        .set({
-          data: sorted,
-          updatedAt: new Date(),
-        })
-        .where(eq(talkPortraits.gameId, input.gameId));
+      await db.talkPortrait.update({ where: { id: existing.id }, data: { data: sorted as unknown as Prisma.InputJsonValue, updatedAt: new Date() } });
     } else {
-      await db.insert(talkPortraits).values({
-        gameId: input.gameId,
-        data: sorted,
-      });
+      await db.talkPortrait.create({ data: { gameId: input.gameId, data: sorted as unknown as Prisma.InputJsonValue } });
     }
 
     return { gameId: input.gameId, entries: sorted };
@@ -114,11 +91,8 @@ export class TalkPortraitService {
     language: Language
   ): Promise<{ deletedCount: number }> {
     await verifyGameAccess(input.gameId, userId, language);
-    const deleted = await db
-      .delete(talkPortraits)
-      .where(eq(talkPortraits.gameId, input.gameId))
-      .returning({ id: talkPortraits.id });
-    return { deletedCount: deleted.length };
+    const result = await db.talkPortrait.deleteMany({ where: { gameId: input.gameId } });
+    return { deletedCount: result.count };
   }
 }
 

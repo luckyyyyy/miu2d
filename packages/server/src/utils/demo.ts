@@ -5,9 +5,7 @@
  * context.ts 为未登录请求注入 DEMO_DEV_USER_ID，所有现有 requireUser / verifyGameAccess
  * 自然通过，无需在每个 service 里做特殊 bypass。
  */
-import { and, eq } from "drizzle-orm";
 import { db } from "../db/client";
-import { gameMembers, games, users } from "../db/schema";
 
 /** Demo 游戏空间的 slug */
 export const DEMO_SLUG = "demo";
@@ -31,55 +29,56 @@ export async function seedDemoData(): Promise<void> {
   if (!isDev()) return;
 
   // 1. 确保 demo 用户存在
-  const [existingUser] = await db
-    .select({ id: users.id })
-    .from(users)
-    .where(eq(users.id, DEMO_DEV_USER_ID))
-    .limit(1);
+  const existingUser = await db.user.findFirst({
+    where: { id: DEMO_DEV_USER_ID },
+    select: { id: true },
+  });
 
   if (!existingUser) {
-    await db.insert(users).values({
-      id: DEMO_DEV_USER_ID,
-      name: "Demo Developer",
-      email: "demo@dev.local",
-      passwordHash: "not-a-real-hash",
-      emailVerified: true,
-      role: "user",
+    await db.user.create({
+      data: {
+        id: DEMO_DEV_USER_ID,
+        name: "Demo Developer",
+        email: "demo@dev.local",
+        passwordHash: "not-a-real-hash",
+        emailVerified: true,
+        role: "user",
+      },
     });
     console.log("[Demo] Created demo user");
   }
 
   // 2. 确保 demo 游戏存在
-  let [demoGame] = await db
-    .select({ id: games.id })
-    .from(games)
-    .where(eq(games.slug, DEMO_SLUG))
-    .limit(1);
+  let demoGame = await db.game.findFirst({
+    where: { slug: DEMO_SLUG },
+    select: { id: true },
+  });
 
   if (!demoGame) {
-    [demoGame] = await db
-      .insert(games)
-      .values({
+    demoGame = await db.game.create({
+      data: {
         slug: DEMO_SLUG,
         name: "Demo Game",
         description: "Local development demo workspace",
-      })
-      .returning({ id: games.id });
+      },
+      select: { id: true },
+    });
     console.log("[Demo] Created demo game");
   }
 
   // 3. 确保 demo 用户是 demo 游戏的成员
-  const [existingMember] = await db
-    .select({ id: gameMembers.id })
-    .from(gameMembers)
-    .where(and(eq(gameMembers.gameId, demoGame.id), eq(gameMembers.userId, DEMO_DEV_USER_ID)))
-    .limit(1);
+  const existingMember = await db.gameMember.findFirst({
+    where: { gameId: demoGame.id, userId: DEMO_DEV_USER_ID },
+    select: { id: true },
+  });
 
   if (!existingMember) {
-    await db.insert(gameMembers).values({
-      gameId: demoGame.id,
-      userId: DEMO_DEV_USER_ID,
-      role: "owner",
+    await db.gameMember.create({
+      data: {
+        gameId: demoGame.id,
+        userId: DEMO_DEV_USER_ID,
+        role: "owner",
+      },
     });
     console.log("[Demo] Added demo user as game member");
   }

@@ -23,10 +23,10 @@ import {
   NpcKindFromValue,
   NpcRelationFromValue,
 } from "@miu2d/types";
+import { Prisma } from "@prisma/client";
+import type { Npc as PrismaNpc } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq, sql } from "drizzle-orm";
 import { db } from "../../db/client";
-import { npcResources, npcs } from "../../db/schema";
 import type { Language } from "../../i18n";
 import { getMessage } from "../../i18n";
 import { requireGameIdBySlug } from "../../utils/game";
@@ -37,7 +37,7 @@ export class NpcService {
   /**
    * 将数据库记录转换为 Npc 类型
    */
-  private toNpc(row: typeof npcs.$inferSelect): Npc {
+  private toNpc(row: PrismaNpc): Npc {
     const data = row.data as Omit<
       Npc,
       | "id"
@@ -68,12 +68,7 @@ export class NpcService {
    * 公开接口：通过 gameId 列出游戏的所有 NPC（无需认证）
    */
   async listPublicByGameId(gameId: string): Promise<Npc[]> {
-    const rows = await db
-      .select()
-      .from(npcs)
-      .where(eq(npcs.gameId, gameId))
-      .orderBy(desc(npcs.updatedAt));
-
+    const rows = await db.npc.findMany({ where: { gameId }, orderBy: { updatedAt: "desc" } });
     return rows.map((row) => this.toNpc(row));
   }
 
@@ -96,11 +91,7 @@ export class NpcService {
   ): Promise<Npc | null> {
     await verifyGameAccess(gameId, userId, language);
 
-    const [row] = await db
-      .select()
-      .from(npcs)
-      .where(and(eq(npcs.id, npcId), eq(npcs.gameId, gameId)))
-      .limit(1);
+    const row = await db.npc.findFirst({ where: { id: npcId, gameId } });
 
     if (!row) return null;
     return this.toNpc(row);
@@ -112,29 +103,21 @@ export class NpcService {
   async list(input: ListNpcInput, userId: string, language: Language): Promise<NpcListItem[]> {
     await verifyGameAccess(input.gameId, userId, language);
 
-    const conditions = [eq(npcs.gameId, input.gameId)];
-    if (input.kind) {
-      conditions.push(eq(npcs.kind, input.kind));
-    }
-    if (input.relation) {
-      conditions.push(eq(npcs.relation, input.relation));
-    }
-
-    const rows = await db
-      .select()
-      .from(npcs)
-      .where(and(...conditions))
-      .orderBy(desc(npcs.updatedAt));
+    const rows = await db.npc.findMany({
+      where: {
+        gameId: input.gameId,
+        ...(input.kind ? { kind: input.kind } : {}),
+        ...(input.relation ? { relation: input.relation } : {}),
+      },
+      orderBy: { updatedAt: "desc" },
+    });
 
     // 获取关联的资源信息用于显示图标
     const resourceIds = rows.map((r) => r.resourceId).filter((id): id is string => !!id);
     const resourceMap = new Map<string, { icon: string | null; key: string }>();
 
     if (resourceIds.length > 0) {
-      const resources = await db
-        .select()
-        .from(npcResources)
-        .where(eq(npcResources.gameId, input.gameId));
+      const resources = await db.npcResource.findMany({ where: { gameId: input.gameId } });
 
       for (const res of resources) {
         if (resourceIds.includes(res.id)) {
@@ -181,18 +164,17 @@ export class NpcService {
     // 分离索引字段和 data 字段
     const { gameId, key, name, kind, relation, resourceId, ...data } = fullNpc;
 
-    const [row] = await db
-      .insert(npcs)
-      .values({
+    const row = await db.npc.create({
+      data: {
         gameId,
         key,
         name: name ?? "未命名NPC",
         kind: kind ?? "Normal",
         relation: relation ?? "Friend",
         resourceId: resourceId ?? null,
-        data,
-      })
-      .returning();
+        data: data as unknown as Prisma.InputJsonValue,
+      },
+    });
 
     return this.toNpc(row);
   }
@@ -230,19 +212,18 @@ export class NpcService {
       ...data
     } = merged;
 
-    const [row] = await db
-      .update(npcs)
-      .set({
+    const row = await db.npc.update({
+      where: { id },
+      data: {
         key,
         name,
         kind,
         relation,
         resourceId: resourceId ?? null,
-        data,
+        data: data as unknown as Prisma.InputJsonValue,
         updatedAt: new Date(),
-      })
-      .where(and(eq(npcs.id, id), eq(npcs.gameId, gameId)))
-      .returning();
+      },
+    });
 
     return this.toNpc(row);
   }
@@ -258,7 +239,7 @@ export class NpcService {
   ): Promise<{ id: string }> {
     await verifyGameAccess(gameId, userId, language);
 
-    await db.delete(npcs).where(and(eq(npcs.id, npcId), eq(npcs.gameId, gameId)));
+    await db.npc.delete({ where: { id: npcId } });
 
     return { id: npcId };
   }
@@ -330,8 +311,8 @@ export class NpcService {
     const failed: BatchImportNpcResult["failed"] = [];
 
     // ── 解析阶段（纯内存，无 DB 调用）────────────────────────────────
-    type NpcResRow = typeof npcResources.$inferInsert;
-    type NpcRow = typeof npcs.$inferInsert;
+    type NpcResRow = { gameId: string; key: string; name: string; data: Record<string, unknown> };
+    type NpcRow = { gameId: string; key: string; name: string; kind: string; relation: string; resourceId: string | null; data: Record<string, unknown> };
 
     const npcResRows: NpcResRow[] = [];
     // key → { fileName, isResourceOnly }
@@ -398,18 +379,15 @@ export class NpcService {
 
     const npcResKeyToId = new Map<string, string>();
     if (npcResRowsDeduped.length > 0) {
-      const upserted = await db
-        .insert(npcResources)
-        .values(npcResRowsDeduped)
-        .onConflictDoUpdate({
-          target: [npcResources.gameId, npcResources.key],
-          set: {
-            name: sql`excluded.name`,
-            data: sql`excluded.data`,
-            updatedAt: new Date(),
-          },
-        })
-        .returning();
+      const upserted = await db.$transaction(
+        npcResRowsDeduped.map((row) =>
+          db.npcResource.upsert({
+            where: { npc_resources_game_id_key_unique: { gameId: row.gameId, key: row.key } },
+            create: { gameId: row.gameId, key: row.key, name: row.name,  data: row.data as unknown as Prisma.InputJsonValue },
+            update: { name: row.name, data: row.data as unknown as Prisma.InputJsonValue, updatedAt: new Date() },
+          })
+        )
+      );
 
       for (const row of upserted) {
         npcResKeyToId.set(row.key, row.id);
@@ -430,21 +408,30 @@ export class NpcService {
 
     // ── 批量写入 NPC：一次 SQL 替代 N 次串行 INSERT ───────────────────
     if (npcRows.length > 0) {
-      const inserted = await db
-        .insert(npcs)
-        .values(npcRows)
-        .onConflictDoUpdate({
-          target: [npcs.gameId, npcs.key],
-          set: {
-            name: sql`excluded.name`,
-            kind: sql`excluded.kind`,
-            relation: sql`excluded.relation`,
-            resourceId: sql`excluded.resource_id`,
-            data: sql`excluded.data`,
-            updatedAt: new Date(),
-          },
-        })
-        .returning();
+      const inserted = await db.$transaction(
+        npcRows.map((row) =>
+          db.npc.upsert({
+            where: { npcs_game_id_key_unique: { gameId: row.gameId as string, key: row.key as string } },
+            create: {
+              gameId: row.gameId as string,
+              key: row.key as string,
+              name: row.name as string,
+              kind: row.kind as string,
+              relation: row.relation as string,
+              resourceId: row.resourceId ?? null,
+              data: row.data as unknown as Prisma.InputJsonValue,
+            },
+            update: {
+              name: row.name as string,
+              kind: row.kind as string,
+              relation: row.relation as string,
+              resourceId: row.resourceId ?? null,
+              data: row.data as unknown as Prisma.InputJsonValue,
+              updatedAt: new Date(),
+            },
+          })
+        )
+      );
 
       for (const row of inserted) {
         const n = this.toNpc(row);
@@ -838,15 +825,9 @@ export class NpcService {
     language: Language
   ): Promise<{ deletedCount: number }> {
     await verifyGameAccess(input.gameId, userId, language);
-    const deletedRes = await db
-      .delete(npcResources)
-      .where(eq(npcResources.gameId, input.gameId))
-      .returning({ id: npcResources.id });
-    const deletedNpcs = await db
-      .delete(npcs)
-      .where(eq(npcs.gameId, input.gameId))
-      .returning({ id: npcs.id });
-    return { deletedCount: deletedNpcs.length + deletedRes.length };
+    const deletedRes = await db.npcResource.deleteMany({ where: { gameId: input.gameId } });
+    const deletedNpcs = await db.npc.deleteMany({ where: { gameId: input.gameId } });
+    return { deletedCount: deletedNpcs.count + deletedRes.count };
   }
 }
 

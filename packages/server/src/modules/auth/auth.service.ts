@@ -1,14 +1,13 @@
 import type { UserSettings } from "@miu2d/types";
-import { eq } from "drizzle-orm";
+import type { User } from "@prisma/client";
 import { db } from "../../db/client";
-import { gameMembers, games, sessions, users } from "../../db/schema";
 import { env } from "../../env";
 import { hashPassword } from "../../utils/password";
 
 const SESSION_COOKIE_NAME = "SESSION_ID";
 const SESSION_COOKIE_MAX_AGE = 1000 * 60 * 60 * 24 * 7;
 
-export const toUserOutput = (user: typeof users.$inferSelect) => ({
+export const toUserOutput = (user: User) => ({
   id: user.id,
   name: user.name,
   email: user.email,
@@ -26,19 +25,17 @@ const slugify = (value: string) =>
 
 export class AuthService {
   async getUserByEmail(email: string) {
-    const [user] = await db.select().from(users).where(eq(users.email, email));
+    const user = await db.user.findFirst({ where: { email } });
     return user ?? null;
   }
 
   async getDefaultGameSlug(userId: string) {
-    const [game] = await db
-      .select({ slug: games.slug })
-      .from(gameMembers)
-      .innerJoin(games, eq(gameMembers.gameId, games.id))
-      .where(eq(gameMembers.userId, userId))
-      .orderBy(games.createdAt)
-      .limit(1);
-    return game?.slug ?? null;
+    const member = await db.gameMember.findFirst({
+      where: { userId },
+      include: { game: { select: { slug: true, createdAt: true } } },
+      orderBy: { game: { createdAt: "asc" } },
+    });
+    return member?.game.slug ?? null;
   }
 
   async ensureUniqueGameSlug(base: string) {
@@ -48,11 +45,7 @@ export class AuthService {
 
     // eslint-disable-next-line no-constant-condition
     while (true) {
-      const [existing] = await db
-        .select({ id: games.id })
-        .from(games)
-        .where(eq(games.slug, slug))
-        .limit(1);
+      const existing = await db.game.findFirst({ where: { slug }, select: { id: true } });
       if (!existing) return slug;
       slug = `${baseSlug}-${suffix}`;
       suffix += 1;
@@ -61,45 +54,45 @@ export class AuthService {
 
   async createSession(userId: string) {
     const expiresAt = new Date(Date.now() + SESSION_COOKIE_MAX_AGE);
-    const [session] = await db
-      .insert(sessions)
-      .values({ userId, expiresAt })
-      .returning({ id: sessions.id });
+    const session = await db.session.create({
+      data: { userId, expiresAt },
+      select: { id: true },
+    });
     return session.id;
   }
 
   async deleteSession(sessionId: string) {
-    await db.delete(sessions).where(eq(sessions.id, sessionId));
+    await db.session.delete({ where: { id: sessionId } });
   }
 
   async registerUser(input: { name: string; email: string; password: string }) {
     const gameName = `${input.name}的游戏`;
     const gameSlug = await this.ensureUniqueGameSlug(gameName);
 
-    const result = await db.transaction(async (tx) => {
-      const [createdUser] = await tx
-        .insert(users)
-        .values({
+    const result = await db.$transaction(async (tx) => {
+      const createdUser = await tx.user.create({
+        data: {
           name: input.name,
           email: input.email,
           passwordHash: await hashPassword(input.password),
           role: "user",
-        })
-        .returning();
+        },
+      });
 
-      const [createdGame] = await tx
-        .insert(games)
-        .values({
+      const createdGame = await tx.game.create({
+        data: {
           slug: gameSlug,
           name: gameName,
           description: "默认游戏",
-        })
-        .returning();
+        },
+      });
 
-      await tx.insert(gameMembers).values({
-        gameId: createdGame.id,
-        userId: createdUser.id,
-        role: "owner",
+      await tx.gameMember.create({
+        data: {
+          gameId: createdGame.id,
+          userId: createdUser.id,
+          role: "owner",
+        },
       });
 
       return { user: createdUser, game: createdGame };

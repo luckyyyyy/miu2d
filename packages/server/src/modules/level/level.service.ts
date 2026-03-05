@@ -14,10 +14,10 @@ import type {
   UpdateLevelConfigInput,
 } from "@miu2d/types";
 import { createDefaultLevelConfigLevels } from "@miu2d/types";
+import { Prisma } from "@prisma/client";
+import type { LevelConfig as PrismaLevelConfig } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq } from "drizzle-orm";
 import { db } from "../../db/client";
-import { levelConfigs } from "../../db/schema";
 import type { Language } from "../../i18n";
 import { requireGameIdBySlug } from "../../utils/game";
 import { verifyGameAccess } from "../../utils/gameAccess";
@@ -26,7 +26,7 @@ export class LevelConfigService {
   /**
    * 将数据库记录转换为 LevelConfig 类型
    */
-  private toLevelConfig(row: typeof levelConfigs.$inferSelect): LevelConfig {
+  private toLevelConfig(row: PrismaLevelConfig): LevelConfig {
     const levels = row.data as LevelDetail[];
     return {
       id: row.id,
@@ -47,11 +47,7 @@ export class LevelConfigService {
   async listPublicBySlug(gameSlug: string): Promise<LevelConfig[]> {
     const gameId = await requireGameIdBySlug(gameSlug);
 
-    const rows = await db
-      .select()
-      .from(levelConfigs)
-      .where(eq(levelConfigs.gameId, gameId))
-      .orderBy(desc(levelConfigs.updatedAt));
+    const rows = await db.levelConfig.findMany({ where: { gameId }, orderBy: { updatedAt: "desc" } });
 
     return rows.map((row) => this.toLevelConfig(row));
   }
@@ -62,11 +58,7 @@ export class LevelConfigService {
   async getPublicBySlugAndKey(gameSlug: string, key: string): Promise<LevelConfig | null> {
     const gameId = await requireGameIdBySlug(gameSlug);
 
-    const [row] = await db
-      .select()
-      .from(levelConfigs)
-      .where(and(eq(levelConfigs.gameId, gameId), eq(levelConfigs.key, key)))
-      .limit(1);
+    const row = await db.levelConfig.findFirst({ where: { gameId, key } });
 
     if (!row) return null;
     return this.toLevelConfig(row);
@@ -83,11 +75,7 @@ export class LevelConfigService {
   ): Promise<LevelConfig | null> {
     await verifyGameAccess(gameId, userId, language);
 
-    const [row] = await db
-      .select()
-      .from(levelConfigs)
-      .where(and(eq(levelConfigs.id, id), eq(levelConfigs.gameId, gameId)))
-      .limit(1);
+    const row = await db.levelConfig.findFirst({ where: { id, gameId } });
 
     if (!row) return null;
     return this.toLevelConfig(row);
@@ -103,16 +91,10 @@ export class LevelConfigService {
   ): Promise<LevelConfigListItem[]> {
     await verifyGameAccess(input.gameId, userId, language);
 
-    const conditions = [eq(levelConfigs.gameId, input.gameId)];
-    if (input.userType) {
-      conditions.push(eq(levelConfigs.userType, input.userType));
-    }
-
-    const rows = await db
-      .select()
-      .from(levelConfigs)
-      .where(and(...conditions))
-      .orderBy(desc(levelConfigs.updatedAt));
+    const rows = await db.levelConfig.findMany({
+      where: { gameId: input.gameId, ...(input.userType ? { userType: input.userType } : {}) },
+      orderBy: { updatedAt: "desc" },
+    });
 
     return rows.map((row) => ({
       id: row.id,
@@ -135,11 +117,7 @@ export class LevelConfigService {
     await verifyGameAccess(input.gameId, userId, language);
 
     // 检查 key 是否已存在
-    const [existing] = await db
-      .select({ id: levelConfigs.id })
-      .from(levelConfigs)
-      .where(and(eq(levelConfigs.gameId, input.gameId), eq(levelConfigs.key, input.key)))
-      .limit(1);
+    const existing = await db.levelConfig.findFirst({ where: { gameId: input.gameId, key: input.key }, select: { id: true } });
 
     if (existing) {
       throw new TRPCError({
@@ -152,17 +130,16 @@ export class LevelConfigService {
     const levels =
       input.levels || createDefaultLevelConfigLevels(input.maxLevel || 80, input.userType);
 
-    const [row] = await db
-      .insert(levelConfigs)
-      .values({
+    const row = await db.levelConfig.create({
+      data: {
         gameId: input.gameId,
         key: input.key,
         name: input.name,
         userType: input.userType,
         maxLevel: input.maxLevel || 80,
-        data: levels,
-      })
-      .returning();
+        data: levels as unknown as Prisma.InputJsonValue,
+      },
+    });
 
     return this.toLevelConfig(row);
   }
@@ -187,11 +164,7 @@ export class LevelConfigService {
 
     // 如果修改了 key，检查是否冲突
     if (input.key && input.key !== existing.key) {
-      const [conflict] = await db
-        .select({ id: levelConfigs.id })
-        .from(levelConfigs)
-        .where(and(eq(levelConfigs.gameId, input.gameId), eq(levelConfigs.key, input.key)))
-        .limit(1);
+      const conflict = await db.levelConfig.findFirst({ where: { gameId: input.gameId, key: input.key }, select: { id: true } });
 
       if (conflict) {
         throw new TRPCError({
@@ -201,18 +174,17 @@ export class LevelConfigService {
       }
     }
 
-    const [row] = await db
-      .update(levelConfigs)
-      .set({
+    const row = await db.levelConfig.update({
+      where: { id: input.id },
+      data: {
         key: input.key ?? existing.key,
         name: input.name ?? existing.name,
         userType: input.userType ?? existing.userType,
         maxLevel: input.maxLevel ?? existing.maxLevel,
-        data: input.levels ?? existing.levels,
+        data: (input.levels ?? existing.levels) as unknown as Prisma.InputJsonValue,
         updatedAt: new Date(),
-      })
-      .where(and(eq(levelConfigs.id, input.id), eq(levelConfigs.gameId, input.gameId)))
-      .returning();
+      },
+    });
 
     return this.toLevelConfig(row);
   }
@@ -228,9 +200,7 @@ export class LevelConfigService {
   ): Promise<{ id: string }> {
     await verifyGameAccess(gameId, userId, language);
 
-    await db
-      .delete(levelConfigs)
-      .where(and(eq(levelConfigs.id, id), eq(levelConfigs.gameId, gameId)));
+    await db.levelConfig.delete({ where: { id } });
 
     return { id };
   }
@@ -255,11 +225,7 @@ export class LevelConfigService {
     const name = this.extractNameFromFileName(input.fileName);
 
     // 检查是否已存在，如存在则更新
-    const [existing] = await db
-      .select({ id: levelConfigs.id })
-      .from(levelConfigs)
-      .where(and(eq(levelConfigs.gameId, input.gameId), eq(levelConfigs.key, key)))
-      .limit(1);
+    const existing = await db.levelConfig.findFirst({ where: { gameId: input.gameId, key }, select: { id: true } });
 
     if (existing) {
       // 已存在，执行更新
@@ -411,11 +377,8 @@ export class LevelConfigService {
     language: Language
   ): Promise<{ deletedCount: number }> {
     await verifyGameAccess(input.gameId, userId, language);
-    const deleted = await db
-      .delete(levelConfigs)
-      .where(eq(levelConfigs.gameId, input.gameId))
-      .returning({ id: levelConfigs.id });
-    return { deletedCount: deleted.length };
+    const result = await db.levelConfig.deleteMany({ where: { gameId: input.gameId } });
+    return { deletedCount: result.count };
   }
 }
 

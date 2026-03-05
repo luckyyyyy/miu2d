@@ -1,0 +1,356 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(uuid()) @db.Uuid
+  name          String
+  email         String    @unique
+  passwordHash  String    @map("password_hash")
+  emailVerified Boolean   @default(false) @map("email_verified")
+  settings      Json?
+  role          String    @default("user")
+  createdAt     DateTime? @default(now()) @map("created_at") @db.Timestamptz
+
+  sessions      Session[]
+  emailTokens   EmailToken[]
+  gameMembers   GameMember[]
+  saves         Save[]
+
+  @@map("users")
+}
+
+model Session {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  createdAt DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  expiresAt DateTime  @map("expires_at") @db.Timestamptz
+
+  user      User      @relation(fields: [userId], references: [id])
+
+  @@index([userId, expiresAt], name: "sessions_user_id_expires_at_idx")
+  @@map("sessions")
+}
+
+model EmailToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  token     String    @unique
+  type      String
+  newEmail  String?   @map("new_email")
+  expiresAt DateTime  @map("expires_at") @db.Timestamptz
+  createdAt DateTime? @default(now()) @map("created_at") @db.Timestamptz
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId], name: "email_tokens_user_id_idx")
+  @@map("email_tokens")
+}
+
+model Game {
+  id          String    @id @default(uuid()) @db.Uuid
+  slug        String    @unique
+  name        String
+  description String?
+  createdAt   DateTime? @default(now()) @map("created_at") @db.Timestamptz
+
+  gameMembers GameMember[]
+  files       File[]
+  gameConfig  GameConfig?
+  magics      Magic[]
+  levelConfigs LevelConfig[]
+  goods       Good[]
+  shops       Shop[]
+  npcs        Npc[]
+  npcResources NpcResource[]
+  objs        Obj[]
+  objResources ObjResource[]
+  players     Player[]
+  talkPortrait TalkPortrait?
+  talk        Talk?
+  saves       Save[]
+  scenes      Scene[]
+  sceneItems  SceneItem[]
+
+  @@map("games")
+}
+
+model GameMember {
+  id        String    @id @default(uuid()) @db.Uuid
+  gameId    String    @map("game_id") @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  role      String    @default("member")
+  createdAt DateTime? @default(now()) @map("created_at") @db.Timestamptz
+
+  game      Game      @relation(fields: [gameId], references: [id])
+  user      User      @relation(fields: [userId], references: [id])
+
+  @@index([gameId, userId], name: "game_members_game_id_user_id_idx")
+  @@index([userId], name: "game_members_user_id_idx")
+  @@map("game_members")
+}
+
+model File {
+  id         String    @id @default(uuid()) @db.Uuid
+  gameId     String    @map("game_id") @db.Uuid
+  parentId   String?   @map("parent_id") @db.Uuid
+  name       String
+  type       String
+  storageKey String?   @map("storage_key")
+  size       String?
+  mimeType   String?   @map("mime_type")
+  checksum   String?
+  createdAt  DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt  DateTime? @default(now()) @map("updated_at") @db.Timestamptz
+  deletedAt  DateTime? @map("deleted_at") @db.Timestamptz
+
+  game       Game      @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@index([gameId, parentId], name: "files_game_id_parent_id_idx")
+  @@map("files")
+}
+
+model GameConfig {
+  id        String    @id @default(uuid()) @db.Uuid
+  gameId    String    @unique @map("game_id") @db.Uuid
+  data      Json
+  createdAt DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime? @default(now()) @map("updated_at") @db.Timestamptz
+
+  game      Game      @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@map("game_configs")
+}
+
+model Magic {
+  id        String    @id @default(uuid()) @db.Uuid
+  gameId    String    @map("game_id") @db.Uuid
+  key       String
+  userType  String    @default("player") @map("user_type")
+  name      String
+  data      Json
+  createdAt DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime? @default(now()) @map("updated_at") @db.Timestamptz
+
+  game      Game      @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@unique([gameId, key], name: "magics_game_id_key_unique")
+  @@map("magics")
+}
+
+model LevelConfig {
+  id        String    @id @default(uuid()) @db.Uuid
+  gameId    String    @map("game_id") @db.Uuid
+  key       String
+  name      String
+  userType  String    @default("player") @map("user_type")
+  maxLevel  Int       @default(80) @map("max_level")
+  data      Json
+  createdAt DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime? @default(now()) @map("updated_at") @db.Timestamptz
+
+  game      Game      @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@unique([gameId, key], name: "level_configs_game_id_key_unique")
+  @@map("level_configs")
+}
+
+model Good {
+  id        String    @id @default(uuid()) @db.Uuid
+  gameId    String    @map("game_id") @db.Uuid
+  key       String
+  kind      String    @default("Drug")
+  data      Json
+  createdAt DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime? @default(now()) @map("updated_at") @db.Timestamptz
+
+  game      Game      @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@unique([gameId, key], name: "goods_game_id_key_unique")
+  @@map("goods")
+}
+
+model Shop {
+  id        String    @id @default(uuid()) @db.Uuid
+  gameId    String    @map("game_id") @db.Uuid
+  key       String
+  name      String
+  data      Json
+  createdAt DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime? @default(now()) @map("updated_at") @db.Timestamptz
+
+  game      Game      @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@unique([gameId, key], name: "shops_game_id_key_unique")
+  @@map("shops")
+}
+
+model Npc {
+  id         String    @id @default(uuid()) @db.Uuid
+  gameId     String    @map("game_id") @db.Uuid
+  key        String
+  name       String
+  kind       String    @default("Normal")
+  relation   String    @default("Friend")
+  resourceId String?   @map("resource_id") @db.Uuid
+  data       Json
+  createdAt  DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt  DateTime? @default(now()) @map("updated_at") @db.Timestamptz
+
+  game       Game      @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@unique([gameId, key], name: "npcs_game_id_key_unique")
+  @@map("npcs")
+}
+
+model NpcResource {
+  id        String    @id @default(uuid()) @db.Uuid
+  gameId    String    @map("game_id") @db.Uuid
+  key       String
+  name      String
+  data      Json
+  createdAt DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime? @default(now()) @map("updated_at") @db.Timestamptz
+
+  game      Game      @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@unique([gameId, key], name: "npc_resources_game_id_key_unique")
+  @@map("npc_resources")
+}
+
+model Obj {
+  id         String    @id @default(uuid()) @db.Uuid
+  gameId     String    @map("game_id") @db.Uuid
+  key        String
+  name       String
+  kind       String    @default("Static")
+  resourceId String?   @map("resource_id") @db.Uuid
+  data       Json
+  createdAt  DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt  DateTime? @default(now()) @map("updated_at") @db.Timestamptz
+
+  game       Game      @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@unique([gameId, key], name: "objs_game_id_key_unique")
+  @@map("objs")
+}
+
+model ObjResource {
+  id        String    @id @default(uuid()) @db.Uuid
+  gameId    String    @map("game_id") @db.Uuid
+  key       String
+  name      String
+  data      Json
+  createdAt DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime? @default(now()) @map("updated_at") @db.Timestamptz
+
+  game      Game      @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@unique([gameId, key], name: "obj_resources_game_id_key_unique")
+  @@map("obj_resources")
+}
+
+model Player {
+  id        String    @id @default(uuid()) @db.Uuid
+  gameId    String    @map("game_id") @db.Uuid
+  key       String
+  name      String
+  index     Int       @default(0)
+  data      Json
+  createdAt DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime? @default(now()) @map("updated_at") @db.Timestamptz
+
+  game      Game      @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@unique([gameId, key], name: "players_game_id_key_unique")
+  @@map("players")
+}
+
+model TalkPortrait {
+  id        String    @id @default(uuid()) @db.Uuid
+  gameId    String    @unique @map("game_id") @db.Uuid
+  data      Json
+  createdAt DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime? @default(now()) @map("updated_at") @db.Timestamptz
+
+  game      Game      @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@map("talk_portraits")
+}
+
+model Talk {
+  id        String    @id @default(uuid()) @db.Uuid
+  gameId    String    @unique @map("game_id") @db.Uuid
+  data      Json
+  createdAt DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime? @default(now()) @map("updated_at") @db.Timestamptz
+
+  game      Game      @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@map("talks")
+}
+
+model Save {
+  id          String    @id @default(uuid()) @db.Uuid
+  gameId      String    @map("game_id") @db.Uuid
+  userId      String    @map("user_id") @db.Uuid
+  name        String
+  mapName     String?   @map("map_name")
+  level       Int?
+  playerName  String?   @map("player_name")
+  screenshot  String?
+  isShared    Boolean   @default(false) @map("is_shared")
+  shareCode   String?   @unique @map("share_code")
+  data        Json
+  createdAt   DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime? @default(now()) @map("updated_at") @db.Timestamptz
+
+  game        Game      @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([gameId, userId], name: "saves_game_id_user_id_idx")
+  @@index([userId], name: "saves_user_id_idx")
+  @@map("saves")
+}
+
+model Scene {
+  id          String    @id @default(uuid()) @db.Uuid
+  gameId      String    @map("game_id") @db.Uuid
+  key         String
+  name        String
+  mapFileName String    @map("map_file_name")
+  mmfData     String?   @map("mmf_data")
+  data        Json?
+  createdAt   DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime? @default(now()) @map("updated_at") @db.Timestamptz
+
+  game        Game      @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  items       SceneItem[]
+
+  @@unique([gameId, key], name: "scenes_game_id_key_unique")
+  @@map("scenes")
+}
+
+model SceneItem {
+  id        String    @id @default(uuid()) @db.Uuid
+  gameId    String    @map("game_id") @db.Uuid
+  sceneId   String    @map("scene_id") @db.Uuid
+  kind      String
+  key       String
+  name      String
+  fileId    String?   @map("file_id") @db.Uuid
+  data      Json?
+  createdAt DateTime? @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime? @default(now()) @map("updated_at") @db.Timestamptz
+
+  game      Game      @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  scene     Scene     @relation(fields: [sceneId], references: [id], onDelete: Cascade)
+
+  @@unique([gameId, sceneId, kind, key], name: "scene_items_game_scene_kind_key_unique")
+  @@map("scene_items")
+}
