@@ -54,6 +54,7 @@ COPY packages/server/package.json ./packages/server/
 COPY packages/server/tsconfig.json ./packages/server/
 COPY packages/server/src ./packages/server/src
 COPY packages/server/scripts ./packages/server/scripts
+COPY packages/server/prisma ./packages/server/prisma
 
 # 复制 web 包配置
 COPY packages/web/package.json ./packages/web/
@@ -66,6 +67,8 @@ RUN pnpm install --frozen-lockfile
 
 # 构建依赖包
 RUN pnpm --filter @miu2d/types build
+# 生成 Prisma Client（web tsc 链路需要 @prisma/client 类型）
+RUN pnpm --filter @miu2d/server db:generate
 # 生成 server 的 tRPC 类型（web 依赖）
 RUN pnpm --filter @miu2d/server gen:trpc
 
