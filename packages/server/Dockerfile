@@ -30,7 +30,7 @@ RUN pnpm install --frozen-lockfile
 # 复制源代码和脚本
 COPY packages/server/src ./packages/server/src
 COPY packages/server/scripts ./packages/server/scripts
-COPY packages/server/drizzle ./packages/server/drizzle
+COPY packages/server/prisma ./packages/server/prisma
 
 # 先构建 types（server 运行时依赖其编译产物）
 WORKDIR /app/packages/types
@@ -64,8 +64,8 @@ COPY --from=builder /app/packages/types/dist ./packages/types/dist
 COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
 COPY --from=builder /app/packages/server/dist ./packages/server/dist
 
-# 复制 drizzle 迁移文件
-COPY --from=builder /app/packages/server/drizzle ./packages/server/drizzle
+# 复制 prisma schema 和迁移文件
+COPY --from=builder /app/packages/server/prisma ./packages/server/prisma
 
 # 只安装生产依赖
 RUN pnpm install --prod --frozen-lockfile --ignore-scripts
