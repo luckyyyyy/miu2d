@@ -70,6 +70,10 @@ COPY --from=builder /app/packages/server/prisma ./packages/server/prisma
 # 只安装生产依赖
 RUN pnpm install --prod --frozen-lockfile --ignore-scripts
 
+# 生成 Prisma Client（使用 WASM，无需 schema-engine 二进制）
+WORKDIR /app/packages/server
+RUN node node_modules/.bin/prisma generate --schema=prisma/schema.prisma
+
 # 安装后将 shared 的 exports 指向编译后的 JS（Node.js 无法执行 .ts）
 RUN node -e "const f='packages/shared/package.json';const p=JSON.parse(require('fs').readFileSync(f,'utf8'));p.exports={'./locales':'./dist/locales/index.js'};require('fs').writeFileSync(f,JSON.stringify(p,null,2))"
 
