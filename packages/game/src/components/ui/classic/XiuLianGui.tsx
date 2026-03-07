@@ -110,9 +110,9 @@ export const XiuLianGui: React.FC<XiuLianGuiProps> = ({
       if (dragData && dragData.storeIndex > 0) {
         // 从 MagicGui 拖拽（使用 storeIndex）
         onDrop?.(dragData.storeIndex);
-      } else if (bottomDragData && bottomDragData.listIndex > 0) {
-        // 从 BottomGui 拖拽（使用 listIndex）
-        onDrop?.(bottomDragData.listIndex);
+      } else if (bottomDragData) {
+        // 从 BottomGui 拖拽（由 handleMagicDropOnXiuLian 通过 bottomMagicDragData 处理）
+        onDrop?.(0);
       }
       onDragEnd?.();
     },

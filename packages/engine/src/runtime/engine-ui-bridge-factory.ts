@@ -9,6 +9,7 @@ import type { MemoListManager } from "../gui/memo-list-manager";
 import { type UIBridgeDeps, UIBridgeImpl } from "../gui/ui-bridge";
 import type { GuiManagerState, UIBridge } from "../gui/ui-types";
 import { MAGIC_LIST_CONFIG } from "../player/magic/magic-list-config";
+import { EquipPosition } from "../player/goods/good";
 import { pixelToTile } from "../utils";
 import type { GameManager } from "./game-manager";
 import type { TimerManager } from "./timer-manager";
@@ -20,18 +21,18 @@ export interface UIBridgeEngineCallbacks {
   handleMagicDrop: (sourceStoreIndex: number, targetBottomSlot: number) => void;
 }
 
-const EQUIP_SLOT_MAP: Record<string, number> = {
-  head: 201,
-  neck: 202,
-  body: 203,
-  back: 204,
-  hand: 205,
-  wrist: 206,
-  foot: 207,
+const EQUIP_SLOT_MAP: Record<string, EquipPosition> = {
+  head: EquipPosition.Head,
+  neck: EquipPosition.Neck,
+  body: EquipPosition.Body,
+  back: EquipPosition.Back,
+  hand: EquipPosition.Hand,
+  wrist: EquipPosition.Wrist,
+  foot: EquipPosition.Foot,
 };
 
-function slotNameToIndex(slot: string): number {
-  return EQUIP_SLOT_MAP[slot] ?? 201;
+function slotNameToPosition(slot: string): EquipPosition {
+  return EQUIP_SLOT_MAP[slot] ?? EquipPosition.Head;
 }
 
 /**
@@ -63,15 +64,29 @@ export function createEngineUIBridge(
     goods: {
       useItem: (index) => gm.handleUseItem(index),
       equipItem: (from, slot) =>
-        gm.goodsListManager.exchangeListItemAndEquiping(from, slotNameToIndex(slot)),
-      unequipItem: (slot) => gm.goodsListManager.unEquipGood(slotNameToIndex(slot)),
+        gm.goodsListManager.exchangeListItemAndEquiping(from, slotNameToPosition(slot)),
+      unequipItem: (slot) => gm.goodsListManager.unEquipGood(slotNameToPosition(slot)),
       swapItems: (from, to) => gm.goodsListManager.exchangeListItem(from, to),
       useBottomItem: (slot) =>
         gm.goodsListManager.useBottomSlot(slot, gm.player, (fn) =>
           gm.npcManager.forEachPartner(fn)
         ),
+      sellBottomGoods: (slot) => {
+        const info = gm.goodsListManager.getBottomItemAtSlot(slot);
+        if (info?.good && info.good.sellPrice > 0 && gm.buyManager.getCanSellSelfGoods()) {
+          gm.player.money += info.good.sellPrice;
+          gm.goodsListManager.setBottomItemAtSlot(slot, null);
+          gm.buyManager.addGood(info.good);
+        }
+      },
+      moveBagToBottom: (bagIndex, bottomSlot) =>
+        gm.goodsListManager.moveBagToBottom(bagIndex, bottomSlot),
+      moveBottomToBag: (bottomSlot, bagIndex) =>
+        gm.goodsListManager.moveBottomToBag(bottomSlot, bagIndex),
+      swapBottomGoods: (fromSlot, toSlot) =>
+        gm.goodsListManager.swapBottomGoods(fromSlot, toSlot),
       swapEquipSlots: (from, to) =>
-        gm.goodsListManager.exchangeListItem(slotNameToIndex(from), slotNameToIndex(to)),
+        gm.goodsListManager.swapEquipSlots(slotNameToPosition(from), slotNameToPosition(to)),
     },
     magic: {
       useMagic: async (i) => gm.handleMagicRightClick(i),
@@ -82,13 +97,18 @@ export function createEngineUIBridge(
       assignMagicToBottom: (src, slot) => callbacks.handleMagicDrop(src, slot),
       swapBottomSlots: (fromSlot, toSlot) => gm.magicInventory.swapBottomSlots(fromSlot, toSlot),
       clearBottomSlot: (slot) => gm.magicInventory.assignMagicToBottomSlot(0, slot),
+      moveBottomToPanel: (bottomSlot, panelIndex) =>
+        gm.magicInventory.moveBottomToPanelAt(bottomSlot, panelIndex),
       setXiuLianMagic: (i) => {
         if (i === 0) {
-          // 清除修炼武功属性，不移动数据（底栏可能仍引用 xiuLianIndex）
+          // 清除修炼武功
           gm.magicInventory.setXiuLianMagic(null);
         } else {
           gm.magicInventory.exchangeListItem(i, MAGIC_LIST_CONFIG.xiuLianIndex);
         }
+      },
+      setXiuLianFromBottom: (bottomSlot) => {
+        gm.magicInventory.moveBottomSlotToXiuLian(bottomSlot);
       },
     },
     shop: {

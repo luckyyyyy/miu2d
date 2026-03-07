@@ -38,7 +38,9 @@ import { CharacterMemoryManager } from "./loader-character-memory";
 import {
   collectTrapGroups,
   collectTrapSnapshot,
+  loadGoodsContainer,
   loadGoodsFromJSON,
+  loadMagicContainer,
   loadMagicsFromJSON,
   loadNpcsFromJSON,
   loadObjsFromJSON,
@@ -527,11 +529,11 @@ export class Loader {
           const t = performance.now();
           magicInventory.stopReplace();
           magicInventory.clearReplaceList();
-          await loadMagicsFromJSON(data.magics, data.xiuLianIndex, magicInventory, data.bottomSlots);
+          await loadMagicContainer(data.magicContainer, magicInventory);
           if (data.replaceMagicLists) {
             await magicInventory.deserializeReplaceLists(data.replaceMagicLists);
           }
-          loadGoodsFromJSON(data.goods, data.equips, goodsListManager);
+          loadGoodsContainer(data.goodsContainer, goodsListManager);
           if (data.memo) {
             memoListManager.renewList();
             memoListManager.bulkLoadItems(data.memo.items);
@@ -803,14 +805,11 @@ export class Loader {
       // 玩家数据
       player: SaveDataCollector.collectPlayerData(player),
 
-      // 物品
-      goods: SaveDataCollector.collectGoodsData(goodsListManager),
-      equips: SaveDataCollector.collectEquipsData(goodsListManager),
+      // 武功容器（新格式）
+      magicContainer: SaveDataCollector.collectMagicContainer(magicInventory),
+      // 物品容器（新格式）
+      goodsContainer: SaveDataCollector.collectGoodsContainer(goodsListManager),
 
-      // 武功
-      magics: SaveDataCollector.collectMagicsData(magicInventory),
-      xiuLianIndex: magicInventory.getXiuLianIndex(),
-      bottomSlots: SaveDataCollector.collectBottomSlotsData(magicInventory),
       // 替换武功列表 (角色变身时的临时武功)
       // > PlayerMagicInventory.SaveReplaceList
       replaceMagicLists: magicInventory.serializeReplaceLists(),

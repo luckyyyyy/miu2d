@@ -13,7 +13,9 @@ import type { Player } from "../player/player";
 import type { CharacterMemoryStore } from "./character-memory-store";
 import {
   findApiPlayerByIndex,
+  loadGoodsContainer,
   loadGoodsFromJSON,
+  loadMagicContainer,
   loadMagicsFromJSON,
   loadPlayerFromJSON,
 } from "./loader-data-helpers";
@@ -64,18 +66,11 @@ export class CharacterMemoryManager {
     // 获取或创建内存存储
     const memoryData = this.store.getOrCreate(index);
 
-    // 保存武功列表
-    memoryData.magics = {
-      items: SaveDataCollector.collectMagicsData(magicInventory),
-      xiuLianIndex: magicInventory.getXiuLianIndex(),
-      replaceLists: magicInventory.serializeReplaceLists(),
-    };
+    // 保存武功容器（新格式）
+    memoryData.magics = SaveDataCollector.collectMagicContainer(magicInventory);
 
-    // 保存物品列表
-    memoryData.goods = {
-      items: SaveDataCollector.collectGoodsData(goodsListManager),
-      equips: SaveDataCollector.collectEquipsData(goodsListManager),
-    };
+    // 保存物品容器（新格式）
+    memoryData.goods = SaveDataCollector.collectGoodsContainer(goodsListManager);
 
     // 保存备忘录
     memoryData.memo = { items: memoListManager.getItems() };
@@ -113,16 +108,9 @@ export class CharacterMemoryManager {
 
     if (memoryData?.magics) {
       try {
-        const magicData = memoryData.magics;
-        // 使用现有的 loadMagicsFromJSON 方法
-        if (magicData.items) {
-          await loadMagicsFromJSON(magicData.items, magicData.xiuLianIndex ?? 0, magicInventory);
-          magicLoaded = true;
-        }
-        // 恢复替换列表
-        if (magicData.replaceLists) {
-          magicInventory.deserializeReplaceLists(magicData.replaceLists);
-        }
+        // 使用新格式容器加载
+        await loadMagicContainer(memoryData.magics, magicInventory);
+        magicLoaded = true;
       } catch (e) {
         logger.warn(`[Loader] Failed to load magic list from memory:`, e);
       }
@@ -155,12 +143,9 @@ export class CharacterMemoryManager {
 
     if (memoryData?.goods) {
       try {
-        const goodsData = memoryData.goods;
-        // 使用现有的 loadGoodsFromJSON 方法
-        if (goodsData.items) {
-          loadGoodsFromJSON(goodsData.items, goodsData.equips ?? [], goodsListManager);
-          goodsLoaded = true;
-        }
+        // 使用新格式容器加载
+        loadGoodsContainer(memoryData.goods, goodsListManager);
+        goodsLoaded = true;
       } catch (e) {
         logger.warn(`[Loader] Failed to load goods list from memory:`, e);
       }

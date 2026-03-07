@@ -8,7 +8,6 @@ import type { BuyManager } from "./buy-manager";
 import type { GuiManager } from "./gui-manager";
 import type { NpcManager } from "../npc";
 import { GoodKind, type GoodsListManager } from "../player/goods";
-import { getEquipSlotIndex } from "../player/goods/goods-list-manager";
 import type { Player } from "../player/player";
 
 export interface ItemActionDeps {
@@ -32,10 +31,7 @@ export class ItemActionHandler {
     if (!entry?.good) return;
     const good = entry.good;
     if (good.kind === GoodKind.Equipment) {
-      const equipIndex = getEquipSlotIndex(good.part);
-      if (equipIndex > 0) {
-        goodsListManager.exchangeListItemAndEquiping(index, equipIndex);
-      }
+      goodsListManager.exchangeListItemAndEquiping(index, good.part);
     } else if (good.kind === GoodKind.Drug) {
       goodsListManager.usingGood(index);
       player.useDrug(good);

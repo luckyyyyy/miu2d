@@ -219,10 +219,10 @@ export function useGameUILogic({ engine }: UseGameUILogicOptions) {
       return { items: [], equips: {}, bottomGoods: [], money: 0 };
     }
 
-    // 底栏物品
+    // 底栏物品（独立容器，3 个槽位）
     const bottomGoods: ({ good: UIGoodData; count: number } | null)[] = [];
-    for (let i = 221; i <= 223; i++) {
-      const entry = goodsManager.getItemInfo(i);
+    for (let i = 0; i < 3; i++) {
+      const entry = goodsManager.getBottomItemAtSlot(i);
       if (entry?.good) {
         bottomGoods.push({ good: entry.good, count: entry.count });
       } else {
@@ -230,9 +230,9 @@ export function useGameUILogic({ engine }: UseGameUILogicOptions) {
       }
     }
 
-    // 背包物品
+    // 背包物品（1-500）
     const items: ({ good: UIGoodData; count: number } | null)[] = [];
-    for (let i = 1; i <= 198; i++) {
+    for (let i = 1; i <= 500; i++) {
       const entry = goodsManager.getItemInfo(i);
       if (entry?.good) {
         items.push({ good: entry.good, count: entry.count });
@@ -241,18 +241,17 @@ export function useGameUILogic({ engine }: UseGameUILogicOptions) {
       }
     }
 
-    // 装备
+    // 装备（独立 equipSlots，0=Head..6=Foot）
     type EquipSlots = Partial<Record<EquipSlotType, { good: UIGoodData; count: number } | null>>;
     const equips: EquipSlots = {};
-    const equipIndices = [201, 202, 203, 204, 205, 206, 207];
     const equipSlots: EquipSlotType[] = ["head", "neck", "body", "back", "hand", "wrist", "foot"];
 
-    equipIndices.forEach((index, i) => {
-      const entry = goodsManager.getItemInfo(index);
+    for (let i = 0; i < equipSlots.length; i++) {
+      const entry = goodsManager.getEquipAtSlotIndex(i);
       if (entry?.good) {
         equips[equipSlots[i]] = { good: entry.good, count: entry.count };
       }
-    });
+    }
 
     const playerMoney = engine.player.money;
     return { items, equips, bottomGoods, money: playerMoney };
@@ -603,10 +602,9 @@ export function useGameUILogic({ engine }: UseGameUILogicOptions) {
   );
 
   const handleEquipDragStart = useCallback((slot: EquipSlotType, good: UIGoodData) => {
-    const slotIndex = slotTypeToEquipPosition(slot) + 200;
     setDragData({
       type: "equip",
-      index: slotIndex,
+      index: slotTypeToEquipPosition(slot), // EquipPosition (1-7) as identifier
       good,
       sourceSlot: slot,
     });
@@ -663,12 +661,10 @@ export function useGameUILogic({ engine }: UseGameUILogicOptions) {
         return;
       }
 
-      const targetIndex = 221 + targetBottomSlot;
-
       if (dragData.type === "goods") {
-        dispatch({ type: "SWAP_ITEMS", fromIndex: dragData.index, toIndex: targetIndex });
+        dispatch({ type: "MOVE_BAG_TO_BOTTOM", bagIndex: dragData.index, bottomSlot: targetBottomSlot });
       } else if (dragData.type === "bottom") {
-        dispatch({ type: "SWAP_ITEMS", fromIndex: dragData.index, toIndex: targetIndex });
+        dispatch({ type: "SWAP_BOTTOM_GOODS", fromSlot: dragData.index, toSlot: targetBottomSlot });
       }
 
       setDragData(null);
@@ -680,13 +676,11 @@ export function useGameUILogic({ engine }: UseGameUILogicOptions) {
     (bottomSlot: number) => {
       if (!engine) return;
       const goodsManager = engine.getGoodsListManager();
-
-      const actualIndex = 221 + bottomSlot;
-      const entry = goodsManager.getItemInfo(actualIndex);
+      const entry = goodsManager.getBottomItemAtSlot(bottomSlot);
       if (entry?.good) {
         setDragData({
           type: "bottom",
-          index: actualIndex,
+          index: bottomSlot,
           good: entry.good,
         });
       }
@@ -710,13 +704,10 @@ export function useGameUILogic({ engine }: UseGameUILogicOptions) {
 
   const handleBottomMagicDragStart = useCallback(
     (bottomSlot: number) => {
-      if (!engine) return;
-      const listIndex =
-        engine.getGameManager().magicInventory.getBottomSlots()[bottomSlot] ?? 0;
-      setBottomMagicDragData({ bottomSlot, listIndex });
+      setBottomMagicDragData({ bottomSlot, listIndex: bottomSlot });
       setMagicDragData(null);
     },
-    [engine]
+    []
   );
 
   const handleMagicDragEnd = useCallback(() => {
@@ -729,8 +720,12 @@ export function useGameUILogic({ engine }: UseGameUILogicOptions) {
       if (source && source.storeIndex > 0) {
         dispatch({ type: "SWAP_MAGIC", fromIndex: source.storeIndex, toIndex: targetStoreIndex });
       } else if (bottomMagicDragData) {
-        // 从快捷栏拖回技能栏：清除快捷栏引用，武功留在原 store 位置
-        dispatch({ type: "CLEAR_BOTTOM_SLOT", bottomSlot: bottomMagicDragData.bottomSlot });
+        // 从快捷栏拖回技能栏：物理移动到目标面板槽位（互换）
+        dispatch({
+          type: "MOVE_BOTTOM_TO_PANEL",
+          bottomSlot: bottomMagicDragData.bottomSlot,
+          panelIndex: targetStoreIndex,
+        });
       }
       setMagicDragData(null);
       setBottomMagicDragData(null);
@@ -746,10 +741,6 @@ export function useGameUILogic({ engine }: UseGameUILogicOptions) {
           magicIndex: magicDragData.storeIndex,
           bottomSlot: targetBottomSlot,
         });
-        // 修炼栏拖到快捷栏：修炼和快捷栏互斥，需清除修炼栏引用
-        if (magicDragData.storeIndex === MAGIC_LIST_CONFIG.xiuLianIndex) {
-          dispatch({ type: "SET_XIULIAN_MAGIC", magicIndex: 0 });
-        }
       } else if (bottomMagicDragData) {
         // 快捷栏之间拖拽：交换两槽位引用
         dispatch({
@@ -770,25 +761,10 @@ export function useGameUILogic({ engine }: UseGameUILogicOptions) {
 
       if (magicDragData && magicDragData.storeIndex > 0) {
         const fromIndex = magicDragData.storeIndex;
-        // 若此武功在快捷栏有引用，先记录槽位（SWAP_MAGIC 执行后引用会被同步到 xiuLianIndex）
-        let occupiedBottomSlot = -1;
-        if (engine && fromIndex !== xiuLianIndex) {
-          const slots = engine.getGameManager().magicInventory.getBottomSlots();
-          occupiedBottomSlot = slots.indexOf(fromIndex);
-        }
         dispatch({ type: "SWAP_MAGIC", fromIndex, toIndex: xiuLianIndex });
-        // SWAP 后清除该快捷栏槽位，保证武功只在修炼栏
-        if (occupiedBottomSlot >= 0) {
-          dispatch({ type: "CLEAR_BOTTOM_SLOT", bottomSlot: occupiedBottomSlot });
-        }
       } else if (bottomMagicDragData) {
-        dispatch({
-          type: "SWAP_MAGIC",
-          fromIndex: bottomMagicDragData.listIndex,
-          toIndex: xiuLianIndex,
-        });
-        // SWAP_MAGIC 会同步更新快捷栏引用（listIndex → xiuLianIndex），必须额外清除快捷栏槽位
-        dispatch({ type: "CLEAR_BOTTOM_SLOT", bottomSlot: bottomMagicDragData.bottomSlot });
+        // 从快捷栏拖到修炼区：直接互换快捷栏槽位与修炼区
+        dispatch({ type: "SET_XIULIAN_FROM_BOTTOM", bottomSlot: bottomMagicDragData.bottomSlot });
       } else if (sourceIndex > 0 && sourceIndex !== xiuLianIndex) {
         dispatch({ type: "SWAP_MAGIC", fromIndex: sourceIndex, toIndex: xiuLianIndex });
       }
@@ -796,7 +772,7 @@ export function useGameUILogic({ engine }: UseGameUILogicOptions) {
       setMagicDragData(null);
       setBottomMagicDragData(null);
     },
-    [dispatch, engine, magicDragData, bottomMagicDragData]
+    [dispatch, magicDragData, bottomMagicDragData]
   );
 
   const handleXiuLianDragStart = useCallback((data: MagicDragData) => {

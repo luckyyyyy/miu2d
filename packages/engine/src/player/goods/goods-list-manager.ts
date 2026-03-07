@@ -8,37 +8,18 @@ import { logger } from "../../core/logger";
 import { EquipPosition, Good, GoodKind, getGood } from "./good";
 
 // ============= Constants =============
-export const MAX_GOODS = 223;
 export const LIST_INDEX_BEGIN = 1;
-export const LIST_INDEX_END = 223;
 export const STORE_INDEX_BEGIN = 1;
-export const STORE_INDEX_END = 198;
-export const EQUIP_INDEX_BEGIN = 201;
-export const EQUIP_INDEX_END = 207;
-export const BOTTOM_INDEX_BEGIN = 221;
-export const BOTTOM_INDEX_END = 223;
+export const STORE_INDEX_END = 500;
+export const EQUIP_SLOT_COUNT = 7; // Head, Neck, Body, Back, Hand, Wrist, Foot
+export const BOTTOM_ITEMS_COUNT = 3;
 
-// Equipment slot indices (201-207)
-// 201 = Head, 202 = Neck, 203 = Body, 204 = Back, 205 = Hand, 206 = Wrist, 207 = Foot
-export function getEquipSlotIndex(position: EquipPosition): number {
-  switch (position) {
-    case EquipPosition.Head:
-      return EQUIP_INDEX_BEGIN;
-    case EquipPosition.Neck:
-      return EQUIP_INDEX_BEGIN + 1;
-    case EquipPosition.Body:
-      return EQUIP_INDEX_BEGIN + 2;
-    case EquipPosition.Back:
-      return EQUIP_INDEX_BEGIN + 3;
-    case EquipPosition.Hand:
-      return EQUIP_INDEX_BEGIN + 4;
-    case EquipPosition.Wrist:
-      return EQUIP_INDEX_BEGIN + 5;
-    case EquipPosition.Foot:
-      return EQUIP_INDEX_BEGIN + 6;
-    default:
-      return -1;
+/** Convert EquipPosition to 0-based equipSlots array index (-1 if invalid) */
+export function equipPositionToSlotIndex(position: EquipPosition): number {
+  if (position >= EquipPosition.Head && position <= EquipPosition.Foot) {
+    return position - 1; // Head=1→0, Foot=7→6
   }
+  return -1;
 }
 
 // ============= Types =============
@@ -62,7 +43,11 @@ export class GoodsListManager {
     return getEngineContext();
   }
 
-  private goodsList: (GoodsItemInfo | null)[] = new Array(MAX_GOODS + 1).fill(null);
+  private goodsList: (GoodsItemInfo | null)[] = new Array(STORE_INDEX_END + 1).fill(null);
+  // 快捷栏：独立物品数组（不占用 goodsList 索引）
+  private bottomItems: (GoodsItemInfo | null)[] = new Array(BOTTOM_ITEMS_COUNT).fill(null);
+  // 装备槽：独立数组（7 槽，索引 0=Head..6=Foot）
+  private equipSlots: (GoodsItemInfo | null)[] = new Array(EQUIP_SLOT_COUNT).fill(null);
 
   // Callbacks for equipment changes
   private onEquiping: EquipingCallback | null = null;
@@ -93,23 +78,18 @@ export class GoodsListManager {
    * Clear all goods
    */
   renewList(): void {
-    for (let i = LIST_INDEX_BEGIN; i <= LIST_INDEX_END; i++) {
+    for (let i = LIST_INDEX_BEGIN; i <= STORE_INDEX_END; i++) {
       this.goodsList[i] = null;
     }
+    this.bottomItems.fill(null);
+    this.equipSlots.fill(null);
   }
 
   /**
    * Check if index is in valid range
    */
   indexInRange(index: number): boolean {
-    return index > 0 && index <= MAX_GOODS;
-  }
-
-  /**
-   * Check if index is in equipment range
-   */
-  isInEquipRange(index: number): boolean {
-    return index >= EQUIP_INDEX_BEGIN && index <= EQUIP_INDEX_END;
+    return index >= STORE_INDEX_BEGIN && index <= STORE_INDEX_END;
   }
 
   /**
@@ -120,25 +100,18 @@ export class GoodsListManager {
   }
 
   /**
-   * Check if index is in bottom goods (hotbar) range
-   */
-  isInBottomGoodsRange(index: number): boolean {
-    return index >= BOTTOM_INDEX_BEGIN && index <= BOTTOM_INDEX_END;
-  }
-
-  /**
    * Apply equipment effects from loaded list
    */
   applyEquipSpecialEffectFromList(): void {
-    for (let i = EQUIP_INDEX_BEGIN; i <= EQUIP_INDEX_END; i++) {
-      const good = this.get(i);
-      if (good) {
-        this.onEquiping?.(good, null, true);
+    for (let i = 0; i < EQUIP_SLOT_COUNT; i++) {
+      const info = this.equipSlots[i];
+      if (info?.good) {
+        this.onEquiping?.(info.good, null, true);
       }
     }
 
     // Apply no-need-to-equip items
-    for (let i = LIST_INDEX_BEGIN; i <= LIST_INDEX_END; i++) {
+    for (let i = LIST_INDEX_BEGIN; i <= STORE_INDEX_END; i++) {
       const info = this.goodsList[i];
       if (info && info.good.kind === GoodKind.Equipment && info.good.noNeedToEquip > 0) {
         for (let c = 0; c < info.count; c++) {
@@ -164,7 +137,7 @@ export class GoodsListManager {
   }
 
   /**
-   * Set item at specific index (for loading saves)
+   * Set item at specific index (for loading saves - bag only)
    */
   setItemAtIndex(index: number, fileName: string, count: number = 1): boolean {
     if (!this.indexInRange(index)) return false;
@@ -180,11 +153,6 @@ export class GoodsListManager {
       count,
       remainColdMilliseconds: 0,
     };
-
-    // Handle equipment slots
-    if (this.isInEquipRange(index)) {
-      this.onEquiping?.(good, null, false);
-    }
 
     return true;
   }
@@ -233,7 +201,7 @@ export class GoodsListManager {
     // Try to stack with existing same item
     // Equipment with random attributes should NOT stack (each has unique stats)
     if (!hasUniqueRandomAttrs) {
-      for (let i = LIST_INDEX_BEGIN; i <= LIST_INDEX_END; i++) {
+      for (let i = LIST_INDEX_BEGIN; i <= STORE_INDEX_END; i++) {
         const info = this.goodsList[i];
         if (info && info.good.fileName.toLowerCase() === good.fileName.toLowerCase()) {
           info.count += 1;
@@ -244,22 +212,8 @@ export class GoodsListManager {
       }
     }
 
-    // Find empty slot in store
+    // Find empty slot in store range (bottom bar is independent, not used as overflow)
     for (let i = STORE_INDEX_BEGIN; i <= STORE_INDEX_END; i++) {
-      if (this.goodsList[i] === null) {
-        this.goodsList[i] = {
-          good,
-          count: 1,
-          remainColdMilliseconds: 0,
-        };
-        this.checkAddNoEquipGood(good);
-        this.onUpdateView?.(); // Trigger UI update
-        return { success: true, index: i, good };
-      }
-    }
-
-    // Try bottom slots
-    for (let i = BOTTOM_INDEX_BEGIN; i <= BOTTOM_INDEX_END; i++) {
       if (this.goodsList[i] === null) {
         this.goodsList[i] = {
           good,
@@ -289,7 +243,7 @@ export class GoodsListManager {
    * Delete good by filename
    */
   deleteGood(fileName: string): void {
-    for (let i = LIST_INDEX_BEGIN; i <= LIST_INDEX_END; i++) {
+    for (let i = LIST_INDEX_BEGIN; i <= STORE_INDEX_END; i++) {
       const info = this.goodsList[i];
       if (info && info.good.fileName.toLowerCase() === fileName.toLowerCase()) {
         const good = info.good;
@@ -299,10 +253,7 @@ export class GoodsListManager {
           info.count -= 1;
         }
 
-        // Handle unequip
-        if (this.isInEquipRange(i) && this.goodsList[i] === null) {
-          this.onUnEquiping?.(good);
-        } else if (good.kind === GoodKind.Equipment && good.noNeedToEquip > 0) {
+        if (good.kind === GoodKind.Equipment && good.noNeedToEquip > 0) {
           this.onUnEquiping?.(good);
         }
 
@@ -320,7 +271,7 @@ export class GoodsListManager {
     let totalDeleted = 0;
     const lowerName = name.toLowerCase();
 
-    for (let i = LIST_INDEX_BEGIN; i <= LIST_INDEX_END; i++) {
+    for (let i = LIST_INDEX_BEGIN; i <= STORE_INDEX_END; i++) {
       const info = this.goodsList[i];
       // Match by display name or fileName (case-insensitive)
       if (info && (info.good.name === name || info.good.fileName.toLowerCase() === lowerName)) {
@@ -341,10 +292,7 @@ export class GoodsListManager {
           this.goodsList[i] = null;
         }
 
-        // Handle unequip
-        if (this.isInEquipRange(i) && this.goodsList[i] === null) {
-          this.onUnEquiping?.(good);
-        } else if (good.kind === GoodKind.Equipment && good.noNeedToEquip > 0) {
+        if (good.kind === GoodKind.Equipment && good.noNeedToEquip > 0) {
           for (let c = 0; c < deleteCount; c++) {
             this.onUnEquiping?.(good);
           }
@@ -362,7 +310,7 @@ export class GoodsListManager {
    */
   getGoodsNum(fileName: string): number {
     let count = 0;
-    for (let i = LIST_INDEX_BEGIN; i <= LIST_INDEX_END; i++) {
+    for (let i = LIST_INDEX_BEGIN; i <= STORE_INDEX_END; i++) {
       const info = this.goodsList[i];
       if (info && info.good.fileName.toLowerCase() === fileName.toLowerCase()) {
         count += info.count;
@@ -376,7 +324,7 @@ export class GoodsListManager {
    */
   getGoodsNumByName(name: string): number {
     let count = 0;
-    for (let i = LIST_INDEX_BEGIN; i <= LIST_INDEX_END; i++) {
+    for (let i = LIST_INDEX_BEGIN; i <= STORE_INDEX_END; i++) {
       const info = this.goodsList[i];
       if (info && info.good.name === name) {
         count += info.count;
@@ -389,7 +337,7 @@ export class GoodsListManager {
    * Check if can equip a good at position
    */
   canEquip(goodIndex: number, position: EquipPosition): boolean {
-    return !this.isInEquipRange(goodIndex) && Good.canEquip(this.get(goodIndex), position);
+    return this.isInStoreRange(goodIndex) && Good.canEquip(this.get(goodIndex), position);
   }
 
   /**
@@ -399,9 +347,9 @@ export class GoodsListManager {
   exchangeListItem(index1: number, index2: number): void {
     logger.log(`[GoodsListManager] exchangeListItem: ${index1} <-> ${index2}`);
     if (index1 !== index2 && this.indexInRange(index1) && this.indexInRange(index2)) {
-      const temp = this.goodsList[index1];
-      this.goodsList[index1] = this.goodsList[index2];
-      this.goodsList[index2] = temp;
+      const temp = this.getItemInfo(index1);
+      this._setItemRaw(index1, this.getItemInfo(index2));
+      this._setItemRaw(index2, temp);
       logger.debug(
         "[GoodsListManager] exchangeListItem: calling onUpdateView, callback exists:",
         !!this.onUpdateView
@@ -411,32 +359,34 @@ export class GoodsListManager {
   }
 
   /**
+   * 内部：直接写入物品
+   */
+  private _setItemRaw(index: number, item: GoodsItemInfo | null): void {
+    this.goodsList[index] = item;
+  }
+
+  /**
    * Unequip item from equipment slot to inventory
    * Returns the new index in inventory, or -1 if failed
    */
-  unEquipGood(equipIndex: number): number {
-    if (!this.isInEquipRange(equipIndex)) {
-      return -1;
-    }
+  unEquipGood(equipPosition: EquipPosition): number {
+    const slotIdx = equipPositionToSlotIndex(equipPosition);
+    if (slotIdx < 0) return -1;
 
-    const info = this.goodsList[equipIndex];
-    if (!info) {
-      return -1; // Nothing equipped
-    }
+    const info = this.equipSlots[slotIdx];
+    if (!info) return -1;
 
     // Find empty slot in store
     for (let i = STORE_INDEX_BEGIN; i <= STORE_INDEX_END; i++) {
       if (this.goodsList[i] === null) {
-        // Move to inventory
         this.goodsList[i] = info;
-        this.goodsList[equipIndex] = null;
+        this.equipSlots[slotIdx] = null;
 
-        // Trigger unequip callback
         this.onUnEquiping?.(info.good);
         this.onUpdateView?.();
 
         logger.log(
-          `[GoodsListManager] Unequipped ${info.good.name} from slot ${equipIndex} to ${i}`
+          `[GoodsListManager] Unequipped ${info.good.name} from ${EquipPosition[equipPosition]} to slot ${i}`
         );
         return i;
       }
@@ -447,67 +397,47 @@ export class GoodsListManager {
   }
 
   /**
-   * Exchange two items and handle equipment changes
+   * Exchange bag item with equipment slot, handling equipment callbacks
    */
-  exchangeListItemAndEquiping(index1: number, index2: number): void {
-    logger.log(`[GoodsListManager] exchangeListItemAndEquiping: ${index1} <-> ${index2}`);
+  exchangeListItemAndEquiping(bagIndex: number, equipPosition: EquipPosition): void {
+    logger.log(`[GoodsListManager] exchangeListItemAndEquiping: bag[${bagIndex}] <-> equip[${EquipPosition[equipPosition]}]`);
+    if (!this.isInStoreRange(bagIndex)) return;
+
+    const slotIdx = equipPositionToSlotIndex(equipPosition);
+    if (slotIdx < 0) return;
+
+    const bagItem = this.goodsList[bagIndex];
+    const equippedItem = this.equipSlots[slotIdx];
+
+    // Swap
+    this.goodsList[bagIndex] = equippedItem;
+    this.equipSlots[slotIdx] = bagItem;
+
+    // Trigger equip callbacks
+    const newEquip = this.equipSlots[slotIdx];
+    const replacedEquip = this.goodsList[bagIndex];
+    this.onEquiping?.(newEquip?.good ?? null, replacedEquip?.good ?? null);
+    this.onUpdateView?.();
+
     logger.log(
-      `[GoodsListManager] Before: slot ${index1} = ${this.goodsList[index1]?.good?.name ?? "empty"}, slot ${index2} = ${this.goodsList[index2]?.good?.name ?? "empty"}`
+      `[GoodsListManager] After: bag[${bagIndex}] = ${this.goodsList[bagIndex]?.good?.name ?? "empty"}, equip[${EquipPosition[equipPosition]}] = ${this.equipSlots[slotIdx]?.good?.name ?? "empty"}`
     );
-
-    if (index1 !== index2 && this.indexInRange(index1) && this.indexInRange(index2)) {
-      const temp = this.goodsList[index1];
-      this.goodsList[index1] = this.goodsList[index2];
-      this.goodsList[index2] = temp;
-      this.changePlayerEquiping(index1, index2);
-      this.onUpdateView?.();
-
-      logger.log(
-        `[GoodsListManager] After: slot ${index1} = ${this.goodsList[index1]?.good?.name ?? "empty"}, slot ${index2} = ${this.goodsList[index2]?.good?.name ?? "empty"}`
-      );
-    } else {
-      logger.warn(`[GoodsListManager] Exchange failed: invalid indices or same index`);
-    }
-  }
-
-  /**
-   * Handle player equipment change after exchange
-   */
-  private changePlayerEquiping(index1: number, index2: number): void {
-    let equip: Good | null = null;
-    let currentEquip: Good | null = null;
-
-    if (this.isInEquipRange(index1)) {
-      equip = this.get(index1);
-      currentEquip = this.get(index2);
-    } else if (this.isInEquipRange(index2)) {
-      equip = this.get(index2);
-      currentEquip = this.get(index1);
-    }
-
-    if (equip || currentEquip) {
-      this.onEquiping?.(equip, currentEquip);
-    }
   }
 
   /**
    * Move equipment to inventory
    */
-  moveEquipItemToList(equipItemIndex: number): { success: boolean; newIndex: number } {
-    if (!this.isInEquipRange(equipItemIndex)) {
-      return { success: false, newIndex: 0 };
-    }
+  moveEquipItemToList(equipPosition: EquipPosition): { success: boolean; newIndex: number } {
+    const slotIdx = equipPositionToSlotIndex(equipPosition);
+    if (slotIdx < 0) return { success: false, newIndex: 0 };
 
-    const info = this.goodsList[equipItemIndex];
-    if (!info) {
-      return { success: false, newIndex: 0 };
-    }
+    const info = this.equipSlots[slotIdx];
+    if (!info) return { success: false, newIndex: 0 };
 
-    // Find empty slot in store
     for (let i = STORE_INDEX_BEGIN; i <= STORE_INDEX_END; i++) {
       if (this.goodsList[i] === null) {
         this.goodsList[i] = info;
-        this.goodsList[equipItemIndex] = null;
+        this.equipSlots[slotIdx] = null;
         return { success: true, newIndex: i };
       }
     }
@@ -518,18 +448,54 @@ export class GoodsListManager {
   /**
    * Player unequipping item
    */
-  playerUnEquiping(equipIndex: number): { success: boolean; newIndex: number } {
-    if (!this.isInEquipRange(equipIndex)) {
-      return { success: false, newIndex: 0 };
-    }
-
-    const result = this.moveEquipItemToList(equipIndex);
+  playerUnEquiping(equipPosition: EquipPosition): { success: boolean; newIndex: number } {
+    const result = this.moveEquipItemToList(equipPosition);
     if (result.success) {
       this.onUnEquiping?.(this.get(result.newIndex));
       this.onUpdateView?.();
     }
-
     return result;
+  }
+
+  /**
+   * Swap two equipment slots
+   */
+  swapEquipSlots(pos1: EquipPosition, pos2: EquipPosition): void {
+    const idx1 = equipPositionToSlotIndex(pos1);
+    const idx2 = equipPositionToSlotIndex(pos2);
+    if (idx1 < 0 || idx2 < 0 || idx1 === idx2) return;
+    const tmp = this.equipSlots[idx1];
+    this.equipSlots[idx1] = this.equipSlots[idx2];
+    this.equipSlots[idx2] = tmp;
+    this.onUpdateView?.();
+  }
+
+  /**
+   * Get equipped item at a specific EquipPosition
+   */
+  getEquipAtPosition(position: EquipPosition): GoodsItemInfo | null {
+    const idx = equipPositionToSlotIndex(position);
+    return idx >= 0 ? this.equipSlots[idx] : null;
+  }
+
+  /**
+   * Set equipped item at a specific EquipPosition (for save loading)
+   */
+  setEquipAtPosition(position: EquipPosition, item: GoodsItemInfo | null): void {
+    const idx = equipPositionToSlotIndex(position);
+    if (idx >= 0) {
+      this.equipSlots[idx] = item;
+      if (item?.good) {
+        this.onEquiping?.(item.good, null, false);
+      }
+    }
+  }
+
+  /**
+   * Get equipped item at 0-based slot index (0=Head..6=Foot), for UI iteration
+   */
+  getEquipAtSlotIndex(i: number): GoodsItemInfo | null {
+    return i >= 0 && i < EQUIP_SLOT_COUNT ? this.equipSlots[i] : null;
   }
 
   /**
@@ -542,11 +508,6 @@ export class GoodsListManager {
     playerLevel: number = 1,
     playerName?: string
   ): Promise<boolean> {
-    if (this.isInEquipRange(goodIndex)) {
-      // Can't use equipped items directly
-      return false;
-    }
-
     const info = this.getItemInfo(goodIndex);
     if (!info) return false;
 
@@ -624,25 +585,46 @@ export class GoodsListManager {
    * Consolidates logic from InputHandler.useBottomGood() and UIBridge.useBottomItem().
    * Handles: consume item → apply drug to player → apply drug to partners.
    *
-   * @param slotIndex 0-2 (maps to bottom indices 221-223)
+   * @param slotIndex 0-2 (bottom slot index)
    * @param player Player instance
    * @param forEachPartner Callback to iterate partners
    */
-  async useBottomSlot(
+  useBottomSlot(
     slotIndex: number,
     player: { level: number; useDrug: (good: Good) => void },
     forEachPartner: (fn: (partner: { useDrug: (good: Good) => void }) => void) => void
-  ): Promise<void> {
-    const actualIndex = BOTTOM_INDEX_BEGIN + slotIndex;
-    const info = this.getItemInfo(actualIndex);
+  ): void {
+    const info = this.getBottomItemAtSlot(slotIndex);
     if (!info?.good) return;
 
-    const success = await this.usingGood(actualIndex, player.level);
-    if (success && info.good.kind === GoodKind.Drug) {
-      player.useDrug(info.good);
-      if (info.good.followPartnerHasDrugEffect > 0) {
+    const good = info.good;
+    const level = player.level;
+    // Use the item directly from bottom slot
+    const minLevel = good.minUserLevel;
+    if (minLevel > 0 && level < minLevel) {
+      return;
+    }
+    if (info.remainColdMilliseconds > 0) return;
+    if (good.kind === GoodKind.Drug) {
+      const coldMilliseconds = good.coldMilliSeconds;
+      info.remainColdMilliseconds = coldMilliseconds;
+      // Also apply cold to same-item slots in the list
+      for (let i = LIST_INDEX_BEGIN; i <= STORE_INDEX_END; i++) {
+        const slot = this.goodsList[i];
+        if (slot && slot.good.fileName.toLowerCase() === good.fileName.toLowerCase()) {
+          slot.remainColdMilliseconds = coldMilliseconds;
+        }
+      }
+      // Decrement count
+      info.count -= 1;
+      if (info.count <= 0) {
+        this.bottomItems[slotIndex] = null;
+      }
+      this.onUpdateView?.();
+      player.useDrug(good);
+      if (good.followPartnerHasDrugEffect > 0) {
         forEachPartner((partner) => {
-          partner.useDrug(info.good);
+          partner.useDrug(good);
         });
       }
     }
@@ -652,7 +634,7 @@ export class GoodsListManager {
    * Equip a good from inventory
    */
   equipGood(goodListIndex: number): boolean {
-    if (!this.isInStoreRange(goodListIndex) && !this.isInBottomGoodsRange(goodListIndex)) {
+    if (!this.isInStoreRange(goodListIndex)) {
       return false;
     }
 
@@ -662,11 +644,10 @@ export class GoodsListManager {
     const good = info.good;
     if (good.kind !== GoodKind.Equipment) return false;
 
-    const equipIndex = getEquipSlotIndex(good.part);
-    if (equipIndex === -1) return false;
+    if (equipPositionToSlotIndex(good.part) < 0) return false;
 
     // Exchange with current equipped item
-    this.exchangeListItemAndEquiping(goodListIndex, equipIndex);
+    this.exchangeListItemAndEquiping(goodListIndex, good.part);
     this.onUpdateView?.();
 
     return true;
@@ -677,7 +658,7 @@ export class GoodsListManager {
    */
   update(deltaTime: number): void {
     const dt = deltaTime * 1000; // Convert to milliseconds
-    for (let i = LIST_INDEX_BEGIN; i <= LIST_INDEX_END; i++) {
+    for (let i = LIST_INDEX_BEGIN; i <= STORE_INDEX_END; i++) {
       const info = this.goodsList[i];
       if (info && info.remainColdMilliseconds > 0) {
         info.remainColdMilliseconds = Math.max(0, info.remainColdMilliseconds - dt);
@@ -690,9 +671,6 @@ export class GoodsListManager {
    */
   hasFreeItemSpace(): boolean {
     for (let i = STORE_INDEX_BEGIN; i <= STORE_INDEX_END; i++) {
-      if (this.goodsList[i] === null) return true;
-    }
-    for (let i = BOTTOM_INDEX_BEGIN; i <= BOTTOM_INDEX_END; i++) {
       if (this.goodsList[i] === null) return true;
     }
     return false;
@@ -725,34 +703,88 @@ export class GoodsListManager {
     ];
 
     for (let i = 0; i < positions.length; i++) {
-      equipped.set(positions[i], this.goodsList[EQUIP_INDEX_BEGIN + i]);
+      equipped.set(positions[i], this.equipSlots[i]);
     }
 
     return equipped;
   }
 
   /**
-   * Get bottom bar items (hotbar)
+   * Get bottom bar items (hotbar) from independent bottomItems array
    */
   getBottomItems(): (GoodsItemInfo | null)[] {
-    const items: (GoodsItemInfo | null)[] = [];
-    for (let i = BOTTOM_INDEX_BEGIN; i <= BOTTOM_INDEX_END; i++) {
-      items.push(this.goodsList[i]);
-    }
-    return items;
+    return [...this.bottomItems];
   }
 
   /**
    * Get the image path for an item at index
    */
   getImagePath(index: number): string | null {
-    const good = this.get(index);
-    if (!good) return null;
+    const info = this.getItemInfo(index);
+    if (!info) return null;
+    return info.good.imagePath;
+  }
 
-    // Use icon for bottom bar items
-    if (this.isInBottomGoodsRange(index)) {
-      return good.iconPath;
+  /**
+   * Set item directly in bottom slot (for save loading)
+   */
+  setBottomItemAtSlot(slot: number, item: GoodsItemInfo | null): void {
+    if (slot >= 0 && slot < BOTTOM_ITEMS_COUNT) {
+      this.bottomItems[slot] = item;
+      this.onUpdateView?.();
     }
-    return good.imagePath;
+  }
+
+  /**
+   * Get item directly from bottom slot
+   */
+  getBottomItemAtSlot(slot: number): GoodsItemInfo | null {
+    if (slot >= 0 && slot < BOTTOM_ITEMS_COUNT) {
+      return this.bottomItems[slot];
+    }
+    return null;
+  }
+
+  /**
+   * Move a bag item into a bottom slot (item stays in bag AND bottom slot)
+   */
+  moveBagToBottom(bagIndex: number, bottomSlot: number): void {
+    if (!this.isInStoreRange(bagIndex) || bottomSlot < 0 || bottomSlot >= BOTTOM_ITEMS_COUNT) return;
+    const info = this.goodsList[bagIndex];
+    if (!info) return;
+    this.bottomItems[bottomSlot] = { ...info };
+    this.goodsList[bagIndex] = null;
+    this.onUpdateView?.();
+  }
+
+  /**
+   * Move a bottom slot item back to bag
+   */
+  moveBottomToBag(bottomSlot: number, bagIndex?: number): void {
+    if (bottomSlot < 0 || bottomSlot >= BOTTOM_ITEMS_COUNT) return;
+    const item = this.bottomItems[bottomSlot];
+    if (!item) return;
+    if (bagIndex !== undefined && this.isInStoreRange(bagIndex) && this.goodsList[bagIndex] === null) {
+      this.goodsList[bagIndex] = item;
+    } else {
+      this.addGoodToListWithCount(item.good.fileName, item.count);
+    }
+    this.bottomItems[bottomSlot] = null;
+    this.onUpdateView?.();
+  }
+
+  /**
+   * Swap two bottom slots
+   */
+  swapBottomGoods(fromSlot: number, toSlot: number): void {
+    if (
+      fromSlot < 0 || fromSlot >= BOTTOM_ITEMS_COUNT ||
+      toSlot < 0 || toSlot >= BOTTOM_ITEMS_COUNT ||
+      fromSlot === toSlot
+    ) return;
+    const tmp = this.bottomItems[fromSlot];
+    this.bottomItems[fromSlot] = this.bottomItems[toSlot];
+    this.bottomItems[toSlot] = tmp;
+    this.onUpdateView?.();
   }
 }

@@ -10,7 +10,6 @@ import { GoodKind } from "@miu2d/engine/player/goods";
 import { useCallback } from "react";
 import type { TouchDragData } from "../../contexts";
 import type { EquipSlotType } from "../ui/classic";
-import { slotTypeToEquipPosition } from "../ui/classic";
 import { equipSlotToUISlot } from "./useGameUILogic";
 import type { GameUILogic } from "./useGameUILogic";
 
@@ -25,12 +24,9 @@ export function useTouchDropHandlers(logic: Pick<GameUILogic, "dispatch" | "engi
             dispatch({ type: "SHOW_MESSAGE", text: "只有药品可以放到快捷栏" });
             return;
           }
-          const targetBagIndex = 221 + targetIndex;
-          dispatch({ type: "SWAP_ITEMS", fromIndex: touchData.bagIndex, toIndex: targetBagIndex });
+          dispatch({ type: "MOVE_BAG_TO_BOTTOM", bagIndex: touchData.bagIndex, bottomSlot: targetIndex });
         } else if (targetIndex < 3 && touchData.bottomSlot !== undefined) {
-          const fromIndex = 221 + touchData.bottomSlot;
-          const toIndex = 221 + targetIndex;
-          dispatch({ type: "SWAP_ITEMS", fromIndex, toIndex });
+          dispatch({ type: "SWAP_BOTTOM_GOODS", fromSlot: touchData.bottomSlot, toSlot: targetIndex });
         }
       } else if (touchData.type === "magic") {
         if (targetIndex >= 3) {
@@ -78,11 +74,14 @@ export function useTouchDropHandlers(logic: Pick<GameUILogic, "dispatch" | "engi
       if (touchData.type === "goods" && touchData.bagIndex !== undefined) {
         dispatch({ type: "SWAP_ITEMS", fromIndex: touchData.bagIndex, toIndex: targetIndex });
       } else if (touchData.type === "goods" && touchData.bottomSlot !== undefined) {
-        const fromIndex = 221 + touchData.bottomSlot;
-        dispatch({ type: "SWAP_ITEMS", fromIndex, toIndex: targetIndex });
+        dispatch({ type: "MOVE_BOTTOM_TO_BAG", bottomSlot: touchData.bottomSlot, bagIndex: targetIndex });
       } else if (touchData.type === "equip" && touchData.equipSlot) {
-        const fromIndex = slotTypeToEquipPosition(touchData.equipSlot as EquipSlotType) + 200;
-        dispatch({ type: "SWAP_ITEMS", fromIndex, toIndex: targetIndex });
+        // 从装备槽拖到背包槽：将目标背包位置物品与装备槽互换
+        dispatch({
+          type: "EQUIP_ITEM",
+          fromIndex: targetIndex,
+          toSlot: equipSlotToUISlot(touchData.equipSlot as EquipSlotType),
+        });
       }
     },
     [dispatch]
@@ -97,8 +96,12 @@ export function useTouchDropHandlers(logic: Pick<GameUILogic, "dispatch" | "engi
           toIndex: targetStoreIndex,
         });
       } else if (touchData.type === "magic" && touchData.bottomSlot !== undefined) {
-        // 从快捷栏拖回技能栏：清除快捷栏引用
-        dispatch({ type: "CLEAR_BOTTOM_SLOT", bottomSlot: touchData.bottomSlot - 3 });
+        // 从快捷栏拖回技能栏：物理移动到目标面板槽位（互换）
+        dispatch({
+          type: "MOVE_BOTTOM_TO_PANEL",
+          bottomSlot: touchData.bottomSlot - 3,
+          panelIndex: targetStoreIndex,
+        });
       }
     },
     [dispatch]
@@ -115,16 +118,12 @@ export function useTouchDropHandlers(logic: Pick<GameUILogic, "dispatch" | "engi
         ) {
           dispatch({ type: "SWAP_MAGIC", fromIndex: touchData.storeIndex, toIndex: xiuLianIndex });
         } else if (touchData.bottomSlot !== undefined) {
-          const fromListIndex = engine
-            ?.getGameManager()
-            ?.magicInventory?.getBottomSlots()[touchData.bottomSlot - 3];
-          if (fromListIndex != null) {
-            dispatch({ type: "SWAP_MAGIC", fromIndex: fromListIndex, toIndex: xiuLianIndex });
-          }
+          // 从快捷栏拖到修炼区：直接互换
+          dispatch({ type: "SET_XIULIAN_FROM_BOTTOM", bottomSlot: touchData.bottomSlot - 3 });
         }
       }
     },
-    [dispatch, engine]
+    [dispatch]
   );
 
   return {

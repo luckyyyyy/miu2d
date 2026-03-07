@@ -870,10 +870,16 @@ export class InputHandler {
    * Interrupt attack animation if player is in attack state
    * Only interrupts Attack/Attack1/Attack2 states, NOT Magic state
    * This allows clicking ground to cancel attack but not spell casting
+   *
+   * 注意：Attack2 + 修炼武功 AttackFile 不可中断，必须等动画结束触发 XiuLian 特效
    */
   private interruptAttackIfNeeded(player: Player): void {
     const attackStates = [CharacterState.Attack, CharacterState.Attack1, CharacterState.Attack2];
     if (attackStates.includes(player.state)) {
+      // Attack2 触发修炼武功附加效果时不允许走动中断，必须让 onAttacking() 完整执行
+      if (player.state === CharacterState.Attack2 && player.hasXiuLianAttackMagic) {
+        return;
+      }
       player.standingImmediately();
     }
   }

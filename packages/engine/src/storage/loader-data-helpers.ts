@@ -8,20 +8,32 @@
 import type { Player as PlayerType } from "@miu2d/types";
 import { logger } from "../core/logger";
 import { getPlayersData } from "../data/game-data-api";
+import { getMagic, getMagicAtLevel } from "../magic/magic-config-loader";
+import { createDefaultMagicItemInfo } from "../magic/types";
 import type { MapBase } from "../map/map-base";
 import type { NpcManager } from "../npc";
 import type { ObjManager } from "../obj";
 import type { GoodsListManager } from "../player/goods";
-import {
-  BOTTOM_INDEX_BEGIN,
-  BOTTOM_INDEX_END,
-  EQUIP_INDEX_BEGIN,
-} from "../player/goods/goods-list-manager";
+import { EquipPosition } from "../player/goods/good";
+import { getGood } from "../player/goods/good";
+
+// Equipment slot positions in order (Head=0..Foot=6), matches GoodsContainerSave.equipItems order
+const EQUIP_POSITION_ORDER = [
+  EquipPosition.Head,
+  EquipPosition.Neck,
+  EquipPosition.Body,
+  EquipPosition.Back,
+  EquipPosition.Hand,
+  EquipPosition.Wrist,
+  EquipPosition.Foot,
+] as const;
 import { MAGIC_LIST_CONFIG } from "../player/magic/magic-list-config";
 import type { PlayerMagicInventory } from "../player/magic/player-magic-inventory";
 import type { Player } from "../player/player";
 import type {
+  GoodsContainerSave,
   GoodsItemData,
+  MagicContainerSave,
   MagicItemData,
   NpcSaveItem,
   ObjSaveItem,
@@ -63,18 +75,14 @@ export async function loadPlayerFromJSON(data: PlayerSaveData, player: Player): 
 }
 
 /**
- * 从 JSON 加载武功列表
+ * 从 JSON 加载武功列表（旧格式兼容）
  * 参考 PlayerMagicInventory.LoadList
- *
- * 旧存档兼容：
- * - 旧版快捷栏占用 magicList[40..44]，加载时保留在原 store 索引并重建 bottomSlots
- * - xiuLianIndex=49 在新设计中仍为有效 store 索引（1..60），自动兼容
+ * 用于新游戏初始化（从 API 数据加载初始武功）
  */
 export async function loadMagicsFromJSON(
   magics: MagicItemData[],
   xiuLianIndex: number,
   magicInventory: PlayerMagicInventory,
-  bottomSlots?: (number | null)[]
 ): Promise<void> {
   // 清空列表
   magicInventory.renewList();
@@ -114,35 +122,13 @@ export async function loadMagicsFromJSON(
     );
   }
 
-  // 恢复快捷栏引用
-  if (bottomSlots) {
-    // 新存档：直接恢复
-    magicInventory.setBottomSlots(bottomSlots);
-  } else {
-    // 旧存档兼容：index 40-44 的武功自动推断为快捷栏绑定
-    const legacySlots: (number | null)[] = new Array(MAGIC_LIST_CONFIG.bottomSlotCount).fill(null);
-    for (let i = 0; i < results.length; i++) {
-      const origIndex = visibleMagics[i].index ?? -1;
-      if (
-        origIndex >= MAGIC_LIST_CONFIG.LEGACY_BOTTOM_INDEX_BEGIN &&
-        origIndex <= MAGIC_LIST_CONFIG.LEGACY_BOTTOM_INDEX_END
-      ) {
-        const slotNum = origIndex - MAGIC_LIST_CONFIG.LEGACY_BOTTOM_INDEX_BEGIN;
-        const [success, storeIdx] = results[i];
-        if (success && storeIdx > 0) {
-          legacySlots[slotNum] = storeIdx;
-        }
-      }
-    }
-    magicInventory.setBottomSlots(legacySlots);
-  }
-
-  // 设置修炼武功
+  // 设置修炼武功（index=0 表示不设修炼武功）
   magicInventory.setXiuLianIndex(xiuLianIndex);
 }
 
 /**
  * 从 JSON 加载物品列表
+ * 用于新游戏初始化（从 API 数据加载初始物品）
  */
 export function loadGoodsFromJSON(
   goods: GoodsItemData[],
@@ -152,27 +138,23 @@ export function loadGoodsFromJSON(
   // 清空列表
   goodsListManager.renewList();
 
-  // 加载背包物品和快捷栏物品
+  // 加载背包物品：自动分配位置
   for (const item of goods) {
-    if (
-      item.index !== undefined &&
-      item.index >= BOTTOM_INDEX_BEGIN &&
-      item.index <= BOTTOM_INDEX_END
-    ) {
-      // 快捷栏物品：使用指定索引
-      goodsListManager.setItemAtIndex(item.index, item.fileName, item.count);
-    } else {
-      // 背包物品：自动分配位置
-      goodsListManager.addGoodToListWithCount(item.fileName, item.count);
-    }
+    goodsListManager.addGoodToListWithCount(item.fileName, item.count);
   }
 
-  // 加载装备
+  // 加载装备（按 EquipPosition 顺序：Head=1..Foot=7）
   for (let i = 0; i < equips.length; i++) {
     const equipItem = equips[i];
     if (equipItem) {
-      const slotIndex = EQUIP_INDEX_BEGIN + i;
-      goodsListManager.setItemAtIndex(slotIndex, equipItem.fileName, 1);
+      const good = getGood(equipItem.fileName);
+      if (good) {
+        goodsListManager.setEquipAtPosition(EQUIP_POSITION_ORDER[i], {
+          good,
+          count: 1,
+          remainColdMilliseconds: 0,
+        });
+      }
     }
   }
 }
@@ -286,4 +268,109 @@ export function collectTrapSnapshot(map: MapBase): number[] {
 /** 收集陷阱分组（按地图名存储的陷阱配置） */
 export function collectTrapGroups(map: MapBase): Record<string, TrapGroupValue> {
   return map.collectTrapDataForSave().mapTraps;
+}
+
+/**
+ * 从新格式武功容器存档加载
+ */
+export async function loadMagicContainer(
+  container: MagicContainerSave,
+  inventory: PlayerMagicInventory
+): Promise<void> {
+  inventory.renewList();
+
+  // 加载面板武功
+  const batchItems = container.panelMagics.map((item, i) =>
+    item
+      ? {
+          fileName: item.fileName,
+          index: i + 1, // 0-indexed → panel slot 1..maxMagic
+          level: item.level,
+          exp: item.exp,
+          hideCount: item.hideCount,
+        }
+      : null
+  ).filter((x): x is NonNullable<typeof x> => x !== null);
+
+  await inventory.addMagicBatch(batchItems);
+
+  // 加载修炼武功
+  if (container.xiuLianMagic) {
+    const { fileName, level, exp } = container.xiuLianMagic;
+    const magic = getMagic(fileName);
+    if (magic) {
+      const levelMagic = getMagicAtLevel(magic, level);
+      const itemInfo = createDefaultMagicItemInfo(levelMagic, level);
+      itemInfo.exp = exp;
+      inventory["_placeMagicItemSync"](MAGIC_LIST_CONFIG.xiuLianIndex, itemInfo, false);
+    }
+  }
+
+  // 加载快捷栏武功（物理移动：从面板或直接放入）
+  for (let s = 0; s < container.bottomMagics.length; s++) {
+    const item = container.bottomMagics[s];
+    if (!item) continue;
+    const magic = getMagic(item.fileName);
+    if (!magic) continue;
+    const levelMagic = getMagicAtLevel(magic, item.level);
+    const itemInfo = createDefaultMagicItemInfo(levelMagic, item.level);
+    itemInfo.exp = item.exp;
+    // 直接设置快捷栏物品（绕过物理移动逻辑，适用于存档加载）
+    inventory.setBottomSlotForLoad(s, itemInfo);
+  }
+
+  // 加载隐藏武功
+  if (container.hiddenMagics.length > 0) {
+    await inventory.addHiddenMagicBatch(
+      container.hiddenMagics.map((item, i) => ({
+        fileName: item.fileName,
+        index: i + 1,
+        level: item.level,
+        exp: item.exp,
+        hideCount: item.hideCount ?? 0,
+        lastIndexWhenHide: item.lastPanelSlot ?? 0,
+      }))
+    );
+  }
+}
+
+/**
+ * 从新格式物品容器存档加载
+ */
+export function loadGoodsContainer(
+  container: GoodsContainerSave,
+  manager: GoodsListManager
+): void {
+  manager.renewList();
+
+  // 加载背包物品
+  for (const item of container.bagItems) {
+    manager.addGoodToListWithCount(item.fileName, item.count);
+  }
+
+  // 加载装备（独立 equipSlots，0=Head..6=Foot）
+  for (let i = 0; i < container.equipItems.length; i++) {
+    const item = container.equipItems[i];
+    if (item) {
+      const good = getGood(item.fileName);
+      if (good) {
+        manager.setEquipAtPosition(EQUIP_POSITION_ORDER[i], {
+          good,
+          count: 1,
+          remainColdMilliseconds: 0,
+        });
+      }
+    }
+  }
+
+  // 加载快捷栏物品
+  for (let s = 0; s < container.bottomItems.length; s++) {
+    const item = container.bottomItems[s];
+    if (item) {
+      const good = getGood(item.fileName);
+      if (good) {
+        manager.setBottomItemAtSlot(s, { good, count: item.count, remainColdMilliseconds: 0 });
+      }
+    }
+  }
 }

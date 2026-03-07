@@ -434,8 +434,9 @@ export const XiuLianPanel: React.FC<XiuLianPanelProps> = ({
       // 支持从 MagicGui 或 BottomGui 拖拽到此处
       if (dragData && dragData.storeIndex > 0) {
         onDrop?.(dragData.storeIndex);
-      } else if (bottomDragData && bottomDragData.listIndex > 0) {
-        onDrop?.(bottomDragData.listIndex);
+      } else if (bottomDragData) {
+        // 从 BottomGui 拖拽（由 handleMagicDropOnXiuLian 通过 bottomMagicDragData 处理）
+        onDrop?.(0);
       }
       onDragEnd?.();
     },

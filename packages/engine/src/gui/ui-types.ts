@@ -431,6 +431,10 @@ export type UIAction =
   | { type: "UNEQUIP_ITEM"; slot: UIEquipSlotName }
   | { type: "SWAP_ITEMS"; fromIndex: number; toIndex: number }
   | { type: "USE_BOTTOM_ITEM"; slotIndex: number }
+  | { type: "SELL_BOTTOM_GOODS"; slotIndex: number }
+  | { type: "MOVE_BAG_TO_BOTTOM"; bagIndex: number; bottomSlot: number }
+  | { type: "MOVE_BOTTOM_TO_BAG"; bottomSlot: number; bagIndex: number }
+  | { type: "SWAP_BOTTOM_GOODS"; fromSlot: number; toSlot: number }
   | { type: "SWAP_EQUIP_SLOTS"; fromSlot: UIEquipSlotName; toSlot: UIEquipSlotName }
   // 武功
   | { type: "USE_MAGIC"; magicIndex: number }
@@ -441,7 +445,9 @@ export type UIAction =
   | { type: "ASSIGN_MAGIC_TO_BOTTOM"; magicIndex: number; bottomSlot: number }
   | { type: "SWAP_BOTTOM_SLOTS"; fromSlot: number; toSlot: number }
   | { type: "CLEAR_BOTTOM_SLOT"; bottomSlot: number }
+  | { type: "MOVE_BOTTOM_TO_PANEL"; bottomSlot: number; panelIndex: number }
   | { type: "SET_XIULIAN_MAGIC"; magicIndex: number }
+  | { type: "SET_XIULIAN_FROM_BOTTOM"; bottomSlot: number }
   // 商店
   | { type: "BUY_ITEM"; shopIndex: number }
   | { type: "SELL_ITEM"; bagIndex: number }

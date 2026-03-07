@@ -185,7 +185,7 @@ export const ModernGameUIWrapper: React.FC<ModernGameUIWrapperProps> = ({
         onItemRightClick={(index: number) => {
           if (index < 3) {
             if (panels?.buy) {
-              dispatch({ type: "SELL_ITEM", bagIndex: 221 + index });
+              dispatch({ type: "SELL_BOTTOM_GOODS", slotIndex: index });
             } else {
               handleUseBottomGood(index);
             }

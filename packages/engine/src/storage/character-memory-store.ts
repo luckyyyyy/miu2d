@@ -1,17 +1,10 @@
 import { logger } from "../core/logger";
-import type { CharacterSaveSlot, GoodsItemData, MagicItemData, PlayerSaveData } from "./save-types";
+import type { CharacterSaveSlot, GoodsContainerSave, MagicContainerSave, PlayerSaveData } from "./save-types";
 
 export interface CharacterMemoryData {
   player: PlayerSaveData | null;
-  magics: {
-    items: MagicItemData[];
-    xiuLianIndex: number;
-    replaceLists?: unknown;
-  } | null;
-  goods: {
-    items: GoodsItemData[];
-    equips: (GoodsItemData | null)[];
-  } | null;
+  magics: MagicContainerSave | null;
+  goods: GoodsContainerSave | null;
   memo: {
     items: string[];
   } | null;
@@ -57,19 +50,9 @@ export class CharacterMemoryStore {
 
       const memoryData: CharacterMemoryData = {
         player: slot.player,
-        magics: slot.magics
-          ? {
-              items: slot.magics,
-              xiuLianIndex: slot.xiuLianIndex,
-              replaceLists: slot.replaceMagicLists,
-            }
-          : null,
-        goods: slot.goods
-          ? {
-              items: slot.goods,
-              equips: slot.equips ?? [],
-            }
-          : null,
+        // 优先使用新格式容器，否则为 null（旧格式由 loader 直接处理）
+        magics: slot.magicContainer ?? null,
+        goods: slot.goodsContainer ?? null,
         memo: slot.memo ? { items: slot.memo } : null,
       };
 
@@ -91,11 +74,8 @@ export class CharacterMemoryStore {
     for (const [index, memoryData] of this.memory) {
       result[index] = {
         player: memoryData.player,
-        magics: memoryData.magics?.items ?? null,
-        xiuLianIndex: memoryData.magics?.xiuLianIndex ?? 0,
-        replaceMagicLists: memoryData.magics?.replaceLists,
-        goods: memoryData.goods?.items ?? null,
-        equips: memoryData.goods?.equips ?? null,
+        magicContainer: memoryData.magics,
+        goodsContainer: memoryData.goods,
         memo: memoryData.memo?.items ?? null,
       };
     }

@@ -444,7 +444,7 @@ export const BottomBar: React.FC<BottomBarProps> = ({
               }}
               onDragStart={() => {
                 if (goodsData) {
-                  onDragStart?.({ type: "goods", slotIndex: i, listIndex: 221 + i });
+                  onDragStart?.({ type: "goods", slotIndex: i, listIndex: i });
                 }
               }}
               onDragEnd={() => onDragEnd?.()}
@@ -488,7 +488,7 @@ export const BottomBar: React.FC<BottomBarProps> = ({
               }}
               onDragStart={() => {
                 if (magicData) {
-                  onDragStart?.({ type: "magic", slotIndex: 3 + i, listIndex: 40 + i });
+                  onDragStart?.({ type: "magic", slotIndex: 3 + i, listIndex: i });
                 }
               }}
               onDragEnd={() => onDragEnd?.()}

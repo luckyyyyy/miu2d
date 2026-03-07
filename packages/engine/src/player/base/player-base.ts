@@ -292,6 +292,14 @@ export abstract class PlayerBase extends Character {
     }
   }
 
+  /**
+   * 当前是否有修炼武功 AttackFile 可在 Attack2 时触发
+   * 供 InputHandler 判断 Attack2 动画是否可被走动中断
+   */
+  get hasXiuLianAttackMagic(): boolean {
+    return this._xiuLianAttackMagic !== null;
+  }
+
   // =============================================
   // === Manager 访问（通过 EngineContext）===
   // =============================================

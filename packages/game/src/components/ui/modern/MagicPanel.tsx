@@ -411,7 +411,7 @@ export const MagicPanel: React.FC<MagicPanelProps> = ({
     (storeIndex: number) => () => {
       // 经典 MagicGui 逻辑：有 dragData 则传入，否则传 storeIndex:-1
       // handleMagicDropOnStore 检查 source.storeIndex>0 → SWAP_MAGIC
-      // 否则检查 bottomMagicDragData → CLEAR_BOTTOM_SLOT
+      // 否则检查 bottomMagicDragData → MOVE_BOTTOM_TO_PANEL
       if (dragData) {
         onDrop?.(storeIndex, dragData);
       } else {

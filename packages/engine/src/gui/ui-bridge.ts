@@ -27,9 +27,7 @@ import type { MemoListManager } from "../gui/memo-list-manager";
 import type { MagicItemInfo } from "../magic/types";
 import { MAGIC_LIST_CONFIG } from "../player/magic/magic-list-config";
 import {
-  BOTTOM_INDEX_BEGIN,
-  BOTTOM_INDEX_END,
-  EQUIP_INDEX_BEGIN,
+  EQUIP_SLOT_COUNT,
   type GoodsItemInfo,
   type GoodsListManager,
   STORE_INDEX_BEGIN,
@@ -121,6 +119,10 @@ export interface UIGoodsActions {
   unequipItem: (slot: string) => void;
   swapItems: (fromIndex: number, toIndex: number) => void;
   useBottomItem: (slotIndex: number) => void;
+  sellBottomGoods: (slotIndex: number) => void;
+  moveBagToBottom: (bagIndex: number, bottomSlot: number) => void;
+  moveBottomToBag: (bottomSlot: number, bagIndex: number) => void;
+  swapBottomGoods: (fromSlot: number, toSlot: number) => void;
   swapEquipSlots: (fromSlot: string, toSlot: string) => void;
 }
 
@@ -134,7 +136,9 @@ export interface UIMagicActions {
   assignMagicToBottom: (magicIndex: number, bottomSlot: number) => void;
   swapBottomSlots: (fromSlot: number, toSlot: number) => void;
   clearBottomSlot: (bottomSlot: number) => void;
+  moveBottomToPanel: (bottomSlot: number, panelIndex: number) => void;
   setXiuLianMagic: (magicIndex: number) => void;
+  setXiuLianFromBottom: (bottomSlot: number) => void;
 }
 
 /** 商店操作 */
@@ -360,7 +364,7 @@ export class UIBridgeImpl implements UIBridge {
       items.push(convertGoodsItemToSlot(info, i));
     }
 
-    // 装备 (201-207)
+    // 装备（独立 equipSlots 数组，0=Head..6=Foot）
     const equipSlots: (keyof UIEquipSlots)[] = [
       "head",
       "neck",
@@ -388,11 +392,12 @@ export class UIBridgeImpl implements UIBridge {
       wrist: null,
       foot: null,
     };
-    for (let i = 0; i < 7; i++) {
-      const info = goodsManager.getItemInfo(EQUIP_INDEX_BEGIN + i);
+    for (let i = 0; i < EQUIP_SLOT_COUNT; i++) {
+      const info = goodsManager.getEquipAtSlotIndex(i);
       if (info?.good) {
         const slotName = equipSlots[i];
-        const slot = convertGoodsItemToSlot(info, EQUIP_INDEX_BEGIN + i);
+        // Use slot order index (0-based) + 1 = EquipPosition (1-7) as the UI slot identifier
+        const slot = convertGoodsItemToSlot(info, i + 1);
         // Type-safe assignment using switch
         switch (slotName) {
           case "head":
@@ -420,10 +425,11 @@ export class UIBridgeImpl implements UIBridge {
       }
     }
 
-    // 底栏物品 (BOTTOM_INDEX_BEGIN-BOTTOM_INDEX_END)
+    // 底栏物品（独立 bottomItems 数组）
     const bottomGoods: (UIGoodsSlot | null)[] = [];
-    for (let i = BOTTOM_INDEX_BEGIN; i <= BOTTOM_INDEX_END; i++) {
-      const info = goodsManager.getItemInfo(i);
+    const bottomCount = goodsManager.getBottomItems().length;
+    for (let i = 0; i < bottomCount; i++) {
+      const info = goodsManager.getBottomItemAtSlot(i);
       bottomGoods.push(info?.good ? convertGoodsItemToSlot(info, i) : null);
     }
 
@@ -445,17 +451,16 @@ export class UIBridgeImpl implements UIBridge {
       storeMagics.push(convertMagicInfoToSlot(info, i));
     }
 
-    // 底栏武功（独立引用槽，不占用存储区索引）
+    // 底栏武功（独立容器，直接持有武功项）
     const bottomMagics: (UIMagicSlot | null)[] = [];
-    const bottomSlots = magicInventory.getBottomSlots();
     const bottomItems = magicInventory.getBottomMagics();
     for (let s = 0; s < bottomItems.length; s++) {
-      const storeIndex = bottomSlots[s] ?? 0;
-      bottomMagics.push(convertMagicInfoToSlot(bottomItems[s], storeIndex));
+      // 用负值区分底栏槽位，避免与面板索引冲突
+      bottomMagics.push(convertMagicInfoToSlot(bottomItems[s], -(s + 1)));
     }
 
-    // 修炼武功 (xiuLianIndex)
-    const xiuLianInfo = magicInventory.getItemInfo(MAGIC_LIST_CONFIG.xiuLianIndex);
+    // 修炼武功（独立容器，直接读取）
+    const xiuLianInfo = magicInventory.getXiuLianMagic();
     const xiuLianMagic = convertMagicInfoToSlot(xiuLianInfo, MAGIC_LIST_CONFIG.xiuLianIndex);
 
     return {
@@ -576,6 +581,18 @@ export class UIBridgeImpl implements UIBridge {
       case "USE_BOTTOM_ITEM":
         this.deps.goods.useBottomItem(action.slotIndex);
         break;
+      case "SELL_BOTTOM_GOODS":
+        this.deps.goods.sellBottomGoods(action.slotIndex);
+        break;
+      case "MOVE_BAG_TO_BOTTOM":
+        this.deps.goods.moveBagToBottom(action.bagIndex, action.bottomSlot);
+        break;
+      case "MOVE_BOTTOM_TO_BAG":
+        this.deps.goods.moveBottomToBag(action.bottomSlot, action.bagIndex);
+        break;
+      case "SWAP_BOTTOM_GOODS":
+        this.deps.goods.swapBottomGoods(action.fromSlot, action.toSlot);
+        break;
       case "SWAP_EQUIP_SLOTS":
         this.deps.goods.swapEquipSlots(action.fromSlot, action.toSlot);
         break;
@@ -605,8 +622,14 @@ export class UIBridgeImpl implements UIBridge {
       case "CLEAR_BOTTOM_SLOT":
         this.deps.magic.clearBottomSlot(action.bottomSlot);
         break;
+      case "MOVE_BOTTOM_TO_PANEL":
+        this.deps.magic.moveBottomToPanel(action.bottomSlot, action.panelIndex);
+        break;
       case "SET_XIULIAN_MAGIC":
         this.deps.magic.setXiuLianMagic(action.magicIndex);
+        break;
+      case "SET_XIULIAN_FROM_BOTTOM":
+        this.deps.magic.setXiuLianFromBottom(action.bottomSlot);
         break;
 
       // 商店

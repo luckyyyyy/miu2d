@@ -9,6 +9,8 @@ import { createDefaultMagicItemInfo } from "../../magic/types";
 import { ResourcePath } from "../../resource/resource-paths";
 import { MAGIC_LIST_CONFIG } from "./magic-list-config";
 
+const HIDE_START_INDEX = 1000;
+
 /**
  * 替换武功列表管理器 — 持有变身状态和替换数据
  */
@@ -64,7 +66,7 @@ export class MagicListReplace {
     let listI = 0;
 
     // 填充存储区 (StoreIndex)
-    for (let i = MAGIC_LIST_CONFIG.storeIndexBegin; i <= MAGIC_LIST_CONFIG.storeIndexEnd; i++) {
+    for (let i = 1; i <= MAGIC_LIST_CONFIG.maxMagic; i++) {
       if (listI >= magicFileNames.length) break;
       const magic = getMagic(ResourcePath.magic(magicFileNames[listI]));
       if (magic) {
@@ -127,7 +129,7 @@ export class MagicListReplace {
         const hideInfo = hideList[i];
         if (hideInfo?.magic) {
           data.push({
-            index: i + MAGIC_LIST_CONFIG.hideStartIndex,
+            index: i + HIDE_START_INDEX,
             fileName: hideInfo.magic.fileName,
             level: hideInfo.level,
             exp: hideInfo.exp,
@@ -189,10 +191,8 @@ export class MagicListReplace {
             info.hideCount = item.hideCount || 1;
             info.lastIndexWhenHide = item.lastIndexWhenHide || 0;
 
-            const isHidden = item.index >= MAGIC_LIST_CONFIG.hideStartIndex;
-            const targetIndex = isHidden
-              ? item.index - MAGIC_LIST_CONFIG.hideStartIndex
-              : item.index;
+            const isHidden = item.index >= HIDE_START_INDEX;
+            const targetIndex = isHidden ? item.index - HIDE_START_INDEX : item.index;
 
             if (targetIndex >= 0 && targetIndex <= MAGIC_LIST_CONFIG.maxMagic) {
               if (isHidden) {

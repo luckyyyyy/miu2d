@@ -80,7 +80,7 @@ init: ## 首次初始化项目（清理+安装+迁移+种子）
 	@printf "$(GREEN)  ✨ 初始化完成！$(NC)\n"
 	@printf "$(BLUE)═══════════════════════════════════════$(NC)\n"
 	@printf "\n$(YELLOW)👉 运行 'make dev' 启动开发服务器$(NC)\n"
-	@printf "$(YELLOW)👉 MinIO 控制台: http://localhost:9001$(NC)\n\n"
+	@printf "$(YELLOW)👉 MinIO 控制台: http://localhost:9101$(NC)\n\n"
 
 # 安装依赖
 install:
@@ -91,7 +91,7 @@ db-up:
 	docker-compose up -d db minio
 	@echo "等待 MinIO 启动..."
 	@sleep 3
-	@docker exec miu2d-minio mc alias set local http://localhost:9000 minio minio123 2>/dev/null || true
+	@docker exec miu2d-minio mc alias set local http://localhost:9100 minio minio123 2>/dev/null || true
 	@docker exec miu2d-minio mc mb local/miu2d --ignore-existing 2>/dev/null || true
 
 # 停止数据库和存储
