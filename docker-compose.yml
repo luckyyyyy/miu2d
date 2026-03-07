@@ -8,7 +8,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       POSTGRES_DB: ${POSTGRES_DB:-miu2d_db}
     ports:
-      - "5432:5432"
+      - "5533:5432"
     volumes:
       - ./.data/postgres:/var/lib/postgresql/data
     networks:
@@ -28,8 +28,8 @@ services:
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minio123}
     command: server /data --console-address ":9001"
     ports:
-      - "9000:9000"   # API
-      - "9001:9001"   # Console
+      - "9100:9000"   # API
+      - "9101:9001"   # Console
     volumes:
       - ./.data/minio:/data
     networks:
@@ -52,12 +52,12 @@ services:
       NODE_ENV: production
       PORT: 4000
       MINIO_ENDPOINT: minio
-      MINIO_PORT: 9000
+      MINIO_PORT: 9100
       MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-minio}
       MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-minio123}
       MINIO_BUCKET: ${MINIO_BUCKET:-miu2d}
     ports:
-      - "4000:4000"
+      - "4100:4000"
     depends_on:
       db:
         condition: service_healthy

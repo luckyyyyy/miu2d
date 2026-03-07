@@ -179,16 +179,17 @@ export default defineConfig({
   },
   server: {
     host: "0.0.0.0",
+    port: 5274,
     proxy: {
       // tRPC API 代理到后端 4000 端口
       "/trpc": {
-        target: "http://localhost:4000",
+        target: "http://localhost:4100",
         changeOrigin: true,
       },
-      // MinIO presigned URL 代理：/s3/* → MinIO 9000
+      // MinIO presigned URL 代理：/s3/* → MinIO 9100
       // changeOrigin 确保 Host 头匹配 presigned URL 签名
       "/s3": {
-        target: "http://localhost:9000",
+        target: "http://localhost:9100",
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/s3/, ""),
       },
@@ -196,7 +197,7 @@ export default defineConfig({
       // 注意：/game/:gameSlug 是前端路由，不代理
       // 只代理 /game/*/api/* 和 /game/*/resources/* 到后端
       "/game": {
-        target: "http://localhost:4000",
+        target: "http://localhost:4100",
         changeOrigin: true,
         bypass: (req) => {
           const url = req.url || "";

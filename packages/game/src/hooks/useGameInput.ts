@@ -40,8 +40,11 @@ export function useGameInput(options: UseGameInputOptions): UseGameInputResult {
       }
 
       const rect = canvas.getBoundingClientRect();
-      const screenX = clientX - rect.left;
-      const screenY = clientY - rect.top;
+      // Account for CSS transform scaling (e.g. mobile scale)
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      const screenX = (clientX - rect.left) * scaleX;
+      const screenY = (clientY - rect.top) * scaleY;
 
       const worldPos = engine.screenToWorld(screenX, screenY);
       return { worldX: worldPos.x, worldY: worldPos.y };
