@@ -60,6 +60,11 @@ export const env = {
   smtpPass: str("SMTP_PASS"),
   smtpFrom: str("SMTP_FROM", "Miu2D Engine <noreply@miu2d.com>"),
   appUrl: str("APP_URL", "http://localhost:5274"),
+  /** 允许跨域的 Origin 白名单，逗号分隔 */
+  corsOrigins: str(
+    "CORS_ORIGINS",
+    "https://miu2d.com,https://miu2d.williamchan.me:10443,http://localhost:5173,http://localhost:5174"
+  ),
   get isEmailEnabled() {
     return !!(this.smtpHost && this.smtpUser && this.smtpPass);
   },

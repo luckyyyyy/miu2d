@@ -28,7 +28,6 @@ levelRoutes.get(":gameSlug/api/level", async (c) => {
     };
 
     c.header("Cache-Control", "public, max-age=300");
-    c.header("Access-Control-Allow-Origin", "*");
 
     return c.json(result);
   } catch (error) {
@@ -58,7 +57,6 @@ levelRoutes.get(":gameSlug/api/level/:key", async (c) => {
     }
 
     c.header("Cache-Control", "public, max-age=300");
-    c.header("Access-Control-Allow-Origin", "*");
 
     return c.json(config);
   } catch (error) {

@@ -68,7 +68,6 @@ fileRoutes.get(":gameSlug/resources/*", async (c) => {
     // 304 Not Modified — 文件内容未变化，不需要重新传输
     if (notModified) {
       c.header("Cache-Control", "no-cache");
-      c.header("Access-Control-Allow-Origin", "*");
       if (etag) c.header("ETag", etag);
       return c.body(null, 304);
     }
@@ -80,7 +79,6 @@ fileRoutes.get(":gameSlug/resources/*", async (c) => {
     }
     // no-cache: 允许缓存，但每次必须向服务器验证 (ETag)，文件未变时返回 304
     c.header("Cache-Control", "no-cache");
-    c.header("Access-Control-Allow-Origin", "*");
     if (etag) c.header("ETag", etag);
 
     // 5. 流式传输文件内容

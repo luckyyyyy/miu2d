@@ -29,7 +29,6 @@ sceneRoutes.get(":gameSlug/api/scenes/:sceneKey/mmf", async (c) => {
 
     c.header("Content-Type", "application/octet-stream");
     c.header("Cache-Control", "no-cache");
-    c.header("Access-Control-Allow-Origin", "*");
 
     return c.body(new Uint8Array(mmfBuffer));
   } catch (error) {
@@ -55,7 +54,6 @@ sceneRoutes.get(":gameSlug/api/scenes/npc/:sceneKey/:npcKey", async (c) => {
 
     c.header("Content-Type", "application/json");
     c.header("Cache-Control", "no-cache");
-    c.header("Access-Control-Allow-Origin", "*");
 
     return c.json(entries);
   } catch (error) {
@@ -81,7 +79,6 @@ sceneRoutes.get(":gameSlug/api/scenes/obj/:sceneKey/:objKey", async (c) => {
 
     c.header("Content-Type", "application/json");
     c.header("Cache-Control", "no-cache");
-    c.header("Access-Control-Allow-Origin", "*");
 
     return c.json(entries);
   } catch (error) {

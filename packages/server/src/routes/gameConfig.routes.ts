@@ -72,7 +72,6 @@ gameConfigRoutes.get(":gameSlug/api/config", async (c) => {
     const config = await gameConfigService.getPublicBySlug(gameSlug);
 
     c.header("Cache-Control", "public, max-age=300");
-    c.header("Access-Control-Allow-Origin", "*");
 
     return c.json(config);
   } catch (error) {
@@ -139,7 +138,6 @@ gameConfigRoutes.get(":gameSlug/api/manifest", async (c) => {
 
     c.header("Content-Type", "application/manifest+json");
     c.header("Cache-Control", "public, max-age=300");
-    c.header("Access-Control-Allow-Origin", "*");
 
     return c.json(manifest);
   } catch (error) {
@@ -170,7 +168,6 @@ gameConfigRoutes.get(":gameSlug/api/logo", async (c) => {
     c.header("Content-Type", contentType || "image/png");
     if (contentLength) c.header("Content-Length", String(contentLength));
     c.header("Cache-Control", "public, max-age=3600");
-    c.header("Access-Control-Allow-Origin", "*");
 
     return stream(c, async (s) => {
       for await (const chunk of fileStream) {
@@ -214,7 +211,6 @@ gameConfigRoutes.get(":gameSlug/api/logo/:size", async (c) => {
     c.header("Content-Type", contentType || "image/png");
     if (contentLength) c.header("Content-Length", String(contentLength));
     c.header("Cache-Control", "public, max-age=86400");
-    c.header("Access-Control-Allow-Origin", "*");
 
     return stream(c, async (s) => {
       for await (const chunk of fileStream) {

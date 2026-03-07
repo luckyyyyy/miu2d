@@ -23,7 +23,18 @@ import { createRateLimiter } from "./utils/rate-limiter";
 const app = new Hono();
 
 // CORS
-app.use("*", cors({ origin: (origin) => origin || "*", credentials: true }));
+const ALLOWED_ORIGINS = env.corsOrigins
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
+
+app.use(
+  "*",
+  cors({
+    origin: (origin) => (ALLOWED_ORIGINS.includes(origin) ? origin : ""),
+    credentials: true,
+  })
+);
 
 // Health check
 app.get("/health", (c) => c.json({ status: "ok" }));

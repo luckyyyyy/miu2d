@@ -29,7 +29,6 @@ dataRoutes.get(":gameSlug/api/data", async (c) => {
     const result = await buildGameData(gameSlug);
 
     c.header("Cache-Control", "public, max-age=300");
-    c.header("Access-Control-Allow-Origin", "*");
 
     return c.json(result);
   } catch (error) {
