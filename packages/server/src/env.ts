@@ -44,7 +44,7 @@ export const env = {
   databaseUrl: str("DATABASE_URL"),
 
   // ---------- S3 / MinIO ----------
-  s3Endpoint: str("S3_ENDPOINT", "http://localhost:9000"),
+  s3Endpoint: str("S3_ENDPOINT", "http://localhost:9100"),
   s3Region: str("S3_REGION", "us-east-1"),
   s3AccessKey: str("MINIO_ROOT_USER", "minio"),
   s3SecretKey: str("MINIO_ROOT_PASSWORD", "minio123"),
@@ -59,7 +59,7 @@ export const env = {
   smtpUser: str("SMTP_USER"),
   smtpPass: str("SMTP_PASS"),
   smtpFrom: str("SMTP_FROM", "Miu2D Engine <noreply@miu2d.com>"),
-  appUrl: str("APP_URL", "http://localhost:5173"),
+  appUrl: str("APP_URL", "http://localhost:5274"),
   get isEmailEnabled() {
     return !!(this.smtpHost && this.smtpUser && this.smtpPass);
   },
