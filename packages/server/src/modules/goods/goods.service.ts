@@ -16,10 +16,10 @@ import type {
   UpdateGoodInput,
 } from "@miu2d/types";
 import { createDefaultGood, GoodKindFromValue } from "@miu2d/types";
+import { Prisma } from "@prisma/client";
+import type { Good as PrismaGood } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq, sql } from "drizzle-orm";
 import { db } from "../../db/client";
-import { goods } from "../../db/schema";
 import type { Language } from "../../i18n";
 import { getMessage } from "../../i18n";
 import { requireGameIdBySlug } from "../../utils/game";
@@ -29,7 +29,7 @@ export class GoodsService {
   /**
    * 将数据库记录转换为 Good 类型
    */
-  private toGoods(row: typeof goods.$inferSelect): Good {
+  private toGoods(row: PrismaGood): Good {
     const data = row.data as Omit<
       Good,
       "id" | "gameId" | "key" | "kind" | "createdAt" | "updatedAt"
@@ -51,12 +51,7 @@ export class GoodsService {
    * 公开接口：通过 gameId 列出游戏的所有物品（无需认证）
    */
   async listPublicByGameId(gameId: string): Promise<Good[]> {
-    const rows = await db
-      .select()
-      .from(goods)
-      .where(eq(goods.gameId, gameId))
-      .orderBy(desc(goods.updatedAt));
-
+    const rows = await db.good.findMany({ where: { gameId }, orderBy: { updatedAt: "desc" } });
     return rows.map((row) => this.toGoods(row));
   }
 
@@ -79,11 +74,7 @@ export class GoodsService {
   ): Promise<Good | null> {
     await verifyGameAccess(gameId, userId, language);
 
-    const [row] = await db
-      .select()
-      .from(goods)
-      .where(and(eq(goods.id, goodsId), eq(goods.gameId, gameId)))
-      .limit(1);
+    const row = await db.good.findFirst({ where: { id: goodsId, gameId } });
 
     if (!row) return null;
     return this.toGoods(row);
@@ -95,16 +86,10 @@ export class GoodsService {
   async list(input: ListGoodInput, userId: string, language: Language): Promise<GoodListItem[]> {
     await verifyGameAccess(input.gameId, userId, language);
 
-    const conditions = [eq(goods.gameId, input.gameId)];
-    if (input.kind) {
-      conditions.push(eq(goods.kind, input.kind));
-    }
-
-    const rows = await db
-      .select()
-      .from(goods)
-      .where(and(...conditions))
-      .orderBy(desc(goods.updatedAt));
+    const rows = await db.good.findMany({
+      where: { gameId: input.gameId, ...(input.kind ? { kind: input.kind } : {}) },
+      orderBy: { updatedAt: "desc" },
+    });
 
     return rows.map((row) => {
       const data = row.data as Record<string, unknown>;
@@ -146,15 +131,9 @@ export class GoodsService {
     // 分离索引字段和 data 字段
     const { gameId, key, kind, ...data } = fullGoods;
 
-    const [row] = await db
-      .insert(goods)
-      .values({
-        gameId,
-        key: key.toLowerCase(), // key 统一小写
-        kind,
-        data,
-      })
-      .returning();
+    const row = await db.good.create({
+      data: { gameId, key: key.toLowerCase(), kind, data: data as unknown as Prisma.InputJsonValue },
+    });
 
     return this.toGoods(row);
   }
@@ -189,16 +168,10 @@ export class GoodsService {
       ...data
     } = merged;
 
-    const [row] = await db
-      .update(goods)
-      .set({
-        key: key.toLowerCase(), // key 统一小写
-        kind,
-        data,
-        updatedAt: new Date(),
-      })
-      .where(and(eq(goods.id, id), eq(goods.gameId, gameId)))
-      .returning();
+    const row = await db.good.update({
+      where: { id },
+      data: { key: key.toLowerCase(), kind, data: data as unknown as Prisma.InputJsonValue, updatedAt: new Date() },
+    });
 
     return this.toGoods(row);
   }
@@ -214,7 +187,7 @@ export class GoodsService {
   ): Promise<{ id: string }> {
     await verifyGameAccess(gameId, userId, language);
 
-    await db.delete(goods).where(and(eq(goods.id, goodsId), eq(goods.gameId, gameId)));
+    await db.good.delete({ where: { id: goodsId } });
 
     return { id: goodsId };
   }
@@ -259,7 +232,7 @@ export class GoodsService {
     const failed: BatchImportGoodResult["failed"] = [];
 
     // ── 解析阶段（纯内存，无 DB 调用）────────────────────────────────
-    type InsertRow = typeof goods.$inferInsert;
+    type InsertRow = { gameId: string; key: string; kind: string; data: Record<string, unknown> };
     const rows: InsertRow[] = [];
     const keyToFileName = new Map<string, string>();
 
@@ -282,20 +255,17 @@ export class GoodsService {
 
     // ── 批量写入：一次 SQL 替代 N 次串行 INSERT ──────────────────────
     if (rows.length > 0) {
-      const inserted = await db
-        .insert(goods)
-        .values(rows)
-        .onConflictDoUpdate({
-          target: [goods.gameId, goods.key],
-          set: {
-            kind: sql`excluded.kind`,
-            data: sql`excluded.data`,
-            updatedAt: new Date(),
-          },
-        })
-        .returning();
+      const upserted = await db.$transaction(
+        rows.map((row) =>
+          db.good.upsert({
+            where: { goods_game_id_key_unique: { gameId: row.gameId, key: row.key } },
+            create: { gameId: row.gameId, key: row.key, kind: row.kind,  data: row.data as unknown as Prisma.InputJsonValue },
+            update: { kind: row.kind, data: row.data as unknown as Prisma.InputJsonValue, updatedAt: new Date() },
+          })
+        )
+      );
 
-      for (const row of inserted) {
+      for (const row of upserted) {
         const g = this.toGoods(row);
         const fileName = keyToFileName.get(row.key) ?? row.key;
         success.push({ fileName, id: g.id, name: g.name, kind: g.kind });
@@ -497,11 +467,8 @@ export class GoodsService {
     language: Language
   ): Promise<{ deletedCount: number }> {
     await verifyGameAccess(input.gameId, userId, language);
-    const deleted = await db
-      .delete(goods)
-      .where(eq(goods.gameId, input.gameId))
-      .returning({ id: goods.id });
-    return { deletedCount: deleted.length };
+    const result = await db.good.deleteMany({ where: { gameId: input.gameId } });
+    return { deletedCount: result.count };
   }
 }
 

@@ -10,12 +10,11 @@
  */
 
 import { createDefaultGameConfig, GameConfigDataSchema } from "@miu2d/types";
-import { and, eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { stream } from "hono/streaming";
 import sharp from "sharp";
+import type { Prisma } from "@prisma/client";
 import { db } from "../db/client";
-import { gameConfigs, gameMembers, games } from "../db/schema";
 import { gameConfigService } from "../modules/gameConfig/gameConfig.service";
 import * as s3 from "../storage/s3";
 import { Logger } from "../utils/logger";
@@ -89,11 +88,10 @@ gameConfigRoutes.get(":gameSlug/api/manifest", async (c) => {
   try {
     const gameSlug = c.req.param("gameSlug");
 
-    const [game] = await db
-      .select({ id: games.id, name: games.name })
-      .from(games)
-      .where(eq(games.slug, gameSlug))
-      .limit(1);
+    const game = await db.game.findFirst({
+      where: { slug: gameSlug },
+      select: { id: true, name: true },
+    });
 
     if (!game) {
       return c.json({ error: "Game not found" }, 404);
@@ -157,11 +155,10 @@ gameConfigRoutes.get(":gameSlug/api/logo", async (c) => {
   try {
     const gameSlug = c.req.param("gameSlug");
 
-    const [game] = await db
-      .select({ id: games.id })
-      .from(games)
-      .where(eq(games.slug, gameSlug))
-      .limit(1);
+    const game = await db.game.findFirst({
+      where: { slug: gameSlug },
+      select: { id: true },
+    });
 
     if (!game) {
       return c.json({ error: "Game not found" }, 404);
@@ -202,11 +199,10 @@ gameConfigRoutes.get(":gameSlug/api/logo/:size", async (c) => {
     }
     const size = sizeParam as LogoSize;
 
-    const [game] = await db
-      .select({ id: games.id })
-      .from(games)
-      .where(eq(games.slug, gameSlug))
-      .limit(1);
+    const game = await db.game.findFirst({
+      where: { slug: gameSlug },
+      select: { id: true },
+    });
 
     if (!game) {
       return c.json({ error: "Game not found" }, 404);
@@ -248,22 +244,19 @@ gameConfigRoutes.post(":gameSlug/api/logo", async (c) => {
     }
 
     // 查找游戏
-    const [game] = await db
-      .select({ id: games.id })
-      .from(games)
-      .where(eq(games.slug, gameSlug))
-      .limit(1);
+    const game = await db.game.findFirst({
+      where: { slug: gameSlug },
+      select: { id: true },
+    });
 
     if (!game) {
       return c.json({ error: "Game not found" }, 404);
     }
 
     // 检查权限
-    const [member] = await db
-      .select()
-      .from(gameMembers)
-      .where(and(eq(gameMembers.gameId, game.id), eq(gameMembers.userId, userId)))
-      .limit(1);
+    const member = await db.gameMember.findFirst({
+      where: { gameId: game.id, userId },
+    });
 
     if (!member) {
       return c.json({ error: "No access" }, 403);
@@ -305,27 +298,23 @@ gameConfigRoutes.post(":gameSlug/api/logo", async (c) => {
 
     const logoUrl = `/game/${gameSlug}/api/logo`;
     try {
-      const [existing] = await db
-        .select()
-        .from(gameConfigs)
-        .where(eq(gameConfigs.gameId, game.id))
-        .limit(1);
+      const existing = await db.gameConfig.findFirst({ where: { gameId: game.id } });
 
       if (existing) {
         const defaults = createDefaultGameConfig();
         const raw = existing.data as Record<string, unknown>;
         const merged = { ...defaults, ...raw, logoUrl };
         const data = GameConfigDataSchema.parse(merged);
-        await db
-          .update(gameConfigs)
-          .set({ data, updatedAt: new Date() })
-          .where(eq(gameConfigs.gameId, game.id));
+        await db.gameConfig.update({
+          where: { gameId: game.id },
+          data: { data: data as unknown as Prisma.InputJsonValue, updatedAt: new Date() },
+        });
       } else {
         const data = GameConfigDataSchema.parse({
           ...createDefaultGameConfig(),
           logoUrl,
         });
-        await db.insert(gameConfigs).values({ gameId: game.id, data });
+        await db.gameConfig.create({ data: { gameId: game.id, data: data as unknown as Prisma.InputJsonValue } });
       }
     } catch (dbError) {
       // DB 写入失败：回滚 S3 上传，避免产生孤立文件
@@ -358,44 +347,35 @@ gameConfigRoutes.delete(":gameSlug/api/logo", async (c) => {
       return c.json({ error: "Unauthorized" }, 401);
     }
 
-    const [game] = await db
-      .select({ id: games.id })
-      .from(games)
-      .where(eq(games.slug, gameSlug))
-      .limit(1);
+    const game = await db.game.findFirst({
+      where: { slug: gameSlug },
+      select: { id: true },
+    });
 
     if (!game) {
       return c.json({ error: "Game not found" }, 404);
     }
 
-    const [member] = await db
-      .select()
-      .from(gameMembers)
-      .where(and(eq(gameMembers.gameId, game.id), eq(gameMembers.userId, userId)))
-      .limit(1);
+    const member = await db.gameMember.findFirst({
+      where: { gameId: game.id, userId },
+    });
 
     if (!member) {
       return c.json({ error: "No access" }, 403);
     }
 
     // 先清除 DB 中的 logoUrl，再删除 S3 文件。
-    // 若顺序颠倒（S3 先删），DB 更新失败会导致 DB 仍保存指向已删除文件的 URL（死链）。
-    // 当前顺序下即使 S3 删除失败，DB 已无引用，用户也不会看到死链（S3 产生孤立文件，后续可清理）。
-    const [existing] = await db
-      .select()
-      .from(gameConfigs)
-      .where(eq(gameConfigs.gameId, game.id))
-      .limit(1);
+    const existing = await db.gameConfig.findFirst({ where: { gameId: game.id } });
 
     if (existing) {
       const defaults = createDefaultGameConfig();
       const raw = existing.data as Record<string, unknown>;
       const merged = { ...defaults, ...raw, logoUrl: "" };
       const data = GameConfigDataSchema.parse(merged);
-      await db
-        .update(gameConfigs)
-        .set({ data, updatedAt: new Date() })
-        .where(eq(gameConfigs.gameId, game.id));
+      await db.gameConfig.update({
+        where: { gameId: game.id },
+        data: { data: data as unknown as Prisma.InputJsonValue, updatedAt: new Date() },
+      });
     }
 
     // DB 更新成功后，清理 S3（失败只产生孤立对象，不影响一致性）

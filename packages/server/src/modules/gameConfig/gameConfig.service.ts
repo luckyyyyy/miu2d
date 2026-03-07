@@ -1,8 +1,8 @@
 import type { GameConfig, GameConfigData, UpdateGameConfigInput } from "@miu2d/types";
 import { createDefaultGameConfig, GameConfigDataSchema } from "@miu2d/types";
-import { eq } from "drizzle-orm";
+import type { GameConfig as PrismaGameConfig } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 import { db } from "../../db/client";
-import { gameConfigs, games } from "../../db/schema";
 import type { Language } from "../../i18n";
 import { verifyGameAccess } from "../../utils/gameAccess";
 
@@ -11,7 +11,7 @@ export class GameConfigService {
    * 将数据库记录转换为 GameConfig 类型
    * 旧记录可能缺少后来新增的字段，用 Zod parse 补全默认值
    */
-  private toGameConfig(row: typeof gameConfigs.$inferSelect): GameConfig {
+  private toGameConfig(row: PrismaGameConfig): GameConfig {
     const defaults = createDefaultGameConfig();
     const raw = row.data as Record<string, unknown>;
     const merged = { ...defaults, ...raw };
@@ -31,11 +31,7 @@ export class GameConfigService {
   async get(gameId: string, userId: string, language: Language): Promise<GameConfig> {
     await verifyGameAccess(gameId, userId, language);
 
-    const [row] = await db
-      .select()
-      .from(gameConfigs)
-      .where(eq(gameConfigs.gameId, gameId))
-      .limit(1);
+    const row = await db.gameConfig.findFirst({ where: { gameId } });
 
     if (row) {
       return this.toGameConfig(row);
@@ -43,13 +39,9 @@ export class GameConfigService {
 
     // 不存在则创建默认配置
     const defaultData = createDefaultGameConfig();
-    const [newRow] = await db
-      .insert(gameConfigs)
-      .values({
-        gameId,
-        data: defaultData,
-      })
-      .returning();
+    const newRow = await db.gameConfig.create({
+      data: { gameId, data: defaultData as unknown as Prisma.InputJsonValue },
+    });
 
     return this.toGameConfig(newRow);
   }
@@ -64,36 +56,24 @@ export class GameConfigService {
   ): Promise<GameConfig> {
     await verifyGameAccess(input.gameId, userId, language);
 
-    const [existing] = await db
-      .select()
-      .from(gameConfigs)
-      .where(eq(gameConfigs.gameId, input.gameId))
-      .limit(1);
+    const existing = await db.gameConfig.findFirst({ where: { gameId: input.gameId } });
 
     if (existing) {
-      const [updated] = await db
-        .update(gameConfigs)
-        .set({
-          data: input.data,
-          updatedAt: new Date(),
-        })
-        .where(eq(gameConfigs.gameId, input.gameId))
-        .returning();
-
+      const updated = await db.gameConfig.update({
+        where: { gameId: input.gameId },
+        data: { data: input.data as unknown as Prisma.InputJsonValue, updatedAt: new Date() },
+      });
       return this.toGameConfig(updated);
     }
 
     // 不存在则创建
-    const [newRow] = await db
-      .insert(gameConfigs)
-      .values({
-        gameId: input.gameId,
-        data: input.data,
-      })
-      .returning();
+    const newRow = await db.gameConfig.create({
+      data: { gameId: input.gameId, data: input.data as unknown as Prisma.InputJsonValue },
+    });
 
     return this.toGameConfig(newRow);
   }
+
   /**
    * 仅更新 uiTheme 字段（JSON 主题）
    */
@@ -117,22 +97,17 @@ export class GameConfigService {
    * 游戏存在且已开放 → 返回完整配置
    */
   async getPublicBySlug(gameSlug: string): Promise<GameConfigData> {
-    const [game] = await db
-      .select({ id: games.id, name: games.name, slug: games.slug })
-      .from(games)
-      .where(eq(games.slug, gameSlug))
-      .limit(1);
+    const game = await db.game.findFirst({
+      where: { slug: gameSlug },
+      select: { id: true, name: true, slug: true },
+    });
 
     // 游戏不存在 → 返回 gameEnabled: false（不暴露是否存在）
     if (!game) {
       return { gameEnabled: false } as GameConfigData;
     }
 
-    const [row] = await db
-      .select()
-      .from(gameConfigs)
-      .where(eq(gameConfigs.gameId, game.id))
-      .limit(1);
+    const row = await db.gameConfig.findFirst({ where: { gameId: game.id } });
 
     if (row) {
       const config = this.toGameConfig(row).data;

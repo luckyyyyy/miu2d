@@ -1,11 +1,8 @@
 import type { FetchCreateContextFnOptions } from "@trpc/server/adapters/fetch";
-import type { InferSelectModel } from "drizzle-orm";
+import type { Game } from "@prisma/client";
 import { db } from "../db/client";
-import type { games } from "../db/schema";
 import { normalizeLanguage } from "../i18n";
 import { getCookieValue, resolveUserId, SESSION_COOKIE_NAME } from "../utils/session";
-
-type Game = InferSelectModel<typeof games>;
 
 /**
  * Hono 注入的 Response 对象引用

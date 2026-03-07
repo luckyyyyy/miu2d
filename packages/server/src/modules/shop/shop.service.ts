@@ -16,10 +16,10 @@ import type {
   UpdateShopInput,
 } from "@miu2d/types";
 import { createDefaultShop } from "@miu2d/types";
+import { Prisma } from "@prisma/client";
+import type { Shop as PrismaShop } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq, sql } from "drizzle-orm";
 import { db } from "../../db/client";
-import { shops } from "../../db/schema";
 import type { Language } from "../../i18n";
 import { getMessage } from "../../i18n";
 import { requireGameIdBySlug } from "../../utils/game";
@@ -29,7 +29,7 @@ export class ShopService {
   /**
    * 将数据库记录转换为 Shop 类型
    */
-  private toShop(row: typeof shops.$inferSelect): Shop {
+  private toShop(row: PrismaShop): Shop {
     const data = row.data as Partial<
       Omit<Shop, "id" | "gameId" | "key" | "name" | "createdAt" | "updatedAt">
     >;
@@ -51,12 +51,7 @@ export class ShopService {
    * 公开接口：通过 gameId 列出游戏的所有商店（无需认证）
    */
   async listPublicByGameId(gameId: string): Promise<Shop[]> {
-    const rows = await db
-      .select()
-      .from(shops)
-      .where(eq(shops.gameId, gameId))
-      .orderBy(desc(shops.updatedAt));
-
+    const rows = await db.shop.findMany({ where: { gameId }, orderBy: { updatedAt: "desc" } });
     return rows.map((row) => this.toShop(row));
   }
 
@@ -79,11 +74,7 @@ export class ShopService {
   ): Promise<Shop | null> {
     await verifyGameAccess(gameId, userId, language);
 
-    const [row] = await db
-      .select()
-      .from(shops)
-      .where(and(eq(shops.id, shopId), eq(shops.gameId, gameId)))
-      .limit(1);
+    const row = await db.shop.findFirst({ where: { id: shopId, gameId } });
 
     if (!row) return null;
     return this.toShop(row);
@@ -95,11 +86,10 @@ export class ShopService {
   async list(input: ListShopInput, userId: string, language: Language): Promise<ShopListItem[]> {
     await verifyGameAccess(input.gameId, userId, language);
 
-    const rows = await db
-      .select()
-      .from(shops)
-      .where(eq(shops.gameId, input.gameId))
-      .orderBy(desc(shops.updatedAt));
+    const rows = await db.shop.findMany({
+      where: { gameId: input.gameId },
+      orderBy: { updatedAt: "desc" },
+    });
 
     return rows.map((row) => {
       const data = row.data as Record<string, unknown>;
@@ -134,15 +124,9 @@ export class ShopService {
     // 分离索引字段和 data 字段
     const { gameId, key, name, ...data } = fullShop;
 
-    const [row] = await db
-      .insert(shops)
-      .values({
-        gameId,
-        key: key.toLowerCase(),
-        name,
-        data,
-      })
-      .returning();
+    const row = await db.shop.create({
+      data: { gameId, key: key.toLowerCase(), name, data: data as unknown as Prisma.InputJsonValue },
+    });
 
     return this.toShop(row);
   }
@@ -177,16 +161,10 @@ export class ShopService {
       ...data
     } = merged;
 
-    const [row] = await db
-      .update(shops)
-      .set({
-        key: key.toLowerCase(),
-        name,
-        data,
-        updatedAt: new Date(),
-      })
-      .where(and(eq(shops.id, id), eq(shops.gameId, gameId)))
-      .returning();
+    const row = await db.shop.update({
+      where: { id },
+      data: { key: key.toLowerCase(), name, data: data as unknown as Prisma.InputJsonValue, updatedAt: new Date() },
+    });
 
     return this.toShop(row);
   }
@@ -202,7 +180,7 @@ export class ShopService {
   ): Promise<{ id: string }> {
     await verifyGameAccess(gameId, userId, language);
 
-    await db.delete(shops).where(and(eq(shops.id, shopId), eq(shops.gameId, gameId)));
+    await db.shop.delete({ where: { id: shopId } });
 
     return { id: shopId };
   }
@@ -248,7 +226,7 @@ export class ShopService {
     const failed: BatchImportShopResult["failed"] = [];
 
     // ── 解析阶段（纯内存，无 DB 调用）────────────────────────────────
-    type InsertRow = typeof shops.$inferInsert;
+    type InsertRow = { gameId: string; key: string; name: string; data: Record<string, unknown> };
     const rows: InsertRow[] = [];
     const keyToFileName = new Map<string, string>();
 
@@ -275,20 +253,17 @@ export class ShopService {
 
     // ── 批量写入：一次 SQL 替代 N 次串行 INSERT ──────────────────────
     if (rows.length > 0) {
-      const inserted = await db
-        .insert(shops)
-        .values(rows)
-        .onConflictDoUpdate({
-          target: [shops.gameId, shops.key],
-          set: {
-            name: sql`excluded.name`,
-            data: sql`excluded.data`,
-            updatedAt: new Date(),
-          },
-        })
-        .returning();
+      const upserted = await db.$transaction(
+        rows.map((row) =>
+          db.shop.upsert({
+            where: { shops_game_id_key_unique: { gameId: row.gameId, key: row.key } },
+            create: { gameId: row.gameId, key: row.key, name: row.name,  data: row.data as unknown as Prisma.InputJsonValue },
+            update: { name: row.name, data: row.data as unknown as Prisma.InputJsonValue, updatedAt: new Date() },
+          })
+        )
+      );
 
-      for (const row of inserted) {
+      for (const row of upserted) {
         const s = this.toShop(row);
         const fileName = keyToFileName.get(row.key) ?? row.key;
         success.push({ fileName, id: s.id, name: s.name, itemCount: s.items.length });
@@ -390,11 +365,8 @@ export class ShopService {
     language: Language
   ): Promise<{ deletedCount: number }> {
     await verifyGameAccess(input.gameId, userId, language);
-    const deleted = await db
-      .delete(shops)
-      .where(eq(shops.gameId, input.gameId))
-      .returning({ id: shops.id });
-    return { deletedCount: deleted.length };
+    const result = await db.shop.deleteMany({ where: { gameId: input.gameId } });
+    return { deletedCount: result.count };
   }
 }
 

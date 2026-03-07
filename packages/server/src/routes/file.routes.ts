@@ -5,11 +5,10 @@
  * 用于游戏客户端直接加载资源文件
  */
 
-import { eq, sql } from "drizzle-orm";
+import type { File } from "@prisma/client";
 import { Hono } from "hono";
 import { stream } from "hono/streaming";
 import { db } from "../db/client";
-import { type files, games } from "../db/schema";
 import * as s3 from "../storage/s3";
 import { Logger } from "../utils/logger";
 
@@ -38,11 +37,7 @@ fileRoutes.get(":gameSlug/resources/*", async (c) => {
     logger.debug(`[getResource] gameSlug=${gameSlug}, filePath=${filePath}`);
 
     // 1. 根据 slug 获取游戏
-    const [game] = await db
-      .select({ id: games.id })
-      .from(games)
-      .where(eq(games.slug, gameSlug))
-      .limit(1);
+    const game = await db.game.findFirst({ where: { slug: gameSlug }, select: { id: true } });
 
     if (!game) {
       return c.json({ error: "Game not found" }, 404);
@@ -104,39 +99,42 @@ fileRoutes.get(":gameSlug/resources/*", async (c) => {
  * 根据路径段解析文件（大小写不敏感）
  *
  * 使用递归 CTE 一次查询完成整条路径解析，避免 N+1。
- * VALUES 通过 drizzle sql tag 参数化，防止 SQL 注入。
+ * 参数通过 Prisma $queryRaw 参数化，防止 SQL 注入。
  */
 async function resolveFilePath(
   gameId: string,
   pathSegments: string[]
-): Promise<typeof files.$inferSelect | null> {
+): Promise<File | null> {
   if (pathSegments.length === 0) return null;
 
-  // 用 drizzle sql tag 安全地构建 VALUES 列表
-  const segValues = pathSegments
-    .map((seg, i) => sql`(${i + 1}::int, ${seg.toLowerCase()})`)
-    .reduce((acc, cur) => sql`${acc}, ${cur}`);
+  // Build VALUES list: (1, 'seg1'), (2, 'seg2'), ...
+  // Use $queryRawUnsafe with parameterized placeholders
+  const valueRows = pathSegments
+    .map((seg, i) => `(${i + 1}::int, $${i + 2})`)
+    .join(", ");
 
-  const result = await db.execute<typeof files.$inferSelect>(sql`
+  const params: (string | number)[] = [gameId, ...pathSegments.map((s) => s.toLowerCase())];
+  const depthParam = `$${params.length + 1}`;
+  params.push(pathSegments.length);
+
+  const rows = await db.$queryRawUnsafe<File[]>(`
     WITH RECURSIVE path_segments(depth, seg_name) AS (
-      VALUES ${segValues}
+      VALUES ${valueRows}
     ),
     resolve(depth, id) AS (
-      -- 基础 case：第 1 段，parent_id IS NULL
       SELECT 1, f.id
       FROM files f
       JOIN path_segments ps ON ps.depth = 1
-      WHERE f.game_id = ${gameId}
+      WHERE f.game_id = $1
         AND f.parent_id IS NULL
         AND LOWER(f.name) = ps.seg_name
         AND f.deleted_at IS NULL
       UNION ALL
-      -- 递归 case：后续路径段（注意：递归项里不能用 LIMIT）
       SELECT r.depth + 1, f.id
       FROM resolve r
       JOIN path_segments ps ON ps.depth = r.depth + 1
       JOIN files f ON f.parent_id = r.id
-        AND f.game_id = ${gameId}
+        AND f.game_id = $1
         AND LOWER(f.name) = ps.seg_name
         AND f.deleted_at IS NULL
     )
@@ -155,9 +153,9 @@ async function resolveFilePath(
       f.deleted_at     AS "deletedAt"
     FROM resolve r
     JOIN files f ON f.id = r.id
-    WHERE r.depth = ${pathSegments.length}
+    WHERE r.depth = ${depthParam}
     LIMIT 1
-  `);
+  `, ...params);
 
-  return result.rows?.[0] ?? null;
+  return rows[0] ?? null;
 }

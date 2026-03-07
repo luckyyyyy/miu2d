@@ -1,12 +1,12 @@
 import type { UserSettings } from "@miu2d/types";
 import { TRPCError } from "@trpc/server";
-import { and, eq, ne } from "drizzle-orm";
+import type { User } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import { db } from "../../db/client";
-import { users } from "../../db/schema";
 import { getMessage, type Language } from "../../i18n";
 import { hashPassword, verifyPassword } from "../../utils/password";
 
-export const toUserOutput = (user: typeof users.$inferSelect) => ({
+export const toUserOutput = (user: User) => ({
   id: user.id,
   name: user.name,
   email: user.email,
@@ -17,22 +17,23 @@ export const toUserOutput = (user: typeof users.$inferSelect) => ({
 
 export class UserService {
   async getById(userId: string) {
-    const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+    const user = await db.user.findFirst({ where: { id: userId } });
     return user ?? null;
   }
 
   async getByEmail(email: string) {
-    const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
+    const user = await db.user.findFirst({ where: { email } });
     return user ?? null;
   }
 
   async checkEmailExists(email: string, excludeUserId?: string) {
-    const conditions = excludeUserId
-      ? and(eq(users.email, email), ne(users.id, excludeUserId))
-      : eq(users.email, email);
-
-    const [existing] = await db.select({ id: users.id }).from(users).where(conditions).limit(1);
-
+    const existing = await db.user.findFirst({
+      where: {
+        email,
+        ...(excludeUserId ? { NOT: { id: excludeUserId } } : {}),
+      },
+      select: { id: true },
+    });
     return !!existing;
   }
 
@@ -55,19 +56,22 @@ export class UserService {
       }
     }
 
-    const dbUpdates: Partial<typeof users.$inferInsert> = {};
+    const dbUpdates: {
+      name?: string;
+      email?: string;
+      settings?: Prisma.NullableJsonNullValueInput | Prisma.InputJsonValue;
+    } = {};
     if (updates.name !== undefined) dbUpdates.name = updates.name.trim();
     if (updates.email !== undefined) dbUpdates.email = updates.email.trim();
 
     if (updates.settings !== undefined) {
       if (updates.settings === null) {
-        dbUpdates.settings = null;
+        dbUpdates.settings = Prisma.JsonNull;
       } else {
-        const [current] = await db
-          .select({ settings: users.settings })
-          .from(users)
-          .where(eq(users.id, userId))
-          .limit(1);
+        const current = await db.user.findFirst({
+          where: { id: userId },
+          select: { settings: true },
+        });
         const currentSettings = (current?.settings as UserSettings | null) ?? {};
         dbUpdates.settings = { ...currentSettings, ...updates.settings };
       }
@@ -84,33 +88,27 @@ export class UserService {
       return user;
     }
 
-    const [updated] = await db.update(users).set(dbUpdates).where(eq(users.id, userId)).returning();
-
-    if (!updated) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message: getMessage(language, "errors.user.notFound"),
-      });
-    }
+    const updated = await db.user.update({
+      where: { id: userId },
+      data: dbUpdates,
+    });
 
     return updated;
   }
 
   async deleteAvatar(userId: string, language: Language) {
-    const [current] = await db
-      .select({ settings: users.settings })
-      .from(users)
-      .where(eq(users.id, userId))
-      .limit(1);
+    const current = await db.user.findFirst({
+      where: { id: userId },
+      select: { settings: true },
+    });
 
     const currentSettings = (current?.settings as UserSettings | null) ?? {};
     const nextSettings = { ...currentSettings, avatarUrl: null };
 
-    const [updated] = await db
-      .update(users)
-      .set({ settings: nextSettings })
-      .where(eq(users.id, userId))
-      .returning();
+    const updated = await db.user.update({
+      where: { id: userId },
+      data: { settings: nextSettings },
+    });
 
     if (!updated) {
       throw new TRPCError({
@@ -144,18 +142,10 @@ export class UserService {
       });
     }
 
-    const [updated] = await db
-      .update(users)
-      .set({ passwordHash: await hashPassword(newPassword) })
-      .where(eq(users.id, userId))
-      .returning();
-
-    if (!updated) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message: getMessage(language, "errors.user.notFound"),
-      });
-    }
+    const updated = await db.user.update({
+      where: { id: userId },
+      data: { passwordHash: await hashPassword(newPassword) },
+    });
 
     return updated;
   }
