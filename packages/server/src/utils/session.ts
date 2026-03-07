@@ -4,9 +4,7 @@
  * 从 HTTP cookie 中提取 userId，供 tRPC context 和 Hono REST routes 共用。
  * 确保 tRPC 和 REST 端点使用完全相同的 cookie 名称和查询逻辑。
  */
-import { and, eq, gt } from "drizzle-orm";
 import { db } from "../db/client";
-import { sessions } from "../db/schema";
 import { DEMO_DEV_USER_ID, isDev } from "./demo";
 
 export const SESSION_COOKIE_NAME = "SESSION_ID";
@@ -38,11 +36,10 @@ export async function resolveUserId(
   let userId: string | undefined;
 
   if (sessionId) {
-    const [session] = await db
-      .select({ userId: sessions.userId })
-      .from(sessions)
-      .where(and(eq(sessions.id, sessionId), gt(sessions.expiresAt, new Date())))
-      .limit(1);
+    const session = await db.session.findFirst({
+      where: { id: sessionId, expiresAt: { gt: new Date() } },
+      select: { userId: true },
+    });
     userId = session?.userId;
   }
 

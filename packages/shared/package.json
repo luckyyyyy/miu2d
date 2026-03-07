@@ -34,6 +34,7 @@
   "devDependencies": {
     "@biomejs/biome": "^2.3.13",
     "@miu2d/server": "workspace:*",
+    "@types/node": "^25.0.9",
     "@types/react": "^19.2.5",
     "@types/react-dom": "^19.2.3",
     "monaco-editor": "^0.55.1",

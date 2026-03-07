@@ -21,10 +21,10 @@ import type {
   UpdateSceneInput,
 } from "@miu2d/types";
 import { getSceneDataCounts } from "@miu2d/types";
+import { Prisma } from "@prisma/client";
+import type { Scene as PrismaScene } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
-import { and, eq } from "drizzle-orm";
 import { db } from "../../db/client";
-import { scenes } from "../../db/schema";
 import type { Language } from "../../i18n";
 import { getMessage } from "../../i18n";
 import { getGameIdBySlug } from "../../utils/game";
@@ -35,7 +35,7 @@ export class SceneService {
   /**
    * 将数据库记录转换为 Scene 类型
    */
-  private toScene(row: typeof scenes.$inferSelect): Scene {
+  private toScene(row: PrismaScene): Scene {
     const mmfData = row.mmfData ?? null;
     // 按需解析 MMF 二进制为结构化 DTO
     const mapParsed = mmfData ? parseMmfToDto(mmfData) : null;
@@ -61,11 +61,7 @@ export class SceneService {
   async list(input: ListSceneInput, userId: string, language: Language): Promise<SceneListItem[]> {
     await verifyGameAccess(input.gameId, userId, language);
 
-    const rows = await db
-      .select()
-      .from(scenes)
-      .where(eq(scenes.gameId, input.gameId))
-      .orderBy(scenes.key);
+    const rows = await db.scene.findMany({ where: { gameId: input.gameId }, orderBy: { key: "asc" } });
 
     return rows.map((row) => {
       const data = (row.data ?? {}) as SceneData;
@@ -96,11 +92,7 @@ export class SceneService {
   ): Promise<Scene | null> {
     await verifyGameAccess(gameId, userId, language);
 
-    const [row] = await db
-      .select()
-      .from(scenes)
-      .where(and(eq(scenes.id, sceneId), eq(scenes.gameId, gameId)))
-      .limit(1);
+    const row = await db.scene.findFirst({ where: { id: sceneId, gameId } });
 
     if (!row) return null;
     return this.toScene(row);
@@ -112,16 +104,15 @@ export class SceneService {
   async create(input: CreateSceneInput, userId: string, language: Language): Promise<Scene> {
     await verifyGameAccess(input.gameId, userId, language);
 
-    const [row] = await db
-      .insert(scenes)
-      .values({
+    const row = await db.scene.create({
+      data: {
         gameId: input.gameId,
         key: input.key,
         name: input.name,
         mapFileName: input.mapFileName,
-        data: input.data ?? null,
-      })
-      .returning();
+        data: (input.data ?? Prisma.JsonNull) as Prisma.InputJsonValue,
+      },
+    });
 
     return this.toScene(row);
   }
@@ -149,11 +140,7 @@ export class SceneService {
       updates.mmfData = serializeDtoToMmf(input.mapParsed);
     }
 
-    const [row] = await db
-      .update(scenes)
-      .set(updates)
-      .where(and(eq(scenes.id, input.id), eq(scenes.gameId, input.gameId)))
-      .returning();
+    const row = await db.scene.update({ where: { id: input.id }, data: updates });
 
     return this.toScene(row);
   }
@@ -169,19 +156,16 @@ export class SceneService {
   ): Promise<{ id: string }> {
     await verifyGameAccess(gameId, userId, language);
 
-    const [row] = await db
-      .delete(scenes)
-      .where(and(eq(scenes.id, sceneId), eq(scenes.gameId, gameId)))
-      .returning({ id: scenes.id });
-
-    if (!row) {
+    const existing = await db.scene.findFirst({ where: { id: sceneId, gameId } });
+    if (!existing) {
       throw new TRPCError({
         code: "NOT_FOUND",
         message: getMessage(language, "errors.scene.notFound"),
       });
     }
+    await db.scene.delete({ where: { id: sceneId } });
 
-    return row;
+    return { id: sceneId };
   }
 
   // ============= 批量导入（逐条） =============
@@ -214,36 +198,34 @@ export class SceneService {
       }
 
       // 检查是否已存在
-      const [existing] = await db
-        .select({ id: scenes.id })
-        .from(scenes)
-        .where(and(eq(scenes.gameId, input.gameId), eq(scenes.key, scene.key)))
-        .limit(1);
+      const existing = await db.scene.findFirst({ where: { gameId: input.gameId, key: scene.key } });
 
       if (existing) {
         // 更新现有场景
-        await db
-          .update(scenes)
-          .set({
+        await db.scene.update({
+          where: { id: existing.id },
+          data: {
             name: scene.name,
             mapFileName: scene.mapFileName,
             mmfData,
-            data: scene.data as Record<string, unknown>,
+            data: scene.data as unknown as Prisma.InputJsonValue,
             updatedAt: new Date(),
-          })
-          .where(and(eq(scenes.id, existing.id), eq(scenes.gameId, input.gameId)));
+          },
+        });
 
         return { ok: true, action: "updated", sceneName: scene.name };
       }
 
       // 创建新场景
-      await db.insert(scenes).values({
-        gameId: input.gameId,
-        key: scene.key,
-        name: scene.name,
-        mapFileName: scene.mapFileName,
-        mmfData,
-        data: scene.data as Record<string, unknown>,
+      await db.scene.create({
+        data: {
+          gameId: input.gameId,
+          key: scene.key,
+          name: scene.name,
+          mapFileName: scene.mapFileName,
+          mmfData,
+          data: scene.data as unknown as Prisma.InputJsonValue,
+        },
       });
 
       return { ok: true, action: "created", sceneName: scene.name };
@@ -269,12 +251,9 @@ export class SceneService {
   ): Promise<ClearAllScenesResult> {
     await verifyGameAccess(input.gameId, userId, language);
 
-    const deleted = await db
-      .delete(scenes)
-      .where(eq(scenes.gameId, input.gameId))
-      .returning({ id: scenes.id });
+    const result = await db.scene.deleteMany({ where: { gameId: input.gameId } });
 
-    return { deletedCount: deleted.length };
+    return { deletedCount: result.count };
   }
 
   // ============= 公开 REST API（无需认证） =============
@@ -288,11 +267,7 @@ export class SceneService {
     const gameId = await getGameIdBySlug(gameSlug);
     if (!gameId) return null;
 
-    const [row] = await db
-      .select({ mmfData: scenes.mmfData })
-      .from(scenes)
-      .where(and(eq(scenes.gameId, gameId), eq(scenes.key, sceneKey)))
-      .limit(1);
+    const row = await db.scene.findFirst({ where: { gameId, key: sceneKey }, select: { mmfData: true } });
 
     if (!row?.mmfData) return null;
     return Buffer.from(row.mmfData, "base64");
@@ -312,11 +287,7 @@ export class SceneService {
     const gameId = await getGameIdBySlug(gameSlug);
     if (!gameId) return null;
 
-    const [row] = await db
-      .select({ data: scenes.data })
-      .from(scenes)
-      .where(and(eq(scenes.gameId, gameId), eq(scenes.key, sceneKey)))
-      .limit(1);
+    const row = await db.scene.findFirst({ where: { gameId, key: sceneKey }, select: { data: true } });
 
     if (!row) return null;
     const data = row.data as SceneData | null;
@@ -346,11 +317,7 @@ export class SceneService {
     const gameId = await getGameIdBySlug(gameSlug);
     if (!gameId) return null;
 
-    const [row] = await db
-      .select({ data: scenes.data })
-      .from(scenes)
-      .where(and(eq(scenes.gameId, gameId), eq(scenes.key, sceneKey)))
-      .limit(1);
+    const row = await db.scene.findFirst({ where: { gameId, key: sceneKey }, select: { data: true } });
 
     if (!row) return null;
     const data = row.data as SceneData | null;

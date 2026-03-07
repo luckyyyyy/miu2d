@@ -13,10 +13,10 @@ import type {
   UpdateObjResInput,
 } from "@miu2d/types";
 import { createDefaultObjResource } from "@miu2d/types";
+import { Prisma } from "@prisma/client";
+import type { ObjResource as PrismaObjResource } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq } from "drizzle-orm";
 import { db } from "../../db/client";
-import { objResources } from "../../db/schema";
 import type { Language } from "../../i18n";
 import { getMessage } from "../../i18n";
 import { requireGameIdBySlug } from "../../utils/game";
@@ -26,7 +26,7 @@ export class ObjResourceService {
   /**
    * 将数据库记录转换为 ObjRes 类型
    */
-  private toObjRes(row: typeof objResources.$inferSelect): ObjRes {
+  private toObjRes(row: PrismaObjResource): ObjRes {
     const data = row.data as { resources?: ObjResource };
     return {
       id: row.id,
@@ -44,12 +44,7 @@ export class ObjResourceService {
    * 用于游戏客户端加载 Object 资源数据
    */
   async listPublicByGameId(gameId: string): Promise<ObjRes[]> {
-    const rows = await db
-      .select()
-      .from(objResources)
-      .where(eq(objResources.gameId, gameId))
-      .orderBy(desc(objResources.updatedAt));
-
+    const rows = await db.objResource.findMany({ where: { gameId }, orderBy: { updatedAt: "desc" } });
     return rows.map((row) => this.toObjRes(row));
   }
 
@@ -68,11 +63,7 @@ export class ObjResourceService {
   ): Promise<ObjRes | null> {
     await verifyGameAccess(gameId, userId, language);
 
-    const [row] = await db
-      .select()
-      .from(objResources)
-      .where(and(eq(objResources.id, id), eq(objResources.gameId, gameId)))
-      .limit(1);
+    const row = await db.objResource.findFirst({ where: { id, gameId } });
 
     if (!row) return null;
     return this.toObjRes(row);
@@ -82,11 +73,9 @@ export class ObjResourceService {
    * 通过 key 获取 Object 资源配置
    */
   async getByKey(gameId: string, key: string): Promise<ObjRes | null> {
-    const [row] = await db
-      .select()
-      .from(objResources)
-      .where(and(eq(objResources.key, key.toLowerCase()), eq(objResources.gameId, gameId)))
-      .limit(1);
+    const row = await db.objResource.findFirst({
+      where: { key: key.toLowerCase(), gameId },
+    });
 
     if (!row) return null;
     return this.toObjRes(row);
@@ -102,11 +91,10 @@ export class ObjResourceService {
   ): Promise<ObjResListItem[]> {
     await verifyGameAccess(input.gameId, userId, language);
 
-    const rows = await db
-      .select()
-      .from(objResources)
-      .where(eq(objResources.gameId, input.gameId))
-      .orderBy(desc(objResources.updatedAt));
+    const rows = await db.objResource.findMany({
+      where: { gameId: input.gameId },
+      orderBy: { updatedAt: "desc" },
+    });
 
     return rows.map((row) => {
       const data = row.data as { resources?: ObjResource };
@@ -129,15 +117,9 @@ export class ObjResourceService {
 
     const resources = input.resources ?? createDefaultObjResource();
 
-    const [row] = await db
-      .insert(objResources)
-      .values({
-        gameId: input.gameId,
-        key: input.key.toLowerCase(),
-        name: input.name,
-        data: { resources },
-      })
-      .returning();
+    const row = await db.objResource.create({
+      data: { gameId: input.gameId, key: input.key.toLowerCase(), name: input.name, data: { resources } as unknown as Prisma.InputJsonValue },
+    });
 
     return this.toObjRes(row);
   }
@@ -157,33 +139,11 @@ export class ObjResourceService {
 
     const keyLower = key.toLowerCase();
 
-    // 先查找是否存在
-    const existing = await this.getByKey(gameId, keyLower);
-    if (existing) {
-      // 更新
-      const [row] = await db
-        .update(objResources)
-        .set({
-          name,
-          data: { resources },
-          updatedAt: new Date(),
-        })
-        .where(and(eq(objResources.id, existing.id), eq(objResources.gameId, gameId)))
-        .returning();
-
-      return this.toObjRes(row);
-    }
-
-    // 创建
-    const [row] = await db
-      .insert(objResources)
-      .values({
-        gameId,
-        key: keyLower,
-        name,
-        data: { resources },
-      })
-      .returning();
+    const row = await db.objResource.upsert({
+      where: { obj_resources_game_id_key_unique: { gameId, key: keyLower } },
+      create: { gameId, key: keyLower, name, data: { resources } as unknown as Prisma.InputJsonValue },
+      update: { name, data: { resources } as unknown as Prisma.InputJsonValue, updatedAt: new Date() },
+    });
 
     return this.toObjRes(row);
   }
@@ -218,11 +178,10 @@ export class ObjResourceService {
       updateData.data = { resources: input.resources };
     }
 
-    const [row] = await db
-      .update(objResources)
-      .set(updateData)
-      .where(and(eq(objResources.id, input.id), eq(objResources.gameId, input.gameId)))
-      .returning();
+    const row = await db.objResource.update({
+      where: { id: input.id },
+      data: updateData,
+    });
 
     return this.toObjRes(row);
   }
@@ -238,9 +197,7 @@ export class ObjResourceService {
   ): Promise<{ id: string }> {
     await verifyGameAccess(gameId, userId, language);
 
-    await db
-      .delete(objResources)
-      .where(and(eq(objResources.id, id), eq(objResources.gameId, gameId)));
+    await db.objResource.delete({ where: { id } });
 
     return { id };
   }

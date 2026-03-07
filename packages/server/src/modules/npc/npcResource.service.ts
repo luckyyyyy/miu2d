@@ -13,10 +13,10 @@ import type {
   UpdateNpcResInput,
 } from "@miu2d/types";
 import { createDefaultNpcResource } from "@miu2d/types";
+import { Prisma } from "@prisma/client";
+import type { NpcResource as PrismaNpcResource } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq } from "drizzle-orm";
 import { db } from "../../db/client";
-import { npcResources } from "../../db/schema";
 import type { Language } from "../../i18n";
 import { getMessage } from "../../i18n";
 import { requireGameIdBySlug } from "../../utils/game";
@@ -26,7 +26,7 @@ export class NpcResourceService {
   /**
    * 将数据库记录转换为 NpcRes 类型
    */
-  private toNpcRes(row: typeof npcResources.$inferSelect): NpcRes {
+  private toNpcRes(row: PrismaNpcResource): NpcRes {
     const data = row.data as { resources?: NpcResource };
     return {
       id: row.id,
@@ -44,12 +44,7 @@ export class NpcResourceService {
    * 用于游戏客户端加载 NPC 资源数据
    */
   async listPublicByGameId(gameId: string): Promise<NpcRes[]> {
-    const rows = await db
-      .select()
-      .from(npcResources)
-      .where(eq(npcResources.gameId, gameId))
-      .orderBy(desc(npcResources.updatedAt));
-
+    const rows = await db.npcResource.findMany({ where: { gameId }, orderBy: { updatedAt: "desc" } });
     return rows.map((row) => this.toNpcRes(row));
   }
 
@@ -68,11 +63,7 @@ export class NpcResourceService {
   ): Promise<NpcRes | null> {
     await verifyGameAccess(gameId, userId, language);
 
-    const [row] = await db
-      .select()
-      .from(npcResources)
-      .where(and(eq(npcResources.id, id), eq(npcResources.gameId, gameId)))
-      .limit(1);
+    const row = await db.npcResource.findFirst({ where: { id, gameId } });
 
     if (!row) return null;
     return this.toNpcRes(row);
@@ -82,11 +73,9 @@ export class NpcResourceService {
    * 通过 key 获取 NPC 资源配置
    */
   async getByKey(gameId: string, key: string): Promise<NpcRes | null> {
-    const [row] = await db
-      .select()
-      .from(npcResources)
-      .where(and(eq(npcResources.key, key.toLowerCase()), eq(npcResources.gameId, gameId)))
-      .limit(1);
+    const row = await db.npcResource.findFirst({
+      where: { key: key.toLowerCase(), gameId },
+    });
 
     if (!row) return null;
     return this.toNpcRes(row);
@@ -102,11 +91,10 @@ export class NpcResourceService {
   ): Promise<NpcResListItem[]> {
     await verifyGameAccess(input.gameId, userId, language);
 
-    const rows = await db
-      .select()
-      .from(npcResources)
-      .where(eq(npcResources.gameId, input.gameId))
-      .orderBy(desc(npcResources.updatedAt));
+    const rows = await db.npcResource.findMany({
+      where: { gameId: input.gameId },
+      orderBy: { updatedAt: "desc" },
+    });
 
     return rows.map((row) => {
       const data = row.data as { resources?: NpcResource };
@@ -129,15 +117,9 @@ export class NpcResourceService {
 
     const resources = input.resources ?? createDefaultNpcResource();
 
-    const [row] = await db
-      .insert(npcResources)
-      .values({
-        gameId: input.gameId,
-        key: input.key.toLowerCase(),
-        name: input.name,
-        data: { resources },
-      })
-      .returning();
+    const row = await db.npcResource.create({
+      data: { gameId: input.gameId, key: input.key.toLowerCase(), name: input.name, data: { resources } as unknown as Prisma.InputJsonValue },
+    });
 
     return this.toNpcRes(row);
   }
@@ -157,34 +139,11 @@ export class NpcResourceService {
 
     const keyLower = key.toLowerCase();
 
-    // 先查找是否存在
-    const existing = await this.getByKey(gameId, keyLower);
-    if (existing) {
-      // 更新
-      const [row] = await db
-        .update(npcResources)
-        .set({
-          name,
-          data: { resources },
-          updatedAt: new Date(),
-        })
-        .where(and(eq(npcResources.id, existing.id), eq(npcResources.gameId, gameId)))
-        .returning();
-
-      return this.toNpcRes(row);
-    }
-
-    // 创建
-    const [row] = await db
-      .insert(npcResources)
-      .values({
-        gameId,
-        key: keyLower,
-        name,
-        data: { resources },
-      })
-      .returning();
-
+    const row = await db.npcResource.upsert({
+      where: { npc_resources_game_id_key_unique: { gameId, key: keyLower } },
+      create: { gameId, key: keyLower, name, data: { resources } as unknown as Prisma.InputJsonValue },
+      update: { name, data: { resources } as unknown as Prisma.InputJsonValue, updatedAt: new Date() },
+    });
     return this.toNpcRes(row);
   }
 
@@ -218,11 +177,10 @@ export class NpcResourceService {
       updateData.data = { resources: input.resources };
     }
 
-    const [row] = await db
-      .update(npcResources)
-      .set(updateData)
-      .where(and(eq(npcResources.id, input.id), eq(npcResources.gameId, input.gameId)))
-      .returning();
+    const row = await db.npcResource.update({
+      where: { id: input.id },
+      data: updateData,
+    });
 
     return this.toNpcRes(row);
   }
@@ -238,9 +196,7 @@ export class NpcResourceService {
   ): Promise<{ id: string }> {
     await verifyGameAccess(gameId, userId, language);
 
-    await db
-      .delete(npcResources)
-      .where(and(eq(npcResources.id, id), eq(npcResources.gameId, gameId)));
+    await db.npcResource.delete({ where: { id } });
 
     return { id };
   }

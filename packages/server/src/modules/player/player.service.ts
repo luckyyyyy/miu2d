@@ -19,10 +19,10 @@ import type {
   UpdatePlayerInput,
 } from "@miu2d/types";
 import { createDefaultPlayer } from "@miu2d/types";
+import { Prisma } from "@prisma/client";
+import type { Player as PrismaPlayer } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
-import { and, eq, sql } from "drizzle-orm";
 import { db } from "../../db/client";
-import { goods, magics, players } from "../../db/schema";
 import type { Language } from "../../i18n";
 import { getMessage } from "../../i18n";
 import { requireGameIdBySlug } from "../../utils/game";
@@ -32,7 +32,7 @@ export class PlayerService {
   /**
    * 将数据库记录转换为 Player 类型
    */
-  private toPlayer(row: typeof players.$inferSelect): Player {
+  private toPlayer(row: PrismaPlayer): Player {
     const data = row.data as Omit<
       Player,
       "id" | "gameId" | "key" | "name" | "index" | "createdAt" | "updatedAt"
@@ -54,12 +54,7 @@ export class PlayerService {
    * 用于游戏客户端加载角色数据
    */
   async listPublicByGameId(gameId: string): Promise<Player[]> {
-    const rows = await db
-      .select()
-      .from(players)
-      .where(eq(players.gameId, gameId))
-      .orderBy(players.index);
-
+    const rows = await db.player.findMany({ where: { gameId }, orderBy: { index: "asc" } });
     return rows.map((row) => this.toPlayer(row));
   }
 
@@ -78,11 +73,7 @@ export class PlayerService {
   ): Promise<Player | null> {
     await verifyGameAccess(gameId, userId, language);
 
-    const [row] = await db
-      .select()
-      .from(players)
-      .where(and(eq(players.id, playerId), eq(players.gameId, gameId)))
-      .limit(1);
+    const row = await db.player.findFirst({ where: { id: playerId, gameId } });
 
     if (!row) return null;
     return this.toPlayer(row);
@@ -98,11 +89,7 @@ export class PlayerService {
   ): Promise<PlayerListItem[]> {
     await verifyGameAccess(input.gameId, userId, language);
 
-    const rows = await db
-      .select()
-      .from(players)
-      .where(eq(players.gameId, input.gameId))
-      .orderBy(players.index);
+    const rows = await db.player.findMany({ where: { gameId: input.gameId }, orderBy: { index: "asc" } });
 
     return rows.map((row) => {
       const data = row.data as Record<string, unknown>;
@@ -146,23 +133,13 @@ export class PlayerService {
     // index 未指定时自动递增
     let index = inputIndex;
     if (index === undefined || index === null) {
-      const [result] = await db
-        .select({ maxIndex: sql<number>`coalesce(max(${players.index}), -1)` })
-        .from(players)
-        .where(eq(players.gameId, gameId));
-      index = (result?.maxIndex ?? -1) + 1;
+      const agg = await db.player.aggregate({ where: { gameId }, _max: { index: true } });
+      index = (agg._max.index ?? -1) + 1;
     }
 
-    const [row] = await db
-      .insert(players)
-      .values({
-        gameId,
-        key,
-        name: name ?? "",
-        index,
-        data,
-      })
-      .returning();
+    const row = await db.player.create({
+      data: { gameId, key, name: name ?? "", index, data: data as unknown as Prisma.InputJsonValue },
+    });
 
     return this.toPlayer(row);
   }
@@ -195,17 +172,10 @@ export class PlayerService {
       ...data
     } = merged;
 
-    const [row] = await db
-      .update(players)
-      .set({
-        key,
-        name,
-        index: index ?? 0,
-        data,
-        updatedAt: new Date(),
-      })
-      .where(and(eq(players.id, id), eq(players.gameId, gameId)))
-      .returning();
+    const row = await db.player.update({
+      where: { id },
+      data: { key, name, index: index ?? 0, data: data as unknown as Prisma.InputJsonValue, updatedAt: new Date() },
+    });
 
     return this.toPlayer(row);
   }
@@ -221,7 +191,7 @@ export class PlayerService {
   ): Promise<{ id: string }> {
     await verifyGameAccess(gameId, userId, language);
 
-    await db.delete(players).where(and(eq(players.id, playerId), eq(players.gameId, gameId)));
+    await db.player.delete({ where: { id: playerId } });
 
     return { id: playerId };
   }
@@ -235,11 +205,8 @@ export class PlayerService {
     language: Language
   ): Promise<ClearAllPlayersResult> {
     await verifyGameAccess(input.gameId, userId, language);
-    const deleted = await db
-      .delete(players)
-      .where(eq(players.gameId, input.gameId))
-      .returning({ id: players.id });
-    return { deletedCount: deleted.length };
+    const result = await db.player.deleteMany({ where: { gameId: input.gameId } });
+    return { deletedCount: result.count };
   }
 
   /**
@@ -288,7 +255,7 @@ export class PlayerService {
 
     // 清空现有角色
     if (input.clearBeforeImport) {
-      await db.delete(players).where(eq(players.gameId, input.gameId));
+      await db.player.deleteMany({ where: { gameId: input.gameId } });
     }
 
     // 预加载当前游戏的所有武功和物品，用于解析 iniFile 引用
@@ -300,7 +267,7 @@ export class PlayerService {
     const warnings: string[] = [];
 
     // ── 解析阶段（纯内存，无 DB 调用）────────────────────────────────
-    type InsertRow = typeof players.$inferInsert;
+    type InsertRow = { gameId: string; key: string; name: string; index: number; data: Record<string, unknown> };
     const rows: InsertRow[] = [];
     const keyToMeta = new Map<string, { fileName: string; index: number }>();
 
@@ -347,21 +314,17 @@ export class PlayerService {
 
     // ── 批量写入：一次 SQL 替代 N 次串行 INSERT ──────────────────────
     if (rows.length > 0) {
-      const inserted = await db
-        .insert(players)
-        .values(rows)
-        .onConflictDoUpdate({
-          target: [players.gameId, players.key],
-          set: {
-            name: sql`excluded.name`,
-            index: sql`excluded.index`,
-            data: sql`excluded.data`,
-            updatedAt: new Date(),
-          },
-        })
-        .returning();
+      const upserted = await db.$transaction(
+        rows.map((row) =>
+          db.player.upsert({
+            where: { players_game_id_key_unique: { gameId: row.gameId, key: row.key } },
+            create: { gameId: row.gameId, key: row.key, name: row.name, index: row.index,  data: row.data as unknown as Prisma.InputJsonValue },
+            update: { name: row.name, index: row.index, data: row.data as unknown as Prisma.InputJsonValue, updatedAt: new Date() },
+          })
+        )
+      );
 
-      for (const row of inserted) {
+      for (const row of upserted) {
         const p = this.toPlayer(row);
         const meta = keyToMeta.get(row.key)!;
         success.push({ fileName: meta.fileName, id: p.id, name: p.name, index: p.index });
@@ -378,10 +341,7 @@ export class PlayerService {
     byKey: Map<string, string>;
     byName: Map<string, string>;
   }> {
-    const rows = await db
-      .select({ key: magics.key, name: magics.name })
-      .from(magics)
-      .where(eq(magics.gameId, gameId));
+    const rows = await db.magic.findMany({ where: { gameId }, select: { key: true, name: true } });
 
     const byKey = new Map<string, string>();
     const byName = new Map<string, string>();
@@ -401,20 +361,16 @@ export class PlayerService {
     byKey: Map<string, string>;
     byName: Map<string, string>;
   }> {
-    const rows = await db
-      .select({
-        key: goods.key,
-        name: sql<string>`${goods.data}->>'name'`,
-      })
-      .from(goods)
-      .where(eq(goods.gameId, gameId));
+    const rows = await db.good.findMany({ where: { gameId }, select: { key: true, data: true } });
 
     const byKey = new Map<string, string>();
     const byName = new Map<string, string>();
     for (const row of rows) {
       byKey.set(row.key.toLowerCase(), row.key);
-      if (row.name) {
-        byName.set(row.name.toLowerCase(), row.key);
+      const data = row.data as Record<string, unknown>;
+      const name = data.name as string | undefined;
+      if (name) {
+        byName.set(name.toLowerCase(), row.key);
       }
     }
     return { byKey, byName };

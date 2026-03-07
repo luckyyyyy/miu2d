@@ -5,9 +5,7 @@
  * 避免在每个 service 中重复实现相同的权限校验逻辑。
  */
 import { TRPCError } from "@trpc/server";
-import { and, eq } from "drizzle-orm";
 import { db } from "../db/client";
-import { gameMembers } from "../db/schema";
 import type { Language } from "../i18n";
 import { getMessage } from "../i18n";
 
@@ -19,11 +17,10 @@ export async function verifyGameAccess(
   userId: string,
   language: Language = "zh"
 ): Promise<void> {
-  const [member] = await db
-    .select({ id: gameMembers.id })
-    .from(gameMembers)
-    .where(and(eq(gameMembers.gameId, gameId), eq(gameMembers.userId, userId)))
-    .limit(1);
+  const member = await db.gameMember.findFirst({
+    where: { gameId, userId },
+    select: { id: true },
+  });
 
   if (!member) {
     throw new TRPCError({
@@ -41,11 +38,10 @@ export async function verifyGameOwnerAccess(
   userId: string,
   language: Language = "zh"
 ): Promise<void> {
-  const [member] = await db
-    .select({ role: gameMembers.role })
-    .from(gameMembers)
-    .where(and(eq(gameMembers.gameId, gameId), eq(gameMembers.userId, userId)))
-    .limit(1);
+  const member = await db.gameMember.findFirst({
+    where: { gameId, userId },
+    select: { role: true },
+  });
 
   if (!member || member.role !== "owner") {
     throw new TRPCError({

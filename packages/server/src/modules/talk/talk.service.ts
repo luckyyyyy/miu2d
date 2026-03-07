@@ -11,10 +11,9 @@ import type {
   UpdateTalkDataInput,
 } from "@miu2d/types";
 import { parseTalkIndexTxt } from "@miu2d/types";
+import { Prisma } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
 import { db } from "../../db/client";
-import { talks } from "../../db/schema";
 import type { Language } from "../../i18n";
 import { verifyGameAccess } from "../../utils/gameAccess";
 import { requireGameIdBySlug } from "../../utils/game";
@@ -30,7 +29,7 @@ export class TalkService {
   ): Promise<{ gameId: string; entries: TalkEntry[] }> {
     await verifyGameAccess(gameId, userId, language);
 
-    const [row] = await db.select().from(talks).where(eq(talks.gameId, gameId)).limit(1);
+    const row = await db.talk.findFirst({ where: { gameId } });
 
     return {
       gameId,
@@ -48,7 +47,7 @@ export class TalkService {
   ): Promise<{ entries: TalkEntry[]; total: number }> {
     await verifyGameAccess(input.gameId, userId, language);
 
-    const [row] = await db.select().from(talks).where(eq(talks.gameId, input.gameId)).limit(1);
+    const row = await db.talk.findFirst({ where: { gameId: input.gameId } });
 
     if (!row) {
       return { entries: [], total: 0 };
@@ -77,7 +76,7 @@ export class TalkService {
    * 公开接口：通过 slug 获取对话数据（无需认证）
    */
   async getPublicByGameId(gameId: string): Promise<TalkEntry[]> {
-    const [row] = await db.select().from(talks).where(eq(talks.gameId, gameId)).limit(1);
+    const row = await db.talk.findFirst({ where: { gameId } });
     return row ? (row.data as TalkEntry[]) : [];
   }
 
@@ -97,21 +96,12 @@ export class TalkService {
 
     const sorted = [...input.entries].sort((a, b) => a.id - b.id);
 
-    const [existing] = await db.select().from(talks).where(eq(talks.gameId, input.gameId)).limit(1);
+    const existing = await db.talk.findFirst({ where: { gameId: input.gameId } });
 
     if (existing) {
-      await db
-        .update(talks)
-        .set({
-          data: sorted,
-          updatedAt: new Date(),
-        })
-        .where(eq(talks.gameId, input.gameId));
+      await db.talk.update({ where: { id: existing.id }, data: { data: sorted as unknown as Prisma.InputJsonValue, updatedAt: new Date() } });
     } else {
-      await db.insert(talks).values({
-        gameId: input.gameId,
-        data: sorted,
-      });
+      await db.talk.create({ data: { gameId: input.gameId, data: sorted as unknown as Prisma.InputJsonValue } });
     }
 
     return { gameId: input.gameId, entries: sorted };
@@ -128,7 +118,7 @@ export class TalkService {
   ): Promise<{ gameId: string; entries: TalkEntry[] }> {
     await verifyGameAccess(gameId, userId, language);
 
-    const [row] = await db.select().from(talks).where(eq(talks.gameId, gameId)).limit(1);
+    const row = await db.talk.findFirst({ where: { gameId } });
 
     const entries = row ? (row.data as TalkEntry[]) : [];
 
@@ -158,7 +148,7 @@ export class TalkService {
   ): Promise<{ gameId: string; entries: TalkEntry[] }> {
     await verifyGameAccess(gameId, userId, language);
 
-    const [row] = await db.select().from(talks).where(eq(talks.gameId, gameId)).limit(1);
+    const row = await db.talk.findFirst({ where: { gameId } });
 
     if (!row) {
       throw new TRPCError({
@@ -191,7 +181,7 @@ export class TalkService {
   ): Promise<{ gameId: string; entries: TalkEntry[] }> {
     await verifyGameAccess(gameId, userId, language);
 
-    const [row] = await db.select().from(talks).where(eq(talks.gameId, gameId)).limit(1);
+    const row = await db.talk.findFirst({ where: { gameId } });
 
     if (!row) {
       throw new TRPCError({
@@ -227,11 +217,8 @@ export class TalkService {
     language: Language
   ): Promise<{ deletedCount: number }> {
     await verifyGameAccess(input.gameId, userId, language);
-    const deleted = await db
-      .delete(talks)
-      .where(eq(talks.gameId, input.gameId))
-      .returning({ id: talks.id });
-    return { deletedCount: deleted.length };
+    const result = await db.talk.deleteMany({ where: { gameId: input.gameId } });
+    return { deletedCount: result.count };
   }
 }
 

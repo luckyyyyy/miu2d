@@ -25,9 +25,9 @@ import {
   MagicSpecialKindFromValue,
 } from "@miu2d/types";
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq, sql } from "drizzle-orm";
+import { Prisma } from "@prisma/client";
+import type { Magic as PrismaMagic } from "@prisma/client";
 import { db } from "../../db/client";
-import { magics } from "../../db/schema";
 import type { Language } from "../../i18n";
 import { getMessage } from "../../i18n";
 import { requireGameIdBySlug } from "../../utils/game";
@@ -37,7 +37,7 @@ export class MagicService {
   /**
    * 将数据库记录转换为 Magic 类型
    */
-  private toMagic(row: typeof magics.$inferSelect): Magic {
+  private toMagic(row: PrismaMagic): Magic {
     const data = row.data as Omit<
       Magic,
       "id" | "gameId" | "key" | "userType" | "name" | "createdAt" | "updatedAt"
@@ -58,12 +58,7 @@ export class MagicService {
    * 公开接口：通过 gameId 列出游戏的所有武功（无需认证）
    */
   async listPublicByGameId(gameId: string): Promise<Magic[]> {
-    const rows = await db
-      .select()
-      .from(magics)
-      .where(eq(magics.gameId, gameId))
-      .orderBy(desc(magics.updatedAt));
-
+    const rows = await db.magic.findMany({ where: { gameId }, orderBy: { updatedAt: "desc" } });
     return rows.map((row) => this.toMagic(row));
   }
 
@@ -86,11 +81,7 @@ export class MagicService {
   ): Promise<Magic | null> {
     await verifyGameAccess(gameId, userId, language);
 
-    const [row] = await db
-      .select()
-      .from(magics)
-      .where(and(eq(magics.id, magicId), eq(magics.gameId, gameId)))
-      .limit(1);
+    const row = await db.magic.findFirst({ where: { id: magicId, gameId } });
 
     if (!row) return null;
     return this.toMagic(row);
@@ -102,16 +93,10 @@ export class MagicService {
   async list(input: ListMagicInput, userId: string, language: Language): Promise<MagicListItem[]> {
     await verifyGameAccess(input.gameId, userId, language);
 
-    const conditions = [eq(magics.gameId, input.gameId)];
-    if (input.userType) {
-      conditions.push(eq(magics.userType, input.userType));
-    }
-
-    const rows = await db
-      .select()
-      .from(magics)
-      .where(and(...conditions))
-      .orderBy(desc(magics.updatedAt));
+    const rows = await db.magic.findMany({
+      where: { gameId: input.gameId, ...(input.userType ? { userType: input.userType } : {}) },
+      orderBy: { updatedAt: "desc" },
+    });
 
     return rows.map((row) => {
       const data = row.data as Record<string, unknown>;
@@ -143,16 +128,9 @@ export class MagicService {
     // 分离索引字段和 data 字段
     const { gameId, key, userType, name, ...data } = fullMagic;
 
-    const [row] = await db
-      .insert(magics)
-      .values({
-        gameId,
-        key,
-        userType,
-        name,
-        data,
-      })
-      .returning();
+    const row = await db.magic.create({
+      data: { gameId, key, userType, name, data: data as unknown as Prisma.InputJsonValue },
+    });
 
     return this.toMagic(row);
   }
@@ -188,17 +166,10 @@ export class MagicService {
       ...data
     } = merged;
 
-    const [row] = await db
-      .update(magics)
-      .set({
-        key,
-        userType,
-        name,
-        data,
-        updatedAt: new Date(),
-      })
-      .where(and(eq(magics.id, id), eq(magics.gameId, gameId)))
-      .returning();
+    const row = await db.magic.update({
+      where: { id },
+      data: { key, userType, name, data: data as unknown as Prisma.InputJsonValue, updatedAt: new Date() },
+    });
 
     return this.toMagic(row);
   }
@@ -214,7 +185,7 @@ export class MagicService {
   ): Promise<{ id: string }> {
     await verifyGameAccess(gameId, userId, language);
 
-    await db.delete(magics).where(and(eq(magics.id, magicId), eq(magics.gameId, gameId)));
+    await db.magic.delete({ where: { id: magicId } });
 
     return { id: magicId };
   }
@@ -268,7 +239,7 @@ export class MagicService {
     const failed: BatchImportMagicResult["failed"] = [];
 
     // ── 解析阶段（纯内存，无 DB 调用）────────────────────────────────
-    type InsertRow = typeof magics.$inferInsert;
+    type InsertRow = { gameId: string; key: string; userType: string; name: string; data: Record<string, unknown> };
     const rows: InsertRow[] = [];
     const keyToMeta = new Map<string, { fileName: string; isFlyingMagic: boolean }>();
 
@@ -303,21 +274,17 @@ export class MagicService {
 
     // ── 批量写入：一次 SQL 替代 N 次串行 INSERT ──────────────────────
     if (rows.length > 0) {
-      const inserted = await db
-        .insert(magics)
-        .values(rows)
-        .onConflictDoUpdate({
-          target: [magics.gameId, magics.key],
-          set: {
-            userType: sql`excluded.user_type`,
-            name: sql`excluded.name`,
-            data: sql`excluded.data`,
-            updatedAt: new Date(),
-          },
-        })
-        .returning();
+      const upserted = await db.$transaction(
+        rows.map((row) =>
+          db.magic.upsert({
+            where: { magics_game_id_key_unique: { gameId: row.gameId, key: row.key } },
+            create: { gameId: row.gameId, key: row.key, userType: row.userType, name: row.name,  data: row.data as unknown as Prisma.InputJsonValue },
+            update: { userType: row.userType, name: row.name, data: row.data as unknown as Prisma.InputJsonValue, updatedAt: new Date() },
+          })
+        )
+      );
 
-      for (const row of inserted) {
+      for (const row of upserted) {
         const m = this.toMagic(row);
         const meta = keyToMeta.get(row.key)!;
         success.push({ fileName: meta.fileName, id: m.id, name: m.name, isFlyingMagic: meta.isFlyingMagic });
@@ -1085,11 +1052,8 @@ export class MagicService {
     language: Language
   ): Promise<{ deletedCount: number }> {
     await verifyGameAccess(input.gameId, userId, language);
-    const deleted = await db
-      .delete(magics)
-      .where(eq(magics.gameId, input.gameId))
-      .returning({ id: magics.id });
-    return { deletedCount: deleted.length };
+    const result = await db.magic.deleteMany({ where: { gameId: input.gameId } });
+    return { deletedCount: result.count };
   }
 }
 
