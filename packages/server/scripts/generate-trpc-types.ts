@@ -1,7 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import chokidar from "chokidar";
 import {
   ClassDeclaration,
   MethodDeclaration,
@@ -238,10 +237,12 @@ const trigger = () => {
 };
 
 generateTypes();
-chokidar
-  .watch([modulesDir, path.resolve(rootDir, "src/trpc/decorators.ts")], {
-    ignoreInitial: true
-  })
-  .on("add", trigger)
-  .on("change", trigger)
-  .on("unlink", trigger);
+import("chokidar").then(({ default: chokidar }) => {
+  chokidar
+    .watch([modulesDir, path.resolve(rootDir, "src/trpc/decorators.ts")], {
+      ignoreInitial: true
+    })
+    .on("add", trigger)
+    .on("change", trigger)
+    .on("unlink", trigger);
+});
