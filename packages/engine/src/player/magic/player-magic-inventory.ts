@@ -649,6 +649,25 @@ export class PlayerMagicInventory {
   }
 
   /**
+   * 设置修炼武功等级（修炼武功不在 activeMagicList 中，需单独处理）
+   */
+  setXiuLianMagicLevel(level: number): void {
+    const info = this.xiuLianMagic;
+    if (!info?.magic) return;
+
+    const baseMagic = info.magic;
+    const levelMagic = getMagicAtLevel(baseMagic, level);
+    info.magic = levelMagic;
+    info.level = level;
+    if (level > 1 && baseMagic.levels?.has(level - 1)) {
+      info.exp = baseMagic.levels.get(level - 1)?.levelupExp || 0;
+    } else {
+      info.exp = 0;
+    }
+    this.updateView();
+  }
+
+  /**
    * 增加武功经验（直接操作 MagicItemInfo 对象）
    */
   addMagicExp(info: MagicItemInfo, expToAdd: number): boolean {
