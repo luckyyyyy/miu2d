@@ -49,7 +49,7 @@ export interface CollisionCallbacks {
   createEndContext(sprite: MagicSprite): EndContext | null;
   startDestroyAnimation(sprite: MagicSprite): void;
   createHitEffect(sprite: MagicSprite): void;
-  playSound(soundPath: string): void;
+  playSound(soundPath: string, position?: Vector2): void;
   useMagic(params: {
     userId: string;
     magic: MagicData;

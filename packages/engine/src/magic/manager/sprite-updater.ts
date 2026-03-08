@@ -40,7 +40,7 @@ import type {
 export interface SpriteUpdaterCallbacks {
   createApplyContext(sprite: MagicSprite, targetRef: unknown): ApplyContext | null;
   createEndContext(sprite: MagicSprite): EndContext | null;
-  playSound(soundPath: string): void;
+  playSound(soundPath: string, position?: Vector2): void;
   vibrateScreen(intensity: number): void;
   triggerExplodeMagic(sprite: MagicSprite, position?: Vector2): void;
   useMagic(params: {
@@ -392,7 +392,7 @@ export class SpriteUpdater {
     }
 
     if (sprite.magic.vanishSound) {
-      this.callbacks.playSound(sprite.magic.vanishSound);
+      this.callbacks.playSound(sprite.magic.vanishSound, sprite.position);
     }
 
     this.callbacks.triggerExplodeMagic(sprite);

@@ -450,7 +450,7 @@ export class MagicSpriteManager {
     }
 
     if (magic.flyingSound) {
-      this.playSound(magic.flyingSound);
+      this.playSound(magic.flyingSound, origin);
     }
 
     if (magic.vibratingScreen > 0) {
@@ -573,9 +573,13 @@ export class MagicSpriteManager {
     }
   }
 
-  private playSound(soundPath: string): void {
+  private playSound(soundPath: string, position?: Vector2): void {
     if (soundPath && this.audioManager) {
-      this.audioManager.playSound(soundPath);
+      if (position) {
+        void this.audioManager.play3DSoundOnce(soundPath, position);
+      } else {
+        this.audioManager.playSound(soundPath);
+      }
     }
   }
 
