@@ -819,6 +819,22 @@ mod mpc_msf {
             concat_raw.extend_from_slice(data);
         }
 
+        // Canvas dimensions = actual frame content size (may exceed global_width/height).
+        // global_width is only used for anchor computation (left = global_width/2);
+        // the rendered canvas must be large enough to hold all decoded frame pixels.
+        let canvas_width = frame_entries
+            .iter()
+            .filter(|e| e.width > 0)
+            .map(|e| (e.offset_x.max(0) as u16).saturating_add(e.width))
+            .max()
+            .unwrap_or(global_width);
+        let canvas_height = frame_entries
+            .iter()
+            .filter(|e| e.height > 0)
+            .map(|e| (e.offset_y.max(0) as u16).saturating_add(e.height))
+            .max()
+            .unwrap_or(global_height);
+
         let flags: u16 = 1; // zstd
         let compressed_blob = zstd::bulk::compress(&concat_raw, 3).ok()?;
         // PixelFormat 0 = Rgba8, no palette needed
@@ -829,8 +845,8 @@ mod mpc_msf {
         out.extend_from_slice(MSF_MAGIC);
         out.extend_from_slice(&MSF_VERSION.to_le_bytes());
         out.extend_from_slice(&flags.to_le_bytes());
-        out.extend_from_slice(&global_width.to_le_bytes());
-        out.extend_from_slice(&global_height.to_le_bytes());
+        out.extend_from_slice(&canvas_width.to_le_bytes());
+        out.extend_from_slice(&canvas_height.to_le_bytes());
         out.extend_from_slice(&frame_count.to_le_bytes());
         out.push(direction);
         out.push(fps);
@@ -1339,22 +1355,27 @@ fn convert_mpc_files(resources_dir: &Path) -> (usize, usize) {
         //   SuperModeImage, LeapImage, HitCountFlyingImage, HitCountVanishImage).
         //   These files store rich semi-transparent palette alpha values (e.g. 11..251)
         //   that produce smooth gradients when rendered with AlphaBlend=1.
-        //   The original C# engine loaded these as Asf (Utils.GetAsf), but the
-        //   Asf class would silently fail on MPC-format files (wrong signature).
-        //   For the TS engine we decode the palette alpha to give smooth effects.
         //
-        // All other directories (mpc/map/, mpc/magic/, mpc/character/, mpc/goods/,
-        //   mpc/object/, mpc/portrait/, mpc/ui/) follow the original C# convention:
-        //   transparent = RLE skip (byte > 0x80), visible = opaque (alpha = 0xFF).
-        //   Icons (mpc/magic/*s.mpc) intentionally stay opaque — they are shown in
-        //   UI panels against a dark background and never use AlphaBlend rendering.
+        // mpc/ui/column/column1.mpc, column2.mpc — decorative stone-pillar overlays
+        //   drawn on top of the HP/MP/TP bars with Alpha=1 (AlphaBlend=1) in Column.ini /
+        //   Window.ini.  ColLife/ColMana/ColThew use TransLevel (no palette alpha).
+        //
+        // All other files follow binary transparency: transparent = RLE skip (>0x80),
+        //   visible = opaque (alpha = 0xFF).
         let use_palette_alpha = {
             if let Ok(rel) = mpc_path.strip_prefix(&resources_dir.join("mpc")) {
-                rel.components()
-                    .next()
-                    .and_then(|c| c.as_os_str().to_str())
-                    .map(|s| s.eq_ignore_ascii_case("effect"))
-                    .unwrap_or(false)
+                let comps: Vec<_> = rel
+                    .components()
+                    .filter_map(|c| c.as_os_str().to_str().map(|s| s.to_lowercase()))
+                    .collect();
+                let first = comps.first().map(|s| s.as_str()).unwrap_or("");
+                let second = comps.get(1).map(|s| s.as_str()).unwrap_or("");
+                let stem = mpc_path
+                    .file_stem()
+                    .and_then(|s| s.to_str())
+                    .map(|s| s.to_lowercase())
+                    .unwrap_or_default();
+                first == "effect" || (first == "ui" && second == "column" && (stem == "column2"))
             } else {
                 false
             }

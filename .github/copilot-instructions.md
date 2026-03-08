@@ -14,7 +14,7 @@ TypeScript + React 19 + WebGL，复刻《剑侠情缘外传：月影传说》。
 | WASM | `@miu2d/engine-wasm` · `packages/engine-wasm/` | Rust 模块 |
 | 共享层 | `@miu2d/shared` / `@miu2d/types` / `@miu2d/ui` | i18n、tRPC 客户端、Zod Schema、UI 组件 |
 | 后端 | `@miu2d/server` · `packages/server/` | Hono + tRPC |
-| C# 参考 | `JxqyHD/Engine/` | 原始实现，修改引擎前先查阅 |
+| C++ 参考 | `JXQY-all-in-one/src/` | 原始实现，修改引擎前优先查阅 |
 
 **依赖规则（禁止循环）：**
 

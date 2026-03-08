@@ -265,8 +265,8 @@ export class WebGLRenderer implements Renderer {
     this.currentState.filter = "none";
     this.stateStack.length = 0;
 
-    // 清屏 (#1a1a2e → RGB)
-    gl.clearColor(0x1a / 255, 0x1a / 255, 0x2e / 255, 1);
+    // 清屏
+    gl.clearColor(0, 0, 0, 1);
     gl.clear(gl.COLOR_BUFFER_BIT);
 
     // 重置混合模式

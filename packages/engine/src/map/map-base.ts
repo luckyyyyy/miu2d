@@ -484,8 +484,15 @@ export class MapBase {
    * @param mapName 当前地图名（不含扩展名）
    */
   initTrapsFromMapData(mapName: string): void {
-    // 清空已忽略的陷阱列表
+    // 清空已忽略的陷阱列表（与 engine-map-loader 中的 clearIgnoredTraps 一致）
     this._ignoredTrapsIndex.clear();
+
+    // 如果该地图的陷阱数据已存在（首次初始化后可能被 SetMapTrap 修改过），
+    // 不再从 MMF 覆盖，保留运行时修改。对应 C# _traps 跨地图切换持久化的行为。
+    if (this._traps.has(mapName)) {
+      logger.log(`[MapBase] Trap data for "${mapName}" already initialized, skipping MMF overwrite`);
+      return;
+    }
 
     if (!this._mapData || this._mapData.trapTable.length === 0) {
       return;

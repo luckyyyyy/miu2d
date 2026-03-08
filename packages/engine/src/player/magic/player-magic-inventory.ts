@@ -961,6 +961,14 @@ export class PlayerMagicInventory {
     }
   }
 
+  /**
+   * 从存档直接设置修炼武功（用于 loadMagicContainer，绕过面板逻辑）
+   */
+  setXiuLianForLoad(item: MagicItemInfo | null): void {
+    this.xiuLianMagic = item;
+    this.callbacks.onXiuLianMagicChange?.(item);
+  }
+
   setNonReplaceMagicLevel(fileName: string, level: number): void {
     _setNonReplaceMagicLevel(this.expDeps, fileName, level);
   }

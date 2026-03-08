@@ -8,26 +8,14 @@
 import type { Player as PlayerType } from "@miu2d/types";
 import { logger } from "../core/logger";
 import { getPlayersData } from "../data/game-data-api";
-import { getMagic, getMagicAtLevel } from "../magic/magic-config-loader";
+import { getMagic, getMagicAtLevel, preloadMagicAsf } from "../magic/magic-config-loader";
 import { createDefaultMagicItemInfo } from "../magic/types";
+import type { MagicItemInfo } from "../magic/types";
 import type { MapBase } from "../map/map-base";
 import type { NpcManager } from "../npc";
 import type { ObjManager } from "../obj";
 import type { GoodsListManager } from "../player/goods";
-import { EquipPosition } from "../player/goods/good";
-import { getGood } from "../player/goods/good";
-
-// Equipment slot positions in order (Head=0..Foot=6), matches GoodsContainerSave.equipItems order
-const EQUIP_POSITION_ORDER = [
-  EquipPosition.Head,
-  EquipPosition.Neck,
-  EquipPosition.Body,
-  EquipPosition.Back,
-  EquipPosition.Hand,
-  EquipPosition.Wrist,
-  EquipPosition.Foot,
-] as const;
-import { MAGIC_LIST_CONFIG } from "../player/magic/magic-list-config";
+import { EquipPosition, getGood } from "../player/goods/good";
 import type { PlayerMagicInventory } from "../player/magic/player-magic-inventory";
 import type { Player } from "../player/player";
 import type {
@@ -40,6 +28,34 @@ import type {
   PlayerSaveData,
   TrapGroupValue,
 } from "./save-types";
+
+// Equipment slot positions in order (Head=0..Foot=6), matches GoodsContainerSave.equipItems order
+const EQUIP_POSITION_ORDER = [
+  EquipPosition.Head,
+  EquipPosition.Neck,
+  EquipPosition.Body,
+  EquipPosition.Back,
+  EquipPosition.Hand,
+  EquipPosition.Wrist,
+  EquipPosition.Foot,
+] as const;
+
+/**
+ * 从存档项构建 MagicItemInfo，同时收集预加载 Promise
+ * 用于修炼武功、快捷栏武功等不经过 addMagicBatch 路径的场景
+ */
+function buildMagicItemInfo(
+  item: { fileName: string; level: number; exp: number },
+  preloads: Promise<void>[]
+): MagicItemInfo | null {
+  const magic = getMagic(item.fileName);
+  if (!magic) return null;
+  const levelMagic = getMagicAtLevel(magic, item.level);
+  const itemInfo = createDefaultMagicItemInfo(levelMagic, item.level);
+  itemInfo.exp = item.exp;
+  preloads.push(preloadMagicAsf(levelMagic));
+  return itemInfo;
+}
 
 // ============= API 数据查询 =============
 
@@ -294,29 +310,25 @@ export async function loadMagicContainer(
 
   await inventory.addMagicBatch(batchItems);
 
-  // 加载修炼武功
+  // 加载修炼武功和快捷栏武功，并收集需要预加载的 ASF Promise
+  // 这两类武功在新设计中不经过 addMagicBatch，需要单独预加载 ASF 资源
+  const extraPreloads: Promise<void>[] = [];
+
   if (container.xiuLianMagic) {
-    const { fileName, level, exp } = container.xiuLianMagic;
-    const magic = getMagic(fileName);
-    if (magic) {
-      const levelMagic = getMagicAtLevel(magic, level);
-      const itemInfo = createDefaultMagicItemInfo(levelMagic, level);
-      itemInfo.exp = exp;
-      inventory["_placeMagicItemSync"](MAGIC_LIST_CONFIG.xiuLianIndex, itemInfo, false);
-    }
+    const itemInfo = buildMagicItemInfo(container.xiuLianMagic, extraPreloads);
+    if (itemInfo) inventory.setXiuLianForLoad(itemInfo);
   }
 
-  // 加载快捷栏武功（物理移动：从面板或直接放入）
   for (let s = 0; s < container.bottomMagics.length; s++) {
     const item = container.bottomMagics[s];
     if (!item) continue;
-    const magic = getMagic(item.fileName);
-    if (!magic) continue;
-    const levelMagic = getMagicAtLevel(magic, item.level);
-    const itemInfo = createDefaultMagicItemInfo(levelMagic, item.level);
-    itemInfo.exp = item.exp;
-    // 直接设置快捷栏物品（绕过物理移动逻辑，适用于存档加载）
-    inventory.setBottomSlotForLoad(s, itemInfo);
+    const itemInfo = buildMagicItemInfo(item, extraPreloads);
+    if (itemInfo) inventory.setBottomSlotForLoad(s, itemInfo);
+  }
+
+  // 并行预加载修炼武功和快捷栏武功的 ASF 资源
+  if (extraPreloads.length > 0) {
+    await Promise.all(extraPreloads);
   }
 
   // 加载隐藏武功

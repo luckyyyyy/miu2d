@@ -377,6 +377,21 @@ mod msf {
             concat_raw.extend_from_slice(data);
         }
 
+        // Canvas dimensions = actual frame content size (may exceed global_width/height).
+        // global_width is only for anchor computation; canvas must hold all frame pixels.
+        let canvas_width = frame_entries
+            .iter()
+            .filter(|e| e.width > 0)
+            .map(|e| (e.offset_x.max(0) as u16).saturating_add(e.width))
+            .max()
+            .unwrap_or(global_width);
+        let canvas_height = frame_entries
+            .iter()
+            .filter(|e| e.height > 0)
+            .map(|e| (e.offset_y.max(0) as u16).saturating_add(e.height))
+            .max()
+            .unwrap_or(global_height);
+
         let flags: u16 = 1; // zstd
         let compressed_blob = zstd::bulk::compress(&concat_raw, 3).ok()?;
 
@@ -391,8 +406,8 @@ mod msf {
         out.extend_from_slice(&flags.to_le_bytes());
 
         // Header
-        out.extend_from_slice(&global_width.to_le_bytes());
-        out.extend_from_slice(&global_height.to_le_bytes());
+        out.extend_from_slice(&canvas_width.to_le_bytes());
+        out.extend_from_slice(&canvas_height.to_le_bytes());
         out.extend_from_slice(&frame_count.to_le_bytes());
         out.push(direction);
         out.push(fps);

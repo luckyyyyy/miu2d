@@ -5,7 +5,6 @@
  * 确保 tRPC 和 REST 端点使用完全相同的 cookie 名称和查询逻辑。
  */
 import { db } from "../db/client";
-import { DEMO_DEV_USER_ID, isDev } from "./demo";
 
 export const SESSION_COOKIE_NAME = "SESSION_ID";
 
@@ -26,26 +25,16 @@ export function getCookieValue(
 
 /**
  * 从 cookie 字符串解析出当前登录的 userId
- *
- * 开发模式下，未登录时返回 DEMO_DEV_USER_ID。
  */
 export async function resolveUserId(
   cookieHeader: string | undefined | null
 ): Promise<string | undefined> {
   const sessionId = getCookieValue(cookieHeader, SESSION_COOKIE_NAME);
-  let userId: string | undefined;
+  if (!sessionId) return undefined;
 
-  if (sessionId) {
-    const session = await db.session.findFirst({
-      where: { id: sessionId, expiresAt: { gt: new Date() } },
-      select: { userId: true },
-    });
-    userId = session?.userId;
-  }
-
-  if (!userId && isDev()) {
-    userId = DEMO_DEV_USER_ID;
-  }
-
-  return userId;
+  const session = await db.session.findFirst({
+    where: { id: sessionId, expiresAt: { gt: new Date() } },
+    select: { userId: true },
+  });
+  return session?.userId;
 }

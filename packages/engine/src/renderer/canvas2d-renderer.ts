@@ -145,7 +145,7 @@ export class Canvas2DRenderer implements Renderer {
     if (!this.ctx) return;
 
     // 清屏
-    this.ctx.fillStyle = "#1a1a2e";
+    this.ctx.fillStyle = "#000000";
     this.ctx.fillRect(0, 0, this._width, this._height);
   }
 
