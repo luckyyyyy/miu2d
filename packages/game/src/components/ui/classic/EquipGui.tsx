@@ -42,6 +42,7 @@ export function equipPositionToSlotType(position: number): EquipSlotType | null 
 }
 
 export function slotTypeToEquipPosition(slot: EquipSlotType): number {
+  // biome-ignore lint/nursery/noUnnecessaryConditions: switch on string union is always non-null by design
   switch (slot) {
     case "head":
       return 1;

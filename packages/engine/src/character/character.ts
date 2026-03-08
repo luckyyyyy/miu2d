@@ -850,7 +850,7 @@ export abstract class Character extends CharacterCombat {
     manaMax: number;
     theEffectType: number;
   }): boolean {
-    if (drug && drug.kind === 0) {
+    if (drug.kind === 0) {
       if (drug.lifeMax !== 0) this.lifeMax += drug.lifeMax;
       if (drug.thewMax !== 0) this.thewMax += drug.thewMax;
       if (drug.manaMax !== 0) this.manaMax += drug.manaMax;

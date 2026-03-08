@@ -169,17 +169,15 @@ export function renderEngineInterleaved(r: Renderer, ctx: EngineRenderContext): 
     }
 
     // 渲染武功精灵（使用 MagicSpriteManager 预计算的按行分组）
-    if (magicMgr) {
-      const magicsAtRow = magicMgr.getMagicSpritesAtRow(row);
-      for (const sprite of magicsAtRow) {
-        magicRenderer.render(r, sprite, mapR.camera.x, mapR.camera.y);
-      }
+    const magicsAtRow = magicMgr.getMagicSpritesAtRow(row);
+    for (const sprite of magicsAtRow) {
+      magicRenderer.render(r, sprite, mapR.camera.x, mapR.camera.y);
+    }
 
-      // 渲染特效精灵
-      const effectsAtRow = magicMgr.getEffectSpritesAtRow(row);
-      for (const sprite of effectsAtRow) {
-        magicRenderer.render(r, sprite, mapR.camera.x, mapR.camera.y);
-      }
+    // 渲染特效精灵
+    const effectsAtRow = magicMgr.getEffectSpritesAtRow(row);
+    for (const sprite of effectsAtRow) {
+      magicRenderer.render(r, sprite, mapR.camera.x, mapR.camera.y);
     }
   });
 

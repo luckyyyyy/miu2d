@@ -61,7 +61,7 @@ export function PWAInstallPrompt({ gameName, logoUrl, ready }: PWAInstallPromptP
     if (gameSlugRef.current && isDismissedRecently(gameSlugRef.current)) {
       setDismissed(true);
     }
-  }, [ready]);
+  }, []);
 
   // 订阅 main.tsx dispatch 的 CustomEvent，prompt 到达或 installed 时重渲染
   useEffect(() => {

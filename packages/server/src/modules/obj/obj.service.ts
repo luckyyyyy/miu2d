@@ -17,7 +17,7 @@ import type {
   UpdateObjInput,
 } from "@miu2d/types";
 import { createDefaultObj, createDefaultObjResource, ObjKindFromValue } from "@miu2d/types";
-import { Prisma } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 import type { Obj as PrismaObj } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
 import { db } from "../../db/client";

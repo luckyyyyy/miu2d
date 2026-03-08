@@ -126,34 +126,25 @@ export function createMagicAPI(ctx: ScriptCommandContext): MagicAPI {
 
   return {
     add: async (magicFile) => {
-      if (player) {
-        await player.addMagic(magicFile);
-      }
+      await player.addMagic(magicFile);
     },
     delete: (magicFile) => {
-      if (player) {
-        player.getPlayerMagicInventory().deleteMagic(magicFile);
-      }
+      player.getPlayerMagicInventory().deleteMagic(magicFile);
     },
     setLevel: (magicFile, level) => {
       player.getPlayerMagicInventory().setNonReplaceMagicLevel(magicFile, level);
     },
     getLevel: (magicFile) => {
-      if (!player) return 0;
       const info = player.getPlayerMagicInventory().getMagicByFileName(magicFile);
       return info?.level || 0;
     },
     clear: () => {
-      if (player) {
-        player.getPlayerMagicInventory().renewList();
-      }
+      player.getPlayerMagicInventory().renewList();
     },
     hasFreeSpace: () => {
-      if (!player) return false;
       return player.getPlayerMagicInventory().getFreeIndex() !== -1;
     },
     use: (magicFile, x, y) => {
-      if (!player) return;
       const magicInfo = player.getPlayerMagicInventory().getMagicByFileName(magicFile);
       if (!magicInfo || !magicInfo.magic) return;
       let mapX = x ?? 0;

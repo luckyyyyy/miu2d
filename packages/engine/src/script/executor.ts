@@ -271,6 +271,7 @@ export class ScriptExecutor {
     this.state.isPaused = false;
 
     // Set belongObject if provided (for commands like DelCurObj)
+    // biome-ignore lint/nursery/noUnnecessaryConditions: belongObject is an optional parameter
     if (belongObject) {
       this.state.belongObject = belongObject;
     }

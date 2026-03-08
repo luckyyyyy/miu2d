@@ -62,6 +62,7 @@ export const createAppRouter = (resolve?: Resolver): AnyRouter => {
   const routerEntries = getRouterRegistry().map((routerClass) => {
     const alias = getRouterAlias(routerClass);
     const RouterCtor = routerClass as new () => RouterInstance;
+    // biome-ignore lint/nursery/noUnnecessaryConditions: resolve is an optional parameter
     const instance: RouterInstance = resolve ? resolve(RouterCtor) : new RouterCtor();
     const proto = Object.getPrototypeOf(instance);
 

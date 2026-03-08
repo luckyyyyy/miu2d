@@ -63,6 +63,7 @@ const slotNames: Record<EquipSlotType, string> = {
 
 // Map slot type to EquipPosition
 export function slotTypeToEquipPosition(slot: EquipSlotType): number {
+  // biome-ignore lint/nursery/noUnnecessaryConditions: switch on string union is always non-null by design
   switch (slot) {
     case "head":
       return 1;

@@ -84,7 +84,7 @@ export function dealDamage(ctx: ApplyContext): number {
   let damage3: number;
   let damageMana: number;
 
-  if (sprite && magic.leapTimes > 0) {
+  if (magic.leapTimes > 0) {
     // 跳跃武功：使用 sprite 的 currentEffect（可能已递减）
     damage = sprite.currentEffect;
     damage2 = sprite.currentEffect2;

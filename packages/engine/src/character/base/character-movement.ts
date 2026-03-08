@@ -1103,6 +1103,7 @@ export function generateRandTilePath(
       const y = homeY + offsetY;
 
       if (x === 0 && y === 0) continue;
+      // biome-ignore lint/nursery/noUnnecessaryConditions: isWalkable is optional parameter
       if (isWalkable && !isWalkable(x, y)) continue;
 
       path.push({ x, y });

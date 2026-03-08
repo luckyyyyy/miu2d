@@ -23,7 +23,7 @@ import {
   NpcKindFromValue,
   NpcRelationFromValue,
 } from "@miu2d/types";
-import { Prisma } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 import type { Npc as PrismaNpc } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
 import { db } from "../../db/client";

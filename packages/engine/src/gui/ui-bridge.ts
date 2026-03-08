@@ -715,6 +715,7 @@ export class UIBridgeImpl implements UIBridge {
   }
 
   requestRefresh(state: "goods" | "magic" | "shop" | "memo" | "all"): void {
+    // biome-ignore lint/nursery/noUnnecessaryConditions: switch on string union is always non-null by design
     switch (state) {
       case "goods":
         this.notifySubscribers("onGoodsChange", this.buildGoodsState());

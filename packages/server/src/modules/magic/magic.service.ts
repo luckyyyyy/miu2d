@@ -25,7 +25,7 @@ import {
   MagicSpecialKindFromValue,
 } from "@miu2d/types";
 import { TRPCError } from "@trpc/server";
-import { Prisma } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 import type { Magic as PrismaMagic } from "@prisma/client";
 import { db } from "../../db/client";
 import type { Language } from "../../i18n";

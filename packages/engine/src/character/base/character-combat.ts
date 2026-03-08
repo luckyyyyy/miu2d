@@ -519,6 +519,7 @@ export abstract class CharacterCombat extends CharacterMovement {
     let asf: AsfData | null = null;
     let asfPath = "";
 
+    // biome-ignore lint/nursery/noUnnecessaryConditions: switch on string union is always non-null by design
     switch (type) {
       case "frozen":
         asfPath = ResourcePath.asfInterlude("die-冰.asf");

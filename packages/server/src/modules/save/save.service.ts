@@ -5,7 +5,7 @@
  */
 
 import { randomBytes } from "node:crypto";
-import { Prisma } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 import type { Save as PrismaSave } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
 import { db } from "../../db/client";

@@ -44,6 +44,7 @@ export class AuthService {
     let suffix = 1;
 
     // eslint-disable-next-line no-constant-condition
+    // biome-ignore lint/nursery/noUnnecessaryConditions: intentional infinite loop with return/break
     while (true) {
       const existing = await db.game.findFirst({ where: { slug }, select: { id: true } });
       if (!existing) return slug;

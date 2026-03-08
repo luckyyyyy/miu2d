@@ -40,6 +40,7 @@ function read7BitEncodedInt(data: DataView, offset: number): [number, number] {
   let shift = 0;
   let currentOffset = offset;
 
+  // biome-ignore lint/nursery/noUnnecessaryConditions: intentional infinite loop with break
   while (true) {
     const byte = data.getUint8(currentOffset);
     currentOffset++;

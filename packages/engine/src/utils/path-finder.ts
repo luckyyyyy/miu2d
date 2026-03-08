@@ -67,6 +67,7 @@ function getObstacleIndexList(
       removeList.add(i);
 
       if (isHardObstacle(neighbors[i])) {
+        // biome-ignore lint/nursery/noUnnecessaryConditions: switch on integer index is always non-null by design
         switch (i) {
           case 1:
             removeList.add(0);

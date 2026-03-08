@@ -28,7 +28,7 @@ export function createNpcAPI(ctx: ScriptCommandContext, resolver: BlockingResolv
       return character ? character.tilePosition : null;
     },
     setPosition: (name, x, y) => {
-      if (player && player.name === name) {
+      if (player.name === name) {
         player.setPosition(x, y);
         return;
       }
@@ -38,14 +38,14 @@ export function createNpcAPI(ctx: ScriptCommandContext, resolver: BlockingResolv
     // Blocking movement → Promise
     walkTo: async (name, x, y) => {
       const destination = { x, y };
-      if (player && player.name === name) {
+      if (player.name === name) {
         player.walkToTile(x, y);
       } else {
         npcManager.npcGoto(name, x, y);
       }
 
       const getChar = () => {
-        if (player && player.name === name) return player as Character;
+        if (player.name === name) return player as Character;
         return npcManager.getNpc(name) as Character | null;
       };
       const check = () => {
@@ -63,7 +63,7 @@ export function createNpcAPI(ctx: ScriptCommandContext, resolver: BlockingResolv
     },
 
     walkToDir: async (name, direction, steps) => {
-      if (player && player.name === name) {
+      if (player.name === name) {
         player.walkToDirection(direction, steps);
       } else {
         npcManager.npcGotoDir(name, direction, steps);
@@ -81,7 +81,7 @@ export function createNpcAPI(ctx: ScriptCommandContext, resolver: BlockingResolv
     },
 
     setActionFile: async (name, stateType, asfFile) => {
-      if (player && player.name === name) {
+      if (player.name === name) {
         await player.setNpcActionFile(stateType, asfFile);
         return;
       }
@@ -152,12 +152,12 @@ export function createNpcAPI(ctx: ScriptCommandContext, resolver: BlockingResolv
     },
     setRelation: (name, relation) => {
       npcManager.setNpcRelation(name, relation);
-      if (player && player.name === name) {
+      if (player.name === name) {
         player.setRelation(relation);
       }
     },
     setDeathScript: (name, scriptFile) => {
-      if (player && player.name === name) {
+      if (player.name === name) {
         player.deathScript = scriptFile;
         return;
       }
@@ -209,7 +209,7 @@ export function createNpcAPI(ctx: ScriptCommandContext, resolver: BlockingResolv
       for (const npc of npcs) {
         npc.kind = kind;
       }
-      if (player && player.name === name) {
+      if (player.name === name) {
         player.kind = kind;
       }
     },
@@ -327,7 +327,7 @@ export function createNpcAPI(ctx: ScriptCommandContext, resolver: BlockingResolv
     addProperty: (name, property, value) => {
       const npcs = npcManager.getAllNpcsByName(name);
       const characters: Character[] = [...npcs];
-      if (player && player.name === name) {
+      if (player.name === name) {
         characters.push(player);
       }
       const propName = property.charAt(0).toLowerCase() + property.slice(1);

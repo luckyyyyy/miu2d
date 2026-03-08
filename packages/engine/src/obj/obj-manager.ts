@@ -240,9 +240,7 @@ export class ObjManager {
    * public static void AddObj(Obj obj) { if (obj != null) _list.AddLast(obj); }
    */
   addObj(obj: Obj): void {
-    if (obj) {
-      this.objects.push(obj);
-    }
+    this.objects.push(obj);
   }
 
   /**

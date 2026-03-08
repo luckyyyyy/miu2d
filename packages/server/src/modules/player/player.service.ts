@@ -19,7 +19,7 @@ import type {
   UpdatePlayerInput,
 } from "@miu2d/types";
 import { createDefaultPlayer } from "@miu2d/types";
-import { Prisma } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 import type { Player as PrismaPlayer } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
 import { db } from "../../db/client";

@@ -1,6 +1,6 @@
 import type { ImportPortraitMapInput, PortraitEntry, UpdatePortraitMapInput } from "@miu2d/types";
 import { parsePortraitIni } from "@miu2d/types";
-import { Prisma } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 import { db } from "../../db/client";
 import type { Language } from "../../i18n";
 import { verifyGameAccess } from "../../utils/gameAccess";

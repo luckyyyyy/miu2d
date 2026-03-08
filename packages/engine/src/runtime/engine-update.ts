@@ -67,7 +67,7 @@ export function updateFrame(ctx: EngineUpdateContext, deltaTime: number): void {
   ctx.performanceStats.updateObjectStats(
     gameManager.npcManager.npcsInView.length,
     gameManager.objManager.objsInView.length,
-    magicMgr ? magicMgr.getMagicSprites().size + magicMgr.getEffectSprites().size : 0
+    magicMgr.getMagicSprites().size + magicMgr.getEffectSprites().size
   );
 
   // Update mouse hover state for interaction highlights
@@ -86,9 +86,7 @@ export function updateFrame(ctx: EngineUpdateContext, deltaTime: number): void {
   player.updateOcclusionState();
 
   // === WASM 寻路：每帧同步动态障碍物 ===
-  if (magicMgr) {
-    syncDynamicObstacles(gameManager.npcManager, gameManager.objManager, magicMgr, player);
-  }
+  syncDynamicObstacles(gameManager.npcManager, gameManager.objManager, magicMgr, player);
 
   // 更新游戏逻辑
   gameManager.update(deltaTime, ctx.engineInput.state);

@@ -37,17 +37,15 @@ export function createPlayerAPI(ctx: ScriptCommandContext, resolver: BlockingRes
   };
 
   const pa = (fn: (p: Player) => void, label: string) => () => {
-    if (player) {
-      fn(player);
-      logger.log(`[GameAPI.player] ${label}`);
-    }
+    fn(player);
+    logger.log(`[GameAPI.player] ${label}`);
   };
 
   return {
     setPosition: (x, y, characterName?) => {
       let targetCharacter: Player | Npc | null = null;
       if (characterName) {
-        if (player && player.name === characterName) {
+        if (player.name === characterName) {
           targetCharacter = player;
         } else {
           targetCharacter = npcManager.getNpc(characterName);
@@ -61,9 +59,7 @@ export function createPlayerAPI(ctx: ScriptCommandContext, resolver: BlockingRes
       }
       targetCharacter.setPosition(x, y);
       centerCameraOnPlayer();
-      if (player) {
-        player.resetPartnerPosition?.();
-      }
+      player.resetPartnerPosition();
       checkTrap({ x, y });
     },
     setDirection: (direction) => {
@@ -157,15 +153,11 @@ export function createPlayerAPI(ctx: ScriptCommandContext, resolver: BlockingRes
       ctx.centerCameraOnPlayer();
     },
     setWalkIsRun: (value) => {
-      if (player) {
-        player.walkIsRun = value;
-      }
+      player.walkIsRun = value;
     },
     toNonFightingState: () => {
       const target = getPlayerKindCharacter();
-      if (target) {
-        target.toNonFightingState();
-      }
+      target.toNonFightingState();
     },
     change: async (index) => {
       await ctx.changePlayer(index);
@@ -173,28 +165,23 @@ export function createPlayerAPI(ctx: ScriptCommandContext, resolver: BlockingRes
     },
 
     // Stats
-    getMoney: () => player?.money || 0,
+    getMoney: () => player.money,
     setMoney: (amount) => {
-      if (player) {
-        player.setMoney(amount);
-      }
+      player.setMoney(amount);
     },
     addMoney: (amount) => {
       player.addMoney(amount);
     },
-    getExp: () => player?.exp || 0,
+    getExp: () => player.exp,
     addExp: (amount) => {
       player.addExp(amount);
     },
-    getLevel: () => player?.level ?? 0,
+    getLevel: () => player.level,
     setLevel: (level) => {
-      if (player) {
-        player.setLevelTo(level);
-        logger.log(`[GameAPI.player] setLevel: ${level}`);
-      }
+      player.setLevelTo(level);
+      logger.log(`[GameAPI.player] setLevel: ${level}`);
     },
     getStat: (stateName) => {
-      if (!player) return 0;
       switch (stateName) {
         case "Level":
           return player.level;
@@ -218,63 +205,43 @@ export function createPlayerAPI(ctx: ScriptCommandContext, resolver: BlockingRes
     fullMana: pa((p) => p.fullMana(), "FullMana"),
     fullThew: pa((p) => p.fullThew(), "FullThew"),
     addLife: (amount) => {
-      if (player) {
-        player.addLife(amount);
-      }
+      player.addLife(amount);
     },
     addMana: (amount) => {
-      if (player) {
-        player.addMana(amount);
-      }
+      player.addMana(amount);
     },
     addThew: (amount) => {
-      if (player) {
-        player.addThew(amount);
-      }
+      player.addThew(amount);
     },
     addLifeMax: (value) => {
-      if (player) {
-        player.lifeMax += value;
-      }
+      player.lifeMax += value;
     },
     addManaMax: (value) => {
-      if (player) {
-        player.manaMax += value;
-      }
+      player.manaMax += value;
     },
     addThewMax: (value) => {
-      if (player) {
-        player.thewMax += value;
-      }
+      player.thewMax += value;
     },
     addAttack: (value, type) => {
-      if (!player) return;
       const t = type ?? 1;
       if (t === 1) player.attack += value;
       else if (t === 2) player.attack2 += value;
       else if (t === 3) player.attack3 += value;
     },
     addDefend: (value, type) => {
-      if (!player) return;
       const t = type ?? 1;
       if (t === 1) player.defend = Math.max(0, player.defend + value);
       else if (t === 2) player.defend2 = Math.max(0, player.defend2 + value);
       else if (t === 3) player.defend3 = Math.max(0, player.defend3 + value);
     },
     addEvade: (value) => {
-      if (player) {
-        player.evade += value;
-      }
+      player.evade += value;
     },
     limitMana: (limit) => {
-      if (player) {
-        player.manaLimit = limit;
-      }
+      player.manaLimit = limit;
     },
     addMoveSpeedPercent: (percent) => {
-      if (player) {
-        player.addMoveSpeedPercent = (player.addMoveSpeedPercent || 0) + percent;
-      }
+      player.addMoveSpeedPercent = (player.addMoveSpeedPercent || 0) + percent;
     },
     isEquipWeapon: () => {
       const weapon = goodsListManager.get(205);
@@ -283,33 +250,24 @@ export function createPlayerAPI(ctx: ScriptCommandContext, resolver: BlockingRes
 
     // Abilities
     setFightEnabled: (enabled) => {
-      if (player) {
-        player.isFightDisabled = !enabled;
-      }
+      player.isFightDisabled = !enabled;
     },
     setJumpEnabled: (enabled) => {
-      if (player) {
-        player.isJumpDisabled = !enabled;
-      }
+      player.isJumpDisabled = !enabled;
     },
     setRunEnabled: (enabled) => {
-      if (player) {
-        player.isRunDisabled = !enabled;
-      }
+      player.isRunDisabled = !enabled;
     },
 
     setMagicWhenAttacked: (magicFile, direction) => {
-      if (player) {
-        player.magicToUseWhenBeAttacked = magicFile;
-        if (direction !== undefined) {
-          player.magicDirectionWhenBeAttacked = direction;
-        }
+      player.magicToUseWhenBeAttacked = magicFile;
+      if (direction !== undefined) {
+        player.magicDirectionWhenBeAttacked = direction;
       }
     },
 
     // In-memory snapshot (for SavePlayer / LoadPlayer commands)
     saveSnapshot: (key) => {
-      if (!player) return;
       const snapshot = {
         level: player.level,
         life: player.life,
@@ -328,7 +286,6 @@ export function createPlayerAPI(ctx: ScriptCommandContext, resolver: BlockingRes
       logger.log(`[GameAPI.player] saveSnapshot: key=${key}`);
     },
     loadSnapshot: (key) => {
-      if (!player) return;
       const snapshot = playerSnapshots.get(key);
       if (!snapshot) {
         logger.warn(`[GameAPI.player] loadSnapshot: no snapshot for key=${key}`);

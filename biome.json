@@ -37,6 +37,9 @@
       "complexity": {
         "noBannedTypes": "off",
         "noStaticOnlyClass": "off"
+      },
+      "nursery": {
+        "noUnnecessaryConditions": "warn"
       }
     }
   },

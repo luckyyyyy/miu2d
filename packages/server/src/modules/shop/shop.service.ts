@@ -16,7 +16,7 @@ import type {
   UpdateShopInput,
 } from "@miu2d/types";
 import { createDefaultShop } from "@miu2d/types";
-import { Prisma } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 import type { Shop as PrismaShop } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
 import { db } from "../../db/client";

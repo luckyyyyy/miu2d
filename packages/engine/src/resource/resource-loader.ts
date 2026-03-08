@@ -669,6 +669,7 @@ class ResourceLoaderImpl {
    */
   isCached(path: string, type: ResourceType): boolean {
     const normalizedPath = this.normalizePath(path);
+    // biome-ignore lint/nursery/noUnnecessaryConditions: switch on string union is always non-null by design
     switch (type) {
       case "text":
         return this.textCache.has(normalizedPath);
@@ -702,6 +703,7 @@ class ResourceLoaderImpl {
    */
   getFromCache<T>(path: string, type: ResourceType): T | null {
     const normalizedPath = this.normalizePath(path);
+    // biome-ignore lint/nursery/noUnnecessaryConditions: switch on string union is always non-null by design
     switch (type) {
       case "text": {
         const entry = this.textCache.get(normalizedPath);

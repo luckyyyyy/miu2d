@@ -10,7 +10,7 @@
  * 本模块 re-export 以保持引擎内部向后兼容。
  */
 
-import type { Good, Magic, Player, Shop } from "@miu2d/types";
+import type { Good, Player, Shop } from "@miu2d/types";
 import { logger } from "../core/logger";
 
 // ==================== 从 shared 导入并 re-export ====================

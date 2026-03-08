@@ -259,6 +259,7 @@ export function Slide({
   ...props
 }: SlideProps) {
   const getPosition = () => {
+    // biome-ignore lint/nursery/noUnnecessaryConditions: switch on string union is always non-null by design
     switch (direction) {
       case "left":
         return { x: `-${distance}` };

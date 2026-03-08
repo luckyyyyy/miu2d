@@ -216,30 +216,22 @@ export function createEffectsAPI(
       screenEffects.setFadeLum(level);
     },
     petrify: (ms) => {
-      if (player) {
-        let seconds = ms / 1000;
-        seconds = player.petrifiedSeconds < seconds ? seconds : player.petrifiedSeconds;
-        player.statusEffects.setPetrifySeconds(seconds, true);
-      }
+      let seconds = ms / 1000;
+      seconds = player.petrifiedSeconds < seconds ? seconds : player.petrifiedSeconds;
+      player.statusEffects.setPetrifySeconds(seconds, true);
     },
     poison: (ms) => {
-      if (player) {
-        let seconds = ms / 1000;
-        seconds = player.poisonSeconds < seconds ? seconds : player.poisonSeconds;
-        player.statusEffects.setPoisonSeconds(seconds, true);
-      }
+      let seconds = ms / 1000;
+      seconds = player.poisonSeconds < seconds ? seconds : player.poisonSeconds;
+      player.statusEffects.setPoisonSeconds(seconds, true);
     },
     frozen: (ms) => {
-      if (player) {
-        let seconds = ms / 1000;
-        seconds = player.frozenSeconds < seconds ? seconds : player.frozenSeconds;
-        player.statusEffects.setFrozenSeconds(seconds, true);
-      }
+      let seconds = ms / 1000;
+      seconds = player.frozenSeconds < seconds ? seconds : player.frozenSeconds;
+      player.statusEffects.setFrozenSeconds(seconds, true);
     },
     clearEffect: () => {
-      if (player) {
-        player.statusEffects.toNormalState();
-      }
+      player.statusEffects.toNormalState();
     },
     moveMagic: (magicFile, direction) => {
       ctx.magicSpriteManager.redirectMagicDirection(magicFile, direction);

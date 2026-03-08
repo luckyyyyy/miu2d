@@ -16,7 +16,7 @@ import type {
   UpdateGoodInput,
 } from "@miu2d/types";
 import { createDefaultGood, GoodKindFromValue } from "@miu2d/types";
-import { Prisma } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 import type { Good as PrismaGood } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
 import { db } from "../../db/client";

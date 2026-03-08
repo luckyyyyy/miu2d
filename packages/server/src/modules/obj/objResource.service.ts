@@ -13,7 +13,7 @@ import type {
   UpdateObjResInput,
 } from "@miu2d/types";
 import { createDefaultObjResource } from "@miu2d/types";
-import { Prisma } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 import type { ObjResource as PrismaObjResource } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
 import { db } from "../../db/client";

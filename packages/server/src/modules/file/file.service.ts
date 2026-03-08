@@ -6,7 +6,6 @@
  */
 
 import type { FileNode } from "@miu2d/types";
-import { Prisma } from "@prisma/client";
 import type { File as PrismaFile } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
 import { db } from "../../db/client";

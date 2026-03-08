@@ -11,7 +11,7 @@ import type {
   UpdateTalkDataInput,
 } from "@miu2d/types";
 import { parseTalkIndexTxt } from "@miu2d/types";
-import { Prisma } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
 import { db } from "../../db/client";
 import type { Language } from "../../i18n";
