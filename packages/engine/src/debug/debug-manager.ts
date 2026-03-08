@@ -507,7 +507,7 @@ export class DebugManager {
       const maxLevel = xiuLian.magic.maxLevel || 10;
       const newLevel = Math.min(xiuLian.level + 1, maxLevel);
       if (newLevel > xiuLian.level) {
-        this.magicInventory.setMagicLevel(xiuLian.magic.fileName, newLevel);
+        this.magicInventory.setXiuLianMagicLevel(newLevel);
         this.showMessage(`${xiuLian.magic.name} 升至 ${newLevel} 级`);
       } else {
         this.showMessage(`${xiuLian.magic.name} 已达最高级`);
@@ -535,7 +535,7 @@ export class DebugManager {
       }
       const newLevel = Math.max(xiuLian.level - 1, 1);
       if (newLevel < xiuLian.level) {
-        this.magicInventory.setMagicLevel(xiuLian.magic.fileName, newLevel);
+        this.magicInventory.setXiuLianMagicLevel(newLevel);
         this.showMessage(`${xiuLian.magic.name} 降至 ${newLevel} 级`);
       } else {
         this.showMessage(`${xiuLian.magic.name} 已是最低级`);
