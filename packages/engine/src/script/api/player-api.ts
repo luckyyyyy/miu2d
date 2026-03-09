@@ -59,6 +59,11 @@ export function createPlayerAPI(ctx: ScriptCommandContext, resolver: BlockingRes
         logger.warn(`[GameAPI.player] setPosition: character not found: ${characterName}`);
         return;
       }
+      // Mirror C++ setPlayerPosition: beginStand() is called first, which
+      // implicitly revives the player if in death state.
+      if (targetCharacter.isDeath || targetCharacter.isDeathInvoked) {
+        targetCharacter.fullLife();
+      }
       targetCharacter.setPosition(x, y);
       centerCameraOnPlayer();
       if (player) {
