@@ -939,7 +939,9 @@ export abstract class CharacterMovement extends CharacterBase {
    */
   protected canViewTarget(startTile: Vector2, endTile: Vector2, visionRadius: number): boolean {
     const maxVisionRadius = 80;
-    if (visionRadius > maxVisionRadius) return false;
+    // 不直接拒绝大视野半径，而是将循环步数限制在安全范围内
+    // 这样 visionRadius > 80 的 NPC 仍然可以看到近距离目标
+    const effectiveSteps = Math.min(visionRadius, maxVisionRadius);
 
     if (startTile.x === endTile.x && startTile.y === endTile.y) return true;
 
@@ -952,7 +954,7 @@ export abstract class CharacterMovement extends CharacterBase {
     let currentX = startTile.x;
     let currentY = startTile.y;
 
-    for (let step = 0; step < visionRadius; step++) {
+    for (let step = 0; step < effectiveSteps; step++) {
       if (currentX === endTile.x && currentY === endTile.y) return true;
 
       // C# 使用 IsObstacle 检查中间瓦片（仅 OBSTACLE 标志，TRANS 不阻挡视线）
