@@ -130,6 +130,8 @@ export class NpcAI {
       this.findNoneFighterTarget();
     } else if (npc.isPartner) {
       this.moveToPlayer();
+    } else if (npc.followNpcName) {
+      this.followNamedNpc();
     }
 
     if (npc.followTarget === null) {
@@ -190,6 +192,31 @@ export class NpcAI {
     if (npc.stopFindingTarget === 0) {
       npc.followTarget = this.getClosestNonneturalFighter();
     } else if (npc.followTarget?.isDeathInvoked) {
+      npc.followTarget = null;
+    }
+  }
+
+  /**
+   * 跟随指定名字的角色（对应 C++ followNPC 属性）
+   * 目标可以是玩家或其他 NPC；如果目标不存在，清空 followNpcName
+   */
+  private followNamedNpc(): void {
+    const npc = this._npc;
+    const name = npc.followNpcName;
+
+    // 优先检查玩家
+    const player = this.player;
+    if (player && player.name === name && !player.isDeathInvoked) {
+      npc.followTarget = player;
+      return;
+    }
+
+    // 再查 NPC 列表
+    const target = this.npcManager ? this.npcManager.getNpc(name) : null;
+    if (target && !target.isDeathInvoked) {
+      npc.followTarget = target;
+    } else {
+      npc.followNpcName = "";
       npc.followTarget = null;
     }
   }

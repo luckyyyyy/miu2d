@@ -179,6 +179,8 @@ export abstract class CharacterBase extends Sprite implements CharacterInstance 
   scriptFile: string = "";
   scriptFileRight: string = "";
   deathScript: string = "";
+  /** NPC 跟随目标的名字（对应 C++ followNPC 属性）。非空时 NPC 会跟随该名字的角色 */
+  followNpcName: string = "";
   timerScriptFile: string = "";
   timerScriptInterval: number = 0;
   pathFinder: number = 0;

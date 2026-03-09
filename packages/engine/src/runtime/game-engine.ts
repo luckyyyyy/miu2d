@@ -720,8 +720,8 @@ export class GameEngine implements EngineContext {
     );
   }
 
-  queueScript(scriptPath: string): void {
-    this.gameManager.scriptExecutor?.queueScript(scriptPath);
+  queueScript(scriptPath: string, onComplete?: () => void): void {
+    this.gameManager.scriptExecutor?.queueScript(scriptPath, undefined, onComplete);
   }
 
   getCurrentMapName(): string {

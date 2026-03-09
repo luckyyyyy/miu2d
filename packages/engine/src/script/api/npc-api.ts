@@ -315,6 +315,13 @@ export function createNpcAPI(ctx: ScriptCommandContext, resolver: BlockingResolv
         followerChar.follow(targetChar);
       }
     },
+    followPlayer: (npcName) => {
+      const npcs = npcManager.getAllNpcsByName(npcName);
+      const playerName = player?.name ?? "";
+      for (const npc of npcs) {
+        npc.followNpcName = playerName;
+      }
+    },
     setMagicWhenAttacked: (name, magicFile, direction) => {
       const characters = getCharactersByName(name);
       for (const character of characters) {

@@ -796,8 +796,8 @@ export class GameManager {
     return this.scriptExecutor.runScript(scriptPath);
   }
   /** Queue a script for execution (non-blocking) */
-  queueScript(scriptPath: string): void {
-    this.scriptExecutor.queueScript(scriptPath);
+  queueScript(scriptPath: string, onComplete?: () => void): void {
+    this.scriptExecutor.queueScript(scriptPath, undefined, onComplete);
   }
   getGoodsVersion(): number {
     return this.goodsVersion;

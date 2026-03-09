@@ -126,6 +126,7 @@ export interface NpcAPI {
   setAllDeathScript(name: string, scriptFile: string): void;
   attack(name: string, x: number, y: number): void;
   follow(follower: string, target: string): void;
+  followPlayer(npcName: string): void;
   setMagicWhenAttacked(name: string, magicFile: string, direction: number): void;
   addProperty(name: string, property: string, value: number): void;
   addMagic(name: string, magicFile: string): Promise<void>;

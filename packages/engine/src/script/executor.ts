@@ -166,6 +166,7 @@ class ParallelScriptRunner {
 interface ScriptQueueItem {
   scriptPath: string;
   belongObject?: { type: "npc" | "obj"; id: string };
+  onComplete?: () => void;
 }
 
 export class ScriptExecutor {
@@ -294,12 +295,17 @@ export class ScriptExecutor {
    *
    * @param scriptPath Path to the script file
    * @param belongObject Optional target that triggered this script
+   * @param onComplete Optional callback after script finishes
    */
-  queueScript(scriptPath: string, belongObject?: { type: "npc" | "obj"; id: string }): void {
+  queueScript(
+    scriptPath: string,
+    belongObject?: { type: "npc" | "obj"; id: string },
+    onComplete?: () => void
+  ): void {
     logger.log(
       `[ScriptExecutor] Queueing script: ${scriptPath} (queue size: ${this.scriptQueue.length})`
     );
-    this.scriptQueue.push({ scriptPath, belongObject });
+    this.scriptQueue.push({ scriptPath, belongObject, onComplete });
   }
 
   /**
@@ -484,7 +490,9 @@ export class ScriptExecutor {
       logger.log(
         `[ScriptExecutor] Processing queued script: ${next.scriptPath} (${this.scriptQueue.length} remaining)`
       );
-      void this.runScript(next.scriptPath, next.belongObject);
+      void this.runScript(next.scriptPath, next.belongObject).then(() => {
+        next.onComplete?.();
+      });
     }
   }
 

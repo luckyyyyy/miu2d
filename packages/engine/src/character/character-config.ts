@@ -307,6 +307,7 @@ export interface CharacterInstance {
   scriptFile: string;
   scriptFileRight: string;
   deathScript: string;
+  followNpcName: string;
   timerScriptFile: string;
   dropIni: string;
   buyIniFile: string;

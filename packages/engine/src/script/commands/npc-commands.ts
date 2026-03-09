@@ -417,6 +417,17 @@ const followNpcCommand: CommandHandler = (params, _result, helpers) => {
 };
 
 /**
+ * FollowPlayer - Make an NPC follow the player
+ * FollowPlayer(npcName)
+ * Reference: GameManager::followPlayer(name) -> npc.followNPC = player.name
+ */
+const followPlayerCommand: CommandHandler = (params, _result, helpers) => {
+  const npcName = helpers.resolveString(params[0] || "");
+  helpers.api.npc.followPlayer(npcName);
+  return true;
+};
+
+/**
  * SetNpcMagicToUseWhenBeAttacked - Set NPC counter-attack magic
  *
  */
@@ -640,6 +651,7 @@ export function registerNpcCommands(registry: CommandRegistry): void {
   registry.set("setallnpcdeathscript", setAllNpcDeathScriptCommand);
   registry.set("npcattack", npcAttackCommand);
   registry.set("follownpc", followNpcCommand);
+  registry.set("followplayer", followPlayerCommand);
   registry.set("setnpcmagictousewhenbeatacked", setNpcMagicToUseWhenBeAttackedCommand);
   registry.set("addnpcproperty", addNpcPropertyCommand);
   registry.set("changeflyini", changeFlyIniCommand);
