@@ -102,9 +102,6 @@ export async function handleMapChange(
           .pop()
           ?.replace(/\.(map|mmf)$/i, "") || "";
 
-      // 加载新地图时不清空已触发的陷阱列表（与 C# 一致，忽略列表跨地图持久保留）
-      // _ignoredTrapsIndex 只在 resetTrapState()（新游戏/读档）时清空
-
       // 让 GameManager 在摄像机计算前就拥有 mapData
       const gm = getGameManager();
       gm.setMapData(mapData);
@@ -113,7 +110,13 @@ export async function handleMapChange(
       await initWasmPathfinder(mapData.mapColumnCounts, mapData.mapRowCounts);
       syncStaticObstacles(mapData.barriers, mapData.mapColumnCounts, mapData.mapRowCounts);
 
-      // 从 MMF 内嵌的 trapTable 初始化陷阱配置
+      // 清空已触发的陷阱列表：各地图的 trap index 是独立编号的小整数（1/2/3…），
+      // 不同地图可能共享相同编号，必须在每次地图切换时重置，避免跨地图污染。
+      // 读档时 Phase 1 的 resetTrapState() 已清空，Phase 4 会从存档恢复当前地图的值，
+      // 因此读档路径下这里的 clear 是无害的 no-op。
+      map.clearIgnoredTraps();
+
+      // 从 MMF 内嵌的 trapTable 初始化陷阱配置（_trapsDelta 已在 Phase 1 清空并在 Phase 4 恢复）
       map.initTrapsFromMapData(mapName);
 
       // 更新地图渲染器
