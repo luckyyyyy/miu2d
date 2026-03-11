@@ -53,8 +53,8 @@ function parseLine(line: string, lineNumber: number): ScriptCode | null {
   }
 
   // Parse conditional: If (condition) @Label; - MUST come before generic function match
-  // Support formats: If($Event <> 710) @end; or If ($Event == 0) @Label;
-  const ifMatch = trimmed.match(/^If\s*\((.+)\)\s*(@\w+)\s*;?\s*$/i);
+  // Support formats: If($Event <> 710) @end; or If ($Event == 0) @Label; or If ($Var==1) Goto @Label;
+  const ifMatch = trimmed.match(/^If\s*\((.+)\)\s*(?:Goto\s+)?(@\w+)\s*;?\s*$/i);
   if (ifMatch) {
     const [, condition, label] = ifMatch;
     return {

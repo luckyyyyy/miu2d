@@ -78,6 +78,15 @@ describe("parseScript", () => {
     expect(code.result).toBe("@end");
   });
 
+  it("parses If conditional with Goto keyword", () => {
+    const result = parseScript("If ($TianWangPiEr==1) Goto @Lable1;", "test.txt");
+    expect(result.codes).toHaveLength(1);
+    const code = result.codes[0];
+    expect(code.name).toBe("If");
+    expect(code.parameters).toEqual(["$TianWangPiEr==1"]);
+    expect(code.result).toBe("@Lable1");
+  });
+
   it("maps labels to correct code indices", () => {
     const script = `@Begin:
 Talk(1, "hello");
