@@ -463,13 +463,23 @@ export function renderMap(renderer: Renderer, mapRenderer: MapRenderer): void {
   }
 }
 
+/**
+ * Clamp camera position for one axis.
+ * When the map is smaller than the viewport, center it (returns a negative value).
+ * Otherwise, restrict within [0, mapSize - viewSize].
+ */
+export function clampCameraAxis(value: number, mapSize: number, viewSize: number): number {
+  if (mapSize <= viewSize) return Math.floor((mapSize - viewSize) / 2);
+  return Math.max(0, Math.min(value, mapSize - viewSize));
+}
+
 /** 更新相机位置（带边界检查） */
 export function updateCamera(renderer: MapRenderer, deltaX: number, deltaY: number): void {
   if (!renderer.mapData) return;
 
   const { camera, mapData } = renderer;
-  const newX = Math.max(0, Math.min(camera.x + deltaX, mapData.mapPixelWidth - camera.width));
-  const newY = Math.max(0, Math.min(camera.y + deltaY, mapData.mapPixelHeight - camera.height));
+  const newX = clampCameraAxis(camera.x + deltaX, mapData.mapPixelWidth, camera.width);
+  const newY = clampCameraAxis(camera.y + deltaY, mapData.mapPixelHeight, camera.height);
 
   camera.x = Math.round(newX);
   camera.y = Math.round(newY);

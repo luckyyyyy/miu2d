@@ -54,6 +54,7 @@ import {
   createMapRenderer,
   type MapRenderer,
   renderMapInterleaved,
+  clampCameraAxis,
 } from "../map/map-renderer";
 import type { MiuMapData } from "../map/types";
 import { ObjManager } from "../obj";
@@ -619,10 +620,10 @@ export class GameEngine implements EngineContext {
         this.engineCamera.centerCameraOnPlayer();
       }
 
-      // 限制相机在地图范围内
+      // 限制相机在地图范围内（地图小于视口时居中）
       const mapData = this.gameManager.getMapData();
-      camera.x = Math.max(0, Math.min(camera.x, mapData.mapPixelWidth - width));
-      camera.y = Math.max(0, Math.min(camera.y, mapData.mapPixelHeight - height));
+      camera.x = clampCameraAxis(camera.x, mapData.mapPixelWidth, width);
+      camera.y = clampCameraAxis(camera.y, mapData.mapPixelHeight, height);
     }
 
     this.events.emit(GameEvents.SCREEN_RESIZE, { width, height });

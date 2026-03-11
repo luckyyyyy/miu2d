@@ -11,6 +11,7 @@
 
 import { logger } from "../core/logger";
 import type { Vector2 } from "../core/types";
+import { clampCameraAxis } from "../map/map-renderer";
 import type { MapRenderer } from "../map/map-renderer";
 import type { ScreenEffects } from "../renderer/screen-effects";
 import type { GameEngineConfig } from "./game-engine";
@@ -93,10 +94,10 @@ export class EngineCamera {
       this.followPlayer(playerPos, camera, width, height, screenEffects);
     }
 
-    // 限制相机在地图范围内
+    // 限制相机在地图范围内（地图小于视口时居中）
     const mapData = gm.getMapData();
-    camera.x = Math.max(0, Math.min(camera.x, mapData.mapPixelWidth - width));
-    camera.y = Math.max(0, Math.min(camera.y, mapData.mapPixelHeight - height));
+    camera.x = clampCameraAxis(camera.x, mapData.mapPixelWidth, width);
+    camera.y = clampCameraAxis(camera.y, mapData.mapPixelHeight, height);
   }
 
   /**
@@ -113,9 +114,9 @@ export class EngineCamera {
     let targetX = playerPos.x - width / 2;
     let targetY = playerPos.y - height / 2;
 
-    // 限制在地图范围内
-    targetX = Math.max(0, Math.min(targetX, mapData.mapPixelWidth - width));
-    targetY = Math.max(0, Math.min(targetY, mapData.mapPixelHeight - height));
+    // 限制在地图范围内（地图小于视口时居中）
+    targetX = clampCameraAxis(targetX, mapData.mapPixelWidth, width);
+    targetY = clampCameraAxis(targetY, mapData.mapPixelHeight, height);
 
     camera.x = targetX;
     camera.y = targetY;
