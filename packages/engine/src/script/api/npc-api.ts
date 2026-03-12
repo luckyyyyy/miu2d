@@ -7,6 +7,7 @@ import { logger } from "../../core/logger";
 import { CharacterState } from "../../core/types";
 import { ResourcePath } from "../../resource/resource-paths";
 import { tileToPixel } from "../../utils";
+import { PathType } from "../../utils/path-finder";
 import type { BlockingResolver } from "../blocking-resolver";
 import type { NpcAPI } from "./game-api";
 import { isCharacterMoveEnd } from "./helpers";
@@ -135,7 +136,8 @@ export function createNpcAPI(ctx: ScriptCommandContext, resolver: BlockingResolv
         logger.warn(`[GameAPI.npc] walkToNonBlocking: not found: ${name}`);
         return;
       }
-      character.walkTo({ x, y });
+      // Reference: JxqyHD/Engine/Npc.cs - destination walk uses PerfectMaxPlayerTry (maxTry=500)
+      character.walkTo({ x, y }, PathType.PerfectMaxPlayerTry);
     },
     setLevel: (name, level) => {
       if (player.name === name) {

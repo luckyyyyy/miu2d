@@ -14,6 +14,7 @@ import { type DropCharacter, getDropObj } from "../loot/good-drop";
 import { resolveScriptPath } from "../resource/resource-paths";
 import type { NpcSaveItem } from "../storage/save-types";
 import { getViewTileDistance } from "../utils";
+import { PathType } from "../utils/path-finder";
 import { Npc } from "./npc";
 import type { NpcAiQueryContext } from "./npc-ai-queries";
 import * as aiQ from "./npc-ai-queries";
@@ -521,7 +522,8 @@ export class NpcManager {
    * Make NPC walk to position
    */
   npcGoto(name: string, tileX: number, tileY: number): boolean {
-    return this.withNpcResult(name, (npc) => npc.walkTo({ x: tileX, y: tileY }), false);
+    // Reference: JxqyHD/Engine/Npc.cs - destination walk uses PerfectMaxPlayerTry (maxTry=500)
+    return this.withNpcResult(name, (npc) => npc.walkTo({ x: tileX, y: tileY }, PathType.PerfectMaxPlayerTry), false);
   }
 
   /**
