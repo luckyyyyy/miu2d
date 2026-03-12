@@ -55,7 +55,12 @@ export class PlayerMagicInventory {
   // 修炼武功
   private xiuLianMagic: MagicItemInfo | null = null;
   // 回调
-  private callbacks: MagicListCallbacks = {};
+  private callbacks: Required<MagicListCallbacks> = {
+    onUpdateView: () => {},
+    onMagicUse: () => {},
+    onMagicLevelUp: () => {},
+    onXiuLianMagicChange: () => {},
+  };
   // 版本号（用于触发UI更新）
   private version: number = 0;
   // 武功经验配置
@@ -138,10 +143,16 @@ export class PlayerMagicInventory {
   }
 
   /**
-   * 设置回调（完全替换）
+   * 设置回调（完全替换，未提供的回调使用空操作默认实现）
    */
   setCallbacks(callbacks: MagicListCallbacks): void {
-    this.callbacks = callbacks;
+    this.callbacks = {
+      onUpdateView: () => {},
+      onMagicUse: () => {},
+      onMagicLevelUp: () => {},
+      onXiuLianMagicChange: () => {},
+      ...callbacks,
+    };
   }
 
   /**
@@ -177,7 +188,7 @@ export class PlayerMagicInventory {
    */
   private updateView(): void {
     this.version++;
-    this.callbacks.onUpdateView?.();
+    this.callbacks.onUpdateView();
   }
 
   /**
@@ -227,7 +238,7 @@ export class PlayerMagicInventory {
     // 修炼武功：虚拟索引 61，不存储在 magicList 中
     if (!isHidden && index === MAGIC_LIST_CONFIG.xiuLianIndex) {
       this.xiuLianMagic = itemInfo;
-      this.callbacks.onXiuLianMagicChange?.(itemInfo);
+      this.callbacks.onXiuLianMagicChange(itemInfo);
       return;
     }
     const targetList = isHidden ? this.magicListHide : this.magicList;
@@ -293,7 +304,7 @@ export class PlayerMagicInventory {
     // 清空修炼武功并触发回调
     if (this.xiuLianMagic !== null) {
       this.xiuLianMagic = null;
-      this.callbacks.onXiuLianMagicChange?.(null);
+      this.callbacks.onXiuLianMagicChange(null);
     }
     this.updateView();
   }
@@ -583,7 +594,7 @@ export class PlayerMagicInventory {
     }
     if (info === this.xiuLianMagic) {
       this.xiuLianMagic = null;
-      this.callbacks.onXiuLianMagicChange?.(null);
+      this.callbacks.onXiuLianMagicChange(null);
     }
     // 清除快捷栏中持有此武功的槽位（物理引用比较）
     for (let s = 0; s < this.bottomSlots.length; s++) {
@@ -628,7 +639,7 @@ export class PlayerMagicInventory {
       const temp = this.xiuLianMagic;
       this.xiuLianMagic = activeList[panelIdx];
       activeList[panelIdx] = temp;
-      this.callbacks.onXiuLianMagicChange?.(this.xiuLianMagic);
+      this.callbacks.onXiuLianMagicChange(this.xiuLianMagic);
       this.updateView();
       return;
     }
@@ -729,7 +740,7 @@ export class PlayerMagicInventory {
   setXiuLianMagic(info: MagicItemInfo | null): void {
     this.xiuLianMagic = info;
     // 触发回调以更新 SpecialAttackTexture
-    this.callbacks.onXiuLianMagicChange?.(info);
+    this.callbacks.onXiuLianMagicChange(info);
   }
 
   /**
@@ -785,7 +796,7 @@ export class PlayerMagicInventory {
   onMagicUsed(info: MagicItemInfo): void {
     if (info?.magic) {
       info.remainColdMilliseconds = info.magic.coldMilliSeconds;
-      this.callbacks.onMagicUse?.(info);
+      this.callbacks.onMagicUse(info);
     }
   }
 
@@ -853,7 +864,7 @@ export class PlayerMagicInventory {
     if (storeIndex === MAGIC_LIST_CONFIG.xiuLianIndex) {
       this.bottomSlots[slotIndex] = this.xiuLianMagic;
       this.xiuLianMagic = null;
-      this.callbacks.onXiuLianMagicChange?.(null);
+      this.callbacks.onXiuLianMagicChange(null);
       this.updateView();
       return true;
     }
@@ -909,7 +920,7 @@ export class PlayerMagicInventory {
     const item = this.bottomSlots[bottomSlot];
     this.bottomSlots[bottomSlot] = this.xiuLianMagic;
     this.xiuLianMagic = item;
-    this.callbacks.onXiuLianMagicChange?.(this.xiuLianMagic);
+    this.callbacks.onXiuLianMagicChange(this.xiuLianMagic);
     this.updateView();
   }
 
@@ -985,7 +996,7 @@ export class PlayerMagicInventory {
    */
   setXiuLianForLoad(item: MagicItemInfo | null): void {
     this.xiuLianMagic = item;
-    this.callbacks.onXiuLianMagicChange?.(item);
+    this.callbacks.onXiuLianMagicChange(item);
   }
 
   setNonReplaceMagicLevel(fileName: string, level: number): void {
@@ -1086,7 +1097,7 @@ export class PlayerMagicInventory {
         const levelMagic = getMagicAtLevel(newMagic, this.xiuLianMagic.level);
         this.xiuLianMagic.magic = levelMagic;
       }
-      this.callbacks.onXiuLianMagicChange?.(this.xiuLianMagic);
+      this.callbacks.onXiuLianMagicChange(this.xiuLianMagic);
     }
 
     this.updateView();

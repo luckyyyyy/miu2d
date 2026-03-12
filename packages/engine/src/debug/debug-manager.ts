@@ -56,11 +56,11 @@ export class DebugManager {
   // Player, NpcManager, ObjManager, GuiManager 现在通过 EngineContext 获取
   private scriptExecutor: ScriptExecutor | null = null;
   private luaExecutor: LuaExecutor | null = null;
-  private getVariables: (() => GameVariables) | null = null;
-  private setVariableCallback: ((name: string, value: number) => void) | null = null;
-  private getMapInfo: (() => { mapName: string; mapPath: string }) | null = null;
-  private getTriggeredTraps: (() => number[]) | null = null;
-  private config: DebugManagerConfig;
+  private getVariables: () => GameVariables | undefined = () => undefined;
+  private setVariableCallback: (name: string, value: number) => void = () => {};
+  private getMapInfo: () => { mapName: string; mapPath: string } | undefined = () => undefined;
+  private getTriggeredTraps: () => number[] = () => [];
+  private readonly onMessage: (message: string) => void;
 
   private get player(): Player {
     return this.engine.player;
@@ -88,7 +88,7 @@ export class DebugManager {
   }[] = [];
 
   constructor(config: DebugManagerConfig = {}) {
-    this.config = config;
+    this.onMessage = config.onMessage ?? (() => {});
   }
 
   /**
@@ -141,8 +141,8 @@ export class DebugManager {
     this.scriptExecutor = scriptExecutor;
     this.getVariables = getVariables;
     this.getMapInfo = getMapInfo;
-    this.getTriggeredTraps = getTriggeredTraps ?? null;
-    this.setVariableCallback = setVariable ?? null;
+    this.getTriggeredTraps = getTriggeredTraps ?? this.getTriggeredTraps;
+    this.setVariableCallback = setVariable ?? this.setVariableCallback;
   }
 
   /**
@@ -165,7 +165,7 @@ export class DebugManager {
   private showMessage(message: string): void {
     logger.log(`[DebugManager] ${message}`);
     this.guiManager.showMessage(message);
-    this.config.onMessage?.(message);
+    this.onMessage(message);
   }
 
   // ============= 状态查询 =============
@@ -195,14 +195,14 @@ export class DebugManager {
    * 获取游戏变量
    */
   getGameVariables(): GameVariables | undefined {
-    return this.getVariables?.();
+    return this.getVariables();
   }
 
   /**
    * 设置游戏变量
    */
   setGameVariable(name: string, value: number): void {
-    this.setVariableCallback?.(name, value);
+    this.setVariableCallback(name, value);
   }
 
   /**
@@ -216,7 +216,7 @@ export class DebugManager {
    * 获取加载资源信息
    */
   getLoadedResources(): LoadedResourcesInfo | null {
-    const mapInfo = this.getMapInfo?.();
+    const mapInfo = this.getMapInfo();
     if (!mapInfo) return null;
 
     return {
@@ -233,7 +233,7 @@ export class DebugManager {
    * 获取已触发的陷阱 ID 列表（全局）
    */
   getTriggeredTrapIds(): number[] {
-    return this.getTriggeredTraps?.() ?? [];
+    return this.getTriggeredTraps();
   }
 
   /**
@@ -612,7 +612,7 @@ export class DebugManager {
    * 显示变量消息
    */
   showVariablesMessage(): void {
-    const vars = this.getVariables?.();
+    const vars = this.getVariables();
     if (vars) {
       const count = Object.keys(vars).length;
       this.showMessage(`当前有 ${count} 个游戏变量`);

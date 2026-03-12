@@ -50,10 +50,10 @@ export class GoodsListManager {
   private equipSlots: (GoodsItemInfo | null)[] = new Array(EQUIP_SLOT_COUNT).fill(null);
 
   // Callbacks for equipment changes
-  private onEquiping: EquipingCallback | null = null;
-  private onUnEquiping: UnEquipingCallback | null = null;
-  private onUpdateView: (() => void) | null = null;
-  private onShowMessage: ((msg: string) => void) | null = null;
+  private onEquiping: EquipingCallback = () => {};
+  private onUnEquiping: UnEquipingCallback = () => {};
+  private onUpdateView: () => void = () => {};
+  private onShowMessage: (msg: string) => void = () => {};
 
   constructor() {
     this.renewList();
@@ -106,7 +106,7 @@ export class GoodsListManager {
     for (let i = 0; i < EQUIP_SLOT_COUNT; i++) {
       const info = this.equipSlots[i];
       if (info?.good) {
-        this.onEquiping?.(info.good, null, true);
+        this.onEquiping(info.good, null, true);
       }
     }
 
@@ -115,7 +115,7 @@ export class GoodsListManager {
       const info = this.goodsList[i];
       if (info && info.good.kind === GoodKind.Equipment && info.good.noNeedToEquip > 0) {
         for (let c = 0; c < info.count; c++) {
-          this.onEquiping?.(info.good, null, true);
+          this.onEquiping(info.good, null, true);
         }
       }
     }
@@ -206,7 +206,7 @@ export class GoodsListManager {
         if (info && info.good.fileName.toLowerCase() === good.fileName.toLowerCase()) {
           info.count += 1;
           this.checkAddNoEquipGood(good);
-          this.onUpdateView?.(); // Trigger UI update
+          this.onUpdateView(); // Trigger UI update
           return { success: true, index: i, good: info.good };
         }
       }
@@ -221,12 +221,12 @@ export class GoodsListManager {
           remainColdMilliseconds: 0,
         };
         this.checkAddNoEquipGood(good);
-        this.onUpdateView?.(); // Trigger UI update
+        this.onUpdateView(); // Trigger UI update
         return { success: true, index: i, good };
       }
     }
 
-    this.onShowMessage?.("物品栏已满");
+    this.onShowMessage("物品栏已满");
     return { success: false, index: -1, good: null };
   }
 
@@ -235,7 +235,7 @@ export class GoodsListManager {
    */
   private checkAddNoEquipGood(good: Good): void {
     if (good.kind === GoodKind.Equipment && good.noNeedToEquip > 0) {
-      this.onEquiping?.(good, null, false);
+      this.onEquiping(good, null, false);
     }
   }
 
@@ -254,10 +254,10 @@ export class GoodsListManager {
         }
 
         if (good.kind === GoodKind.Equipment && good.noNeedToEquip > 0) {
-          this.onUnEquiping?.(good);
+          this.onUnEquiping(good);
         }
 
-        this.onUpdateView?.();
+        this.onUpdateView();
         return;
       }
     }
@@ -294,7 +294,7 @@ export class GoodsListManager {
 
         if (good.kind === GoodKind.Equipment && good.noNeedToEquip > 0) {
           for (let c = 0; c < deleteCount; c++) {
-            this.onUnEquiping?.(good);
+            this.onUnEquiping(good);
           }
         }
 
@@ -302,7 +302,7 @@ export class GoodsListManager {
       }
     }
 
-    this.onUpdateView?.();
+    this.onUpdateView();
   }
 
   /**
@@ -350,11 +350,7 @@ export class GoodsListManager {
       const temp = this.getItemInfo(index1);
       this._setItemRaw(index1, this.getItemInfo(index2));
       this._setItemRaw(index2, temp);
-      logger.debug(
-        "[GoodsListManager] exchangeListItem: calling onUpdateView, callback exists:",
-        !!this.onUpdateView
-      );
-      this.onUpdateView?.();
+      this.onUpdateView();
     }
   }
 
@@ -382,8 +378,8 @@ export class GoodsListManager {
         this.goodsList[i] = info;
         this.equipSlots[slotIdx] = null;
 
-        this.onUnEquiping?.(info.good);
-        this.onUpdateView?.();
+        this.onUnEquiping(info.good);
+        this.onUpdateView();
 
         logger.log(
           `[GoodsListManager] Unequipped ${info.good.name} from ${EquipPosition[equipPosition]} to slot ${i}`
@@ -392,7 +388,7 @@ export class GoodsListManager {
       }
     }
 
-    this.onShowMessage?.("物品栏已满");
+    this.onShowMessage("物品栏已满");
     return -1;
   }
 
@@ -416,8 +412,8 @@ export class GoodsListManager {
     // Trigger equip callbacks
     const newEquip = this.equipSlots[slotIdx];
     const replacedEquip = this.goodsList[bagIndex];
-    this.onEquiping?.(newEquip?.good ?? null, replacedEquip?.good ?? null);
-    this.onUpdateView?.();
+    this.onEquiping(newEquip?.good ?? null, replacedEquip?.good ?? null);
+    this.onUpdateView();
 
     logger.log(
       `[GoodsListManager] After: bag[${bagIndex}] = ${this.goodsList[bagIndex]?.good?.name ?? "empty"}, equip[${EquipPosition[equipPosition]}] = ${this.equipSlots[slotIdx]?.good?.name ?? "empty"}`
@@ -451,8 +447,8 @@ export class GoodsListManager {
   playerUnEquiping(equipPosition: EquipPosition): { success: boolean; newIndex: number } {
     const result = this.moveEquipItemToList(equipPosition);
     if (result.success) {
-      this.onUnEquiping?.(this.get(result.newIndex));
-      this.onUpdateView?.();
+      this.onUnEquiping(this.get(result.newIndex));
+      this.onUpdateView();
     }
     return result;
   }
@@ -467,7 +463,7 @@ export class GoodsListManager {
     const tmp = this.equipSlots[idx1];
     this.equipSlots[idx1] = this.equipSlots[idx2];
     this.equipSlots[idx2] = tmp;
-    this.onUpdateView?.();
+    this.onUpdateView();
   }
 
   /**
@@ -486,7 +482,7 @@ export class GoodsListManager {
     if (idx >= 0) {
       this.equipSlots[idx] = item;
       if (item?.good) {
-        this.onEquiping?.(item.good, null, false);
+        this.onEquiping(item.good, null, false);
       }
     }
   }
@@ -517,14 +513,14 @@ export class GoodsListManager {
     // if (good.User != null && good.User.Length > 0) { if (!good.User.Contains(user.Name)) ... }
     if (good.user && good.user.length > 0 && playerName) {
       if (!good.user.includes(playerName)) {
-        this.onShowMessage?.(`使用者：${good.user.join("，")}`);
+        this.onShowMessage(`使用者：${good.user.join("，")}`);
         return false;
       }
     }
 
     // Check level requirement
     if (good.minUserLevel > 0 && playerLevel < good.minUserLevel) {
-      this.onShowMessage?.(`需要等级 ${good.minUserLevel}`);
+      this.onShowMessage(`需要等级 ${good.minUserLevel}`);
       return false;
     }
 
@@ -532,7 +528,7 @@ export class GoodsListManager {
       case GoodKind.Drug:
         // Check cooldown
         if (info.remainColdMilliseconds > 0) {
-          this.onShowMessage?.("该物品尚未冷却");
+          this.onShowMessage("该物品尚未冷却");
           return false;
         }
 
@@ -548,7 +544,7 @@ export class GoodsListManager {
           info.count -= 1;
         }
 
-        this.onUpdateView?.();
+        this.onUpdateView();
         return true; // Return true to indicate drug was used (caller handles effect)
 
       case GoodKind.Equipment:
@@ -575,7 +571,7 @@ export class GoodsListManager {
         break;
     }
 
-    this.onUpdateView?.();
+    this.onUpdateView();
     return false;
   }
 
@@ -620,7 +616,7 @@ export class GoodsListManager {
       if (info.count <= 0) {
         this.bottomItems[slotIndex] = null;
       }
-      this.onUpdateView?.();
+      this.onUpdateView();
       player.useDrug(good);
       if (good.followPartnerHasDrugEffect > 0) {
         forEachPartner((partner) => {
@@ -648,7 +644,7 @@ export class GoodsListManager {
 
     // Exchange with current equipped item
     this.exchangeListItemAndEquiping(goodListIndex, good.part);
-    this.onUpdateView?.();
+    this.onUpdateView();
 
     return true;
   }
@@ -759,7 +755,7 @@ export class GoodsListManager {
   setBottomItemAtSlot(slot: number, item: GoodsItemInfo | null): void {
     if (slot >= 0 && slot < BOTTOM_ITEMS_COUNT) {
       this.bottomItems[slot] = item;
-      this.onUpdateView?.();
+      this.onUpdateView();
     }
   }
 
@@ -782,7 +778,7 @@ export class GoodsListManager {
     if (!info) return;
     this.bottomItems[bottomSlot] = { ...info };
     this.goodsList[bagIndex] = null;
-    this.onUpdateView?.();
+    this.onUpdateView();
   }
 
   /**
@@ -798,7 +794,7 @@ export class GoodsListManager {
       this.addGoodToListWithCount(item.good.fileName, item.count);
     }
     this.bottomItems[bottomSlot] = null;
-    this.onUpdateView?.();
+    this.onUpdateView();
   }
 
   /**
@@ -813,6 +809,6 @@ export class GoodsListManager {
     const tmp = this.bottomItems[fromSlot];
     this.bottomItems[fromSlot] = this.bottomItems[toSlot];
     this.bottomItems[toSlot] = tmp;
-    this.onUpdateView?.();
+    this.onUpdateView();
   }
 }

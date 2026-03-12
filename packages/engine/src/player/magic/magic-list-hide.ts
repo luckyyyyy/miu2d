@@ -16,7 +16,7 @@ import { MAGIC_LIST_CONFIG, type MagicListCallbacks } from "./magic-list-config"
 export interface MagicListHideDeps {
   readonly magicList: (MagicItemInfo | null)[];
   readonly magicListHide: (MagicItemInfo | null)[];
-  readonly callbacks: MagicListCallbacks;
+  readonly callbacks: Required<MagicListCallbacks>;
   getCurrentMagicInUse(): MagicItemInfo | null;
   setCurrentMagicInUse(v: MagicItemInfo | null): void;
   getXiuLianMagic(): MagicItemInfo | null;
@@ -224,7 +224,7 @@ export function setMagicHide(
           }
           if (deps.getXiuLianMagic() === info) {
             deps.setXiuLianMagicDirect(null);
-            deps.callbacks.onXiuLianMagicChange?.(null);
+            deps.callbacks.onXiuLianMagicChange(null);
           }
 
           deps.updateView();

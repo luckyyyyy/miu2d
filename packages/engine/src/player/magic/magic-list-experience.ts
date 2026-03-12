@@ -13,7 +13,7 @@ import type { MagicExpConfig } from "./player-magic-inventory";
 /** MagicListExperience 所需的宿主上下文 */
 export interface MagicListExpDeps {
   readonly magicExpConfig: MagicExpConfig;
-  readonly callbacks: MagicListCallbacks;
+  readonly callbacks: Required<MagicListCallbacks>;
   setMagicExpInitialized(v: boolean): void;
   isMagicExpInitialized(): boolean;
   getIndexByFileName(fileName: string): number;
