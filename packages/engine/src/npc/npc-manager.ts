@@ -499,6 +499,11 @@ export class NpcManager {
    */
   setNpcPosition(name: string, tileX: number, tileY: number): boolean {
     return this.withNpc(name, (npc) => {
+      if (npc.isDeath || npc.isDeathInvoked) {
+        npc.isDeath = false;
+        npc.isDeathInvoked = false;
+      }
+      npc.standingImmediately();
       npc.setPosition(tileX, tileY);
     });
   }
@@ -900,6 +905,11 @@ export class NpcManager {
         `[NpcManager] SetNpcRelation: ${name} (id=${npc.id}) relation changed from ${relationNames[npc.relation] || npc.relation} to ${relationNames[relation] || relation}`
       );
       npc.setRelation(relation);
+      if (npc.isDeath || npc.isDeathInvoked) {
+        npc.isDeath = false;
+        npc.isDeathInvoked = false;
+      }
+      npc.standingImmediately();
     }
     return true;
   }
