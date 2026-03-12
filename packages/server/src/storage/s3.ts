@@ -81,6 +81,14 @@ function getS3PublicClient(): S3Client {
 }
 
 /**
+ * 将 S3 存储键转为公开访问 URL
+ * 格式: {s3PublicEndpoint}/{bucket}/{key}
+ */
+export function getPublicFileUrl(storageKey: string): string {
+  return `${s3PublicEndpoint}/${bucket}/${storageKey}`;
+}
+
+/**
  * 生成 S3 存储键
  */
 export function generateStorageKey(gameId: string, fileId: string): string {
