@@ -69,3 +69,35 @@ export function pixelToTile(pixelX: number, pixelY: number, out?: Vector2): Vect
   }
   return { x: nx, y: ny };
 }
+
+/**
+ * 收集武功精灵从 fromPixel 飞行到 toPixel 途中经过的所有瓦片（不含起始瓦片，含终止瓦片）。
+ *
+ * 用于 passPath 扫描碰撞检测：确保高速移动精灵不会跳过 NPC 所在瓦片。
+ * 采样步长 = TILE_HEIGHT / 2 = 16px，保证对最窄的等角瓦片边界也能探测到。
+ */
+export function collectSweepTiles(fromPixel: Vector2, toPixel: Vector2): Vector2[] {
+  const dx = toPixel.x - fromPixel.x;
+  const dy = toPixel.y - fromPixel.y;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+  if (dist < 1) return [];
+
+  const STEP_PX = 16; // TILE_HEIGHT / 2，确保不跳过任何瓦片边界
+  const steps = Math.ceil(dist / STEP_PX);
+
+  const fromTile = pixelToTile(fromPixel.x, fromPixel.y);
+  const seen = new Set<string>();
+  seen.add(`${fromTile.x},${fromTile.y}`); // 排除起始瓦片（上一帧已检测）
+
+  const result: Vector2[] = [];
+  for (let i = 1; i <= steps; i++) {
+    const t = i / steps;
+    const tile = pixelToTile(fromPixel.x + dx * t, fromPixel.y + dy * t);
+    const key = `${tile.x},${tile.y}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      result.push(tile);
+    }
+  }
+  return result;
+}

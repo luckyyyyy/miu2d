@@ -80,6 +80,12 @@ export interface SpriteAdder {
  */
 export interface CollisionHandler {
   checkCollision(sprite: MagicSprite): boolean;
+  /**
+   * 以指定瓦片坐标执行碰撞检测（用于 passPath 扫描）。
+   * 跳过 isInDestroy / stickedCharacter / parasitiferCharacter 等已在 checkCollision 处理的前置检查，
+   * 直接判断目标瓦片上是否有可命中的角色。
+   */
+  checkCollisionAtTile(sprite: MagicSprite, tileX: number, tileY: number): boolean;
   checkMapObstacle(sprite: MagicSprite): boolean;
   characterHited(sprite: MagicSprite, character: Character | null): boolean;
 }

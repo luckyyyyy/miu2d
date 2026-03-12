@@ -9,11 +9,11 @@ import type { AudioManager } from "../../audio";
 import type { Character } from "../../character/character";
 import { getEngineContext } from "../../core/engine-context";
 import { logger } from "../../core/logger";
-import type { Vector2 } from "../../core/types";
+import { TILE_WIDTH, type Vector2 } from "../../core/types";
 import type { GuiManager } from "../../gui/gui-manager";
 import type { Player } from "../../player/player";
 import type { ScreenEffects } from "../../renderer/screen-effects";
-import { pixelToTile, tileToPixel } from "../../utils";
+import { collectSweepTiles, pixelToTile, tileToPixel } from "../../utils";
 import { vectorLength } from "../../utils/math";
 import {
   type ApplyContext,
@@ -306,8 +306,10 @@ export class SpriteUpdater {
     }
 
     // 移动
+    let prevPositionForSweep: Vector2 | null = null;
     if (sprite.velocity > 0) {
       const moveDistance = sprite.velocity * (deltaMs / 1000);
+      prevPositionForSweep = { ...sprite.positionInWorld };
       sprite.positionInWorld = {
         x: sprite.positionInWorld.x + sprite.direction.x * moveDistance,
         y: sprite.positionInWorld.y + sprite.direction.y * moveDistance,
@@ -342,9 +344,37 @@ export class SpriteUpdater {
       case 23:
         checkHit = false;
         break;
-      default:
+      default: {
+        // passPath 扫描：3 条平行路径（中心 + 左侧 + 右侧），避免 AoE 武功因方向离散间隙无法命中 NPC。
+        if (prevPositionForSweep) {
+          // 中心路径
+          const sweptTiles = collectSweepTiles(prevPositionForSweep, sprite.positionInWorld);
+          for (const tile of sweptTiles) {
+            if (this.collision.checkCollisionAtTile(sprite, tile.x, tile.y)) return;
+          }
+          // 侧线路径：按照飞行方向的垂直偏移创建左右两条平行路径
+          // tempX = max(round(dir.x * width * TILE_WIDTH/2) - 1, 1)
+          // tempY = max(round(dir.y * width * TILE_WIDTH/2) - 1, 1)
+          // 偏移向量: path1=(+tempY,-tempX)  path2=(-tempY,+tempX)
+          const dir = sprite.direction;
+          if (sprite.magic.passWidth > 0 && (dir.x !== 0 || dir.y !== 0)) {
+            const lateralScale = sprite.magic.passWidth * TILE_WIDTH / 2;
+            const tempX = Math.max(Math.round(dir.x * lateralScale) - 1, 1);
+            const tempY = Math.max(Math.round(dir.y * lateralScale) - 1, 1);
+            const sideOffsets: [number, number][] = [[tempY, -tempX], [-tempY, tempX]];
+            for (const [ox, oy] of sideOffsets) {
+              const sideFrom = { x: prevPositionForSweep.x + ox, y: prevPositionForSweep.y + oy };
+              const sideTo = { x: sprite.positionInWorld.x + ox, y: sprite.positionInWorld.y + oy };
+              const sideTiles = collectSweepTiles(sideFrom, sideTo);
+              for (const tile of sideTiles) {
+                if (this.collision.checkCollisionAtTile(sprite, tile.x, tile.y)) return;
+              }
+            }
+          }
+        }
         if (this.collision.checkCollision(sprite)) return;
         break;
+      }
     }
 
     if (checkHit && this.collision.checkMapObstacle(sprite)) return;

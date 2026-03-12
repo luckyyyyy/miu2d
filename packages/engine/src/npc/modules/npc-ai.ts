@@ -420,6 +420,8 @@ export class NpcAI {
   private checkKeepAttack(): boolean {
     const npc = this._npc;
 
+    if (this.npcManager.isGlobalAIDisabled || npc.isAIDisabled) return false;
+
     if (npc.keepAttackX > 0 || npc.keepAttackY > 0) {
       if (
         npc.state === CharacterState.Stand ||
@@ -438,6 +440,8 @@ export class NpcAI {
    */
   private checkUseMagicWhenLifeLow(): void {
     const npc = this._npc;
+
+    if (this.npcManager.isGlobalAIDisabled || npc.isAIDisabled) return;
 
     if (
       npc.magicToUseWhenLifeLow &&
@@ -481,7 +485,7 @@ export class NpcAI {
       }
     } else {
       // 随机移动随机攻击行为
-      if (npc.isRandMoveRandAttack && npc.isStanding()) {
+      if (npc.isRandMoveRandAttack && npc.isStanding() && !this.npcManager.isGlobalAIDisabled && !npc.isAIDisabled) {
         const poses = npc.getRandTilePathForAI(2, false, 10);
         if (poses.length >= 2) {
           npc.walkTo(poses[1]);

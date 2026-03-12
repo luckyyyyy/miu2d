@@ -270,6 +270,10 @@ export interface MagicData {
   flyIni?: string; // 飞行ini
   flyIni2?: string; // 飞行ini2
 
+  // passPath 横向扩展宽度，用于 getPassPath 生成左右两条平行侧线，避免 AoE 武功因方向离散间隙无法命中 NPC。
+  // 不来自 INI 文件，始终使用引擎默认值。
+  passWidth: number;
+
   // 物品
   goodsName?: string; // 物品名称
 

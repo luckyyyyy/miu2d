@@ -218,6 +218,8 @@ export function createDefaultMagicData(): MagicData {
     defend2: 0,
     attack3: 0,
     defend3: 0,
+
+    passWidth: 0.5,
   };
 }
 

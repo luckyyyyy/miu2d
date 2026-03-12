@@ -170,22 +170,52 @@ export class MagicCollisionHandler implements CollisionHandler {
       return false;
     }
 
-    const tileX = sprite.tilePosition.x;
-    const tileY = sprite.tilePosition.y;
+    const result = this.findAndHitTargetAt(
+      sprite,
+      belongCharacter,
+      sprite.tilePosition.x,
+      sprite.tilePosition.y
+    );
 
+    if (!result && !this.checkMagicDiscard(sprite)) {
+      this.checkMagicExchangeUser(sprite);
+    }
+
+    return result;
+  }
+
+  /**
+   * passPath 扫描碰撞：以指定瓦片坐标检测碰撞。
+   * 仅执行目标查找 + 命中，不执行 discard/exchangeUser 等收尾逻辑
+   * （收尾由 checkCollision 在当前帧末尾处理）。
+   */
+  checkCollisionAtTile(sprite: MagicSprite, tileX: number, tileY: number): boolean {
+    if (sprite.isInDestroy) return false;
+    if (sprite.parasitiferCharacterId !== null) return false;
+    if ((sprite.magic.carryUser ?? 0) === 3) return false;
+
+    const belongCharacter = this.charHelper.getBelongCharacter(sprite.belongCharacterId);
+    if (!belongCharacter) return false;
+
+    return this.findAndHitTargetAt(sprite, belongCharacter, tileX, tileY);
+  }
+
+  /**
+   * 在指定瓦片查找合适目标并执行命中。
+   * 被 checkCollision 和 checkCollisionAtTile 共用。
+   */
+  private findAndHitTargetAt(
+    sprite: MagicSprite,
+    belongCharacter: Character,
+    tileX: number,
+    tileY: number
+  ): boolean {
     let target: Character | null = null;
-    let characterHited = false;
 
     if (sprite.magic.attackAll > 0) {
       target = this.canCollide(sprite, this.npcManager.getFighter(tileX, tileY));
-      characterHited = this.characterHited(sprite, target);
     } else if (belongCharacter.isPlayer || belongCharacter.isFighterFriend) {
       target = this.canCollide(sprite, this.npcManager.getEnemy(tileX, tileY, true));
-      if (!target && sprite.elapsedMilliseconds < 100) {
-        // const enemies = this.npcManager.getEnemyPositions();
-        // const spritePw = sprite.positionInWorld;
-      }
-      characterHited = this.characterHited(sprite, target);
     } else if (belongCharacter.isEnemy) {
       target = this.canCollide(
         sprite,
@@ -197,17 +227,11 @@ export class MagicCollisionHandler implements CollisionHandler {
           this.npcManager.getOtherGroupEnemy(belongCharacter.group, tileX, tileY)
         );
       }
-      characterHited = this.characterHited(sprite, target);
     } else if (belongCharacter.isNoneFighter) {
       target = this.canCollide(sprite, this.npcManager.getNonneutralFighter(tileX, tileY));
-      characterHited = this.characterHited(sprite, target);
     }
 
-    if (!characterHited && !this.checkMagicDiscard(sprite)) {
-      this.checkMagicExchangeUser(sprite);
-    }
-
-    return characterHited;
+    return this.characterHited(sprite, target);
   }
 
   /**

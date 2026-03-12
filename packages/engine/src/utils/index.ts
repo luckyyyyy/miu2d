@@ -11,7 +11,7 @@
  * - iniParser: INI file parsing (INI解析)
  */
 // Coordinate conversion
-export { pixelToTile, tileToPixel } from "./coordinate";
+export { collectSweepTiles, pixelToTile, tileToPixel } from "./coordinate";
 // Direction calculation
 export {
   getDirection,

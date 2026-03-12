@@ -647,7 +647,7 @@ export class GameManager {
   /** Load game save (index 0 = initial save for NewGame, 1-7 = user slots) */
   async loadGameSave(index: number): Promise<void> {
     if (index !== 0) this.debugManager.clearScriptHistory();
-    await this.loader.loadGame(index);
+    await this.loader.loadInitialGame(index);
   }
 
   setLoadProgressCallback(callback: ((progress: number, text: string) => void) | undefined): void {

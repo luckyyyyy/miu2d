@@ -5,7 +5,7 @@
  *
  * Loader 负责「游戏初始化和存档」：
  * 1. newGame() - 开始新游戏，运行 NewGame.txt 脚本
- * 2. loadGame(index) - 读取存档（从文件或 JSON），加载地图/NPC/物品/武功/玩家等
+ * 2. loadInitialGame(index) - 加载初始存档（由 NewGame.txt 脚本的 LoadGame(0) 触发）
  * 3. loadGameFromJSON(data) - 从 JSON 数据加载存档
  * 4. collectSaveData() - 收集当前游戏状态用于云端保存
  *
@@ -220,6 +220,56 @@ export class Loader {
     logger.log("[Loader] New game started");
   }
 
+  // ============= 私有共享工具 =============
+
+  /**
+   * 从 API 数据中查找指定 key 的玩家数据
+   */
+  private findApiPlayer(playerKey: string): PlayerType | null {
+    const players = getPlayersData();
+    if (!players) return null;
+    return players.find((p) => p.key === playerKey) ?? null;
+  }
+
+  /**
+   * 地图加载阶段（Phase 2）：加载地图并映射进度 2% → 65%
+   * 两个加载路径共享相同的进度逻辑
+   */
+  private async loadMapPhase(
+    mapPath: string,
+    timings: Array<[string, number]>,
+  ): Promise<void> {
+    this.reportProgress(2, "加载地图...");
+    this.deps.setMapProgressCallback((mapProgress, _text) => {
+      this.reportProgress(Math.round(2 + mapProgress * 63), "加载地图资源...");
+    });
+    const tMap = performance.now();
+    await this.deps.loadMap(mapPath);
+    this.deps.setMapProgressCallback(null);
+    timings.push(["Map", performance.now() - tMap]);
+  }
+
+  /**
+   * 收尾阶段（Phase 5 通用部分）：应用装备效果、武功效果、重算基础属性
+   * 两个加载路径共享，不含存档专用的 options/timer/parallelScripts 恢复
+   */
+  private finalizeLoad(
+    timings: Array<[string, number]>,
+    effectsStart: number,
+    afterEffects?: () => void,
+  ): void {
+    const goodsListManager = this.deps.player.getGoodsListManager();
+    goodsListManager.applyEquipSpecialEffectFromList();
+    this.deps.player.loadMagicEffect();
+    // 从等级配置重新计算基础属性，修正存档中因历史 bug 累积的错误值
+    this.deps.player.recalculateBaseStats();
+    const timingLabel = afterEffects !== undefined ? "Effects+Options" : "Effects";
+    afterEffects?.();
+    timings.push([timingLabel, performance.now() - effectsStart]);
+  }
+
+  // ============= 公开加载方法 =============
+
   /**
    * 加载初始存档（由 NewGame.txt 脚本调用 LoadGame(0)）
    *
@@ -230,23 +280,19 @@ export class Loader {
    *
    * 进度范围 0-100%（由 game-engine 映射到全局进度）
    */
-  async loadGame(index: number): Promise<void> {
+  async loadInitialGame(index: number): Promise<void> {
     // index 0 = 初始存档（由 NewGame.txt 脚本调用 LoadGame(0)）
     // 用户存档通过 loadGameFromJSON（云存档）加载，不再走此路径
 
-    const { player, npcManager, objManager, audioManager, memoListManager, loadMap } = this.deps;
-
-    // 从 Player 获取 GoodsListManager 和 PlayerMagicInventory
+    const { player, npcManager, objManager, audioManager, memoListManager } = this.deps;
     const goodsListManager = player.getGoodsListManager();
     const magicInventory = player.getPlayerMagicInventory();
 
     const loadStart = performance.now();
     const timings: Array<[string, number]> = [];
-    const time = (label: string, start: number) => {
-      timings.push([label, performance.now() - start]);
-    };
+    const time = (label: string, start: number) => timings.push([label, performance.now() - start]);
 
-    logger.log(`[Loader] ────── loadGame(${index}) ──────`);
+    logger.log(`[Loader] ────── loadInitialGame(${index}) ──────`);
 
     try {
       this.deps.map.resetTrapState();
@@ -275,16 +321,8 @@ export class Loader {
       time("Config", tConfig);
 
       // ── Phase 2: 加载地图 (2% → 65%) ──
-      // 地图有真实 MPC 子进度，给最大范围
       if (initialMap) {
-        this.reportProgress(2, "加载地图...");
-        this.deps.setMapProgressCallback((mapProgress, _text) => {
-          this.reportProgress(Math.round(2 + mapProgress * 63), "加载地图资源...");
-        });
-        const tMap = performance.now();
-        await loadMap(initialMap);
-        this.deps.setMapProgressCallback(null);
-        time("Map", tMap);
+        await this.loadMapPhase(initialMap, timings);
       }
 
       // 背景音乐（非阻塞）
@@ -373,15 +411,10 @@ export class Loader {
       // ── Phase 5: 收尾 ──
       this.reportProgress(90, "应用装备效果...");
       const tEffects = performance.now();
-      goodsListManager.applyEquipSpecialEffectFromList();
-      player.loadMagicEffect();
-      // 从等级配置重新计算基础属性，修正存档中因历史 bug 累积的错误值
-      player.recalculateBaseStats();
-      time("Effects", tEffects);
+      this.finalizeLoad(timings, tEffects);
 
       this.reportProgress(95, "初始化视角...");
       this.deps.centerCameraOnPlayer();
-
       this.deps.onLoadComplete?.();
       this.reportProgress(100, "加载完成");
 
@@ -398,15 +431,6 @@ export class Loader {
     } catch (error) {
       logger.error(`[Loader] Error loading game save:`, error);
     }
-  }
-
-  /**
-   * 从 API 数据中查找指定 key 的玩家数据
-   */
-  private findApiPlayer(playerKey: string): PlayerType | null {
-    const players = getPlayersData();
-    if (!players) return null;
-    return players.find((p) => p.key === playerKey) ?? null;
   }
 
   // ============= JSON 存档系统 =============
@@ -439,9 +463,7 @@ export class Loader {
   async loadGameFromJSON(data: SaveData): Promise<void> {
     const loadStart = performance.now();
     const timings: Array<[string, number]> = [];
-    const time = (label: string, start: number) => {
-      timings.push([label, performance.now() - start]);
-    };
+    const time = (label: string, start: number) => timings.push([label, performance.now() - start]);
 
     logger.log(`[Loader] ────── loadGameFromJSON ──────`);
 
@@ -453,13 +475,11 @@ export class Loader {
       screenEffects,
       memoListManager,
       guiManager,
-      loadMap,
       clearScriptCache,
       setVariables,
       getScriptExecutor,
     } = this.deps;
 
-    // 从 Player 获取 GoodsListManager 和 PlayerMagicInventory
     const goodsListManager = player.getGoodsListManager();
     const magicInventory = player.getPlayerMagicInventory();
 
@@ -485,17 +505,9 @@ export class Loader {
       time("Reset", tReset);
 
       // ── Phase 2: 加载地图 (2% → 65%) ──
-      // 地图有真实 MPC 子进度，给最大范围
       const state = data.state;
       if (state.map) {
-        this.reportProgress(2, "加载地图...");
-        this.deps.setMapProgressCallback((mapProgress, _text) => {
-          this.reportProgress(Math.round(2 + mapProgress * 63), "加载地图资源...");
-        });
-        const tMap = performance.now();
-        await loadMap(state.map);
-        this.deps.setMapProgressCallback(null);
-        time("Map", tMap);
+        await this.loadMapPhase(state.map, timings);
       }
 
       // 设置 NPC / Obj 的 fileName
@@ -625,93 +637,87 @@ export class Loader {
       if (data.groups?.npc) npcManager.setNpcGroups(data.groups.npc);
       if (data.groups?.obj) objManager.setObjGroups(data.groups.obj);
 
-      // 应用装备特效 + 武功效果
-      goodsListManager.applyEquipSpecialEffectFromList();
-      player.loadMagicEffect();
-      // 从等级配置重新计算基础属性，修正存档中因历史 bug 累积的错误值
-      player.recalculateBaseStats();
+      this.finalizeLoad(timings, tEffects, () => {
+        // 恢复选项设置
+        if (data.option) {
+          if (this.deps.setMapTime && data.option.mapTime !== undefined) {
+            this.deps.setMapTime(data.option.mapTime);
+          }
+          if (this.deps.setSaveEnabled) {
+            this.deps.setSaveEnabled(!data.option.saveDisabled);
+          }
+          if (this.deps.setDropEnabled) {
+            this.deps.setDropEnabled(!data.option.isDropGoodWhenDefeatEnemyDisabled);
+          }
+          if (this.deps.setWeatherState) {
+            this.deps.setWeatherState({
+              snowShow: data.option.snowShow,
+              rainFile: data.option.rainFile,
+            });
+          }
+          const hexToRgb = (hex: string) => {
+            const r = parseInt(hex.substring(0, 2), 16);
+            const g = parseInt(hex.substring(2, 4), 16);
+            const b = parseInt(hex.substring(4, 6), 16);
+            return {
+              r: Number.isNaN(r) ? 255 : r,
+              g: Number.isNaN(g) ? 255 : g,
+              b: Number.isNaN(b) ? 255 : b,
+            };
+          };
+          if (data.option.mpcStyle && data.option.mpcStyle !== "FFFFFF") {
+            const c = hexToRgb(data.option.mpcStyle);
+            screenEffects.setMapColor(c.r, c.g, c.b);
+          } else {
+            screenEffects.setMapColor(255, 255, 255);
+          }
+          if (data.option.asfStyle && data.option.asfStyle !== "FFFFFF") {
+            const c = hexToRgb(data.option.asfStyle);
+            screenEffects.setSpriteColor(c.r, c.g, c.b);
+          } else {
+            screenEffects.setSpriteColor(255, 255, 255);
+          }
 
-      // 恢复选项设置
-      if (data.option) {
-        if (this.deps.setMapTime && data.option.mapTime !== undefined) {
-          this.deps.setMapTime(data.option.mapTime);
+          // 恢复亮度设置
+          if (data.option.mainLum !== undefined) {
+            screenEffects.setMainLum(data.option.mainLum);
+          }
+          if (data.option.fadeLum !== undefined) {
+            screenEffects.setFadeLum(data.option.fadeLum);
+          }
         }
-        if (this.deps.setSaveEnabled) {
-          this.deps.setSaveEnabled(!data.option.saveDisabled);
-        }
-        if (this.deps.setDropEnabled) {
-          this.deps.setDropEnabled(!data.option.isDropGoodWhenDefeatEnemyDisabled);
-        }
-        if (this.deps.setWeatherState) {
-          this.deps.setWeatherState({
-            snowShow: data.option.snowShow,
-            rainFile: data.option.rainFile,
+
+        // 恢复计时器状态
+        if (data.timer?.isOn && this.deps.setTimerState) {
+          this.deps.setTimerState({
+            isOn: data.timer.isOn,
+            totalSecond: data.timer.totalSecond,
+            isHidden: !data.timer.isTimerWindowShow,
+            isScriptSet: data.timer.isScriptSet,
+            timerScript: data.timer.timerScript,
+            triggerTime: data.timer.triggerTime,
           });
         }
-        const hexToRgb = (hex: string) => {
-          const r = parseInt(hex.substring(0, 2), 16);
-          const g = parseInt(hex.substring(2, 4), 16);
-          const b = parseInt(hex.substring(4, 6), 16);
-          return {
-            r: Number.isNaN(r) ? 255 : r,
-            g: Number.isNaN(g) ? 255 : g,
-            b: Number.isNaN(b) ? 255 : b,
-          };
-        };
-        if (data.option.mpcStyle && data.option.mpcStyle !== "FFFFFF") {
-          const c = hexToRgb(data.option.mpcStyle);
-          screenEffects.setMapColor(c.r, c.g, c.b);
-        } else {
-          screenEffects.setMapColor(255, 255, 255);
-        }
-        if (data.option.asfStyle && data.option.asfStyle !== "FFFFFF") {
-          const c = hexToRgb(data.option.asfStyle);
-          screenEffects.setSpriteColor(c.r, c.g, c.b);
-        } else {
-          screenEffects.setSpriteColor(255, 255, 255);
+
+        // 恢复脚本显示地图坐标开关
+        if (data.state?.scriptShowMapPos !== undefined && this.deps.setScriptShowMapPos) {
+          this.deps.setScriptShowMapPos(data.state.scriptShowMapPos);
         }
 
-        // 恢复亮度设置
-        if (data.option.mainLum !== undefined) {
-          screenEffects.setMainLum(data.option.mainLum);
+        // 恢复水波效果开关
+        if (data.option?.water !== undefined && this.deps.setWaterEffectEnabled) {
+          this.deps.setWaterEffectEnabled(data.option.water);
         }
-        if (data.option.fadeLum !== undefined) {
-          screenEffects.setFadeLum(data.option.fadeLum);
+
+        // 恢复并行脚本
+        if (
+          data.parallelScripts &&
+          data.parallelScripts.length > 0 &&
+          this.deps.loadParallelScripts
+        ) {
+          this.deps.loadParallelScripts(data.parallelScripts);
         }
-      }
-
-      // 恢复计时器状态
-      if (data.timer?.isOn && this.deps.setTimerState) {
-        this.deps.setTimerState({
-          isOn: data.timer.isOn,
-          totalSecond: data.timer.totalSecond,
-          isHidden: !data.timer.isTimerWindowShow,
-          isScriptSet: data.timer.isScriptSet,
-          timerScript: data.timer.timerScript,
-          triggerTime: data.timer.triggerTime,
-        });
-      }
-
-      // 恢复脚本显示地图坐标开关
-      if (data.state?.scriptShowMapPos !== undefined && this.deps.setScriptShowMapPos) {
-        this.deps.setScriptShowMapPos(data.state.scriptShowMapPos);
-      }
-
-      // 恢复水波效果开关
-      if (data.option?.water !== undefined && this.deps.setWaterEffectEnabled) {
-        this.deps.setWaterEffectEnabled(data.option.water);
-      }
-
-      // 恢复并行脚本
-      if (
-        data.parallelScripts &&
-        data.parallelScripts.length > 0 &&
-        this.deps.loadParallelScripts
-      ) {
-        this.deps.loadParallelScripts(data.parallelScripts);
-      }
-
-      time("Effects+Options", tEffects);
+      });
 
       // ── Phase 6: 完成 ──
       this.reportProgress(95, "初始化视角...");

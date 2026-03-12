@@ -233,6 +233,11 @@ export function createNpcAPI(ctx: ScriptCommandContext, resolver: BlockingResolv
       switch (action) {
         case CharacterState.Stand:
         case CharacterState.Stand1:
+          // C++ beginStand() has no death guard — allow reviving dead NPCs for cutscenes
+          if (character.isDeath || character.isDeathInvoked) {
+            character.isDeath = false;
+            character.isDeathInvoked = false;
+          }
           character.standingImmediately();
           break;
         case CharacterState.Walk:
