@@ -112,8 +112,8 @@ export const BottomStateGui: React.FC = () => {
     };
   }, [screenWidth, panelImage.width, panelImage.height, config]);
 
-  // 如果面板图片还在加载，不渲染任何内容
-  if (panelImage.isLoading) {
+  // 如果配置缺失或面板图片还在加载，不渲染任何内容
+  if (!config || panelImage.isLoading) {
     return null;
   }
 

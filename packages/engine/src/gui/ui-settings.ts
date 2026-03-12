@@ -326,23 +326,23 @@ export interface ThemeTooltip1 {
  */
 export interface UiTheme {
   title?: ThemeTitle;
-  saveLoad: ThemeSaveLoad;
-  system: ThemeSystem;
-  state: ThemeState;
-  equip: ThemeEquip;
-  npcEquip: ThemeEquip;
-  xiuLian: ThemeXiuLian;
-  goods: ThemeGoods;
-  magics: ThemeMagics;
-  memo: ThemeMemo;
-  dialog: ThemeDialog;
-  message: ThemeMessage;
-  npcInfoShow: ThemeNpcInfoShow;
-  littleMap: ThemeLittleMap;
-  buySell: ThemeBuySell;
-  bottom: ThemeBottom;
-  bottomState: ThemeBottomState;
-  top: ThemeTop;
+  saveLoad?: ThemeSaveLoad;
+  system?: ThemeSystem;
+  state?: ThemeState;
+  equip?: ThemeEquip;
+  npcEquip?: ThemeEquip;
+  xiuLian?: ThemeXiuLian;
+  goods?: ThemeGoods;
+  magics?: ThemeMagics;
+  memo?: ThemeMemo;
+  dialog?: ThemeDialog;
+  message?: ThemeMessage;
+  npcInfoShow?: ThemeNpcInfoShow;
+  littleMap?: ThemeLittleMap;
+  buySell?: ThemeBuySell;
+  bottom?: ThemeBottom;
+  bottomState?: ThemeBottomState;
+  top?: ThemeTop;
   tooltipMode: 1 | 2;
   tooltip1: ThemeTooltip1;
   tooltip2: ThemeTooltip2;
@@ -621,23 +621,23 @@ export interface TitleGuiConfig {
 /** 所有展开后的 UI 配置 */
 export interface ResolvedUiConfigs {
   title: TitleGuiConfig | null;
-  saveLoad: SaveLoadGuiConfig;
-  system: SystemGuiConfig;
-  state: StateGuiConfig;
-  equip: EquipGuiConfig;
-  npcEquip: NpcEquipGuiConfig;
-  xiuLian: XiuLianGuiConfig;
-  goods: GoodsGuiConfig;
-  magics: MagicsGuiConfig;
-  memo: MemoGuiConfig;
-  dialog: DialogGuiConfig;
-  message: MessageGuiConfig;
-  npcInfoShow: NpcInfoShowConfig;
-  littleMap: LittleMapGuiConfig;
-  buySell: BuySellGuiConfig;
-  bottom: BottomGuiConfig;
-  bottomState: BottomStateGuiConfig;
-  top: TopGuiConfig;
+  saveLoad: SaveLoadGuiConfig | null;
+  system: SystemGuiConfig | null;
+  state: StateGuiConfig | null;
+  equip: EquipGuiConfig | null;
+  npcEquip: NpcEquipGuiConfig | null;
+  xiuLian: XiuLianGuiConfig | null;
+  goods: GoodsGuiConfig | null;
+  magics: MagicsGuiConfig | null;
+  memo: MemoGuiConfig | null;
+  dialog: DialogGuiConfig | null;
+  message: MessageGuiConfig | null;
+  npcInfoShow: NpcInfoShowConfig | null;
+  littleMap: LittleMapGuiConfig | null;
+  buySell: BuySellGuiConfig | null;
+  bottom: BottomGuiConfig | null;
+  bottomState: BottomStateGuiConfig | null;
+  top: TopGuiConfig | null;
   toolTipUseType: ToolTipUseTypeConfig;
   toolTipType1: ToolTipType1Config;
   toolTipType2: ToolTipType2Config;
@@ -821,171 +821,203 @@ export function resolveTheme(theme: UiTheme): ResolvedUiConfigs {
     : null;
 
   // --- system ---
-  const system: SystemGuiConfig = {
-    panel: resolvePanel(theme.system.panel),
-    saveLoadBtn: resolveButton(theme.system.saveLoadBtn),
-    optionBtn: resolveButton(theme.system.optionBtn),
-    exitBtn: resolveButton(theme.system.exitBtn),
-    returnBtn: resolveButton(theme.system.returnBtn),
-  };
+  const system: SystemGuiConfig | null = theme.system
+    ? {
+        panel: resolvePanel(theme.system.panel),
+        saveLoadBtn: resolveButton(theme.system.saveLoadBtn),
+        optionBtn: resolveButton(theme.system.optionBtn),
+        exitBtn: resolveButton(theme.system.exitBtn),
+        returnBtn: resolveButton(theme.system.returnBtn),
+      }
+    : null;
 
   // --- state ---
-  const stateDefaultColor = theme.state.color ?? "rgba(0,0,0,0.7)";
-  const state: StateGuiConfig = {
-    panel: resolvePanel(theme.state.panel),
-    level: resolveText(theme.state.level, stateDefaultColor),
-    exp: resolveText(theme.state.exp, stateDefaultColor),
-    levelUp: resolveText(theme.state.levelUp, stateDefaultColor),
-    life: resolveText(theme.state.life, stateDefaultColor),
-    thew: resolveText(theme.state.thew, stateDefaultColor),
-    mana: resolveText(theme.state.mana, stateDefaultColor),
-    attack: resolveText(theme.state.attack, stateDefaultColor),
-    defend: resolveText(theme.state.defend, stateDefaultColor),
-    evade: resolveText(theme.state.evade, stateDefaultColor),
-  };
+  const stateDefaultColor = theme.state?.color ?? "rgba(0,0,0,0.7)";
+  const state: StateGuiConfig | null = theme.state
+    ? {
+        panel: resolvePanel(theme.state.panel),
+        level: resolveText(theme.state.level, stateDefaultColor),
+        exp: resolveText(theme.state.exp, stateDefaultColor),
+        levelUp: resolveText(theme.state.levelUp, stateDefaultColor),
+        life: resolveText(theme.state.life, stateDefaultColor),
+        thew: resolveText(theme.state.thew, stateDefaultColor),
+        mana: resolveText(theme.state.mana, stateDefaultColor),
+        attack: resolveText(theme.state.attack, stateDefaultColor),
+        defend: resolveText(theme.state.defend, stateDefaultColor),
+        evade: resolveText(theme.state.evade, stateDefaultColor),
+      }
+    : null;
 
   // --- goods ---
-  const goods: GoodsGuiConfig = {
-    panel: resolvePanel(theme.goods.panel),
-    scrollBar: resolveScrollBar(theme.goods.scrollBar),
-    items: resolveGrid(theme.goods.grid),
-    cols: theme.goods.grid.cols,
-    rows: theme.goods.grid.rows,
-    money: resolveText(theme.goods.money, "rgba(255,255,255,0.8)"),
-    ...(theme.goods.goldIcon
-      ? {
-          goldIcon: {
-            left: theme.goods.goldIcon.pos[0],
-            top: theme.goods.goldIcon.pos[1],
-            width: theme.goods.goldIcon.size[0],
-            height: theme.goods.goldIcon.size[1],
-            image: theme.goods.goldIcon.image,
-          },
-        }
-      : {}),
-  };
+  const goods: GoodsGuiConfig | null = theme.goods
+    ? {
+        panel: resolvePanel(theme.goods.panel),
+        scrollBar: resolveScrollBar(theme.goods.scrollBar),
+        items: resolveGrid(theme.goods.grid),
+        cols: theme.goods.grid.cols,
+        rows: theme.goods.grid.rows,
+        money: resolveText(theme.goods.money, "rgba(255,255,255,0.8)"),
+        ...(theme.goods.goldIcon
+          ? {
+              goldIcon: {
+                left: theme.goods.goldIcon.pos[0],
+                top: theme.goods.goldIcon.pos[1],
+                width: theme.goods.goldIcon.size[0],
+                height: theme.goods.goldIcon.size[1],
+                image: theme.goods.goldIcon.image,
+              },
+            }
+          : {}),
+      }
+    : null;
 
   // --- magics ---
-  const magics: MagicsGuiConfig = {
-    panel: resolvePanel(theme.magics.panel),
-    scrollBar: resolveScrollBar(theme.magics.scrollBar),
-    items: resolveGrid(theme.magics.grid),
-    cols: theme.magics.grid.cols,
-    rows: theme.magics.grid.rows,
-  };
+  const magics: MagicsGuiConfig | null = theme.magics
+    ? {
+        panel: resolvePanel(theme.magics.panel),
+        scrollBar: resolveScrollBar(theme.magics.scrollBar),
+        items: resolveGrid(theme.magics.grid),
+        cols: theme.magics.grid.cols,
+        rows: theme.magics.grid.rows,
+      }
+    : null;
 
   // --- memo ---
-  const memoSlider = resolveRect(theme.memo.slider);
-  const memo: MemoGuiConfig = {
-    panel: resolvePanel(theme.memo.panel),
-    text: resolveText(theme.memo.text, "rgba(40,25,15,0.8)"),
-    slider: { ...memoSlider, imageBtn: theme.memo.slider.imageBtn },
-    scrollBar: theme.memo.scrollBar
-      ? resolveRect(theme.memo.scrollBar)
-      : { ...memoSlider, width: 10 },
-  };
+  const memo: MemoGuiConfig | null = theme.memo
+    ? (() => {
+        const memoSlider = resolveRect(theme.memo.slider);
+        return {
+          panel: resolvePanel(theme.memo.panel),
+          text: resolveText(theme.memo.text, "rgba(40,25,15,0.8)"),
+          slider: { ...memoSlider, imageBtn: theme.memo.slider.imageBtn },
+          scrollBar: theme.memo.scrollBar
+            ? resolveRect(theme.memo.scrollBar)
+            : { ...memoSlider, width: 10 },
+        };
+      })()
+    : null;
 
   // --- dialog ---
-  const dialog: DialogGuiConfig = {
-    panel: resolvePanel(theme.dialog.panel),
-    text: resolveText(theme.dialog.text, "rgba(0,0,0,0.8)"),
-    selectA: resolveText(theme.dialog.selectA, "rgba(0,0,255,0.8)"),
-    selectB: resolveText(theme.dialog.selectB, "rgba(0,0,255,0.8)"),
-    portrait: resolveRect(theme.dialog.portrait),
-  };
+  const dialog: DialogGuiConfig | null = theme.dialog
+    ? {
+        panel: resolvePanel(theme.dialog.panel),
+        text: resolveText(theme.dialog.text, "rgba(0,0,0,0.8)"),
+        selectA: resolveText(theme.dialog.selectA, "rgba(0,0,255,0.8)"),
+        selectB: resolveText(theme.dialog.selectB, "rgba(0,0,255,0.8)"),
+        portrait: resolveRect(theme.dialog.portrait),
+      }
+    : null;
 
   // --- saveLoad ---
-  const sl = theme.saveLoad;
-  const saveLoad: SaveLoadGuiConfig = {
-    panel: resolvePanel(sl.panel),
-    snapshot: resolveRect(sl.snapshot),
-    textList: {
-      text: sl.textList.text,
-      left: sl.textList.pos[0],
-      top: sl.textList.pos[1],
-      width: sl.textList.size[0],
-      height: sl.textList.size[1],
-      charSpace: sl.textList.charSpace ?? 0,
-      lineSpace: sl.textList.lineSpace ?? 0,
-      itemHeight: sl.textList.itemHeight,
-      color: sl.textList.color ?? "rgba(91,31,27,0.8)",
-      selectedColor: sl.textList.selectedColor ?? "rgba(102,73,212,0.8)",
-      sound: sl.textList.sound ?? "界-浏览.wav",
-    },
-    loadBtn: resolveButton(sl.loadBtn),
-    saveBtn: resolveButton(sl.saveBtn),
-    exitBtn: resolveButton(sl.exitBtn),
-    saveTimeText: resolveText(sl.saveTimeText, "rgba(182,219,189,0.7)"),
-    messageLine: {
-      ...resolveText(sl.messageLine, "rgba(255,215,0,0.8)"),
-      align: sl.messageLine.align ?? 1,
-    },
-  };
+  const saveLoad: SaveLoadGuiConfig | null = theme.saveLoad
+    ? (() => {
+        const sl = theme.saveLoad;
+        return {
+          panel: resolvePanel(sl.panel),
+          snapshot: resolveRect(sl.snapshot),
+          textList: {
+            text: sl.textList.text,
+            left: sl.textList.pos[0],
+            top: sl.textList.pos[1],
+            width: sl.textList.size[0],
+            height: sl.textList.size[1],
+            charSpace: sl.textList.charSpace ?? 0,
+            lineSpace: sl.textList.lineSpace ?? 0,
+            itemHeight: sl.textList.itemHeight,
+            color: sl.textList.color ?? "rgba(91,31,27,0.8)",
+            selectedColor: sl.textList.selectedColor ?? "rgba(102,73,212,0.8)",
+            sound: sl.textList.sound ?? "界-浏览.wav",
+          },
+          loadBtn: resolveButton(sl.loadBtn),
+          saveBtn: resolveButton(sl.saveBtn),
+          exitBtn: resolveButton(sl.exitBtn),
+          saveTimeText: resolveText(sl.saveTimeText, "rgba(182,219,189,0.7)"),
+          messageLine: {
+            ...resolveText(sl.messageLine, "rgba(255,215,0,0.8)"),
+            align: sl.messageLine.align ?? 1,
+          },
+        };
+      })()
+    : null;
 
   // --- message ---
-  const message: MessageGuiConfig = {
-    panel: resolvePanel(theme.message.panel),
-    text: resolveText(theme.message.text, "rgba(155,34,22,0.8)"),
-  };
+  const message: MessageGuiConfig | null = theme.message
+    ? {
+        panel: resolvePanel(theme.message.panel),
+        text: resolveText(theme.message.text, "rgba(155,34,22,0.8)"),
+      }
+    : null;
 
   // --- npcInfoShow ---
-  const npcInfoShow: NpcInfoShowConfig = {
-    width: theme.npcInfoShow.size[0],
-    height: theme.npcInfoShow.size[1],
-    leftAdjust: theme.npcInfoShow.offset?.[0] ?? 0,
-    topAdjust: theme.npcInfoShow.offset?.[1] ?? 0,
-  };
+  const npcInfoShow: NpcInfoShowConfig | null = theme.npcInfoShow
+    ? {
+        width: theme.npcInfoShow.size[0],
+        height: theme.npcInfoShow.size[1],
+        leftAdjust: theme.npcInfoShow.offset?.[0] ?? 0,
+        topAdjust: theme.npcInfoShow.offset?.[1] ?? 0,
+      }
+    : null;
 
   // --- littleMap ---
-  const littleMap: LittleMapGuiConfig = {
-    panel: resolvePanel(theme.littleMap.panel),
-    leftBtn: resolveMapBtn(theme.littleMap.leftBtn),
-    rightBtn: resolveMapBtn(theme.littleMap.rightBtn),
-    upBtn: resolveMapBtn(theme.littleMap.upBtn),
-    downBtn: resolveMapBtn(theme.littleMap.downBtn),
-    closeBtn: resolveMapBtn(theme.littleMap.closeBtn),
-    mapNameText: resolveMapText(theme.littleMap.mapNameText),
-    bottomTipText: resolveMapText(theme.littleMap.bottomTipText),
-    messageTipText: resolveMapText(
-      theme.littleMap.messageTipText,
-      "rgba(200,0,0,0.8)",
-    ),
-  };
+  const littleMap: LittleMapGuiConfig | null = theme.littleMap
+    ? {
+        panel: resolvePanel(theme.littleMap.panel),
+        leftBtn: resolveMapBtn(theme.littleMap.leftBtn),
+        rightBtn: resolveMapBtn(theme.littleMap.rightBtn),
+        upBtn: resolveMapBtn(theme.littleMap.upBtn),
+        downBtn: resolveMapBtn(theme.littleMap.downBtn),
+        closeBtn: resolveMapBtn(theme.littleMap.closeBtn),
+        mapNameText: resolveMapText(theme.littleMap.mapNameText),
+        bottomTipText: resolveMapText(theme.littleMap.bottomTipText),
+        messageTipText: resolveMapText(
+          theme.littleMap.messageTipText,
+          "rgba(200,0,0,0.8)",
+        ),
+      }
+    : null;
 
   // --- buySell ---
-  const buySell: BuySellGuiConfig = {
-    panel: resolvePanel(theme.buySell.panel),
-    scrollBar: resolveScrollBar(theme.buySell.scrollBar),
-    items: resolveGrid(theme.buySell.grid),
-    closeBtn: resolveMapBtn(theme.buySell.closeBtn),
-  };
+  const buySell: BuySellGuiConfig | null = theme.buySell
+    ? {
+        panel: resolvePanel(theme.buySell.panel),
+        scrollBar: resolveScrollBar(theme.buySell.scrollBar),
+        items: resolveGrid(theme.buySell.grid),
+        closeBtn: resolveMapBtn(theme.buySell.closeBtn),
+      }
+    : null;
 
   // --- bottom ---
-  const bottom: BottomGuiConfig = {
-    panel: resolvePanel(theme.bottom.panel),
-    items: theme.bottom.items.map((item) => ({
-      left: item.pos[0],
-      top: item.pos[1],
-      width: item.size[0],
-      height: item.size[1],
-    })),
-    buttons: theme.bottom.buttons.map(resolveButton),
-  };
+  const bottom: BottomGuiConfig | null = theme.bottom
+    ? {
+        panel: resolvePanel(theme.bottom.panel),
+        items: theme.bottom.items.map((item) => ({
+          left: item.pos[0],
+          top: item.pos[1],
+          width: item.size[0],
+          height: item.size[1],
+        })),
+        buttons: theme.bottom.buttons.map(resolveButton),
+      }
+    : null;
 
   // --- bottomState ---
-  const bottomState: BottomStateGuiConfig = {
-    panel: resolvePanel(theme.bottomState.panel),
-    ...(theme.bottomState.overlay ? { overlay: theme.bottomState.overlay } : {}),
-    life: resolveBar(theme.bottomState.life),
-    thew: resolveBar(theme.bottomState.thew),
-    mana: resolveBar(theme.bottomState.mana),
-  };
+  const bottomState: BottomStateGuiConfig | null = theme.bottomState
+    ? {
+        panel: resolvePanel(theme.bottomState.panel),
+        ...(theme.bottomState.overlay ? { overlay: theme.bottomState.overlay } : {}),
+        life: resolveBar(theme.bottomState.life),
+        thew: resolveBar(theme.bottomState.thew),
+        mana: resolveBar(theme.bottomState.mana),
+      }
+    : null;
 
   // --- top ---
-  const top: TopGuiConfig = {
-    panel: resolvePanel(theme.top.panel),
-    buttons: theme.top.buttons.map(resolveButton),
-  };
+  const top: TopGuiConfig | null = theme.top
+    ? {
+        panel: resolvePanel(theme.top.panel),
+        buttons: theme.top.buttons.map(resolveButton),
+      }
+    : null;
 
   // --- tooltips ---
   const toolTipUseType: ToolTipUseTypeConfig = { useType: theme.tooltipMode };
@@ -1032,16 +1064,18 @@ export function resolveTheme(theme: UiTheme): ResolvedUiConfigs {
     saveLoad,
     system,
     state,
-    equip: resolveEquip(theme.equip),
-    npcEquip: resolveEquip(theme.npcEquip),
-    xiuLian: {
-      panel: resolvePanel(theme.xiuLian.panel),
-      magicImage: resolveRect(theme.xiuLian.magicImage),
-      levelText: resolveText(theme.xiuLian.levelText, "rgba(0,0,0,0.8)"),
-      expText: resolveText(theme.xiuLian.expText, "rgba(0,0,0,0.8)"),
-      nameText: resolveText(theme.xiuLian.nameText, "rgba(88,32,32,0.9)"),
-      introText: resolveText(theme.xiuLian.introText, "rgba(47,32,88,0.9)"),
-    },
+    equip: theme.equip ? resolveEquip(theme.equip) : null,
+    npcEquip: theme.npcEquip ? resolveEquip(theme.npcEquip) : null,
+    xiuLian: theme.xiuLian
+      ? {
+          panel: resolvePanel(theme.xiuLian.panel),
+          magicImage: resolveRect(theme.xiuLian.magicImage),
+          levelText: resolveText(theme.xiuLian.levelText, "rgba(0,0,0,0.8)"),
+          expText: resolveText(theme.xiuLian.expText, "rgba(0,0,0,0.8)"),
+          nameText: resolveText(theme.xiuLian.nameText, "rgba(88,32,32,0.9)"),
+          introText: resolveText(theme.xiuLian.introText, "rgba(47,32,88,0.9)"),
+        }
+      : null,
     goods,
     magics,
     memo,
