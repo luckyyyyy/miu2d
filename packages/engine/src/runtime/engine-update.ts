@@ -58,17 +58,7 @@ export function updateFrame(ctx: EngineUpdateContext, deltaTime: number): void {
     height,
   };
 
-  // === 性能优化：Update 阶段预计算视野内对象 ===
-  gameManager.npcManager.updateNpcsInView(viewRect);
-  gameManager.objManager.updateObjsInView(viewRect);
-
-  // 更新性能统计中的对象数量
   const magicMgr = gameManager.magicSpriteManager;
-  ctx.performanceStats.updateObjectStats(
-    gameManager.npcManager.npcsInView.length,
-    gameManager.objManager.objsInView.length,
-    magicMgr.getMagicSprites().size + magicMgr.getEffectSprites().size
-  );
 
   // Update mouse hover state for interaction highlights
   gameManager
@@ -90,6 +80,19 @@ export function updateFrame(ctx: EngineUpdateContext, deltaTime: number): void {
 
   // 更新游戏逻辑
   gameManager.update(deltaTime, ctx.engineInput.state);
+
+  // === 性能优化：游戏逻辑更新后预计算视野内对象 ===
+  // 必须在 gameManager.update() 之后执行，确保同帧内新增的对象（如 NPC 死亡产生的尸体）
+  // 能被纳入当帧渲染缓存，避免出现一帧空白的闪烁问题。
+  gameManager.npcManager.updateNpcsInView(viewRect);
+  gameManager.objManager.updateObjsInView(viewRect);
+
+  // 更新性能统计中的对象数量
+  ctx.performanceStats.updateObjectStats(
+    gameManager.npcManager.npcsInView.length,
+    gameManager.objManager.objsInView.length,
+    magicMgr.getMagicSprites().size + magicMgr.getEffectSprites().size
+  );
 
   // 更新相机
   ctx.engineCamera.updateCamera(deltaTime);

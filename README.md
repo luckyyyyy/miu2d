@@ -77,6 +77,10 @@ A remake of the franchise's 1997 debut, rebuilt with the acclaimed real-time act
 
 ![ASF Editor](packages/web/public/screenshot/asf-editor.png)
 
+**Real-time Lighting & Shadows — additive glow + SHD shadow rendering:**
+
+![Real-time Lighting](packages/web/public/screenshot/real-lighting.png)
+
 </details>
 
 ---
@@ -87,7 +91,7 @@ Most web game projects reach for PixiJS, Phaser, or a WASM-compiled Unity/Godot 
 
 **What this buys you:**
 
-- **Full control over the render loop** — a `SpriteBatcher` coalesces ~4,800 map tile draws into 1–5 WebGL draw calls; a `RectBatcher` reduces ~300 weather particles to a single call.
+- **Full control over the render loop** — a `SpriteBatcher` coalesces ~4,800 map tile draws into 1–5 WebGL draw calls; a `RectBatcher` reduces ~300 weather particles to a single call; a real-time lighting pass composites per-entity additive glow masks with SHD-based shadow rendering.
 - **No abstraction tax** — no unused scene graph, no 3D math overhead, no framework event model to work around.
 - **Rust-speed where it matters** — A* pathfinding runs in ~0.2 ms via WASM with obstacle data written directly into linear memory (no serialization, no FFI copy).
 - **Clean architecture for study** — an 8-level class hierarchy (Sprite → CharacterBase → Movement → Combat → Character → PlayerBase → PlayerCombat → Player) with clear separation of concerns, ideal for understanding how a full 2D RPG engine works under the hood.
@@ -113,7 +117,7 @@ Most web game projects reach for PixiJS, Phaser, or a WASM-compiled Unity/Godot 
 | Layer | Technology |
 |-------|-----------|
 | Language | TypeScript 5.9 (strict) · Rust · GLSL |
-| Frontend | React 19 · Vite 7 (rolldown) · Tailwind CSS 4 |
+| Frontend | React 19 · Vite 8 (rolldown) · Tailwind CSS 4 |
 | Rendering | Raw WebGL API (Canvas 2D fallback) |
 | Audio | Web Audio API (OGG Vorbis) |
 | Performance | Rust → WebAssembly (wasm-bindgen, zero-copy) |
@@ -131,7 +135,7 @@ Miu2D implements **17 integrated ARPG subsystems** (218 script commands) entirel
 
 | System | Module | Highlights |
 |--------|--------|------------|
-| **Rendering** | `renderer/` | Raw WebGL sprite batcher (~4,800 tiles → 1–5 draw calls), Canvas2D fallback, GLSL color filters (poison / freeze / petrify), screen effects (fade, flash, water ripple), **local lighting** (additive lum masks for dark scenes) |
+| **Rendering** | `renderer/` | Raw WebGL sprite batcher (~4,800 tiles → 1–5 draw calls), Canvas2D fallback, GLSL color filters (poison / freeze / petrify), screen effects (fade, flash, water ripple), **real-time lighting & shadows** (additive lum masks, per-entity glow, SHD-based shadow rendering) |
 | **Character** | `character/` | 8-level inheritance chain (Sprite → CharacterBase → Movement → Combat → Character → PlayerBase → PlayerCombat → Player/NPC); stats, status flags, bezier-curve movement |
 | **Combat** | `character/` | Hit detection, damage formula, knockback, death & respawn, party/enemy faction logic |
 | **Magic / Skill** | `magic/` | 22 MoveKind trajectories (line, spiral, homing, AoE, summon, time-stop…) × 10 SpecialKind effects; per-level config, passive XiuLian system |
@@ -167,7 +171,6 @@ The renderer directly calls `WebGLRenderingContext` — no wrapper library.
   - **LineMove**: 1-in-3 sub-projectiles emit light (`i % 3 === 1`)
   - **Square region**: 1-in-9 (`i % 3 === 1 && j % 3 === 1`)
   - **Wave / Rectangle region**: 1-in-4 (`i % 2 !== 0 && j % 2 !== 0`)
-  - **CircleMove** (e.g. 依风剑法): 1-in-8 of the 32 projectiles emit light
 
 ### Script Engine — 218 Commands + Lua 5.4
 

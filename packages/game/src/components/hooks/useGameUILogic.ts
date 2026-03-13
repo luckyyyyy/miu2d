@@ -538,8 +538,10 @@ export function useGameUILogic({ engine }: UseGameUILogicOptions) {
   const handleEquipRightClick = useCallback(
     (slot: EquipSlotType) => {
       dispatch({ type: "UNEQUIP_ITEM", slot: equipSlotToUISlot(slot) });
+      // 卸下装备后格子变空，隐藏 tooltip
+      setTooltip((prev) => ({ ...prev, isVisible: false }));
     },
-    [dispatch]
+    [dispatch, setTooltip]
   );
 
   const handleEquipDrop = useCallback(
@@ -574,12 +576,20 @@ export function useGameUILogic({ engine }: UseGameUILogicOptions) {
       // index 已经是 1-based 的背包索引，由 GoodsPanel/GoodsGui 传入
       if (panels?.buy) {
         dispatch({ type: "SELL_ITEM", bagIndex: index });
+        setTooltip((prev) => ({ ...prev, isVisible: false }));
         return;
       }
 
       dispatch({ type: "USE_ITEM", index });
+      // 右键装备可能触发装备交换：引擎状态同步更新，读取新格子内容更新 tooltip
+      const newInfo = engine?.getGoodsListManager()?.getItemInfo(index);
+      if (newInfo?.good) {
+        setTooltip((prev) => ({ ...prev, good: newInfo.good }));
+      } else {
+        setTooltip((prev) => ({ ...prev, isVisible: false }));
+      }
     },
-    [dispatch, panels?.buy]
+    [dispatch, engine, panels?.buy, setTooltip]
   );
 
   const handleGoodsDrop = useCallback(

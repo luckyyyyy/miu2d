@@ -136,11 +136,6 @@ export class MovementSpriteFactory {
         destroyOnEnd,
         speedRatio
       );
-      // 32 颗子弹全部发光会使 additive lum mask 在玩家周围叠加到纯白
-      // 只保留每 8 个中的 1 个（4 个均匀方向），进一步降低叠加亮度
-      if (i % 8 !== 0) {
-        sprite.noLum = true;
-      }
       this.callbacks.addMagicSprite(sprite);
     }
   }
