@@ -451,13 +451,11 @@ export class SceneService {
       }
     }
 
-    // 4. 脚本 + 陷阱脚本合并下发（引擎 prewarmCache() 统一预热到缓存，两类都能命中）
-    const scripts: Record<string, string> = {
-      ...(sceneData?.scripts ?? {}),
-      ...(sceneData?.traps ?? {}),
-    };
+    // 4. 脚本与陷阱脚本分字段下发，引擎分别预热到 parsedCache
+    const scripts: Record<string, string> = sceneData?.scripts ?? {};
+    const traps: Record<string, string> = sceneData?.traps ?? {};
 
-    return { tiles, missing, scripts };
+    return { tiles, missing, scripts, traps };
   }
 }
 

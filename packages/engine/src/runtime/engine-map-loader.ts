@@ -209,24 +209,20 @@ async function loadMapFromSceneApi(fullMapPath: string): Promise<MiuMapData | nu
       resourceLoader.prewarmMissing(manifest.missing);
     }
 
-    // 将场景脚本（含陷阱脚本）预热到 textCache（存于数据库，随 manifest 下发，避免去文件存储查找）
-    if (manifest?.scripts) {
-      const scriptEntries = Object.entries(manifest.scripts);
-      if (scriptEntries.length > 0) {
-        for (const [fileName, content] of scriptEntries) {
-          const url = `${ResourcePath.scriptMap(sceneKey)}/${fileName}`;
-          const relPath = `script/map/${sceneKey}/${fileName}`;
-          const parsed = parseScript(content, relPath);
-          resourceLoader.prewarmCache(url, parsed, "script");
-        }
-        logger.log(
-          `[EngineMapLoader] Manifest: ${manifest.tiles.length} tiles, ${manifest.missing?.length ?? 0} missing sprites, ${scriptEntries.length} scripts/traps prewarmed`
-        );
-      } else {
-        logger.log(
-          `[EngineMapLoader] Manifest: ${manifest.tiles.length} tiles, ${manifest.missing?.length ?? 0} missing sprites prewarmed`
-        );
-      }
+    // 将场景脚本及陷阱脚本分别预热到 parsedCache（随 manifest 下发，避免去文件存储查找）
+    const allEntries: [string, string][] = [
+      ...Object.entries(manifest?.scripts ?? {}),
+      ...Object.entries(manifest?.traps ?? {}),
+    ];
+    for (const [fileName, content] of allEntries) {
+      const url = `${ResourcePath.scriptMap(sceneKey)}/${fileName}`;
+      const relPath = `script/map/${sceneKey}/${fileName}`;
+      resourceLoader.prewarmCache(url, parseScript(content, relPath), "script");
+    }
+    if (manifest) {
+      logger.log(
+        `[EngineMapLoader] Manifest: ${manifest.tiles.length} tiles, ${manifest.missing?.length ?? 0} missing, ${Object.keys(manifest.scripts).length} scripts + ${Object.keys(manifest.traps).length} traps prewarmed`
+      );
     }
 
     if (!buffer) return null;
