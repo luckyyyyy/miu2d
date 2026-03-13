@@ -4,7 +4,7 @@ import typescript from "@rollup/plugin-typescript";
 
 /** @type {import('rollup').RollupOptions} */
 export default {
-  input: ["src/main.ts", "src/db/migrate.ts", "src/db/rehash-passwords.ts"],
+  input: ["src/main.ts", "src/db/migrate.ts", "src/db/rehash-passwords.ts", "src/db/patch-null-scene-data.ts"],
   output: {
     format: "es",
     dir: "dist",
