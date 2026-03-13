@@ -14,8 +14,7 @@ import type {
   UpdateLevelConfigInput,
 } from "@miu2d/types";
 import { createDefaultLevelConfigLevels } from "@miu2d/types";
-import type { Prisma } from "@prisma/client";
-import type { LevelConfig as PrismaLevelConfig } from "@prisma/client";
+import type { Prisma, LevelConfig as PrismaLevelConfig } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
 import { db } from "../../db/client";
 import type { Language } from "../../i18n";
@@ -47,7 +46,10 @@ export class LevelConfigService {
   async listPublicBySlug(gameSlug: string): Promise<LevelConfig[]> {
     const gameId = await requireGameIdBySlug(gameSlug);
 
-    const rows = await db.levelConfig.findMany({ where: { gameId }, orderBy: { updatedAt: "desc" } });
+    const rows = await db.levelConfig.findMany({
+      where: { gameId },
+      orderBy: { updatedAt: "desc" },
+    });
 
     return rows.map((row) => this.toLevelConfig(row));
   }
@@ -117,7 +119,10 @@ export class LevelConfigService {
     await verifyGameAccess(input.gameId, userId, language);
 
     // 检查 key 是否已存在
-    const existing = await db.levelConfig.findFirst({ where: { gameId: input.gameId, key: input.key }, select: { id: true } });
+    const existing = await db.levelConfig.findFirst({
+      where: { gameId: input.gameId, key: input.key },
+      select: { id: true },
+    });
 
     if (existing) {
       throw new TRPCError({
@@ -155,7 +160,9 @@ export class LevelConfigService {
     await verifyGameAccess(input.gameId, userId, language);
 
     // 检查是否存在（直接查 DB，避免重复触发 verifyGameAccess）
-    const existingRow = await db.levelConfig.findFirst({ where: { id: input.id, gameId: input.gameId } });
+    const existingRow = await db.levelConfig.findFirst({
+      where: { id: input.id, gameId: input.gameId },
+    });
     if (!existingRow) {
       throw new TRPCError({
         code: "NOT_FOUND",
@@ -166,7 +173,10 @@ export class LevelConfigService {
 
     // 如果修改了 key，检查是否冲突
     if (input.key && input.key !== existing.key) {
-      const conflict = await db.levelConfig.findFirst({ where: { gameId: input.gameId, key: input.key }, select: { id: true } });
+      const conflict = await db.levelConfig.findFirst({
+        where: { gameId: input.gameId, key: input.key },
+        select: { id: true },
+      });
 
       if (conflict) {
         throw new TRPCError({
@@ -227,7 +237,10 @@ export class LevelConfigService {
     const name = this.extractNameFromFileName(input.fileName);
 
     // 检查是否已存在，如存在则更新
-    const existing = await db.levelConfig.findFirst({ where: { gameId: input.gameId, key }, select: { id: true } });
+    const existing = await db.levelConfig.findFirst({
+      where: { gameId: input.gameId, key },
+      select: { id: true },
+    });
 
     if (existing) {
       // 已存在，执行更新

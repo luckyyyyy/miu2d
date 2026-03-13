@@ -210,11 +210,7 @@ interface MagicTooltipProps {
   position: { x: number; y: number };
 }
 
-export const MagicTooltip: React.FC<MagicTooltipProps> = ({
-  isVisible,
-  magic,
-  position,
-}) => {
+export const MagicTooltip: React.FC<MagicTooltipProps> = ({ isVisible, magic, position }) => {
   const { screenWidth, screenHeight } = useGameUIContext();
   const iconImage = useAsfImage(magic?.iconPath ?? null, 0);
   const tooltipRef = useRef<HTMLDivElement>(null);

@@ -15,22 +15,22 @@ import type {
   ListSceneInput,
   Scene,
   SceneData,
-  SceneManifest,
   SceneListItem,
+  SceneManifest,
   SceneNpcEntry,
   SceneObjEntry,
   UpdateSceneInput,
 } from "@miu2d/types";
 import { getSceneDataCounts } from "@miu2d/types";
-import { Prisma } from "@prisma/client";
 import type { Scene as PrismaScene } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
 import { db } from "../../db/client";
 import type { Language } from "../../i18n";
 import { getMessage } from "../../i18n";
+import { batchCheckPaths } from "../../utils/file";
 import { getGameIdBySlug } from "../../utils/game";
 import { verifyGameAccess } from "../../utils/gameAccess";
-import { batchCheckPaths } from "../../utils/file";
 import { parseMmfToDto, serializeDtoToMmf } from "./mmf-helper";
 
 export class SceneService {
@@ -63,7 +63,10 @@ export class SceneService {
   async list(input: ListSceneInput, userId: string, language: Language): Promise<SceneListItem[]> {
     await verifyGameAccess(input.gameId, userId, language);
 
-    const rows = await db.scene.findMany({ where: { gameId: input.gameId }, orderBy: { key: "asc" } });
+    const rows = await db.scene.findMany({
+      where: { gameId: input.gameId },
+      orderBy: { key: "asc" },
+    });
 
     return rows.map((row) => {
       const data = (row.data ?? {}) as SceneData;
@@ -126,7 +129,10 @@ export class SceneService {
     await verifyGameAccess(input.gameId, userId, language);
 
     // 检查是否存在（直接查 DB，避免重复触发 verifyGameAccess）
-    const existing = await db.scene.findFirst({ where: { id: input.id, gameId: input.gameId }, select: { id: true } });
+    const existing = await db.scene.findFirst({
+      where: { id: input.id, gameId: input.gameId },
+      select: { id: true },
+    });
     if (!existing) {
       throw new TRPCError({
         code: "NOT_FOUND",
@@ -201,7 +207,9 @@ export class SceneService {
       }
 
       // 检查是否已存在
-      const existing = await db.scene.findFirst({ where: { gameId: input.gameId, key: scene.key } });
+      const existing = await db.scene.findFirst({
+        where: { gameId: input.gameId, key: scene.key },
+      });
 
       if (existing) {
         // 更新现有场景
@@ -270,7 +278,10 @@ export class SceneService {
     const gameId = await getGameIdBySlug(gameSlug);
     if (!gameId) return null;
 
-    const row = await db.scene.findFirst({ where: { gameId, key: sceneKey }, select: { mmfData: true } });
+    const row = await db.scene.findFirst({
+      where: { gameId, key: sceneKey },
+      select: { mmfData: true },
+    });
 
     if (!row?.mmfData) return null;
     return Buffer.from(row.mmfData, "base64");
@@ -290,16 +301,17 @@ export class SceneService {
     const gameId = await getGameIdBySlug(gameSlug);
     if (!gameId) return null;
 
-    const row = await db.scene.findFirst({ where: { gameId, key: sceneKey }, select: { data: true } });
+    const row = await db.scene.findFirst({
+      where: { gameId, key: sceneKey },
+      select: { data: true },
+    });
 
     if (!row) return null;
     const data = row.data as SceneData | null;
     const npcData =
       data?.npc?.[npcKey] ??
       data?.npc?.[npcKey.toLowerCase()] ??
-      Object.entries(data?.npc ?? {}).find(
-        ([k]) => k.toLowerCase() === npcKey.toLowerCase()
-      )?.[1];
+      Object.entries(data?.npc ?? {}).find(([k]) => k.toLowerCase() === npcKey.toLowerCase())?.[1];
     if (npcData?.entries) {
       return npcData.entries;
     }
@@ -320,16 +332,17 @@ export class SceneService {
     const gameId = await getGameIdBySlug(gameSlug);
     if (!gameId) return null;
 
-    const row = await db.scene.findFirst({ where: { gameId, key: sceneKey }, select: { data: true } });
+    const row = await db.scene.findFirst({
+      where: { gameId, key: sceneKey },
+      select: { data: true },
+    });
 
     if (!row) return null;
     const data = row.data as SceneData | null;
     const objData =
       data?.obj?.[objKey] ??
       data?.obj?.[objKey.toLowerCase()] ??
-      Object.entries(data?.obj ?? {}).find(
-        ([k]) => k.toLowerCase() === objKey.toLowerCase()
-      )?.[1];
+      Object.entries(data?.obj ?? {}).find(([k]) => k.toLowerCase() === objKey.toLowerCase())?.[1];
     if (objData?.entries) {
       return objData.entries;
     }
@@ -387,7 +400,9 @@ export class SceneService {
         });
 
         for (const resRow of npcResRows) {
-          const resources = (resRow.data as { resources?: Record<string, { image?: string | null }> })?.resources;
+          const resources = (
+            resRow.data as { resources?: Record<string, { image?: string | null }> }
+          )?.resources;
           if (!resources) continue;
           for (const stateRes of Object.values(resources)) {
             const img = stateRes?.image;
@@ -422,7 +437,9 @@ export class SceneService {
         });
 
         for (const resRow of objResRows) {
-          const resources = (resRow.data as { resources?: Record<string, { image?: string | null }> })?.resources;
+          const resources = (
+            resRow.data as { resources?: Record<string, { image?: string | null }> }
+          )?.resources;
           if (!resources) continue;
           for (const stateRes of Object.values(resources)) {
             const img = stateRes?.image;

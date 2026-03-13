@@ -3,7 +3,6 @@
  */
 
 export { AuthModal } from "./AuthModal";
-export { PWAInstallPrompt } from "./PWAInstallPrompt";
 // UI 适配器
 export * from "./adapters";
 export { ClassicGameUI } from "./ClassicGameUI";
@@ -50,6 +49,7 @@ export { LoadingOverlay } from "./LoadingOverlay";
 export { ModernGameUIWrapper } from "./ModernGameUIWrapper";
 // 移动端组件
 export * from "./mobile";
+export { PWAInstallPrompt } from "./PWAInstallPrompt";
 export { ShareOverlay } from "./ShareOverlay";
 // UI 组件
 export * from "./ui";

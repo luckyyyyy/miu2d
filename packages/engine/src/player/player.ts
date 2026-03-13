@@ -14,10 +14,10 @@
 import type { Player as PlayerType } from "@miu2d/types";
 import type { Character } from "../character";
 import { applyFlatDataToCharacter } from "../character/character-config";
+import { getEffectAmount } from "../combat/effect-calc";
 import { logger } from "../core/logger";
 import type { Vector2 } from "../core/types";
 import { CharacterState, RUN_SPEED_FOLD } from "../core/types";
-import { getEffectAmount } from "../combat/effect-calc";
 import type { MagicSprite } from "../magic/magic-sprite";
 import type { MagicData } from "../magic/types";
 import { MagicMoveKind, MagicSpecialKind } from "../magic/types";
@@ -291,7 +291,7 @@ export class Player extends PlayerCombat {
    */
   override async loadSpritesFromNpcIni(
     npcIni?: string,
-    options?: { deferKeys?: Set<keyof import("../sprite/sprite").SpriteSet> },
+    options?: { deferKeys?: Set<keyof import("../sprite/sprite").SpriteSet> }
   ): Promise<boolean> {
     const result = await super.loadSpritesFromNpcIni(npcIni, options);
 
@@ -407,9 +407,12 @@ export class Player extends PlayerCombat {
     this.defend2 += (newMagic.defend2 || 0) - (oldMagic.defend2 || 0);
     this.attack3 += (newMagic.attack3 || 0) - (oldMagic.attack3 || 0);
     this.defend3 += (newMagic.defend3 || 0) - (oldMagic.defend3 || 0);
-    this._addLifeRestorePercent += (newMagic.addLifeRestorePercent || 0) - (oldMagic.addLifeRestorePercent || 0);
-    this._addThewRestorePercent += (newMagic.addThewRestorePercent || 0) - (oldMagic.addThewRestorePercent || 0);
-    this._addManaRestorePercent += (newMagic.addManaRestorePercent || 0) - (oldMagic.addManaRestorePercent || 0);
+    this._addLifeRestorePercent +=
+      (newMagic.addLifeRestorePercent || 0) - (oldMagic.addLifeRestorePercent || 0);
+    this._addThewRestorePercent +=
+      (newMagic.addThewRestorePercent || 0) - (oldMagic.addThewRestorePercent || 0);
+    this._addManaRestorePercent +=
+      (newMagic.addManaRestorePercent || 0) - (oldMagic.addManaRestorePercent || 0);
 
     // FlyIni 替换逻辑
     // if (oldMagic.FlyIni != newMagic.FlyIni) { RemoveFlyIniReplace(old); AddFlyIniReplace(new); }

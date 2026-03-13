@@ -11,20 +11,19 @@
 
 import type { ShopItemInfo } from "@miu2d/engine";
 import { logger } from "@miu2d/engine/core/logger";
-import { MAGIC_LIST_CONFIG } from "@miu2d/engine/player/magic/magic-list-config";
 import type { Vector2 } from "@miu2d/engine/core/types";
-import type { UIEquipSlotName } from "@miu2d/engine/gui/ui-types";
-import type { UIGoodData } from "@miu2d/engine/gui/ui-types";
+import type { UIEquipSlotName, UIGoodData } from "@miu2d/engine/gui/ui-types";
 import type { MagicItemInfo } from "@miu2d/engine/magic";
-import type { MagicHoverData, PlayerVitals } from "../../contexts";
 import type { MiuMapData } from "@miu2d/engine/map/types";
 import type { Npc } from "@miu2d/engine/npc";
 import { GoodKind } from "@miu2d/engine/player/goods";
+import { MAGIC_LIST_CONFIG } from "@miu2d/engine/player/magic/magic-list-config";
 import { DefaultPaths } from "@miu2d/engine/resource";
 import { resourceLoader } from "@miu2d/engine/resource/resource-loader";
 import type { GameEngine } from "@miu2d/engine/runtime/game-engine";
 import type { TimerState } from "@miu2d/engine/runtime/timer-manager";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { MagicHoverData, PlayerVitals } from "../../contexts";
 import { useUIBridge } from "../adapters";
 import type { DragData, EquipSlotType } from "../ui/classic";
 import { slotTypeToEquipPosition } from "../ui/classic";
@@ -662,7 +661,11 @@ export function useGameUILogic({ engine }: UseGameUILogicOptions) {
       }
 
       if (dragData.type === "goods") {
-        dispatch({ type: "MOVE_BAG_TO_BOTTOM", bagIndex: dragData.index, bottomSlot: targetBottomSlot });
+        dispatch({
+          type: "MOVE_BAG_TO_BOTTOM",
+          bagIndex: dragData.index,
+          bottomSlot: targetBottomSlot,
+        });
       } else if (dragData.type === "bottom") {
         dispatch({ type: "SWAP_BOTTOM_GOODS", fromSlot: dragData.index, toSlot: targetBottomSlot });
       }
@@ -702,13 +705,10 @@ export function useGameUILogic({ engine }: UseGameUILogicOptions) {
     setBottomMagicDragData(null);
   }, []);
 
-  const handleBottomMagicDragStart = useCallback(
-    (bottomSlot: number) => {
-      setBottomMagicDragData({ bottomSlot, listIndex: bottomSlot });
-      setMagicDragData(null);
-    },
-    []
-  );
+  const handleBottomMagicDragStart = useCallback((bottomSlot: number) => {
+    setBottomMagicDragData({ bottomSlot, listIndex: bottomSlot });
+    setMagicDragData(null);
+  }, []);
 
   const handleMagicDragEnd = useCallback(() => {
     setMagicDragData(null);

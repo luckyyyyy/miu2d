@@ -75,7 +75,10 @@ export class FileRouter {
    */
   @UseMiddlewares(requireUser)
   @Mutation({ input: CreateFolderInputSchema, output: FileNodeSchema })
-  async createFolder(input: z.infer<typeof CreateFolderInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+  async createFolder(
+    input: z.infer<typeof CreateFolderInputSchema>,
+    @Ctx() ctx: AuthenticatedContext
+  ) {
     return fileService.createFolder(
       input.gameId,
       input.parentId,
@@ -90,7 +93,10 @@ export class FileRouter {
    */
   @UseMiddlewares(requireUser)
   @Mutation({ input: PrepareUploadInputSchema, output: PrepareUploadOutputSchema })
-  async prepareUpload(input: z.infer<typeof PrepareUploadInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+  async prepareUpload(
+    input: z.infer<typeof PrepareUploadInputSchema>,
+    @Ctx() ctx: AuthenticatedContext
+  ) {
     return fileService.prepareUpload(
       input.gameId,
       input.parentId,
@@ -107,7 +113,10 @@ export class FileRouter {
    */
   @UseMiddlewares(requireUser)
   @Mutation({ input: ConfirmUploadInputSchema, output: FileNodeSchema })
-  async confirmUpload(input: z.infer<typeof ConfirmUploadInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+  async confirmUpload(
+    input: z.infer<typeof ConfirmUploadInputSchema>,
+    @Ctx() ctx: AuthenticatedContext
+  ) {
     return fileService.confirmUpload(input.fileId, ctx.userId, ctx.language);
   }
 
@@ -116,7 +125,10 @@ export class FileRouter {
    */
   @UseMiddlewares(requireUser)
   @Mutation({ input: GetDownloadUrlInputSchema, output: GetDownloadUrlOutputSchema })
-  async getDownloadUrl(input: z.infer<typeof GetDownloadUrlInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+  async getDownloadUrl(
+    input: z.infer<typeof GetDownloadUrlInputSchema>,
+    @Ctx() ctx: AuthenticatedContext
+  ) {
     const downloadUrl = await fileService.getDownloadUrl(input.fileId, ctx.userId, ctx.language);
     return { downloadUrl };
   }
@@ -126,7 +138,10 @@ export class FileRouter {
    */
   @UseMiddlewares(requireUser)
   @Mutation({ input: GetUploadUrlInputSchema, output: GetUploadUrlOutputSchema })
-  async getUploadUrl(input: z.infer<typeof GetUploadUrlInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+  async getUploadUrl(
+    input: z.infer<typeof GetUploadUrlInputSchema>,
+    @Ctx() ctx: AuthenticatedContext
+  ) {
     return fileService.getUploadUrl(
       input.fileId,
       input.size,
@@ -201,11 +216,7 @@ export class FileRouter {
     input: z.infer<typeof BatchConfirmUploadInputSchema>,
     @Ctx() ctx: AuthenticatedContext
   ) {
-    const confirmed = await fileService.batchConfirmUpload(
-      input.fileIds,
-      ctx.userId,
-      ctx.language
-    );
+    const confirmed = await fileService.batchConfirmUpload(input.fileIds, ctx.userId, ctx.language);
     return { confirmed };
   }
 
@@ -214,7 +225,10 @@ export class FileRouter {
    */
   @UseMiddlewares(requireUser)
   @Mutation({ input: EnsureFolderPathInputSchema, output: EnsureFolderPathOutputSchema })
-  async ensureFolderPath(input: z.infer<typeof EnsureFolderPathInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+  async ensureFolderPath(
+    input: z.infer<typeof EnsureFolderPathInputSchema>,
+    @Ctx() ctx: AuthenticatedContext
+  ) {
     const folderId = await fileService.ensureFolderPath(
       input.gameId,
       input.parentId ?? null,

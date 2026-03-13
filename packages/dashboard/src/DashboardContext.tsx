@@ -126,7 +126,16 @@ export function DashboardProvider({ children, initialGame = null }: DashboardPro
       showImportAll,
       setShowImportAll,
     }),
-    [currentGame, expandedNodes, activeModule, toggleNode, expandNode, collapseNode, editCache, showImportAll]
+    [
+      currentGame,
+      expandedNodes,
+      activeModule,
+      toggleNode,
+      expandNode,
+      collapseNode,
+      editCache,
+      showImportAll,
+    ]
   );
 
   return <DashboardContext.Provider value={value}>{children}</DashboardContext.Provider>;

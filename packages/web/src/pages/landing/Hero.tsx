@@ -105,7 +105,6 @@ export function Hero() {
             </svg>
             {t("hero.webglBadge")}
           </span>
-
         </motion.div>
 
         {/* CTA Buttons - 橙色 */}

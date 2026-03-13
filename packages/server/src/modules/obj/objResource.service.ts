@@ -13,8 +13,7 @@ import type {
   UpdateObjResInput,
 } from "@miu2d/types";
 import { createDefaultObjResource } from "@miu2d/types";
-import type { Prisma } from "@prisma/client";
-import type { ObjResource as PrismaObjResource } from "@prisma/client";
+import type { Prisma, ObjResource as PrismaObjResource } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
 import { db } from "../../db/client";
 import type { Language } from "../../i18n";
@@ -44,7 +43,10 @@ export class ObjResourceService {
    * 用于游戏客户端加载 Object 资源数据
    */
   async listPublicByGameId(gameId: string): Promise<ObjRes[]> {
-    const rows = await db.objResource.findMany({ where: { gameId }, orderBy: { updatedAt: "desc" } });
+    const rows = await db.objResource.findMany({
+      where: { gameId },
+      orderBy: { updatedAt: "desc" },
+    });
     return rows.map((row) => this.toObjRes(row));
   }
 
@@ -118,7 +120,12 @@ export class ObjResourceService {
     const resources = input.resources ?? createDefaultObjResource();
 
     const row = await db.objResource.create({
-      data: { gameId: input.gameId, key: input.key.toLowerCase(), name: input.name, data: { resources } as unknown as Prisma.InputJsonValue },
+      data: {
+        gameId: input.gameId,
+        key: input.key.toLowerCase(),
+        name: input.name,
+        data: { resources } as unknown as Prisma.InputJsonValue,
+      },
     });
 
     return this.toObjRes(row);
@@ -141,8 +148,17 @@ export class ObjResourceService {
 
     const row = await db.objResource.upsert({
       where: { obj_resources_game_id_key_unique: { gameId, key: keyLower } },
-      create: { gameId, key: keyLower, name, data: { resources } as unknown as Prisma.InputJsonValue },
-      update: { name, data: { resources } as unknown as Prisma.InputJsonValue, updatedAt: new Date() },
+      create: {
+        gameId,
+        key: keyLower,
+        name,
+        data: { resources } as unknown as Prisma.InputJsonValue,
+      },
+      update: {
+        name,
+        data: { resources } as unknown as Prisma.InputJsonValue,
+        updatedAt: new Date(),
+      },
     });
 
     return this.toObjRes(row);

@@ -51,7 +51,7 @@ export const OBJ_KIND_LABELS: Record<string, string> = {
 export function buildSearchParams(
   currentParams: URLSearchParams,
   kind: SceneItemKind,
-  key: string,
+  key: string
 ): string {
   const params = new URLSearchParams();
 

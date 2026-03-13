@@ -81,7 +81,10 @@ export class MagicRouter {
    */
   @UseMiddlewares(requireUser)
   @Mutation({ input: ImportMagicInputSchema, output: MagicSchema })
-  async importFromIni(input: z.infer<typeof ImportMagicInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+  async importFromIni(
+    input: z.infer<typeof ImportMagicInputSchema>,
+    @Ctx() ctx: AuthenticatedContext
+  ) {
     return magicService.importFromIni(input, ctx.userId, ctx.language);
   }
 
@@ -102,7 +105,10 @@ export class MagicRouter {
    */
   @UseMiddlewares(requireUser)
   @Mutation({ input: ClearAllMagicsInputSchema, output: ClearAllMagicsResultSchema })
-  async clearAll(input: z.infer<typeof ClearAllMagicsInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+  async clearAll(
+    input: z.infer<typeof ClearAllMagicsInputSchema>,
+    @Ctx() ctx: AuthenticatedContext
+  ) {
     return magicService.clearAll(input, ctx.userId, ctx.language);
   }
 }

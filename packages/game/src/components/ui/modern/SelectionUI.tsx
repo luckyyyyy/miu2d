@@ -14,10 +14,7 @@ interface SelectionUIProps {
   onSelect: (index: number) => void;
 }
 
-export const SelectionUI: React.FC<SelectionUIProps> = ({
-  state,
-  onSelect,
-}) => {
+export const SelectionUI: React.FC<SelectionUIProps> = ({ state, onSelect }) => {
   const { screenWidth, screenHeight } = useGameUIContext();
   const { isVisible, message, options, hoveredIndex: stateHoveredIndex } = state;
   const [hoveredIndex, setHoveredIndex] = useState<number>(-1);

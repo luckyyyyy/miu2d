@@ -224,7 +224,10 @@ const EquipSlot: React.FC<EquipSlotProps> = ({
           {(() => {
             const scale =
               itemImage.width > 0 && itemImage.height > 0
-                ? Math.min(1, Math.min(config.width / itemImage.width, config.height / itemImage.height))
+                ? Math.min(
+                    1,
+                    Math.min(config.width / itemImage.width, config.height / itemImage.height)
+                  )
                 : 1;
             const displayW = itemImage.width * scale;
             const displayH = itemImage.height * scale;
@@ -420,47 +423,55 @@ export const EquipGui: React.FC<EquipGuiProps> = ({
       )}
 
       {/* 整合模式：在装备面板内叠加渲染玩家属性文字 */}
-      {overlayStats && stateConfig && (() => {
-        const getTextStyle = (textCfg: {
-          left: number;
-          top: number;
-          width: number;
-          height: number;
-          color: string;
-        }): React.CSSProperties => ({
-          position: "absolute",
-          left: textCfg.left,
-          top: textCfg.top - 3,
-          width: textCfg.width,
-          fontSize: 12,
-          fontFamily: "SimSun, serif",
-          color: "white",
-          textAlign: "left",
-          pointerEvents: "none",
-        });
-        const s = overlayStats;
-        const sc = stateConfig;
-        const attackText = s.attack2 || s.attack3
-          ? `${s.attack}(${s.attack2 ?? 0})(${s.attack3 ?? 0})`
-          : s.attack.toString();
-        const defendText = s.defend2 || s.defend3
-          ? `${s.defend}(${s.defend2 ?? 0})(${s.defend3 ?? 0})`
-          : s.defend.toString();
-        const manaText = s.manaLimit ? "1/1" : `${s.mana}/${s.manaMax}`;
-        return (
-          <>
-            <div style={getTextStyle(sc.level)}>{s.level}</div>
-            <div style={getTextStyle(sc.exp)}>{s.exp}</div>
-            <div style={getTextStyle(sc.levelUp)}>{s.levelUpExp}</div>
-            <div style={getTextStyle(sc.life)}>{s.life}/{s.lifeMax}</div>
-            <div style={getTextStyle(sc.thew)}>{s.thew}/{s.thewMax}</div>
-            <div style={getTextStyle(sc.mana)}>{manaText}</div>
-            <div style={getTextStyle(sc.attack)}>{attackText}</div>
-            <div style={getTextStyle(sc.defend)}>{defendText}</div>
-            <div style={getTextStyle(sc.evade)}>{s.evade}</div>
-          </>
-        );
-      })()}
+      {overlayStats &&
+        stateConfig &&
+        (() => {
+          const getTextStyle = (textCfg: {
+            left: number;
+            top: number;
+            width: number;
+            height: number;
+            color: string;
+          }): React.CSSProperties => ({
+            position: "absolute",
+            left: textCfg.left,
+            top: textCfg.top - 3,
+            width: textCfg.width,
+            fontSize: 12,
+            fontFamily: "SimSun, serif",
+            color: "white",
+            textAlign: "left",
+            pointerEvents: "none",
+          });
+          const s = overlayStats;
+          const sc = stateConfig;
+          const attackText =
+            s.attack2 || s.attack3
+              ? `${s.attack}(${s.attack2 ?? 0})(${s.attack3 ?? 0})`
+              : s.attack.toString();
+          const defendText =
+            s.defend2 || s.defend3
+              ? `${s.defend}(${s.defend2 ?? 0})(${s.defend3 ?? 0})`
+              : s.defend.toString();
+          const manaText = s.manaLimit ? "1/1" : `${s.mana}/${s.manaMax}`;
+          return (
+            <>
+              <div style={getTextStyle(sc.level)}>{s.level}</div>
+              <div style={getTextStyle(sc.exp)}>{s.exp}</div>
+              <div style={getTextStyle(sc.levelUp)}>{s.levelUpExp}</div>
+              <div style={getTextStyle(sc.life)}>
+                {s.life}/{s.lifeMax}
+              </div>
+              <div style={getTextStyle(sc.thew)}>
+                {s.thew}/{s.thewMax}
+              </div>
+              <div style={getTextStyle(sc.mana)}>{manaText}</div>
+              <div style={getTextStyle(sc.attack)}>{attackText}</div>
+              <div style={getTextStyle(sc.defend)}>{defendText}</div>
+              <div style={getTextStyle(sc.evade)}>{s.evade}</div>
+            </>
+          );
+        })()}
 
       {/* Equipment slots */}
       {slots.map(([slotType, slotConfig]) => {

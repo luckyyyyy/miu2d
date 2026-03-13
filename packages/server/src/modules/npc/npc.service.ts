@@ -23,8 +23,7 @@ import {
   NpcKindFromValue,
   NpcRelationFromValue,
 } from "@miu2d/types";
-import type { Prisma } from "@prisma/client";
-import type { Npc as PrismaNpc } from "@prisma/client";
+import type { Prisma, Npc as PrismaNpc } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
 import { db } from "../../db/client";
 import type { Language } from "../../i18n";
@@ -311,14 +310,25 @@ export class NpcService {
 
     // ── 解析阶段（纯内存，无 DB 调用）────────────────────────────────
     type NpcResRow = { gameId: string; key: string; name: string; data: Record<string, unknown> };
-    type NpcRow = { gameId: string; key: string; name: string; kind: string; relation: string; resourceId: string | null; data: Record<string, unknown> };
+    type NpcRow = {
+      gameId: string;
+      key: string;
+      name: string;
+      kind: string;
+      relation: string;
+      resourceId: string | null;
+      data: Record<string, unknown>;
+    };
 
     const npcResRows: NpcResRow[] = [];
     // key → { fileName, isResourceOnly }
     const npcResKeyToMeta = new Map<string, { fileName: string; isResourceOnly: boolean }>();
     const npcRows: NpcRow[] = [];
     // npc key → { fileName, hasResources, npcResKey }
-    const npcKeyToMeta = new Map<string, { fileName: string; hasResources: boolean; npcResKey: string | null }>();
+    const npcKeyToMeta = new Map<
+      string,
+      { fileName: string; hasResources: boolean; npcResKey: string | null }
+    >();
 
     for (const item of input.items) {
       try {
@@ -330,7 +340,12 @@ export class NpcService {
           const resources = this.parseNpcResIni(item.npcResContent);
           const resourceKey = item.fileName.toLowerCase();
           const resourceName = item.fileName.replace(/\.ini$/i, "");
-          npcResRows.push({ gameId: input.gameId, key: resourceKey, name: resourceName, data: { resources } });
+          npcResRows.push({
+            gameId: input.gameId,
+            key: resourceKey,
+            name: resourceName,
+            data: { resources },
+          });
           npcResKeyToMeta.set(resourceKey, { fileName: item.fileName, isResourceOnly: true });
         } else {
           if (!item.iniContent) throw new Error("NPC 配置内容为空");
@@ -344,7 +359,12 @@ export class NpcService {
             const npcIniField = this.parseNpcIniField(item.iniContent);
             const resourceKey = (npcIniField || item.fileName).toLowerCase();
             const resourceName = resourceKey.replace(/\.ini$/i, "");
-            npcResRows.push({ gameId: input.gameId, key: resourceKey, name: resourceName, data: { resources } });
+            npcResRows.push({
+              gameId: input.gameId,
+              key: resourceKey,
+              name: resourceName,
+              data: { resources },
+            });
             npcResKeyToMeta.set(resourceKey, { fileName: item.fileName, isResourceOnly: false });
             npcResKey = resourceKey;
           }
@@ -358,7 +378,15 @@ export class NpcService {
           };
           const { gameId: _g, key: _k, name, kind, relation, resourceId: _ri, ...data } = fullNpc;
           // resourceId will be filled after npcResources upsert
-          npcRows.push({ gameId: input.gameId, key, name: name ?? "", kind: kind ?? "Normal", relation: relation ?? "Friend", resourceId: null, data });
+          npcRows.push({
+            gameId: input.gameId,
+            key,
+            name: name ?? "",
+            kind: kind ?? "Normal",
+            relation: relation ?? "Friend",
+            resourceId: null,
+            data,
+          });
           npcKeyToMeta.set(key, { fileName: item.fileName, hasResources, npcResKey });
         }
       } catch (error) {
@@ -382,8 +410,17 @@ export class NpcService {
         npcResRowsDeduped.map((row) =>
           db.npcResource.upsert({
             where: { npc_resources_game_id_key_unique: { gameId: row.gameId, key: row.key } },
-            create: { gameId: row.gameId, key: row.key, name: row.name,  data: row.data as unknown as Prisma.InputJsonValue },
-            update: { name: row.name, data: row.data as unknown as Prisma.InputJsonValue, updatedAt: new Date() },
+            create: {
+              gameId: row.gameId,
+              key: row.key,
+              name: row.name,
+              data: row.data as unknown as Prisma.InputJsonValue,
+            },
+            update: {
+              name: row.name,
+              data: row.data as unknown as Prisma.InputJsonValue,
+              updatedAt: new Date(),
+            },
           })
         )
       );
@@ -392,7 +429,13 @@ export class NpcService {
         npcResKeyToId.set(row.key, row.id);
         const meta = npcResKeyToMeta.get(row.key);
         if (meta?.isResourceOnly) {
-          success.push({ fileName: meta.fileName, id: row.id, name: row.name, type: "resource", hasResources: true });
+          success.push({
+            fileName: meta.fileName,
+            id: row.id,
+            name: row.name,
+            type: "resource",
+            hasResources: true,
+          });
         }
       }
     }
@@ -410,7 +453,9 @@ export class NpcService {
       const inserted = await db.$transaction(
         npcRows.map((row) =>
           db.npc.upsert({
-            where: { npcs_game_id_key_unique: { gameId: row.gameId as string, key: row.key as string } },
+            where: {
+              npcs_game_id_key_unique: { gameId: row.gameId as string, key: row.key as string },
+            },
             create: {
               gameId: row.gameId as string,
               key: row.key as string,
@@ -435,7 +480,13 @@ export class NpcService {
       for (const row of inserted) {
         const n = this.toNpc(row);
         const meta = npcKeyToMeta.get(row.key)!;
-        success.push({ fileName: meta.fileName, id: n.id, name: n.name, type: "npc", hasResources: meta.hasResources });
+        success.push({
+          fileName: meta.fileName,
+          id: n.id,
+          name: n.name,
+          type: "npc",
+          hasResources: meta.hasResources,
+        });
       }
     }
 

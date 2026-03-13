@@ -14,9 +14,8 @@ import {
   S3Client,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { Logger } from "../utils/logger.js";
-
 import { env } from "../env";
+import { Logger } from "../utils/logger.js";
 
 const logger = new Logger("S3Storage");
 
@@ -69,7 +68,8 @@ function getS3PublicClient(): S3Client {
   if (!s3PublicClient) {
     // 开发模式下 s3PublicEndpoint 为 "/s3"（相对路径），不是合法 URL，
     // 回退到内部 endpoint（Vite 代理会转发，host 校验不严格）
-    const isAbsoluteUrl = s3PublicEndpoint.startsWith("http://") || s3PublicEndpoint.startsWith("https://");
+    const isAbsoluteUrl =
+      s3PublicEndpoint.startsWith("http://") || s3PublicEndpoint.startsWith("https://");
     const endpoint = isAbsoluteUrl ? s3PublicEndpoint : s3Config.endpoint;
     s3PublicClient = new S3Client({
       ...s3Config,

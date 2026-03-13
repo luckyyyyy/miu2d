@@ -5,13 +5,13 @@
  * useCallback handler 提取到此 hook，消除重复代码。
  */
 
-import { MAGIC_LIST_CONFIG } from "@miu2d/engine/player/magic/magic-list-config";
 import { GoodKind } from "@miu2d/engine/player/goods";
+import { MAGIC_LIST_CONFIG } from "@miu2d/engine/player/magic/magic-list-config";
 import { useCallback } from "react";
 import type { TouchDragData } from "../../contexts";
 import type { EquipSlotType } from "../ui/classic";
-import { equipSlotToUISlot } from "./useGameUILogic";
 import type { GameUILogic } from "./useGameUILogic";
+import { equipSlotToUISlot } from "./useGameUILogic";
 
 export function useTouchDropHandlers(logic: Pick<GameUILogic, "dispatch" | "engine">) {
   const { dispatch, engine } = logic;
@@ -24,9 +24,17 @@ export function useTouchDropHandlers(logic: Pick<GameUILogic, "dispatch" | "engi
             dispatch({ type: "SHOW_MESSAGE", text: "只有药品可以放到快捷栏" });
             return;
           }
-          dispatch({ type: "MOVE_BAG_TO_BOTTOM", bagIndex: touchData.bagIndex, bottomSlot: targetIndex });
+          dispatch({
+            type: "MOVE_BAG_TO_BOTTOM",
+            bagIndex: touchData.bagIndex,
+            bottomSlot: targetIndex,
+          });
         } else if (targetIndex < 3 && touchData.bottomSlot !== undefined) {
-          dispatch({ type: "SWAP_BOTTOM_GOODS", fromSlot: touchData.bottomSlot, toSlot: targetIndex });
+          dispatch({
+            type: "SWAP_BOTTOM_GOODS",
+            fromSlot: touchData.bottomSlot,
+            toSlot: targetIndex,
+          });
         }
       } else if (touchData.type === "magic") {
         if (targetIndex >= 3) {
@@ -74,7 +82,11 @@ export function useTouchDropHandlers(logic: Pick<GameUILogic, "dispatch" | "engi
       if (touchData.type === "goods" && touchData.bagIndex !== undefined) {
         dispatch({ type: "SWAP_ITEMS", fromIndex: touchData.bagIndex, toIndex: targetIndex });
       } else if (touchData.type === "goods" && touchData.bottomSlot !== undefined) {
-        dispatch({ type: "MOVE_BOTTOM_TO_BAG", bottomSlot: touchData.bottomSlot, bagIndex: targetIndex });
+        dispatch({
+          type: "MOVE_BOTTOM_TO_BAG",
+          bottomSlot: touchData.bottomSlot,
+          bagIndex: targetIndex,
+        });
       } else if (touchData.type === "equip" && touchData.equipSlot) {
         // 从装备槽拖到背包槽：将目标背包位置物品与装备槽互换
         dispatch({

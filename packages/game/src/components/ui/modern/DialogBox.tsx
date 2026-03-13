@@ -210,11 +210,7 @@ function getDisplayedText(text: string, textProgress: number): string {
   return text.substring(0, originalIndex);
 }
 
-export const DialogBox: React.FC<DialogBoxProps> = ({
-  state,
-  onClose,
-  onSelectionMade,
-}) => {
+export const DialogBox: React.FC<DialogBoxProps> = ({ state, onClose, onSelectionMade }) => {
   const { screenWidth, screenHeight } = useGameUIContext();
   const {
     isVisible,

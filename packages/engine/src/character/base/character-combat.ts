@@ -5,9 +5,9 @@
  * 继承链: Sprite → CharacterBase → CharacterMovement → CharacterCombat → Character
  */
 
+import { getCharacterDeathExp } from "../../combat/effect-calc";
 import { logger } from "../../core/logger";
 import { CharacterState } from "../../core/types";
-import { getCharacterDeathExp } from "../../combat/effect-calc";
 import { type AsfData, getCachedAsf, loadAsf } from "../../resource/format/asf";
 import { ResourcePath } from "../../resource/resource-paths";
 import { distance, getViewTileDistance, tileToPixel } from "../../utils";
@@ -314,8 +314,8 @@ export abstract class CharacterCombat extends CharacterMovement {
 
     logger.log(
       `[Combat] ${attacker?.name ?? "?"} -> ${this.name}` +
-      ` dmg=${damage} def=${this.realDefend} net=${totalEffect}` +
-      ` HP: ${this.life + totalEffect} -> ${this.life}/${this.lifeMax}`
+        ` dmg=${damage} def=${this.realDefend} net=${totalEffect}` +
+        ` HP: ${this.life + totalEffect} -> ${this.life}/${this.lifeMax}`
     );
 
     this.onDamaged(attacker as CharacterCombat | null, totalEffect);

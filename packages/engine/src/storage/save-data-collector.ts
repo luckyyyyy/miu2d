@@ -53,9 +53,7 @@ export class SaveDataCollector {
     // 快捷栏武功
     const bottomSlotItems = magicInventory.getBottomSlotsItems();
     const bottomMagics: (MagicSaveItem | null)[] = bottomSlotItems.map((info) =>
-      info?.magic
-        ? { fileName: info.magic.fileName, level: info.level, exp: info.exp }
-        : null
+      info?.magic ? { fileName: info.magic.fileName, level: info.level, exp: info.exp } : null
     );
 
     // 隐藏武功
@@ -98,7 +96,11 @@ export class SaveDataCollector {
     const bottomItemsArr: (GoodsSaveItem | null)[] = [];
     for (let s = 0; s < BOTTOM_ITEMS_COUNT; s++) {
       const slotItemInfo = goodsListManager.getBottomItemAtSlot(s);
-      bottomItemsArr.push(slotItemInfo?.good ? { fileName: slotItemInfo.good.fileName, count: slotItemInfo.count } : null);
+      bottomItemsArr.push(
+        slotItemInfo?.good
+          ? { fileName: slotItemInfo.good.fileName, count: slotItemInfo.count }
+          : null
+      );
     }
 
     return { bagItems, equipItems, bottomItems: bottomItemsArr };

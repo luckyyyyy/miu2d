@@ -31,13 +31,15 @@
  */
 
 import type { AudioManager } from "../audio";
-import type { TypedEventEmitter } from "../events/event-emitter";
-import { type GameEventMap, GameEvents } from "../events/game-events";
 import { logger } from "../core/logger";
 import type { GameVariables, Vector2 } from "../core/types";
 import { CharacterState } from "../core/types";
+import type { DebugManager } from "../debug/debug-manager";
+import type { TypedEventEmitter } from "../events/event-emitter";
+import { type GameEventMap, GameEvents } from "../events/game-events";
 import { BuyManager } from "../gui/buy-manager";
 import { GuiManager } from "../gui/gui-manager";
+import { ItemActionHandler } from "../gui/item-action-handler";
 import type { MemoListManager } from "../gui/memo-list-manager";
 import type { TalkTextListManager } from "../gui/talk-text-list";
 import type { MagicItemInfo } from "../magic";
@@ -69,11 +71,9 @@ import { Loader } from "../storage/game-save-manager";
 import type { SaveData } from "../storage/save-types";
 import type { WeatherManager } from "../weather";
 import { CameraController } from "./camera-controller";
-import type { DebugManager } from "../debug/debug-manager";
 import { InputHandler } from "./input-handler";
 import type { InputState } from "./input-types";
 import { InteractionManager } from "./interaction-manager";
-import { ItemActionHandler } from "../gui/item-action-handler";
 import type { TimerManager } from "./timer-manager";
 
 export interface GameManagerConfig {

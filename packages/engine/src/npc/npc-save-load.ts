@@ -5,11 +5,8 @@
  */
 
 import { applyFlatDataToCharacter } from "../character/character-config";
+import { getDefaultNpcLevelKey, loadLevelConfig } from "../character/level/level-config-loader";
 import { getNpcLevelDetail } from "../character/level/level-manager";
-import {
-  getDefaultNpcLevelKey,
-  loadLevelConfig,
-} from "../character/level/level-config-loader";
 import { logger } from "../core/logger";
 import type { CharacterConfig, Direction, Vector2 } from "../core/types";
 import { getGameSlug, loadSceneNpcEntries } from "../data/game-data-api";
@@ -213,8 +210,7 @@ export async function createNpcFromData(
     `[NpcManager] NPC ${npc.name} check: isEnemy=${npc.isEnemy} lifeMax=${npc.lifeMax} level=${npc.level}`
   );
   if (npc.isEnemy && npc.lifeMax === 0) {
-    let levelDetail =
-      npc.levelManager.getLevelDetail(npc.level) ?? getNpcLevelDetail(npc.level);
+    let levelDetail = npc.levelManager.getLevelDetail(npc.level) ?? getNpcLevelDetail(npc.level);
     // 全局 NPC 等级配置可能尚未加载（initNpcLevelConfig 是 fire-and-forget），直接 await 加载
     if (!levelDetail) {
       const cfg = await loadLevelConfig(getDefaultNpcLevelKey());

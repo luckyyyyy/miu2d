@@ -161,7 +161,10 @@ const ItemSlot: React.FC<ItemSlotProps> = ({
           {(() => {
             const scale =
               itemImage.width > 0 && itemImage.height > 0
-                ? Math.min(1, Math.min(config.width / itemImage.width, config.height / itemImage.height))
+                ? Math.min(
+                    1,
+                    Math.min(config.width / itemImage.width, config.height / itemImage.height)
+                  )
                 : 1;
             const displayW = itemImage.width * scale;
             const displayH = itemImage.height * scale;
@@ -361,7 +364,6 @@ export const GoodsGui: React.FC<GoodsGuiProps> = ({
             height: overlayImage.height,
             imageRendering: "pixelated",
             pointerEvents: "none",
-
           }}
         />
       )}

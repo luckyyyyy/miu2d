@@ -81,7 +81,10 @@ export class ObjRouter {
    */
   @UseMiddlewares(requireUser)
   @Mutation({ input: ImportObjInputSchema, output: ObjSchema })
-  async importFromIni(input: z.infer<typeof ImportObjInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+  async importFromIni(
+    input: z.infer<typeof ImportObjInputSchema>,
+    @Ctx() ctx: AuthenticatedContext
+  ) {
     return objService.importFromIni(input, ctx.userId, ctx.language);
   }
 
@@ -90,7 +93,10 @@ export class ObjRouter {
    */
   @UseMiddlewares(requireUser)
   @Mutation({ input: BatchImportObjInputSchema, output: BatchImportObjResultSchema })
-  async batchImportFromIni(input: z.infer<typeof BatchImportObjInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+  async batchImportFromIni(
+    input: z.infer<typeof BatchImportObjInputSchema>,
+    @Ctx() ctx: AuthenticatedContext
+  ) {
     return objService.batchImportFromIni(input, ctx.userId, ctx.language);
   }
 

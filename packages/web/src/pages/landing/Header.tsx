@@ -92,7 +92,6 @@ export function Header() {
             {GAMES.map((g) => (
               <GameNavLink key={g.slug} slug={g.slug} name={g.name} logo={g.logo} />
             ))}
-
           </nav>
 
           {/* Actions */}

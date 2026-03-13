@@ -59,17 +59,42 @@ const ALL_MODULES: ImportModuleMeta[] = [
     description: "ini/ui/dialog/HeadFile.ini 头像映射",
   },
   { key: "scene", label: "场景", icon: "🗺️", description: "map/*.mmf + script/ + save/ 场景数据" },
-  { key: "gameConfig", label: "UI配置", icon: "🎨", description: "content/ui/ui_settings.ini 界面配置" },
+  {
+    key: "gameConfig",
+    label: "UI配置",
+    icon: "🎨",
+    description: "content/ui/ui_settings.ini 界面配置",
+  },
 ];
 
 /** 每个模块解析出的文件数据 */
 interface ParsedModuleData {
-  magic: { fileName: string; iniContent: string; attackFileContent?: string; userType?: "player" | "npc" }[];
-  npc: { fileName: string; type: "npc" | "resource"; iniContent?: string; npcResContent?: string }[];
-  obj: { fileName: string; type?: "obj" | "resource"; iniContent?: string; objResContent?: string }[];
+  magic: {
+    fileName: string;
+    iniContent: string;
+    attackFileContent?: string;
+    userType?: "player" | "npc";
+  }[];
+  npc: {
+    fileName: string;
+    type: "npc" | "resource";
+    iniContent?: string;
+    npcResContent?: string;
+  }[];
+  obj: {
+    fileName: string;
+    type?: "obj" | "resource";
+    iniContent?: string;
+    objResContent?: string;
+  }[];
   goods: { fileName: string; iniContent: string }[];
   shop: { fileName: string; iniContent: string }[];
-  player: { fileName: string; iniContent: string; magicIniContent?: string; goodsIniContent?: string }[];
+  player: {
+    fileName: string;
+    iniContent: string;
+    magicIniContent?: string;
+    goodsIniContent?: string;
+  }[];
   level: { fileName: string; userType: "player" | "npc"; iniContent: string }[];
   talk: string | null;
   talkPortrait: string | null;
@@ -185,10 +210,7 @@ function parseAttackFileField(content: string): string | null {
 }
 
 /** 检测武功类型：player 或 npc */
-function detectMagicUserType(
-  content: string,
-  filePath: string
-): "player" | "npc" {
+function detectMagicUserType(content: string, filePath: string): "player" | "npc" {
   if (filePath.toLowerCase().includes("player")) return "player";
   if (/^\[Level\d+\]/im.test(content)) return "player";
   return "npc";
@@ -214,7 +236,11 @@ function buildSaveFileScriptMapping(
     loadMapRe.lastIndex = 0;
     let m: RegExpExecArray | null;
     while ((m = loadMapRe.exec(content)) !== null) {
-      tokens.push({ type: "map", value: m[1].replace(/\.map$/i, "").toLowerCase(), index: m.index });
+      tokens.push({
+        type: "map",
+        value: m[1].replace(/\.map$/i, "").toLowerCase(),
+        index: m.index,
+      });
     }
     loadSaveRe.lastIndex = 0;
     while ((m = loadSaveRe.exec(content)) !== null) {
@@ -433,9 +459,12 @@ async function parseResourcesFolder(
   const playerMap = new Map<
     number,
     {
-      player?: string; playerSrc?: PlayerSrc;
-      magic?: string; magicSrc?: PlayerSrc;
-      goods?: string; goodsSrc?: PlayerSrc;
+      player?: string;
+      playerSrc?: PlayerSrc;
+      magic?: string;
+      magicSrc?: PlayerSrc;
+      goods?: string;
+      goodsSrc?: PlayerSrc;
       fileName?: string;
     }
   >();
@@ -535,10 +564,7 @@ async function parseResourcesFolder(
 
   // ===== 9. 头像映射 HeadFile.ini =====
   for (const f of byNorm) {
-    if (
-      f.norm === "ini/ui/dialog/headfile.ini" ||
-      f.file.name.toLowerCase() === "headfile.ini"
-    ) {
+    if (f.norm === "ini/ui/dialog/headfile.ini" || f.file.name.toLowerCase() === "headfile.ini") {
       data.talkPortrait = await f.file.text();
       onProgress("找到头像映射 HeadFile.ini");
       break;
@@ -620,9 +646,7 @@ async function parseResourcesFolder(
     // Sword2 trap scripts often have arbitrary names like "地图切换.txt".
     const trapOverrideKey =
       scene.trapOverrides != null
-        ? Object.values(scene.trapOverrides).find(
-            (v) => v.toLowerCase() === fileName.toLowerCase()
-          )
+        ? Object.values(scene.trapOverrides).find((v) => v.toLowerCase() === fileName.toLowerCase())
         : undefined;
     const isTrapFile = classifyScriptFile(fileName) === "trap" || trapOverrideKey != null;
     if (isTrapFile) {
@@ -970,7 +994,11 @@ export function ImportAllModal({
               const res = await importMagic.mutateAsync({ gameId, items: chunk });
               success += res.success.length;
               failed += res.failed.length;
-              errors.push(...res.failed.map((f: { fileName: string; error: string }) => `${f.fileName}: ${f.error}`));
+              errors.push(
+                ...res.failed.map(
+                  (f: { fileName: string; error: string }) => `${f.fileName}: ${f.error}`
+                )
+              );
             }
             currentStep++;
             setImportProgress(currentStep);
@@ -986,7 +1014,9 @@ export function ImportAllModal({
               module: key,
               success: res.success.length,
               failed: res.failed.length,
-              errors: res.failed.map((f: { fileName: string; error: string }) => `${f.fileName}: ${f.error}`),
+              errors: res.failed.map(
+                (f: { fileName: string; error: string }) => `${f.fileName}: ${f.error}`
+              ),
             });
             break;
           }
@@ -999,7 +1029,9 @@ export function ImportAllModal({
               module: key,
               success: res.success.length,
               failed: res.failed.length,
-              errors: res.failed.map((f: { fileName: string; error: string }) => `${f.fileName}: ${f.error}`),
+              errors: res.failed.map(
+                (f: { fileName: string; error: string }) => `${f.fileName}: ${f.error}`
+              ),
             });
             break;
           }
@@ -1013,7 +1045,11 @@ export function ImportAllModal({
               const res = await importGoods.mutateAsync({ gameId, items: chunk });
               success += res.success.length;
               failed += res.failed.length;
-              errors.push(...res.failed.map((f: { fileName: string; error: string }) => `${f.fileName}: ${f.error}`));
+              errors.push(
+                ...res.failed.map(
+                  (f: { fileName: string; error: string }) => `${f.fileName}: ${f.error}`
+                )
+              );
             }
             currentStep++;
             setImportProgress(currentStep);
@@ -1030,7 +1066,11 @@ export function ImportAllModal({
               const res = await importShop.mutateAsync({ gameId, items: chunk });
               success += res.success.length;
               failed += res.failed.length;
-              errors.push(...res.failed.map((f: { fileName: string; error: string }) => `${f.fileName}: ${f.error}`));
+              errors.push(
+                ...res.failed.map(
+                  (f: { fileName: string; error: string }) => `${f.fileName}: ${f.error}`
+                )
+              );
             }
             currentStep++;
             setImportProgress(currentStep);
@@ -1050,7 +1090,9 @@ export function ImportAllModal({
               module: key,
               success: res.success.length,
               failed: res.failed.length,
-              errors: res.failed.map((f: { fileName: string; error: string }) => `${f.fileName}: ${f.error}`),
+              errors: res.failed.map(
+                (f: { fileName: string; error: string }) => `${f.fileName}: ${f.error}`
+              ),
             });
             break;
           }
@@ -1128,9 +1170,7 @@ export function ImportAllModal({
                   success++;
                 }
               } catch (e) {
-                errors.push(
-                  `${scene.name}: ${e instanceof Error ? e.message : String(e)}`
-                );
+                errors.push(`${scene.name}: ${e instanceof Error ? e.message : String(e)}`);
               }
               currentStep++;
               setImportProgress(currentStep);
@@ -1250,9 +1290,7 @@ export function ImportAllModal({
                         {r.success > 0 && (
                           <span className="text-green-400">✓ {r.success} 成功</span>
                         )}
-                        {r.failed > 0 && (
-                          <span className="text-red-400">✗ {r.failed} 失败</span>
-                        )}
+                        {r.failed > 0 && <span className="text-red-400">✗ {r.failed} 失败</span>}
                       </div>
                     </div>
                   );
@@ -1289,8 +1327,8 @@ export function ImportAllModal({
                 />
               </div>
               <div className="text-xs text-[#858585]">
-                {importTotal > 0 ? Math.round((importProgress / importTotal) * 100) : 0}%
-                ({importProgress}/{importTotal})
+                {importTotal > 0 ? Math.round((importProgress / importTotal) * 100) : 0}% (
+                {importProgress}/{importTotal})
               </div>
             </div>
           ) : parsedData ? (
@@ -1333,17 +1371,11 @@ export function ImportAllModal({
                     >
                       <div
                         className={`w-4 h-4 rounded border flex items-center justify-center flex-none ${
-                          isSelected && hasData
-                            ? "bg-[#0e639c] border-[#0e639c]"
-                            : "border-[#555]"
+                          isSelected && hasData ? "bg-[#0e639c] border-[#0e639c]" : "border-[#555]"
                         }`}
                       >
                         {isSelected && hasData && (
-                          <svg
-                            viewBox="0 0 16 16"
-                            fill="white"
-                            className="w-3 h-3"
-                          >
+                          <svg viewBox="0 0 16 16" fill="white" className="w-3 h-3">
                             <path d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z" />
                           </svg>
                         )}
@@ -1371,8 +1403,7 @@ export function ImportAllModal({
             // ===== 拖拽区域 =====
             <div className="space-y-4">
               <p className="text-sm text-[#858585] mb-4">
-                拖拽整个{" "}
-                <code className="text-[#cccccc] bg-[#252526] px-1 rounded">resources</code>{" "}
+                拖拽整个 <code className="text-[#cccccc] bg-[#252526] px-1 rounded">resources</code>{" "}
                 文件夹到下方区域，将自动识别并导入所有数据。
               </p>
 
@@ -1452,9 +1483,7 @@ export function ImportAllModal({
                 ) : (
                   <label className="flex flex-col items-center justify-center py-10 cursor-pointer">
                     <span className="text-[#858585] text-4xl mb-3">{DashboardIcons.upload}</span>
-                    <span className="text-sm text-[#cccccc] mb-1">
-                      拖拽 resources 文件夹到此处
-                    </span>
+                    <span className="text-sm text-[#cccccc] mb-1">拖拽 resources 文件夹到此处</span>
                     <span className="text-xs text-[#858585]">或点击选择文件夹</span>
                     <input
                       type="file"

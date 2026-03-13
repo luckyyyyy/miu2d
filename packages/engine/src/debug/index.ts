@@ -5,5 +5,5 @@
  * 跨越多个领域（player/npc/magic/obj/script），独立于 runtime。
  */
 
-export { DebugManager } from "./debug-manager";
 export type { DebugManagerConfig } from "./debug-manager";
+export { DebugManager } from "./debug-manager";

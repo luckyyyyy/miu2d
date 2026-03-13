@@ -4,11 +4,11 @@
  */
 
 import { logger } from "../core/logger";
-import type { BuyManager } from "./buy-manager";
-import type { GuiManager } from "./gui-manager";
 import type { NpcManager } from "../npc";
 import { GoodKind, type GoodsListManager } from "../player/goods";
 import type { Player } from "../player/player";
+import type { BuyManager } from "./buy-manager";
+import type { GuiManager } from "./gui-manager";
 
 export interface ItemActionDeps {
   player: Player;

@@ -47,17 +47,17 @@ export function SceneEntryListPanels({ sceneId, gameId }: { sceneId: string; gam
       document.addEventListener("mousemove", onMove);
       document.addEventListener("mouseup", onUp);
     },
-    [panelHeight],
+    [panelHeight]
   );
 
   // 从数据库加载 NPC 和 OBJ 列表
   const { data: npcList, isLoading: npcLoading } = trpc.npc.list.useQuery(
     { gameId },
-    { enabled: !!gameId },
+    { enabled: !!gameId }
   );
   const { data: objList, isLoading: objLoading } = trpc.obj.list.useQuery(
     { gameId },
-    { enabled: !!gameId },
+    { enabled: !!gameId }
   );
 
   // 搜索过滤
@@ -66,7 +66,7 @@ export function SceneEntryListPanels({ sceneId, gameId }: { sceneId: string; gam
     if (!npcSearch.trim()) return npcList;
     const q = npcSearch.trim().toLowerCase();
     return npcList.filter(
-      (n) => n.name.toLowerCase().includes(q) || n.key.toLowerCase().includes(q),
+      (n) => n.name.toLowerCase().includes(q) || n.key.toLowerCase().includes(q)
     );
   }, [npcList, npcSearch]);
 
@@ -75,7 +75,7 @@ export function SceneEntryListPanels({ sceneId, gameId }: { sceneId: string; gam
     if (!objSearch.trim()) return objList;
     const q = objSearch.trim().toLowerCase();
     return objList.filter(
-      (o) => o.name.toLowerCase().includes(q) || o.key.toLowerCase().includes(q),
+      (o) => o.name.toLowerCase().includes(q) || o.key.toLowerCase().includes(q)
     );
   }, [objList, objSearch]);
 
@@ -240,7 +240,7 @@ function NpcDbRow({
             kind: npc.kind,
             relation: npc.relation,
             npcIni: npc.npcIni,
-          }),
+          })
         );
         e.dataTransfer.effectAllowed = "copy";
       }}
@@ -299,7 +299,7 @@ function ObjDbRow({
             name: obj.name,
             kind: obj.kind,
             objFile: obj.objFile,
-          }),
+          })
         );
         e.dataTransfer.effectAllowed = "copy";
       }}

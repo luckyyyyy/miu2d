@@ -57,7 +57,7 @@ export function UISettingsPanel({
         // 不阻塞编辑，Monaco 会标红语法错误
       }
     },
-    [updateConfig],
+    [updateConfig]
   );
 
   return (

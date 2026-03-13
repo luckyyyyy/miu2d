@@ -39,7 +39,10 @@ export class TalkPortraitRouter {
    */
   @UseMiddlewares(requireUser)
   @Mutation({ input: UpdatePortraitMapInputSchema, output: PortraitMapResultSchema })
-  async update(input: z.infer<typeof UpdatePortraitMapInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+  async update(
+    input: z.infer<typeof UpdatePortraitMapInputSchema>,
+    @Ctx() ctx: AuthenticatedContext
+  ) {
     return talkPortraitService.update(input, ctx.userId, ctx.language);
   }
 
@@ -48,7 +51,10 @@ export class TalkPortraitRouter {
    */
   @UseMiddlewares(requireUser)
   @Mutation({ input: ImportPortraitMapInputSchema, output: PortraitMapResultSchema })
-  async importFromIni(input: z.infer<typeof ImportPortraitMapInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+  async importFromIni(
+    input: z.infer<typeof ImportPortraitMapInputSchema>,
+    @Ctx() ctx: AuthenticatedContext
+  ) {
     return talkPortraitService.importFromIni(input, ctx.userId, ctx.language);
   }
 
@@ -57,7 +63,10 @@ export class TalkPortraitRouter {
    */
   @UseMiddlewares(requireUser)
   @Mutation({ input: ClearAllTalkPortraitsInputSchema, output: ClearAllTalkPortraitsResultSchema })
-  async clearAll(input: z.infer<typeof ClearAllTalkPortraitsInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+  async clearAll(
+    input: z.infer<typeof ClearAllTalkPortraitsInputSchema>,
+    @Ctx() ctx: AuthenticatedContext
+  ) {
     return talkPortraitService.clearAll(input, ctx.userId, ctx.language);
   }
 }

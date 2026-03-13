@@ -4,26 +4,26 @@
 
 // 角色状态名称映射（与 CharacterState 枚举对齐）
 export const STATE_NAMES: Record<number, string> = {
-  0: "站立",       // Stand
-  1: "站立1",      // Stand1
-  2: "行走",       // Walk
-  3: "奔跑",       // Run
-  4: "跳跃",       // Jump
-  5: "攻击",       // Attack
-  6: "攻击1",      // Attack1
-  7: "攻击2",      // Attack2
-  8: "施法",       // Magic
-  9: "受伤",       // Hurt
-  10: "打坐",      // Sit
-  11: "死亡",      // Death
-  12: "特殊",      // Special
-  13: "坐下过渡",  // Sitting
-  20: "持剑站立",  // FightStand
-  21: "持剑行走",  // FightWalk
-  22: "持剑奔跑",  // FightRun
-  23: "持剑跳跃",  // FightJump
-  24: "特殊攻击",  // SpecialAttack
-  255: "隐藏",     // Hide
+  0: "站立", // Stand
+  1: "站立1", // Stand1
+  2: "行走", // Walk
+  3: "奔跑", // Run
+  4: "跳跃", // Jump
+  5: "攻击", // Attack
+  6: "攻击1", // Attack1
+  7: "攻击2", // Attack2
+  8: "施法", // Magic
+  9: "受伤", // Hurt
+  10: "打坐", // Sit
+  11: "死亡", // Death
+  12: "特殊", // Special
+  13: "坐下过渡", // Sitting
+  20: "持剑站立", // FightStand
+  21: "持剑行走", // FightWalk
+  22: "持剑奔跑", // FightRun
+  23: "持剑跳跃", // FightJump
+  24: "特殊攻击", // SpecialAttack
+  255: "隐藏", // Hide
 };
 
 // localStorage keys

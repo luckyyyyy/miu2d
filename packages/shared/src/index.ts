@@ -27,14 +27,6 @@ export type { Locale } from "./i18n";
 export { supportedLanguages } from "./i18n";
 // ============= Lib =============
 export { isPWA, trpc, trpcClient } from "./lib";
-// ============= Game API =============
-export {
-  fetchGameApi,
-  fetchGameApiBinary,
-  getResourceDomain,
-  getResourceUrl,
-  getS3Url,
-} from "./lib/game-api";
 export type {
   GameConfigResponse,
   GameDataResponse,
@@ -47,6 +39,14 @@ export type {
   ObjData,
   ObjResData,
   ObjResponse,
+} from "./lib/game-api";
+// ============= Game API =============
+export {
+  fetchGameApi,
+  fetchGameApiBinary,
+  getResourceDomain,
+  getResourceUrl,
+  getS3Url,
 } from "./lib/game-api";
 export type { TranslationSchema } from "./locales";
 // ============= Server Locales =============

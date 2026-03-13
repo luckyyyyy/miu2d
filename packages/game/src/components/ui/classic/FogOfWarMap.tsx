@@ -62,7 +62,7 @@ function revealAroundPlayer(
   data: MapExplorationData,
   playerTileX: number,
   playerTileY: number,
-  radius: number,
+  radius: number
 ): void {
   const { columns, rows, revealed } = data;
   const minCol = Math.max(0, playerTileX - radius);
@@ -89,7 +89,7 @@ function isEdgeObstacle(
   col: number,
   row: number,
   columns: number,
-  rows: number,
+  rows: number
 ): boolean {
   const neighbors = [
     [col - 1, row],
@@ -232,7 +232,7 @@ export const FogOfWarMap: React.FC<FogOfWarMapProps> = ({
         Math.round((nu - nv + vMax) * scale),
         Math.round((nu + nv) * scale),
         dotSize,
-        dotSize,
+        dotSize
       );
     }
 
@@ -244,7 +244,7 @@ export const FogOfWarMap: React.FC<FogOfWarMapProps> = ({
       Math.round((pu - pv + vMax) * scale),
       Math.round((pu + pv) * scale),
       dotSize,
-      dotSize,
+      dotSize
     );
   }, [mapData, mapName, mapColumns, mapRows, scale, vMax, playerTileX, playerTileY, characters]);
 
@@ -268,4 +268,3 @@ export const FogOfWarMap: React.FC<FogOfWarMapProps> = ({
     />
   );
 };
-

@@ -17,31 +17,109 @@ const GAME_API_NAMES = GAME_API_FUNCTIONS.map((f) => f.name);
 
 /** Lua 关键字 */
 const LUA_KEYWORDS = [
-  "and", "break", "do", "else", "elseif", "end", "false", "for",
-  "function", "goto", "if", "in", "local", "nil", "not", "or",
-  "repeat", "return", "then", "true", "until", "while",
+  "and",
+  "break",
+  "do",
+  "else",
+  "elseif",
+  "end",
+  "false",
+  "for",
+  "function",
+  "goto",
+  "if",
+  "in",
+  "local",
+  "nil",
+  "not",
+  "or",
+  "repeat",
+  "return",
+  "then",
+  "true",
+  "until",
+  "while",
 ];
 
 /** Lua 标准库函数 */
 const LUA_BUILTINS = [
-  "assert", "collectgarbage", "dofile", "error", "getmetatable", "ipairs",
-  "load", "loadfile", "next", "pairs", "pcall", "print", "rawequal",
-  "rawget", "rawlen", "rawset", "require", "select", "setmetatable",
-  "tonumber", "tostring", "type", "warn", "xpcall",
+  "assert",
+  "collectgarbage",
+  "dofile",
+  "error",
+  "getmetatable",
+  "ipairs",
+  "load",
+  "loadfile",
+  "next",
+  "pairs",
+  "pcall",
+  "print",
+  "rawequal",
+  "rawget",
+  "rawlen",
+  "rawset",
+  "require",
+  "select",
+  "setmetatable",
+  "tonumber",
+  "tostring",
+  "type",
+  "warn",
+  "xpcall",
   // string
-  "string.byte", "string.char", "string.dump", "string.find", "string.format",
-  "string.gmatch", "string.gsub", "string.len", "string.lower", "string.match",
-  "string.pack", "string.packsize", "string.rep", "string.reverse",
-  "string.sub", "string.unpack", "string.upper",
+  "string.byte",
+  "string.char",
+  "string.dump",
+  "string.find",
+  "string.format",
+  "string.gmatch",
+  "string.gsub",
+  "string.len",
+  "string.lower",
+  "string.match",
+  "string.pack",
+  "string.packsize",
+  "string.rep",
+  "string.reverse",
+  "string.sub",
+  "string.unpack",
+  "string.upper",
   // table
-  "table.concat", "table.insert", "table.move", "table.pack", "table.remove",
-  "table.sort", "table.unpack",
+  "table.concat",
+  "table.insert",
+  "table.move",
+  "table.pack",
+  "table.remove",
+  "table.sort",
+  "table.unpack",
   // math
-  "math.abs", "math.acos", "math.asin", "math.atan", "math.ceil", "math.cos",
-  "math.deg", "math.exp", "math.floor", "math.fmod", "math.huge",
-  "math.log", "math.max", "math.maxinteger", "math.min", "math.mininteger",
-  "math.modf", "math.pi", "math.rad", "math.random", "math.randomseed",
-  "math.sin", "math.sqrt", "math.tan", "math.tointeger", "math.type",
+  "math.abs",
+  "math.acos",
+  "math.asin",
+  "math.atan",
+  "math.ceil",
+  "math.cos",
+  "math.deg",
+  "math.exp",
+  "math.floor",
+  "math.fmod",
+  "math.huge",
+  "math.log",
+  "math.max",
+  "math.maxinteger",
+  "math.min",
+  "math.mininteger",
+  "math.modf",
+  "math.pi",
+  "math.rad",
+  "math.random",
+  "math.randomseed",
+  "math.sin",
+  "math.sqrt",
+  "math.tan",
+  "math.tointeger",
+  "math.type",
 ];
 
 /**
@@ -225,8 +303,14 @@ export function registerLuaLanguage(monaco: MonacoType): void {
   monaco.languages.registerCompletionItemProvider(LUA_LANGUAGE_ID, {
     triggerCharacters: [".", ":"],
     provideCompletionItems: (
-      model: { getWordUntilPosition: (pos: Position) => { word: string; startColumn: number; endColumn: number } },
-      position: Position,
+      model: {
+        getWordUntilPosition: (pos: Position) => {
+          word: string;
+          startColumn: number;
+          endColumn: number;
+        };
+      },
+      position: Position
     ) => {
       const word = model.getWordUntilPosition(position);
       const range: IRange = {
@@ -345,8 +429,12 @@ export function registerLuaLanguage(monaco: MonacoType): void {
   // ===== 悬停提示 =====
   monaco.languages.registerHoverProvider(LUA_LANGUAGE_ID, {
     provideHover: (
-      model: { getWordAtPosition: (pos: Position) => { word: string; startColumn: number; endColumn: number } | null },
-      position: Position,
+      model: {
+        getWordAtPosition: (
+          pos: Position
+        ) => { word: string; startColumn: number; endColumn: number } | null;
+      },
+      position: Position
     ) => {
       const wordInfo = model.getWordAtPosition(position);
       if (!wordInfo) return null;
@@ -381,7 +469,7 @@ export function registerLuaLanguage(monaco: MonacoType): void {
     signatureHelpTriggerCharacters: ["(", ","],
     provideSignatureHelp: (
       model: { getValueInRange: (range: IRange) => string },
-      position: Position,
+      position: Position
     ) => {
       // 查找当前函数调用
       const textBefore = model.getValueInRange({
@@ -422,7 +510,10 @@ export function registerLuaLanguage(monaco: MonacoType): void {
 
       // 解析参数列表
       const paramStr = func.signature.replace(/^\(/, "").replace(/\).*$/, "");
-      const params = paramStr.split(",").map((p) => p.trim()).filter(Boolean);
+      const params = paramStr
+        .split(",")
+        .map((p) => p.trim())
+        .filter(Boolean);
 
       const parameters: Array<{ label: string; documentation?: string }> = params.map((p) => ({
         label: p,

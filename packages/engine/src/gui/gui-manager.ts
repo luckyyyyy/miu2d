@@ -3,6 +3,7 @@
  */
 
 import { getEngineContext } from "../core/engine-context";
+import { logger } from "../core/logger";
 import type { TypedEventEmitter } from "../events/event-emitter";
 import {
   type GameEventMap,
@@ -18,7 +19,6 @@ import {
   type UISelectionChangeEvent,
   type UIVideoPlayEvent,
 } from "../events/game-events";
-import { logger } from "../core/logger";
 import type { MemoListManager } from "../gui/memo-list-manager";
 import type { GuiManagerState, SelectionOptionData } from "./ui-types";
 import { createDefaultGuiState } from "./ui-types";
@@ -493,7 +493,14 @@ export class GuiManager {
   openGambleGui(cost: number, npcType: number): void {
     // 关闭其它面板
     const panelKeys: (keyof GuiManagerState["panels"])[] = [
-      "state", "equip", "xiulian", "magic", "memo", "system", "saveLoad", "buy",
+      "state",
+      "equip",
+      "xiulian",
+      "magic",
+      "memo",
+      "system",
+      "saveLoad",
+      "buy",
     ];
     for (const key of panelKeys) this.state.panels[key] = false;
     this.state.gamble = { npcType, cost };
@@ -509,8 +516,6 @@ export class GuiManager {
   isGambleGuiOpen(): boolean {
     return this.state.panels.gamble;
   }
-
-
 
   openMenu(menu: GuiManagerState["menu"]["currentMenu"]): void {
     this.state.menu.currentMenu = menu;

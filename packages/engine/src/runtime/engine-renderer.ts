@@ -291,7 +291,7 @@ export function renderFrame(renderer: Renderer, ctx: FrameRenderContext): void {
     gameManager.objManager.objsInView,
     gameManager.npcManager.npcsInView,
     gameManager.magicSpriteManager.getMagicSprites(),
-    gameManager.magicSpriteManager.getEffectSprites(),
+    gameManager.magicSpriteManager.getEffectSprites()
   );
 
   // === 高亮边缘（在暗色遮罩和局部光照之后，确保在暗场景中可见且不闪烁） ===

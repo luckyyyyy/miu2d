@@ -8,19 +8,18 @@
 import { logger } from "@miu2d/engine/core/logger";
 import type React from "react";
 import { useEffect } from "react";
-import { EngineWatermark } from "./common/EngineWatermark";
 import { GameUIContext } from "../contexts";
-import { useBuildGameUIContextValue, useTouchDropHandlers } from "./hooks";
+import { EngineWatermark } from "./common/EngineWatermark";
 import type { GameUILogic } from "./hooks";
-import { useEquipGuiConfig, useStateGuiConfig } from "./ui/classic/useUISettings";
+import { useBuildGameUIContextValue, useTouchDropHandlers } from "./hooks";
 import {
   BottomGui,
   BottomStateGui,
   BuyGui,
-  FogOfWarMap,
-  GambleGui,
   DialogUI,
   EquipGui,
+  FogOfWarMap,
+  GambleGui,
   GoodsGui,
   ItemTooltip,
   LittleHeadGui,
@@ -37,6 +36,7 @@ import {
   TopGui,
   XiuLianGui,
 } from "./ui/classic";
+import { useEquipGuiConfig, useStateGuiConfig } from "./ui/classic/useUISettings";
 
 interface ClassicGameUIProps {
   logic: GameUILogic;
@@ -247,25 +247,29 @@ export const ClassicGameUI: React.FC<ClassicGameUIProps> = ({ logic, width, heig
           onClose={() => togglePanel("equip")}
           dragData={dragData}
           onTouchDrop={handleEquipTouchDrop}
-          overlayStats={isStateIntegratedWithEquip && player ? {
-            level: player.level,
-            exp: player.exp,
-            levelUpExp: player.levelUpExp,
-            life: player.life,
-            lifeMax: player.lifeMax,
-            thew: player.thew,
-            thewMax: player.thewMax,
-            mana: player.mana,
-            manaMax: player.manaMax,
-            manaLimit: player.manaLimit,
-            attack: player.attack,
-            attack2: player.attack2,
-            attack3: player.attack3,
-            defend: player.defend,
-            defend2: player.defend2,
-            defend3: player.defend3,
-            evade: player.evade,
-          } : undefined}
+          overlayStats={
+            isStateIntegratedWithEquip && player
+              ? {
+                  level: player.level,
+                  exp: player.exp,
+                  levelUpExp: player.levelUpExp,
+                  life: player.life,
+                  lifeMax: player.lifeMax,
+                  thew: player.thew,
+                  thewMax: player.thewMax,
+                  mana: player.mana,
+                  manaMax: player.manaMax,
+                  manaLimit: player.manaLimit,
+                  attack: player.attack,
+                  attack2: player.attack2,
+                  attack3: player.attack3,
+                  defend: player.defend,
+                  defend2: player.defend2,
+                  defend3: player.defend3,
+                  evade: player.evade,
+                }
+              : undefined
+          }
         />
       )}
 
@@ -359,20 +363,21 @@ export const ClassicGameUI: React.FC<ClassicGameUIProps> = ({ logic, width, heig
       {/* System Menu - 已由 GameScreen 的 GameMenuPanel 替代 */}
 
       {/* Gamble Mini-Game */}
-      {panels?.gamble && (() => {
-        const guiState = engine?.guiManager?.getState();
-        const gambleState = guiState?.gamble as { npcType: number; cost: number } | null;
-        const money = engine?.player?.money ?? 0;
-        return (
-          <GambleGui
-            isVisible={true}
-            cost={gambleState?.cost ?? 0}
-            npcType={((gambleState?.npcType ?? 0) as 0 | 1)}
-            playerMoney={money}
-            onResult={(win) => dispatch({ type: "GAMBLE_DONE", win })}
-          />
-        );
-      })()}
+      {panels?.gamble &&
+        (() => {
+          const guiState = engine?.guiManager?.getState();
+          const gambleState = guiState?.gamble as { npcType: number; cost: number } | null;
+          const money = engine?.player?.money ?? 0;
+          return (
+            <GambleGui
+              isVisible={true}
+              cost={gambleState?.cost ?? 0}
+              npcType={(gambleState?.npcType ?? 0) as 0 | 1}
+              playerMoney={money}
+              onResult={(win) => dispatch({ type: "GAMBLE_DONE", win })}
+            />
+          );
+        })()}
 
       {/* FogOfWarMap - 战争迷雾风格地图（替换原 LittleMapGui） */}
       {panels?.littleMap && (

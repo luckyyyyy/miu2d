@@ -357,11 +357,34 @@ export const BottomBar: React.FC<BottomBarProps> = ({
           padding: "2px 0",
         }}
       >
-        {([
-          { label: "命",  percent: lifePercent,  cur: life,  max: lifeMax,  fill: "rgba(220,80,80,0.75)",   dim: "rgba(220,80,80,0.4)" },
-          { label: "内",   percent: manaPercent,  cur: mana,  max: manaMax,  fill: "rgba(80,140,220,0.75)",  dim: "rgba(80,140,220,0.4)" },
-          { label: "体",   percent: thewPercent,  cur: thew,  max: thewMax,  fill: "rgba(80,200,120,0.75)", dim: "rgba(80,200,120,0.4)" },
-        ] as const).map(({ label, percent, cur, max, fill, dim }) => (
+        {(
+          [
+            {
+              label: "命",
+              percent: lifePercent,
+              cur: life,
+              max: lifeMax,
+              fill: "rgba(220,80,80,0.75)",
+              dim: "rgba(220,80,80,0.4)",
+            },
+            {
+              label: "内",
+              percent: manaPercent,
+              cur: mana,
+              max: manaMax,
+              fill: "rgba(80,140,220,0.75)",
+              dim: "rgba(80,140,220,0.4)",
+            },
+            {
+              label: "体",
+              percent: thewPercent,
+              cur: thew,
+              max: thewMax,
+              fill: "rgba(80,200,120,0.75)",
+              dim: "rgba(80,200,120,0.4)",
+            },
+          ] as const
+        ).map(({ label, percent, cur, max, fill, dim }) => (
           <div key={label} style={{ display: "flex", alignItems: "center", gap: 5 }}>
             {/* 属性简称 */}
             <span
@@ -386,7 +409,7 @@ export const BottomBar: React.FC<BottomBarProps> = ({
                 position: "relative",
               }}
             >
-                <div
+              <div
                 style={{
                   width: `${percent}%`,
                   height: "100%",

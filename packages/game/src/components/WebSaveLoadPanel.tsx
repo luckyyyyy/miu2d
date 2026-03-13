@@ -8,7 +8,7 @@
  * - 支持分享功能
  */
 
-import { trpc, useAuth, getS3Url } from "@miu2d/shared";
+import { getS3Url, trpc, useAuth } from "@miu2d/shared";
 import type { SaveSlot } from "@miu2d/types";
 import { useCallback, useEffect, useState } from "react";
 
@@ -307,16 +307,20 @@ export function WebSaveLoadPanel({
     </>
   );
 
-  const pendingSave = confirmAction?.id ? savesQuery.data?.find((s) => s.id === confirmAction.id) : undefined;
+  const pendingSave = confirmAction?.id
+    ? savesQuery.data?.find((s) => s.id === confirmAction.id)
+    : undefined;
 
   const confirmDialog = confirmAction && confirmAction.type !== "share" && (
     <ConfirmDialog
       action={confirmAction.type}
       saveName={pendingSave?.name}
       onConfirm={() => {
-        if (confirmAction.type === "save" && confirmAction.id) handleOverwriteSave(confirmAction.id);
+        if (confirmAction.type === "save" && confirmAction.id)
+          handleOverwriteSave(confirmAction.id);
         else if (confirmAction.type === "load" && confirmAction.id) handleLoad(confirmAction.id);
-        else if (confirmAction.type === "delete" && confirmAction.id) handleDelete(confirmAction.id);
+        else if (confirmAction.type === "delete" && confirmAction.id)
+          handleDelete(confirmAction.id);
       }}
       onCancel={() => setConfirmAction(null)}
     />
@@ -324,7 +328,12 @@ export function WebSaveLoadPanel({
 
   // 嵌入模式：仅返回内容
   if (embedded) {
-    return <>{content}{confirmDialog}</>;
+    return (
+      <>
+        {content}
+        {confirmDialog}
+      </>
+    );
   }
 
   // 独立模式：包含遮罩和外壳
@@ -367,16 +376,31 @@ function ConfirmDialog({
   onCancel: () => void;
 }) {
   const meta = {
-    load:   { title: "读取存档", desc: "将用此存档覆盖当前游戏进度，确定要读档吗？",  confirmCls: "bg-green-500/70 hover:bg-green-500/90", label: "确认读档", icon: <span className="text-blue-300 text-lg leading-none">ℹ️</span> },
-    save:   { title: "覆盖存档", desc: "将用当前游戏状态覆盖此存档，此操作无法撤销。", confirmCls: "bg-blue-500/60 hover:bg-blue-500/80",  label: "确认覆盖", icon: <span className="text-lg leading-none">⚠️</span> },
-    delete: { title: "删除存档", desc: "删除后无法恢复，确定要删除吗？",              confirmCls: "bg-red-500/60  hover:bg-red-500/80",  label: "确认删除", icon: <span className="text-lg leading-none">🗑️</span> },
+    load: {
+      title: "读取存档",
+      desc: "将用此存档覆盖当前游戏进度，确定要读档吗？",
+      confirmCls: "bg-green-500/70 hover:bg-green-500/90",
+      label: "确认读档",
+      icon: <span className="text-blue-300 text-lg leading-none">ℹ️</span>,
+    },
+    save: {
+      title: "覆盖存档",
+      desc: "将用当前游戏状态覆盖此存档，此操作无法撤销。",
+      confirmCls: "bg-blue-500/60 hover:bg-blue-500/80",
+      label: "确认覆盖",
+      icon: <span className="text-lg leading-none">⚠️</span>,
+    },
+    delete: {
+      title: "删除存档",
+      desc: "删除后无法恢复，确定要删除吗？",
+      confirmCls: "bg-red-500/60  hover:bg-red-500/80",
+      label: "确认删除",
+      icon: <span className="text-lg leading-none">🗑️</span>,
+    },
   }[action];
 
   return (
-    <div
-      className="fixed inset-0 z-[1300] flex items-center justify-center"
-      onClick={onCancel}
-    >
+    <div className="fixed inset-0 z-[1300] flex items-center justify-center" onClick={onCancel}>
       <div
         className="absolute inset-0 bg-black/75"
         style={{ backdropFilter: "blur(40px)", WebkitBackdropFilter: "blur(40px)" }}
@@ -385,10 +409,11 @@ function ConfirmDialog({
         className="relative w-[340px] rounded-2xl bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl p-6"
         onClick={(e) => e.stopPropagation()}
       >
-        <h3 className="flex items-center gap-2 text-base font-semibold text-white/90 mb-1">{meta.icon}{meta.title}</h3>
-        {saveName && (
-          <p className="text-xs text-white/40 mb-3 truncate">「{saveName}」</p>
-        )}
+        <h3 className="flex items-center gap-2 text-base font-semibold text-white/90 mb-1">
+          {meta.icon}
+          {meta.title}
+        </h3>
+        {saveName && <p className="text-xs text-white/40 mb-3 truncate">「{saveName}」</p>}
         <p className="text-sm text-white/60 mb-5">{meta.desc}</p>
         <div className="flex gap-2 justify-end">
           <button
@@ -449,7 +474,9 @@ function SaveSlotCard({
         <div className="relative w-16 h-12 rounded-lg overflow-hidden bg-black/30 flex-shrink-0">
           {save.screenshot ? (
             <img
-              src={save.screenshot.startsWith("data:") ? save.screenshot : getS3Url(save.screenshot)}
+              src={
+                save.screenshot.startsWith("data:") ? save.screenshot : getS3Url(save.screenshot)
+              }
               alt=""
               className="w-full h-full object-cover"
             />

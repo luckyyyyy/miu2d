@@ -71,10 +71,7 @@ export function MapDataPanel({
     return scripts.sort();
   }, [sceneData.traps, sceneData.scripts]);
 
-  const trapKeys = useMemo(
-    () => new Set(Object.keys(sceneData.traps ?? {})),
-    [sceneData.traps]
-  );
+  const trapKeys = useMemo(() => new Set(Object.keys(sceneData.traps ?? {})), [sceneData.traps]);
 
   const filteredMapScripts = useMemo(() => {
     if (!mapScriptSearch) return availableScripts;

@@ -11,11 +11,16 @@ import { colorToCSS, type UiColorRGBA } from "@miu2d/engine/gui/ui-settings";
 function solidColor(c: UiColorRGBA): string {
   return `rgb(${c.r},${c.g},${c.b})`;
 }
+
 import type { MagicItemInfo } from "@miu2d/engine/magic";
 import type React from "react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { useToolTipType1Config, useToolTipType2Config, useToolTipUseTypeConfig } from "./useUISettings";
 import { useAsfAnimation, useAsfImage } from "./hooks";
+import {
+  useToolTipType1Config,
+  useToolTipType2Config,
+  useToolTipUseTypeConfig,
+} from "./useUISettings";
 
 interface MagicTooltipProps {
   magicInfo: MagicItemInfo | null;
@@ -265,7 +270,13 @@ const MagicTooltipType2: React.FC<MagicTooltipProps> = ({ magicInfo, position, i
       </div>
 
       {/* Divider */}
-      <div style={{ margin: `${Math.round(vPad * 0.6)}px 0`, height: 1, background: "rgba(255,255,255,0.12)" }} />
+      <div
+        style={{
+          margin: `${Math.round(vPad * 0.6)}px 0`,
+          height: 1,
+          background: "rgba(255,255,255,0.12)",
+        }}
+      />
 
       {/* Level */}
       <div

@@ -11,11 +11,11 @@
  * 4. result  — 显示三颗骰子结果，等待玩家离开
  */
 
+import { normalizeImagePath } from "@miu2d/engine/gui/ui-settings";
+import { resourceLoader } from "@miu2d/engine/resource/resource-loader";
+import { parseIni } from "@miu2d/engine/utils/ini-parser";
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { resourceLoader } from "@miu2d/engine/resource/resource-loader";
-import { normalizeImagePath } from "@miu2d/engine/gui/ui-settings";
-import { parseIni } from "@miu2d/engine/utils/ini-parser";
 import { AsfAnimatedSprite } from "./AsfAnimatedSprite";
 import { playUiSound } from "./hooks";
 
@@ -72,24 +72,24 @@ let cachedGambleConfig: GambleLittleGameConfig | null = null;
 let gambleConfigPromise: Promise<GambleLittleGameConfig> | null = null;
 
 const GAMBLE_INI_PATHS: Record<keyof GambleLittleGameConfig, string> = {
-  window:       "ini/ui/littlegame/Window.ini",
-  gambling:     "ini/ui/littlegame/Gambling.ini",
-  openBg:       "ini/ui/littlegame/OpenBg.ini",
-  opening:      "ini/ui/littlegame/Opening.ini",
-  dice1:        "ini/ui/littlegame/Dice1.ini",
-  dice2:        "ini/ui/littlegame/Dice2.ini",
-  dice3:        "ini/ui/littlegame/Dice3.ini",
-  gambleBig:    "ini/ui/littlegame/GambleBig.ini",
-  gambleSmall:  "ini/ui/littlegame/GambleSmall.ini",
-  chipin:       "ini/ui/littlegame/Chipin.ini",
-  quit:         "ini/ui/littlegame/Quit.ini",
-  message:      "ini/ui/littlegame/Message.ini",
-  playerFace:   "ini/ui/littlegame/PlayerFace.ini",
-  luFace:       "ini/ui/littlegame/LuFace.ini",
-  bossFace:     "ini/ui/littlegame/BossFace.ini",
-  labPlayer:    "ini/ui/littlegame/LabPlayer.ini",
-  labComputer:  "ini/ui/littlegame/LabComputer.ini",
-  labChipIn:    "ini/ui/littlegame/LabChipIn.ini",
+  window: "ini/ui/littlegame/Window.ini",
+  gambling: "ini/ui/littlegame/Gambling.ini",
+  openBg: "ini/ui/littlegame/OpenBg.ini",
+  opening: "ini/ui/littlegame/Opening.ini",
+  dice1: "ini/ui/littlegame/Dice1.ini",
+  dice2: "ini/ui/littlegame/Dice2.ini",
+  dice3: "ini/ui/littlegame/Dice3.ini",
+  gambleBig: "ini/ui/littlegame/GambleBig.ini",
+  gambleSmall: "ini/ui/littlegame/GambleSmall.ini",
+  chipin: "ini/ui/littlegame/Chipin.ini",
+  quit: "ini/ui/littlegame/Quit.ini",
+  message: "ini/ui/littlegame/Message.ini",
+  playerFace: "ini/ui/littlegame/PlayerFace.ini",
+  luFace: "ini/ui/littlegame/LuFace.ini",
+  bossFace: "ini/ui/littlegame/BossFace.ini",
+  labPlayer: "ini/ui/littlegame/LabPlayer.ini",
+  labComputer: "ini/ui/littlegame/LabComputer.ini",
+  labChipIn: "ini/ui/littlegame/LabChipIn.ini",
 };
 
 async function loadGambleLittleGameConfig(): Promise<GambleLittleGameConfig> {
@@ -121,9 +121,7 @@ export function resetGambleLittleGameConfigCache(): void {
 // ---- Hook ----
 
 function useGambleLittleGameConfig(): GambleLittleGameConfig | null {
-  const [config, setConfig] = useState<GambleLittleGameConfig | null>(
-    cachedGambleConfig
-  );
+  const [config, setConfig] = useState<GambleLittleGameConfig | null>(cachedGambleConfig);
   useEffect(() => {
     if (cachedGambleConfig) {
       setConfig(cachedGambleConfig);
@@ -144,10 +142,10 @@ function useGambleLittleGameConfig(): GambleLittleGameConfig | null {
 type NpcType = 0 | 1;
 
 type GamePhase =
-  | "choose"   // 等待玩家选大/小
-  | "shaking"  // 摇骰子动画
-  | "opening"  // 开盘动画
-  | "result";  // 显示结果
+  | "choose" // 等待玩家选大/小
+  | "shaking" // 摇骰子动画
+  | "opening" // 开盘动画
+  | "result"; // 显示结果
 
 export interface GambleGuiProps {
   isVisible: boolean;
@@ -208,8 +206,7 @@ export const GambleGui: React.FC<GambleGuiProps> = ({
 
         const total = d1 + d2 + d3;
         const resultIsBig = total >= 11;
-        const playerWin =
-          (choice === "big" && resultIsBig) || (choice === "small" && !resultIsBig);
+        const playerWin = (choice === "big" && resultIsBig) || (choice === "small" && !resultIsBig);
 
         setWin(playerWin);
         setPhase("opening");
@@ -233,8 +230,7 @@ export const GambleGui: React.FC<GambleGuiProps> = ({
 
   if (!isVisible || !config) return null;
 
-  const bossFaceImage =
-    npcType === 0 ? config.luFace.image : config.bossFace.image;
+  const bossFaceImage = npcType === 0 ? config.luFace.image : config.bossFace.image;
   const bossLeft = npcType === 0 ? config.luFace.left : config.bossFace.left;
   const bossTop = npcType === 0 ? config.luFace.top : config.bossFace.top;
 
@@ -274,11 +270,7 @@ export const GambleGui: React.FC<GambleGuiProps> = ({
               height: windowH,
             }}
           >
-            <AsfAnimatedSprite
-              path={config.window.image}
-              autoPlay={false}
-              loop={false}
-            />
+            <AsfAnimatedSprite path={config.window.image} autoPlay={false} loop={false} />
           </div>
         )}
 
@@ -336,11 +328,7 @@ export const GambleGui: React.FC<GambleGuiProps> = ({
                   height: config.openBg.height || 75,
                 }}
               >
-                <AsfAnimatedSprite
-                  path={config.openBg.image}
-                  autoPlay={false}
-                  loop={false}
-                />
+                <AsfAnimatedSprite path={config.openBg.image} autoPlay={false} loop={false} />
               </div>
             )}
             {config.opening.image && (
@@ -353,11 +341,7 @@ export const GambleGui: React.FC<GambleGuiProps> = ({
                   height: config.opening.height || 329,
                 }}
               >
-                <AsfAnimatedSprite
-                  path={config.opening.image}
-                  autoPlay
-                  loop={false}
-                />
+                <AsfAnimatedSprite path={config.opening.image} autoPlay loop={false} />
               </div>
             )}
           </>
@@ -365,28 +349,26 @@ export const GambleGui: React.FC<GambleGuiProps> = ({
 
         {/* 三颗骰子（result 阶段） */}
         {phase === "result" &&
-          ([config.dice1, config.dice2, config.dice3] as ElementConfig[]).map(
-            (diceConf, idx) => (
-              <div
-                key={`dice-${idx}`}
-                style={{
-                  position: "absolute",
-                  left: diceConf.left,
-                  top: diceConf.top,
-                  width: diceConf.width || 30,
-                  height: diceConf.height || 30,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: 20,
-                  color: "#fff",
-                  textShadow: "0 0 4px #000",
-                }}
-              >
-                {DICE_EMOJI[diceValues[idx] - 1]}
-              </div>
-            )
-          )}
+          ([config.dice1, config.dice2, config.dice3] as ElementConfig[]).map((diceConf, idx) => (
+            <div
+              key={`dice-${idx}`}
+              style={{
+                position: "absolute",
+                left: diceConf.left,
+                top: diceConf.top,
+                width: diceConf.width || 30,
+                height: diceConf.height || 30,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 20,
+                color: "#fff",
+                textShadow: "0 0 4px #000",
+              }}
+            >
+              {DICE_EMOJI[diceValues[idx] - 1]}
+            </div>
+          ))}
 
         {/* 猜大/猜小按钮（choose 阶段） */}
         {phase === "choose" && (
@@ -408,7 +390,9 @@ export const GambleGui: React.FC<GambleGuiProps> = ({
                 borderRadius: 4,
               }}
               onClick={() => handleChoose("big")}
-              onMouseEnter={() => { if (config.gambleBig.sound) playUiSound(config.gambleBig.sound); }}
+              onMouseEnter={() => {
+                if (config.gambleBig.sound) playUiSound(config.gambleBig.sound);
+              }}
             >
               大
             </button>
@@ -429,7 +413,9 @@ export const GambleGui: React.FC<GambleGuiProps> = ({
                 borderRadius: 4,
               }}
               onClick={() => handleChoose("small")}
-              onMouseEnter={() => { if (config.gambleSmall.sound) playUiSound(config.gambleSmall.sound); }}
+              onMouseEnter={() => {
+                if (config.gambleSmall.sound) playUiSound(config.gambleSmall.sound);
+              }}
             >
               小
             </button>
@@ -445,11 +431,7 @@ export const GambleGui: React.FC<GambleGuiProps> = ({
                   pointerEvents: "none",
                 }}
               >
-                <AsfAnimatedSprite
-                  path={config.chipin.image}
-                  autoPlay={false}
-                  loop={false}
-                />
+                <AsfAnimatedSprite path={config.chipin.image} autoPlay={false} loop={false} />
               </div>
             )}
           </>
@@ -531,13 +513,11 @@ export const GambleGui: React.FC<GambleGuiProps> = ({
               cursor: "pointer",
             }}
             onClick={handleQuit}
-            onMouseEnter={() => { if (config.quit.sound) playUiSound(config.quit.sound); }}
+            onMouseEnter={() => {
+              if (config.quit.sound) playUiSound(config.quit.sound);
+            }}
           >
-            <AsfAnimatedSprite
-              path={config.quit.image}
-              autoPlay={false}
-              loop={false}
-            />
+            <AsfAnimatedSprite path={config.quit.image} autoPlay={false} loop={false} />
           </div>
         )}
 

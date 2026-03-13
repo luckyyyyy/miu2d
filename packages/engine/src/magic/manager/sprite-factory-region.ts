@@ -141,8 +141,10 @@ export class RegionSpriteFactory {
     const magicDelayMs = 60;
 
     // C++ ref: Magic::addWaveEffect — if (i % 2 == 0 || j % 2 == 0) noLum = true
-    const makeNoLumFn = (rowIdx: number) => (colIdx: number): boolean =>
-      rowIdx % 2 === 0 || colIdx % 2 === 0;
+    const makeNoLumFn =
+      (rowIdx: number) =>
+      (colIdx: number): boolean =>
+        rowIdx % 2 === 0 || colIdx % 2 === 0;
 
     switch (directionIndex) {
       case 1:

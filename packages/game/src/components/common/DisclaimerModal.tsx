@@ -52,15 +52,11 @@ export const DisclaimerModal: React.FC<DisclaimerModalProps> = ({ visible, onCon
 
         {/* 内容 */}
         <div className="px-6 py-6 space-y-4 text-sm leading-relaxed text-white/70">
-          <p>
-            本网站为个人非商业项目，仅用于技术研究与交流学习。
-          </p>
+          <p>本网站为个人非商业项目，仅用于技术研究与交流学习。</p>
           <p className="text-white/90 font-medium">
             游戏资源版权归原作者所有，如您介意请联系我删除，本项目仅用于交流学习。
           </p>
-          <p>
-            继续使用即表示您已知悉上述声明。
-          </p>
+          <p>继续使用即表示您已知悉上述声明。</p>
         </div>
 
         {/* 操作按钮 */}

@@ -275,7 +275,9 @@ export const BuyGui: React.FC<BuyGuiProps> = ({
           cursor: "pointer",
         }}
         onClick={onClose}
-        onMouseEnter={() => { if (config.closeBtn.sound) playUiSound(config.closeBtn.sound); }}
+        onMouseEnter={() => {
+          if (config.closeBtn.sound) playUiSound(config.closeBtn.sound);
+        }}
       >
         <AsfAnimatedSprite path={config.closeBtn.image} autoPlay={false} loop={false} />
       </div>

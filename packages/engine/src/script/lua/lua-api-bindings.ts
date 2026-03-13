@@ -6,8 +6,11 @@
  * that wasmoon automatically bridges via coroutine yield/resume.
  */
 
+import {
+  LUA_API_FUNCTIONS,
+  type LuaAPIFunction,
+} from "@miu2d/shared/lib/monaco/gameApiDefinitions";
 import type { GameAPI } from "../api/game-api";
-import { type LuaAPIFunction, LUA_API_FUNCTIONS } from "@miu2d/shared/lib/monaco/gameApiDefinitions";
 
 export type { LuaAPIFunction };
 export { LUA_API_FUNCTIONS };
@@ -20,17 +23,21 @@ export { LUA_API_FUNCTIONS };
  */
 export function registerLuaAPIBindings(
   setGlobal: (name: string, value: unknown) => void,
-  api: GameAPI,
+  api: GameAPI
 ): void {
   // ===== Player =====
-  setGlobal("SetPlayerPos", (x: number, y: number, name?: string) => api.player.setPosition(x, y, name));
+  setGlobal("SetPlayerPos", (x: number, y: number, name?: string) =>
+    api.player.setPosition(x, y, name)
+  );
   setGlobal("SetPlayerDir", (dir: number) => api.player.setDirection(dir));
   setGlobal("SetPlayerState", (state: number) => api.player.setState(state));
   setGlobal("PlayerWalkTo", (x: number, y: number) => api.player.walkTo(x, y));
   setGlobal("PlayerWalkToDir", (dir: number, steps: number) => api.player.walkToDir(dir, steps));
   setGlobal("PlayerRunTo", (x: number, y: number) => api.player.runTo(x, y));
   setGlobal("PlayerJumpTo", (x: number, y: number) => api.player.jumpTo(x, y));
-  setGlobal("PlayerWalkToNonBlocking", (x: number, y: number) => api.player.walkToNonBlocking(x, y));
+  setGlobal("PlayerWalkToNonBlocking", (x: number, y: number) =>
+    api.player.walkToNonBlocking(x, y)
+  );
   setGlobal("PlayerRunToNonBlocking", (x: number, y: number) => api.player.runToNonBlocking(x, y));
   setGlobal("CenterCamera", () => api.player.centerCamera());
   setGlobal("SetWalkIsRun", (value: number) => api.player.setWalkIsRun(value));
@@ -62,68 +69,126 @@ export function registerLuaAPIBindings(
   setGlobal("SetFightEnabled", (enabled: boolean) => api.player.setFightEnabled(enabled));
   setGlobal("SetJumpEnabled", (enabled: boolean) => api.player.setJumpEnabled(enabled));
   setGlobal("SetRunEnabled", (enabled: boolean) => api.player.setRunEnabled(enabled));
-  setGlobal("SetPlayerMagicWhenAttacked", (magicFile: string, dir: number) => api.player.setMagicWhenAttacked(magicFile, dir));
+  setGlobal("SetPlayerMagicWhenAttacked", (magicFile: string, dir: number) =>
+    api.player.setMagicWhenAttacked(magicFile, dir)
+  );
   setGlobal("SavePlayerSnapshot", (key: string) => api.player.saveSnapshot(key));
   setGlobal("LoadPlayerSnapshot", (key: string) => api.player.loadSnapshot(key));
 
   // ===== NPC =====
-  setGlobal("AddNpc", (npcFile: string, x: number, y: number, dir?: number) => api.npc.add(npcFile, x, y, dir));
+  setGlobal("AddNpc", (npcFile: string, x: number, y: number, dir?: number) =>
+    api.npc.add(npcFile, x, y, dir)
+  );
   setGlobal("DeleteNpc", (name: string) => api.npc.delete(name));
   setGlobal("GetNpcPos", (name: string) => api.npc.getPosition(name));
   setGlobal("SetNpcPos", (name: string, x: number, y: number) => api.npc.setPosition(name, x, y));
   setGlobal("NpcWalkTo", (name: string, x: number, y: number) => api.npc.walkTo(name, x, y));
-  setGlobal("NpcWalkToDir", (name: string, dir: number, steps: number) => api.npc.walkToDir(name, dir, steps));
-  setGlobal("SetNpcActionFile", (name: string, stateType: number, asfFile: string) => api.npc.setActionFile(name, stateType, asfFile));
-  setGlobal("NpcSpecialAction", (name: string, asfFile: string) => api.npc.specialAction(name, asfFile));
-  setGlobal("NpcSpecialActionNonBlocking", (name: string, asfFile: string) => api.npc.specialActionNonBlocking(name, asfFile));
-  setGlobal("NpcWalkToNonBlocking", (name: string, x: number, y: number) => api.npc.walkToNonBlocking(name, x, y));
+  setGlobal("NpcWalkToDir", (name: string, dir: number, steps: number) =>
+    api.npc.walkToDir(name, dir, steps)
+  );
+  setGlobal("SetNpcActionFile", (name: string, stateType: number, asfFile: string) =>
+    api.npc.setActionFile(name, stateType, asfFile)
+  );
+  setGlobal("NpcSpecialAction", (name: string, asfFile: string) =>
+    api.npc.specialAction(name, asfFile)
+  );
+  setGlobal("NpcSpecialActionNonBlocking", (name: string, asfFile: string) =>
+    api.npc.specialActionNonBlocking(name, asfFile)
+  );
+  setGlobal("NpcWalkToNonBlocking", (name: string, x: number, y: number) =>
+    api.npc.walkToNonBlocking(name, x, y)
+  );
   setGlobal("SetNpcLevel", (name: string, level: number) => api.npc.setLevel(name, level));
   setGlobal("SetNpcDir", (name: string, dir: number) => api.npc.setDirection(name, dir));
   setGlobal("SetNpcState", (name: string, state: number) => api.npc.setState(name, state));
-  setGlobal("SetNpcRelation", (name: string, relation: number) => api.npc.setRelation(name, relation));
-  setGlobal("SetNpcDeathScript", (name: string, scriptFile: string) => api.npc.setDeathScript(name, scriptFile));
-  setGlobal("SetNpcScript", (name: string, scriptFile: string) => api.npc.setScript(name, scriptFile));
+  setGlobal("SetNpcRelation", (name: string, relation: number) =>
+    api.npc.setRelation(name, relation)
+  );
+  setGlobal("SetNpcDeathScript", (name: string, scriptFile: string) =>
+    api.npc.setDeathScript(name, scriptFile)
+  );
+  setGlobal("SetNpcScript", (name: string, scriptFile: string) =>
+    api.npc.setScript(name, scriptFile)
+  );
   setGlobal("ShowNpc", (name: string, visible: boolean) => api.npc.show(name, visible));
   setGlobal("MergeNpc", (npcFile: string) => api.npc.merge(npcFile));
   setGlobal("SaveNpc", (fileName?: string) => api.npc.save(fileName));
-  setGlobal("NpcWatch", (char1: string, char2: string, watchType: number) => api.npc.watch(char1, char2, watchType));
+  setGlobal("NpcWatch", (char1: string, char2: string, watchType: number) =>
+    api.npc.watch(char1, char2, watchType)
+  );
   setGlobal("SetNpcAIEnabled", (enabled: boolean) => api.npc.setAIEnabled(enabled));
   setGlobal("SetNpcKind", (name: string, kind: number) => api.npc.setKind(name, kind));
-  setGlobal("SetNpcMagicFile", (name: string, magicFile: string) => api.npc.setMagicFile(name, magicFile));
-  setGlobal("SetNpcResource", (name: string, resFile: string) => api.npc.setResource(name, resFile));
-  setGlobal("SetNpcAction", (name: string, action: number, x?: number, y?: number) => api.npc.setAction(name, action, x, y));
-  setGlobal("SetNpcActionType", (name: string, actionType: number) => api.npc.setActionType(name, actionType));
-  setGlobal("SetAllNpcScript", (name: string, scriptFile: string) => api.npc.setAllScript(name, scriptFile));
-  setGlobal("SetAllNpcDeathScript", (name: string, scriptFile: string) => api.npc.setAllDeathScript(name, scriptFile));
+  setGlobal("SetNpcMagicFile", (name: string, magicFile: string) =>
+    api.npc.setMagicFile(name, magicFile)
+  );
+  setGlobal("SetNpcResource", (name: string, resFile: string) =>
+    api.npc.setResource(name, resFile)
+  );
+  setGlobal("SetNpcAction", (name: string, action: number, x?: number, y?: number) =>
+    api.npc.setAction(name, action, x, y)
+  );
+  setGlobal("SetNpcActionType", (name: string, actionType: number) =>
+    api.npc.setActionType(name, actionType)
+  );
+  setGlobal("SetAllNpcScript", (name: string, scriptFile: string) =>
+    api.npc.setAllScript(name, scriptFile)
+  );
+  setGlobal("SetAllNpcDeathScript", (name: string, scriptFile: string) =>
+    api.npc.setAllDeathScript(name, scriptFile)
+  );
   setGlobal("NpcAttack", (name: string, x: number, y: number) => api.npc.attack(name, x, y));
   setGlobal("NpcFollow", (follower: string, target: string) => api.npc.follow(follower, target));
-  setGlobal("SetNpcMagicWhenAttacked", (name: string, magicFile: string, dir: number) => api.npc.setMagicWhenAttacked(name, magicFile, dir));
-  setGlobal("AddNpcProperty", (name: string, property: string, value: number) => api.npc.addProperty(name, property, value));
+  setGlobal("SetNpcMagicWhenAttacked", (name: string, magicFile: string, dir: number) =>
+    api.npc.setMagicWhenAttacked(name, magicFile, dir)
+  );
+  setGlobal("AddNpcProperty", (name: string, property: string, value: number) =>
+    api.npc.addProperty(name, property, value)
+  );
   setGlobal("AddNpcMagic", (name: string, magicFile: string) => api.npc.addMagic(name, magicFile));
-  setGlobal("SetNpcMagicLevel", (name: string, magicFile: string, level: number) => api.npc.setMagicLevel(name, magicFile, level));
-  setGlobal("SetNpcClickScript", (name: string, scriptFile: string) => api.npc.setClickScript(name, scriptFile));
+  setGlobal("SetNpcMagicLevel", (name: string, magicFile: string, level: number) =>
+    api.npc.setMagicLevel(name, magicFile, level)
+  );
+  setGlobal("SetNpcClickScript", (name: string, scriptFile: string) =>
+    api.npc.setClickScript(name, scriptFile)
+  );
   setGlobal("ChangeNpcLife", (name: string, amount: number) => api.npc.changeLife(name, amount));
   setGlobal("ChangeNpcMana", (name: string, amount: number) => api.npc.changeMana(name, amount));
   setGlobal("ChangeNpcThew", (name: string, amount: number) => api.npc.changeThew(name, amount));
-  setGlobal("ChangeNpcFlyIni", (name: string, magicFile: string) => api.npc.changeFlyIni(name, magicFile));
-  setGlobal("ChangeNpcFlyIni2", (name: string, magicFile: string) => api.npc.changeFlyIni2(name, magicFile));
-  setGlobal("AddNpcFlyInis", (name: string, magicFile: string, distance: number) => api.npc.addFlyInis(name, magicFile, distance));
-  setGlobal("SetNpcDestination", (name: string, x: number, y: number) => api.npc.setDestination(name, x, y));
+  setGlobal("ChangeNpcFlyIni", (name: string, magicFile: string) =>
+    api.npc.changeFlyIni(name, magicFile)
+  );
+  setGlobal("ChangeNpcFlyIni2", (name: string, magicFile: string) =>
+    api.npc.changeFlyIni2(name, magicFile)
+  );
+  setGlobal("AddNpcFlyInis", (name: string, magicFile: string, distance: number) =>
+    api.npc.addFlyInis(name, magicFile, distance)
+  );
+  setGlobal("SetNpcDestination", (name: string, x: number, y: number) =>
+    api.npc.setDestination(name, x, y)
+  );
   setGlobal("GetNpcCount", (kind1: number, kind2: number) => api.npc.getCount(kind1, kind2));
-  setGlobal("SetNpcKeepAttack", (name: string, x: number, y: number) => api.npc.setKeepAttack(name, x, y));
+  setGlobal("SetNpcKeepAttack", (name: string, x: number, y: number) =>
+    api.npc.setKeepAttack(name, x, y)
+  );
   setGlobal("NpcFollowPlayer", (name: string) => api.npc.followPlayer(name));
 
   // ===== Goods =====
   setGlobal("AddGoods", (goodsName: string, count: number) => api.goods.add(goodsName, count));
-  setGlobal("RemoveGoods", (goodsName: string, count: number) => api.goods.remove(goodsName, count));
+  setGlobal("RemoveGoods", (goodsName: string, count: number) =>
+    api.goods.remove(goodsName, count)
+  );
   setGlobal("EquipGoods", (goodListIndex: number) => api.goods.equip(goodListIndex));
   setGlobal("GetGoodsCountByFile", (goodsFile: string) => api.goods.getCountByFile(goodsFile));
   setGlobal("GetGoodsCountByName", (goodsName: string) => api.goods.getCountByName(goodsName));
   setGlobal("ClearGoods", () => api.goods.clear());
-  setGlobal("DeleteGoodsByName", (name: string, count?: number) => api.goods.deleteByName(name, count));
+  setGlobal("DeleteGoodsByName", (name: string, count?: number) =>
+    api.goods.deleteByName(name, count)
+  );
   setGlobal("HasGoodsFreeSpace", () => api.goods.hasFreeSpace());
   setGlobal("AddRandomGoods", (buyFileName: string) => api.goods.addRandom(buyFileName));
-  setGlobal("BuyGoods", (buyFile: string, canSellSelfGoods: boolean) => api.goods.buy(buyFile, canSellSelfGoods));
+  setGlobal("BuyGoods", (buyFile: string, canSellSelfGoods: boolean) =>
+    api.goods.buy(buyFile, canSellSelfGoods)
+  );
   setGlobal("SetDropIni", (name: string, dropFile: string) => api.goods.setDropIni(name, dropFile));
   setGlobal("SetDropEnabled", (enabled: boolean) => api.goods.setDropEnabled(enabled));
   setGlobal("SaveGoodsSnapshot", (key: string) => api.goods.saveSnapshot(key));
@@ -132,12 +197,18 @@ export function registerLuaAPIBindings(
   // ===== Magic =====
   setGlobal("AddMagic", (magicFile: string) => api.magic.add(magicFile));
   setGlobal("DeleteMagic", (magicFile: string) => api.magic.delete(magicFile));
-  setGlobal("SetMagicLevel", (magicFile: string, level: number) => api.magic.setLevel(magicFile, level));
+  setGlobal("SetMagicLevel", (magicFile: string, level: number) =>
+    api.magic.setLevel(magicFile, level)
+  );
   setGlobal("GetMagicLevel", (magicFile: string) => api.magic.getLevel(magicFile));
-  setGlobal("AddMagicExp", (magicFile: string, amount: number) => api.magic.addExp(magicFile, amount));
+  setGlobal("AddMagicExp", (magicFile: string, amount: number) =>
+    api.magic.addExp(magicFile, amount)
+  );
   setGlobal("ClearMagic", () => api.magic.clear());
   setGlobal("HasMagicFreeSpace", () => api.magic.hasFreeSpace());
-  setGlobal("UseMagic", (magicFile: string, x?: number, y?: number) => api.magic.use(magicFile, x, y));
+  setGlobal("UseMagic", (magicFile: string, x?: number, y?: number) =>
+    api.magic.use(magicFile, x, y)
+  );
 
   // ===== Memo =====
   setGlobal("AddMemo", (text: string) => api.memo.add(text));
@@ -152,27 +223,39 @@ export function registerLuaAPIBindings(
   setGlobal("FreeMap", () => api.map.free());
   setGlobal("GetCurrentMapPath", () => api.map.getCurrentPath());
   setGlobal("SetMapTime", (time: number) => api.map.setTime(time));
-  setGlobal("SetTrap", (trapIndex: number, trapFileName: string, mapName?: string) => api.map.setTrap(trapIndex, trapFileName, mapName));
+  setGlobal("SetTrap", (trapIndex: number, trapFileName: string, mapName?: string) =>
+    api.map.setTrap(trapIndex, trapFileName, mapName)
+  );
   setGlobal("SaveTrap", () => api.map.saveTrap());
 
   // ===== Obj =====
   setGlobal("LoadObj", (fileName: string) => api.obj.load(fileName));
-  setGlobal("AddObj", (fileName: string, x: number, y: number, dir: number) => api.obj.add(fileName, x, y, dir));
+  setGlobal("AddObj", (fileName: string, x: number, y: number, dir: number) =>
+    api.obj.add(fileName, x, y, dir)
+  );
   setGlobal("DeleteCurrentObj", () => api.obj.deleteCurrent());
   setGlobal("DeleteObj", (nameOrId: string) => api.obj.delete(nameOrId));
   setGlobal("OpenBox", (nameOrId?: string) => api.obj.openBox(nameOrId));
   setGlobal("CloseBox", (nameOrId?: string) => api.obj.closeBox(nameOrId));
-  setGlobal("SetObjScript", (nameOrId: string, scriptFile: string) => api.obj.setScript(nameOrId, scriptFile));
+  setGlobal("SetObjScript", (nameOrId: string, scriptFile: string) =>
+    api.obj.setScript(nameOrId, scriptFile)
+  );
   setGlobal("SaveObj", (fileName?: string) => api.obj.save(fileName));
   setGlobal("ClearBody", () => api.obj.clearBody());
   setGlobal("GetObjPos", (nameOrId: string) => api.obj.getPosition(nameOrId));
-  setGlobal("SetObjOffset", (objName: string, x: number, y: number) => api.obj.setOffset(objName, x, y));
+  setGlobal("SetObjOffset", (objName: string, x: number, y: number) =>
+    api.obj.setOffset(objName, x, y)
+  );
   setGlobal("SetObjPos", (name: string, x: number, y: number) => api.obj.setPosition(name, x, y));
   setGlobal("SetObjKind", (objName: string, kind: number) => api.obj.setKind(objName, kind));
 
   // ===== Camera =====
-  setGlobal("CameraMove", (dir: number, distance: number, speed: number) => api.camera.move(dir, distance, speed));
-  setGlobal("CameraMoveTo", (x: number, y: number, speed: number) => api.camera.moveTo(x, y, speed));
+  setGlobal("CameraMove", (dir: number, distance: number, speed: number) =>
+    api.camera.move(dir, distance, speed)
+  );
+  setGlobal("CameraMoveTo", (x: number, y: number, speed: number) =>
+    api.camera.moveTo(x, y, speed)
+  );
   setGlobal("SetCameraPos", (x: number, y: number) => api.camera.setPosition(x, y));
   setGlobal("OpenWaterEffect", () => api.camera.openWaterEffect());
   setGlobal("CloseWaterEffect", () => api.camera.closeWaterEffect());
@@ -188,8 +271,12 @@ export function registerLuaAPIBindings(
   // ===== Effects =====
   setGlobal("FadeIn", () => api.effects.fadeIn());
   setGlobal("FadeOut", () => api.effects.fadeOut());
-  setGlobal("ChangeMapColor", (r: number, g: number, b: number) => api.effects.changeMapColor(r, g, b));
-  setGlobal("ChangeSpriteColor", (r: number, g: number, b: number) => api.effects.changeSpriteColor(r, g, b));
+  setGlobal("ChangeMapColor", (r: number, g: number, b: number) =>
+    api.effects.changeMapColor(r, g, b)
+  );
+  setGlobal("ChangeSpriteColor", (r: number, g: number, b: number) =>
+    api.effects.changeSpriteColor(r, g, b)
+  );
   setGlobal("BeginRain", (fileName: string) => api.effects.beginRain(fileName));
   setGlobal("EndRain", () => api.effects.endRain());
   setGlobal("ShowRain", (level: number) => api.effects.showRain(level));
@@ -202,7 +289,9 @@ export function registerLuaAPIBindings(
   setGlobal("Poison", (ms: number) => api.effects.poison(ms));
   setGlobal("Frozen", (ms: number) => api.effects.frozen(ms));
   setGlobal("ClearEffect", () => api.effects.clearEffect());
-  setGlobal("MoveMagic", (magicFile: string, dir: number) => api.effects.moveMagic(magicFile, dir));
+  setGlobal("MoveMagic", (magicFile: string, slotIndex: number) =>
+    api.magic.moveToBottomSlot(magicFile, slotIndex)
+  );
   setGlobal("SetLevelFile", (file: string) => api.effects.setLevelFile(file));
 
   // ===== Dialog =====
@@ -221,14 +310,20 @@ export function registerLuaAPIBindings(
     return api.dialog.showTalk(startId, endId);
   });
   setGlobal("ShowMessage", (text: string) => api.dialog.showMessage(text));
-  setGlobal("Choose", (message: string, selectA: string, selectB: string) => api.dialog.showSelection(message, selectA, selectB));
-  setGlobal("ShowSystemMessage", (msg: string, stayTime?: number) => api.dialog.showSystemMessage(msg, stayTime));
+  setGlobal("Choose", (message: string, selectA: string, selectB: string) =>
+    api.dialog.showSelection(message, selectA, selectB)
+  );
+  setGlobal("ShowSystemMessage", (msg: string, stayTime?: number) =>
+    api.dialog.showSystemMessage(msg, stayTime)
+  );
 
   // ===== Timer =====
   setGlobal("OpenTimer", (seconds: number) => api.timer.open(seconds));
   setGlobal("CloseTimer", () => api.timer.close());
   setGlobal("HideTimer", () => api.timer.hide());
-  setGlobal("SetTimerScript", (triggerSeconds: number, scriptFile: string) => api.timer.setScript(triggerSeconds, scriptFile));
+  setGlobal("SetTimerScript", (triggerSeconds: number, scriptFile: string) =>
+    api.timer.setScript(triggerSeconds, scriptFile)
+  );
 
   // ===== Variables =====
   setGlobal("GetVar", (name: string) => api.variables.get(name));
@@ -245,7 +340,9 @@ export function registerLuaAPIBindings(
 
   // ===== Script Runner =====
   setGlobal("RunScript", (scriptFile: string) => api.script.run(scriptFile));
-  setGlobal("RunParallelScript", (scriptFile: string, delay?: number) => api.script.runParallel(scriptFile, delay));
+  setGlobal("RunParallelScript", (scriptFile: string, delay?: number) =>
+    api.script.runParallel(scriptFile, delay)
+  );
   setGlobal("ReturnToTitle", () => api.script.returnToTitle());
   setGlobal("Sleep", (ms: number) => api.script.sleep(ms));
   setGlobal("LoadGame", (index: number) => api.script.loadGame(index));
@@ -266,13 +363,29 @@ export function registerLuaAPIBindings(
     const optionObjects = options.map((text) => ({ text }));
     return api.dialog.chooseEx(message, optionObjects, "");
   });
-  setGlobal("ChooseMultiple", async (columns: number, rows: number, varPrefix: string, message: string, ...options: string[]) => {
-    const optionObjects = options.map((text) => ({ text }));
-    const results = await api.dialog.chooseMultiple(columns, rows, varPrefix, message, optionObjects);
-    return results;
-  });
+  setGlobal(
+    "ChooseMultiple",
+    async (
+      columns: number,
+      rows: number,
+      varPrefix: string,
+      message: string,
+      ...options: string[]
+    ) => {
+      const optionObjects = options.map((text) => ({ text }));
+      const results = await api.dialog.chooseMultiple(
+        columns,
+        rows,
+        varPrefix,
+        message,
+        optionObjects
+      );
+      return results;
+    }
+  );
   setGlobal("Select", (messageId: number, optionAId: number, optionBId: number) =>
-    api.dialog.selectByIds(messageId, optionAId, optionBId));
+    api.dialog.selectByIds(messageId, optionAId, optionBId)
+  );
 
   // ===== DSL-compatible aliases =====
   // These match original DSL command names so scripts can use either convention.
@@ -290,7 +403,7 @@ export function registerLuaAPIBindings(
   setGlobal("SetPlayerScn", () => api.player.centerCamera());
   setGlobal("SetPlayrDir", (dir: number) => api.player.setDirection(dir)); // typo alias
   setGlobal("SetPlayerMagicToUseWhenBeAttacked", (magicFile: string, dir: number) =>
-    api.player.setMagicWhenAttacked(magicFile, dir),
+    api.player.setMagicWhenAttacked(magicFile, dir)
   );
   setGlobal("DisableFight", () => api.player.setFightEnabled(false));
   setGlobal("EnableFight", () => api.player.setFightEnabled(true));
@@ -310,23 +423,23 @@ export function registerLuaAPIBindings(
   setGlobal("DelNpc", (name: string) => api.npc.delete(name));
   setGlobal("FollowNpc", (follower: string, target: string) => api.npc.follow(follower, target));
   setGlobal("Watch", (char1: string, char2: string, watchType: number) =>
-    api.npc.watch(char1, char2, watchType),
+    api.npc.watch(char1, char2, watchType)
   );
   setGlobal("SetNpcMagicToUseWhenBeAttacked", (name: string, magicFile: string, dir: number) =>
-    api.npc.setMagicWhenAttacked(name, magicFile, dir),
+    api.npc.setMagicWhenAttacked(name, magicFile, dir)
   );
   setGlobal("SetNpcRes", (name: string, resFile: string) => api.npc.setResource(name, resFile));
   setGlobal("ChangeFlyIni", (name: string, magicFile: string) =>
-    api.npc.changeFlyIni(name, magicFile),
+    api.npc.changeFlyIni(name, magicFile)
   );
   setGlobal("ChangeFlyIni2", (name: string, magicFile: string) =>
-    api.npc.changeFlyIni2(name, magicFile),
+    api.npc.changeFlyIni2(name, magicFile)
   );
   setGlobal("AddFlyInis", (name: string, magicFile: string, distance: number) =>
-    api.npc.addFlyInis(name, magicFile, distance),
+    api.npc.addFlyInis(name, magicFile, distance)
   );
   setGlobal("SetKeepAttack", (name: string, x: number, y: number) =>
-    api.npc.setKeepAttack(name, x, y),
+    api.npc.setKeepAttack(name, x, y)
   );
   setGlobal("AddOneMagic", (name: string, magicFile: string) => api.npc.addMagic(name, magicFile));
   setGlobal("AddOneMogic", (name: string, magicFile: string) => api.npc.addMagic(name, magicFile)); // typo alias
@@ -336,24 +449,22 @@ export function registerLuaAPIBindings(
   setGlobal("SetPartnerLevel", (name: string, level: number) => api.npc.setLevel(name, level));
   setGlobal("NpcGoto", (name: string, x: number, y: number) => api.npc.walkTo(name, x, y));
   setGlobal("NpcGotoEx", (name: string, x: number, y: number) =>
-    api.npc.walkToNonBlocking(name, x, y),
+    api.npc.walkToNonBlocking(name, x, y)
   );
   setGlobal("NpcGotoDir", (name: string, dir: number, steps: number) =>
-    api.npc.walkToDir(name, dir, steps),
+    api.npc.walkToDir(name, dir, steps)
   );
   setGlobal("NpcSpecialActionEx", (name: string, asfFile: string) =>
-    api.npc.specialAction(name, asfFile),
+    api.npc.specialAction(name, asfFile)
   );
   setGlobal("DisableNpcAI", () => api.npc.setAIEnabled(false));
   setGlobal("EnableNpcAI", () => api.npc.setAIEnabled(true));
 
   // --- Goods aliases ---
   setGlobal("DelGoods", (goodsName: string, count?: number) =>
-    api.goods.remove(goodsName, count ?? 1),
+    api.goods.remove(goodsName, count ?? 1)
   );
-  setGlobal("DelGoodByName", (name: string, count?: number) =>
-    api.goods.deleteByName(name, count),
-  );
+  setGlobal("DelGoodByName", (name: string, count?: number) => api.goods.deleteByName(name, count));
   setGlobal("AddRandGoods", (buyFileName: string) => api.goods.addRandom(buyFileName));
   setGlobal("GetGoodsNum", (goodsFile: string) => api.goods.getCountByFile(goodsFile));
   setGlobal("GetGoodsNumByName", (goodsName: string) => api.goods.getCountByName(goodsName));
@@ -375,20 +486,20 @@ export function registerLuaAPIBindings(
   setGlobal("DelCurObj", () => api.obj.deleteCurrent());
   setGlobal("OpenObj", (nameOrId?: string) => api.obj.openBox(nameOrId));
   setGlobal("SetObjOfs", (objName: string, x: number, y: number) =>
-    api.obj.setOffset(objName, x, y),
+    api.obj.setOffset(objName, x, y)
   );
   setGlobal("SaveMapTrap", () => api.map.saveTrap());
   setGlobal("SetMapTrap", (idx: number, file: string) => api.map.setTrap(idx, file));
 
   // --- Camera/Effect aliases ---
   setGlobal("MoveScreen", (dir: number, distance: number, speed: number) =>
-    api.camera.move(dir, distance, speed),
+    api.camera.move(dir, distance, speed)
   );
   setGlobal("MoveScreenEx", (x: number, y: number, speed: number) =>
-    api.camera.moveTo(x, y, speed),
+    api.camera.moveTo(x, y, speed)
   );
   setGlobal("ChangeAsfColor", (r: number, g: number, b: number) =>
-    api.effects.changeSpriteColor(r, g, b),
+    api.effects.changeSpriteColor(r, g, b)
   );
   setGlobal("SetMapPos", (x: number, y: number) => api.camera.setPosition(x, y));
   setGlobal("PetrifyMillisecond", (ms: number) => api.effects.petrify(ms));
@@ -400,7 +511,7 @@ export function registerLuaAPIBindings(
   setGlobal("CloseTimeLimit", () => api.timer.close());
   setGlobal("HideTimerWnd", () => api.timer.hide());
   setGlobal("SetTimeScript", (triggerSeconds: number, scriptFile: string) =>
-    api.timer.setScript(triggerSeconds, scriptFile),
+    api.timer.setScript(triggerSeconds, scriptFile)
   );
 
   // --- Dialog aliases ---
@@ -408,7 +519,7 @@ export function registerLuaAPIBindings(
   setGlobal("DisplayMessage", (text: string) => api.dialog.showMessage(text));
   setGlobal("MessageBox", (text: string) => api.dialog.showMessage(text));
   setGlobal("ShowSystemMsg", (msg: string, stayTime?: number) =>
-    api.dialog.showSystemMessage(msg, stayTime),
+    api.dialog.showSystemMessage(msg, stayTime)
   );
 
   // --- Memo aliases ---

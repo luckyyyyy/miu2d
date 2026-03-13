@@ -1,13 +1,12 @@
 import { render } from "@react-email/components";
 import { createTransport, type Transporter } from "nodemailer";
 import { createElement } from "react";
+import { env } from "../env";
 import { Logger } from "../utils/logger.js";
 import { ChangeEmailVerification } from "./templates/ChangeEmailVerification";
 import { LoginNotification } from "./templates/LoginNotification";
 import { VerifyEmail } from "./templates/VerifyEmail";
 import { WelcomeEmail } from "./templates/WelcomeEmail";
-
-import { env } from "../env";
 
 const logger = new Logger("EmailService");
 

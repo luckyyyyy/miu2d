@@ -2,6 +2,7 @@
  * UI Hooks exports
  */
 
+export { playUiSound } from "./playUiSound";
 export type { AsfAnimationData, AsfImageData } from "./useAsfImage";
 export {
   getAsfFrameDataUrl,
@@ -10,4 +11,3 @@ export {
   useColumnView,
   useMultipleAsfImages,
 } from "./useAsfImage";
-export { playUiSound } from "./playUiSound";

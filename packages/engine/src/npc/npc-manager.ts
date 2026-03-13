@@ -523,7 +523,11 @@ export class NpcManager {
    */
   npcGoto(name: string, tileX: number, tileY: number): boolean {
     // Reference: JxqyHD/Engine/Npc.cs - destination walk uses PerfectMaxPlayerTry (maxTry=500)
-    return this.withNpcResult(name, (npc) => npc.walkTo({ x: tileX, y: tileY }, PathType.PerfectMaxPlayerTry), false);
+    return this.withNpcResult(
+      name,
+      (npc) => npc.walkTo({ x: tileX, y: tileY }, PathType.PerfectMaxPlayerTry),
+      false
+    );
   }
 
   /**

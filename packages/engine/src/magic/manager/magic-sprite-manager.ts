@@ -227,14 +227,14 @@ export class MagicSpriteManager {
   redirectMagicDirection(magicFile: string, direction: number): void {
     // 将方向编号转换为单位向量（基于 8 方向，1=上 按顺时针）
     const directionToVector: { x: number; y: number }[] = [
-      { x: 0, y: 0 },   // 0 - unused
-      { x: 0, y: -1 },  // 1 - up
-      { x: 1, y: -1 },  // 2 - upper-right
-      { x: 1, y: 0 },   // 3 - right
-      { x: 1, y: 1 },   // 4 - lower-right
-      { x: 0, y: 1 },   // 5 - down
-      { x: -1, y: 1 },  // 6 - lower-left
-      { x: -1, y: 0 },  // 7 - left
+      { x: 0, y: 0 }, // 0 - unused
+      { x: 0, y: -1 }, // 1 - up
+      { x: 1, y: -1 }, // 2 - upper-right
+      { x: 1, y: 0 }, // 3 - right
+      { x: 1, y: 1 }, // 4 - lower-right
+      { x: 0, y: 1 }, // 5 - down
+      { x: -1, y: 1 }, // 6 - lower-left
+      { x: -1, y: 0 }, // 7 - left
       { x: -1, y: -1 }, // 8 - upper-left
     ];
     const vec = directionToVector[direction] ?? { x: 0, y: 0 };
@@ -250,7 +250,9 @@ export class MagicSpriteManager {
       }
     }
     if (!found) {
-      logger.debug(`[MagicSpriteManager] redirectMagicDirection: no active sprite for ${magicFile}`);
+      logger.debug(
+        `[MagicSpriteManager] redirectMagicDirection: no active sprite for ${magicFile}`
+      );
     }
   }
 
@@ -653,7 +655,10 @@ export class MagicSpriteManager {
     } else {
       const casterPos = this.charHelper.getCharacterPosition(sprite.belongCharacterId);
       destination = casterPos
-        ? { x: explodePos.x + (explodePos.x - casterPos.x), y: explodePos.y + (explodePos.y - casterPos.y) }
+        ? {
+            x: explodePos.x + (explodePos.x - casterPos.x),
+            y: explodePos.y + (explodePos.y - casterPos.y),
+          }
         : explodePos;
     }
 

@@ -18,9 +18,9 @@
 import { getEngineContext } from "../core/engine-context";
 import { logger } from "../core/logger";
 import type { GameVariables } from "../core/types";
+import { getMagicsData } from "../data/game-data-api";
 import type { GuiManager } from "../gui/gui-manager";
 import type { MagicItemInfo } from "../magic";
-import { getMagicsData } from "../data/game-data-api";
 import type { NpcManager } from "../npc";
 import type { ObjManager } from "../obj";
 import type { GoodsListManager } from "../player/goods";

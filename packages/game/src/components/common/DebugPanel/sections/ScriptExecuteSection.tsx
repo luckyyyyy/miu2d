@@ -29,10 +29,8 @@ interface ScriptExecuteSectionProps {
 }
 
 // --- helpers for per-tab localStorage keys ---
-const contentKey = (tab: ScriptTab) =>
-  tab === "lua" ? LS_SCRIPT_CONTENT_LUA : LS_SCRIPT_CONTENT;
-const historyKey = (tab: ScriptTab) =>
-  tab === "lua" ? LS_SCRIPT_HISTORY_LUA : LS_SCRIPT_HISTORY;
+const contentKey = (tab: ScriptTab) => (tab === "lua" ? LS_SCRIPT_CONTENT_LUA : LS_SCRIPT_CONTENT);
+const historyKey = (tab: ScriptTab) => (tab === "lua" ? LS_SCRIPT_HISTORY_LUA : LS_SCRIPT_HISTORY);
 
 const readLS = (key: string, fallback: string) => {
   try {
@@ -58,7 +56,7 @@ export const ScriptExecuteSection: React.FC<ScriptExecuteSectionProps> = ({
 }) => {
   // 当前 tab
   const [activeTab, setActiveTab] = useState<ScriptTab>(() =>
-    (readLS(LS_SCRIPT_TAB, "txt") as ScriptTab) === "lua" ? "lua" : "txt",
+    (readLS(LS_SCRIPT_TAB, "txt") as ScriptTab) === "lua" ? "lua" : "txt"
   );
 
   // 每个 tab 独立的脚本内容
@@ -66,11 +64,9 @@ export const ScriptExecuteSection: React.FC<ScriptExecuteSectionProps> = ({
   const [luaContent, setLuaContent] = useState(() => readLS(LS_SCRIPT_CONTENT_LUA, ""));
 
   // 每个 tab 独立的历史记录
-  const [txtHistory, setTxtHistory] = useState<string[]>(() =>
-    readLSJson(LS_SCRIPT_HISTORY, []),
-  );
+  const [txtHistory, setTxtHistory] = useState<string[]>(() => readLSJson(LS_SCRIPT_HISTORY, []));
   const [luaHistory, setLuaHistory] = useState<string[]>(() =>
-    readLSJson(LS_SCRIPT_HISTORY_LUA, []),
+    readLSJson(LS_SCRIPT_HISTORY_LUA, [])
   );
 
   const [isExecuting, setIsExecuting] = useState(false);
@@ -95,7 +91,7 @@ export const ScriptExecuteSection: React.FC<ScriptExecuteSectionProps> = ({
         // ignore
       }
     },
-    [activeTab],
+    [activeTab]
   );
 
   // 清除执行结果
@@ -118,7 +114,7 @@ export const ScriptExecuteSection: React.FC<ScriptExecuteSectionProps> = ({
         return newHistory;
       });
     },
-    [activeTab],
+    [activeTab]
   );
 
   const restoreFromHistory = (script: string) => handleScriptContentChange(script);
@@ -152,8 +148,7 @@ export const ScriptExecuteSection: React.FC<ScriptExecuteSectionProps> = ({
       setExecResult({ ok: false, message: "脚本正在执行中，请等待执行完成后再操作" });
       return;
     }
-    const executor =
-      activeTab === "lua" ? onExecuteLuaScript : onExecuteScript;
+    const executor = activeTab === "lua" ? onExecuteLuaScript : onExecuteScript;
     if (!executor) {
       setExecResult({ ok: false, message: "该模式不可用" });
       return;
@@ -176,7 +171,14 @@ export const ScriptExecuteSection: React.FC<ScriptExecuteSectionProps> = ({
     } finally {
       setIsExecuting(false);
     }
-  }, [scriptContent, isScriptRunning, activeTab, onExecuteScript, onExecuteLuaScript, addToHistory]);
+  }, [
+    scriptContent,
+    isScriptRunning,
+    activeTab,
+    onExecuteScript,
+    onExecuteLuaScript,
+    addToHistory,
+  ]);
 
   executeRef.current = handleExecuteScript;
 
@@ -192,135 +194,133 @@ export const ScriptExecuteSection: React.FC<ScriptExecuteSectionProps> = ({
   }, []);
 
   const placeholder =
-    activeTab === "lua"
-      ? 'Talk("测试")\nSetMoney(10000)'
-      : 'Talk(0,"测试")\nSetMoney(10000)';
+    activeTab === "lua" ? 'Talk("测试")\nSetMoney(10000)' : 'Talk(0,"测试")\nSetMoney(10000)';
 
   return (
     <Section title="执行脚本">
-        {/* Tab 栏 */}
-        <div className="flex items-center gap-0 mb-1 border-b border-[#2d2d2d]">
+      {/* Tab 栏 */}
+      <div className="flex items-center gap-0 mb-1 border-b border-[#2d2d2d]">
+        <button
+          type="button"
+          onClick={() => switchTab("txt")}
+          className={`px-3 py-1 text-[11px] transition-colors border-b-2 ${
+            activeTab === "txt"
+              ? "text-[#d4d4d4] border-[#007acc]"
+              : "text-[#969696] border-transparent hover:text-[#d4d4d4]"
+          }`}
+        >
+          TXT 脚本
+        </button>
+        <button
+          type="button"
+          onClick={() => switchTab("lua")}
+          className={`px-3 py-1 text-[11px] transition-colors border-b-2 ${
+            activeTab === "lua"
+              ? "text-[#d4d4d4] border-[#007acc]"
+              : "text-[#969696] border-transparent hover:text-[#d4d4d4]"
+          }`}
+        >
+          Lua 脚本
+        </button>
+      </div>
+
+      <div className="space-y-1">
+        <ScriptEditor
+          key={activeTab}
+          value={scriptContent}
+          onChange={handleScriptContentChange}
+          language={activeTab === "lua" ? LUA_LANGUAGE_ID : undefined}
+          height={180}
+          fontSize={12}
+          minimap={false}
+          wordWrap="on"
+          onMount={handleEditorMount}
+          options={{
+            glyphMargin: false,
+            folding: false,
+            lineNumbersMinChars: 3,
+            lineDecorationsWidth: 4,
+            overviewRulerLanes: 0,
+            hideCursorInOverviewRuler: true,
+            overviewRulerBorder: false,
+            scrollbar: { vertical: "hidden", horizontal: "auto" },
+            padding: { top: 4, bottom: 4 },
+            placeholder,
+          }}
+          className="border border-[#333] rounded"
+        />
+        <div className="flex gap-1">
           <button
             type="button"
-            onClick={() => switchTab("txt")}
-            className={`px-3 py-1 text-[11px] transition-colors border-b-2 ${
-              activeTab === "txt"
-                ? "text-[#d4d4d4] border-[#007acc]"
-                : "text-[#969696] border-transparent hover:text-[#d4d4d4]"
-            }`}
+            onClick={handleExecuteScript}
+            disabled={isExecuting || !scriptContent.trim()}
+            className={`${btnPrimary} flex-1`}
           >
-            TXT 脚本
+            {isExecuting ? "执行中..." : "执行 (Ctrl+Enter)"}
           </button>
           <button
             type="button"
-            onClick={() => switchTab("lua")}
-            className={`px-3 py-1 text-[11px] transition-colors border-b-2 ${
-              activeTab === "lua"
-                ? "text-[#d4d4d4] border-[#007acc]"
-                : "text-[#969696] border-transparent hover:text-[#d4d4d4]"
-            }`}
+            onClick={() => handleScriptContentChange("")}
+            className={`${btnClass} px-3`}
           >
-            Lua 脚本
+            清空
           </button>
         </div>
 
-        <div className="space-y-1">
-          <ScriptEditor
-            key={activeTab}
-            value={scriptContent}
-            onChange={handleScriptContentChange}
-            language={activeTab === "lua" ? LUA_LANGUAGE_ID : undefined}
-            height={180}
-            fontSize={12}
-            minimap={false}
-            wordWrap="on"
-            onMount={handleEditorMount}
-            options={{
-              glyphMargin: false,
-              folding: false,
-              lineNumbersMinChars: 3,
-              lineDecorationsWidth: 4,
-              overviewRulerLanes: 0,
-              hideCursorInOverviewRuler: true,
-              overviewRulerBorder: false,
-              scrollbar: { vertical: "hidden", horizontal: "auto" },
-              padding: { top: 4, bottom: 4 },
-              placeholder,
-            }}
-            className="border border-[#333] rounded"
-          />
-          <div className="flex gap-1">
+        {/* 执行结果内联显示 */}
+        {execResult && (
+          <div
+            className={`flex items-start gap-1 rounded px-2 py-1 text-[11px] font-mono ${
+              execResult.ok
+                ? "bg-[#1a2d1a] text-[#4ade80] border border-[#2d5a2d]"
+                : "bg-[#2d1a1a] text-[#f87171] border border-[#5a2d2d]"
+            }`}
+          >
+            <span className="shrink-0">{execResult.ok ? "✓" : "✗"}</span>
+            <span className="break-all whitespace-pre-wrap">{execResult.message}</span>
             <button
               type="button"
-              onClick={handleExecuteScript}
-              disabled={isExecuting || !scriptContent.trim()}
-              className={`${btnPrimary} flex-1`}
+              onClick={clearResult}
+              className="ml-auto shrink-0 opacity-50 hover:opacity-100"
             >
-              {isExecuting ? "执行中..." : "执行 (Ctrl+Enter)"}
+              ×
             </button>
+          </div>
+        )}
+      </div>
+
+      {/* 历史记录 */}
+      {userScriptHistory.length > 0 && (
+        <div className="mt-2">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-[10px] text-[#969696]">
+              历史记录 ({userScriptHistory.length})
+            </span>
             <button
               type="button"
-              onClick={() => handleScriptContentChange("")}
-              className={`${btnClass} px-3`}
+              onClick={clearHistory}
+              className="text-[9px] text-[#7a7a7a] hover:text-[#f87171] transition-colors"
             >
               清空
             </button>
           </div>
-
-          {/* 执行结果内联显示 */}
-          {execResult && (
-            <div
-              className={`flex items-start gap-1 rounded px-2 py-1 text-[11px] font-mono ${
-                execResult.ok
-                  ? "bg-[#1a2d1a] text-[#4ade80] border border-[#2d5a2d]"
-                  : "bg-[#2d1a1a] text-[#f87171] border border-[#5a2d2d]"
-              }`}
-            >
-              <span className="shrink-0">{execResult.ok ? "✓" : "✗"}</span>
-              <span className="break-all whitespace-pre-wrap">{execResult.message}</span>
-              <button
-                type="button"
-                onClick={clearResult}
-                className="ml-auto shrink-0 opacity-50 hover:opacity-100"
+          <div
+            className="max-h-24 overflow-y-auto bg-[#1e1e1e] border border-[#333] rounded"
+            style={{ scrollbarWidth: "thin", scrollbarColor: "#424242 transparent" }}
+          >
+            {userScriptHistory.map((script, idx) => (
+              <div
+                key={`history-${idx}-${script.slice(0, 20)}`}
+                onClick={() => restoreFromHistory(script)}
+                className="px-2 py-1 text-[10px] font-mono text-[#969696] hover:bg-[#2a2d2e] hover:text-[#d4d4d4] cursor-pointer border-b border-[#2d2d2d] last:border-b-0 truncate"
+                title={script}
               >
-                ×
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* 历史记录 */}
-        {userScriptHistory.length > 0 && (
-          <div className="mt-2">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-[10px] text-[#969696]">
-                历史记录 ({userScriptHistory.length})
-              </span>
-              <button
-                type="button"
-                onClick={clearHistory}
-                className="text-[9px] text-[#7a7a7a] hover:text-[#f87171] transition-colors"
-              >
-                清空
-              </button>
-            </div>
-            <div
-              className="max-h-24 overflow-y-auto bg-[#1e1e1e] border border-[#333] rounded"
-              style={{ scrollbarWidth: "thin", scrollbarColor: "#424242 transparent" }}
-            >
-              {userScriptHistory.map((script, idx) => (
-                <div
-                  key={`history-${idx}-${script.slice(0, 20)}`}
-                  onClick={() => restoreFromHistory(script)}
-                  className="px-2 py-1 text-[10px] font-mono text-[#969696] hover:bg-[#2a2d2e] hover:text-[#d4d4d4] cursor-pointer border-b border-[#2d2d2d] last:border-b-0 truncate"
-                  title={script}
-                >
-                  {script.length > 50 ? `${script.slice(0, 50)}...` : script}
-                </div>
-              ))}
-            </div>
+                {script.length > 50 ? `${script.slice(0, 50)}...` : script}
+              </div>
+            ))}
           </div>
-        )}
+        </div>
+      )}
     </Section>
   );
 };

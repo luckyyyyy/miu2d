@@ -98,9 +98,10 @@ export const BottomStateGui: React.FC = () => {
     const topAdjust = config?.panel.topAdjust ?? 0;
 
     // Use centered formula when explicit Width is declared in ini
-    const left = config?.panel.width != null
-      ? (screenWidth - (config.panel.width)) / 2 + leftAdjust
-      : screenWidth / 2 + leftAdjust;
+    const left =
+      config?.panel.width != null
+        ? (screenWidth - config.panel.width) / 2 + leftAdjust
+        : screenWidth / 2 + leftAdjust;
 
     return {
       position: "absolute" as const,
@@ -166,9 +167,7 @@ export const BottomStateGui: React.FC = () => {
       )}
 
       {/* 前景装饰层 - 叠在血条上方（如剑侠情缘2 column2.msf） */}
-      {config?.overlay && (
-        <OverlayImage imagePath={config.overlay} />
-      )}
+      {config?.overlay && <OverlayImage imagePath={config.overlay} />}
     </div>
   );
 };

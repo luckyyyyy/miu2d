@@ -4,6 +4,7 @@
  * 聚合所有游戏配置数据，供 REST controller 和 tRPC router 共用
  */
 
+import { requireGameIdBySlug } from "../../utils/game";
 import { goodsService } from "../goods/goods.service";
 import { magicService } from "../magic/magic.service";
 import { npcResourceService, npcService } from "../npc";
@@ -12,7 +13,6 @@ import { playerService } from "../player";
 import { shopService } from "../shop/shop.service";
 import { talkService } from "../talk";
 import { talkPortraitService } from "../talkPortrait";
-import { requireGameIdBySlug } from "../../utils/game";
 
 /**
  * 聚合游戏所有配置数据（武功、物品、商店、NPC、物体、玩家、头像、对话）

@@ -238,11 +238,11 @@ export class NpcAI {
 
     let canSeeTarget = false;
 
-    if (tileDistance <= npc.visionRadius) {
+    if (tileDistance <= npc.getVisionRadius()) {
       canSeeTarget = npc.canViewTargetForAI(
         { x: npc.mapX, y: npc.mapY },
         targetTilePosition,
-        npc.visionRadius
+        npc.getVisionRadius()
       );
       npc.isFollowTargetFound = npc.isFollowTargetFound || canSeeTarget;
     } else {
@@ -356,7 +356,10 @@ export class NpcAI {
 
       // 查找被活着的角色杀死的友方
       if (this.npcManager) {
-        const dead = this.npcManager.findFriendDeadKilledByLiveCharacter(npc, npc.visionRadius);
+        const dead = this.npcManager.findFriendDeadKilledByLiveCharacter(
+          npc,
+          npc.getVisionRadius()
+        );
         if (dead) {
           const lastAttacker = dead.lastAttacker;
           if (lastAttacker && !lastAttacker.isDeathInvoked) {
@@ -485,7 +488,12 @@ export class NpcAI {
       }
     } else {
       // 随机移动随机攻击行为
-      if (npc.isRandMoveRandAttack && npc.isStanding() && !this.npcManager.isGlobalAIDisabled && !npc.isAIDisabled) {
+      if (
+        npc.isRandMoveRandAttack &&
+        npc.isStanding() &&
+        !this.npcManager.isGlobalAIDisabled &&
+        !npc.isAIDisabled
+      ) {
         const poses = npc.getRandTilePathForAI(2, false, 10);
         if (poses.length >= 2) {
           npc.walkTo(poses[1]);
@@ -533,7 +541,7 @@ export class NpcAI {
             break;
           // AfraidPlayerAnimal 与玩家保持距离
           case CharacterKind.AfraidPlayerAnimal:
-            this.keepMinTileDistance(this.player.tilePosition, npc.visionRadius);
+            this.keepMinTileDistance(this.player.tilePosition, npc.getVisionRadius());
             break;
         }
       }

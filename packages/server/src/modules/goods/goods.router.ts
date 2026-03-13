@@ -81,7 +81,10 @@ export class GoodsRouter {
    */
   @UseMiddlewares(requireUser)
   @Mutation({ input: ImportGoodInputSchema, output: GoodSchema })
-  async importFromIni(input: z.infer<typeof ImportGoodInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+  async importFromIni(
+    input: z.infer<typeof ImportGoodInputSchema>,
+    @Ctx() ctx: AuthenticatedContext
+  ) {
     return goodsService.importFromIni(input, ctx.userId, ctx.language);
   }
 
@@ -90,7 +93,10 @@ export class GoodsRouter {
    */
   @UseMiddlewares(requireUser)
   @Mutation({ input: BatchImportGoodInputSchema, output: BatchImportGoodResultSchema })
-  async batchImportFromIni(input: z.infer<typeof BatchImportGoodInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+  async batchImportFromIni(
+    input: z.infer<typeof BatchImportGoodInputSchema>,
+    @Ctx() ctx: AuthenticatedContext
+  ) {
     return goodsService.batchImportFromIni(input, ctx.userId, ctx.language);
   }
 
@@ -99,7 +105,10 @@ export class GoodsRouter {
    */
   @UseMiddlewares(requireUser)
   @Mutation({ input: ClearAllGoodsInputSchema, output: ClearAllGoodsResultSchema })
-  async clearAll(input: z.infer<typeof ClearAllGoodsInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+  async clearAll(
+    input: z.infer<typeof ClearAllGoodsInputSchema>,
+    @Ctx() ctx: AuthenticatedContext
+  ) {
     return goodsService.clearAll(input, ctx.userId, ctx.language);
   }
 }

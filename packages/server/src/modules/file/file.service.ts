@@ -45,10 +45,11 @@ export class FileService {
     let currentId: string | null = fileId;
 
     while (currentId) {
-      const file: { id: string; name: string; parentId: string | null } | null = await db.file.findFirst({
-        where: { id: currentId },
-        select: { id: true, name: true, parentId: true },
-      });
+      const file: { id: string; name: string; parentId: string | null } | null =
+        await db.file.findFirst({
+          where: { id: currentId },
+          select: { id: true, name: true, parentId: true },
+        });
 
       if (!file) break;
 
@@ -81,9 +82,10 @@ export class FileService {
     // 获取父目录路径
     const parentPath = await this.getDirectoryPath(parentId ?? null);
 
-    const condition = parentId !== undefined && parentId !== null
-      ? { gameId, parentId, deletedAt: null as null }
-      : { gameId, parentId: null as null, deletedAt: null as null };
+    const condition =
+      parentId !== undefined && parentId !== null
+        ? { gameId, parentId, deletedAt: null as null }
+        : { gameId, parentId: null as null, deletedAt: null as null };
 
     const rows = await db.file.findMany({ where: condition });
     return rows.map((row) => toFileNodeOutput(row, `${parentPath}/${row.name}`));
@@ -122,9 +124,10 @@ export class FileService {
     language: Language,
     excludeId?: string
   ): Promise<void> {
-    const condition = parentId !== null
-      ? { gameId, parentId, name, deletedAt: null as null }
-      : { gameId, parentId: null as null, name, deletedAt: null as null };
+    const condition =
+      parentId !== null
+        ? { gameId, parentId, name, deletedAt: null as null }
+        : { gameId, parentId: null as null, name, deletedAt: null as null };
 
     const existing = await db.file.findFirst({ where: condition, select: { id: true } });
 
@@ -202,7 +205,10 @@ export class FileService {
     }
 
     // 更新 updatedAt
-    const updated = await db.file.update({ where: { id: fileId }, data: { updatedAt: new Date() } });
+    const updated = await db.file.update({
+      where: { id: fileId },
+      data: { updatedAt: new Date() },
+    });
 
     const path = await this.buildFilePath(updated.id);
     return toFileNodeOutput(updated, path);
@@ -302,7 +308,10 @@ export class FileService {
     // 检查同名冲突
     await this.checkNameConflict(file.gameId, file.parentId, newName, language, fileId);
 
-    const updated = await db.file.update({ where: { id: fileId }, data: { name: newName, updatedAt: new Date() } });
+    const updated = await db.file.update({
+      where: { id: fileId },
+      data: { name: newName, updatedAt: new Date() },
+    });
 
     const path = await this.buildFilePath(updated.id);
     return toFileNodeOutput(updated, path);
@@ -363,7 +372,10 @@ export class FileService {
     // 检查同名冲突
     await this.checkNameConflict(file.gameId, newParentId, file.name, language, fileId);
 
-    const updated = await db.file.update({ where: { id: fileId }, data: { parentId: newParentId, updatedAt: new Date() } });
+    const updated = await db.file.update({
+      where: { id: fileId },
+      data: { parentId: newParentId, updatedAt: new Date() },
+    });
 
     const path = await this.buildFilePath(updated.id);
     return toFileNodeOutput(updated, path);
@@ -488,10 +500,11 @@ export class FileService {
     let currentId: string | null = fileId;
 
     while (currentId) {
-      const current: { id: string; name: string; parentId: string | null } | null = await db.file.findFirst({
-        where: { id: currentId },
-        select: { id: true, name: true, parentId: true },
-      });
+      const current: { id: string; name: string; parentId: string | null } | null =
+        await db.file.findFirst({
+          where: { id: currentId },
+          select: { id: true, name: true, parentId: true },
+        });
 
       if (!current) break;
 
@@ -682,7 +695,10 @@ export class FileService {
     if (validFileIds.length === 0) return 0;
 
     // 批量更新 updatedAt
-    await db.file.updateMany({ where: { id: { in: validFileIds } }, data: { updatedAt: new Date() } });
+    await db.file.updateMany({
+      where: { id: { in: validFileIds } },
+      data: { updatedAt: new Date() },
+    });
 
     return validFileIds.length;
   }

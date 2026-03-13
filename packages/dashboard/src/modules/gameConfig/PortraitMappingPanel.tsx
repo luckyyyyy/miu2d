@@ -172,9 +172,7 @@ export function PortraitMappingPanel({ gameId }: { gameId: string }) {
   }
 
   return (
-    <div
-      className="space-y-4 relative"
-    >
+    <div className="space-y-4 relative">
       <SectionTitle desc="Talk 脚本命令使用的角色头像索引映射（对应 HeadFile.ini）" />
 
       {/* 操作按钮 */}

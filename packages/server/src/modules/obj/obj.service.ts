@@ -17,8 +17,7 @@ import type {
   UpdateObjInput,
 } from "@miu2d/types";
 import { createDefaultObj, createDefaultObjResource, ObjKindFromValue } from "@miu2d/types";
-import type { Prisma } from "@prisma/client";
-import type { Obj as PrismaObj } from "@prisma/client";
+import type { Prisma, Obj as PrismaObj } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
 import { db } from "../../db/client";
 import type { Language } from "../../i18n";
@@ -281,15 +280,32 @@ export class ObjService {
     const failed: BatchImportObjResult["failed"] = [];
 
     // ── 解析阶段（纯内存，无 DB 调用）────────────────────────────────
-    type ResInsertRow = { gameId: string; key: string; name: string; data: Record<string, unknown> };
-    type ObjDbRow = { gameId: string; key: string; name: string; kind: string; resourceId: string | null; data: Record<string, unknown> };
+    type ResInsertRow = {
+      gameId: string;
+      key: string;
+      name: string;
+      data: Record<string, unknown>;
+    };
+    type ObjDbRow = {
+      gameId: string;
+      key: string;
+      name: string;
+      kind: string;
+      resourceId: string | null;
+      data: Record<string, unknown>;
+    };
 
     const resourceRows: ResInsertRow[] = [];
     const resourceKeySet = new Set<string>();
     const resourceOnlyMeta: { fileName: string; resourceKey: string }[] = [];
 
     const objDbRows: ObjDbRow[] = [];
-    const objMeta: { fileName: string; hasResources: boolean; resourceKey: string | null; objKey: string }[] = [];
+    const objMeta: {
+      fileName: string;
+      hasResources: boolean;
+      resourceKey: string | null;
+      objKey: string;
+    }[] = [];
 
     for (const item of input.items) {
       try {
@@ -301,7 +317,12 @@ export class ObjService {
           const resourceKey = item.fileName.toLowerCase();
           const resourceName = item.fileName.replace(/\.ini$/i, "");
           if (!resourceKeySet.has(resourceKey)) {
-            resourceRows.push({ gameId: input.gameId, key: resourceKey, name: resourceName, data: { resources } });
+            resourceRows.push({
+              gameId: input.gameId,
+              key: resourceKey,
+              name: resourceName,
+              data: { resources },
+            });
             resourceKeySet.add(resourceKey);
           }
           resourceOnlyMeta.push({ fileName: item.fileName, resourceKey });
@@ -317,7 +338,12 @@ export class ObjService {
             resourceKey = (objFileField || item.fileName).toLowerCase();
             const resourceName = resourceKey.replace(/\.ini$/i, "");
             if (!resourceKeySet.has(resourceKey)) {
-              resourceRows.push({ gameId: input.gameId, key: resourceKey, name: resourceName, data: { resources } });
+              resourceRows.push({
+                gameId: input.gameId,
+                key: resourceKey,
+                name: resourceName,
+                data: { resources },
+              });
               resourceKeySet.add(resourceKey);
             }
           }
@@ -348,13 +374,24 @@ export class ObjService {
     // ── 批量 upsert objResources（单条 SQL）──────────────────────────
     const keyToResourceId = new Map<string, string>();
     if (resourceRows.length > 0) {
-      const objResRowsDeduped = [...new Map(resourceRows.map((r) => [`${r.gameId}::${r.key}`, r])).values()];
+      const objResRowsDeduped = [
+        ...new Map(resourceRows.map((r) => [`${r.gameId}::${r.key}`, r])).values(),
+      ];
       const upserted = await db.$transaction(
         objResRowsDeduped.map((row) =>
           db.objResource.upsert({
             where: { obj_resources_game_id_key_unique: { gameId: row.gameId, key: row.key } },
-            create: { gameId: row.gameId, key: row.key, name: row.name,  data: row.data as unknown as Prisma.InputJsonValue },
-            update: { name: row.name, data: row.data as unknown as Prisma.InputJsonValue, updatedAt: new Date() },
+            create: {
+              gameId: row.gameId,
+              key: row.key,
+              name: row.name,
+              data: row.data as unknown as Prisma.InputJsonValue,
+            },
+            update: {
+              name: row.name,
+              data: row.data as unknown as Prisma.InputJsonValue,
+              updatedAt: new Date(),
+            },
           })
         )
       );
@@ -367,7 +404,13 @@ export class ObjService {
     for (const { fileName, resourceKey } of resourceOnlyMeta) {
       const id = keyToResourceId.get(resourceKey);
       if (id) {
-        success.push({ fileName, id, name: resourceKey.replace(/\.ini$/i, ""), type: "resource", hasResources: true });
+        success.push({
+          fileName,
+          id,
+          name: resourceKey.replace(/\.ini$/i, ""),
+          type: "resource",
+          hasResources: true,
+        });
       }
     }
 
@@ -375,7 +418,9 @@ export class ObjService {
     if (objDbRows.length > 0) {
       const insertValues = objDbRows.map((row, i) => ({
         ...row,
-        resourceId: objMeta[i].resourceKey ? (keyToResourceId.get(objMeta[i].resourceKey!) ?? null) : null,
+        resourceId: objMeta[i].resourceKey
+          ? (keyToResourceId.get(objMeta[i].resourceKey!) ?? null)
+          : null,
       }));
 
       const insertedObjs = await db.$transaction(
@@ -406,7 +451,13 @@ export class ObjService {
         const row = keyToObjRow.get(meta.objKey);
         if (row) {
           const obj = this.toObj(row);
-          success.push({ fileName: meta.fileName, id: obj.id, name: obj.name, type: "obj", hasResources: meta.hasResources });
+          success.push({
+            fileName: meta.fileName,
+            id: obj.id,
+            name: obj.name,
+            type: "obj",
+            hasResources: meta.hasResources,
+          });
         }
       }
     }

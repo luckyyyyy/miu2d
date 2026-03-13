@@ -9,9 +9,11 @@ import { logger } from "@miu2d/engine/core/logger";
 import type React from "react";
 import { useMemo } from "react";
 import { GameUIContext } from "../contexts";
-import { useBuildGameUIContextValue, useTouchDropHandlers } from "./hooks";
+import { EngineWatermark } from "./common/EngineWatermark";
 import type { GameUILogic } from "./hooks";
+import { useBuildGameUIContextValue, useTouchDropHandlers } from "./hooks";
 import type { GoodItemData } from "./ui/classic";
+import { FogOfWarMap } from "./ui/classic/FogOfWarMap";
 // 视频播放器是全屏组件，与 UI 风格无关，复用 classic 版本
 // 导入现代UI组件
 import {
@@ -34,8 +36,6 @@ import {
   TopBar,
   XiuLianPanel,
 } from "./ui/modern";
-import { FogOfWarMap } from "./ui/classic/FogOfWarMap";
-import { EngineWatermark } from "./common/EngineWatermark";
 
 interface ModernGameUIWrapperProps {
   logic: GameUILogic;
@@ -162,252 +162,250 @@ export const ModernGameUIWrapper: React.FC<ModernGameUIWrapperProps> = ({
           overflow: "hidden",
         }}
       >
-      {/* 顶部按钮栏 */}
-      <TopBar />
+        {/* 顶部按钮栏 */}
+        <TopBar />
 
-      {/* 计时器 */}
-      {timerState.isRunning && !timerState.isHidden && (
-        <TimerDisplay timerState={timerState} />
-      )}
+        {/* 计时器 */}
+        {timerState.isRunning && !timerState.isHidden && <TimerDisplay timerState={timerState} />}
 
-      {/* NPC 血条 */}
-      <NpcLifeBar key={npcUpdateKey} npc={hoveredNpc} screenWidth={width} />
+        {/* NPC 血条 */}
+        <NpcLifeBar key={npcUpdateKey} npc={hoveredNpc} screenWidth={width} />
 
-      {/* 底部快捷栏 */}
-      <BottomBar
-        goodsItems={bottomGoodsItems}
-        magicItems={magicData.bottomMagics}
-        onItemClick={(index: number) => {
-          if (index < 3) {
-            handleUseBottomGood(index);
-          } else {
-            dispatch({ type: "USE_MAGIC_BY_BOTTOM", bottomSlot: index - 3 });
-          }
-        }}
-        onItemRightClick={(index: number) => {
-          if (index < 3) {
-            if (panels?.buy) {
-              dispatch({ type: "SELL_BOTTOM_GOODS", slotIndex: index });
-            } else {
+        {/* 底部快捷栏 */}
+        <BottomBar
+          goodsItems={bottomGoodsItems}
+          magicItems={magicData.bottomMagics}
+          onItemClick={(index: number) => {
+            if (index < 3) {
               handleUseBottomGood(index);
+            } else {
+              dispatch({ type: "USE_MAGIC_BY_BOTTOM", bottomSlot: index - 3 });
             }
-          } else {
-            dispatch({ type: "SET_CURRENT_MAGIC_BY_BOTTOM", bottomIndex: index - 3 });
-          }
-        }}
-        onMagicRightClick={(magicIndex: number) => {
-          dispatch({ type: "SET_CURRENT_MAGIC_BY_BOTTOM", bottomIndex: magicIndex });
-        }}
-        onDragStart={(data) => {
-          if (data.type === "goods") {
-            handleBottomGoodsDragStart(data.slotIndex);
-          } else if (data.type === "magic") {
-            handleBottomMagicDragStart(data.slotIndex - 3);
-          }
-        }}
-        onDrop={(targetIndex: number) => {
-          if (targetIndex < 3) {
-            // 物品槽
-            handleGoodsDropOnBottom(targetIndex);
-          } else {
-            // 武功槽
-            handleMagicDropOnBottom(targetIndex - 3);
-          }
-          setDragData(null);
-        }}
-        onDragEnd={() => {
-          handleMagicDragEnd();
-          setDragData(null);
-        }}
-      />
-
-      {/* 状态面板 */}
-      <StatePanel
-        isVisible={panels?.state ?? false}
-        stats={playerStats}
-        playerIndex={uiPlayer?.playerIndex}
-        playerName={uiPlayer?.playerName}
-        onClose={() => togglePanel("state")}
-      />
-
-      {/* 装备面板 */}
-      <EquipPanel
-        isVisible={panels?.equip ?? false}
-        equips={{
-          head: goodsData.equips.head ? { good: goodsData.equips.head.good, count: 1 } : null,
-          neck: goodsData.equips.neck ? { good: goodsData.equips.neck.good, count: 1 } : null,
-          body: goodsData.equips.body ? { good: goodsData.equips.body.good, count: 1 } : null,
-          back: goodsData.equips.back ? { good: goodsData.equips.back.good, count: 1 } : null,
-          hand: goodsData.equips.hand ? { good: goodsData.equips.hand.good, count: 1 } : null,
-          wrist: goodsData.equips.wrist ? { good: goodsData.equips.wrist.good, count: 1 } : null,
-          foot: goodsData.equips.foot ? { good: goodsData.equips.foot.good, count: 1 } : null,
-        }}
-        onSlotClick={handleEquipRightClick}
-        onSlotRightClick={handleEquipRightClick}
-        onSlotDrop={handleEquipDrop}
-        onSlotDragStart={handleEquipDragStart}
-        onSlotMouseEnter={handleMouseEnter}
-        onSlotMouseLeave={handleMouseLeave}
-        onClose={() => togglePanel("equip")}
-        dragData={dragData}
-        onTouchDrop={handleEquipTouchDrop}
-      />
-
-      {/* 物品面板 */}
-      <GoodsPanel
-        isVisible={panels?.goods ?? false}
-        items={goodsItems}
-        money={goodsData.money}
-        onItemClick={(index) => logger.log("Item clicked:", index)}
-        onItemRightClick={handleGoodsRightClick}
-        onItemDragStart={handleGoodsDragStart}
-        onItemDrop={handleGoodsDrop}
-        onItemMouseEnter={handleMouseEnter}
-        onItemMouseLeave={handleMouseLeave}
-        onClose={() => togglePanel("goods")}
-        dragData={dragData}
-        onTouchDrop={handleGoodsTouchDrop}
-      />
-
-      {/* 武功面板 */}
-      <MagicPanel
-        isVisible={panels?.magic ?? false}
-        magicInfos={magicData.storeMagics}
-        onMagicClick={(storeIndex) => logger.log("Magic clicked:", storeIndex)}
-        onMagicRightClick={(storeIndex) =>
-          dispatch({ type: "SET_CURRENT_MAGIC", magicIndex: storeIndex })
-        }
-        onClose={() => togglePanel("magic")}
-        onDragStart={handleMagicDragStart}
-        onDragEnd={handleMagicDragEnd}
-        onDrop={handleMagicDropOnStore}
-        dragData={magicDragData}
-        bottomDragData={bottomMagicDragData}
-        onMagicHover={handleMagicHover}
-        onMagicLeave={handleMagicLeave}
-        onTouchDrop={handleMagicTouchDrop}
-      />
-
-      {/* 修炼面板 */}
-      <XiuLianPanel
-        isVisible={panels?.xiulian ?? false}
-        magicInfo={magicData.xiuLianMagic}
-        onClose={() => togglePanel("xiulian")}
-        onDrop={handleMagicDropOnXiuLian}
-        onDragStart={handleXiuLianDragStart}
-        onDragEnd={handleMagicDragEnd}
-        dragData={magicDragData}
-        bottomDragData={bottomMagicDragData}
-        onMagicHover={handleMagicHover}
-        onMagicLeave={handleMagicLeave}
-        onTouchDrop={handleXiuLianTouchDrop}
-      />
-
-      {/* 任务面板 */}
-      <MemoPanel
-        isVisible={panels?.memo ?? false}
-        memos={engine?.memoListManager?.getAllMemos() ?? []}
-        onClose={() => togglePanel("memo")}
-      />
-
-      {/* 系统面板 - 已由 GameScreen 的 GameMenuPanel 替代 */}
-
-      {/* 对话框 */}
-      {dialog?.isVisible && (
-        <DialogBox
-          state={{
-            isVisible: dialog.isVisible,
-            text: dialog.text,
-            nameText: dialog.nameText,
-            portraitIndex: dialog.portraitIndex ?? 0,
-            portraitSide: dialog.portraitSide ?? "left",
-            textProgress: dialog.textProgress ?? 1,
-            isComplete: dialog.isComplete ?? true,
-            isInSelecting: dialog.isInSelecting ?? false,
-            selectA: dialog.selectA ?? "",
-            selectB: dialog.selectB ?? "",
-            selection: dialog.selection ?? -1,
           }}
-          onClose={() => dispatch({ type: "DIALOG_CLICK" })}
-          onSelectionMade={(sel: number) => {
-            dispatch({ type: "DIALOG_SELECT", selection: sel });
+          onItemRightClick={(index: number) => {
+            if (index < 3) {
+              if (panels?.buy) {
+                dispatch({ type: "SELL_BOTTOM_GOODS", slotIndex: index });
+              } else {
+                handleUseBottomGood(index);
+              }
+            } else {
+              dispatch({ type: "SET_CURRENT_MAGIC_BY_BOTTOM", bottomIndex: index - 3 });
+            }
+          }}
+          onMagicRightClick={(magicIndex: number) => {
+            dispatch({ type: "SET_CURRENT_MAGIC_BY_BOTTOM", bottomIndex: magicIndex });
+          }}
+          onDragStart={(data) => {
+            if (data.type === "goods") {
+              handleBottomGoodsDragStart(data.slotIndex);
+            } else if (data.type === "magic") {
+              handleBottomMagicDragStart(data.slotIndex - 3);
+            }
+          }}
+          onDrop={(targetIndex: number) => {
+            if (targetIndex < 3) {
+              // 物品槽
+              handleGoodsDropOnBottom(targetIndex);
+            } else {
+              // 武功槽
+              handleMagicDropOnBottom(targetIndex - 3);
+            }
+            setDragData(null);
+          }}
+          onDragEnd={() => {
+            handleMagicDragEnd();
+            setDragData(null);
           }}
         />
-      )}
 
-      {/* 选择框 */}
-      {selection?.isVisible && (
-        <SelectionUI
-          state={{
-            isVisible: selection.isVisible,
-            message: selection.message ?? "",
-            options: selection.options.map((o) => ({
-              text: o.text,
-              label: o.label ?? "",
-              enabled: o.enabled ?? true,
-            })),
-            selectedIndex: selection.selectedIndex ?? -1,
-            hoveredIndex: selection.hoveredIndex ?? -1,
-          }}
-          onSelect={(index) => dispatch({ type: "SELECTION_CHOOSE", index })}
+        {/* 状态面板 */}
+        <StatePanel
+          isVisible={panels?.state ?? false}
+          stats={playerStats}
+          playerIndex={uiPlayer?.playerIndex}
+          playerName={uiPlayer?.playerName}
+          onClose={() => togglePanel("state")}
         />
-      )}
 
-      {/* 多选框 */}
-      {multiSelection?.isVisible && (
-        <SelectionMultipleUI
-          isVisible={multiSelection.isVisible}
-          title={multiSelection.message ?? "请选择"}
-          options={multiSelection.options.map((o) => o.text)}
-          onConfirm={(indices) => {
-            // 循环 toggle 选中的项
-            indices.forEach((index) => {
-              dispatch({ type: "MULTI_SELECTION_TOGGLE", index });
-            });
+        {/* 装备面板 */}
+        <EquipPanel
+          isVisible={panels?.equip ?? false}
+          equips={{
+            head: goodsData.equips.head ? { good: goodsData.equips.head.good, count: 1 } : null,
+            neck: goodsData.equips.neck ? { good: goodsData.equips.neck.good, count: 1 } : null,
+            body: goodsData.equips.body ? { good: goodsData.equips.body.good, count: 1 } : null,
+            back: goodsData.equips.back ? { good: goodsData.equips.back.good, count: 1 } : null,
+            hand: goodsData.equips.hand ? { good: goodsData.equips.hand.good, count: 1 } : null,
+            wrist: goodsData.equips.wrist ? { good: goodsData.equips.wrist.good, count: 1 } : null,
+            foot: goodsData.equips.foot ? { good: goodsData.equips.foot.good, count: 1 } : null,
           }}
-          onCancel={() => {
-            // 取消
-          }}
+          onSlotClick={handleEquipRightClick}
+          onSlotRightClick={handleEquipRightClick}
+          onSlotDrop={handleEquipDrop}
+          onSlotDragStart={handleEquipDragStart}
+          onSlotMouseEnter={handleMouseEnter}
+          onSlotMouseLeave={handleMouseLeave}
+          onClose={() => togglePanel("equip")}
+          dragData={dragData}
+          onTouchDrop={handleEquipTouchDrop}
         />
-      )}
 
-      {/* 消息提示 */}
-      <MessageBox
-        isVisible={message?.isVisible ?? false}
-        message={message?.text ?? ""}
-        showKey={message?.showKey ?? 0}
-      />
-
-      {/* 商店面板 */}
-      {panels?.buy && buyData.items.length > 0 && (
-        <BuyPanel
-          isVisible={true}
-          items={buyData.items.map((item) => {
-            if (!item) return null;
-            const basePrice = item.price > 0 ? item.price : item.good.cost;
-            const effectivePrice = Math.floor((basePrice * buyData.buyPercent) / 100);
-            return { good: item.good, count: item.count, price: effectivePrice };
-          })}
-          buyPercent={buyData.buyPercent}
-          numberValid={buyData.numberValid}
-          onItemClick={(index) => logger.log("Shop item clicked:", index)}
-          onItemRightClick={handleShopItemRightClick}
-          onItemMouseEnter={handleShopItemMouseEnter}
+        {/* 物品面板 */}
+        <GoodsPanel
+          isVisible={panels?.goods ?? false}
+          items={goodsItems}
+          money={goodsData.money}
+          onItemClick={(index) => logger.log("Item clicked:", index)}
+          onItemRightClick={handleGoodsRightClick}
+          onItemDragStart={handleGoodsDragStart}
+          onItemDrop={handleGoodsDrop}
+          onItemMouseEnter={handleMouseEnter}
           onItemMouseLeave={handleMouseLeave}
-          onClose={handleShopClose}
+          onClose={() => togglePanel("goods")}
+          dragData={dragData}
+          onTouchDrop={handleGoodsTouchDrop}
         />
-      )}
 
-      {/* FogOfWarMap - 战争迷雾风格地图（替换原 LittleMap） */}
-      {panels?.littleMap && (
-        <FogOfWarMap
-          mapData={minimapState.mapData}
-          mapName={minimapState.mapName}
-          playerPosition={minimapState.playerPosition}
-          characters={minimapState.characters}
+        {/* 武功面板 */}
+        <MagicPanel
+          isVisible={panels?.magic ?? false}
+          magicInfos={magicData.storeMagics}
+          onMagicClick={(storeIndex) => logger.log("Magic clicked:", storeIndex)}
+          onMagicRightClick={(storeIndex) =>
+            dispatch({ type: "SET_CURRENT_MAGIC", magicIndex: storeIndex })
+          }
+          onClose={() => togglePanel("magic")}
+          onDragStart={handleMagicDragStart}
+          onDragEnd={handleMagicDragEnd}
+          onDrop={handleMagicDropOnStore}
+          dragData={magicDragData}
+          bottomDragData={bottomMagicDragData}
+          onMagicHover={handleMagicHover}
+          onMagicLeave={handleMagicLeave}
+          onTouchDrop={handleMagicTouchDrop}
         />
-      )}
-      {/* 原 LittleMap（已替换为 FogOfWarMap）
+
+        {/* 修炼面板 */}
+        <XiuLianPanel
+          isVisible={panels?.xiulian ?? false}
+          magicInfo={magicData.xiuLianMagic}
+          onClose={() => togglePanel("xiulian")}
+          onDrop={handleMagicDropOnXiuLian}
+          onDragStart={handleXiuLianDragStart}
+          onDragEnd={handleMagicDragEnd}
+          dragData={magicDragData}
+          bottomDragData={bottomMagicDragData}
+          onMagicHover={handleMagicHover}
+          onMagicLeave={handleMagicLeave}
+          onTouchDrop={handleXiuLianTouchDrop}
+        />
+
+        {/* 任务面板 */}
+        <MemoPanel
+          isVisible={panels?.memo ?? false}
+          memos={engine?.memoListManager?.getAllMemos() ?? []}
+          onClose={() => togglePanel("memo")}
+        />
+
+        {/* 系统面板 - 已由 GameScreen 的 GameMenuPanel 替代 */}
+
+        {/* 对话框 */}
+        {dialog?.isVisible && (
+          <DialogBox
+            state={{
+              isVisible: dialog.isVisible,
+              text: dialog.text,
+              nameText: dialog.nameText,
+              portraitIndex: dialog.portraitIndex ?? 0,
+              portraitSide: dialog.portraitSide ?? "left",
+              textProgress: dialog.textProgress ?? 1,
+              isComplete: dialog.isComplete ?? true,
+              isInSelecting: dialog.isInSelecting ?? false,
+              selectA: dialog.selectA ?? "",
+              selectB: dialog.selectB ?? "",
+              selection: dialog.selection ?? -1,
+            }}
+            onClose={() => dispatch({ type: "DIALOG_CLICK" })}
+            onSelectionMade={(sel: number) => {
+              dispatch({ type: "DIALOG_SELECT", selection: sel });
+            }}
+          />
+        )}
+
+        {/* 选择框 */}
+        {selection?.isVisible && (
+          <SelectionUI
+            state={{
+              isVisible: selection.isVisible,
+              message: selection.message ?? "",
+              options: selection.options.map((o) => ({
+                text: o.text,
+                label: o.label ?? "",
+                enabled: o.enabled ?? true,
+              })),
+              selectedIndex: selection.selectedIndex ?? -1,
+              hoveredIndex: selection.hoveredIndex ?? -1,
+            }}
+            onSelect={(index) => dispatch({ type: "SELECTION_CHOOSE", index })}
+          />
+        )}
+
+        {/* 多选框 */}
+        {multiSelection?.isVisible && (
+          <SelectionMultipleUI
+            isVisible={multiSelection.isVisible}
+            title={multiSelection.message ?? "请选择"}
+            options={multiSelection.options.map((o) => o.text)}
+            onConfirm={(indices) => {
+              // 循环 toggle 选中的项
+              indices.forEach((index) => {
+                dispatch({ type: "MULTI_SELECTION_TOGGLE", index });
+              });
+            }}
+            onCancel={() => {
+              // 取消
+            }}
+          />
+        )}
+
+        {/* 消息提示 */}
+        <MessageBox
+          isVisible={message?.isVisible ?? false}
+          message={message?.text ?? ""}
+          showKey={message?.showKey ?? 0}
+        />
+
+        {/* 商店面板 */}
+        {panels?.buy && buyData.items.length > 0 && (
+          <BuyPanel
+            isVisible={true}
+            items={buyData.items.map((item) => {
+              if (!item) return null;
+              const basePrice = item.price > 0 ? item.price : item.good.cost;
+              const effectivePrice = Math.floor((basePrice * buyData.buyPercent) / 100);
+              return { good: item.good, count: item.count, price: effectivePrice };
+            })}
+            buyPercent={buyData.buyPercent}
+            numberValid={buyData.numberValid}
+            onItemClick={(index) => logger.log("Shop item clicked:", index)}
+            onItemRightClick={handleShopItemRightClick}
+            onItemMouseEnter={handleShopItemMouseEnter}
+            onItemMouseLeave={handleMouseLeave}
+            onClose={handleShopClose}
+          />
+        )}
+
+        {/* FogOfWarMap - 战争迷雾风格地图（替换原 LittleMap） */}
+        {panels?.littleMap && (
+          <FogOfWarMap
+            mapData={minimapState.mapData}
+            mapName={minimapState.mapName}
+            playerPosition={minimapState.playerPosition}
+            characters={minimapState.characters}
+          />
+        )}
+        {/* 原 LittleMap（已替换为 FogOfWarMap）
       {panels?.littleMap && (
         <LittleMap
           isVisible={true}
@@ -428,38 +426,38 @@ export const ModernGameUIWrapper: React.FC<ModernGameUIWrapperProps> = ({
       )}
       */}
 
-      {/* 物品提示 */}
-      <ItemTooltip
-        isVisible={tooltip.isVisible}
-        good={tooltip.good}
-        shopPrice={tooltip.shopPrice}
-        position={tooltip.position}
-      />
-
-      {/* 武功提示 */}
-      {magicTooltip.magicInfo?.magic && (
-        <MagicTooltip
-          isVisible={magicTooltip.isVisible}
-          magic={{
-            fileName: magicTooltip.magicInfo.magic.fileName ?? "",
-            name: magicTooltip.magicInfo.magic.name,
-            intro: magicTooltip.magicInfo.magic.intro ?? "",
-            iconPath: magicTooltip.magicInfo.magic.icon ?? "",
-            level: magicTooltip.magicInfo.level,
-            maxLevel: magicTooltip.magicInfo.magic.maxLevel ?? 10,
-            currentLevelExp: magicTooltip.magicInfo.exp,
-            levelUpExp: magicTooltip.magicInfo.magic.levelupExp ?? 0,
-            manaCost: magicTooltip.magicInfo.magic.manaCost ?? 0,
-          }}
-          position={magicTooltip.position}
+        {/* 物品提示 */}
+        <ItemTooltip
+          isVisible={tooltip.isVisible}
+          good={tooltip.good}
+          shopPrice={tooltip.shopPrice}
+          position={tooltip.position}
         />
-      )}
 
-      {/* 视频播放器 */}
+        {/* 武功提示 */}
+        {magicTooltip.magicInfo?.magic && (
+          <MagicTooltip
+            isVisible={magicTooltip.isVisible}
+            magic={{
+              fileName: magicTooltip.magicInfo.magic.fileName ?? "",
+              name: magicTooltip.magicInfo.magic.name,
+              intro: magicTooltip.magicInfo.magic.intro ?? "",
+              iconPath: magicTooltip.magicInfo.magic.icon ?? "",
+              level: magicTooltip.magicInfo.level,
+              maxLevel: magicTooltip.magicInfo.magic.maxLevel ?? 10,
+              currentLevelExp: magicTooltip.magicInfo.exp,
+              levelUpExp: magicTooltip.magicInfo.magic.levelupExp ?? 0,
+              manaCost: magicTooltip.magicInfo.magic.manaCost ?? 0,
+            }}
+            position={magicTooltip.position}
+          />
+        )}
 
-      {/* Engine Watermark */}
-      <EngineWatermark />
-    </div>
+        {/* 视频播放器 */}
+
+        {/* Engine Watermark */}
+        <EngineWatermark />
+      </div>
     </GameUIContext.Provider>
   );
 };

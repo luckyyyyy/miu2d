@@ -63,9 +63,7 @@ async function main() {
     );
     const isExistingDb = existsRows[0]?.exists === true;
 
-    const dirs = (
-      await readdir(MIGRATIONS_DIR, { withFileTypes: true })
-    )
+    const dirs = (await readdir(MIGRATIONS_DIR, { withFileTypes: true }))
       .filter((d) => d.isDirectory())
       .map((d) => d.name)
       .sort();

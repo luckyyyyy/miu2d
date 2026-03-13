@@ -61,13 +61,49 @@ export const TopBar: React.FC = () => {
   const { screenWidth, togglePanel } = useGameUIContext();
   const buttons: TopButtonConfig[] = useMemo(
     () => [
-      { id: "state", label: "状态", icon: "📊", shortcut: "F1/T", onClick: () => togglePanel("state") },
-      { id: "equip", label: "装备", icon: "⚔️", shortcut: "F2/E", onClick: () => togglePanel("equip") },
-      { id: "xiulian", label: "修炼", icon: "🧘", shortcut: "F3", onClick: () => togglePanel("xiulian") },
-      { id: "goods", label: "物品", icon: "🎒", shortcut: "F5/I", onClick: () => togglePanel("goods") },
-      { id: "magic", label: "武功", icon: "✨", shortcut: "F6/M", onClick: () => togglePanel("magic") },
+      {
+        id: "state",
+        label: "状态",
+        icon: "📊",
+        shortcut: "F1/T",
+        onClick: () => togglePanel("state"),
+      },
+      {
+        id: "equip",
+        label: "装备",
+        icon: "⚔️",
+        shortcut: "F2/E",
+        onClick: () => togglePanel("equip"),
+      },
+      {
+        id: "xiulian",
+        label: "修炼",
+        icon: "🧘",
+        shortcut: "F3",
+        onClick: () => togglePanel("xiulian"),
+      },
+      {
+        id: "goods",
+        label: "物品",
+        icon: "🎒",
+        shortcut: "F5/I",
+        onClick: () => togglePanel("goods"),
+      },
+      {
+        id: "magic",
+        label: "武功",
+        icon: "✨",
+        shortcut: "F6/M",
+        onClick: () => togglePanel("magic"),
+      },
       { id: "memo", label: "任务", icon: "📜", shortcut: "F7", onClick: () => togglePanel("memo") },
-      { id: "system", label: "系统", icon: "⚙️", shortcut: "ESC", onClick: () => togglePanel("system") },
+      {
+        id: "system",
+        label: "系统",
+        icon: "⚙️",
+        shortcut: "ESC",
+        onClick: () => togglePanel("system"),
+      },
     ],
     [togglePanel]
   );

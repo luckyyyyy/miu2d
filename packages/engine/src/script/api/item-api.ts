@@ -169,6 +169,16 @@ export function createMagicAPI(ctx: ScriptCommandContext): MagicAPI {
       player.setPendingMagic(magicInfo.magic, origin, destination);
       player.onMagicCast();
     },
+    moveToBottomSlot: (magicFile, slotIndex) => {
+      const inventory = player.getPlayerMagicInventory();
+      const storeIndex = inventory.getIndexByFileName(magicFile);
+      if (storeIndex === -1) {
+        logger.warn(`[MagicAPI] moveToBottomSlot: magic not found in panel: ${magicFile}`);
+        return;
+      }
+      // slotIndex is 1-based in scripts (1–5), convert to 0-based internally
+      inventory.assignMagicToBottomSlot(storeIndex, slotIndex - 1);
+    },
   };
 }
 

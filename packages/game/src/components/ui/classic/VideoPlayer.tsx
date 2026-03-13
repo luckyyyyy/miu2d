@@ -6,9 +6,9 @@
  * Features: progress bar, volume control, pause/play, seek
  */
 
-import { GameEvents, type UIVideoPlayEvent } from "@miu2d/engine/events/game-events";
 import { logger } from "@miu2d/engine/core/logger";
-import { ResourcePath, getResourceUrl } from "@miu2d/engine/resource/resource-paths";
+import { GameEvents, type UIVideoPlayEvent } from "@miu2d/engine/events/game-events";
+import { getResourceUrl, ResourcePath } from "@miu2d/engine/resource/resource-paths";
 import type { GameEngine } from "@miu2d/engine/runtime";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { loadAudioSettings, saveAudioSettings } from "../../common/SidePanel";
@@ -37,7 +37,11 @@ function formatTime(seconds: number): string {
   return `${mins}:${secs.toString().padStart(2, "0")}`;
 }
 
-export const VideoPlayer: React.FC<VideoPlayerProps> = ({ engine, controlledVideoUrl, onControlledEnd }) => {
+export const VideoPlayer: React.FC<VideoPlayerProps> = ({
+  engine,
+  controlledVideoUrl,
+  onControlledEnd,
+}) => {
   const [videoFile, setVideoFile] = useState<string | null>(null);
   const [isVisible, setIsVisible] = useState(false);
   const [progress, setProgress] = useState(0);

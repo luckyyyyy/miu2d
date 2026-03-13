@@ -7,6 +7,7 @@
 
 import type { AudioManager } from "../../audio";
 import type { Character } from "../../character/character";
+import { calcMagicHit } from "../../combat/effect-calc";
 import { getEngineContext } from "../../core/engine-context";
 import { logger } from "../../core/logger";
 import { TILE_WIDTH, type Vector2 } from "../../core/types";
@@ -22,7 +23,6 @@ import {
   getPosition as getCharPosition,
   getEffect,
 } from "../effects";
-import { calcMagicHit } from "../../combat/effect-calc";
 import { resolveMagic } from "../magic-config-loader";
 import type { WorkItem } from "../magic-sprite";
 import { type MagicSprite, MINIMAL_DAMAGE } from "../magic-sprite";
@@ -358,10 +358,13 @@ export class SpriteUpdater {
           // 偏移向量: path1=(+tempY,-tempX)  path2=(-tempY,+tempX)
           const dir = sprite.direction;
           if (sprite.magic.passWidth > 0 && (dir.x !== 0 || dir.y !== 0)) {
-            const lateralScale = sprite.magic.passWidth * TILE_WIDTH / 2;
+            const lateralScale = (sprite.magic.passWidth * TILE_WIDTH) / 2;
             const tempX = Math.max(Math.round(dir.x * lateralScale) - 1, 1);
             const tempY = Math.max(Math.round(dir.y * lateralScale) - 1, 1);
-            const sideOffsets: [number, number][] = [[tempY, -tempX], [-tempY, tempX]];
+            const sideOffsets: [number, number][] = [
+              [tempY, -tempX],
+              [-tempY, tempX],
+            ];
             for (const [ox, oy] of sideOffsets) {
               const sideFrom = { x: prevPositionForSweep.x + ox, y: prevPositionForSweep.y + oy };
               const sideTo = { x: sprite.positionInWorld.x + ox, y: sprite.positionInWorld.y + oy };

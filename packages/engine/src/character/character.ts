@@ -11,10 +11,10 @@
  * - 本文件包含状态机、精灵加载、特殊动作等 (~800行)
  */
 
+import { getCharacterDeathExp } from "../combat/effect-calc";
 import { logger } from "../core/logger";
 import type { CharacterConfig, Vector2 } from "../core/types";
 import { CharacterState, RUN_SPEED_FOLD, TILE_WIDTH } from "../core/types";
-import { getCharacterDeathExp } from "../combat/effect-calc";
 import type { MagicSprite } from "../magic/magic-sprite";
 import type { MagicData } from "../magic/types";
 import { Obj } from "../obj/obj";
@@ -26,12 +26,7 @@ import {
   type SpriteSet,
   stateToSpriteSetKey,
 } from "../sprite/sprite";
-import {
-  distance,
-  getDirectionFromVector,
-  pixelToTile,
-  tileToPixel,
-} from "../utils";
+import { distance, getDirectionFromVector, pixelToTile, tileToPixel } from "../utils";
 import {
   canMoveInDirection,
   findNeighborInDirection as findNeighborByIndex,
@@ -238,7 +233,7 @@ export abstract class Character extends CharacterCombat {
     this._jumpElapsedMs += deltaMs;
 
     const totalMs = this._jumpTotalMs > 0 ? this._jumpTotalMs : 1;
-    const phase1End = totalMs / 3;       // [0,   T/3)  jsUp   – 原地蓄势
+    const phase1End = totalMs / 3; // [0,   T/3)  jsUp   – 原地蓄势
     const phase2End = (2 * totalMs) / 3; // [T/3, 2T/3) jsJumping – 空中飞行
     //                                   // [2T/3, T]   jsDown  – 落地
 
@@ -275,11 +270,7 @@ export abstract class Character extends CharacterCombat {
       }
 
       // Guard: abort if destination tile now has an obstacle
-      if (
-        nextTile.x === destTile.x &&
-        nextTile.y === destTile.y &&
-        this.hasObstacle(nextTile)
-      ) {
+      if (nextTile.x === destTile.x && nextTile.y === destTile.y && this.hasObstacle(nextTile)) {
         this.correctPositionToCurrentTile();
         this.path.shift();
       } else {
@@ -463,6 +454,10 @@ export abstract class Character extends CharacterCombat {
 
     this._attackDestination = { ...destinationPixelPosition };
 
+    if (this.isInSpecialAction) {
+      this.isInSpecialAction = false;
+    }
+
     if (magicIni) {
       this._magicToUseWhenAttack = magicIni;
     } else {
@@ -507,7 +502,7 @@ export abstract class Character extends CharacterCombat {
       CharacterState.Death,
       CharacterState.FightJump,
     ];
-    return !blockedStates.includes(this._state) && !this.isInSpecialAction && !this.inBezierMove;
+    return !blockedStates.includes(this._state) && !this.inBezierMove;
   }
 
   // =============================================
@@ -531,7 +526,7 @@ export abstract class Character extends CharacterCombat {
    */
   async loadSpritesFromNpcIni(
     npcIni?: string,
-    options?: { deferKeys?: Set<keyof SpriteSet> },
+    options?: { deferKeys?: Set<keyof SpriteSet> }
   ): Promise<boolean> {
     const iniFile = npcIni || this.npcIni;
     if (!iniFile) {

@@ -3,8 +3,8 @@
  * Based on JxqyHD Engine/Script/ScriptExecuter.cs
  */
 
-import type { SelectionOptionData } from "../../events/gui-state-types";
 import { logger } from "../../core/logger";
+import type { SelectionOptionData } from "../../events/gui-state-types";
 import { evaluateCondition } from "./condition-helper";
 import type { CommandHandler, CommandRegistry } from "./types";
 

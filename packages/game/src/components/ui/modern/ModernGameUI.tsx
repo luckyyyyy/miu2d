@@ -19,11 +19,11 @@ import type {
 } from "@miu2d/engine/gui/ui-types";
 import type React from "react";
 import { useCallback, useMemo, useState } from "react";
-import type { DragData, EquipSlotType, GoodItemData, MagicItem } from "../classic";
-import type { XiuLianMagic } from "../classic/XiuLianGui";
-import type { PlayerStats } from "../classic/StateGui";
-import { GameUIContext } from "../../../contexts";
 import type { MagicHoverData } from "../../../contexts";
+import { GameUIContext } from "../../../contexts";
+import type { DragData, EquipSlotType, GoodItemData, MagicItem } from "../classic";
+import type { PlayerStats } from "../classic/StateGui";
+import type { XiuLianMagic } from "../classic/XiuLianGui";
 import { BottomBar } from "./BottomBar";
 import { BuyPanel } from "./BuyPanel";
 import { DialogBox } from "./DialogBox";
@@ -224,20 +224,23 @@ export const ModernGameUI: React.FC<ModernGameUIProps> = ({
     }
   }, []);
 
-  const handleMagicHover = useCallback((magicInfo: MagicHoverData | null, x: number, y: number) => {
-    if (magicInfo?.magic?.name) {
-      const originalMagic = magicState?.bottomMagics?.find(
-        (slot) => slot?.magic?.name === magicInfo.magic?.name
-      )?.magic;
-      if (originalMagic) {
-        setTooltipItem({
-          type: "magic",
-          data: originalMagic,
-          position: { x, y },
-        });
+  const handleMagicHover = useCallback(
+    (magicInfo: MagicHoverData | null, x: number, y: number) => {
+      if (magicInfo?.magic?.name) {
+        const originalMagic = magicState?.bottomMagics?.find(
+          (slot) => slot?.magic?.name === magicInfo.magic?.name
+        )?.magic;
+        if (originalMagic) {
+          setTooltipItem({
+            type: "magic",
+            data: originalMagic,
+            position: { x, y },
+          });
+        }
       }
-    }
-  }, [magicState]);
+    },
+    [magicState]
+  );
 
   // 选择框操作
   const handleSelectionSelect = useCallback(
@@ -321,211 +324,211 @@ export const ModernGameUI: React.FC<ModernGameUIProps> = ({
 
   return (
     <GameUIContext.Provider value={gameUIContextValue}>
-    <div
-      style={{
-        position: "absolute",
-        inset: 0,
-        pointerEvents: "none",
-        overflow: "hidden",
-      }}
-    >
-      {/* 顶部按钮栏 */}
-      <TopBar />
-
-      {/* 底部快捷栏 */}
-      <BottomBar
-        goodsItems={bottomGoodsItems}
-        magicItems={bottomMagicItems}
-        onItemClick={(index: number) => onDispatch?.("bottomGoods.use", { index })}
-        onItemRightClick={(index: number) => onDispatch?.("bottomGoods.remove", { index })}
-        onMagicRightClick={(magicIndex: number) =>
-          onDispatch?.("bottomMagic.remove", { index: magicIndex })
-        }
-        onDrop={() => setDragData(null)}
-      />
-
-      {/* 状态面板 */}
-      <StatePanel
-        isVisible={activePanel === "state"}
-        stats={playerStats}
-        playerIndex={playerState?.playerIndex}
-        playerName={playerState?.playerName}
-        onClose={closePanel}
-      />
-
-      {/* 装备面板 */}
-      <EquipPanel
-        isVisible={activePanel === "equip"}
-        equips={{
-          head: goodsState?.equips?.head?.good
-            ? { good: goodsState.equips.head.good, count: 1 }
-            : null,
-          neck: goodsState?.equips?.neck?.good
-            ? { good: goodsState.equips.neck.good, count: 1 }
-            : null,
-          body: goodsState?.equips?.body?.good
-            ? { good: goodsState.equips.body.good, count: 1 }
-            : null,
-          back: goodsState?.equips?.back?.good
-            ? { good: goodsState.equips.back.good, count: 1 }
-            : null,
-          hand: goodsState?.equips?.hand?.good
-            ? { good: goodsState.equips.hand.good, count: 1 }
-            : null,
-          wrist: goodsState?.equips?.wrist?.good
-            ? { good: goodsState.equips.wrist.good, count: 1 }
-            : null,
-          foot: goodsState?.equips?.foot?.good
-            ? { good: goodsState.equips.foot.good, count: 1 }
-            : null,
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          pointerEvents: "none",
+          overflow: "hidden",
         }}
-        onSlotClick={handleEquipClick}
-        onSlotDrop={handleEquipDrop}
-        onClose={closePanel}
-        dragData={dragData}
-      />
+      >
+        {/* 顶部按钮栏 */}
+        <TopBar />
 
-      {/* 物品面板 */}
-      <GoodsPanel
-        isVisible={activePanel === "goods"}
-        items={goodsItems}
-        money={goodsState?.money ?? 0}
-        onItemClick={handleItemClick}
-        onItemRightClick={handleItemRightClick}
-        onItemDragStart={handleItemDragStart}
-        onItemDrop={handleItemDrop}
-        onItemHover={handleItemHover}
-        onItemMouseLeave={handleTooltipHide}
-        onClose={closePanel}
-        dragData={dragData}
-      />
+        {/* 底部快捷栏 */}
+        <BottomBar
+          goodsItems={bottomGoodsItems}
+          magicItems={bottomMagicItems}
+          onItemClick={(index: number) => onDispatch?.("bottomGoods.use", { index })}
+          onItemRightClick={(index: number) => onDispatch?.("bottomGoods.remove", { index })}
+          onMagicRightClick={(magicIndex: number) =>
+            onDispatch?.("bottomMagic.remove", { index: magicIndex })
+          }
+          onDrop={() => setDragData(null)}
+        />
 
-      {/* 武功面板 */}
-      <MagicPanel
-        isVisible={activePanel === "magic"}
-        magics={
-          magicState?.storeMagics?.map((slot): MagicItem | null =>
-            slot?.magic
-              ? {
-                  id: slot.magic.fileName,
-                  name: slot.magic.name,
-                  iconPath: slot.magic.iconPath,
-                  level: slot.magic.level ?? 0,
-                }
+        {/* 状态面板 */}
+        <StatePanel
+          isVisible={activePanel === "state"}
+          stats={playerStats}
+          playerIndex={playerState?.playerIndex}
+          playerName={playerState?.playerName}
+          onClose={closePanel}
+        />
+
+        {/* 装备面板 */}
+        <EquipPanel
+          isVisible={activePanel === "equip"}
+          equips={{
+            head: goodsState?.equips?.head?.good
+              ? { good: goodsState.equips.head.good, count: 1 }
+              : null,
+            neck: goodsState?.equips?.neck?.good
+              ? { good: goodsState.equips.neck.good, count: 1 }
+              : null,
+            body: goodsState?.equips?.body?.good
+              ? { good: goodsState.equips.body.good, count: 1 }
+              : null,
+            back: goodsState?.equips?.back?.good
+              ? { good: goodsState.equips.back.good, count: 1 }
+              : null,
+            hand: goodsState?.equips?.hand?.good
+              ? { good: goodsState.equips.hand.good, count: 1 }
+              : null,
+            wrist: goodsState?.equips?.wrist?.good
+              ? { good: goodsState.equips.wrist.good, count: 1 }
+              : null,
+            foot: goodsState?.equips?.foot?.good
+              ? { good: goodsState.equips.foot.good, count: 1 }
+              : null,
+          }}
+          onSlotClick={handleEquipClick}
+          onSlotDrop={handleEquipDrop}
+          onClose={closePanel}
+          dragData={dragData}
+        />
+
+        {/* 物品面板 */}
+        <GoodsPanel
+          isVisible={activePanel === "goods"}
+          items={goodsItems}
+          money={goodsState?.money ?? 0}
+          onItemClick={handleItemClick}
+          onItemRightClick={handleItemRightClick}
+          onItemDragStart={handleItemDragStart}
+          onItemDrop={handleItemDrop}
+          onItemHover={handleItemHover}
+          onItemMouseLeave={handleTooltipHide}
+          onClose={closePanel}
+          dragData={dragData}
+        />
+
+        {/* 武功面板 */}
+        <MagicPanel
+          isVisible={activePanel === "magic"}
+          magics={
+            magicState?.storeMagics?.map((slot): MagicItem | null =>
+              slot?.magic
+                ? {
+                    id: slot.magic.fileName,
+                    name: slot.magic.name,
+                    iconPath: slot.magic.iconPath,
+                    level: slot.magic.level ?? 0,
+                  }
+                : null
+            ) ?? []
+          }
+          onMagicClick={(storeIndex: number) => onDispatch?.("magic.use", { storeIndex })}
+          onMagicRightClick={(storeIndex: number) =>
+            onDispatch?.("magic.setXiuLian", { storeIndex })
+          }
+          onClose={closePanel}
+        />
+
+        {/* 修炼面板 */}
+        <XiuLianPanel
+          isVisible={activePanel === "xiulian"}
+          magic={
+            magicState?.xiuLianMagic?.magic
+              ? ({
+                  id: magicState.xiuLianMagic.magic.fileName,
+                  name: magicState.xiuLianMagic.magic.name,
+                  iconPath: magicState.xiuLianMagic.magic.iconPath,
+                  level: magicState.xiuLianMagic.magic.level ?? 0,
+                  exp: magicState.xiuLianMagic.magic.currentLevelExp ?? 0,
+                  levelUpExp: magicState.xiuLianMagic.magic.levelUpExp ?? 0,
+                  intro: magicState.xiuLianMagic.magic.intro ?? "",
+                } satisfies XiuLianMagic)
               : null
-          ) ?? []
-        }
-        onMagicClick={(storeIndex: number) => onDispatch?.("magic.use", { storeIndex })}
-        onMagicRightClick={(storeIndex: number) => onDispatch?.("magic.setXiuLian", { storeIndex })}
-        onClose={closePanel}
-      />
+          }
+          onClose={closePanel}
+        />
 
-      {/* 修炼面板 */}
-      <XiuLianPanel
-        isVisible={activePanel === "xiulian"}
-        magic={
-          magicState?.xiuLianMagic?.magic
-            ? ({
-                id: magicState.xiuLianMagic.magic.fileName,
-                name: magicState.xiuLianMagic.magic.name,
-                iconPath: magicState.xiuLianMagic.magic.iconPath,
-                level: magicState.xiuLianMagic.magic.level ?? 0,
-                exp: magicState.xiuLianMagic.magic.currentLevelExp ?? 0,
-                levelUpExp: magicState.xiuLianMagic.magic.levelUpExp ?? 0,
-                intro: magicState.xiuLianMagic.magic.intro ?? "",
-              } satisfies XiuLianMagic)
-            : null
-        }
-        onClose={closePanel}
-      />
+        {/* 任务面板 */}
+        <MemoPanel
+          isVisible={activePanel === "memo"}
+          memos={memoState?.memos?.map((e) => e.text) ?? []}
+          onClose={closePanel}
+        />
 
-      {/* 任务面板 */}
-      <MemoPanel
-        isVisible={activePanel === "memo"}
-        memos={memoState?.memos?.map((e) => e.text) ?? []}
-        onClose={closePanel}
-      />
+        {/* 系统面板 */}
+        <SystemPanel
+          isVisible={activePanel === "system"}
+          onSaveLoad={() => {
+            onDispatch?.("system.saveLoad");
+          }}
+          onOption={onOptions ?? (() => {})}
+          onExit={onExit ?? (() => {})}
+          onReturn={closePanel}
+        />
 
-      {/* 系统面板 */}
-      <SystemPanel
-        isVisible={activePanel === "system"}
-        onSaveLoad={() => {
-          onDispatch?.("system.saveLoad");
-        }}
-        onOption={onOptions ?? (() => {})}
-        onExit={onExit ?? (() => {})}
-        onReturn={closePanel}
-      />
+        {/* 对话框 */}
+        <DialogBox
+          state={{
+            isVisible: dialogState?.isVisible ?? false,
+            text: dialogState?.text ?? "",
+            nameText: dialogState?.nameText ?? "",
+            portraitIndex: 0,
+            portraitSide: "left",
+            textProgress: 1,
+            isComplete: true,
+            isInSelecting: false,
+            selectA: "",
+            selectB: "",
+            selection: -1,
+          }}
+          onClose={handleDialogClick}
+        />
 
-      {/* 对话框 */}
-      <DialogBox
-        state={{
-          isVisible: dialogState?.isVisible ?? false,
-          text: dialogState?.text ?? "",
-          nameText: dialogState?.nameText ?? "",
-          portraitIndex: 0,
-          portraitSide: "left",
-          textProgress: 1,
-          isComplete: true,
-          isInSelecting: false,
-          selectA: "",
-          selectB: "",
-          selection: -1,
-        }}
-        onClose={handleDialogClick}
-      />
+        {/* 选择框 */}
+        <SelectionUI
+          state={{
+            isVisible: selectionState?.isVisible ?? false,
+            message: selectionState?.message ?? "",
+            options:
+              selectionState?.options?.map((o) => ({
+                text: o.text,
+                label: o.label ?? "",
+                enabled: o.enabled ?? true,
+              })) ?? [],
+            selectedIndex: selectionState?.selectedIndex ?? -1,
+            hoveredIndex: selectionState?.hoveredIndex ?? -1,
+          }}
+          onSelect={handleSelectionSelect}
+        />
 
-      {/* 选择框 */}
-      <SelectionUI
-        state={{
-          isVisible: selectionState?.isVisible ?? false,
-          message: selectionState?.message ?? "",
-          options:
-            selectionState?.options?.map((o) => ({
-              text: o.text,
-              label: o.label ?? "",
-              enabled: o.enabled ?? true,
-            })) ?? [],
-          selectedIndex: selectionState?.selectedIndex ?? -1,
-          hoveredIndex: selectionState?.hoveredIndex ?? -1,
-        }}
-        onSelect={handleSelectionSelect}
-      />
+        {/* 多选框 */}
+        <SelectionMultipleUI
+          isVisible={multiSelectionState?.isVisible ?? false}
+          title={multiSelectionState?.message ?? "请选择"}
+          options={multiSelectionState?.options?.map((o) => o.text) ?? []}
+          onConfirm={handleSelectionMultipleConfirm}
+          onCancel={handleSelectionMultipleCancel}
+        />
 
-      {/* 多选框 */}
-      <SelectionMultipleUI
-        isVisible={multiSelectionState?.isVisible ?? false}
-        title={multiSelectionState?.message ?? "请选择"}
-        options={multiSelectionState?.options?.map((o) => o.text) ?? []}
-        onConfirm={handleSelectionMultipleConfirm}
-        onCancel={handleSelectionMultipleCancel}
-      />
+        {/* 消息提示 */}
+        <MessageBox
+          isVisible={messageState?.isVisible ?? false}
+          message={messageState?.text ?? ""}
+        />
 
-      {/* 消息提示 */}
-      <MessageBox
-        isVisible={messageState?.isVisible ?? false}
-        message={messageState?.text ?? ""}
-      />
+        {/* 商店 */}
+        <BuyPanel
+          isVisible={shopState?.isOpen ?? false}
+          items={
+            shopState?.items?.map((item) =>
+              item ? { good: item.good, count: item.count, price: item.price } : null
+            ) ?? []
+          }
+          buyPercent={shopState?.buyPercent ?? 100}
+          numberValid={shopState?.numberValid ?? false}
+          onItemClick={(index: number) => onDispatch?.("shop.select", { index })}
+          onItemRightClick={(index: number) => handleBuy(index, 1)}
+          onClose={handleBuyClose}
+        />
 
-      {/* 商店 */}
-      <BuyPanel
-        isVisible={shopState?.isOpen ?? false}
-        items={
-          shopState?.items?.map((item) =>
-            item
-              ? { good: item.good, count: item.count, price: item.price }
-              : null
-          ) ?? []
-        }
-        buyPercent={shopState?.buyPercent ?? 100}
-        numberValid={shopState?.numberValid ?? false}
-        onItemClick={(index: number) => onDispatch?.("shop.select", { index })}
-        onItemRightClick={(index: number) => handleBuy(index, 1)}
-        onClose={handleBuyClose}
-      />
-
-      {/* 小地图 - 暂时隐藏，需要完整的地图数据 */}
-      {/* <LittleMap
+        {/* 小地图 - 暂时隐藏，需要完整的地图数据 */}
+        {/* <LittleMap
         isVisible={true}
         screenWidth={screenWidth}
         screenHeight={screenHeight}
@@ -537,35 +540,27 @@ export const ModernGameUI: React.FC<ModernGameUIProps> = ({
         onClose={() => {}}
       /> */}
 
-      {/* 计时器 */}
-      <TimerDisplay
-        timerState={{
-          isRunning: timerState?.isRunning ?? false,
-          seconds: timerState?.seconds ?? 0,
-          isHidden: false,
-          elapsedMilliseconds: 0,
-          timeScripts: [],
-        }}
-      />
-
-      {/* 物品提示 */}
-      {tooltipItem?.type === "item" && (
-        <ItemTooltip
-          isVisible={true}
-          good={tooltipItem.data}
-          position={tooltipItem.position}
+        {/* 计时器 */}
+        <TimerDisplay
+          timerState={{
+            isRunning: timerState?.isRunning ?? false,
+            seconds: timerState?.seconds ?? 0,
+            isHidden: false,
+            elapsedMilliseconds: 0,
+            timeScripts: [],
+          }}
         />
-      )}
 
-      {/* 武功提示 */}
-      {tooltipItem?.type === "magic" && (
-        <MagicTooltip
-          isVisible={true}
-          magic={tooltipItem.data}
-          position={tooltipItem.position}
-        />
-      )}
-    </div>
-  </GameUIContext.Provider>
+        {/* 物品提示 */}
+        {tooltipItem?.type === "item" && (
+          <ItemTooltip isVisible={true} good={tooltipItem.data} position={tooltipItem.position} />
+        )}
+
+        {/* 武功提示 */}
+        {tooltipItem?.type === "magic" && (
+          <MagicTooltip isVisible={true} magic={tooltipItem.data} position={tooltipItem.position} />
+        )}
+      </div>
+    </GameUIContext.Provider>
   );
 };

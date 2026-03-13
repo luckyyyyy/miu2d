@@ -72,7 +72,7 @@ export const StateGui: React.FC<StateGuiProps> = ({
   // 优先使用 config.panel.image，支持 sword2 等自定义面板
   const panelPath = useMemo(
     () => getPanelImagePath(config?.panel.image, playerIndex),
-    [config?.panel.image, playerIndex],
+    [config?.panel.image, playerIndex]
   );
   const panelImage = useAsfImage(panelPath);
 

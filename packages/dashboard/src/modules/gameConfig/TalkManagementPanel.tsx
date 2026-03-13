@@ -570,9 +570,7 @@ export function TalkManagementPanel({ gameId }: { gameId: string }) {
   }
 
   return (
-    <div
-      className="flex flex-col h-full relative"
-    >
+    <div className="flex flex-col h-full relative">
       {/* 工具栏 */}
       <div className="flex-shrink-0 flex items-center gap-2 px-4 py-2 border-b border-panel-border bg-[#1e1e1e]">
         {/* 搜索框 */}

@@ -110,7 +110,12 @@ export class StatusEffectsManager {
    * 未被冻结、中毒、石化时返回 true
    */
   get bodyFunctionWell(): boolean {
-    return this.frozenSeconds <= 0 && this.poisonSeconds <= 0 && this.petrifiedSeconds <= 0 && this.immobilizedSeconds <= 0;
+    return (
+      this.frozenSeconds <= 0 &&
+      this.poisonSeconds <= 0 &&
+      this.petrifiedSeconds <= 0 &&
+      this.immobilizedSeconds <= 0
+    );
   }
 
   // ========== Set Methods (不覆盖已有效果) ==========

@@ -244,7 +244,15 @@ export function useFileOperations({
         operationLock.current = false;
       }
     },
-    [gameId, utils.file.list, setTreeNodes, removeNodeFromTree, insertNodeInTree, moveMutation, refreshFolder]
+    [
+      gameId,
+      utils.file.list,
+      setTreeNodes,
+      removeNodeFromTree,
+      insertNodeInTree,
+      moveMutation,
+      refreshFolder,
+    ]
   );
 
   return {

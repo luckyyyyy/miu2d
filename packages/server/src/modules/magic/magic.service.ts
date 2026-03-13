@@ -24,9 +24,8 @@ import {
   MagicMoveKindFromValue,
   MagicSpecialKindFromValue,
 } from "@miu2d/types";
+import type { Prisma, Magic as PrismaMagic } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
-import type { Prisma } from "@prisma/client";
-import type { Magic as PrismaMagic } from "@prisma/client";
 import { db } from "../../db/client";
 import type { Language } from "../../i18n";
 import { getMessage } from "../../i18n";
@@ -169,7 +168,13 @@ export class MagicService {
 
     const row = await db.magic.update({
       where: { id },
-      data: { key, userType, name, data: data as unknown as Prisma.InputJsonValue, updatedAt: new Date() },
+      data: {
+        key,
+        userType,
+        name,
+        data: data as unknown as Prisma.InputJsonValue,
+        updatedAt: new Date(),
+      },
     });
 
     return this.toMagic(row);
@@ -240,7 +245,13 @@ export class MagicService {
     const failed: BatchImportMagicResult["failed"] = [];
 
     // ── 解析阶段（纯内存，无 DB 调用）────────────────────────────────
-    type InsertRow = { gameId: string; key: string; userType: string; name: string; data: Record<string, unknown> };
+    type InsertRow = {
+      gameId: string;
+      key: string;
+      userType: string;
+      name: string;
+      data: Record<string, unknown>;
+    };
     const rows: InsertRow[] = [];
     const keyToMeta = new Map<string, { fileName: string; isFlyingMagic: boolean }>();
 
@@ -279,8 +290,19 @@ export class MagicService {
         rows.map((row) =>
           db.magic.upsert({
             where: { magics_game_id_key_unique: { gameId: row.gameId, key: row.key } },
-            create: { gameId: row.gameId, key: row.key, userType: row.userType, name: row.name,  data: row.data as unknown as Prisma.InputJsonValue },
-            update: { userType: row.userType, name: row.name, data: row.data as unknown as Prisma.InputJsonValue, updatedAt: new Date() },
+            create: {
+              gameId: row.gameId,
+              key: row.key,
+              userType: row.userType,
+              name: row.name,
+              data: row.data as unknown as Prisma.InputJsonValue,
+            },
+            update: {
+              userType: row.userType,
+              name: row.name,
+              data: row.data as unknown as Prisma.InputJsonValue,
+              updatedAt: new Date(),
+            },
           })
         )
       );
@@ -288,7 +310,12 @@ export class MagicService {
       for (const row of upserted) {
         const m = this.toMagic(row);
         const meta = keyToMeta.get(row.key)!;
-        success.push({ fileName: meta.fileName, id: m.id, name: m.name, isFlyingMagic: meta.isFlyingMagic });
+        success.push({
+          fileName: meta.fileName,
+          id: m.id,
+          name: m.name,
+          isFlyingMagic: meta.isFlyingMagic,
+        });
       }
     }
 

@@ -17,7 +17,7 @@ import type { GameUILogic } from "./useGameUILogic";
 export function useBuildGameUIContextValue(
   logic: GameUILogic,
   width: number,
-  height: number,
+  height: number
 ): GameUIContextValue {
   const {
     togglePanel,
@@ -40,7 +40,7 @@ export function useBuildGameUIContextValue(
         });
       }
     },
-    [setTooltip],
+    [setTooltip]
   );
 
   return useMemo(
@@ -63,6 +63,6 @@ export function useBuildGameUIContextValue(
       handleMagicLeave,
       onGoodsHover,
       handleMouseLeave,
-    ],
+    ]
   );
 }

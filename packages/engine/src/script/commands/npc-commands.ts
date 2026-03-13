@@ -302,7 +302,7 @@ const setNpcKindCommand: CommandHandler = (params, _result, helpers) => {
  * SetNpcMagicFile - Set NPC magic file
  * 1-param (magicFile) with belongObject, or 2-param (name, magicFile)
  */
-const setNpcMagicFileCommand: CommandHandler = (params, _result, helpers) => {
+const setNpcMagicFileCommand: CommandHandler = async (params, _result, helpers) => {
   let npcName: string;
   let magicFile: string;
 
@@ -321,7 +321,7 @@ const setNpcMagicFileCommand: CommandHandler = (params, _result, helpers) => {
     magicFile = helpers.resolveString(params[1] || "");
   }
 
-  helpers.api.npc.setMagicFile(npcName, magicFile);
+  await helpers.api.npc.setMagicFile(npcName, magicFile);
   return true;
 };
 
@@ -663,7 +663,7 @@ export function registerNpcCommands(registry: CommandRegistry): void {
 
   // New commands
   registry.set("addonemogic", addOneMagicCommand); // original typo in audit kept for compatibility
-  registry.set("addonemagic", addOneMagicCommand);  // correct spelling used in scripts
+  registry.set("addonemagic", addOneMagicCommand); // correct spelling used in scripts
   registry.set("changelife", changeLifeCommand);
   registry.set("changemana", changeManaCommand);
   registry.set("changethew", changeThewCommand);

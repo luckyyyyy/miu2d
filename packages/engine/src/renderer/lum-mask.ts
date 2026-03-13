@@ -118,7 +118,7 @@ export function drawElementLum(
   objsInView: readonly Obj[],
   npcsInView: readonly Npc[],
   magicSprites: Map<number, MagicSprite>,
-  effectSprites: Map<number, MagicSprite>,
+  effectSprites: Map<number, MagicSprite>
 ): void {
   // mainLum >= 31 表示全亮，不需要光照效果
   if (mainLum >= 31) return;

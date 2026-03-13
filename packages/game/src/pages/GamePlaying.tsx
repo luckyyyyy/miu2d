@@ -30,8 +30,8 @@ import type { DebugPanelProps } from "../components/common/DebugPanel";
 import type { MenuTab } from "../components/GameMenuPanel";
 import type { UITheme } from "../components/ui";
 import { VideoPlayer } from "../components/ui/classic";
-import { reloadUIConfigs } from "../components/ui/classic/useUISettings";
 import { revealFullMap } from "../components/ui/classic/FogOfWarMap";
+import { reloadUIConfigs } from "../components/ui/classic/useUISettings";
 
 // DebugPanel 含 Monaco Editor，按需加载（仅当调试面板首次打开时引入）
 const DebugPanel = lazy<React.ComponentType<DebugPanelProps>>(() =>
@@ -89,9 +89,8 @@ export function GamePlaying({
   // 实际可用的游戏画布宽度
   // 自适应模式（分辨率 = 0 x 0）时才扣除调试面板宽度，固定分辨率下游戏画面大小不受调试面板影响
   const isAutoResolution = gameResolution.width === 0;
-  const effectiveGameWidth = showDebug && isAutoResolution
-    ? windowSize.width - debugPanelWidth
-    : windowSize.width;
+  const effectiveGameWidth =
+    showDebug && isAutoResolution ? windowSize.width - debugPanelWidth : windowSize.width;
 
   // 获取 DebugManager / Engine（稳定引用，通过 ref 访问）
   const getDebugManager = useCallback(() => gameRef.current?.getDebugManager(), []);
@@ -381,68 +380,68 @@ export function GamePlaying({
           onWidthChange={setDebugPanelWidth}
         >
           <Suspense fallback={null}>
-          <DebugPanel
-            isGodMode={debugManager?.isGodMode() ?? false}
-            playerStats={debugManager?.getPlayerStats() ?? undefined}
-            playerPosition={debugManager?.getPlayerPosition() ?? undefined}
-            loadedResources={debugManager?.getLoadedResources() ?? undefined}
-            resourceStats={resourceLoader.getStats()}
-            performanceStats={getEngine()?.getPerformanceStats()}
-            gameVariables={debugManager?.getGameVariables()}
-            xiuLianMagic={debugManager?.getXiuLianMagic() ?? undefined}
-            triggeredTrapIds={debugManager?.getTriggeredTrapIds()}
-            currentScriptInfo={debugManager?.getCurrentScriptInfo() ?? undefined}
-            scriptHistory={debugManager?.getScriptHistory()}
-            onSetGameVariable={(name, value) => debugManager?.setGameVariable(name, value)}
-            onFullAll={() => debugManager?.fullAll()}
-            onSetLevel={(level) => debugManager?.setLevel(level)}
-            onAddMoney={(amount) => debugManager?.addMoney(amount)}
-            onToggleGodMode={() => debugManager?.toggleGodMode()}
-            onReduceLife={() => debugManager?.reduceLife()}
-            onKillAllEnemies={() => debugManager?.killAllEnemies()}
-            onExecuteScript={async (script) => {
-              const dm = getDebugManager();
-              if (!dm) return "DebugManager not initialized";
-              return await dm.executeScript(script);
-            }}
-            onExecuteLuaScript={async (script) => {
-              const dm = getDebugManager();
-              if (!dm) return "DebugManager not initialized";
-              return await dm.executeLuaScript(script);
-            }}
-            onAddItem={async (itemFile) => {
-              await getDebugManager()?.addItem(itemFile);
-            }}
-            onAddMagic={async (magicFile) => {
-              await getDebugManager()?.addMagic(magicFile);
-            }}
-            onAddAllMagics={async () => {
-              await getDebugManager()?.addAllMagics();
-            }}
-            onXiuLianLevelUp={() => getDebugManager()?.xiuLianLevelUp()}
-            onXiuLianLevelDown={() => getDebugManager()?.xiuLianLevelDown()}
-            onReloadMagicConfig={async () => {
-              if (gameSlug) await reloadGameData(gameSlug);
-            }}
-            onReloadUILayout={async () => {
-              if (!gameSlug) return;
-              await loadGameConfig(gameSlug, true);
-              const config = getGameConfig();
-              if (config?.uiTheme && typeof config.uiTheme === "object") {
-                setUiTheme(config.uiTheme as UiTheme);
-              }
-              reloadUIConfigs();
-            }}
-            onRevealFullMap={() => {
-              const engine = getEngine();
-              if (!engine) return;
-              const mapData = engine.getMapData();
-              const mapName = engine.getCurrentMapName();
-              if (mapData && mapName) {
-                revealFullMap(mapName, mapData.mapColumnCounts, mapData.mapRowCounts);
-              }
-            }}
-          />
+            <DebugPanel
+              isGodMode={debugManager?.isGodMode() ?? false}
+              playerStats={debugManager?.getPlayerStats() ?? undefined}
+              playerPosition={debugManager?.getPlayerPosition() ?? undefined}
+              loadedResources={debugManager?.getLoadedResources() ?? undefined}
+              resourceStats={resourceLoader.getStats()}
+              performanceStats={getEngine()?.getPerformanceStats()}
+              gameVariables={debugManager?.getGameVariables()}
+              xiuLianMagic={debugManager?.getXiuLianMagic() ?? undefined}
+              triggeredTrapIds={debugManager?.getTriggeredTrapIds()}
+              currentScriptInfo={debugManager?.getCurrentScriptInfo() ?? undefined}
+              scriptHistory={debugManager?.getScriptHistory()}
+              onSetGameVariable={(name, value) => debugManager?.setGameVariable(name, value)}
+              onFullAll={() => debugManager?.fullAll()}
+              onSetLevel={(level) => debugManager?.setLevel(level)}
+              onAddMoney={(amount) => debugManager?.addMoney(amount)}
+              onToggleGodMode={() => debugManager?.toggleGodMode()}
+              onReduceLife={() => debugManager?.reduceLife()}
+              onKillAllEnemies={() => debugManager?.killAllEnemies()}
+              onExecuteScript={async (script) => {
+                const dm = getDebugManager();
+                if (!dm) return "DebugManager not initialized";
+                return await dm.executeScript(script);
+              }}
+              onExecuteLuaScript={async (script) => {
+                const dm = getDebugManager();
+                if (!dm) return "DebugManager not initialized";
+                return await dm.executeLuaScript(script);
+              }}
+              onAddItem={async (itemFile) => {
+                await getDebugManager()?.addItem(itemFile);
+              }}
+              onAddMagic={async (magicFile) => {
+                await getDebugManager()?.addMagic(magicFile);
+              }}
+              onAddAllMagics={async () => {
+                await getDebugManager()?.addAllMagics();
+              }}
+              onXiuLianLevelUp={() => getDebugManager()?.xiuLianLevelUp()}
+              onXiuLianLevelDown={() => getDebugManager()?.xiuLianLevelDown()}
+              onReloadMagicConfig={async () => {
+                if (gameSlug) await reloadGameData(gameSlug);
+              }}
+              onReloadUILayout={async () => {
+                if (!gameSlug) return;
+                await loadGameConfig(gameSlug, true);
+                const config = getGameConfig();
+                if (config?.uiTheme && typeof config.uiTheme === "object") {
+                  setUiTheme(config.uiTheme as UiTheme);
+                }
+                reloadUIConfigs();
+              }}
+              onRevealFullMap={() => {
+                const engine = getEngine();
+                if (!engine) return;
+                const mapData = engine.getMapData();
+                const mapName = engine.getCurrentMapName();
+                if (mapData && mapName) {
+                  revealFullMap(mapName, mapData.mapColumnCounts, mapData.mapRowCounts);
+                }
+              }}
+            />
           </Suspense>
         </DockedPanel>
 

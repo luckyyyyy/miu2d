@@ -78,7 +78,10 @@ export class GameRouter {
 
   @UseMiddlewares(requireUser)
   @Mutation({ input: TransferOwnerInputSchema, output: GameSchema })
-  async transferOwner(input: z.infer<typeof TransferOwnerInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+  async transferOwner(
+    input: z.infer<typeof TransferOwnerInputSchema>,
+    @Ctx() ctx: AuthenticatedContext
+  ) {
     const updated = await gameService.transferOwner(
       input.id,
       input.newOwnerId,

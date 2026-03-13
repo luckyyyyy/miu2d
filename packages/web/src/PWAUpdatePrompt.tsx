@@ -1,6 +1,6 @@
-import { useTranslation } from "react-i18next";
-import { useState } from "react";
 import { useRegisterSW } from "virtual:pwa-register/react";
+import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 /**
  * PWAUpdatePrompt - 监听 Service Worker 更新，全屏阻挡提示用户必须刷新
@@ -60,9 +60,7 @@ export function PWAUpdatePrompt() {
         }}
       >
         <span style={{ fontSize: "40px" }}>🎮</span>
-        <p style={{ margin: 0, fontSize: "15px", lineHeight: 1.6 }}>
-          {t("pwa.updateMessage")}
-        </p>
+        <p style={{ margin: 0, fontSize: "15px", lineHeight: 1.6 }}>{t("pwa.updateMessage")}</p>
         <button
           type="button"
           onClick={handleUpdate}

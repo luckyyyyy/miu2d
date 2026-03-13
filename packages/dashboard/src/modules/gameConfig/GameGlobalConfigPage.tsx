@@ -511,18 +511,30 @@ function BasicInfoPanel({
               <button
                 type="button"
                 onClick={handleNameSave}
-                disabled={!nameValue.trim() || nameValue === currentGame?.name || updateGameMutation.isPending}
+                disabled={
+                  !nameValue.trim() ||
+                  nameValue === currentGame?.name ||
+                  updateGameMutation.isPending
+                }
                 className="px-3 py-2 bg-[#0e639c] hover:bg-[#1177bb] text-white text-sm rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
               >
                 {updateGameMutation.isPending ? "保存中..." : "保存"}
               </button>
             </div>
           </Field>
-          <Field label="空间 Logo" desc="上传空间 Logo，将作为网页图标和游戏标题界面标识显示。支持 PNG、JPG、WebP 等格式，最大 5MB">
+          <Field
+            label="空间 Logo"
+            desc="上传空间 Logo，将作为网页图标和游戏标题界面标识显示。支持 PNG、JPG、WebP 等格式，最大 5MB"
+          >
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 rounded-lg border border-widget-border bg-[#1a1a1a] flex items-center justify-center overflow-hidden flex-shrink-0">
                 {logoSrc && logoExists ? (
-                  <img src={logoSrc} alt="Logo" className="w-full h-full object-contain" onError={() => setLogoExists(false)} />
+                  <img
+                    src={logoSrc}
+                    alt="Logo"
+                    className="w-full h-full object-contain"
+                    onError={() => setLogoExists(false)}
+                  />
                 ) : (
                   <svg viewBox="0 0 24 24" fill="currentColor" className="w-8 h-8 text-[#444]">
                     <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z" />
@@ -530,7 +542,13 @@ function BasicInfoPanel({
                 )}
               </div>
               <div className="flex flex-col gap-2">
-                <input ref={logoInputRef} type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
+                <input
+                  ref={logoInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleLogoUpload}
+                  className="hidden"
+                />
                 <button
                   type="button"
                   onClick={() => logoInputRef.current?.click()}
@@ -575,11 +593,7 @@ function BasicInfoPanel({
               <button
                 type="button"
                 onClick={handleSlugSave}
-                disabled={
-                  !isSlugValid ||
-                  slugValue === gameSlug ||
-                  updateGameMutation.isPending
-                }
+                disabled={!isSlugValid || slugValue === gameSlug || updateGameMutation.isPending}
                 className="px-3 py-2 bg-[#0e639c] hover:bg-[#1177bb] text-white text-sm rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
               >
                 {updateGameMutation.isPending ? "保存中..." : "保存"}
@@ -710,7 +724,6 @@ function BasicInfoPanel({
               placeholder="例如: title.ogg"
             />
           </Field>
-
         </div>
       </FormCard>
     </div>
@@ -766,7 +779,7 @@ function UISettingsPanel({
         // 不阻塞编辑，Monaco 会标红语法错误
       }
     },
-    [updateConfig],
+    [updateConfig]
   );
 
   return (
@@ -1362,9 +1375,7 @@ export function PortraitMappingPanel({ gameId }: { gameId: string }) {
   }
 
   return (
-    <div
-      className="space-y-4 relative"
-    >
+    <div className="space-y-4 relative">
       <SectionTitle desc="Talk 脚本命令使用的角色头像索引映射（对应 HeadFile.ini）" />
 
       {/* 操作按钮 */}
@@ -1823,7 +1834,13 @@ export function GameGlobalConfigPage() {
         ref={contentRef}
         className={`flex-1 ${activeCategory === "newgame" || activeCategory === "ui-settings" ? "flex flex-col overflow-hidden" : "p-6 overflow-y-auto"}`}
       >
-        <div className={activeCategory === "newgame" || activeCategory === "ui-settings" ? "flex flex-col flex-1 min-h-0" : ""}>
+        <div
+          className={
+            activeCategory === "newgame" || activeCategory === "ui-settings"
+              ? "flex flex-col flex-1 min-h-0"
+              : ""
+          }
+        >
           {renderPanel()}
         </div>
       </div>

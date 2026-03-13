@@ -8,8 +8,8 @@ import { type GameEventMap, GameEvents } from "../events/game-events";
 import type { MemoListManager } from "../gui/memo-list-manager";
 import { type UIBridgeDeps, UIBridgeImpl } from "../gui/ui-bridge";
 import type { GuiManagerState, UIBridge } from "../gui/ui-types";
-import { MAGIC_LIST_CONFIG } from "../player/magic/magic-list-config";
 import { EquipPosition } from "../player/goods/good";
+import { MAGIC_LIST_CONFIG } from "../player/magic/magic-list-config";
 import { pixelToTile } from "../utils";
 import type { GameManager } from "./game-manager";
 import type { TimerManager } from "./timer-manager";
@@ -83,8 +83,7 @@ export function createEngineUIBridge(
         gm.goodsListManager.moveBagToBottom(bagIndex, bottomSlot),
       moveBottomToBag: (bottomSlot, bagIndex) =>
         gm.goodsListManager.moveBottomToBag(bottomSlot, bagIndex),
-      swapBottomGoods: (fromSlot, toSlot) =>
-        gm.goodsListManager.swapBottomGoods(fromSlot, toSlot),
+      swapBottomGoods: (fromSlot, toSlot) => gm.goodsListManager.swapBottomGoods(fromSlot, toSlot),
       swapEquipSlots: (from, to) =>
         gm.goodsListManager.swapEquipSlots(slotNameToPosition(from), slotNameToPosition(to)),
     },

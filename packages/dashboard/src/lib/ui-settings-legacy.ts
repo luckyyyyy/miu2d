@@ -8,8 +8,6 @@
  * 运行时不使用此文件，游戏仅使用 ui-settings.ts 中的 UiTheme + resolveTheme()
  */
 
-import { parseIni } from "@miu2d/engine/utils";
-import { colorToCSS, normalizeImagePath, parseIniColor } from "@miu2d/engine/gui/ui-settings";
 import type {
   ThemeBar,
   ThemeBottom,
@@ -41,6 +39,8 @@ import type {
   ThemeXiuLian,
   UiTheme,
 } from "@miu2d/engine/gui/ui-settings";
+import { colorToCSS, normalizeImagePath, parseIniColor } from "@miu2d/engine/gui/ui-settings";
+import { parseIni } from "@miu2d/engine/utils";
 
 // ============================================
 // INI 解析工具函数
@@ -107,7 +107,7 @@ function panelToTheme(s: IniSection, defaultImage: string): ThemePanel {
 
 function buttonToTheme(
   s: IniSection,
-  d: { left: number; top: number; width: number; height: number; image: string; sound?: string },
+  d: { left: number; top: number; width: number; height: number; image: string; sound?: string }
 ): ThemeButton {
   const result: ThemeButton = {
     pos: [int2(s.Left, d.left), int2(s.Top, d.top)],
@@ -121,7 +121,15 @@ function buttonToTheme(
 
 function textToTheme(
   s: IniSection,
-  d: { left: number; top: number; width: number; height: number; charSpace?: number; lineSpace?: number; color: string },
+  d: {
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+    charSpace?: number;
+    lineSpace?: number;
+    color: string;
+  }
 ): ThemeText {
   const result: ThemeText = {
     pos: [int2(s.Left, d.left), int2(s.Top, d.top)],
@@ -138,7 +146,7 @@ function textToTheme(
 
 function rectToTheme(
   s: IniSection,
-  d: { left: number; top: number; width: number; height: number },
+  d: { left: number; top: number; width: number; height: number }
 ): ThemeRect {
   return {
     pos: [int2(s.Left, d.left), int2(s.Top, d.top)],
@@ -148,7 +156,7 @@ function rectToTheme(
 
 function scrollBarToTheme(
   s: IniSection,
-  d: { left: number; top: number; width: number; height: number; button: string },
+  d: { left: number; top: number; width: number; height: number; button: string }
 ): ThemeScrollBar {
   return {
     pos: [int2(s.ScrollBarLeft, d.left), int2(s.ScrollBarRight, d.top)],
@@ -161,9 +169,16 @@ function scrollBarToTheme(
 function detectGrid(
   s: IniSection,
   prefix: string,
-  defaults: { originX: number; originY: number; cellW: number; cellH: number; gapX: number; gapY: number },
+  defaults: {
+    originX: number;
+    originY: number;
+    cellW: number;
+    cellH: number;
+    gapX: number;
+    gapY: number;
+  },
   count = 9,
-  cols = 3,
+  cols = 3
 ): ThemeGrid {
   const rows = Math.ceil(count / cols);
 
@@ -203,12 +218,7 @@ function detectGrid(
  * @param count total items
  * @param defaultCols fallback columns
  */
-function detectCols(
-  s: IniSection,
-  prefix: string,
-  count: number,
-  defaultCols = 3,
-): number {
+function detectCols(s: IniSection, prefix: string, count: number, defaultCols = 3): number {
   if (count < 2) return defaultCols;
   const top1 = s[`${prefix}_Top_1`];
   const top2 = s[`${prefix}_Top_2`];
@@ -230,7 +240,7 @@ function detectCols(
 
 function mapBtnToTheme(
   s: IniSection,
-  d: { left: number; top: number; image: string; sound: string },
+  d: { left: number; top: number; image: string; sound: string }
 ): ThemeMapButton {
   const result: ThemeMapButton = {
     pos: [int2(s.Left, d.left), int2(s.Top, d.top)],
@@ -243,7 +253,7 @@ function mapBtnToTheme(
 
 function mapTextToTheme(
   s: IniSection,
-  d: { left: number; top: number; width: number; height: number; color: string; align: number },
+  d: { left: number; top: number; width: number; height: number; color: string; align: number }
 ): ThemeMapText {
   const result: ThemeMapText = {
     pos: [int2(s.Left, d.left), int2(s.Top, d.top)],
@@ -258,7 +268,7 @@ function mapTextToTheme(
 
 function barToTheme(
   s: IniSection,
-  d: { image: string; left: number; top: number; width: number; height: number },
+  d: { image: string; left: number; top: number; width: number; height: number }
 ): ThemeBar {
   return {
     pos: [int2(s.Left, d.left), int2(s.Top, d.top)],
@@ -296,16 +306,32 @@ function convertSystem(settings: IniSettings): ThemeSystem {
   return {
     panel: panelToTheme(getSection(settings, "System"), "asf/ui/common/panel.asf"),
     saveLoadBtn: buttonToTheme(getSection(settings, "System_SaveLoad_Btn"), {
-      left: 58, top: 86, width: 69, height: 64, image: "asf/ui/system/saveload.asf",
+      left: 58,
+      top: 86,
+      width: 69,
+      height: 64,
+      image: "asf/ui/system/saveload.asf",
     }),
     optionBtn: buttonToTheme(getSection(settings, "System_Option_Btn"), {
-      left: 58, top: 150, width: 69, height: 54, image: "asf/ui/system/option.asf",
+      left: 58,
+      top: 150,
+      width: 69,
+      height: 54,
+      image: "asf/ui/system/option.asf",
     }),
     exitBtn: buttonToTheme(getSection(settings, "System_Exit_Btn"), {
-      left: 58, top: 213, width: 69, height: 54, image: "asf/ui/system/quit.asf",
+      left: 58,
+      top: 213,
+      width: 69,
+      height: 54,
+      image: "asf/ui/system/quit.asf",
     }),
     returnBtn: buttonToTheme(getSection(settings, "System_Return_Btn"), {
-      left: 58, top: 276, width: 69, height: 54, image: "asf/ui/system/return.asf",
+      left: 58,
+      top: 276,
+      width: 69,
+      height: 54,
+      image: "asf/ui/system/return.asf",
     }),
   };
 }
@@ -351,19 +377,38 @@ function convertXiuLian(settings: IniSettings): ThemeXiuLian {
   return {
     panel: panelToTheme(getSection(settings, "XiuLian"), "asf/ui/common/panel6.asf"),
     magicImage: rectToTheme(getSection(settings, "XiuLian_Magic_Image"), {
-      left: 52, top: 53, width: 30, height: 38,
+      left: 52,
+      top: 53,
+      width: 30,
+      height: 38,
     }),
     levelText: textToTheme(getSection(settings, "XiuLian_Level_Text"), {
-      left: 126, top: 224, width: 80, height: 12, color: "rgba(0,0,0,0.8)",
+      left: 126,
+      top: 224,
+      width: 80,
+      height: 12,
+      color: "rgba(0,0,0,0.8)",
     }),
     expText: textToTheme(getSection(settings, "XiuLian_Exp_Text"), {
-      left: 126, top: 243, width: 80, height: 12, color: "rgba(0,0,0,0.8)",
+      left: 126,
+      top: 243,
+      width: 80,
+      height: 12,
+      color: "rgba(0,0,0,0.8)",
     }),
     nameText: textToTheme(getSection(settings, "XiuLian_Name_Text"), {
-      left: 105, top: 256, width: 200, height: 20, color: "rgba(88,32,32,0.9)",
+      left: 105,
+      top: 256,
+      width: 200,
+      height: 20,
+      color: "rgba(88,32,32,0.9)",
     }),
     introText: textToTheme(getSection(settings, "XiuLian_Intro_Text"), {
-      left: 75, top: 275, width: 145, height: 120, color: "rgba(47,32,88,0.9)",
+      left: 75,
+      top: 275,
+      width: 145,
+      height: 120,
+      color: "rgba(47,32,88,0.9)",
     }),
   };
 }
@@ -375,13 +420,26 @@ function convertGoods(settings: IniSettings): ThemeGoods {
   const result: ThemeGoods = {
     panel: panelToTheme(sec, "asf/ui/common/panel3.asf"),
     grid: detectGrid(listItems, "Item", {
-      originX: 71, originY: 91, cellW: 60, cellH: 75, gapX: 5, gapY: 4,
+      originX: 71,
+      originY: 91,
+      cellW: 60,
+      cellH: 75,
+      gapX: 5,
+      gapY: 4,
     }),
     scrollBar: scrollBarToTheme(sec, {
-      left: 294, top: 108, width: 28, height: 190, button: "asf/ui/option/slidebtn.asf",
+      left: 294,
+      top: 108,
+      width: 28,
+      height: 190,
+      button: "asf/ui/option/slidebtn.asf",
     }),
     money: textToTheme(getSection(settings, "Goods_Money"), {
-      left: 137, top: 363, width: 100, height: 12, color: "rgba(255,255,255,0.8)",
+      left: 137,
+      top: 363,
+      width: 100,
+      height: 12,
+      color: "rgba(255,255,255,0.8)",
     }),
   };
 
@@ -410,11 +468,26 @@ function convertMagics(settings: IniSettings): ThemeMagics {
 
   return {
     panel: panelToTheme(sec, "asf/ui/common/panel2.asf"),
-    grid: detectGrid(listItems, "Item", {
-      originX: 71, originY: 91, cellW: 60, cellH: 75, gapX: 5, gapY: 4,
-    }, count, cols),
+    grid: detectGrid(
+      listItems,
+      "Item",
+      {
+        originX: 71,
+        originY: 91,
+        cellW: 60,
+        cellH: 75,
+        gapX: 5,
+        gapY: 4,
+      },
+      count,
+      cols
+    ),
     scrollBar: scrollBarToTheme(sec, {
-      left: 294, top: 108, width: 28, height: 190, button: "asf/ui/option/slidebtn.asf",
+      left: 294,
+      top: 108,
+      width: 28,
+      height: 190,
+      button: "asf/ui/option/slidebtn.asf",
     }),
   };
 }
@@ -424,7 +497,13 @@ function convertMemo(settings: IniSettings): ThemeMemo {
   return {
     panel: panelToTheme(getSection(settings, "Memo"), "asf/ui/common/panel4.asf"),
     text: textToTheme(getSection(settings, "Memo_Text"), {
-      left: 90, top: 155, width: 150, height: 180, charSpace: 1, lineSpace: 1, color: "rgba(40,25,15,0.8)",
+      left: 90,
+      top: 155,
+      width: 150,
+      height: 180,
+      charSpace: 1,
+      lineSpace: 1,
+      color: "rgba(40,25,15,0.8)",
     }),
     slider: {
       ...rectToTheme(slider, { left: 295, top: 108, width: 28, height: 190 }),
@@ -438,18 +517,36 @@ function convertDialog(settings: IniSettings): ThemeDialog {
     panel: panelToTheme(getSection(settings, "Dialog"), "asf/ui/dialog/panel.asf"),
     text: {
       ...textToTheme(getSection(settings, "Dialog_Txt"), {
-        left: 65, top: 30, width: 310, height: 70, charSpace: -1, color: "rgba(0,0,0,0.8)",
+        left: 65,
+        top: 30,
+        width: 310,
+        height: 70,
+        charSpace: -1,
+        color: "rgba(0,0,0,0.8)",
       }),
       charSpace: -1,
     },
     selectA: textToTheme(getSection(settings, "Dialog_SelA"), {
-      left: 65, top: 52, width: 310, height: 20, charSpace: 1, color: "rgba(0,0,255,0.8)",
+      left: 65,
+      top: 52,
+      width: 310,
+      height: 20,
+      charSpace: 1,
+      color: "rgba(0,0,255,0.8)",
     }),
     selectB: textToTheme(getSection(settings, "Dialog_SelB"), {
-      left: 65, top: 74, width: 310, height: 20, charSpace: 1, color: "rgba(0,0,255,0.8)",
+      left: 65,
+      top: 74,
+      width: 310,
+      height: 20,
+      charSpace: 1,
+      color: "rgba(0,0,255,0.8)",
     }),
     portrait: rectToTheme(getSection(settings, "Dialog_Portrait"), {
-      left: 5, top: -143, width: 200, height: 160,
+      left: 5,
+      top: -143,
+      width: 200,
+      height: 160,
     }),
   };
 }
@@ -458,21 +555,39 @@ function convertSaveLoad(settings: IniSettings): ThemeSaveLoad {
   const textList = getSection(settings, "SaveLoad_Text_List");
   const messageLine = getSection(settings, "SaveLoad_Message_Line_Text");
   const textItems = textList.Text?.split("/") ?? [
-    "进度一", "进度二", "进度三", "进度四", "进度五", "进度六", "进度七",
+    "进度一",
+    "进度二",
+    "进度三",
+    "进度四",
+    "进度五",
+    "进度六",
+    "进度七",
   ];
 
   const tlTheme = textToTheme(textList, {
-    left: 135, top: 118, width: 80, height: 189, charSpace: 3, color: "rgba(91,31,27,0.8)",
+    left: 135,
+    top: 118,
+    width: 80,
+    height: 189,
+    charSpace: 3,
+    color: "rgba(91,31,27,0.8)",
   });
 
   const mlTheme = textToTheme(messageLine, {
-    left: 0, top: 440, width: 640, height: 40, color: "rgba(255,215,0,0.8)",
+    left: 0,
+    top: 440,
+    width: 640,
+    height: 40,
+    color: "rgba(255,215,0,0.8)",
   });
 
   return {
     panel: panelToTheme(getSection(settings, "SaveLoad"), "asf/ui/saveload/panel.asf"),
     snapshot: rectToTheme(getSection(settings, "Save_Snapshot"), {
-      left: 256, top: 94, width: 267, height: 200,
+      left: 256,
+      top: 94,
+      width: 267,
+      height: 200,
     }),
     textList: {
       text: textItems,
@@ -486,16 +601,36 @@ function convertSaveLoad(settings: IniSettings): ThemeSaveLoad {
       sound: textList.Sound || "界-浏览.wav",
     },
     loadBtn: buttonToTheme(getSection(settings, "SaveLoad_Load_Btn"), {
-      left: 248, top: 355, width: 64, height: 72, image: "asf/ui/saveload/btnLoad.asf", sound: "界-大按钮.wav",
+      left: 248,
+      top: 355,
+      width: 64,
+      height: 72,
+      image: "asf/ui/saveload/btnLoad.asf",
+      sound: "界-大按钮.wav",
     }),
     saveBtn: buttonToTheme(getSection(settings, "SaveLoad_Save_Btn"), {
-      left: 366, top: 355, width: 64, height: 72, image: "asf/ui/saveload/btnSave.asf", sound: "界-大按钮.wav",
+      left: 366,
+      top: 355,
+      width: 64,
+      height: 72,
+      image: "asf/ui/saveload/btnSave.asf",
+      sound: "界-大按钮.wav",
     }),
     exitBtn: buttonToTheme(getSection(settings, "SaveLoad_Exit_Btn"), {
-      left: 464, top: 355, width: 64, height: 72, image: "asf/ui/saveload/btnExit.asf", sound: "界-大按钮.wav",
+      left: 464,
+      top: 355,
+      width: 64,
+      height: 72,
+      image: "asf/ui/saveload/btnExit.asf",
+      sound: "界-大按钮.wav",
     }),
     saveTimeText: textToTheme(getSection(settings, "SaveLoad_Save_Time_Text"), {
-      left: 254, top: 310, width: 350, height: 30, charSpace: 1, color: "rgba(182,219,189,0.7)",
+      left: 254,
+      top: 310,
+      width: 350,
+      height: 30,
+      charSpace: 1,
+      color: "rgba(182,219,189,0.7)",
     }),
     messageLine: {
       ...mlTheme,
@@ -508,7 +643,11 @@ function convertMessage(settings: IniSettings): ThemeMessage {
   return {
     panel: panelToTheme(getSection(settings, "Message"), "asf/ui/message/msgbox.asf"),
     text: textToTheme(getSection(settings, "Message_Text"), {
-      left: 46, top: 32, width: 148, height: 50, color: "rgba(155,34,22,0.8)",
+      left: 46,
+      top: 32,
+      width: 148,
+      height: 50,
+      color: "rgba(155,34,22,0.8)",
     }),
   };
 }
@@ -529,28 +668,58 @@ function convertLittleMap(settings: IniSettings): ThemeLittleMap {
   return {
     panel: panelToTheme(getSection(settings, "LittleMap"), "asf/ui/littlemap/panel.asf"),
     leftBtn: mapBtnToTheme(getSection(settings, "LittleMap_Left_Btn"), {
-      left: 437, top: 379, image: "asf/ui/littlemap/btnleft.asf", sound: snd,
+      left: 437,
+      top: 379,
+      image: "asf/ui/littlemap/btnleft.asf",
+      sound: snd,
     }),
     rightBtn: mapBtnToTheme(getSection(settings, "LittleMap_Right_Btn"), {
-      left: 464, top: 379, image: "asf/ui/littlemap/btnright.asf", sound: snd,
+      left: 464,
+      top: 379,
+      image: "asf/ui/littlemap/btnright.asf",
+      sound: snd,
     }),
     upBtn: mapBtnToTheme(getSection(settings, "LittleMap_Up_Btn"), {
-      left: 448, top: 368, image: "asf/ui/littlemap/btnup.asf", sound: snd,
+      left: 448,
+      top: 368,
+      image: "asf/ui/littlemap/btnup.asf",
+      sound: snd,
     }),
     downBtn: mapBtnToTheme(getSection(settings, "LittleMap_Down_Btn"), {
-      left: 448, top: 395, image: "asf/ui/littlemap/btndown.asf", sound: snd,
+      left: 448,
+      top: 395,
+      image: "asf/ui/littlemap/btndown.asf",
+      sound: snd,
     }),
     closeBtn: mapBtnToTheme(getSection(settings, "LittleMap_Close_Btn"), {
-      left: 448, top: 379, image: "asf/ui/littlemap/btnclose.asf", sound: snd,
+      left: 448,
+      top: 379,
+      image: "asf/ui/littlemap/btnclose.asf",
+      sound: snd,
     }),
     mapNameText: mapTextToTheme(getSection(settings, "LittleMap_Map_Name_Line_Text"), {
-      left: 210, top: 92, width: 220, height: 30, color: "rgba(76,56,48,0.8)", align: 1,
+      left: 210,
+      top: 92,
+      width: 220,
+      height: 30,
+      color: "rgba(76,56,48,0.8)",
+      align: 1,
     }),
     bottomTipText: mapTextToTheme(getSection(settings, "LittleMap_Bottom_Tip_Line_Text"), {
-      left: 160, top: 370, width: 260, height: 30, color: "rgba(76,56,48,0.8)", align: 0,
+      left: 160,
+      top: 370,
+      width: 260,
+      height: 30,
+      color: "rgba(76,56,48,0.8)",
+      align: 0,
     }),
     messageTipText: mapTextToTheme(getSection(settings, "LittleMap_Message_Tip_Line_Text"), {
-      left: 160, top: 370, width: 260, height: 30, color: "rgba(200,0,0,0.8)", align: 2,
+      left: 160,
+      top: 370,
+      width: 260,
+      height: 30,
+      color: "rgba(200,0,0,0.8)",
+      align: 2,
     }),
   };
 }
@@ -561,10 +730,19 @@ function convertBuySell(settings: IniSettings): ThemeBuySell {
   return {
     panel: panelToTheme(sec, "asf/ui/common/panel8.asf"),
     grid: detectGrid(listItems, "Item", {
-      originX: 55, originY: 91, cellW: 60, cellH: 75, gapX: 5, gapY: 4,
+      originX: 55,
+      originY: 91,
+      cellW: 60,
+      cellH: 75,
+      gapX: 5,
+      gapY: 4,
     }),
     scrollBar: scrollBarToTheme(sec, {
-      left: 271, top: 108, width: 28, height: 190, button: "asf/ui/option/slidebtn.asf",
+      left: 271,
+      top: 108,
+      width: 28,
+      height: 190,
+      button: "asf/ui/option/slidebtn.asf",
     }),
     closeBtn: {
       pos: [int2(sec.CloseLeft, 117), int2(sec.CloseTop, 354)],
@@ -575,8 +753,13 @@ function convertBuySell(settings: IniSettings): ThemeBuySell {
 }
 
 const BOTTOM_BUTTON_SECTIONS = [
-  "Bottom_State_Btn", "Bottom_Equip_Btn", "Bottom_XiuLian_Btn",
-  "Bottom_Goods_Btn", "Bottom_Magic_Btn", "Bottom_Memo_Btn", "Bottom_System_Btn",
+  "Bottom_State_Btn",
+  "Bottom_Equip_Btn",
+  "Bottom_XiuLian_Btn",
+  "Bottom_Goods_Btn",
+  "Bottom_Magic_Btn",
+  "Bottom_Memo_Btn",
+  "Bottom_System_Btn",
 ] as const;
 
 /** 面板中没有按钮定义时，不输出该按钮（避免展示错误游戏的按钮） */
@@ -632,37 +815,108 @@ function convertBottomState(settings: IniSettings): ThemeBottomState {
   return {
     panel: panelToTheme(getSection(settings, "BottomState"), "asf/ui/column/panel9.asf"),
     life: barToTheme(getSection(settings, "BottomState_Life"), {
-      image: "asf/ui/column/ColLife.asf", left: 11, top: 22, width: 48, height: 46,
+      image: "asf/ui/column/ColLife.asf",
+      left: 11,
+      top: 22,
+      width: 48,
+      height: 46,
     }),
     thew: barToTheme(getSection(settings, "BottomState_Thew"), {
-      image: "asf/ui/column/ColThew.asf", left: 59, top: 22, width: 48, height: 46,
+      image: "asf/ui/column/ColThew.asf",
+      left: 59,
+      top: 22,
+      width: 48,
+      height: 46,
     }),
     mana: barToTheme(getSection(settings, "BottomState_Mana"), {
-      image: "asf/ui/column/ColMana.asf", left: 113, top: 22, width: 48, height: 46,
+      image: "asf/ui/column/ColMana.asf",
+      left: 113,
+      top: 22,
+      width: 48,
+      height: 46,
     }),
   };
 }
 
 const TOP_BUTTON_SECTIONS = [
-  "Top_State_Btn", "Top_Equip_Btn", "Top_XiuLian_Btn",
-  "Top_Goods_Btn", "Top_Magic_Btn", "Top_Memo_Btn", "Top_System_Btn",
+  "Top_State_Btn",
+  "Top_Equip_Btn",
+  "Top_XiuLian_Btn",
+  "Top_Goods_Btn",
+  "Top_Magic_Btn",
+  "Top_Memo_Btn",
+  "Top_System_Btn",
 ] as const;
 
 const TOP_BUTTON_DEFAULTS: {
-  left: number; top: number; width: number; height: number; image: string; sound: string;
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+  image: string;
+  sound: string;
 }[] = [
-  { left: 52, top: 0, width: 19, height: 19, image: "asf/ui/top/BtnState.asf", sound: "界-大按钮.wav" },
-  { left: 80, top: 0, width: 19, height: 19, image: "asf/ui/top/BtnEquip.asf", sound: "界-大按钮.wav" },
-  { left: 107, top: 0, width: 19, height: 19, image: "asf/ui/top/BtnXiuLian.asf", sound: "界-大按钮.wav" },
-  { left: 135, top: 0, width: 19, height: 19, image: "asf/ui/top/BtnGoods.asf", sound: "界-大按钮.wav" },
-  { left: 162, top: 0, width: 19, height: 19, image: "asf/ui/top/BtnMagic.asf", sound: "界-大按钮.wav" },
-  { left: 189, top: 0, width: 19, height: 19, image: "asf/ui/top/BtnNotes.asf", sound: "界-大按钮.wav" },
-  { left: 216, top: 0, width: 19, height: 19, image: "asf/ui/top/BtnOption.asf", sound: "界-大按钮.wav" },
+  {
+    left: 52,
+    top: 0,
+    width: 19,
+    height: 19,
+    image: "asf/ui/top/BtnState.asf",
+    sound: "界-大按钮.wav",
+  },
+  {
+    left: 80,
+    top: 0,
+    width: 19,
+    height: 19,
+    image: "asf/ui/top/BtnEquip.asf",
+    sound: "界-大按钮.wav",
+  },
+  {
+    left: 107,
+    top: 0,
+    width: 19,
+    height: 19,
+    image: "asf/ui/top/BtnXiuLian.asf",
+    sound: "界-大按钮.wav",
+  },
+  {
+    left: 135,
+    top: 0,
+    width: 19,
+    height: 19,
+    image: "asf/ui/top/BtnGoods.asf",
+    sound: "界-大按钮.wav",
+  },
+  {
+    left: 162,
+    top: 0,
+    width: 19,
+    height: 19,
+    image: "asf/ui/top/BtnMagic.asf",
+    sound: "界-大按钮.wav",
+  },
+  {
+    left: 189,
+    top: 0,
+    width: 19,
+    height: 19,
+    image: "asf/ui/top/BtnNotes.asf",
+    sound: "界-大按钮.wav",
+  },
+  {
+    left: 216,
+    top: 0,
+    width: 19,
+    height: 19,
+    image: "asf/ui/top/BtnOption.asf",
+    sound: "界-大按钮.wav",
+  },
 ];
 
 function convertTop(settings: IniSettings): ThemeTop {
   const buttons = TOP_BUTTON_SECTIONS.map((sec, i) =>
-    buttonToTheme(getSection(settings, sec), TOP_BUTTON_DEFAULTS[i]),
+    buttonToTheme(getSection(settings, sec), TOP_BUTTON_DEFAULTS[i])
   );
   return {
     panel: panelToTheme(getSection(settings, "Top"), "asf/ui/top/window.asf"),
@@ -704,22 +958,45 @@ function convertTooltip1(settings: IniSettings): ThemeTooltip1 {
   const sec = getSection(settings, "ToolTip_Type1");
   const result: ThemeTooltip1 = {
     itemImage: rectToTheme(getSection(settings, "ToolTip_Type1_Item_Image"), {
-      left: 132, top: 47, width: 60, height: 75,
+      left: 132,
+      top: 47,
+      width: 60,
+      height: 75,
     }),
     name: textToTheme(getSection(settings, "ToolTip_Type1_Item_Name"), {
-      left: 67, top: 191, width: 90, height: 20, color: "rgb(102,73,212)",
+      left: 67,
+      top: 191,
+      width: 90,
+      height: 20,
+      color: "rgb(102,73,212)",
     }),
     priceOrLevel: textToTheme(getSection(settings, "ToolTip_Type1_Item_PriceOrLevel"), {
-      left: 160, top: 191, width: 88, height: 20, color: "rgb(91,31,27)",
+      left: 160,
+      top: 191,
+      width: 88,
+      height: 20,
+      color: "rgb(91,31,27)",
     }),
     effect: textToTheme(getSection(settings, "ToolTip_Type1_Item_Effect"), {
-      left: 67, top: 210, width: 196, height: 40, color: "rgb(52,21,14)",
+      left: 67,
+      top: 210,
+      width: 196,
+      height: 40,
+      color: "rgb(52,21,14)",
     }),
     magicIntro: textToTheme(getSection(settings, "ToolTip_Type1_Item_Magic_Intro"), {
-      left: 67, top: 255, width: 196, height: 80, color: "rgb(52,21,14)",
+      left: 67,
+      top: 255,
+      width: 196,
+      height: 80,
+      color: "rgb(52,21,14)",
     }),
     goodIntro: textToTheme(getSection(settings, "ToolTip_Type1_Item_Good_Intro"), {
-      left: 67, top: 255, width: 196, height: 80, color: "rgb(52,21,14)",
+      left: 67,
+      top: 255,
+      width: 196,
+      height: 80,
+      color: "rgb(52,21,14)",
     }),
   };
   const img = normalizeImagePath(sec.Image ?? "asf/ui/common/tipbox.asf");

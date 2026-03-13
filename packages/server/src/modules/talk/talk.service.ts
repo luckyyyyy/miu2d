@@ -15,8 +15,8 @@ import type { Prisma } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
 import { db } from "../../db/client";
 import type { Language } from "../../i18n";
-import { verifyGameAccess } from "../../utils/gameAccess";
 import { requireGameIdBySlug } from "../../utils/game";
+import { verifyGameAccess } from "../../utils/gameAccess";
 
 export class TalkService {
   /**

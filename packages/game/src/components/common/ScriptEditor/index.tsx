@@ -8,19 +8,16 @@
  * - 其它需要代码编辑的场景
  */
 
-import type { OnMount } from "@monaco-editor/react";
-import Editor, { loader } from "@monaco-editor/react";
-import * as monaco from "monaco-editor";
-import { useEffect, useRef } from "react";
 import {
   defineJxqyScriptTheme,
   JXQY_SCRIPT_LANGUAGE_ID,
   registerJxqyScriptLanguage,
 } from "@miu2d/shared/lib/monaco/jxqyScriptLanguage";
-import {
-  defineLuaTheme,
-  registerLuaLanguage,
-} from "@miu2d/shared/lib/monaco/luaLanguage";
+import { defineLuaTheme, registerLuaLanguage } from "@miu2d/shared/lib/monaco/luaLanguage";
+import type { OnMount } from "@monaco-editor/react";
+import Editor, { loader } from "@monaco-editor/react";
+import * as monaco from "monaco-editor";
+import { useEffect, useRef } from "react";
 
 export interface ScriptEditorProps {
   /** 编辑器内容 */

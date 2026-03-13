@@ -8,8 +8,8 @@
  * 模式自动切换：INI 中配置了 [Title] BackgroundImage → 经典模式，否则 → 现代模式
  */
 
-import { ResourcePath, getResourceRoot, getResourceUrl } from "@miu2d/engine/resource";
 import type { ButtonConfig, TitleGuiConfig } from "@miu2d/engine/gui/ui-settings";
+import { getResourceRoot, getResourceUrl, ResourcePath } from "@miu2d/engine/resource";
 import type React from "react";
 import { useCallback, useEffect, useInsertionEffect, useMemo, useRef, useState } from "react";
 import { EngineWatermark } from "../../common/EngineWatermark";
@@ -267,7 +267,11 @@ const ClassicTitle: React.FC<TitleGuiProps & { config: TitleGuiConfig }> = ({
       )}
 
       {/* 制作人员视频（复用通用 VideoPlayer 控件） */}
-      <VideoPlayer engine={null} controlledVideoUrl={creditsVideoUrl} onControlledEnd={handleCreditsClose} />
+      <VideoPlayer
+        engine={null}
+        controlledVideoUrl={creditsVideoUrl}
+        onControlledEnd={handleCreditsClose}
+      />
 
       {/* Version Badge */}
       <EngineWatermark />
@@ -408,7 +412,13 @@ interface MenuButtonProps {
   delay?: number;
 }
 
-const MenuButton: React.FC<MenuButtonProps> = ({ label, sub, onClick, primary = false, delay = 0 }) => {
+const MenuButton: React.FC<MenuButtonProps> = ({
+  label,
+  sub,
+  onClick,
+  primary = false,
+  delay = 0,
+}) => {
   const [hovered, setHovered] = useState(false);
   const [visible, setVisible] = useState(false);
 
@@ -648,7 +658,8 @@ const ModernTitle: React.FC<TitleGuiProps> = ({ gameName, logoUrl, onNewGame, on
           left: "-20%",
           width: "140%",
           height: "14%",
-          background: "linear-gradient(180deg, transparent 0%, rgba(40,160,160,0.09) 50%, transparent 100%)",
+          background:
+            "linear-gradient(180deg, transparent 0%, rgba(40,160,160,0.09) 50%, transparent 100%)",
           animation: "auroraShift 20s ease-in-out infinite reverse",
           pointerEvents: "none",
           filter: "blur(20px)",

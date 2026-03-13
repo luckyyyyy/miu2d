@@ -11,11 +11,16 @@ import { colorToCSS, type UiColorRGBA } from "@miu2d/engine/gui/ui-settings";
 function solidColor(c: UiColorRGBA): string {
   return `rgb(${c.r},${c.g},${c.b})`;
 }
+
 import type { UIGoodData } from "@miu2d/engine/gui/ui-types";
 import type React from "react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { useToolTipType1Config, useToolTipType2Config, useToolTipUseTypeConfig } from "./useUISettings";
 import { useAsfImage } from "./hooks";
+import {
+  useToolTipType1Config,
+  useToolTipType2Config,
+  useToolTipUseTypeConfig,
+} from "./useUISettings";
 
 interface ItemTooltipProps {
   good: UIGoodData | null;
@@ -295,7 +300,13 @@ const ItemTooltipType2: React.FC<ItemTooltipProps> = ({
       </div>
 
       {/* Divider */}
-      <div style={{ margin: `${Math.round(vPad * 0.6)}px 0`, height: 1, background: "rgba(255,255,255,0.12)" }} />
+      <div
+        style={{
+          margin: `${Math.round(vPad * 0.6)}px 0`,
+          height: 1,
+          background: "rgba(255,255,255,0.12)",
+        }}
+      />
 
       {/* Price */}
       <div

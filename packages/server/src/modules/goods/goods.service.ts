@@ -16,8 +16,7 @@ import type {
   UpdateGoodInput,
 } from "@miu2d/types";
 import { createDefaultGood, GoodKindFromValue } from "@miu2d/types";
-import type { Prisma } from "@prisma/client";
-import type { Good as PrismaGood } from "@prisma/client";
+import type { Prisma, Good as PrismaGood } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
 import { db } from "../../db/client";
 import type { Language } from "../../i18n";
@@ -132,7 +131,12 @@ export class GoodsService {
     const { gameId, key, kind, ...data } = fullGoods;
 
     const row = await db.good.create({
-      data: { gameId, key: key.toLowerCase(), kind, data: data as unknown as Prisma.InputJsonValue },
+      data: {
+        gameId,
+        key: key.toLowerCase(),
+        kind,
+        data: data as unknown as Prisma.InputJsonValue,
+      },
     });
 
     return this.toGoods(row);
@@ -171,7 +175,12 @@ export class GoodsService {
 
     const row = await db.good.update({
       where: { id },
-      data: { key: key.toLowerCase(), kind, data: data as unknown as Prisma.InputJsonValue, updatedAt: new Date() },
+      data: {
+        key: key.toLowerCase(),
+        kind,
+        data: data as unknown as Prisma.InputJsonValue,
+        updatedAt: new Date(),
+      },
     });
 
     return this.toGoods(row);
@@ -260,8 +269,17 @@ export class GoodsService {
         rows.map((row) =>
           db.good.upsert({
             where: { goods_game_id_key_unique: { gameId: row.gameId, key: row.key } },
-            create: { gameId: row.gameId, key: row.key, kind: row.kind,  data: row.data as unknown as Prisma.InputJsonValue },
-            update: { kind: row.kind, data: row.data as unknown as Prisma.InputJsonValue, updatedAt: new Date() },
+            create: {
+              gameId: row.gameId,
+              key: row.key,
+              kind: row.kind,
+              data: row.data as unknown as Prisma.InputJsonValue,
+            },
+            update: {
+              kind: row.kind,
+              data: row.data as unknown as Prisma.InputJsonValue,
+              updatedAt: new Date(),
+            },
           })
         )
       );

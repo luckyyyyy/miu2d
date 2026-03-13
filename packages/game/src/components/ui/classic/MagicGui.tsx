@@ -479,7 +479,6 @@ export const MagicGui: React.FC<MagicGuiProps> = ({
             height: overlayImage.height,
             imageRendering: "pixelated",
             pointerEvents: "none",
-
           }}
         />
       )}

@@ -3,14 +3,14 @@
  * 使用 Monaco Editor 显示脚本内容（只读模式）
  */
 
-import Editor, { loader } from "@monaco-editor/react";
-import { useEffect, useState } from "react";
-import { getResourceRoot } from "../../../utils/resourcePath";
 import {
   defineJxqyScriptTheme,
   JXQY_SCRIPT_LANGUAGE_ID,
   registerJxqyScriptLanguage,
 } from "@miu2d/shared/lib/monaco/jxqyScriptLanguage";
+import Editor, { loader } from "@monaco-editor/react";
+import { useEffect, useState } from "react";
+import { getResourceRoot } from "../../../utils/resourcePath";
 
 // 全局标记，确保只初始化一次
 let monacoInitialized = false;

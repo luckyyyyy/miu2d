@@ -6,9 +6,9 @@
  *   cd packages/server && pnpm tsx ../../scripts/migrate-saves-magic-container.ts
  */
 
-import { Pool } from "pg";
-import dotenv from "dotenv";
 import path from "node:path";
+import dotenv from "dotenv";
+import { Pool } from "pg";
 
 dotenv.config({ path: path.resolve(__dirname, "../../.env") });
 
@@ -71,12 +71,17 @@ function migrateData(data: Record<string, unknown>): Record<string, unknown> {
 
   // 修炼武功（xiuLianIndex>0 时从面板魔法列表取）
   // 兼容旧旧格式：index=61 也表示修炼魔法
-  const xiuLianMagicItem = magics.find(
-    (m) => !m.isHidden && (m.index === xiuLianIndex && xiuLianIndex > 0 || m.index === 61)
-  ) ?? null;
+  const xiuLianMagicItem =
+    magics.find(
+      (m) => !m.isHidden && ((m.index === xiuLianIndex && xiuLianIndex > 0) || m.index === 61)
+    ) ?? null;
 
   const xiuLianMagic: NewMagicSaveItem | null = xiuLianMagicItem
-    ? { fileName: xiuLianMagicItem.fileName, level: xiuLianMagicItem.level, exp: xiuLianMagicItem.exp }
+    ? {
+        fileName: xiuLianMagicItem.fileName,
+        level: xiuLianMagicItem.level,
+        exp: xiuLianMagicItem.exp,
+      }
     : null;
 
   // 面板武功（排除隐藏和修炼）
@@ -124,7 +129,7 @@ function migrateData(data: Record<string, unknown>): Record<string, unknown> {
   }
 
   // bottomItems 3 个槽位（旧格式无此数据，全部置 null）
-  const bottomItems: (null)[] = [null, null, null];
+  const bottomItems: null[] = [null, null, null];
 
   const goodsContainer: NewGoodsContainer = { bagItems, equipItems, bottomItems };
 

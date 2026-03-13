@@ -122,10 +122,7 @@ export function DashboardHeader() {
 
       {/* 批量导入弹窗 */}
       {showImportAll && (
-        <ImportAllModal
-          onClose={() => setShowImportAll(false)}
-          onSuccess={() => {}}
-        />
+        <ImportAllModal onClose={() => setShowImportAll(false)} onSuccess={() => {}} />
       )}
     </header>
   );

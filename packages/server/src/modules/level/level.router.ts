@@ -52,7 +52,10 @@ export class LevelRouter {
    */
   @UseMiddlewares(requireUser)
   @Mutation({ input: CreateLevelConfigInputSchema, output: LevelConfigSchema })
-  async create(input: z.infer<typeof CreateLevelConfigInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+  async create(
+    input: z.infer<typeof CreateLevelConfigInputSchema>,
+    @Ctx() ctx: AuthenticatedContext
+  ) {
     return levelConfigService.create(input, ctx.userId, ctx.language);
   }
 
@@ -61,7 +64,10 @@ export class LevelRouter {
    */
   @UseMiddlewares(requireUser)
   @Mutation({ input: UpdateLevelConfigInputSchema, output: LevelConfigSchema })
-  async update(input: z.infer<typeof UpdateLevelConfigInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+  async update(
+    input: z.infer<typeof UpdateLevelConfigInputSchema>,
+    @Ctx() ctx: AuthenticatedContext
+  ) {
     return levelConfigService.update(input, ctx.userId, ctx.language);
   }
 
@@ -70,7 +76,10 @@ export class LevelRouter {
    */
   @UseMiddlewares(requireUser)
   @Mutation({ input: DeleteLevelConfigInputSchema, output: z.object({ id: z.string() }) })
-  async delete(input: z.infer<typeof DeleteLevelConfigInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+  async delete(
+    input: z.infer<typeof DeleteLevelConfigInputSchema>,
+    @Ctx() ctx: AuthenticatedContext
+  ) {
     return levelConfigService.delete(input.gameId, input.id, ctx.userId, ctx.language);
   }
 
@@ -79,7 +88,10 @@ export class LevelRouter {
    */
   @UseMiddlewares(requireUser)
   @Mutation({ input: ImportLevelConfigInputSchema, output: LevelConfigSchema })
-  async importFromIni(input: z.infer<typeof ImportLevelConfigInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+  async importFromIni(
+    input: z.infer<typeof ImportLevelConfigInputSchema>,
+    @Ctx() ctx: AuthenticatedContext
+  ) {
     return levelConfigService.importFromIni(input, ctx.userId, ctx.language);
   }
 
@@ -88,7 +100,10 @@ export class LevelRouter {
    */
   @UseMiddlewares(requireUser)
   @Mutation({ input: ClearAllLevelConfigsInputSchema, output: ClearAllLevelConfigsResultSchema })
-  async clearAll(input: z.infer<typeof ClearAllLevelConfigsInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+  async clearAll(
+    input: z.infer<typeof ClearAllLevelConfigsInputSchema>,
+    @Ctx() ctx: AuthenticatedContext
+  ) {
     return levelConfigService.clearAll(input, ctx.userId, ctx.language);
   }
 }

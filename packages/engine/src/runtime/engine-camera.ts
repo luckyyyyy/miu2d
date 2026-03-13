@@ -11,8 +11,8 @@
 
 import { logger } from "../core/logger";
 import type { Vector2 } from "../core/types";
-import { clampCameraAxis } from "../map/map-renderer";
 import type { MapRenderer } from "../map/map-renderer";
+import { clampCameraAxis } from "../map/map-renderer";
 import type { ScreenEffects } from "../renderer/screen-effects";
 import type { GameEngineConfig } from "./game-engine";
 import type { GameManager } from "./game-manager";

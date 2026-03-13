@@ -93,7 +93,13 @@ export function Field({
 }
 
 /** 表单卡片容器 */
-export function FormCard({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+export function FormCard({
+  children,
+  className = "",
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
   return (
     <div className={`bg-[#252526] border border-panel-border rounded-xl p-5 ${className}`}>
       {children}

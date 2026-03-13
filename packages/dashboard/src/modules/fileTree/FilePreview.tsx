@@ -17,20 +17,20 @@ import { parseMMF } from "@miu2d/engine/resource/format/mmf";
 import { decodeAsfWasm } from "@miu2d/engine/wasm/wasm-asf-decoder";
 import { decodeMpcWasm } from "@miu2d/engine/wasm/wasm-mpc-decoder";
 import { trpc } from "@miu2d/shared";
+import {
+  defineJxqyScriptTheme,
+  JXQY_SCRIPT_LANGUAGE_ID,
+  registerJxqyScriptLanguage,
+} from "@miu2d/shared/lib/monaco/jxqyScriptLanguage";
 import { AsfViewer } from "@miu2d/viewer/components/AsfViewer";
 import { MapViewer } from "@miu2d/viewer/components/MapViewer";
 import { MpcViewer } from "@miu2d/viewer/components/MpcViewer";
 import { XnbAudioViewer } from "@miu2d/viewer/components/XnbAudioViewer";
 import Editor, { loader } from "@monaco-editor/react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useWasm } from "../../hooks";
 import { useDashboard } from "../../DashboardContext";
+import { useWasm } from "../../hooks";
 import { getResourceRoot } from "../../utils/resourcePath";
-import {
-  defineJxqyScriptTheme,
-  JXQY_SCRIPT_LANGUAGE_ID,
-  registerJxqyScriptLanguage,
-} from "@miu2d/shared/lib/monaco/jxqyScriptLanguage";
 import type { FlatFileTreeNode } from "./types";
 import { getFileExtension } from "./types";
 
@@ -274,13 +274,7 @@ export function FilePreview({ file }: FilePreviewProps) {
     };
 
     loadFile();
-  }, [
-    file?.id,
-    wasmReady,
-    file,
-    getDownloadUrlMutation.mutateAsync,
-    resetPreviewState,
-  ]);
+  }, [file?.id, wasmReady, file, getDownloadUrlMutation.mutateAsync, resetPreviewState]);
 
   // 保存文本文件
   const handleSave = useCallback(async () => {

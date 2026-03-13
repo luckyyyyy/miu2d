@@ -1,6 +1,6 @@
+import { execSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { execSync } from "node:child_process";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react-oxc";
 import { defineConfig, type Plugin } from "vite";
@@ -166,10 +166,7 @@ export default defineConfig({
           )
             return "LibsTrpc";
           // i18n — loaded at startup; keep separate for cache granularity
-          if (
-            id.includes("node_modules/i18next") ||
-            id.includes("node_modules/react-i18next")
-          )
+          if (id.includes("node_modules/i18next") || id.includes("node_modules/react-i18next"))
             return "LibsI18n";
           // Zod — used by @miu2d/types which is in the shared chunk
           if (id.includes("node_modules/zod/")) return "LibsZod";

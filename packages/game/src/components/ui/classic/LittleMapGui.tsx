@@ -110,7 +110,9 @@ const MapButton: React.FC<MapButtonProps> = ({
       onMouseDown={handleMouseDown}
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
-      onMouseEnter={() => { if (sound) playUiSound(sound); }}
+      onMouseEnter={() => {
+        if (sound) playUiSound(sound);
+      }}
     >
       {currentImage.dataUrl && (
         <img

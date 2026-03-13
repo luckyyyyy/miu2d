@@ -2,8 +2,8 @@
  * 游戏调试区块 - 合并快捷操作和物品/武功
  */
 
-import { getMagicFromApiCache } from "@miu2d/engine/magic";
 import { getMagicsData } from "@miu2d/engine/data";
+import { getMagicFromApiCache } from "@miu2d/engine/magic";
 import { EquipPosition, GoodKind, getAllGoods } from "@miu2d/engine/player/goods";
 import type React from "react";
 import { useMemo, useState } from "react";

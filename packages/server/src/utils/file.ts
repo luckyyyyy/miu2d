@@ -16,9 +16,7 @@ export async function resolveFilePath(
 ): Promise<File | null> {
   if (pathSegments.length === 0) return null;
 
-  const valueRows = pathSegments
-    .map((seg, i) => `(${i + 1}::int, $${i + 2})`)
-    .join(", ");
+  const valueRows = pathSegments.map((seg, i) => `(${i + 1}::int, $${i + 2})`).join(", ");
 
   const params: (string | number)[] = [gameId, ...pathSegments.map((s) => s.toLowerCase())];
   const depthParam = `$${params.length + 1}`;
@@ -77,10 +75,7 @@ export async function resolveFilePath(
  */
 const BATCH_CONCURRENCY = 8;
 
-export async function batchCheckPaths(
-  gameId: string,
-  paths: string[]
-): Promise<Set<string>> {
+export async function batchCheckPaths(gameId: string, paths: string[]): Promise<Set<string>> {
   const uniquePaths = [...new Set(paths.map((p) => p.toLowerCase()))];
   const exists = new Set<string>();
 

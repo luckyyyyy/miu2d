@@ -400,7 +400,9 @@ export class GoodsListManager {
    * Exchange bag item with equipment slot, handling equipment callbacks
    */
   exchangeListItemAndEquiping(bagIndex: number, equipPosition: EquipPosition): void {
-    logger.log(`[GoodsListManager] exchangeListItemAndEquiping: bag[${bagIndex}] <-> equip[${EquipPosition[equipPosition]}]`);
+    logger.log(
+      `[GoodsListManager] exchangeListItemAndEquiping: bag[${bagIndex}] <-> equip[${EquipPosition[equipPosition]}]`
+    );
     if (!this.isInStoreRange(bagIndex)) return;
 
     const slotIdx = equipPositionToSlotIndex(equipPosition);
@@ -714,15 +716,40 @@ export class GoodsListManager {
    * Used by Player.recalculateBaseStats() to restore correct stats on save load.
    */
   sumEquipStats(): {
-    attack: number; attack2: number; attack3: number;
-    defend: number; defend2: number; defend3: number;
-    evade: number; lifeMax: number; thewMax: number; manaMax: number;
+    attack: number;
+    attack2: number;
+    attack3: number;
+    defend: number;
+    defend2: number;
+    defend3: number;
+    evade: number;
+    lifeMax: number;
+    thewMax: number;
+    manaMax: number;
   } {
-    const s = { attack:0, attack2:0, attack3:0, defend:0, defend2:0, defend3:0, evade:0, lifeMax:0, thewMax:0, manaMax:0 };
+    const s = {
+      attack: 0,
+      attack2: 0,
+      attack3: 0,
+      defend: 0,
+      defend2: 0,
+      defend3: 0,
+      evade: 0,
+      lifeMax: 0,
+      thewMax: 0,
+      manaMax: 0,
+    };
     const add = (good: Good) => {
-      s.attack += good.attack; s.attack2 += good.attack2; s.attack3 += good.attack3;
-      s.defend += good.defend; s.defend2 += good.defend2; s.defend3 += good.defend3;
-      s.evade += good.evade; s.lifeMax += good.lifeMax; s.thewMax += good.thewMax; s.manaMax += good.manaMax;
+      s.attack += good.attack;
+      s.attack2 += good.attack2;
+      s.attack3 += good.attack3;
+      s.defend += good.defend;
+      s.defend2 += good.defend2;
+      s.defend3 += good.defend3;
+      s.evade += good.evade;
+      s.lifeMax += good.lifeMax;
+      s.thewMax += good.thewMax;
+      s.manaMax += good.manaMax;
     };
     for (let i = 0; i < EQUIP_SLOT_COUNT; i++) {
       const info = this.equipSlots[i];
@@ -777,7 +804,8 @@ export class GoodsListManager {
    * Move a bag item into a bottom slot (item stays in bag AND bottom slot)
    */
   moveBagToBottom(bagIndex: number, bottomSlot: number): void {
-    if (!this.isInStoreRange(bagIndex) || bottomSlot < 0 || bottomSlot >= BOTTOM_ITEMS_COUNT) return;
+    if (!this.isInStoreRange(bagIndex) || bottomSlot < 0 || bottomSlot >= BOTTOM_ITEMS_COUNT)
+      return;
     const info = this.goodsList[bagIndex];
     if (!info) return;
     this.bottomItems[bottomSlot] = { ...info };
@@ -792,7 +820,11 @@ export class GoodsListManager {
     if (bottomSlot < 0 || bottomSlot >= BOTTOM_ITEMS_COUNT) return;
     const item = this.bottomItems[bottomSlot];
     if (!item) return;
-    if (bagIndex !== undefined && this.isInStoreRange(bagIndex) && this.goodsList[bagIndex] === null) {
+    if (
+      bagIndex !== undefined &&
+      this.isInStoreRange(bagIndex) &&
+      this.goodsList[bagIndex] === null
+    ) {
       this.goodsList[bagIndex] = item;
     } else {
       this.addGoodToListWithCount(item.good.fileName, item.count);
@@ -806,10 +838,13 @@ export class GoodsListManager {
    */
   swapBottomGoods(fromSlot: number, toSlot: number): void {
     if (
-      fromSlot < 0 || fromSlot >= BOTTOM_ITEMS_COUNT ||
-      toSlot < 0 || toSlot >= BOTTOM_ITEMS_COUNT ||
+      fromSlot < 0 ||
+      fromSlot >= BOTTOM_ITEMS_COUNT ||
+      toSlot < 0 ||
+      toSlot >= BOTTOM_ITEMS_COUNT ||
       fromSlot === toSlot
-    ) return;
+    )
+      return;
     const tmp = this.bottomItems[fromSlot];
     this.bottomItems[fromSlot] = this.bottomItems[toSlot];
     this.bottomItems[toSlot] = tmp;

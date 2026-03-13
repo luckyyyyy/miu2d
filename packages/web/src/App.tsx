@@ -4,9 +4,9 @@ import { lazy, Suspense } from "react";
 import { Route, BrowserRouter as Router, Routes } from "react-router-dom";
 import { PWAUpdatePrompt } from "./PWAUpdatePrompt";
 import { LoginPage } from "./pages/LoginPage";
+import { LandingPage } from "./pages/landing";
 import NotFoundPage from "./pages/NotFoundPage";
 import { RegisterPage } from "./pages/RegisterPage";
-import { LandingPage } from "./pages/landing";
 
 const GameScreen = lazy(async () => {
   const m = await import("@miu2d/game");
@@ -27,7 +27,13 @@ export default function App() {
         <ThemeProvider>
           <DeviceProvider>
             <Router>
-              <Suspense fallback={<div className="flex h-screen w-screen items-center justify-center"><LoadingIcon className="h-8 w-8 text-primary" /></div>}>
+              <Suspense
+                fallback={
+                  <div className="flex h-screen w-screen items-center justify-center">
+                    <LoadingIcon className="h-8 w-8 text-primary" />
+                  </div>
+                }
+              >
                 <Routes>
                   <Route path="/" element={<LandingPage />} />
                   <Route path="/login" element={<LoginPage />} />

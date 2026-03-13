@@ -8,10 +8,9 @@
 import type { Player as PlayerType } from "@miu2d/types";
 import { logger } from "../core/logger";
 import { getPlayersData } from "../data/game-data-api";
-import { getViewTileDistance } from "../utils";
 import { getMagic, getMagicAtLevel, preloadMagicAsf } from "../magic/magic-config-loader";
-import { createDefaultMagicItemInfo } from "../magic/types";
 import type { MagicItemInfo } from "../magic/types";
+import { createDefaultMagicItemInfo } from "../magic/types";
 import type { MapBase } from "../map/map-base";
 import type { NpcManager } from "../npc";
 import type { ObjManager } from "../obj";
@@ -19,6 +18,7 @@ import type { GoodsListManager } from "../player/goods";
 import { EquipPosition, getGood } from "../player/goods/good";
 import type { PlayerMagicInventory } from "../player/magic/player-magic-inventory";
 import type { Player } from "../player/player";
+import { getViewTileDistance } from "../utils";
 import type {
   GoodsContainerSave,
   GoodsItemData,
@@ -98,7 +98,7 @@ export async function loadPlayerFromJSON(data: PlayerSaveData, player: Player): 
 export async function loadMagicsFromJSON(
   magics: MagicItemData[],
   xiuLianIndex: number,
-  magicInventory: PlayerMagicInventory,
+  magicInventory: PlayerMagicInventory
 ): Promise<void> {
   // 清空列表
   magicInventory.renewList();
@@ -209,7 +209,7 @@ export async function loadNpcsFromJSON(
     playerTile?: { x: number; y: number };
     nearThreshold?: number;
     onProgress?: (done: number, nearTotal: number) => void;
-  },
+  }
 ): Promise<() => void> {
   const { playerTile, nearThreshold = 40, onProgress } = options ?? {};
 
@@ -224,7 +224,7 @@ export async function loadNpcsFromJSON(
 
   // 按距离分流：2 屏范围内立即加载，更远的后台静默加载
   let nearNpcs = validNpcs;
-  let farNpcs: NpcSaveItem[] = [];
+  const farNpcs: NpcSaveItem[] = [];
 
   if (playerTile) {
     nearNpcs = [];
@@ -238,7 +238,7 @@ export async function loadNpcsFromJSON(
     }
     if (farNpcs.length > 0) {
       logger.debug(
-        `[Loader] NPC split — near: ${nearNpcs.length}, background: ${farNpcs.length} (threshold: ${nearThreshold} tiles)`,
+        `[Loader] NPC split — near: ${nearNpcs.length}, background: ${farNpcs.length} (threshold: ${nearThreshold} tiles)`
       );
     }
   }
@@ -258,7 +258,7 @@ export async function loadNpcsFromJSON(
         onProgress?.(++nearDone, nearTotal);
         return false;
       }
-    }),
+    })
   );
 
   logger.debug(`[Loader] Created ${nearResults.filter(Boolean).length}/${nearTotal} near NPCs`);
@@ -266,7 +266,9 @@ export async function loadNpcsFromJSON(
   // 返回后台加载启动函数，由调用方在所有并行任务完成后再触发，
   // 避免与玩家精灵加载争抢网络/解码资源。
   if (farNpcs.length === 0) {
-    return () => { /* nothing to do */ };
+    return () => {
+      /* nothing to do */
+    };
   }
 
   return () => {
@@ -279,11 +281,11 @@ export async function loadNpcsFromJSON(
           logger.warn(`[Loader] Background NPC load failed for ${npcData.name}:`, error);
           return false;
         }
-      }),
+      })
     )
       .then((results) => {
         logger.debug(
-          `[Loader] Background loaded ${results.filter(Boolean).length}/${farNpcs.length} far NPCs`,
+          `[Loader] Background loaded ${results.filter(Boolean).length}/${farNpcs.length} far NPCs`
         );
       })
       .catch((err: unknown) => {
@@ -363,17 +365,19 @@ export async function loadMagicContainer(
   inventory.renewList();
 
   // 加载面板武功
-  const batchItems = container.panelMagics.map((item, i) =>
-    item
-      ? {
-          fileName: item.fileName,
-          index: i + 1, // 0-indexed → panel slot 1..maxMagic
-          level: item.level,
-          exp: item.exp,
-          hideCount: item.hideCount,
-        }
-      : null
-  ).filter((x): x is NonNullable<typeof x> => x !== null);
+  const batchItems = container.panelMagics
+    .map((item, i) =>
+      item
+        ? {
+            fileName: item.fileName,
+            index: i + 1, // 0-indexed → panel slot 1..maxMagic
+            level: item.level,
+            exp: item.exp,
+            hideCount: item.hideCount,
+          }
+        : null
+    )
+    .filter((x): x is NonNullable<typeof x> => x !== null);
 
   await inventory.addMagicBatch(batchItems);
 
@@ -416,10 +420,7 @@ export async function loadMagicContainer(
 /**
  * 从新格式物品容器存档加载
  */
-export function loadGoodsContainer(
-  container: GoodsContainerSave,
-  manager: GoodsListManager
-): void {
+export function loadGoodsContainer(container: GoodsContainerSave, manager: GoodsListManager): void {
   manager.renewList();
 
   // 加载背包物品

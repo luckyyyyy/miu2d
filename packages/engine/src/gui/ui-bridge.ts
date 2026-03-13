@@ -9,6 +9,7 @@
  * 这是引擎暴露给 UI 层的唯一接口，UI 层不应直接访问引擎内部。
  */
 
+import { logger } from "../core/logger";
 import type { TypedEventEmitter } from "../events/event-emitter";
 import {
   type GameEventMap,
@@ -22,10 +23,8 @@ import {
   type UISelectionChangeEvent,
   type UIVideoPlayEvent,
 } from "../events/game-events";
-import { logger } from "../core/logger";
 import type { MemoListManager } from "../gui/memo-list-manager";
 import type { MagicItemInfo } from "../magic/types";
-import { MAGIC_LIST_CONFIG } from "../player/magic/magic-list-config";
 import {
   EQUIP_SLOT_COUNT,
   type GoodsItemInfo,
@@ -33,6 +32,7 @@ import {
   STORE_INDEX_BEGIN,
   STORE_INDEX_END,
 } from "../player/goods/goods-list-manager";
+import { MAGIC_LIST_CONFIG } from "../player/magic/magic-list-config";
 import type { PlayerMagicInventory } from "../player/magic/player-magic-inventory";
 import type { Player } from "../player/player";
 import type { TimerManager } from "../runtime/timer-manager";

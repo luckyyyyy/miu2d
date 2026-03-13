@@ -5,11 +5,12 @@
 
 import type { CharacterBase } from "../../character/base";
 import type { Character } from "../../character/character";
+import { isEnemy } from "../../combat/combat-utils";
+import { calcMagicHit, getCharacterDeathExp } from "../../combat/effect-calc";
 import { getEngineContext } from "../../core/engine-context";
 import { logger } from "../../core/logger";
 import type { Vector2 } from "../../core/types";
 import type { Npc, NpcManager } from "../../npc";
-import { isEnemy } from "../../combat/combat-utils";
 import type { PlayerMagicInventory } from "../../player/magic/player-magic-inventory";
 import type { Player } from "../../player/player";
 import { getDirectionFromVector, getNeighbors, vectorLength } from "../../utils";
@@ -21,7 +22,6 @@ import {
   findDistanceTileInDirection,
   findNeighborInDirection,
 } from "../../utils/path-finder";
-import { calcMagicHit, getCharacterDeathExp } from "../../combat/effect-calc";
 import {
   type ApplyContext,
   applyStatusEffect,
@@ -30,6 +30,7 @@ import {
   getEffect,
 } from "../effects";
 import { resolveMagic } from "../magic-config-loader";
+import { MagicSpecialKind } from "../magic-enums";
 import type { MagicSprite } from "../magic-sprite";
 import type { MagicData } from "../types";
 import type {
@@ -38,7 +39,6 @@ import type {
   MagicSpriteManagerDeps,
   MagicSpriteManagerState,
 } from "./types";
-import { MagicSpecialKind } from "../magic-enums";
 
 /**
  * 碰撞处理回调
@@ -347,8 +347,8 @@ export class MagicCollisionHandler implements CollisionHandler {
 
     logger.log(
       `[Combat] ${belongCharacter?.name ?? "?"} -> ${character.name} [${magic.name}]` +
-      ` | attEvade=${belongCharacter?.realEvade ?? 0} defEvade=${character.realEvade}` +
-      ` | ${doesHit ? "HIT" : "MISS"}`
+        ` | attEvade=${belongCharacter?.realEvade ?? 0} defEvade=${character.realEvade}` +
+        ` | ${doesHit ? "HIT" : "MISS"}`
     );
 
     if (doesHit) {
@@ -545,8 +545,7 @@ export class MagicCollisionHandler implements CollisionHandler {
         magic.specialKindMilliSeconds > 0
           ? magic.specialKindMilliSeconds / 1000
           : magic.effectLevel + 1;
-      const seconds =
-        magic.specialKind === 1 && character.isPlayer ? baseSecs * 0.5 : baseSecs;
+      const seconds = magic.specialKind === 1 && character.isPlayer ? baseSecs * 0.5 : baseSecs;
       applyStatusEffect(magic.specialKind, character, seconds, showEffect, belongCharacter);
     }
 

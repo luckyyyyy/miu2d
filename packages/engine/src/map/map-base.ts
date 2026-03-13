@@ -16,13 +16,19 @@
 
 import { getEngineContext } from "../core/engine-context";
 import { logger } from "../core/logger";
+// ============= 障碍类型常量（定义在 core/map-constants.ts，此处导入以供本模块内部使用并 re-export）=============
+import {
+  CAN_OVER,
+  CAN_OVER_OBSTACLE,
+  CAN_OVER_TRANS,
+  NONE,
+  OBSTACLE,
+  TRANS,
+} from "../core/map-constants";
 import type { Vector2 } from "../core/types";
 import { resolveScriptPath } from "../resource/resource-paths";
 import { pixelToTile, tileToPixel } from "../utils";
 import type { MiuMapData } from "./types";
-
-// ============= 障碍类型常量（定义在 core/map-constants.ts，此处导入以供本模块内部使用并 re-export）=============
-import { CAN_OVER, CAN_OVER_OBSTACLE, CAN_OVER_TRANS, NONE, OBSTACLE, TRANS } from "../core/map-constants";
 export { CAN_OVER, CAN_OVER_OBSTACLE, CAN_OVER_TRANS, NONE, OBSTACLE, TRANS };
 
 // ============= 图层常量 =============
@@ -378,7 +384,8 @@ export class MapBase {
     if (bt === CAN_OVER_TRANS) flags.push("CAN_OVER_TRANS");
     if (bt === CAN_OVER) flags.push("CAN_OVER");
     if (flags.length === 0) flags.push(`unknown(0x${bt.toString(16)})`);
-    const isCharObstacle = bt === TRANS || bt === CAN_OVER_TRANS || bt === OBSTACLE || bt === CAN_OVER_OBSTACLE;
+    const isCharObstacle =
+      bt === TRANS || bt === CAN_OVER_TRANS || bt === OBSTACLE || bt === CAN_OVER_OBSTACLE;
     return `tile(${col},${row}) barrierType=0x${bt.toString(16)} [${flags.join("|") || "0"}] isCharObstacle=${isCharObstacle}`;
   }
 

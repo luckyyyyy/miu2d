@@ -63,9 +63,17 @@ const StatIcon: React.FC<{ type: string; size?: number }> = ({ type, size = 16 }
 
 // 属性颜色映射（使用具体 rgba 避免字符串拼接产生非法 CSS）
 const statColorMap: Record<string, { solid: string; dim: string; glow: string }> = {
-  life:  { solid: "rgba(220,80,80,0.95)",  dim: "rgba(220,80,80,0.35)",  glow: "rgba(220,80,80,0.5)" },
-  mana:  { solid: "rgba(80,140,220,0.95)", dim: "rgba(80,140,220,0.35)", glow: "rgba(80,140,220,0.5)" },
-  thew:  { solid: "rgba(80,200,120,0.95)", dim: "rgba(80,200,120,0.35)", glow: "rgba(80,200,120,0.5)" },
+  life: { solid: "rgba(220,80,80,0.95)", dim: "rgba(220,80,80,0.35)", glow: "rgba(220,80,80,0.5)" },
+  mana: {
+    solid: "rgba(80,140,220,0.95)",
+    dim: "rgba(80,140,220,0.35)",
+    glow: "rgba(80,140,220,0.5)",
+  },
+  thew: {
+    solid: "rgba(80,200,120,0.95)",
+    dim: "rgba(80,200,120,0.35)",
+    glow: "rgba(80,200,120,0.5)",
+  },
 };
 
 // 属性进度条组件
@@ -78,7 +86,11 @@ const StatBar: React.FC<{
   showValues?: boolean;
 }> = ({ label, type, current, max, showValues = true }) => {
   const percent = max > 0 ? Math.min((current / max) * 100, 100) : 0;
-  const c = statColorMap[type] ?? { solid: "rgba(255,255,255,0.8)", dim: "rgba(255,255,255,0.2)", glow: "rgba(255,255,255,0.3)" };
+  const c = statColorMap[type] ?? {
+    solid: "rgba(255,255,255,0.8)",
+    dim: "rgba(255,255,255,0.2)",
+    glow: "rgba(255,255,255,0.3)",
+  };
 
   return (
     <div style={{ marginBottom: spacing.sm }}>
@@ -164,7 +176,7 @@ const StatBar: React.FC<{
 const combatValueColor: Record<string, string> = {
   attack: "rgba(255,150,80,0.9)",
   defend: "rgba(100,170,255,0.9)",
-  evade:  "rgba(170,130,255,0.9)",
+  evade: "rgba(170,130,255,0.9)",
 };
 
 // 战斗属性行 — 极简平铺式，无背景色无色块，数值带淡色

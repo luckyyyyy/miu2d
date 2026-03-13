@@ -14,10 +14,15 @@
  */
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import dotenv from "dotenv";
-import { PrismaClient } from "@prisma/client";
+import {
+  classifyScriptFile,
+  parseIniContent,
+  parseNpcEntries,
+  parseObjEntries,
+} from "@miu2d/types";
 import { PrismaPg } from "@prisma/adapter-pg";
-import { classifyScriptFile, parseIniContent, parseNpcEntries, parseObjEntries } from "@miu2d/types";
+import { PrismaClient } from "@prisma/client";
+import dotenv from "dotenv";
 import { downloadFile } from "../storage/s3.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -62,7 +67,7 @@ async function findDirId(gameId: string, segments: string[]): Promise<string | n
     )
     SELECT id FROM resolve WHERE depth = ${depthParam} LIMIT 1
     `,
-    ...params,
+    ...params
   );
 
   return rows[0]?.id ?? null;
@@ -84,7 +89,7 @@ async function listDirFiles(gameId: string, parentId: string): Promise<FileRow[]
     ORDER BY LOWER(name), created_at DESC
     `,
     gameId,
-    parentId,
+    parentId
   );
 }
 
@@ -96,7 +101,9 @@ async function downloadText(storageKey: string): Promise<string> {
 async function main() {
   console.log("==> patch-null-scene-data: start");
 
-  const nullScenes = await prisma.$queryRaw<Array<{ id: string; game_id: string; key: string; name: string }>>`
+  const nullScenes = await prisma.$queryRaw<
+    Array<{ id: string; game_id: string; key: string; name: string }>
+  >`
     SELECT id, game_id, key, name FROM scenes WHERE data IS NULL
   `.then((rows) => rows.map((r) => ({ id: r.id, gameId: r.game_id, key: r.key, name: r.name })));
 
@@ -110,7 +117,10 @@ async function main() {
 
   // Pre-load NPC/OBJ save files per game (keyed by gameid → file list)
   const gameIds = [...new Set(nullScenes.map((s) => s.gameId))];
-  const npcObjByGame = new Map<string, Array<{ name: string; storageKey: string; kind: "npc" | "obj" }>>();
+  const npcObjByGame = new Map<
+    string,
+    Array<{ name: string; storageKey: string; kind: "npc" | "obj" }>
+  >();
 
   for (const gameId of gameIds) {
     const saveDirId = await findDirId(gameId, ["ini", "save"]);
@@ -124,7 +134,7 @@ async function main() {
       .filter(
         (f) =>
           (f.name.toLowerCase().endsWith(".npc") || f.name.toLowerCase().endsWith(".obj")) &&
-          f.storageKey,
+          f.storageKey
       )
       .map((f) => ({
         name: f.name,
@@ -200,7 +210,7 @@ async function main() {
     // 3. Persist
     await prisma.scene.update({
       where: { id: scene.id },
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // biome-ignore lint/suspicious/noExplicitAny: Prisma JsonValue requires any
       data: { data: data as any },
     });
     console.log(`  ✓ patched: ${scene.name}`);

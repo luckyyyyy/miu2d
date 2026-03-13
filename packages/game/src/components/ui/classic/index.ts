@@ -13,14 +13,14 @@ export { BottomStateGui } from "./BottomStateGui";
 // Buy GUI
 export type { ShopItemData } from "./BuyGui";
 export { BuyGui } from "./BuyGui";
-
-export { GambleGui } from "./GambleGui";
-
 // Dialog UI
 export { DialogUI } from "./DialogUI";
 // Equip GUI
 export type { DragData, EquipItemData, EquipSlots, EquipSlotType } from "./EquipGui";
 export { EquipGui, equipPositionToSlotType, slotTypeToEquipPosition } from "./EquipGui";
+// Fog of War Map
+export { FogOfWarMap } from "./FogOfWarMap";
+export { GambleGui } from "./GambleGui";
 // Game Cursor
 export { GameCursor, GameCursorContainer } from "./GameCursor";
 // Good GUI
@@ -42,8 +42,6 @@ export { defaultTooltipState, ItemTooltip } from "./ItemTooltip";
 // Little Head GUI (Partner portraits)
 export type { PartnerInfo } from "./LittleHeadGui";
 export { LittleHeadGui } from "./LittleHeadGui";
-// Fog of War Map
-export { FogOfWarMap } from "./FogOfWarMap";
 // Little Map GUI
 export type { CharacterMarker } from "./LittleMapGui";
 export { LittleMapGui } from "./LittleMapGui";

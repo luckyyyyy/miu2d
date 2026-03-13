@@ -9,11 +9,11 @@
  */
 
 import { logger } from "../core/logger";
-import type { AsfData, AsfFrame } from "../resource/format/asf";
 import type { Mpc, MpcFrame, MpcHead } from "../map/types";
+import type { AsfData, AsfFrame } from "../resource/format/asf";
 import { decodeAsfWasm } from "./wasm-asf-decoder";
-import { decodeMpcWasm } from "./wasm-mpc-decoder";
 import type { AsfPayload, MpcPayload, WorkerRequest, WorkerResponse } from "./wasm-decode-worker";
+import { decodeMpcWasm } from "./wasm-mpc-decoder";
 
 /** Worker 池大小：取 CPU 核心数的一半（最少 2，最多 4） */
 const POOL_SIZE = Math.max(2, Math.min(4, Math.floor((navigator.hardwareConcurrency ?? 4) / 2)));
@@ -76,7 +76,10 @@ function pickLeastBusy(): PoolEntry | null {
   return best;
 }
 
-function sendToWorker(type: "decode-asf" | "decode-mpc", buffer: ArrayBuffer): Promise<WorkerResponse> {
+function sendToWorker(
+  type: "decode-asf" | "decode-mpc",
+  buffer: ArrayBuffer
+): Promise<WorkerResponse> {
   return new Promise((resolve) => {
     const entry = pickLeastBusy();
     if (!entry) {

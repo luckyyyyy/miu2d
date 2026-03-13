@@ -19,8 +19,7 @@ import type {
   UpdatePlayerInput,
 } from "@miu2d/types";
 import { createDefaultPlayer } from "@miu2d/types";
-import type { Prisma } from "@prisma/client";
-import type { Player as PrismaPlayer } from "@prisma/client";
+import type { Prisma, Player as PrismaPlayer } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
 import { db } from "../../db/client";
 import type { Language } from "../../i18n";
@@ -89,7 +88,10 @@ export class PlayerService {
   ): Promise<PlayerListItem[]> {
     await verifyGameAccess(input.gameId, userId, language);
 
-    const rows = await db.player.findMany({ where: { gameId: input.gameId }, orderBy: { index: "asc" } });
+    const rows = await db.player.findMany({
+      where: { gameId: input.gameId },
+      orderBy: { index: "asc" },
+    });
 
     return rows.map((row) => {
       const data = row.data as Record<string, unknown>;
@@ -138,7 +140,13 @@ export class PlayerService {
     }
 
     const row = await db.player.create({
-      data: { gameId, key, name: name ?? "", index, data: data as unknown as Prisma.InputJsonValue },
+      data: {
+        gameId,
+        key,
+        name: name ?? "",
+        index,
+        data: data as unknown as Prisma.InputJsonValue,
+      },
     });
 
     return this.toPlayer(row);
@@ -151,7 +159,9 @@ export class PlayerService {
     await verifyGameAccess(input.gameId, userId, language);
 
     // 检查是否存在（直接查 DB，避免重复触发 verifyGameAccess）
-    const existingRow = await db.player.findFirst({ where: { id: input.id, gameId: input.gameId } });
+    const existingRow = await db.player.findFirst({
+      where: { id: input.id, gameId: input.gameId },
+    });
     if (!existingRow) {
       throw new TRPCError({
         code: "NOT_FOUND",
@@ -176,7 +186,13 @@ export class PlayerService {
 
     const row = await db.player.update({
       where: { id },
-      data: { key, name, index: index ?? 0, data: data as unknown as Prisma.InputJsonValue, updatedAt: new Date() },
+      data: {
+        key,
+        name,
+        index: index ?? 0,
+        data: data as unknown as Prisma.InputJsonValue,
+        updatedAt: new Date(),
+      },
     });
 
     return this.toPlayer(row);
@@ -269,7 +285,13 @@ export class PlayerService {
     const warnings: string[] = [];
 
     // ── 解析阶段（纯内存，无 DB 调用）────────────────────────────────
-    type InsertRow = { gameId: string; key: string; name: string; index: number; data: Record<string, unknown> };
+    type InsertRow = {
+      gameId: string;
+      key: string;
+      name: string;
+      index: number;
+      data: Record<string, unknown>;
+    };
     const rows: InsertRow[] = [];
     const keyToMeta = new Map<string, { fileName: string; index: number }>();
 
@@ -285,14 +307,15 @@ export class PlayerService {
         const indexMatch = key.match(/Player(\d+)/i);
         const index = indexMatch ? parseInt(indexMatch[1], 10) : 0;
 
-        const rawMagics = item.magicIniContent
-          ? this.parseMagicIni(item.magicIniContent)
-          : [];
-        const initialMagics = this.resolveMagicRefs(rawMagics, magicLookup, item.fileName, warnings);
+        const rawMagics = item.magicIniContent ? this.parseMagicIni(item.magicIniContent) : [];
+        const initialMagics = this.resolveMagicRefs(
+          rawMagics,
+          magicLookup,
+          item.fileName,
+          warnings
+        );
 
-        const rawGoods = item.goodsIniContent
-          ? this.parseGoodsIni(item.goodsIniContent)
-          : [];
+        const rawGoods = item.goodsIniContent ? this.parseGoodsIni(item.goodsIniContent) : [];
         const initialGoods = this.resolveGoodsRefs(rawGoods, goodsLookup, item.fileName, warnings);
 
         const defaultPlayer = createDefaultPlayer(input.gameId, key);
@@ -303,7 +326,16 @@ export class PlayerService {
           initialMagics,
           initialGoods,
         };
-        const { gameId: _g, key: _k, name, index: _i, id: _id, createdAt: _c, updatedAt: _u, ...data } = fullPlayer;
+        const {
+          gameId: _g,
+          key: _k,
+          name,
+          index: _i,
+          id: _id,
+          createdAt: _c,
+          updatedAt: _u,
+          ...data
+        } = fullPlayer;
         rows.push({ gameId: input.gameId, key, name: name ?? "", index, data });
         keyToMeta.set(key, { fileName: item.fileName, index });
       } catch (error) {
@@ -320,8 +352,19 @@ export class PlayerService {
         rows.map((row) =>
           db.player.upsert({
             where: { players_game_id_key_unique: { gameId: row.gameId, key: row.key } },
-            create: { gameId: row.gameId, key: row.key, name: row.name, index: row.index,  data: row.data as unknown as Prisma.InputJsonValue },
-            update: { name: row.name, index: row.index, data: row.data as unknown as Prisma.InputJsonValue, updatedAt: new Date() },
+            create: {
+              gameId: row.gameId,
+              key: row.key,
+              name: row.name,
+              index: row.index,
+              data: row.data as unknown as Prisma.InputJsonValue,
+            },
+            update: {
+              name: row.name,
+              index: row.index,
+              data: row.data as unknown as Prisma.InputJsonValue,
+              updatedAt: new Date(),
+            },
           })
         )
       );
@@ -404,7 +447,7 @@ export class PlayerService {
     parsed: PlayerInitialMagic[],
     lookup: { byKey: Map<string, string>; byName: Map<string, string> },
     playerFile: string,
-    warnings: string[],
+    warnings: string[]
   ): PlayerInitialMagic[] {
     return parsed.map((m) => {
       const normalizedKey = m.iniFile.toLowerCase();
@@ -442,7 +485,7 @@ export class PlayerService {
     parsed: PlayerInitialGood[],
     lookup: { byKey: Map<string, string>; byName: Map<string, string> },
     playerFile: string,
-    warnings: string[],
+    warnings: string[]
   ): PlayerInitialGood[] {
     return parsed.map((g) => {
       const normalizedKey = g.iniFile.toLowerCase();

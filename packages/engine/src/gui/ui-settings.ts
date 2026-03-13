@@ -654,9 +654,7 @@ function resolvePanel(p: ThemePanel): PanelConfig {
     leftAdjust: p.offset?.[0] ?? 0,
     topAdjust: p.offset?.[1] ?? 0,
     ...(p.overlay ? { overlayImage: p.overlay } : {}),
-    ...(p.overlayOffset
-      ? { overlayLeft: p.overlayOffset[0], overlayTop: p.overlayOffset[1] }
-      : {}),
+    ...(p.overlayOffset ? { overlayLeft: p.overlayOffset[0], overlayTop: p.overlayOffset[1] } : {}),
     ...(p.size ? { width: p.size[0], height: p.size[1] } : {}),
     ...(p.anchor === "bottom" ? { anchor: "Bottom" as const } : {}),
   };
@@ -701,8 +699,7 @@ function resolveGrid(g: ThemeGrid): {
   width: number;
   height: number;
 }[] {
-  const items: { left: number; top: number; width: number; height: number }[] =
-    [];
+  const items: { left: number; top: number; width: number; height: number }[] = [];
   for (let row = 0; row < g.rows; row++) {
     for (let col = 0; col < g.cols; col++) {
       items.push({
@@ -725,10 +722,7 @@ function resolveMapBtn(b: ThemeMapButton): LittleMapButtonConfig {
   };
 }
 
-function resolveMapText(
-  t: ThemeMapText,
-  defaultColor = "rgba(76,56,48,0.8)",
-): LittleMapTextConfig {
+function resolveMapText(t: ThemeMapText, defaultColor = "rgba(76,56,48,0.8)"): LittleMapTextConfig {
   return {
     left: t.pos[0],
     top: t.pos[1],
@@ -784,9 +778,7 @@ function resolveEquip(e: ThemeEquip): EquipGuiConfig {
 function parseColorStr(s: string): UiColorRGBA {
   const rgbaMatch = s.match(/rgba?\(([^)]+)\)/);
   if (rgbaMatch) {
-    const parts = rgbaMatch[1]
-      .split(",")
-      .map((p) => Number.parseFloat(p.trim()));
+    const parts = rgbaMatch[1].split(",").map((p) => Number.parseFloat(p.trim()));
     return {
       r: Math.round(parts[0] ?? 0),
       g: Math.round(parts[1] ?? 0),
@@ -814,9 +806,7 @@ export function resolveTheme(theme: UiTheme): ResolvedUiConfigs {
         ...(theme.title.buttons.credits
           ? { creditsBtn: resolveButton(theme.title.buttons.credits) }
           : {}),
-        ...(theme.title.creditsVideo
-          ? { creditsVideo: theme.title.creditsVideo }
-          : {}),
+        ...(theme.title.creditsVideo ? { creditsVideo: theme.title.creditsVideo } : {}),
       }
     : null;
 
@@ -969,10 +959,7 @@ export function resolveTheme(theme: UiTheme): ResolvedUiConfigs {
         closeBtn: resolveMapBtn(theme.littleMap.closeBtn),
         mapNameText: resolveMapText(theme.littleMap.mapNameText),
         bottomTipText: resolveMapText(theme.littleMap.bottomTipText),
-        messageTipText: resolveMapText(
-          theme.littleMap.messageTipText,
-          "rgba(200,0,0,0.8)",
-        ),
+        messageTipText: resolveMapText(theme.littleMap.messageTipText, "rgba(200,0,0,0.8)"),
       }
     : null;
 
@@ -1029,23 +1016,13 @@ export function resolveTheme(theme: UiTheme): ResolvedUiConfigs {
     textVerticalPadding: t2.textVerticalPadding ?? 4,
     backgroundColor: parseColorStr(t2.backgroundColor ?? "rgba(0,0,0,0.63)"),
     magicNameColor: parseColorStr(t2.magicNameColor ?? "rgba(225,225,110,0.63)"),
-    magicLevelColor: parseColorStr(
-      t2.magicLevelColor ?? "rgba(255,255,255,0.63)",
-    ),
-    magicIntroColor: parseColorStr(
-      t2.magicIntroColor ?? "rgba(255,255,255,0.63)",
-    ),
+    magicLevelColor: parseColorStr(t2.magicLevelColor ?? "rgba(255,255,255,0.63)"),
+    magicIntroColor: parseColorStr(t2.magicIntroColor ?? "rgba(255,255,255,0.63)"),
     goodNameColor: parseColorStr(t2.goodNameColor ?? "rgba(245,233,171,0.63)"),
-    goodPriceColor: parseColorStr(
-      t2.goodPriceColor ?? "rgba(255,255,255,0.63)",
-    ),
+    goodPriceColor: parseColorStr(t2.goodPriceColor ?? "rgba(255,255,255,0.63)"),
     goodUserColor: parseColorStr(t2.goodUserColor ?? "rgba(255,255,255,0.63)"),
-    goodPropertyColor: parseColorStr(
-      t2.goodPropertyColor ?? "rgba(255,255,255,0.63)",
-    ),
-    goodIntroColor: parseColorStr(
-      t2.goodIntroColor ?? "rgba(255,255,255,0.63)",
-    ),
+    goodPropertyColor: parseColorStr(t2.goodPropertyColor ?? "rgba(255,255,255,0.63)"),
+    goodIntroColor: parseColorStr(t2.goodIntroColor ?? "rgba(255,255,255,0.63)"),
   };
 
   const t1 = theme.tooltip1;

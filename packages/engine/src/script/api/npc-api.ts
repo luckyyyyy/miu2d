@@ -5,6 +5,7 @@
 import type { Character } from "../../character/character";
 import { logger } from "../../core/logger";
 import { CharacterState } from "../../core/types";
+import { getMagic, preloadMagicAsf } from "../../magic/magic-config-loader";
 import { ResourcePath } from "../../resource/resource-paths";
 import { tileToPixel } from "../../utils";
 import { PathType } from "../../utils/path-finder";
@@ -215,11 +216,18 @@ export function createNpcAPI(ctx: ScriptCommandContext, resolver: BlockingResolv
         player.kind = kind;
       }
     },
-    setMagicFile: (name, magicFile) => {
+    setMagicFile: async (name, magicFile) => {
       const characters = getCharactersByName(name);
       for (const character of characters) {
         character.setFlyIni(magicFile);
       }
+      // 阻塞等待 ASF 动画资源加载完成（对所有目标统一处理，包括玩家）
+      const magic = getMagic(magicFile);
+      if (magic) await preloadMagicAsf(magic);
+      // 填充 NPC 武功缓存（ASF 已在缓存中，addMagicToCache 内部不会重复加载）
+      await Promise.all(
+        npcManager.getAllNpcsByName(name).map((npc) => npc.addMagicToCache(magicFile))
+      );
     },
     setResource: async (name, resFile) => {
       const character = getCharacterByName(name);
@@ -395,8 +403,14 @@ export function createNpcAPI(ctx: ScriptCommandContext, resolver: BlockingResolv
         return;
       }
       // Player has its own magic inventory
-      if ("addMagic" in character && typeof (character as { addMagic: unknown }).addMagic === "function") {
-        await (character as { addMagic(file: string, level: number): Promise<boolean> }).addMagic(magicFile, 1);
+      if (
+        "addMagic" in character &&
+        typeof (character as { addMagic: unknown }).addMagic === "function"
+      ) {
+        await (character as { addMagic(file: string, level: number): Promise<boolean> }).addMagic(
+          magicFile,
+          1
+        );
         return;
       }
       // NPC uses magic cache
@@ -419,22 +433,31 @@ export function createNpcAPI(ctx: ScriptCommandContext, resolver: BlockingResolv
         npc.scriptFile = scriptFile;
       }
     },
-    changeLife: (name, amount) => {
+    changeLife: (name, percent) => {
       const characters = getCharactersByName(name);
       for (const character of characters) {
-        character.addLife(amount);
+        character.life = Math.max(
+          0,
+          Math.min(Math.round((character.lifeMax * percent) / 100), character.lifeMax)
+        );
       }
     },
-    changeMana: (name, amount) => {
+    changeMana: (name, percent) => {
       const characters = getCharactersByName(name);
       for (const character of characters) {
-        character.addMana(amount);
+        character.mana = Math.max(
+          0,
+          Math.min(Math.round((character.manaMax * percent) / 100), character.manaMax)
+        );
       }
     },
-    changeThew: (name, amount) => {
+    changeThew: (name, percent) => {
       const characters = getCharactersByName(name);
       for (const character of characters) {
-        character.addThew(amount);
+        character.thew = Math.max(
+          0,
+          Math.min(Math.round((character.thewMax * percent) / 100), character.thewMax)
+        );
       }
     },
   };

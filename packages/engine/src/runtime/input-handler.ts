@@ -618,7 +618,11 @@ export class InputHandler {
    * @param npc The NPC to interact with
    * @param useRightScript Use ScriptFileRight instead of ScriptFile
    */
-  async interactWithNpc(npc: Npc, useRightScript: boolean = false, isRun: boolean = false): Promise<void> {
+  async interactWithNpc(
+    npc: Npc,
+    useRightScript: boolean = false,
+    isRun: boolean = false
+  ): Promise<void> {
     const guiManager = this.engine.guiManager;
     const player = this.engine.player;
 
@@ -689,7 +693,11 @@ export class InputHandler {
    * @param obj The object to interact with
    * @param useRightScript Use ScriptFileRight instead of ScriptFile
    */
-  async interactWithObj(obj: Obj, useRightScript: boolean = false, isRun: boolean = false): Promise<void> {
+  async interactWithObj(
+    obj: Obj,
+    useRightScript: boolean = false,
+    isRun: boolean = false
+  ): Promise<void> {
     const player = this.player;
 
     player.cancelAutoAttack();
@@ -767,7 +775,11 @@ export class InputHandler {
    * 2. 如果该位置是障碍物，尝试所有 8 个方向
    * 3. 如果所有方向都不可达，放弃交互
    */
-  private walkToTarget(targetTile: Vector2, interactDistance: number, isRun: boolean = false): void {
+  private walkToTarget(
+    targetTile: Vector2,
+    interactDistance: number,
+    isRun: boolean = false
+  ): void {
     const player = this.player;
 
     // Use isometric tile distance

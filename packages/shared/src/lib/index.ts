@@ -1,11 +1,3 @@
-export { isPWA } from "./pwa";
-export { trpc, trpcClient } from "./trpc";
-export {
-  fetchGameApi,
-  fetchGameApiBinary,
-  getResourceDomain,
-  getResourceUrl,
-} from "./game-api";
 export type {
   GameConfigResponse,
   GameDataResponse,
@@ -19,3 +11,11 @@ export type {
   ObjResData,
   ObjResponse,
 } from "./game-api";
+export {
+  fetchGameApi,
+  fetchGameApiBinary,
+  getResourceDomain,
+  getResourceUrl,
+} from "./game-api";
+export { isPWA } from "./pwa";
+export { trpc, trpcClient } from "./trpc";

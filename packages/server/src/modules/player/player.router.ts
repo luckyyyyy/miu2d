@@ -81,7 +81,10 @@ export class PlayerRouter {
    */
   @UseMiddlewares(requireUser)
   @Mutation({ input: ImportPlayerInputSchema, output: PlayerSchema })
-  async importFromIni(input: z.infer<typeof ImportPlayerInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+  async importFromIni(
+    input: z.infer<typeof ImportPlayerInputSchema>,
+    @Ctx() ctx: AuthenticatedContext
+  ) {
     return playerService.importFromIni(input, ctx.userId, ctx.language);
   }
 
@@ -102,7 +105,10 @@ export class PlayerRouter {
    */
   @UseMiddlewares(requireUser)
   @Mutation({ input: ClearAllPlayersInputSchema, output: ClearAllPlayersResultSchema })
-  async clearAll(input: z.infer<typeof ClearAllPlayersInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+  async clearAll(
+    input: z.infer<typeof ClearAllPlayersInputSchema>,
+    @Ctx() ctx: AuthenticatedContext
+  ) {
     return playerService.clearAll(input, ctx.userId, ctx.language);
   }
 }

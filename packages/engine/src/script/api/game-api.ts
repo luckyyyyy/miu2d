@@ -10,8 +10,8 @@
  * - No engine internals leaked - only script-level operations
  */
 
-import type { SelectionOptionData } from "../../events/gui-state-types";
 import type { Vector2 } from "../../core/types";
+import type { SelectionOptionData } from "../../events/gui-state-types";
 import type { TalkTextListManager } from "../../gui/talk-text-list";
 
 // ===== Top-level GameAPI =====
@@ -119,7 +119,7 @@ export interface NpcAPI {
   watch(char1: string, char2: string, watchType: number): void;
   setAIEnabled(enabled: boolean): void;
   setKind(name: string, kind: number): void;
-  setMagicFile(name: string, magicFile: string): void;
+  setMagicFile(name: string, magicFile: string): Promise<void>;
   setResource(name: string, resFile: string): void | Promise<void>;
   setAction(name: string, action: number, x?: number, y?: number): void;
   setActionType(name: string, actionType: number): void;
@@ -174,6 +174,7 @@ export interface MagicAPI {
   clear(): void;
   hasFreeSpace(): boolean;
   use(magicFile: string, x?: number, y?: number): void;
+  moveToBottomSlot(magicFile: string, slotIndex: number): void;
 }
 
 // ===== Memo =====
@@ -258,7 +259,6 @@ export interface EffectsAPI {
   poison(ms: number): void;
   frozen(ms: number): void;
   clearEffect(): void;
-  moveMagic(magicFile: string, direction: number): void;
   setLevelFile(file: string): Promise<void>;
 }
 

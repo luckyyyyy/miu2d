@@ -67,7 +67,7 @@ export function SceneKindItems({
   // 获取当前场景完整数据 — 删除或重命名时需要
   const { data: scene } = trpc.scene.get.useQuery(
     { gameId, id: sceneId },
-    { enabled: confirmDeleteKey !== null || renamingKey !== null },
+    { enabled: confirmDeleteKey !== null || renamingKey !== null }
   );
 
   /** 删除子项文件（从 scene.data JSONB 中移除该 key） */
@@ -108,7 +108,7 @@ export function SceneKindItems({
         navigate(`${basePath}/${sceneId}`);
       }
     },
-    [scene, kind, gameId, sceneId, updateMutation, searchParams, navigate, basePath],
+    [scene, kind, gameId, sceneId, updateMutation, searchParams, navigate, basePath]
   );
 
   /** 重命名子项文件（在 scene.data JSONB 中换 key） */
@@ -153,7 +153,7 @@ export function SceneKindItems({
 
       renameMutation.mutate({ gameId, id: sceneId, data: newData as Record<string, unknown> });
     },
-    [scene, renameValue, kind, gameId, sceneId, renameMutation, toast],
+    [scene, renameValue, kind, gameId, sceneId, renameMutation, toast]
   );
 
   if (itemKeys.length === 0) {

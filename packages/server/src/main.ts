@@ -9,6 +9,7 @@ import { cors } from "hono/cors";
 // Import all module routers to register them (side-effect imports)
 import "./modules";
 
+import { env } from "./env";
 import { dataRoutes } from "./routes/data.routes";
 import { fileRoutes } from "./routes/file.routes";
 import { gameConfigRoutes } from "./routes/gameConfig.routes";
@@ -16,7 +17,6 @@ import { levelRoutes } from "./routes/level.routes";
 import { sceneRoutes } from "./routes/scene.routes";
 import { createContext, setPendingRes } from "./trpc/context";
 import { appRouter } from "./trpc/router";
-import { env } from "./env";
 import { createRateLimiter } from "./utils/rate-limiter";
 
 const app = new Hono();

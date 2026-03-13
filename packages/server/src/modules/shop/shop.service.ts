@@ -16,8 +16,7 @@ import type {
   UpdateShopInput,
 } from "@miu2d/types";
 import { createDefaultShop } from "@miu2d/types";
-import type { Prisma } from "@prisma/client";
-import type { Shop as PrismaShop } from "@prisma/client";
+import type { Prisma, Shop as PrismaShop } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
 import { db } from "../../db/client";
 import type { Language } from "../../i18n";
@@ -125,7 +124,12 @@ export class ShopService {
     const { gameId, key, name, ...data } = fullShop;
 
     const row = await db.shop.create({
-      data: { gameId, key: key.toLowerCase(), name, data: data as unknown as Prisma.InputJsonValue },
+      data: {
+        gameId,
+        key: key.toLowerCase(),
+        name,
+        data: data as unknown as Prisma.InputJsonValue,
+      },
     });
 
     return this.toShop(row);
@@ -164,7 +168,12 @@ export class ShopService {
 
     const row = await db.shop.update({
       where: { id },
-      data: { key: key.toLowerCase(), name, data: data as unknown as Prisma.InputJsonValue, updatedAt: new Date() },
+      data: {
+        key: key.toLowerCase(),
+        name,
+        data: data as unknown as Prisma.InputJsonValue,
+        updatedAt: new Date(),
+      },
     });
 
     return this.toShop(row);
@@ -258,8 +267,17 @@ export class ShopService {
         rows.map((row) =>
           db.shop.upsert({
             where: { shops_game_id_key_unique: { gameId: row.gameId, key: row.key } },
-            create: { gameId: row.gameId, key: row.key, name: row.name,  data: row.data as unknown as Prisma.InputJsonValue },
-            update: { name: row.name, data: row.data as unknown as Prisma.InputJsonValue, updatedAt: new Date() },
+            create: {
+              gameId: row.gameId,
+              key: row.key,
+              name: row.name,
+              data: row.data as unknown as Prisma.InputJsonValue,
+            },
+            update: {
+              name: row.name,
+              data: row.data as unknown as Prisma.InputJsonValue,
+              updatedAt: new Date(),
+            },
           })
         )
       );

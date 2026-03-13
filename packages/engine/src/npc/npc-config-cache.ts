@@ -6,8 +6,8 @@
 
 import type { NpcResource } from "@miu2d/types";
 import { buildCharacterConfigFromFlatData } from "../character/character-config";
-import { registerNpcResLoader } from "../character/character-res-loader";
 import type { NpcResStateInfo } from "../character/character-res-loader";
+import { registerNpcResLoader } from "../character/character-res-loader";
 import type { CharacterConfig, CharacterStats } from "../core/types";
 import {
   CharacterKind,

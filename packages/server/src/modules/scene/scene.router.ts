@@ -66,7 +66,10 @@ export class SceneRouter {
 
   @UseMiddlewares(requireUser)
   @Mutation({ input: ImportSceneBatchInputSchema, output: ImportSceneBatchResultSchema })
-  async importScene(input: z.infer<typeof ImportSceneBatchInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+  async importScene(
+    input: z.infer<typeof ImportSceneBatchInputSchema>,
+    @Ctx() ctx: AuthenticatedContext
+  ) {
     return sceneService.importScene(input, ctx.userId, ctx.language);
   }
 
@@ -74,7 +77,10 @@ export class SceneRouter {
 
   @UseMiddlewares(requireUser)
   @Mutation({ input: ClearAllScenesInputSchema, output: ClearAllScenesResultSchema })
-  async clearAll(input: z.infer<typeof ClearAllScenesInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+  async clearAll(
+    input: z.infer<typeof ClearAllScenesInputSchema>,
+    @Ctx() ctx: AuthenticatedContext
+  ) {
     return sceneService.clearAll(input, ctx.userId, ctx.language);
   }
 }

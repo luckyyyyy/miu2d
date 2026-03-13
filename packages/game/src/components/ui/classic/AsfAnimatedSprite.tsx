@@ -218,7 +218,11 @@ export const AsfAnimatedSprite: React.FC<AsfAnimatedSpriteProps> = memo(
 
     // 计算 CSS 显示尺寸（等比缩放以适配 maxWidth/maxHeight）
     const displayStyle: React.CSSProperties = { imageRendering: "pixelated", ...style };
-    if ((maxWidth !== undefined || maxHeight !== undefined) && dimensions.width > 0 && dimensions.height > 0) {
+    if (
+      (maxWidth !== undefined || maxHeight !== undefined) &&
+      dimensions.width > 0 &&
+      dimensions.height > 0
+    ) {
       const scale = Math.min(
         maxWidth !== undefined ? maxWidth / dimensions.width : Number.POSITIVE_INFINITY,
         maxHeight !== undefined ? maxHeight / dimensions.height : Number.POSITIVE_INFINITY

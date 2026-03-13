@@ -2,6 +2,7 @@
  * Game hooks exports
  */
 
+export { useBuildGameUIContextValue } from "./buildGameUIContextValue";
 export type {
   BottomMagicDragData,
   BuyData,
@@ -14,5 +15,4 @@ export type {
   TooltipState,
 } from "./useGameUILogic";
 export { equipSlotToUISlot, useGameUILogic } from "./useGameUILogic";
-export { useBuildGameUIContextValue } from "./buildGameUIContextValue";
 export { useTouchDropHandlers } from "./useTouchDropHandlers";

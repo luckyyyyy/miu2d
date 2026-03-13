@@ -36,10 +36,11 @@
 // 子系统
 import { AudioManager } from "../audio";
 import { type EngineContext, setEngineContext } from "../core/engine-context";
-import { TypedEventEmitter } from "../events/event-emitter";
-import { type GameEventMap, GameEvents } from "../events/game-events";
 import { logger } from "../core/logger";
 import type { Direction, Vector2 } from "../core/types";
+import { DebugManager } from "../debug/debug-manager";
+import { TypedEventEmitter } from "../events/event-emitter";
+import { type GameEventMap, GameEvents } from "../events/game-events";
 import type { BuyManager } from "../gui/buy-manager";
 import type { GuiManager } from "../gui/gui-manager";
 import { MemoListManager } from "../gui/memo-list-manager";
@@ -50,11 +51,11 @@ import type { MagicCaster } from "../magic/magic-caster";
 import { MagicRenderer } from "../magic/magic-renderer";
 import { MapBase } from "../map";
 import {
+  clampCameraAxis,
   clearMpcAtlasCache,
   createMapRenderer,
   type MapRenderer,
   renderMapInterleaved,
-  clampCameraAxis,
 } from "../map/map-renderer";
 import type { MiuMapData } from "../map/types";
 import { ObjManager } from "../obj";
@@ -74,7 +75,6 @@ import { Sprite } from "../sprite/sprite";
 import type { SaveData } from "../storage/save-types";
 import { disposeWasmPathfinder } from "../wasm/wasm-path-finder";
 import { WeatherManager } from "../weather";
-import { DebugManager } from "../debug/debug-manager";
 import { EngineCamera } from "./engine-camera";
 import { EngineGameLoader } from "./engine-game-loader";
 import { EngineInput } from "./engine-input";

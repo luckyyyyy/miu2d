@@ -74,7 +74,9 @@ export class PlayerMagicInventory {
   private readonly replace = new MagicListReplace();
 
   // 快捷栏：物理持有武功项（物品从面板/修炼区移入）
-  private bottomSlots: (MagicItemInfo | null)[] = new Array(MAGIC_LIST_CONFIG.bottomSlotCount).fill(null);
+  private bottomSlots: (MagicItemInfo | null)[] = new Array(MAGIC_LIST_CONFIG.bottomSlotCount).fill(
+    null
+  );
 
   constructor() {
     const size = MAGIC_LIST_CONFIG.maxMagic + 1;
@@ -832,38 +834,45 @@ export class PlayerMagicInventory {
   assignMagicToBottomSlot(storeIndex: number, slotIndex: number): boolean {
     if (slotIndex < 0 || slotIndex >= MAGIC_LIST_CONFIG.bottomSlotCount) return false;
 
-    // 将槽位现有物品归还面板（若无空位则拒绝操作）
     const existing = this.bottomSlots[slotIndex];
-    if (existing !== null) {
-      const freeIdx = this.getFreeIndex();
-      if (freeIdx !== -1) {
-        this.getActiveMagicList()[freeIdx] = existing;
-      } else {
-        logger.warn(`[PlayerMagicInventory] No free panel slot to return bottom item: ${existing.magic?.fileName}`);
-        return false;
-      }
-    }
 
     if (storeIndex <= 0) {
+      // 清空槽位：把快捷栏武功归还面板空位
+      if (existing !== null) {
+        const freeIdx = this.getFreeIndex();
+        if (freeIdx !== -1) {
+          this.getActiveMagicList()[freeIdx] = existing;
+        } else {
+          logger.warn(
+            `[PlayerMagicInventory] No free panel slot to return bottom item: ${existing.magic?.fileName}`
+          );
+          return false;
+        }
+      }
       this.bottomSlots[slotIndex] = null;
       this.updateView();
       return true;
     }
 
     if (storeIndex === MAGIC_LIST_CONFIG.xiuLianIndex) {
+      // 与修炼武功交换
       this.bottomSlots[slotIndex] = this.xiuLianMagic;
-      this.xiuLianMagic = null;
-      this.callbacks.onXiuLianMagicChange?.(null);
+      this.xiuLianMagic = existing;
+      this.callbacks.onXiuLianMagicChange?.(this.xiuLianMagic);
       this.updateView();
       return true;
     }
 
-    if (storeIndex >= MAGIC_LIST_CONFIG.storeIndexBegin && storeIndex <= MAGIC_LIST_CONFIG.maxMagic) {
+    if (
+      storeIndex >= MAGIC_LIST_CONFIG.storeIndexBegin &&
+      storeIndex <= MAGIC_LIST_CONFIG.maxMagic
+    ) {
       const activeList = this.getActiveMagicList();
       const item = activeList[storeIndex];
       if (!item) return false;
+      // 交换：面板 storeIndex ↔ 快捷栏 slotIndex
+      activeList[storeIndex] = existing;
       this.bottomSlots[slotIndex] = item;
-      activeList[storeIndex] = null;
       this.updateView();
       return true;
     }
@@ -931,10 +940,13 @@ export class PlayerMagicInventory {
    */
   swapBottomSlots(fromSlot: number, toSlot: number): void {
     if (
-      fromSlot < 0 || fromSlot >= MAGIC_LIST_CONFIG.bottomSlotCount ||
-      toSlot < 0 || toSlot >= MAGIC_LIST_CONFIG.bottomSlotCount ||
+      fromSlot < 0 ||
+      fromSlot >= MAGIC_LIST_CONFIG.bottomSlotCount ||
+      toSlot < 0 ||
+      toSlot >= MAGIC_LIST_CONFIG.bottomSlotCount ||
       fromSlot === toSlot
-    ) return;
+    )
+      return;
     const tmp = this.bottomSlots[fromSlot];
     this.bottomSlots[fromSlot] = this.bottomSlots[toSlot];
     this.bottomSlots[toSlot] = tmp;

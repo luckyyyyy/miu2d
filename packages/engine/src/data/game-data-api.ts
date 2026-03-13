@@ -10,13 +10,10 @@
  * 本模块 re-export 以保持引擎内部向后兼容。
  */
 
-import type { Good, Player, Shop } from "@miu2d/types";
-import type { SceneManifest } from "@miu2d/types";
+import type { Good, Player, SceneManifest, Shop } from "@miu2d/types";
 import { logger } from "../core/logger";
 
 // ==================== 从 shared 导入并 re-export ====================
-
-export { fetchGameApi, fetchGameApiBinary } from "@miu2d/shared/lib/game-api";
 
 export type {
   GameConfigResponse,
@@ -31,8 +28,8 @@ export type {
   ObjResData,
   ObjResponse,
 } from "@miu2d/shared/lib/game-api";
+export { fetchGameApi, fetchGameApiBinary } from "@miu2d/shared/lib/game-api";
 
-import { fetchGameApi, fetchGameApiBinary } from "@miu2d/shared/lib/game-api";
 import type {
   GameConfigResponse,
   GameDataResponse,
@@ -41,6 +38,7 @@ import type {
   NpcResponse,
   ObjResponse,
 } from "@miu2d/shared/lib/game-api";
+import { fetchGameApi, fetchGameApiBinary } from "@miu2d/shared/lib/game-api";
 
 // ==================== 可变状态（集中管理） ====================
 

@@ -250,9 +250,6 @@ export function createEffectsAPI(
     clearEffect: () => {
       player.statusEffects.toNormalState();
     },
-    moveMagic: (magicFile, direction) => {
-      ctx.magicSpriteManager.redirectMagicDirection(magicFile, direction);
-    },
     setLevelFile: async (file) => {
       await levelManager.setLevelFile(file);
       player.recalculateBaseStats();

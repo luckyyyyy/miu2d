@@ -95,7 +95,10 @@ export class SaveRouter {
    */
   @UseMiddlewares(requireUser)
   @Query({ input: AdminListSavesInputSchema, output: AdminListSavesOutputSchema })
-  async adminList(input: z.infer<typeof AdminListSavesInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+  async adminList(
+    input: z.infer<typeof AdminListSavesInputSchema>,
+    @Ctx() ctx: AuthenticatedContext
+  ) {
     return saveService.adminList(input, ctx.userId);
   }
 
@@ -125,7 +128,10 @@ export class SaveRouter {
    */
   @UseMiddlewares(requireUser)
   @Mutation({ input: AdminCreateSaveInputSchema, output: SaveSlotSchema })
-  async adminCreate(input: z.infer<typeof AdminCreateSaveInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+  async adminCreate(
+    input: z.infer<typeof AdminCreateSaveInputSchema>,
+    @Ctx() ctx: AuthenticatedContext
+  ) {
     return saveService.adminCreate(input, ctx.userId);
   }
 
@@ -134,7 +140,10 @@ export class SaveRouter {
    */
   @UseMiddlewares(requireUser)
   @Mutation({ input: AdminUpdateSaveInputSchema, output: SaveSlotSchema })
-  async adminUpdate(input: z.infer<typeof AdminUpdateSaveInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+  async adminUpdate(
+    input: z.infer<typeof AdminUpdateSaveInputSchema>,
+    @Ctx() ctx: AuthenticatedContext
+  ) {
     return saveService.adminUpdate(input, ctx.userId);
   }
 
@@ -143,7 +152,10 @@ export class SaveRouter {
    */
   @UseMiddlewares(requireUser)
   @Mutation({ input: AdminDeleteSaveInputSchema, output: z.object({ id: z.string() }) })
-  async adminDelete(input: z.infer<typeof AdminDeleteSaveInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+  async adminDelete(
+    input: z.infer<typeof AdminDeleteSaveInputSchema>,
+    @Ctx() ctx: AuthenticatedContext
+  ) {
     return saveService.adminDelete(input.saveId, ctx.userId);
   }
 }

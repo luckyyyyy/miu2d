@@ -118,12 +118,16 @@ export function PWAInstallPrompt({ gameName, logoUrl, ready }: PWAInstallPromptP
           src={logoUrl}
           alt={gameName}
           style={{ width: 40, height: 40, borderRadius: 6, objectFit: "cover", flexShrink: 0 }}
-          onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+          onError={(e) => {
+            (e.target as HTMLImageElement).style.display = "none";
+          }}
         />
       )}
       <div style={{ flex: 1, lineHeight: 1.4 }}>
         <div style={{ fontWeight: 600, marginBottom: 2 }}>{gameName}</div>
-        <div style={{ color: "#a0a0c0", fontSize: 12 }}>{t("pwa.installMessage", { gameName })}</div>
+        <div style={{ color: "#a0a0c0", fontSize: 12 }}>
+          {t("pwa.installMessage", { gameName })}
+        </div>
       </div>
       <button
         type="button"

@@ -12,7 +12,15 @@ import { playUiSound, useAsfImage } from "./hooks";
 import { useTopGuiConfig } from "./useUISettings";
 
 // Button IDs in order matching C#: State, Equip, XiuLian, Goods, Magic, Memo, System
-export const BUTTON_IDS = ["state", "equip", "xiulian", "goods", "magic", "memo", "system"] as const;
+export const BUTTON_IDS = [
+  "state",
+  "equip",
+  "xiulian",
+  "goods",
+  "magic",
+  "memo",
+  "system",
+] as const;
 export const BUTTON_TITLES = [
   "状态 (F1/T)",
   "装备 (F2/E)",
@@ -157,9 +165,7 @@ export const TopGui: React.FC = () => {
     return {
       position: "absolute" as const,
       left,
-      ...(isBottomAnchored
-        ? { bottom: -topAdjust }
-        : { top: topAdjust }),
+      ...(isBottomAnchored ? { bottom: -topAdjust } : { top: topAdjust }),
       width: panelWidth,
       height: panelHeight,
       pointerEvents: "none" as const,

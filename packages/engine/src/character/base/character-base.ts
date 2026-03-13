@@ -704,7 +704,12 @@ export abstract class CharacterBase extends Sprite implements CharacterInstance 
   }
 
   get bodyFunctionWell(): boolean {
-    return this.frozenSeconds <= 0 && this.poisonSeconds <= 0 && this.petrifiedSeconds <= 0 && this.immobilizedSeconds <= 0;
+    return (
+      this.frozenSeconds <= 0 &&
+      this.poisonSeconds <= 0 &&
+      this.petrifiedSeconds <= 0 &&
+      this.immobilizedSeconds <= 0
+    );
   }
 
   get isNotFightBackWhenBeHit(): boolean {

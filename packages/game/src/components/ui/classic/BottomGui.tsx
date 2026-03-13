@@ -128,7 +128,7 @@ const Slot: React.FC<SlotProps> = ({
           source: "bottomGui",
           goodsInfo: goodsData.good,
           displayName: goodsData.good.name,
-            iconPath: goodsData.good.iconPath || goodsData.good.imagePath,
+          iconPath: goodsData.good.iconPath || goodsData.good.imagePath,
         };
       }
       if (magicData?.magic) {
@@ -330,8 +330,6 @@ const Slot: React.FC<SlotProps> = ({
           <span style={{ color: "#fff", fontSize: 9 }}>{(cooldown / 1000).toFixed(1)}</span>
         </div>
       )}
-
-
     </div>
   );
 };
@@ -347,14 +345,8 @@ export const BottomGui: React.FC<BottomGuiProps> = ({
   onDragEnd,
   onTouchDrop,
 }) => {
-  const {
-    screenWidth,
-    togglePanel,
-    onMagicHover,
-    onMagicLeave,
-    onGoodsHover,
-    onGoodsLeave,
-  } = useGameUIContext();
+  const { screenWidth, togglePanel, onMagicHover, onMagicLeave, onGoodsHover, onGoodsLeave } =
+    useGameUIContext();
   const [hoveredSlot, setHoveredSlot] = useState<number | null>(null);
   const [localDragIndex, setLocalDragIndex] = useState<number | null>(null);
 

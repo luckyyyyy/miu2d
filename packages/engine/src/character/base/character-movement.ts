@@ -490,7 +490,6 @@ export abstract class CharacterMovement extends CharacterBase {
 
     let path = this._dispatchFindPath(startTile, actualDestTile, usePathType, 8);
 
-
     // 如果寻路失败（目标可能是障碍物），尝试沿方向行走
     // 这样点击障碍物时角色会朝那个方向尽可能走远，而不是完全不动
     // 注意：仅对玩家启用此回退，NPC 寻路失败应直接停止，避免鬼畜行为

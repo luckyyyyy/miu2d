@@ -120,7 +120,7 @@ export function SceneListPanel({ basePath }: { basePath: string }) {
       if (!gameId) return;
       deleteSceneMutation.mutate({ gameId, id: sceneId });
     },
-    [gameId, deleteSceneMutation],
+    [gameId, deleteSceneMutation]
   );
 
   return (

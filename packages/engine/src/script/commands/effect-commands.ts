@@ -215,13 +215,13 @@ const clearEffectCommand: CommandHandler = (_params, _result, helpers) => {
 };
 
 /**
- * MoveMagic - Redirect an active magic sprite to a new direction
- * MoveMagic(magicFile, direction)
+ * MoveMagic - Assign magic to a quickbar (bottom) slot
+ * MoveMagic(magicFile, slotIndex)
  */
 const moveMagicCommand: CommandHandler = (params, _result, helpers) => {
   const magicFile = helpers.resolveString(params[0] || "");
-  const direction = helpers.resolveNumber(params[1] || "0");
-  helpers.api.effects.moveMagic(magicFile, direction);
+  const slotIndex = helpers.resolveNumber(params[1] || "0");
+  helpers.api.magic.moveToBottomSlot(magicFile, slotIndex);
   return true;
 };
 

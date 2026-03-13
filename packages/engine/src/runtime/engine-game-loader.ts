@@ -7,9 +7,9 @@
  */
 
 import type { AudioManager } from "../audio";
+import { logger } from "../core/logger";
 import type { TypedEventEmitter } from "../events/event-emitter";
 import { type GameEventMap, GameEvents } from "../events/game-events";
-import { logger } from "../core/logger";
 import type { SaveData } from "../storage/save-types";
 import type { GameEngineState } from "./game-engine";
 import type { GameManager } from "./game-manager";

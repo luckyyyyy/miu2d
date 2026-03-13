@@ -9,7 +9,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDashboard } from "../../DashboardContext";
 import { getGameApiUrl } from "../../utils/resourcePath";
-import { Field, FormCard, HelpTip, SectionTitle, inputCls } from "./FormComponents";
+import { Field, FormCard, HelpTip, inputCls, SectionTitle } from "./FormComponents";
 
 export function BasicInfoPanel({
   config,
@@ -158,18 +158,30 @@ export function BasicInfoPanel({
               <button
                 type="button"
                 onClick={handleNameSave}
-                disabled={!nameValue.trim() || nameValue === currentGame?.name || updateGameMutation.isPending}
+                disabled={
+                  !nameValue.trim() ||
+                  nameValue === currentGame?.name ||
+                  updateGameMutation.isPending
+                }
                 className="px-3 py-2 bg-[#0e639c] hover:bg-[#1177bb] text-white text-sm rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
               >
                 {updateGameMutation.isPending ? "保存中..." : "保存"}
               </button>
             </div>
           </Field>
-          <Field label="空间 Logo" desc="上传空间 Logo，将作为网页图标和 PWA 安装图标显示。要求最小 512×512 像素，支持 PNG、JPG、WebP 等格式，最大 5MB">
+          <Field
+            label="空间 Logo"
+            desc="上传空间 Logo，将作为网页图标和 PWA 安装图标显示。要求最小 512×512 像素，支持 PNG、JPG、WebP 等格式，最大 5MB"
+          >
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 rounded-lg border border-widget-border bg-[#1a1a1a] flex items-center justify-center overflow-hidden flex-shrink-0">
                 {logoSrc && logoExists ? (
-                  <img src={logoSrc} alt="Logo" className="w-full h-full object-contain" onError={() => setLogoExists(false)} />
+                  <img
+                    src={logoSrc}
+                    alt="Logo"
+                    className="w-full h-full object-contain"
+                    onError={() => setLogoExists(false)}
+                  />
                 ) : (
                   <svg viewBox="0 0 24 24" fill="currentColor" className="w-8 h-8 text-[#444]">
                     <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z" />
@@ -177,7 +189,13 @@ export function BasicInfoPanel({
                 )}
               </div>
               <div className="flex flex-col gap-2">
-                <input ref={logoInputRef} type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
+                <input
+                  ref={logoInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleLogoUpload}
+                  className="hidden"
+                />
                 <button
                   type="button"
                   onClick={() => logoInputRef.current?.click()}
@@ -222,11 +240,7 @@ export function BasicInfoPanel({
               <button
                 type="button"
                 onClick={handleSlugSave}
-                disabled={
-                  !isSlugValid ||
-                  slugValue === gameSlug ||
-                  updateGameMutation.isPending
-                }
+                disabled={!isSlugValid || slugValue === gameSlug || updateGameMutation.isPending}
                 className="px-3 py-2 bg-[#0e639c] hover:bg-[#1177bb] text-white text-sm rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
               >
                 {updateGameMutation.isPending ? "保存中..." : "保存"}
@@ -357,7 +371,6 @@ export function BasicInfoPanel({
               placeholder="例如: title.ogg"
             />
           </Field>
-
         </div>
       </FormCard>
     </div>

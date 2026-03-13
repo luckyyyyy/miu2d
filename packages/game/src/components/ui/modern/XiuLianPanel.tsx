@@ -7,8 +7,8 @@ import type { MagicItemInfo } from "@miu2d/engine/magic";
 import { MAGIC_LIST_CONFIG } from "@miu2d/engine/player/magic/magic-list-config";
 import type React from "react";
 import { useCallback, useMemo, useState } from "react";
-import { useGameUIContext } from "../../../contexts";
 import type { TouchDragData } from "../../../contexts";
+import { useGameUIContext } from "../../../contexts";
 import { AsfAnimatedSprite } from "../classic/AsfAnimatedSprite";
 import type { MagicDragData } from "../classic/MagicGui";
 import type { XiuLianMagic } from "../classic/XiuLianGui";
@@ -571,9 +571,7 @@ export const XiuLianPanel: React.FC<XiuLianPanelProps> = ({
             minHeight: hasMagic ? "auto" : 100,
             padding: spacing.md,
             background:
-              isSlotHovered && hasMagic
-                ? "rgba(255, 255, 255, 0.05)"
-                : modernColors.bg.glassDark,
+              isSlotHovered && hasMagic ? "rgba(255, 255, 255, 0.05)" : modernColors.bg.glassDark,
             border: `2px ${hasMagic ? "solid" : "dashed"} ${
               hasMagic ? `${wuxiaAccent.goldDark}66` : modernColors.border.glass
             }`,

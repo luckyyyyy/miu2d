@@ -36,7 +36,10 @@ export class GameConfigRouter {
    */
   @UseMiddlewares(requireUser)
   @Mutation({ input: UpdateGameConfigInputSchema, output: GameConfigSchema })
-  async update(input: z.infer<typeof UpdateGameConfigInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+  async update(
+    input: z.infer<typeof UpdateGameConfigInputSchema>,
+    @Ctx() ctx: AuthenticatedContext
+  ) {
     return gameConfigService.update(input, ctx.userId, ctx.language);
   }
 
@@ -48,15 +51,7 @@ export class GameConfigRouter {
     input: z.object({ gameId: z.string(), uiTheme: z.unknown() }),
     output: GameConfigSchema,
   })
-  async setUiTheme(
-    input: { gameId: string; uiTheme: unknown },
-    @Ctx() ctx: AuthenticatedContext
-  ) {
-    return gameConfigService.patchUiTheme(
-      input.gameId,
-      input.uiTheme,
-      ctx.userId,
-      ctx.language
-    );
+  async setUiTheme(input: { gameId: string; uiTheme: unknown }, @Ctx() ctx: AuthenticatedContext) {
+    return gameConfigService.patchUiTheme(input.gameId, input.uiTheme, ctx.userId, ctx.language);
   }
 }

@@ -246,7 +246,11 @@ export abstract class PlayerCombat extends PlayerBase {
     }
 
     // 同步获取缓存的武功
-    const resolved = resolveMagic(this._magicToUseWhenAttack, this.level);
+    // 使用武功库存中记录的武功等级（而非角色等级），确保如 CircleMove 等
+    // 等级相关的 MoveKind 以正确的等级（Level 1 对应 CircleMove）发射。
+    const magicInfo = this._magicInventory.getMagicByFileName(this._magicToUseWhenAttack);
+    const magicLevel = magicInfo?.level ?? 1;
+    const resolved = resolveMagic(this._magicToUseWhenAttack, magicLevel);
     if (!resolved) {
       this._magicToUseWhenAttack = null;
       // 注意：不清理 _attackDestination，onAttacking 可能仍需要它（修炼武功）

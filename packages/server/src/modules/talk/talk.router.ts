@@ -46,25 +46,37 @@ export class TalkRouter {
 
   @UseMiddlewares(requireUser)
   @Mutation({ input: CreateTalkEntryInputSchema, output: TalkDataResultSchema })
-  async addEntry(input: z.infer<typeof CreateTalkEntryInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+  async addEntry(
+    input: z.infer<typeof CreateTalkEntryInputSchema>,
+    @Ctx() ctx: AuthenticatedContext
+  ) {
     return talkService.addEntry(input.gameId, input.entry, ctx.userId, ctx.language);
   }
 
   @UseMiddlewares(requireUser)
   @Mutation({ input: UpdateTalkEntryInputSchema, output: TalkDataResultSchema })
-  async updateEntry(input: z.infer<typeof UpdateTalkEntryInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+  async updateEntry(
+    input: z.infer<typeof UpdateTalkEntryInputSchema>,
+    @Ctx() ctx: AuthenticatedContext
+  ) {
     return talkService.updateEntry(input.gameId, input.entry, ctx.userId, ctx.language);
   }
 
   @UseMiddlewares(requireUser)
   @Mutation({ input: DeleteTalkEntryInputSchema, output: TalkDataResultSchema })
-  async deleteEntry(input: z.infer<typeof DeleteTalkEntryInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+  async deleteEntry(
+    input: z.infer<typeof DeleteTalkEntryInputSchema>,
+    @Ctx() ctx: AuthenticatedContext
+  ) {
     return talkService.deleteEntry(input.gameId, input.id, ctx.userId, ctx.language);
   }
 
   @UseMiddlewares(requireUser)
   @Mutation({ input: ImportTalkDataInputSchema, output: TalkDataResultSchema })
-  async importFromTxt(input: z.infer<typeof ImportTalkDataInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+  async importFromTxt(
+    input: z.infer<typeof ImportTalkDataInputSchema>,
+    @Ctx() ctx: AuthenticatedContext
+  ) {
     return talkService.importFromTxt(input, ctx.userId, ctx.language);
   }
 
@@ -73,7 +85,10 @@ export class TalkRouter {
    */
   @UseMiddlewares(requireUser)
   @Mutation({ input: ClearAllTalksInputSchema, output: ClearAllTalksResultSchema })
-  async clearAll(input: z.infer<typeof ClearAllTalksInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+  async clearAll(
+    input: z.infer<typeof ClearAllTalksInputSchema>,
+    @Ctx() ctx: AuthenticatedContext
+  ) {
     return talkService.clearAll(input, ctx.userId, ctx.language);
   }
 }

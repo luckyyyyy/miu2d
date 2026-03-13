@@ -10,10 +10,10 @@
  */
 
 import { createDefaultGameConfig, GameConfigDataSchema } from "@miu2d/types";
+import type { Prisma } from "@prisma/client";
 import { Hono } from "hono";
 import { stream } from "hono/streaming";
 import sharp from "sharp";
-import type { Prisma } from "@prisma/client";
 import { db } from "../db/client";
 import { gameConfigService } from "../modules/gameConfig/gameConfig.service";
 import * as s3 from "../storage/s3";
@@ -38,10 +38,7 @@ function logoSizedKey(gameId: string, size: LogoSize): string {
 
 /** 所有尺寸变体 + 原图的 key 列表 */
 function allLogoKeys(gameId: string): string[] {
-  return [
-    logoStorageKey(gameId),
-    ...LOGO_SIZES.map((size) => logoSizedKey(gameId, size)),
-  ];
+  return [logoStorageKey(gameId), ...LOGO_SIZES.map((size) => logoSizedKey(gameId, size))];
 }
 
 /**
@@ -106,19 +103,50 @@ gameConfigRoutes.get(":gameSlug/api/manifest", async (c) => {
       // ignore
     }
 
-    const icons: Array<{ src: string; sizes: string; type: string; purpose: "any" | "maskable" }> = hasLogo
-      ? [
-          { src: `/game/${gameSlug}/api/logo/512`, sizes: "512x512", type: "image/png", purpose: "any" },
-          { src: `/game/${gameSlug}/api/logo/192`, sizes: "192x192", type: "image/png", purpose: "any" },
-          { src: `/game/${gameSlug}/api/logo/512`, sizes: "512x512", type: "image/png", purpose: "maskable" },
-          { src: `/game/${gameSlug}/api/logo/192`, sizes: "192x192", type: "image/png", purpose: "maskable" },
-        ]
-      : [
-          { src: "/icons/pwa-192x192.png", sizes: "192x192", type: "image/png", purpose: "any" },
-          { src: "/icons/pwa-512x512.png", sizes: "512x512", type: "image/png", purpose: "any" },
-          { src: "/icons/pwa-maskable-192x192.png", sizes: "192x192", type: "image/png", purpose: "maskable" },
-          { src: "/icons/pwa-maskable-512x512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
-        ];
+    const icons: Array<{ src: string; sizes: string; type: string; purpose: "any" | "maskable" }> =
+      hasLogo
+        ? [
+            {
+              src: `/game/${gameSlug}/api/logo/512`,
+              sizes: "512x512",
+              type: "image/png",
+              purpose: "any",
+            },
+            {
+              src: `/game/${gameSlug}/api/logo/192`,
+              sizes: "192x192",
+              type: "image/png",
+              purpose: "any",
+            },
+            {
+              src: `/game/${gameSlug}/api/logo/512`,
+              sizes: "512x512",
+              type: "image/png",
+              purpose: "maskable",
+            },
+            {
+              src: `/game/${gameSlug}/api/logo/192`,
+              sizes: "192x192",
+              type: "image/png",
+              purpose: "maskable",
+            },
+          ]
+        : [
+            { src: "/icons/pwa-192x192.png", sizes: "192x192", type: "image/png", purpose: "any" },
+            { src: "/icons/pwa-512x512.png", sizes: "512x512", type: "image/png", purpose: "any" },
+            {
+              src: "/icons/pwa-maskable-192x192.png",
+              sizes: "192x192",
+              type: "image/png",
+              purpose: "maskable",
+            },
+            {
+              src: "/icons/pwa-maskable-512x512.png",
+              sizes: "512x512",
+              type: "image/png",
+              purpose: "maskable",
+            },
+          ];
 
     const manifest = {
       id: startUrl,
@@ -273,8 +301,10 @@ gameConfigRoutes.post(":gameSlug/api/logo", async (c) => {
     const metadata = await sharp(body).metadata();
     if (!metadata.width || !metadata.height || metadata.width < 512 || metadata.height < 512) {
       return c.json(
-        { error: `Logo must be at least 512x512 pixels (got ${metadata.width ?? 0}x${metadata.height ?? 0})` },
-        400,
+        {
+          error: `Logo must be at least 512x512 pixels (got ${metadata.width ?? 0}x${metadata.height ?? 0})`,
+        },
+        400
       );
     }
 
@@ -287,9 +317,7 @@ gameConfigRoutes.post(":gameSlug/api/logo", async (c) => {
     // 上传原图 + 所有变体
     await s3.uploadFile(key, body, contentType);
     await Promise.all(
-      variants.map(({ size, buf }) =>
-        s3.uploadFile(logoSizedKey(game.id, size), buf, "image/png"),
-      ),
+      variants.map(({ size, buf }) => s3.uploadFile(logoSizedKey(game.id, size), buf, "image/png"))
     );
 
     const logoUrl = `/game/${gameSlug}/api/logo`;
@@ -310,7 +338,9 @@ gameConfigRoutes.post(":gameSlug/api/logo", async (c) => {
           ...createDefaultGameConfig(),
           logoUrl,
         });
-        await db.gameConfig.create({ data: { gameId: game.id, data: data as unknown as Prisma.InputJsonValue } });
+        await db.gameConfig.create({
+          data: { gameId: game.id, data: data as unknown as Prisma.InputJsonValue },
+        });
       }
     } catch (dbError) {
       // DB 写入失败：回滚 S3 上传，避免产生孤立文件

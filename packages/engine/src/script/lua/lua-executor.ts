@@ -55,12 +55,9 @@ export class LuaExecutor {
       });
 
       // Register all GameAPI bindings as PascalCase Lua globals
-      registerLuaAPIBindings(
-        (name: string, value: unknown) => {
-          this.engine!.global.set(name, value);
-        },
-        this.api,
-      );
+      registerLuaAPIBindings((name: string, value: unknown) => {
+        this.engine!.global.set(name, value);
+      }, this.api);
 
       // Register a Lua print function that goes to our logger
       this.engine.global.set("print", (...args: unknown[]) => {
@@ -78,7 +75,7 @@ export class LuaExecutor {
           `if type(${name}) ~= "nil" then\n` +
           `  local __raw_${name} = ${name}\n` +
           `  ${name} = function(...) local p = __raw_${name}(...); if type(p) == "userdata" then return p:await() end; return p end\n` +
-          `end`,
+          `end`
       );
       await this.engine.doString(wrapperLines.join("\n"));
       logger.info(`[LuaExecutor] Wrapped ${uniqueNames.length} blocking functions with :await()`);

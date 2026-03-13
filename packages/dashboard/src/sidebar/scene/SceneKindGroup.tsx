@@ -40,7 +40,7 @@ export function SceneKindGroup({
   // 获取当前场景完整数据（用于构建更新后的 data）
   const { data: scene } = trpc.scene.get.useQuery(
     { gameId, id: sceneId },
-    { enabled: showNewInput },
+    { enabled: showNewInput }
   );
 
   const updateMutation = trpc.scene.update.useMutation({

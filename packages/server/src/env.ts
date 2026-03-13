@@ -71,9 +71,8 @@ export const env = {
 
   // ---------- Session / Cookie ----------
   /** 显式指定 cookie secure 标志；未设置时跟随 NODE_ENV */
-  sessionCookieSecure: process.env.SESSION_COOKIE_SECURE !== undefined
-    ? bool("SESSION_COOKIE_SECURE")
-    : undefined,
+  sessionCookieSecure:
+    process.env.SESSION_COOKIE_SECURE !== undefined ? bool("SESSION_COOKIE_SECURE") : undefined,
   /** cookie 是否 secure（优先用显式配置，否则 production = true） */
   get cookieSecure(): boolean {
     return this.sessionCookieSecure ?? this.isProd;

@@ -17,9 +17,7 @@ function GameLogoIcon({ slug, className = "w-5 h-5" }: { slug: string; className
   return (
     <div className={`${className} relative flex items-center justify-center flex-shrink-0`}>
       {/* 默认蓝色图标：未加载或加载失败时显示 */}
-      {status !== "loaded" && (
-        <span className="text-[#0098ff]">{DashboardIcons.game}</span>
-      )}
+      {status !== "loaded" && <span className="text-[#0098ff]">{DashboardIcons.game}</span>}
       {/* Logo 图片：加载中时透明叠加，加载成功后显示 */}
       {status !== "error" && (
         <img
@@ -126,7 +124,6 @@ export function GameSelector({ games, isLoading = false, onCreateGame }: GameSel
                       <span className="text-[#0098ff] text-xs shrink-0">当前</span>
                     )}
                   </button>
-
                 </div>
               ))
             )}
@@ -150,7 +147,6 @@ export function GameSelector({ games, isLoading = false, onCreateGame }: GameSel
           </div>
         </div>
       )}
-
     </div>
   );
 }

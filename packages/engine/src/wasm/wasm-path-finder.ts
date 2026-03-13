@@ -19,8 +19,8 @@
  */
 
 import { logger } from "../core/logger";
-import type { Vector2 } from "../core/types";
 import { CAN_OVER_OBSTACLE, CAN_OVER_TRANS, OBSTACLE, TRANS } from "../core/map-constants";
+import type { Vector2 } from "../core/types";
 import { PathType } from "../utils/path-finder";
 import type { WasmModule } from "./wasm-manager";
 import { ensureWasmReady, getWasmMemory } from "./wasm-manager";

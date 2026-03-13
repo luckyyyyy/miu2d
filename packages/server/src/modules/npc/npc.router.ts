@@ -81,7 +81,10 @@ export class NpcRouter {
    */
   @UseMiddlewares(requireUser)
   @Mutation({ input: ImportNpcInputSchema, output: NpcSchema })
-  async importFromIni(input: z.infer<typeof ImportNpcInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+  async importFromIni(
+    input: z.infer<typeof ImportNpcInputSchema>,
+    @Ctx() ctx: AuthenticatedContext
+  ) {
     return npcService.importFromIni(input, ctx.userId, ctx.language);
   }
 
@@ -90,7 +93,10 @@ export class NpcRouter {
    */
   @UseMiddlewares(requireUser)
   @Mutation({ input: BatchImportNpcInputSchema, output: BatchImportNpcResultSchema })
-  async batchImportFromIni(input: z.infer<typeof BatchImportNpcInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+  async batchImportFromIni(
+    input: z.infer<typeof BatchImportNpcInputSchema>,
+    @Ctx() ctx: AuthenticatedContext
+  ) {
     return npcService.batchImportFromIni(input, ctx.userId, ctx.language);
   }
 

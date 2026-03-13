@@ -235,10 +235,7 @@ export class Loader {
    * 地图加载阶段（Phase 2）：加载地图并映射进度 2% → 65%
    * 两个加载路径共享相同的进度逻辑
    */
-  private async loadMapPhase(
-    mapPath: string,
-    timings: Array<[string, number]>,
-  ): Promise<void> {
+  private async loadMapPhase(mapPath: string, timings: Array<[string, number]>): Promise<void> {
     this.reportProgress(2, "加载地图...");
     this.deps.setMapProgressCallback((mapProgress, _text) => {
       this.reportProgress(Math.round(2 + mapProgress * 63), "加载地图资源...");
@@ -256,7 +253,7 @@ export class Loader {
   private finalizeLoad(
     timings: Array<[string, number]>,
     effectsStart: number,
-    afterEffects?: () => void,
+    afterEffects?: () => void
   ): void {
     const goodsListManager = this.deps.player.getGoodsListManager();
     goodsListManager.applyEquipSpecialEffectFromList();
@@ -595,7 +592,7 @@ export class Loader {
                 // 将近距离 NPC 进度映射到内部 68 → 85%
                 this.reportProgress(
                   Math.round(68 + (done / Math.max(nearTotal, 1)) * 17),
-                  "加载游戏数据...",
+                  "加载游戏数据..."
                 );
               },
             });
@@ -603,7 +600,7 @@ export class Loader {
             const farCount = allNpcs.length - nearCount;
             time(
               farCount > 0 ? `NPCs(${nearCount}near+${farCount}bg)` : `NPCs(${allNpcs.length})`,
-              t,
+              t
             );
           })()
         );

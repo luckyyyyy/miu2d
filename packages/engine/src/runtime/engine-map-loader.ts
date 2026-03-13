@@ -9,10 +9,10 @@
  * - Map MPC/MSF resource loading with progress reporting
  */
 
-import type { TypedEventEmitter } from "../events/event-emitter";
-import type { GameEventMap } from "../events/game-events";
 import { logger } from "../core/logger";
 import { getGameSlug, loadSceneManifest, loadSceneMapMmf } from "../data/game-data-api";
+import type { TypedEventEmitter } from "../events/event-emitter";
+import type { GameEventMap } from "../events/game-events";
 import type { MapBase } from "../map";
 import type { MapRenderer } from "../map/map-renderer";
 import { loadMapMpcs, releaseMapTextures } from "../map/map-renderer";
@@ -20,8 +20,8 @@ import type { MiuMapData } from "../map/types";
 import type { Renderer } from "../renderer/renderer";
 import type { ScreenEffects } from "../renderer/screen-effects";
 import { parseMMF } from "../resource/format/mmf";
-import { ResourcePath } from "../resource/resource-paths";
 import { resourceLoader } from "../resource/resource-loader";
+import { ResourcePath } from "../resource/resource-paths";
 import { parseScript } from "../script/parser";
 import { initWasmPathfinder, syncStaticObstacles } from "../wasm/wasm-path-finder";
 import type { EngineCamera } from "./engine-camera";

@@ -6,8 +6,8 @@
 import type { UIGoodData } from "@miu2d/engine/gui/ui-types";
 import type React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useGameUIContext } from "../../../contexts";
 import type { TouchDragData } from "../../../contexts";
+import { useGameUIContext } from "../../../contexts";
 import type { DragData, GoodItemData } from "../classic";
 import { useAsfImage } from "../classic/hooks";
 import { getItemBorderColor, getItemGlowColor, getItemQuality, ItemQuality } from "./Tooltips";
@@ -588,9 +588,7 @@ export const GoodsPanel: React.FC<GoodsPanelProps> = ({
                 top: `${(scrollOffset / maxScrollRows) * 80}%`,
                 width: "100%",
                 height: "20%",
-                background: isDraggingScrollbar
-                  ? wuxiaAccent.goldBright
-                  : wuxiaAccent.gold,
+                background: isDraggingScrollbar ? wuxiaAccent.goldBright : wuxiaAccent.gold,
                 borderRadius: 5,
                 boxShadow: `0 0 6px ${wuxiaAccent.gold}`,
                 cursor: "ns-resize",

@@ -1,5 +1,10 @@
 import { logger } from "../core/logger";
-import type { CharacterSaveSlot, GoodsContainerSave, MagicContainerSave, PlayerSaveData } from "./save-types";
+import type {
+  CharacterSaveSlot,
+  GoodsContainerSave,
+  MagicContainerSave,
+  PlayerSaveData,
+} from "./save-types";
 
 export interface CharacterMemoryData {
   player: PlayerSaveData | null;

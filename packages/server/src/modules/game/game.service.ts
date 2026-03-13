@@ -179,12 +179,7 @@ export class GameService {
   /**
    * 转让游戏所有权（只操作 game_members，无冗余字段）
    */
-  async transferOwner(
-    id: string,
-    newOwnerId: string,
-    currentUserId: string,
-    language: Language
-  ) {
+  async transferOwner(id: string, newOwnerId: string, currentUserId: string, language: Language) {
     const [game, isCurrentOwner, targetUser] = await Promise.all([
       this.getById(id),
       this.isOwner(id, currentUserId),

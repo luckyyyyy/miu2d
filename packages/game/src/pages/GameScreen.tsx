@@ -15,19 +15,28 @@
 import { initNpcLevelConfig } from "@miu2d/engine/character/level";
 import { logger } from "@miu2d/engine/core/logger";
 import { getGameConfig, loadGameConfig, loadGameData } from "@miu2d/engine/data";
-import { ResourcePath, getResourceUrl, setResourcePaths } from "@miu2d/engine/resource";
-import { setUiTheme } from "@miu2d/engine/gui/ui-settings";
 import type { UiTheme } from "@miu2d/engine/gui/ui-settings";
+import { setUiTheme } from "@miu2d/engine/gui/ui-settings";
+import { getResourceUrl, ResourcePath, setResourcePaths } from "@miu2d/engine/resource";
 import type { SaveData } from "@miu2d/engine/storage";
 import { trpc, useMobile } from "@miu2d/shared";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import type { ToolbarButton } from "../components";
-import { AuthModal, GameMenuPanel, GameTopBar, loadAudioSettings, loadUITheme, PWAInstallPrompt, saveAudioSettings, TitleGui } from "../components";
+import {
+  AuthModal,
+  GameMenuPanel,
+  GameTopBar,
+  loadAudioSettings,
+  loadUITheme,
+  PWAInstallPrompt,
+  saveAudioSettings,
+  TitleGui,
+} from "../components";
 import { DISCLAIMER_STORAGE_KEY, DisclaimerModal } from "../components/common/DisclaimerModal";
-import { resetCachedUIConfigs } from "../components/ui/classic/useUISettings";
 import type { MenuTab } from "../components/GameMenuPanel";
 import type { UITheme } from "../components/ui";
+import { resetCachedUIConfigs } from "../components/ui/classic/useUISettings";
 import { TouchDragProvider } from "../contexts";
 import { GamePlaying } from "./GamePlaying";
 
@@ -468,7 +477,13 @@ export default function GameScreen() {
             <GameTopBar
               gameName={gameName}
               logoUrl={gameLogoUrl ? `${gameLogoUrl}/128` : undefined}
-              toolbarButtons={gamePhase === "playing" ? toolbarButtons : gamePhase === "title" ? titleToolbarButtons : undefined}
+              toolbarButtons={
+                gamePhase === "playing"
+                  ? toolbarButtons
+                  : gamePhase === "title"
+                    ? titleToolbarButtons
+                    : undefined
+              }
               onLoginClick={() => setShowAuthModal(true)}
             />
           </div>

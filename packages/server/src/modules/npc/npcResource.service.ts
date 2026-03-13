@@ -13,8 +13,7 @@ import type {
   UpdateNpcResInput,
 } from "@miu2d/types";
 import { createDefaultNpcResource } from "@miu2d/types";
-import type { Prisma } from "@prisma/client";
-import type { NpcResource as PrismaNpcResource } from "@prisma/client";
+import type { Prisma, NpcResource as PrismaNpcResource } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
 import { db } from "../../db/client";
 import type { Language } from "../../i18n";
@@ -44,7 +43,10 @@ export class NpcResourceService {
    * 用于游戏客户端加载 NPC 资源数据
    */
   async listPublicByGameId(gameId: string): Promise<NpcRes[]> {
-    const rows = await db.npcResource.findMany({ where: { gameId }, orderBy: { updatedAt: "desc" } });
+    const rows = await db.npcResource.findMany({
+      where: { gameId },
+      orderBy: { updatedAt: "desc" },
+    });
     return rows.map((row) => this.toNpcRes(row));
   }
 
@@ -118,7 +120,12 @@ export class NpcResourceService {
     const resources = input.resources ?? createDefaultNpcResource();
 
     const row = await db.npcResource.create({
-      data: { gameId: input.gameId, key: input.key.toLowerCase(), name: input.name, data: { resources } as unknown as Prisma.InputJsonValue },
+      data: {
+        gameId: input.gameId,
+        key: input.key.toLowerCase(),
+        name: input.name,
+        data: { resources } as unknown as Prisma.InputJsonValue,
+      },
     });
 
     return this.toNpcRes(row);
@@ -141,8 +148,17 @@ export class NpcResourceService {
 
     const row = await db.npcResource.upsert({
       where: { npc_resources_game_id_key_unique: { gameId, key: keyLower } },
-      create: { gameId, key: keyLower, name, data: { resources } as unknown as Prisma.InputJsonValue },
-      update: { name, data: { resources } as unknown as Prisma.InputJsonValue, updatedAt: new Date() },
+      create: {
+        gameId,
+        key: keyLower,
+        name,
+        data: { resources } as unknown as Prisma.InputJsonValue,
+      },
+      update: {
+        name,
+        data: { resources } as unknown as Prisma.InputJsonValue,
+        updatedAt: new Date(),
+      },
     });
     return this.toNpcRes(row);
   }

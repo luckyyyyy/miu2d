@@ -81,7 +81,10 @@ export class ShopRouter {
    */
   @UseMiddlewares(requireUser)
   @Mutation({ input: ImportShopInputSchema, output: ShopSchema })
-  async importFromIni(input: z.infer<typeof ImportShopInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+  async importFromIni(
+    input: z.infer<typeof ImportShopInputSchema>,
+    @Ctx() ctx: AuthenticatedContext
+  ) {
     return shopService.importFromIni(input, ctx.userId, ctx.language);
   }
 
@@ -90,7 +93,10 @@ export class ShopRouter {
    */
   @UseMiddlewares(requireUser)
   @Mutation({ input: BatchImportShopInputSchema, output: BatchImportShopResultSchema })
-  async batchImportFromIni(input: z.infer<typeof BatchImportShopInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+  async batchImportFromIni(
+    input: z.infer<typeof BatchImportShopInputSchema>,
+    @Ctx() ctx: AuthenticatedContext
+  ) {
     return shopService.batchImportFromIni(input, ctx.userId, ctx.language);
   }
 
@@ -99,7 +105,10 @@ export class ShopRouter {
    */
   @UseMiddlewares(requireUser)
   @Mutation({ input: ClearAllShopsInputSchema, output: ClearAllShopsResultSchema })
-  async clearAll(input: z.infer<typeof ClearAllShopsInputSchema>, @Ctx() ctx: AuthenticatedContext) {
+  async clearAll(
+    input: z.infer<typeof ClearAllShopsInputSchema>,
+    @Ctx() ctx: AuthenticatedContext
+  ) {
     return shopService.clearAll(input, ctx.userId, ctx.language);
   }
 }

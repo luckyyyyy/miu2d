@@ -1,7 +1,10 @@
 import type { GameConfig, GameConfigData, UpdateGameConfigInput } from "@miu2d/types";
-import { createDefaultGameConfig, createDefaultMagicExpConfig, GameConfigDataSchema } from "@miu2d/types";
-import type { GameConfig as PrismaGameConfig } from "@prisma/client";
-import type { Prisma } from "@prisma/client";
+import {
+  createDefaultGameConfig,
+  createDefaultMagicExpConfig,
+  GameConfigDataSchema,
+} from "@miu2d/types";
+import type { Prisma, GameConfig as PrismaGameConfig } from "@prisma/client";
 import { db } from "../../db/client";
 import type { Language } from "../../i18n";
 import { verifyGameAccess } from "../../utils/gameAccess";
@@ -85,11 +88,7 @@ export class GameConfigService {
     language: Language
   ): Promise<GameConfig> {
     const current = await this.get(gameId, userId, language);
-    return this.update(
-      { gameId, data: { ...current.data, uiTheme } },
-      userId,
-      language
-    );
+    return this.update({ gameId, data: { ...current.data, uiTheme } }, userId, language);
   }
 
   /**

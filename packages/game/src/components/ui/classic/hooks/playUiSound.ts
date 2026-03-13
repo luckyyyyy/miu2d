@@ -52,7 +52,11 @@ export function playUiSound(soundFileName: string, volume = 0.6): void {
 
       // Stop previous UI sound
       if (lastSource) {
-        try { lastSource.stop(); } catch { /* already ended */ }
+        try {
+          lastSource.stop();
+        } catch {
+          /* already ended */
+        }
         lastSource.disconnect();
         lastSource = null;
       }

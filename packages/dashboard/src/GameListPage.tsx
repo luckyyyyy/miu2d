@@ -21,7 +21,9 @@ function GameLogo({ slug }: { slug: string }) {
         alt=""
         className="absolute inset-0 w-full h-full object-contain"
         onLoad={() => setLoaded(true)}
-        onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+        onError={(e) => {
+          (e.currentTarget as HTMLImageElement).style.display = "none";
+        }}
       />
     </div>
   );

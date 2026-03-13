@@ -5,8 +5,7 @@
  */
 
 import { randomBytes, randomUUID } from "node:crypto";
-import type { Prisma } from "@prisma/client";
-import type { Save as PrismaSave } from "@prisma/client";
+import type { Prisma, Save as PrismaSave } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
 import { db } from "../../db/client";
 import { deleteFile, uploadFile } from "../../storage/s3";
@@ -19,7 +18,11 @@ function isBase64DataUri(str: string): boolean {
   return str.startsWith("data:image/");
 }
 
-async function uploadScreenshotToS3(userId: string, saveId: string, dataUri: string): Promise<string> {
+async function uploadScreenshotToS3(
+  userId: string,
+  saveId: string,
+  dataUri: string
+): Promise<string> {
   const base64Data = dataUri.replace(/^data:image\/\w+;base64,/, "");
   const buffer = Buffer.from(base64Data, "base64");
   const key = `saves/${userId}/${saveId}.jpg`;
@@ -41,7 +44,20 @@ export class SaveService {
     const rows = await db.save.findMany({
       where: { gameId: game.id, userId },
       orderBy: { updatedAt: "desc" },
-      select: { id: true, gameId: true, userId: true, name: true, mapName: true, level: true, playerName: true, screenshot: true, isShared: true, shareCode: true, createdAt: true, updatedAt: true },
+      select: {
+        id: true,
+        gameId: true,
+        userId: true,
+        name: true,
+        mapName: true,
+        level: true,
+        playerName: true,
+        screenshot: true,
+        isShared: true,
+        shareCode: true,
+        createdAt: true,
+        updatedAt: true,
+      },
     });
 
     return rows.map((r) => this.toOutput(r));
@@ -86,7 +102,10 @@ export class SaveService {
 
     // 覆盖已有存档时先校验归属
     if (input.saveId) {
-      const existing = await db.save.findFirst({ where: { id: input.saveId }, select: { id: true, userId: true } });
+      const existing = await db.save.findFirst({
+        where: { id: input.saveId },
+        select: { id: true, userId: true },
+      });
 
       if (!existing) {
         throw new TRPCError({ code: "NOT_FOUND", message: "存档不存在" });
@@ -132,7 +151,10 @@ export class SaveService {
    * 删除存档
    */
   async delete(saveId: string, userId: string) {
-    const existing = await db.save.findFirst({ where: { id: saveId }, select: { id: true, userId: true, screenshot: true } });
+    const existing = await db.save.findFirst({
+      where: { id: saveId },
+      select: { id: true, userId: true, screenshot: true },
+    });
 
     if (!existing) {
       throw new TRPCError({ code: "NOT_FOUND", message: "存档不存在" });
@@ -160,7 +182,10 @@ export class SaveService {
    * 设置存档分享状态
    */
   async setShared(saveId: string, isShared: boolean, userId: string) {
-    const existing = await db.save.findFirst({ where: { id: saveId }, select: { id: true, userId: true, shareCode: true } });
+    const existing = await db.save.findFirst({
+      where: { id: saveId },
+      select: { id: true, userId: true, shareCode: true },
+    });
 
     if (!existing) {
       throw new TRPCError({ code: "NOT_FOUND", message: "存档不存在" });
@@ -172,7 +197,10 @@ export class SaveService {
 
     const shareCode = isShared ? (existing.shareCode ?? generateShareCode()) : existing.shareCode;
 
-    const updated = await db.save.update({ where: { id: saveId }, data: { isShared, shareCode, updatedAt: new Date() } });
+    const updated = await db.save.update({
+      where: { id: saveId },
+      data: { isShared, shareCode, updatedAt: new Date() },
+    });
 
     return this.toOutput(updated);
   }
@@ -221,7 +249,10 @@ export class SaveService {
       gameId = game.id;
     }
 
-    const where = { ...(gameId ? { gameId } : {}), ...(input.userId ? { userId: input.userId } : {}) };
+    const where = {
+      ...(gameId ? { gameId } : {}),
+      ...(input.userId ? { userId: input.userId } : {}),
+    };
 
     const total = await db.save.count({ where });
 
@@ -309,7 +340,10 @@ export class SaveService {
     },
     operatorId: string
   ) {
-    const existing = await db.save.findFirst({ where: { id: input.saveId }, select: { id: true, gameId: true } });
+    const existing = await db.save.findFirst({
+      where: { id: input.saveId },
+      select: { id: true, gameId: true },
+    });
 
     if (!existing) {
       throw new TRPCError({ code: "NOT_FOUND", message: "存档不存在" });
@@ -341,7 +375,10 @@ export class SaveService {
    * 管理员设置存档分享状态（可操作任何用户的存档）
    */
   async adminSetShared(saveId: string, isShared: boolean, operatorId: string) {
-    const existing = await db.save.findFirst({ where: { id: saveId }, select: { id: true, gameId: true, shareCode: true } });
+    const existing = await db.save.findFirst({
+      where: { id: saveId },
+      select: { id: true, gameId: true, shareCode: true },
+    });
 
     if (!existing) {
       throw new TRPCError({ code: "NOT_FOUND", message: "存档不存在" });
@@ -351,7 +388,10 @@ export class SaveService {
 
     const shareCode = isShared ? (existing.shareCode ?? generateShareCode()) : existing.shareCode;
 
-    const updated = await db.save.update({ where: { id: saveId }, data: { isShared, shareCode, updatedAt: new Date() } });
+    const updated = await db.save.update({
+      where: { id: saveId },
+      data: { isShared, shareCode, updatedAt: new Date() },
+    });
 
     return this.toOutput(updated);
   }
@@ -360,7 +400,10 @@ export class SaveService {
    * 管理员删除存档（可删除任何用户的存档）
    */
   async adminDelete(saveId: string, operatorId: string) {
-    const existing = await db.save.findFirst({ where: { id: saveId }, select: { id: true, gameId: true, screenshot: true } });
+    const existing = await db.save.findFirst({
+      where: { id: saveId },
+      select: { id: true, gameId: true, screenshot: true },
+    });
 
     if (!existing) {
       throw new TRPCError({ code: "NOT_FOUND", message: "存档不存在" });

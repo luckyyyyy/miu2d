@@ -107,9 +107,7 @@ export function Footer() {
 
         {/* 版权 */}
         <div className="mt-10 pt-8 border-t border-zinc-200 dark:border-zinc-800 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">
-            {t("footer.copyright")}
-          </p>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">{t("footer.copyright")}</p>
           <p className="text-sm text-zinc-500 dark:text-zinc-400">Made with ❤️ and AI ✨</p>
         </div>
       </div>
