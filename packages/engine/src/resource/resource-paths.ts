@@ -345,10 +345,6 @@ export const DefaultPaths = {
   get soundBasePath(): string {
     return buildPath(ResourceDirs.content.sound);
   },
-  /** 地图名称映射配置 */
-  get MAP_NAME_INI(): string {
-    return ResourcePath.ini("map/mapname.ini");
-  },
 } as const;
 
 // =============================================================================

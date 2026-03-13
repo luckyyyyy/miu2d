@@ -29,6 +29,12 @@ function ShopDetailPageKeyed() {
   return <ShopDetailPage key={shopId} />;
 }
 
+/** 物品详情页 key wrapper —— goodsId 变化时完全重新挂载 */
+function GoodsDetailPageKeyed() {
+  const { goodsId } = useParams();
+  return <GoodsDetailPage key={goodsId} />;
+}
+
 // 等级与强度
 import { LevelDetailPage, LevelListPage } from "./modules/level";
 // 武功编辑
@@ -98,7 +104,7 @@ export function DashboardApp() {
           {/* 物品编辑 */}
           <Route path="goods">
             <Route index element={<GoodsListPage />} />
-            <Route path=":goodsId" element={<GoodsDetailPage />} />
+            <Route path=":goodsId" element={<GoodsDetailPageKeyed />} />
           </Route>
 
           {/* 商店编辑 */}

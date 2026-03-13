@@ -132,7 +132,7 @@ export function GoodsListPanel({ basePath }: { basePath: string }) {
               <div>
                 <button
                   type="button"
-                  onClick={() => toggleGroup("Drug")}
+                  onClick={() => toggleGroup("Consumable")}
                   className="w-full px-3 py-1.5 text-xs font-medium text-[#858585] flex items-center gap-2 hover:bg-[#2a2d2e] transition-colors"
                 >
                   <span
@@ -241,7 +241,7 @@ export function GoodsListPanel({ basePath }: { basePath: string }) {
               <div>
                 <button
                   type="button"
-                  onClick={() => toggleGroup("Event")}
+                  onClick={() => toggleGroup("Quest")}
                   className="w-full px-3 py-1.5 text-xs font-medium text-[#858585] flex items-center gap-2 hover:bg-[#2a2d2e] transition-colors"
                 >
                   <span

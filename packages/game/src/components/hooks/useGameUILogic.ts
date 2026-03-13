@@ -18,8 +18,6 @@ import type { MiuMapData } from "@miu2d/engine/map/types";
 import type { Npc } from "@miu2d/engine/npc";
 import { GoodKind } from "@miu2d/engine/player/goods";
 import { MAGIC_LIST_CONFIG } from "@miu2d/engine/player/magic/magic-list-config";
-import { DefaultPaths } from "@miu2d/engine/resource";
-import { resourceLoader } from "@miu2d/engine/resource/resource-loader";
 import type { GameEngine } from "@miu2d/engine/runtime/game-engine";
 import type { TimerState } from "@miu2d/engine/runtime/timer-manager";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -466,40 +464,6 @@ export function useGameUILogic({ engine }: UseGameUILogicOptions) {
     characters: [],
   });
 
-  const mapNameDictionaryRef = useRef<Map<string, string> | null>(null);
-
-  // 加载地图名称字典
-  useEffect(() => {
-    const loadMapNameDictionary = async () => {
-      if (mapNameDictionaryRef.current) return;
-      try {
-        const content = await resourceLoader.loadText(DefaultPaths.MAP_NAME_INI);
-        if (!content) {
-          logger.warn("[useGameUILogic] Failed to load mapname.ini");
-          return;
-        }
-        const dictionary = new Map<string, string>();
-        const lines = content.split("\n");
-        for (const line of lines) {
-          const trimmed = line.trim();
-          if (!trimmed || trimmed.startsWith("[") || trimmed.startsWith(";")) continue;
-          const eqIndex = trimmed.indexOf("=");
-          if (eqIndex === -1) continue;
-          const key = trimmed.substring(0, eqIndex).trim();
-          const value = trimmed.substring(eqIndex + 1).trim();
-          if (key && value) {
-            dictionary.set(key, value);
-          }
-        }
-        mapNameDictionaryRef.current = dictionary;
-        logger.debug("[useGameUILogic] Loaded mapname.ini with", dictionary.size, "entries");
-      } catch (error) {
-        logger.error("[useGameUILogic] Error loading mapname.ini:", error);
-      }
-    };
-    loadMapNameDictionary();
-  }, []);
-
   // 更新小地图状态
   useEffect(() => {
     if (!engine || !panels?.littleMap) return;
@@ -513,13 +477,7 @@ export function useGameUILogic({ engine }: UseGameUILogicOptions) {
       const npcManager = engine.npcManager;
       const mapName = engine.getCurrentMapName();
 
-      let mapDisplayName = "无名地图";
-      if (mapNameDictionaryRef.current && mapName) {
-        const displayName = mapNameDictionaryRef.current.get(mapName);
-        if (displayName) {
-          mapDisplayName = displayName;
-        }
-      }
+      const mapDisplayName = mapName ?? "无名地图";
 
       const characters: CharacterMarker[] = [];
       if (npcManager) {

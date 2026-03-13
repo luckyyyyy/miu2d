@@ -6,7 +6,8 @@ import { getMagicsData } from "@miu2d/engine/data";
 import { getMagicFromApiCache } from "@miu2d/engine/magic";
 import { EquipPosition, GoodKind, getAllGoods } from "@miu2d/engine/player/goods";
 import type React from "react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useAsfImage } from "../../../ui/classic/hooks/useAsfImage";
 import { btnClass, btnPrimary, inputClass, selectClass } from "../constants";
 import { Section } from "../Section";
 
@@ -26,11 +27,12 @@ const GOODS_CATEGORIES = [
 ] as const;
 type GoodsCategory = (typeof GOODS_CATEGORIES)[number];
 
-/** 根据 GoodKind 和 EquipPosition 获取分类 */
+/** 根据 GoodKind 和 EquipPosition 获取分类
+ * 注意：Part 优先于 Kind — 原始 INI 中 Kind= 可能为空，服务端默认为 Drug，
+ * 但只要 Part 有值就应该按装备分类。
+ */
 function getGoodsCategory(kind: GoodKind, part: EquipPosition): Exclude<GoodsCategory, "全部"> {
-  if (kind === GoodKind.Drug) return "药品";
-  if (kind === GoodKind.Event) return "事件";
-  // 装备根据部位分类
+  // Part 优先分类
   switch (part) {
     case EquipPosition.Hand:
       return "武器";
@@ -46,9 +48,146 @@ function getGoodsCategory(kind: GoodKind, part: EquipPosition): Exclude<GoodsCat
       return "护腕";
     case EquipPosition.Foot:
       return "鞋子";
-    default:
-      return "事件";
   }
+  if (kind === GoodKind.Event) return "事件";
+  return "药品";
+}
+
+// ── 物品图标 ──────────────────────────────────────────────────────────────────
+
+/** 懒加载单个物品图标（icon 小图，带 s 后缀） */
+function GoodsIconImg({ iconPath, size = 28 }: { iconPath: string; size?: number }) {
+  const { dataUrl, isLoading } = useAsfImage(iconPath || null, 0);
+  if (!iconPath) return <span className="text-[#444]" style={{ width: size, height: size, display: "inline-block" }}>□</span>;
+  if (isLoading) return <span className="text-[#555] text-[9px]" style={{ width: size, height: size, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>…</span>;
+  if (!dataUrl) return <span className="text-[#444]" style={{ width: size, height: size, display: "inline-block" }}>□</span>;
+  return (
+    <img
+      src={dataUrl}
+      alt=""
+      width={size}
+      height={size}
+      style={{ imageRendering: "pixelated", width: size, height: size, objectFit: "contain", flexShrink: 0 }}
+    />
+  );
+}
+
+// ── 物品 Combobox ──────────────────────────────────────────────────────────
+
+interface GoodsItem {
+  name: string;
+  file: string;
+  image: string;
+  icon: string;
+  category: Exclude<GoodsCategory, "全部">;
+}
+
+interface GoodsComboboxProps {
+  items: GoodsItem[];
+  value: string;
+  onChange: (file: string) => void;
+}
+
+function GoodsCombobox({ items, value, onChange }: GoodsComboboxProps) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const ref = useRef<HTMLDivElement>(null);
+
+  const selected = items.find((i) => i.file === value);
+
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase();
+    if (!q) return items;
+    return items.filter(
+      (i) => i.name.toLowerCase().includes(q) || i.file.toLowerCase().includes(q)
+    );
+  }, [items, search]);
+
+  // 点击外部关闭
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+        setSearch("");
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  return (
+    <div ref={ref} className="relative flex-1 min-w-0">
+      {/* 触发按钮 */}
+      <button
+        type="button"
+        onClick={() => {
+          setOpen((v) => !v);
+          setSearch("");
+        }}
+        className="w-full px-2 py-1 text-[11px] bg-[#3c3c3c] border border-[#3c3c3c] text-left flex items-center gap-1 hover:border-[#007acc] focus:outline-none focus:border-[#007acc]"
+      >
+        {selected ? (
+          <>
+            <GoodsIconImg iconPath={selected.icon} size={20} />
+            <span className="flex-1 min-w-0 truncate">
+              <span className="text-[#d4d4d4]">{selected.name}</span>
+              <span className="text-[#666] ml-1">{selected.file}</span>
+            </span>
+          </>
+        ) : (
+          <span className="text-[#666] flex-1">选择物品...</span>
+        )}
+        <span className="text-[#666] flex-shrink-0">▾</span>
+      </button>
+
+      {/* 下拉面板 */}
+      {open && (
+        <div className="absolute left-0 right-0 top-full z-50 mt-px bg-[#252526] border border-[#007acc] shadow-lg">
+          {/* 搜索框 */}
+          <div className="p-1 border-b border-[#2d2d2d]">
+            <input
+              autoFocus
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="搜索名字或 key..."
+              className="w-full px-2 py-1 text-[11px] bg-[#3c3c3c] border border-[#3c3c3c] text-[#d4d4d4] focus:outline-none focus:border-[#007acc]"
+            />
+          </div>
+          {/* 列表 */}
+          <div className="max-h-48 overflow-y-auto">
+            {filtered.length === 0 ? (
+              <div className="px-2 py-1 text-[11px] text-[#666]">无匹配物品</div>
+            ) : (
+              filtered.map((i) => (
+                <button
+                  key={i.file}
+                  type="button"
+                  onClick={() => {
+                    onChange(i.file);
+                    setOpen(false);
+                    setSearch("");
+                  }}
+                  className={`w-full px-2 py-1.5 text-left hover:bg-[#094771] flex items-center gap-2 ${
+                    i.file === value ? "bg-[#094771]" : ""
+                  }`}
+                >
+                  <GoodsIconImg iconPath={i.icon} size={28} />
+                  <span className="flex-1 min-w-0">
+                    <span className="block text-[11px] text-[#d4d4d4] leading-tight">{i.name}</span>
+                    <span className="block text-[10px] text-[#666] leading-tight truncate">
+                      {i.file}{i.image ? ` · ${i.image}` : ""}
+                    </span>
+                  </span>
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 interface GameDebugSectionProps {
@@ -95,11 +234,22 @@ export const GameDebugSection: React.FC<GameDebugSectionProps> = ({
   // 从 API 缓存获取物品列表（游戏数据加载后不变，用 useMemo 避免 500ms 重复计算）
   const allGoods = useMemo(
     () =>
-      getAllGoods().map((g) => ({
-        name: g.name,
-        file: g.fileName,
-        category: getGoodsCategory(g.kind, g.part),
-      })),
+      getAllGoods()
+        .filter(
+          (g) =>
+            // 过滤无名物品
+            g.name.trim() !== "" &&
+            // 过滤 kind=Drug 且 part=None 且无任何数值（纯空占位物品）
+            !(g.kind === GoodKind.Drug && g.part === EquipPosition.None &&
+              g.life === 0 && g.thew === 0 && g.mana === 0)
+        )
+        .map((g) => ({
+          name: g.name,
+          file: g.fileName,
+          image: g.imagePath.replace("asf/goods/", ""),
+          icon: g.iconPath, // e.g. "asf/goods/tm050-霹雳铠s.asf"
+          category: getGoodsCategory(g.kind, g.part),
+        })),
     []
   );
 
@@ -280,18 +430,11 @@ export const GameDebugSection: React.FC<GameDebugSectionProps> = ({
                 </option>
               ))}
             </select>
-            <select
+            <GoodsCombobox
+              items={filteredItems}
               value={selectedItem}
-              onChange={(e) => setSelectedItem(e.target.value)}
-              className={`${selectClass} flex-1`}
-            >
-              <option value="">选择物品...</option>
-              {filteredItems.map((i) => (
-                <option key={i.file} value={i.file}>
-                  {i.name}
-                </option>
-              ))}
-            </select>
+              onChange={setSelectedItem}
+            />
             <button
               type="button"
               onClick={handleAddItem}
