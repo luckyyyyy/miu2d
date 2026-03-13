@@ -57,7 +57,6 @@ import type { GoodsItemInfo } from "../player/goods/goods-list-manager";
 import type { PlayerMagicInventory } from "../player/magic/player-magic-inventory";
 import type { PartnerListManager } from "../player/partner-list";
 import { Player } from "../player/player";
-import type { Renderer } from "../renderer/renderer";
 import type { ScreenEffects } from "../renderer/screen-effects";
 import { clearAsfCache } from "../resource/format/asf";
 import { clearMpcCache } from "../resource/format/mpc";
@@ -876,12 +875,6 @@ export class GameManager {
   }
 
   // ============= Audio and Effects =============
-
-  drawScreenEffects(renderer: Renderer, width: number, height: number): void {
-    this.screenEffects.drawDarkOverlay(renderer, width, height);
-    this.screenEffects.drawFade(renderer, width, height);
-    this.screenEffects.drawFlash(renderer, width, height);
-  }
 
   isFading(): boolean {
     return this.screenEffects.isFading();

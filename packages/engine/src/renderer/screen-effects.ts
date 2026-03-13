@@ -3,7 +3,6 @@
  * Handles fade in/out, color tinting, and other screen effects
  */
 
-import { computeAmbientDarkColor } from "./lum-mask";
 import type { Renderer } from "./renderer";
 
 export interface Color {
@@ -206,34 +205,6 @@ export class ScreenEffects {
   /** Get current map time (0=day, 1=night, 2=dusk, 3=dawn) */
   getMapTime(): number {
     return this.state.mapTime;
-  }
-
-  /**
-   * Compute the multiply-blend color for the current mainLum + mapTime.
-   * Drawn with multiply blend: final = scene * tint (black stays black, no hue injection).
-   */
-  private mainLumMultiplyColor(): { r: number; g: number; b: number } | null {
-    return computeAmbientDarkColor(this.state.mainLum, this.state.mapTime);
-  }
-
-  /**
-   * Draw the mainLum color-grading pass on top of the scene.
-   * Uses multiply blend so dark areas stay dark; no hue bleeding into shadows.
-   * Must be called AFTER map/sprite rendering, BEFORE fade/flash overlays.
-   */
-  drawDarkOverlay(renderer: Renderer, width: number, height: number): void {
-    const tint = this.mainLumMultiplyColor();
-    if (!tint) return;
-    renderer.save();
-    renderer.setBlendMode("multiply");
-    renderer.fillRect({
-      x: 0,
-      y: 0,
-      width,
-      height,
-      color: `rgb(${tint.r}, ${tint.g}, ${tint.b})`,
-    });
-    renderer.restore();
   }
 
   /**

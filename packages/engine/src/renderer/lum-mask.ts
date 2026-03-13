@@ -132,6 +132,7 @@ function getLightingBuffer(width: number, height: number): OffscreenCanvas {
 
 function collectLumSources(
   mainLum: number,
+  mapTime: number,
   cameraX: number,
   cameraY: number,
   objsInView: readonly Obj[],
@@ -142,6 +143,8 @@ function collectLumSources(
   // 每个 tile 最多绘制一次光晕（与 C++ break 行为一致，防止同 tile 多精灵叠亮）
   const drawnTiles = new Set<string>();
   const sources: LumSource[] = [];
+  // lum >= mainLum：自身亮度不低于环境；mapTime===1：夜晚时有 lum 的物体都发光
+  const shouldGlow = (lum: number) => lum > 0 && (lum >= mainLum || mapTime === 1);
 
   const tryAdd = (tileX: number, tileY: number, screenX: number, screenY: number): void => {
     const key = `${tileX},${tileY}`;
@@ -151,7 +154,7 @@ function collectLumSources(
   };
 
   for (const obj of objsInView) {
-    if (obj.lum > mainLum) {
+    if (shouldGlow(obj.lum)) {
       const tile = obj.tilePosition;
       const pos = obj.positionInWorld;
       tryAdd(tile.x, tile.y, pos.x - cameraX, pos.y - cameraY);
@@ -159,7 +162,7 @@ function collectLumSources(
   }
 
   for (const npc of npcsInView) {
-    if (npc.lum > mainLum) {
+    if (shouldGlow(npc.lum)) {
       const tile = npc.tilePosition;
       const pos = npc.pixelPosition;
       tryAdd(tile.x, tile.y, pos.x - cameraX, pos.y - cameraY);
@@ -167,7 +170,7 @@ function collectLumSources(
   }
 
   for (const [, sprite] of magicSprites) {
-    if (sprite.getLum() > mainLum) {
+    if (shouldGlow(sprite.getLum())) {
       const tile = sprite.tilePosition;
       const pos = sprite.position;
       tryAdd(tile.x, tile.y, pos.x - cameraX, pos.y - cameraY);
@@ -175,7 +178,7 @@ function collectLumSources(
   }
 
   for (const [, sprite] of effectSprites) {
-    if (sprite.getLum() > mainLum) {
+    if (shouldGlow(sprite.getLum())) {
       const tile = sprite.tilePosition;
       const pos = sprite.position;
       tryAdd(tile.x, tile.y, pos.x - cameraX, pos.y - cameraY);
@@ -262,6 +265,7 @@ export function drawLightingPass(
   const hasGlow = glowPeak.r > 0 || glowPeak.g > 0 || glowPeak.b > 0;
   const lumSources = collectLumSources(
     mainLum,
+    mapTime,
     cameraX,
     cameraY,
     objsInView,
