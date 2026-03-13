@@ -128,23 +128,7 @@ export function SceneEntriesProvider({
   const [trapOriginal, setTrapOriginal] = useState("");
 
   useEffect(() => {
-    let text = "";
-    if (trapKey) {
-      const keyLower = trapKey.toLowerCase();
-      // 大小写不敏感匹配（原系统文件名不区分大小写）
-      // 优先从 sceneData.traps 查找，回退到 sceneData.scripts
-      // （sword2 中陷阱脚本名称任意，可能被错误分类为 script）
-      text =
-        sceneData.traps?.[trapKey] ??
-        Object.entries(sceneData.traps ?? {}).find(
-          ([k]) => k.toLowerCase() === keyLower
-        )?.[1] ??
-        sceneData.scripts?.[trapKey] ??
-        Object.entries(sceneData.scripts ?? {}).find(
-          ([k]) => k.toLowerCase() === keyLower
-        )?.[1] ??
-        "";
-    }
+    const text = trapKey ? (sceneData.traps?.[trapKey] ?? "") : "";
     setTrapContent(text);
     setTrapOriginal(text);
   }, [trapKey, sceneData]);

@@ -616,17 +616,19 @@ async function parseResourcesFolder(
     const scene = sceneMap.get(sceneKey);
     if (!scene) continue;
     // A file is a trap if its name matches Trap\d+ OR if it appears as a value
-    // in this scene's trapOverrides (i.e., referenced by Traps.ini for this map).
+    // in this scene's trapOverrides (referenced by Traps.ini / MMF trapTable).
     // Sword2 trap scripts often have arbitrary names like "地图切换.txt".
-    const isTrapFile =
-      classifyScriptFile(fileName) === "trap" ||
-      (scene.trapOverrides != null &&
-        Object.values(scene.trapOverrides).some(
-          (v) => v.toLowerCase() === fileName.toLowerCase()
-        ));
+    const trapOverrideKey =
+      scene.trapOverrides != null
+        ? Object.values(scene.trapOverrides).find(
+            (v) => v.toLowerCase() === fileName.toLowerCase()
+          )
+        : undefined;
+    const isTrapFile = classifyScriptFile(fileName) === "trap" || trapOverrideKey != null;
     if (isTrapFile) {
       if (!scene.data.traps) scene.data.traps = {};
-      scene.data.traps[fileName] = content;
+      // Use the canonical name from trapOverrides (matches MMF), fallback to fileName
+      scene.data.traps[trapOverrideKey ?? fileName] = content;
     } else {
       if (!scene.data.scripts) scene.data.scripts = {};
       scene.data.scripts[fileName] = content;

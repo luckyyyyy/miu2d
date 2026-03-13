@@ -71,19 +71,10 @@ export function MapDataPanel({
     return scripts.sort();
   }, [sceneData.traps, sceneData.scripts]);
 
-  // 构建大小写不敏感的查找：lowercase → 原始 key
-  // 同时包含 traps 和 scripts，因为 sword2 中陷阱脚本名称任意，可能被分类为 script
-  const trapKeysLower = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const src of [sceneData.traps, sceneData.scripts]) {
-      if (src) {
-        for (const key of Object.keys(src)) {
-          if (!map.has(key.toLowerCase())) map.set(key.toLowerCase(), key);
-        }
-      }
-    }
-    return map;
-  }, [sceneData.traps, sceneData.scripts]);
+  const trapKeys = useMemo(
+    () => new Set(Object.keys(sceneData.traps ?? {})),
+    [sceneData.traps]
+  );
 
   const filteredMapScripts = useMemo(() => {
     if (!mapScriptSearch) return availableScripts;
@@ -227,7 +218,7 @@ export function MapDataPanel({
               const hasFile = !!(
                 !entry.orphan &&
                 entry.scriptPath &&
-                trapKeysLower.has(entry.scriptPath.toLowerCase())
+                trapKeys.has(entry.scriptPath)
               );
               return (
                 <div
