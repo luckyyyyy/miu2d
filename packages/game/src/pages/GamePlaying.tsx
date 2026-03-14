@@ -84,6 +84,9 @@ export function GamePlaying({
   const [menuTab, setMenuTab] = useState<MenuTab>("save");
   const [, forceUpdate] = useState({});
   const [engine, setEngine] = useState<ReturnType<GameHandle["getEngine"]>>(null);
+  const [memoryStats, setMemoryStats] = useState<
+    { gpuTextureBytes: number; asfAtlasCpuBytes: number; jsHeapBytes: number } | undefined
+  >(undefined);
   const { isAuthenticated } = useAuth();
 
   // 实际可用的游戏画布宽度
@@ -107,6 +110,15 @@ export function GamePlaying({
     const interval = setInterval(() => forceUpdate({}), 500);
     return () => clearInterval(interval);
   }, [showDebug]);
+
+  // 每秒更新内存统计（精确值，来自引擎内部计数）
+  useEffect(() => {
+    if (!showDebug) return;
+    const update = () => setMemoryStats(engine?.getMemoryStats());
+    update();
+    const id = setInterval(update, 1000);
+    return () => clearInterval(id);
+  }, [showDebug, engine]);
 
   // ESC 键全局处理（capture 阶段，优先于引擎和面板自身的 ESC 监听）
   // - 面板打开时：关闭面板，阻止事件传播
@@ -387,6 +399,7 @@ export function GamePlaying({
               loadedResources={debugManager?.getLoadedResources() ?? undefined}
               resourceStats={resourceLoader.getStats()}
               performanceStats={getEngine()?.getPerformanceStats()}
+              memoryStats={memoryStats}
               gameVariables={debugManager?.getGameVariables()}
               xiuLianMagic={debugManager?.getXiuLianMagic() ?? undefined}
               triggeredTrapIds={debugManager?.getTriggeredTrapIds()}

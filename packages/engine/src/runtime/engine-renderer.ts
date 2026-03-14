@@ -264,6 +264,7 @@ export function renderFrame(renderer: Renderer, ctx: FrameRenderContext): void {
   // out = scene × light_buffer
   //   暗区：buffer = tint × dark / 255
   //   光源区：buffer = tint（光晕将 buffer 从 combinedDark 推到 tint）
+  const player = gameManager.player;
   drawLightingPass(
     renderer,
     screenEffects.getMainLum(),
@@ -276,7 +277,10 @@ export function renderFrame(renderer: Renderer, ctx: FrameRenderContext): void {
     gameManager.objManager.objsInView,
     gameManager.npcManager.npcsInView,
     gameManager.magicSpriteManager.getMagicSprites(),
-    gameManager.magicSpriteManager.getEffectSprites()
+    gameManager.magicSpriteManager.getEffectSprites(),
+    screenEffects.getPlayerLum(),
+    player.tilePosition,
+    player.pixelPosition
   );
 
   // 渲染天气效果（雨、雪）

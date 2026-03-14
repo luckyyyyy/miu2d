@@ -70,6 +70,9 @@ export class AudioManager {
   private sound3DLoading = new Set<string>();
   private sound3DStopping = new Set<string>();
 
+  // 正在加载的 Audio 元素（用于中止孤立加载）
+  private pendingMusicAudio: HTMLAudioElement | null = null;
+
   // 清理定时器
   private cleanupTimer: ReturnType<typeof setInterval> | null = null;
 
@@ -204,19 +207,40 @@ export class AudioManager {
   }
 
   private loadMusic(baseName: string, ext: string): void {
+    // 中止上一个正在加载的 Audio 元素（OGG→MP3 回退、快速切歌）
+    if (this.pendingMusicAudio) {
+      this.pendingMusicAudio.onerror = null;
+      this.pendingMusicAudio.oncanplaythrough = null;
+      this.pendingMusicAudio.src = "";
+      this.pendingMusicAudio = null;
+    }
+
     const musicPath = `${this.musicBasePath}/${baseName}${ext}`;
     const audio = new Audio();
     audio.loop = true;
     audio.volume = this.masterVolume * this.musicVolume;
+    this.pendingMusicAudio = audio;
 
     audio.onerror = () => {
+      // 只有当前 pending 才处理回退
+      if (this.pendingMusicAudio !== audio) return;
+      this.pendingMusicAudio = null;
       if (ext === ".ogg") {
         this.loadMusic(baseName, ".mp3");
       }
     };
 
     audio.oncanplaythrough = () => {
-      if (this.currentMusicFile !== baseName) return;
+      if (this.pendingMusicAudio !== audio) {
+        // 已不是当前 pending，中止此孤立元素
+        audio.src = "";
+        return;
+      }
+      this.pendingMusicAudio = null;
+      if (this.currentMusicFile !== baseName) {
+        audio.src = "";
+        return;
+      }
       this.musicElement = audio;
       audio.play().catch(() => {});
     };
@@ -226,6 +250,13 @@ export class AudioManager {
   }
 
   stopMusic(): void {
+    // 中止正在加载的 Audio 元素
+    if (this.pendingMusicAudio) {
+      this.pendingMusicAudio.onerror = null;
+      this.pendingMusicAudio.oncanplaythrough = null;
+      this.pendingMusicAudio.src = "";
+      this.pendingMusicAudio = null;
+    }
     if (this.musicElement) {
       this.musicElement.pause();
       this.musicElement.src = "";

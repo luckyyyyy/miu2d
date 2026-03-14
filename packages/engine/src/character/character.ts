@@ -351,8 +351,20 @@ export abstract class Character extends CharacterCombat {
 
   protected updateStandOrHurt(deltaTime: number): void {
     super.update(deltaTime);
-    if (this.isPlayCurrentDirOnceEnd()) {
-      this.standingImmediately();
+    if (this._state === CharacterState.Hurt) {
+      // C++ Reference: if (getUpdateTime() - actionBeginTime >= actionLastTime) beginStand()
+      // 使用时基终止：帧计数完成 OR 最大时长到达（防止帧计数器卡死）
+      this._hurtElapsedMs += deltaTime * 1000;
+      if (
+        this.isPlayCurrentDirOnceEnd() ||
+        this._hurtElapsedMs >= this._hurtDurationMs
+      ) {
+        this.standingImmediately();
+      }
+    } else {
+      if (this.isPlayCurrentDirOnceEnd()) {
+        this.standingImmediately();
+      }
     }
   }
 

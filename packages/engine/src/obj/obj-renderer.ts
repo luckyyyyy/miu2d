@@ -53,7 +53,7 @@ export class ObjRenderer {
     if (frameIndex >= 0 && frameIndex < obj.texture.frames.length) {
       // 使用 atlas 绘制（减少纹理切换）
       const atlasInfo = getFrameAtlasInfo(obj.texture, frameIndex);
-      renderer.drawSourceEx(atlasInfo.canvas, screenX, screenY, {
+      renderer.drawSourceEx(atlasInfo.canvas, screenX + atlasInfo.canvasOffsetX, screenY + atlasInfo.canvasOffsetY, {
         srcX: atlasInfo.srcX,
         srcY: atlasInfo.srcY,
         srcWidth: atlasInfo.srcWidth,
@@ -100,7 +100,7 @@ export class ObjRenderer {
       const edgeCanvas = getOuterEdge(canvas, highlightColor);
 
       // 绘制边缘
-      renderer.drawSource(edgeCanvas, screenX, screenY);
+      renderer.drawSource(edgeCanvas, screenX + (frame.canvasOffsetX ?? 0), screenY + (frame.canvasOffsetY ?? 0));
     }
   }
 

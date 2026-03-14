@@ -78,6 +78,9 @@ export function updateFrame(ctx: EngineUpdateContext, deltaTime: number): void {
   // === WASM 寻路：每帧同步动态障碍物 ===
   syncDynamicObstacles(gameManager.npcManager, gameManager.objManager, magicMgr, player);
 
+  // 鼠标按住时每帧重算世界坐标（相机跟随玩家后同一屏幕位置对应不同世界坐标）
+  ctx.engineInput.updateHeldMouseWorldPosition();
+
   // 更新游戏逻辑
   gameManager.update(deltaTime, ctx.engineInput.state);
 

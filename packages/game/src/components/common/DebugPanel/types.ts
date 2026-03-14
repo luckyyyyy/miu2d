@@ -55,6 +55,7 @@ export interface DebugPanelProps {
   loadedResources?: LoadedResources;
   resourceStats?: ResourceStats;
   performanceStats?: PerformanceStatsData;
+  memoryStats?: { gpuTextureBytes: number; asfAtlasCpuBytes: number; jsHeapBytes: number };
   gameVariables?: GameVariables;
   xiuLianMagic?: MagicItemInfo | null;
   triggeredTrapIds?: number[];

@@ -18,6 +18,10 @@ export interface AsfFrame {
   canvas: HTMLCanvasElement | null;
   /** Atlas 构建后的反向引用，用于从 atlas canvas 还原 per-frame canvas */
   _atlasRef?: { canvas: HTMLCanvasElement; x: number; y: number };
+  /** 帧 tight bbox 在 canvas 中的 X 偏移（MSF per-frame tight bbox） */
+  canvasOffsetX: number;
+  /** 帧 tight bbox 在 canvas 中的 Y 偏移（MSF per-frame tight bbox） */
+  canvasOffsetY: number;
 }
 
 /** ASF 帧图集：所有帧打包到一张 canvas 中，减少纹理切换 */
@@ -47,6 +51,11 @@ export interface AsfData {
 
 export function clearAsfCache(): void {
   resourceLoader.clearCache("asf");
+}
+
+/** 计算当前所有已缓存 ASF 的 atlas canvas CPU 内存占用（字节） */
+export function getAsfAtlasMemoryBytes(): number {
+  return resourceLoader.getAsfAtlasBytes();
 }
 
 /**
@@ -114,16 +123,23 @@ function buildAsfAtlas(asf: AsfData): AsfAtlas {
     return { canvas: c, rects: [] };
   }
 
-  // ASF 所有帧尺寸相同（来自 header 的 width/height）
-  const fw = asf.width;
-  const fh = asf.height;
+  // 使用每帧实际 tight bbox 的最大尺寸作为网格 cell 大小
+  // （MSF per-frame tight bbox 下帧尺寸可能不同，取最大值保证对齐）
+  let maxFw = 0;
+  let maxFh = 0;
+  for (const frame of frames) {
+    if (frame.width > maxFw) maxFw = frame.width;
+    if (frame.height > maxFh) maxFh = frame.height;
+  }
+  const cellW = maxFw;
+  const cellH = maxFh;
 
   // 网格排列：每行最多 16 帧
   const cols = Math.min(frames.length, 16);
   const rows = Math.ceil(frames.length / cols);
 
-  const atlasW = cols * fw;
-  const atlasH = rows * fh;
+  const atlasW = cols * cellW;
+  const atlasH = rows * cellH;
 
   const canvas = document.createElement("canvas");
   canvas.width = atlasW;
@@ -136,8 +152,8 @@ function buildAsfAtlas(asf: AsfData): AsfAtlas {
     for (let i = 0; i < frames.length; i++) {
       const col = i % cols;
       const row = Math.floor(i / cols);
-      const x = col * fw;
-      const y = row * fh;
+      const x = col * cellW;
+      const y = row * cellH;
       ctx.putImageData(frames[i].imageData, x, y);
       rects.push({ x, y, w: frames[i].width, h: frames[i].height });
     }
@@ -166,6 +182,10 @@ export interface FrameAtlasInfo {
   srcY: number;
   srcWidth: number;
   srcHeight: number;
+  /** 帧 tight bbox 在 canvas 中的 X 偏移（渲染时需加到 drawX） */
+  canvasOffsetX: number;
+  /** 帧 tight bbox 在 canvas 中的 Y 偏移（渲染时需加到 drawY） */
+  canvasOffsetY: number;
 }
 
 /** 预分配的复用对象（热路径优化：每帧调用数百次，不再每次 new 对象） */
@@ -175,6 +195,8 @@ const _reusableAtlasInfo: FrameAtlasInfo = {
   srcY: 0,
   srcWidth: 0,
   srcHeight: 0,
+  canvasOffsetX: 0,
+  canvasOffsetY: 0,
 };
 
 /**
@@ -184,11 +206,14 @@ const _reusableAtlasInfo: FrameAtlasInfo = {
 export function getFrameAtlasInfo(asf: AsfData, frameIdx: number): FrameAtlasInfo {
   const atlas = getAsfAtlas(asf);
   const rect = atlas.rects[frameIdx];
+  const frame = asf.frames[frameIdx];
   _reusableAtlasInfo.canvas = atlas.canvas;
   _reusableAtlasInfo.srcX = rect.x;
   _reusableAtlasInfo.srcY = rect.y;
   _reusableAtlasInfo.srcWidth = rect.w;
   _reusableAtlasInfo.srcHeight = rect.h;
+  _reusableAtlasInfo.canvasOffsetX = frame.canvasOffsetX;
+  _reusableAtlasInfo.canvasOffsetY = frame.canvasOffsetY;
   return _reusableAtlasInfo;
 }
 

@@ -366,13 +366,80 @@ pub fn decode_msf_frames(data: &[u8], output: &Uint8Array) -> u32 {
     frame_count as u32
 }
 
+/// Decode pixel data from blob into destination buffer
+fn decode_frame_pixels(
+    pixel_format: PixelFormat,
+    palette: &[[u8; 4]; 256],
+    raw: &[u8],
+    dst: &mut [u8],
+    fw: usize,
+    fh: usize,
+) {
+    let npixels = fw * fh;
+    match pixel_format {
+        PixelFormat::Indexed8 => {
+            for p in 0..npixels {
+                if p >= raw.len() { break; }
+                lookup_indexed8(palette, raw[p], &mut dst[p * 4..p * 4 + 4]);
+            }
+        }
+        PixelFormat::Indexed8Alpha8 => {
+            for p in 0..npixels {
+                let src = p * 2;
+                if src + 1 >= raw.len() { break; }
+                let alpha = raw[src + 1];
+                if alpha == 0 { continue; }
+                let c = &palette[raw[src] as usize];
+                dst[p * 4]     = c[0];
+                dst[p * 4 + 1] = c[1];
+                dst[p * 4 + 2] = c[2];
+                dst[p * 4 + 3] = alpha;
+            }
+        }
+        PixelFormat::Rgba8 => {
+            let bytes = npixels * 4;
+            if bytes <= raw.len() {
+                dst[..bytes].copy_from_slice(&raw[..bytes]);
+            }
+        }
+    }
+}
+
+/// Find tight bounding box of non-transparent pixels in an RGBA buffer
+fn find_tight_bbox(buf: &[u8], fw: usize, fh: usize) -> (usize, usize, usize, usize) {
+    let mut min_r = fh; let mut max_r = 0usize;
+    let mut min_c = fw; let mut max_c = 0usize;
+    for row in 0..fh {
+        for col in 0..fw {
+            if buf[(row * fw + col) * 4 + 3] > 0 {
+                if row < min_r { min_r = row; }
+                if row + 1 > max_r { max_r = row + 1; }
+                if col < min_c { min_c = col; }
+                if col + 1 > max_c { max_c = col + 1; }
+            }
+        }
+    }
+    if min_r == fh {
+        // fully transparent frame — emit 1×1
+        (0, 1, 0, 1)
+    } else {
+        (min_r, max_r, min_c, max_c)
+    }
+}
+
 /// Decode frames as individual images (for MPC per-frame varying sizes)
+///
+/// `canvas_offsets_output`: optional, if provided receives per-frame i16 pairs
+/// [offset_x, offset_y, ...] indicating each frame's position within the canvas.
+/// When provided, tight-bbox cropping is applied to reduce GPU memory.
+/// When absent (MPC tiles), frames are decoded at their original sizes.
 #[wasm_bindgen]
 pub fn decode_msf_individual_frames(
     data: &[u8],
     pixel_output: &Uint8Array,
     frame_sizes_output: &Uint8Array,
     frame_offsets_output: &Uint8Array,
+    canvas_offsets_output: Option<Uint8Array>,
 ) -> u32 {
     let (_cw, _ch, frame_count, pf_byte, _, palette, entries, blob_start, flags) =
         match parse_msf_structure(data) {
@@ -400,71 +467,92 @@ pub fn decode_msf_individual_frames(
         }
     }
 
+    let do_tight_crop = canvas_offsets_output.is_some();
+
     let mut all_pixels = vec![0u8; total_pixel_bytes];
     let mut frame_sizes = vec![0u32; frame_count * 2];
     let mut frame_offsets = vec![0u32; frame_count];
+    let mut canvas_offsets = vec![0i16; frame_count * 2];
     let mut out_offset = 0usize;
+
+    // Temporary buffer for decoding one full frame before tight-crop (only needed for tight-crop)
+    let max_frame_pixels = entries.iter()
+        .map(|e| (e.width as usize) * (e.height as usize))
+        .max()
+        .unwrap_or(0);
+    let mut frame_buf = if do_tight_crop { vec![0u8; max_frame_pixels * 4] } else { Vec::new() };
 
     for (i, entry) in entries.iter().enumerate() {
         let fw = entry.width as usize;
         let fh = entry.height as usize;
 
         if fw == 0 || fh == 0 {
+            canvas_offsets[i * 2] = entry.offset_x;
+            canvas_offsets[i * 2 + 1] = entry.offset_y;
             frame_sizes[i * 2] = 1;
             frame_sizes[i * 2 + 1] = 1;
             frame_offsets[i] = out_offset as u32;
+            if out_offset + 4 <= all_pixels.len() {
+                all_pixels[out_offset..out_offset + 4].fill(0);
+            }
             out_offset += 4;
             continue;
         }
 
-        frame_sizes[i * 2] = fw as u32;
-        frame_sizes[i * 2 + 1] = fh as u32;
-        frame_offsets[i] = out_offset as u32;
-
         let blob_off = entry.data_offset as usize;
         let blob_len = entry.data_length as usize;
-
-        if blob_off + blob_len > blob.len() {
-            out_offset += fw * fh * 4;
-            continue;
-        }
-
-        let raw = &blob[blob_off..blob_off + blob_len];
         let npixels = fw * fh;
 
-        match pixel_format {
-            PixelFormat::Indexed8 => {
-                for p in 0..npixels {
-                    if p >= raw.len() { break; }
-                    let dst = out_offset + p * 4;
-                    lookup_indexed8(&palette, raw[p], &mut all_pixels[dst..dst + 4]);
-                }
-            }
-            PixelFormat::Indexed8Alpha8 => {
-                for p in 0..npixels {
-                    let src = p * 2;
-                    if src + 1 >= raw.len() { break; }
-                    let alpha = raw[src + 1];
-                    if alpha == 0 { continue; }
-                    let dst = out_offset + p * 4;
-                    let c = &palette[raw[src] as usize];
-                    all_pixels[dst] = c[0];
-                    all_pixels[dst + 1] = c[1];
-                    all_pixels[dst + 2] = c[2];
-                    all_pixels[dst + 3] = alpha;
-                }
-            }
-            PixelFormat::Rgba8 => {
-                let bytes = npixels * 4;
-                if bytes <= raw.len() {
-                    all_pixels[out_offset..out_offset + bytes].copy_from_slice(&raw[..bytes]);
-                }
-            }
-        }
+        if do_tight_crop {
+            // Decode into temp buffer, then tight-crop into output
+            let buf = &mut frame_buf[..npixels * 4];
+            buf.fill(0);
 
-        out_offset += npixels * 4;
+            if blob_off + blob_len <= blob.len() {
+                let raw = &blob[blob_off..blob_off + blob_len];
+                decode_frame_pixels(pixel_format, &palette, raw, buf, fw, fh);
+            }
+
+            let (r0, r1, c0, c1) = find_tight_bbox(buf, fw, fh);
+            let tw = c1 - c0;
+            let th = r1 - r0;
+
+            canvas_offsets[i * 2]     = entry.offset_x + c0 as i16;
+            canvas_offsets[i * 2 + 1] = entry.offset_y + r0 as i16;
+            frame_sizes[i * 2]        = tw as u32;
+            frame_sizes[i * 2 + 1]    = th as u32;
+            frame_offsets[i]          = out_offset as u32;
+
+            for row in r0..r1 {
+                let src_start = (row * fw + c0) * 4;
+                let dst_start = out_offset + (row - r0) * tw * 4;
+                let len = tw * 4;
+                if dst_start + len <= all_pixels.len() {
+                    all_pixels[dst_start..dst_start + len]
+                        .copy_from_slice(&buf[src_start..src_start + len]);
+                }
+            }
+
+            out_offset += tw * th * 4;
+        } else {
+            // No tight-crop: decode directly into output at original size
+            let frame_bytes = npixels * 4;
+            frame_sizes[i * 2] = fw as u32;
+            frame_sizes[i * 2 + 1] = fh as u32;
+            frame_offsets[i] = out_offset as u32;
+
+            if blob_off + blob_len <= blob.len() && out_offset + frame_bytes <= all_pixels.len() {
+                let raw = &blob[blob_off..blob_off + blob_len];
+                let dst = &mut all_pixels[out_offset..out_offset + frame_bytes];
+                dst.fill(0);
+                decode_frame_pixels(pixel_format, &palette, raw, dst, fw, fh);
+            }
+
+            out_offset += frame_bytes;
+        }
     }
 
+    // copy_from requires src.len() == dest.byte_length(), so copy the full buffer.
     pixel_output.copy_from(&all_pixels);
 
     let sizes_bytes: Vec<u8> = frame_sizes.iter().flat_map(|v| v.to_le_bytes()).collect();
@@ -472,6 +560,11 @@ pub fn decode_msf_individual_frames(
 
     let offsets_bytes: Vec<u8> = frame_offsets.iter().flat_map(|v| v.to_le_bytes()).collect();
     frame_offsets_output.copy_from(&offsets_bytes);
+
+    if let Some(ref co) = canvas_offsets_output {
+        let co_bytes: Vec<u8> = canvas_offsets.iter().flat_map(|v| v.to_le_bytes()).collect();
+        co.copy_from(&co_bytes);
+    }
 
     frame_count as u32
 }

@@ -3,6 +3,7 @@
 import { logger } from "../core/logger";
 import type { Renderer } from "../renderer/renderer";
 import { loadMpc } from "../resource/format/mpc";
+import { resourceLoader } from "../resource/resource-loader";
 import { ResourcePath } from "../resource/resource-paths";
 import { tileToPixel } from "../utils/coordinate";
 import { MapBase } from "./map-base";
@@ -130,14 +131,10 @@ function createMpcAtlas(mpc: Mpc): MpcAtlas {
  * 在切换地图前调用：遍历当前 mpcAtlases，
  * 通过 Renderer.releaseSourceTexture 释放对应的 GPU 纹理，
  * 避免切换地图后旧纹理在 WebGLRenderer.textures Map 中泄漏。
- * 注意：atlas canvas 本身保留在 mpcAtlasCache 中，下次加载同一地图时复用。
  */
 export function releaseMapTextures(mapRenderer: MapRenderer, renderer: Renderer): void {
   for (const atlas of mapRenderer.mpcAtlases) {
-    // 已收缩的 atlas（width=0）说明 GPU 纹理是通过 prewarm 上传的唯一副本，
-    // 不能释放：切换回该地图时需要通过 WeakMap 复用同一 TextureInfo。
-    // GPU 资源与 canvas 对象共存亡（GC 时由 FinalizationRegistry 自动清理）。
-    if (atlas && atlas.canvas.width > 0) {
+    if (atlas) {
       renderer.releaseSourceTexture(atlas.canvas);
     }
   }
@@ -150,8 +147,11 @@ export function releaseMapTextures(mapRenderer: MapRenderer, renderer: Renderer)
  * WebGL 只需要 GPU 纹理副本，canvas 本身保留作为 sourceTextureCache WeakMap 的 key。
  * Canvas2D 后端通过 prewarmSourceTexture 的空操作跳过此流程（仍需原始像素）。
  *
- * 同时清空 mpcAtlasCache，防止已收缩的 0×0 canvas 在切换地图后被复用导致渲染空白。
- * （Mpc 解析结果保留在 resourceLoader.parsedCache，下次加载同一地图时会重建 atlas）
+ * 预热后清空 mpcAtlasCache 和 MPC 解析缓存：
+ * - 0×0 canvas 不可复用于 atlas 重建
+ * - MPC 解析结果的 ImageData 已被 null，不可复用
+ * - 重访地图时从二进制缓存重新解码（WASM 解码很快）
+ * - 避免 Safari/iPad 因 GPU 纹理累积耗尽内存被杀进程
  */
 export function prewarmMpcAtlasTextures(
   mpcAtlases: (MpcAtlas | null)[],
@@ -163,15 +163,18 @@ export function prewarmMpcAtlasTextures(
   for (const atlas of mpcAtlases) {
     if (!atlas || atlas.canvas.width === 0) continue;
     renderer.prewarmSourceTexture(atlas.canvas);
-    // 收缩 canvas 释放 CPU 像素数据；canvas 对象仍保留作为 WeakMap key。
-    // 不清空 mpcAtlasCache：缓存保留 0×0 canvas 条目，切换回同一地图时可直接
-    // 通过 WeakMap 找到 TextureInfo（GPU 纹理），无需重建 atlas。
+    // 收缩 canvas 释放 CPU 像素数据；canvas 对象仍保留作为 WeakMap key
     atlas.canvas.width = 0;
     atlas.canvas.height = 0;
     freed++;
   }
 
-  logger.info(`[MapRenderer] Prewarm: ${freed} MPC atlas textures uploaded, canvas backing stores freed`);
+  // 清空 atlas 缓存：0×0 canvas 不可复用，重访地图时从二进制缓存重新解码重建
+  mpcAtlasCache.clear();
+  // 清空 MPC 解析缓存：帧 ImageData 已 null，需重新解码才能重建 atlas
+  resourceLoader.clearCache("mpc");
+
+  logger.info(`[MapRenderer] Prewarm: ${freed} MPC atlas textures uploaded, caches cleared`);
 }
 
 /** 加载地图的所有 MSF/MPC 文件 */

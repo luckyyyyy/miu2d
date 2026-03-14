@@ -384,6 +384,10 @@ export class Canvas2DRenderer implements Renderer {
     return { ...this.lastFrameStats };
   }
 
+  getMemoryBytes(): number {
+    return 0; // Canvas2D 不管理 GPU 纹理
+  }
+
   getCanvas(): HTMLCanvasElement | null {
     return this.canvas;
   }

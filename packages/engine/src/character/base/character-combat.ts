@@ -330,15 +330,23 @@ export abstract class CharacterCombat extends CharacterMovement {
     return totalEffect;
   }
 
+  // C++ Reference: NPC::beginHurt / Player::beginHurt
+  // 受伤动画经过的时间（毫秒），用于时基终止检测
+  protected _hurtElapsedMs: number = 0;
+  // 受伤动画最大时长（毫秒），等于 framesPerDirection * interval
+  protected _hurtDurationMs: number = 0;
+
   /**
-   * 播放受伤动画（25% 概率触发）
+   * 播放受伤动画
+   *
+   * C++ Reference: beginHurt()
+   * - 原版 C++ 无随机跳过：beginHurt() 在满足条件时必然触发
+   * - 概率判断由调用方（Player::hurt / NPC::hurt）通过闪避值控制
+   *   Player: getRand(100) > getEvade()
+   *   NPC:    getRand(20 + getEvade()) >= getEvade()
+   * - 终止条件：时间到达 actionLastTime（时基），而非帧计数
    */
   hurting(): void {
-    // 闪避值已在命中判定中消费，此处不再使用
-    if (Math.floor(Math.random() * 4) !== 0) {
-      return;
-    }
-
     if (this.petrifiedSeconds > 0) {
       return;
     }
@@ -347,6 +355,7 @@ export abstract class CharacterCombat extends CharacterMovement {
       return;
     }
 
+    // C++ Reference: isHurting() guard
     if (
       this._state === CharacterState.Death ||
       this._state === CharacterState.Hurt ||
@@ -356,11 +365,26 @@ export abstract class CharacterCombat extends CharacterMovement {
       return;
     }
 
+    // C++ Reference: Player::hurt — getRand(100) > getEvade()
+    //               NPC::hurt   — getRand(20 + getEvade()) >= getEvade()
+    // 用闪避值决定受伤动画触发概率，而非固定 25%
+    const evade = this.realEvade;
+    const threshold = this.isPlayer ? 100 : 20 + evade;
+    if (Math.floor(Math.random() * threshold) < evade) {
+      return;
+    }
+
     this.stateInitialize();
 
+    // C++ Reference: canDoAction(acHurt) check
     if (this.isStateImageOk(CharacterState.Hurt)) {
       this.state = CharacterState.Hurt;
       this.playCurrentDirOnce();
+      // C++ Reference: actionBeginTime = getUpdateTime(); actionLastTime = getActionTime(acHurt)
+      this._hurtElapsedMs = 0;
+      const framesPerDir = this._texture?.framesPerDirection ?? 1;
+      const interval = this._texture?.interval ?? 100;
+      this._hurtDurationMs = framesPerDir * interval;
     }
   }
 

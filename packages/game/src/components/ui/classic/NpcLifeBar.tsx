@@ -188,6 +188,23 @@ export const NpcLifeBar: React.FC<NpcLifeBarProps> = ({ npc, screenWidth }) => {
           {npc.name}
         </div>
       )}
+      {/* Lv + HP info below the bar */}
+      <div
+        style={{
+          position: "absolute",
+          left: 0,
+          top: height,
+          width: width,
+          textAlign: "center",
+          color: "rgba(210, 210, 210, 0.9)",
+          fontSize: "11px",
+          fontFamily: "'Noto Serif SC', 'SimSun', serif",
+          textShadow: "1px 1px 2px rgba(0,0,0,0.9)",
+          whiteSpace: "nowrap",
+        }}
+      >
+        {`Lv.${npc!.level}  ${npc!.life}/${npc!.lifeMax}`}
+      </div>
     </div>
   );
 };

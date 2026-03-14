@@ -66,6 +66,8 @@ function decodeOriginalAsf(wasmModule: WasmModule, data: Uint8Array): AsfData | 
       height: header.height,
       imageData,
       canvas: null,
+      canvasOffsetX: 0,
+      canvasOffsetY: 0,
     });
   }
 
@@ -95,35 +97,43 @@ function decodeMsf(
     return null;
   }
 
-  const frameSize = header.canvas_width * header.canvas_height * 4;
-  const totalSize = frameSize * header.frame_count;
+  // 使用 tight-bbox 解码（减少 GPU 内存）
+  const allPixelData = new Uint8Array(header.total_individual_pixel_bytes);
+  const frameSizesOutput = new Uint8Array(header.frame_count * 2 * 4);
+  const frameOffsetsOutput = new Uint8Array(header.frame_count * 4);
+  const canvasOffsetsOutput = new Uint8Array(header.frame_count * 2 * 2);
 
-  // 预分配输出 buffer
-  const allPixelData = new Uint8Array(totalSize);
-
-  // 解码所有帧
-  const frameCount = wasmModule.decode_msf_frames(data, allPixelData);
+  const frameCount = wasmModule.decode_msf_individual_frames(
+    data,
+    allPixelData,
+    frameSizesOutput,
+    frameOffsetsOutput,
+    canvasOffsetsOutput
+  );
   if (frameCount === 0) {
     return null;
   }
 
-  // 切分成各帧
-  const frames: AsfFrame[] = [];
-  for (let i = 0; i < header.frame_count; i++) {
-    const offset = i * frameSize;
-    const pixelData = allPixelData.subarray(offset, offset + frameSize);
+  const frameSizes = new Uint32Array(frameSizesOutput.buffer);
+  const frameOffsets = new Uint32Array(frameOffsetsOutput.buffer);
+  const canvasOffsets = new Int16Array(canvasOffsetsOutput.buffer);
 
-    const imageData = new ImageData(
-      new Uint8ClampedArray(pixelData),
-      header.canvas_width,
-      header.canvas_height
-    );
+  const frames: AsfFrame[] = [];
+  for (let i = 0; i < frameCount; i++) {
+    const w = frameSizes[i * 2];
+    const h = frameSizes[i * 2 + 1];
+    const offset = frameOffsets[i];
+    const size = w * h * 4;
+    const pixelData = new Uint8ClampedArray(size);
+    pixelData.set(allPixelData.subarray(offset, offset + size));
 
     frames.push({
-      width: header.canvas_width,
-      height: header.canvas_height,
-      imageData,
+      width: w,
+      height: h,
+      imageData: new ImageData(pixelData, w, h),
       canvas: null,
+      canvasOffsetX: canvasOffsets[i * 2],
+      canvasOffsetY: canvasOffsets[i * 2 + 1],
     });
   }
 

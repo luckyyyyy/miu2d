@@ -879,6 +879,22 @@ export class GameEngine implements EngineContext {
     const info = r ? { type: r.type, ...r.getStats() } : undefined;
     return this.performanceStats.getStats(info);
   }
+
+  /**
+   * 获取实际内存占用（字节）
+   *
+   * - gpuTextureBytes: WebGL GPU 纹理 (width×height×4 累加，来自 textures Map)
+   * - asfAtlasCpuBytes: ASF atlas canvas CPU 内存 (来自 spriteCache)
+   * - jsHeapBytes: JS 堆（仅 Chrome 支持 performance.memory，其他浏览器为 0）
+   */
+  getMemoryStats(): { gpuTextureBytes: number; asfAtlasCpuBytes: number; jsHeapBytes: number } {
+    const gpuTextureBytes = this._renderer?.getMemoryBytes() ?? 0;
+    const asfAtlasCpuBytes = Sprite.getAsfCacheMemoryBytes();
+    const jsHeapBytes =
+      (performance as Performance & { memory?: { usedJSHeapSize: number } }).memory
+        ?.usedJSHeapSize ?? 0;
+    return { gpuTextureBytes, asfAtlasCpuBytes, jsHeapBytes };
+  }
 }
 
 export function createGameEngine(config: GameEngineConfig): GameEngine {

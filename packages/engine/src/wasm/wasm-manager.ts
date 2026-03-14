@@ -62,7 +62,8 @@ export interface WasmModule {
     data: Uint8Array,
     pixelOutput: Uint8Array,
     frameSizesOutput: Uint8Array,
-    frameOffsetsOutput: Uint8Array
+    frameOffsetsOutput: Uint8Array,
+    canvasOffsetsOutput?: Uint8Array
   ): number;
   // MPC 解码
   parse_mpc_header(data: Uint8Array): WasmMpcHeader | undefined;

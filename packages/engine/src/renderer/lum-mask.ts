@@ -138,7 +138,10 @@ function collectLumSources(
   objsInView: readonly Obj[],
   npcsInView: readonly Npc[],
   magicSprites: Map<number, MagicSprite>,
-  effectSprites: Map<number, MagicSprite>
+  effectSprites: Map<number, MagicSprite>,
+  playerLum: number,
+  playerTile: { x: number; y: number } | null,
+  playerPixel: { x: number; y: number } | null
 ): LumSource[] {
   // 每个 tile 最多绘制一次光晕（与 C++ break 行为一致，防止同 tile 多精灵叠亮）
   const drawnTiles = new Set<string>();
@@ -185,6 +188,11 @@ function collectLumSources(
     }
   }
 
+  // 玩家自身光源（SetPlayerLum）
+  if (playerTile !== null && playerPixel !== null && shouldGlow(playerLum)) {
+    tryAdd(playerTile.x, playerTile.y, playerPixel.x - cameraX, playerPixel.y - cameraY);
+  }
+
   return sources;
 }
 
@@ -220,7 +228,10 @@ export function drawLightingPass(
   objsInView: readonly Obj[],
   npcsInView: readonly Npc[],
   magicSprites: Map<number, MagicSprite>,
-  effectSprites: Map<number, MagicSprite>
+  effectSprites: Map<number, MagicSprite>,
+  playerLum: number,
+  playerTile: { x: number; y: number } | null,
+  playerPixel: { x: number; y: number } | null
 ): void {
   const dark = computeAmbientDarkColor(mainLum, mapTime);
   const hasTint = tint !== null && !(tint.r === 255 && tint.g === 255 && tint.b === 255);
@@ -271,7 +282,10 @@ export function drawLightingPass(
     objsInView,
     npcsInView,
     magicSprites,
-    effectSprites
+    effectSprites,
+    playerLum,
+    playerTile,
+    playerPixel
   );
 
   if (hasGlow && lumSources.length > 0) {

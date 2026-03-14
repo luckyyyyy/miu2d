@@ -212,6 +212,12 @@ export interface Renderer {
   getStats(): RenderStats;
 
   /**
+   * 计算 GPU 纹理内存占用字节数（width * height * 4 累加）
+   * Canvas2D 后端返回 0
+   */
+  getMemoryBytes(): number;
+
+  /**
    * 获取底层 canvas 元素（用于截图等场景）
    */
   getCanvas(): HTMLCanvasElement | null;

@@ -1104,10 +1104,4 @@ export function getResolvedConfigs(): ResolvedUiConfigs | null {
   return cachedResolved;
 }
 
-/**
- * 重置缓存（切换游戏时调用）
- */
-export function resetUISettingsCache(): void {
-  cachedTheme = null;
-  cachedResolved = null;
-}
+

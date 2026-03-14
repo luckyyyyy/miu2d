@@ -210,8 +210,13 @@ export function decode_msf_frames(data: Uint8Array, output: Uint8Array): number;
 
 /**
  * Decode frames as individual images (for MPC per-frame varying sizes)
+ *
+ * `canvas_offsets_output`: optional, if provided receives per-frame i16 pairs
+ * [offset_x, offset_y, ...] indicating each frame's position within the canvas.
+ * When provided, tight-bbox cropping is applied to reduce GPU memory.
+ * When absent (MPC tiles), frames are decoded at their original sizes.
  */
-export function decode_msf_individual_frames(data: Uint8Array, pixel_output: Uint8Array, frame_sizes_output: Uint8Array, frame_offsets_output: Uint8Array): number;
+export function decode_msf_individual_frames(data: Uint8Array, pixel_output: Uint8Array, frame_sizes_output: Uint8Array, frame_offsets_output: Uint8Array, canvas_offsets_output?: Uint8Array | null): number;
 
 /**
  * 初始化 WASM 模块
@@ -324,7 +329,7 @@ export interface InitOutput {
     readonly __wbg_set_msfheader_frames_per_direction: (a: number, b: number) => void;
     readonly parse_msf_header: (a: number, b: number) => number;
     readonly decode_msf_frames: (a: number, b: number, c: any) => number;
-    readonly decode_msf_individual_frames: (a: number, b: number, c: any, d: any, e: any) => number;
+    readonly decode_msf_individual_frames: (a: number, b: number, c: any, d: any, e: any, f: number) => number;
     readonly __wbg_pathfinder_free: (a: number, b: number) => void;
     readonly pathfinder_new: (a: number, b: number) => number;
     readonly pathfinder_set_obstacle: (a: number, b: number, c: number, d: number, e: number) => void;
@@ -360,6 +365,7 @@ export interface InitOutput {
     readonly __wbindgen_malloc: (a: number, b: number) => number;
     readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
     readonly __wbindgen_externrefs: WebAssembly.Table;
+    readonly __externref_table_alloc: () => number;
     readonly __externref_table_dealloc: (a: number) => void;
     readonly __wbindgen_start: () => void;
 }

@@ -30,6 +30,7 @@ function formatMB(bytes: number): string {
 
 interface PerformanceSectionProps {
   performanceStats: PerformanceStatsData;
+  memoryStats?: { gpuTextureBytes: number; asfAtlasCpuBytes: number; jsHeapBytes: number };
 }
 
 /**
@@ -62,7 +63,10 @@ function getRendererLabel(type: string): { label: string; color: string } {
   }
 }
 
-export const PerformanceSection: React.FC<PerformanceSectionProps> = ({ performanceStats }) => {
+export const PerformanceSection: React.FC<PerformanceSectionProps> = ({
+  performanceStats,
+  memoryStats,
+}) => {
   const [memInfo, setMemInfo] = useState<MemoryInfo | null>(() => readMemoryInfo());
 
   useEffect(() => {
@@ -165,8 +169,44 @@ export const PerformanceSection: React.FC<PerformanceSectionProps> = ({ performa
           />
         </div>
 
+        {/* GPU + ASF 内存（引擎精确统计） */}
+        {memoryStats && (
+          <div className="space-y-px">
+            <div className="text-[10px] text-[#969696] uppercase">内存占用</div>
+            <DataRow
+              label="GPU 纹理"
+              value={formatMB(memoryStats.gpuTextureBytes)}
+              valueColor={
+                memoryStats.gpuTextureBytes > 300 * 1048576
+                  ? "text-[#f87171]"
+                  : memoryStats.gpuTextureBytes > 150 * 1048576
+                    ? "text-[#fbbf24]"
+                    : "text-[#4ade80]"
+              }
+            />
+            <DataRow
+              label="精灵图集 CPU"
+              value={formatMB(memoryStats.asfAtlasCpuBytes)}
+              valueColor={
+                memoryStats.asfAtlasCpuBytes > 300 * 1048576
+                  ? "text-[#f87171]"
+                  : memoryStats.asfAtlasCpuBytes > 150 * 1048576
+                    ? "text-[#fbbf24]"
+                    : "text-[#4ade80]"
+              }
+            />
+            {memoryStats.jsHeapBytes > 0 && (
+              <DataRow
+                label="JS 堆"
+                value={formatMB(memoryStats.jsHeapBytes)}
+                valueColor="text-[#d4d4d4]"
+              />
+            )}
+          </div>
+        )}
+
         {/* JS 堆内存（Chrome/Edge 专有） */}
-        {memInfo && (
+        {memInfo && !memoryStats && (
           <div className="space-y-px">
             <div className="text-[10px] text-[#969696] uppercase">JS 堆内存</div>
             <DataRow label="已用" value={formatMB(memInfo.used)} valueColor="text-[#4ade80]" />

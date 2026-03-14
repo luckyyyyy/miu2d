@@ -12,6 +12,7 @@ import type { ColorFilter } from "../renderer/types";
 import {
   type AsfData,
   type AsfFrame,
+  getAsfAtlasMemoryBytes,
   getFrameAtlasInfo,
   getFrameCanvas,
   getFrameIndex,
@@ -597,14 +598,12 @@ export class Sprite {
     const frameIdx = getFrameIndex(this._texture, dir, this._currentFrameIndex);
 
     if (frameIdx >= 0 && frameIdx < this._texture.frames.length) {
-      const drawX = screenX - this._texture.left + offX;
-      const drawY = screenY - this._texture.bottom + offY;
-
       // 使用 atlas 绘制（同一 ASF 的所有帧共享一张纹理，减少纹理切换）
-      const { canvas, srcX, srcY, srcWidth, srcHeight } = getFrameAtlasInfo(
-        this._texture,
-        frameIdx
-      );
+      const { canvas, srcX, srcY, srcWidth, srcHeight, canvasOffsetX, canvasOffsetY } =
+        getFrameAtlasInfo(this._texture, frameIdx);
+      const drawX = screenX - this._texture.left + offX + canvasOffsetX;
+      const drawY = screenY - this._texture.bottom + offY + canvasOffsetY;
+
       const filter = COLOR_FILTER_MAP[color];
       renderer.drawSourceEx(canvas, drawX, drawY, {
         srcX,
@@ -633,8 +632,8 @@ export class Sprite {
     if (frameIdx >= 0 && frameIdx < this._texture.frames.length) {
       const frame = this._texture.frames[frameIdx];
       const canvas = getFrameCanvas(frame);
-      const drawX = screenX - this._texture.left;
-      const drawY = screenY - this._texture.bottom;
+      const drawX = screenX - this._texture.left + (frame.canvasOffsetX ?? 0);
+      const drawY = screenY - this._texture.bottom + (frame.canvasOffsetY ?? 0);
       // 高亮边缘仍用 per-frame canvas（需要像素操作）
       renderer.drawSource(getOuterEdge(canvas, highlightColor), drawX, drawY);
     }
@@ -658,5 +657,13 @@ export class Sprite {
 
   static clearCache(): void {
     spriteCache.clear();
+  }
+
+  /**
+   * 计算所有已缓存 ASF atlas canvas 的 CPU 内存占用（字节）
+   * 通过 resourceLoader parsedCache 中 asf: 前缀条目计算，能覆盖所有加载路径
+   */
+  static getAsfCacheMemoryBytes(): number {
+    return getAsfAtlasMemoryBytes();
   }
 }

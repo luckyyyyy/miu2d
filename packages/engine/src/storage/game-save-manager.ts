@@ -689,6 +689,9 @@ export class Loader {
           if (data.option.fadeLum !== undefined) {
             screenEffects.setFadeLum(data.option.fadeLum);
           }
+          if (data.option.playerLum !== undefined) {
+            screenEffects.setPlayerLum(data.option.playerLum);
+          }
         }
 
         // 恢复计时器状态
@@ -818,6 +821,7 @@ export class Loader {
         isDropGoodWhenDefeatEnemyDisabled: !isDropEnabled(),
         mainLum: screenEffects.getMainLum(),
         fadeLum: screenEffects.getFadeLum(),
+        playerLum: screenEffects.getPlayerLum(),
       },
 
       // 计时器

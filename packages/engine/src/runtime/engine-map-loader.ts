@@ -19,8 +19,10 @@ import { loadMapMpcs, prewarmMpcAtlasTextures, releaseMapTextures } from "../map
 import type { MiuMapData } from "../map/types";
 import type { Renderer } from "../renderer/renderer";
 import type { ScreenEffects } from "../renderer/screen-effects";
+import { clearAsfCache } from "../resource/format/asf";
 import { parseMMF } from "../resource/format/mmf";
 import { resourceLoader } from "../resource/resource-loader";
+import { Sprite } from "../sprite/sprite";
 import { ResourcePath } from "../resource/resource-paths";
 import { parseScript } from "../script/parser";
 import { initWasmPathfinder, syncStaticObstacles } from "../wasm/wasm-path-finder";
@@ -130,6 +132,13 @@ export async function handleMapChange(
       if (renderer) {
         releaseMapTextures(mapRenderer, renderer);
       }
+
+      // 清理 ASF sprite 缓存：atlas canvas 是 CPU+GPU 双份内存大户
+      // （单文件最大 38MB，中都地图 ~100 个 NPC × 多个动作状态 ≈ GB 级），
+      // 不清理会跨地图累积，在 iPad 等内存受限设备上导致进程被杀。
+      // ASF 二进制数据保留在 resourceLoader binary cache，重进地图时 WASM 重新解码构建。
+      Sprite.clearCache();
+      clearAsfCache();
 
       // 加载地图 MSF 资源
       await loadMapMpcs(mapRenderer, mapData, mapName, (progress) => {

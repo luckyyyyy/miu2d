@@ -939,6 +939,24 @@ class ResourceLoaderImpl {
   }
 
   /**
+   * 计算 parsedCache 中所有 ASF atlas canvas 的 CPU 内存估算（字节）
+   * 通过遍历 asf: 前缀条目，累加 atlas.canvas.width * height * 4
+   */
+  getAsfAtlasBytes(): number {
+    let total = 0;
+    const seen = new Set<HTMLCanvasElement>();
+    for (const [key, entry] of this.parsedCache) {
+      if (!key.startsWith("asf:")) continue;
+      const asf = entry.data as { atlas?: { canvas: HTMLCanvasElement } };
+      const canvas = asf?.atlas?.canvas;
+      if (!canvas || seen.has(canvas)) continue;
+      seen.add(canvas);
+      total += canvas.width * canvas.height * 4;
+    }
+    return total;
+  }
+
+  /**
    * 获取统计信息
    */
   getStats(): ResourceStats {

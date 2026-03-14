@@ -795,16 +795,22 @@ export function decode_msf_frames(data, output) {
 
 /**
  * Decode frames as individual images (for MPC per-frame varying sizes)
+ *
+ * `canvas_offsets_output`: optional, if provided receives per-frame i16 pairs
+ * [offset_x, offset_y, ...] indicating each frame's position within the canvas.
+ * When provided, tight-bbox cropping is applied to reduce GPU memory.
+ * When absent (MPC tiles), frames are decoded at their original sizes.
  * @param {Uint8Array} data
  * @param {Uint8Array} pixel_output
  * @param {Uint8Array} frame_sizes_output
  * @param {Uint8Array} frame_offsets_output
+ * @param {Uint8Array | null} [canvas_offsets_output]
  * @returns {number}
  */
-export function decode_msf_individual_frames(data, pixel_output, frame_sizes_output, frame_offsets_output) {
+export function decode_msf_individual_frames(data, pixel_output, frame_sizes_output, frame_offsets_output, canvas_offsets_output) {
     const ptr0 = passArray8ToWasm0(data, wasm.__wbindgen_malloc);
     const len0 = WASM_VECTOR_LEN;
-    const ret = wasm.decode_msf_individual_frames(ptr0, len0, pixel_output, frame_sizes_output, frame_offsets_output);
+    const ret = wasm.decode_msf_individual_frames(ptr0, len0, pixel_output, frame_sizes_output, frame_offsets_output, isLikeNone(canvas_offsets_output) ? 0 : addToExternrefTable0(canvas_offsets_output));
     return ret >>> 0;
 }
 
@@ -986,6 +992,12 @@ const SpatialHashFinalization = (typeof FinalizationRegistry === 'undefined')
     ? { register: () => {}, unregister: () => {} }
     : new FinalizationRegistry(ptr => wasm.__wbg_spatialhash_free(ptr >>> 0, 1));
 
+function addToExternrefTable0(obj) {
+    const idx = wasm.__externref_table_alloc();
+    wasm.__wbindgen_externrefs.set(idx, obj);
+    return idx;
+}
+
 function getArrayI32FromWasm0(ptr, len) {
     ptr = ptr >>> 0;
     return getInt32ArrayMemory0().subarray(ptr / 4, ptr / 4 + len);
@@ -1044,6 +1056,10 @@ function getUint8ArrayMemory0() {
         cachedUint8ArrayMemory0 = new Uint8Array(wasm.memory.buffer);
     }
     return cachedUint8ArrayMemory0;
+}
+
+function isLikeNone(x) {
+    return x === undefined || x === null;
 }
 
 function passArray8ToWasm0(arg, malloc) {

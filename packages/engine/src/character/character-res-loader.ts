@@ -105,6 +105,8 @@ function mpcToAsfData(mpc: import("../map/types").Mpc): AsfData {
       height: frame.height,
       imageData: frame.imageData,
       canvas: null, // Will be created on first render if needed
+      canvasOffsetX: 0,
+      canvasOffsetY: 0,
     })),
     isLoaded: true,
   };

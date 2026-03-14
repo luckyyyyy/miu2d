@@ -100,19 +100,48 @@ function sendToWorker(
 
 function buildAsfFromPayload(payload: AsfPayload): AsfData {
   const { width, height, frameCount } = payload;
-  const frameSize = width * height * 4;
   const allPixels = new Uint8Array(payload.pixelBuffer);
-
   const frames: AsfFrame[] = [];
-  for (let i = 0; i < frameCount; i++) {
-    const offset = i * frameSize;
-    const slice = new Uint8ClampedArray(allPixels.buffer, offset, frameSize);
-    frames.push({
-      width,
-      height,
-      imageData: new ImageData(slice, width, height),
-      canvas: null,
-    });
+
+  if (payload.frameSizesBuffer && payload.frameOffsetsBuffer) {
+    // Tight-bbox per-frame decoding (MSF path)
+    const frameSizes = new Uint32Array(payload.frameSizesBuffer);
+    const frameOffsets = new Uint32Array(payload.frameOffsetsBuffer);
+    const canvasOffsets = payload.canvasOffsetsBuffer
+      ? new Int16Array(payload.canvasOffsetsBuffer)
+      : null;
+
+    for (let i = 0; i < frameCount; i++) {
+      const w = frameSizes[i * 2];
+      const h = frameSizes[i * 2 + 1];
+      const offset = frameOffsets[i];
+      const size = w * h * 4;
+      const slice = new Uint8ClampedArray(size);
+      slice.set(allPixels.subarray(offset, offset + size));
+      frames.push({
+        width: w,
+        height: h,
+        imageData: new ImageData(slice, w, h),
+        canvas: null,
+        canvasOffsetX: canvasOffsets ? canvasOffsets[i * 2] : 0,
+        canvasOffsetY: canvasOffsets ? canvasOffsets[i * 2 + 1] : 0,
+      });
+    }
+  } else {
+    // Legacy uniform-sized decoding (old ASF path)
+    const frameSize = width * height * 4;
+    for (let i = 0; i < frameCount; i++) {
+      const offset = i * frameSize;
+      const slice = new Uint8ClampedArray(allPixels.buffer, offset, frameSize);
+      frames.push({
+        width,
+        height,
+        imageData: new ImageData(slice, width, height),
+        canvas: null,
+        canvasOffsetX: 0,
+        canvasOffsetY: 0,
+      });
+    }
   }
 
   return {

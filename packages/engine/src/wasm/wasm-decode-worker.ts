@@ -35,7 +35,9 @@ async function ensureWasm(): Promise<void> {
 
 export interface AsfPayload {
   kind: "asf";
+  /** Canvas width (used for anchor positioning) */
   width: number;
+  /** Canvas height (used for anchor positioning) */
   height: number;
   frameCount: number;
   directions: number;
@@ -45,8 +47,14 @@ export interface AsfPayload {
   bottom: number;
   framesPerDirection: number;
   pixelFormat: number;
-  /** 所有帧的像素数据（RGBA，连续存储，每帧占 width*height*4 字节） */
+  /** 所有帧的像素数据（RGBA，连续存储） */
   pixelBuffer: ArrayBuffer;
+  /** Per-frame sizes [w0,h0,w1,h1,...] — tight bounding box. Absent → all frames are width×height */
+  frameSizesBuffer?: ArrayBuffer;
+  /** Per-frame pixel offsets in pixelBuffer [off0,off1,...] */
+  frameOffsetsBuffer?: ArrayBuffer;
+  /** Per-frame canvas offsets [ox0,oy0,ox1,oy1,...] — position of tight bbox within canvas */
+  canvasOffsetsBuffer?: ArrayBuffer;
 }
 
 function decodeAsfInWorker(data: Uint8Array): AsfPayload | null {
@@ -59,10 +67,19 @@ function decodeAsfInWorker(data: Uint8Array): AsfPayload | null {
     const header = wasm.parse_msf_header(data);
     if (!header) return null;
 
-    const frameSize = header.canvas_width * header.canvas_height * 4;
-    const allPixels = new Uint8Array(frameSize * header.frame_count);
+    // Decode as tight-bbox individual frames instead of canvas-sized
+    const pixelOutput = new Uint8Array(header.total_individual_pixel_bytes);
+    const frameSizesOutput = new Uint8Array(header.frame_count * 2 * 4);
+    const frameOffsetsOutput = new Uint8Array(header.frame_count * 4);
+    const canvasOffsetsOutput = new Uint8Array(header.frame_count * 2 * 2); // i16 pairs
 
-    const decoded = wasm.decode_msf_frames(data, allPixels);
+    const decoded = wasm.decode_msf_individual_frames(
+      data,
+      pixelOutput,
+      frameSizesOutput,
+      frameOffsetsOutput,
+      canvasOffsetsOutput
+    );
     if (decoded === 0) return null;
 
     const interval = header.fps > 0 ? Math.round(1000 / header.fps) : 67;
@@ -78,7 +95,10 @@ function decodeAsfInWorker(data: Uint8Array): AsfPayload | null {
       bottom: header.anchor_y,
       framesPerDirection: header.frames_per_direction,
       pixelFormat: header.pixel_format,
-      pixelBuffer: allPixels.buffer,
+      pixelBuffer: pixelOutput.buffer,
+      frameSizesBuffer: frameSizesOutput.buffer,
+      frameOffsetsBuffer: frameOffsetsOutput.buffer,
+      canvasOffsetsBuffer: canvasOffsetsOutput.buffer,
     };
   }
 
@@ -228,6 +248,9 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
         return;
       }
       const transfers: Transferable[] = [payload.pixelBuffer];
+      if (payload.frameSizesBuffer) transfers.push(payload.frameSizesBuffer);
+      if (payload.frameOffsetsBuffer) transfers.push(payload.frameOffsetsBuffer);
+      if (payload.canvasOffsetsBuffer) transfers.push(payload.canvasOffsetsBuffer);
       (self as unknown as Worker).postMessage(
         { id, ok: true, payload } satisfies WorkerResponse,
         transfers

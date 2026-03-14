@@ -534,6 +534,18 @@ export class WebGLRenderer implements Renderer {
     return { ...this.lastFrameStats };
   }
 
+  /**
+   * 计算当前 GPU 纹理内存占用（字节）
+   * 来自 textures Map 中每个纹理的 width * height * 4 (RGBA)
+   */
+  getMemoryBytes(): number {
+    let total = 0;
+    for (const tex of this.textures.values()) {
+      total += tex.width * tex.height * 4;
+    }
+    return total;
+  }
+
   getCanvas(): HTMLCanvasElement | null {
     return this.canvas;
   }

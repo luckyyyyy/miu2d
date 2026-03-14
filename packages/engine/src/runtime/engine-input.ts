@@ -68,6 +68,12 @@ export class EngineInput {
     this.state.mouseY = screenY;
     this.state.mouseWorldX = worldX;
     this.state.mouseWorldY = worldY;
+    // 存储 canvas 像素坐标（= 世界坐标 - 相机偏移），不受画面缩放和相机变化影响
+    const camera = this.deps.getMapCamera();
+    if (camera) {
+      this.state.mouseCanvasX = worldX - camera.x;
+      this.state.mouseCanvasY = worldY - camera.y;
+    }
 
     // Update clickedTile while mouse is held down
     // This enables continuous walking by holding mouse button
@@ -95,6 +101,11 @@ export class EngineInput {
     }
     this.state.mouseWorldX = worldX;
     this.state.mouseWorldY = worldY;
+    const camera = this.deps.getMapCamera();
+    if (camera) {
+      this.state.mouseCanvasX = worldX - camera.x;
+      this.state.mouseCanvasY = worldY - camera.y;
+    }
 
     // 设置点击瓦片 - Ctrl+Click(攻击) 或 Alt+Click(跳跃) 不设置，防止触发移动
     if (!ctrlKey && !altKey) {
@@ -113,6 +124,25 @@ export class EngineInput {
       this.state.clickedTile = null;
     }
     this.deps.getInputHandler().handleMouseUp(isRightButton);
+  }
+
+  /**
+   * 每帧更新：鼠标按住时，根据当前相机位置重算世界坐标和 clickedTile
+   * C++ 参考：GameController::onEvent 每帧调用 getMousePosition + getMousePosition(camera)
+   * 浏览器 mousemove 事件仅在鼠标物理移动时触发，但相机跟随玩家移动后，
+   * 同一屏幕坐标对应的世界坐标已改变，需要每帧重算
+   */
+  updateHeldMouseWorldPosition(): void {
+    if (!this.state.isMouseDown) return;
+    const camera = this.deps.getMapCamera();
+    if (!camera) return;
+    // mouseCanvasX/Y 是 canvas 像素坐标（已处理画面缩放），与相机无关
+    // 每帧加上当前相机偏移得到最新世界坐标，与 C++ getMousePosition(camera) 逻辑一致
+    const worldX = this.state.mouseCanvasX + camera.x;
+    const worldY = this.state.mouseCanvasY + camera.y;
+    this.state.mouseWorldX = worldX;
+    this.state.mouseWorldY = worldY;
+    this.state.clickedTile = pixelToTile(worldX, worldY);
   }
 
   /**

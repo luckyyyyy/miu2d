@@ -25,6 +25,7 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({
   loadedResources,
   resourceStats,
   performanceStats,
+  memoryStats,
   gameVariables,
   xiuLianMagic,
   triggeredTrapIds,
@@ -59,7 +60,9 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({
         style={{ scrollbarWidth: "thin", scrollbarColor: "#444 transparent" }}
       >
         {/* 性能统计 */}
-        {performanceStats && <PerformanceSection performanceStats={performanceStats} />}
+        {performanceStats && (
+          <PerformanceSection performanceStats={performanceStats} memoryStats={memoryStats} />
+        )}
 
         {/* 角色状态 */}
         {playerStats && (

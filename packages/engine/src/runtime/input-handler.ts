@@ -539,20 +539,6 @@ export class InputHandler {
   }
 
   /**
-   * Attack an NPC - walk to target and attack
-   * click on enemy NPC
-   */
-  private attackNpc(npc: Npc): void {
-    const player = this.player;
-
-    // Set auto attack target and start attacking
-    player.setAutoAttackTarget(npc, false); // isRun = false for now
-    player.attacking(npc.tilePosition, false);
-
-    logger.log(`[InputHandler] Start attacking NPC: ${npc.name}`);
-  }
-
-  /**
    * Attack an NPC using specified character (for ControledCharacter support)
    * character.Attacking(target.TilePosition, isRun)
    */

@@ -102,24 +102,6 @@ export function registerCacheBuilder(builder: () => void | Promise<void>): void 
   cacheBuilders.add(builder);
 }
 
-/**
- * 重置所有游戏数据状态（用于切换游戏 / 单元测试清理）。
- * 注意：cacheBuilders 不清空——各模块的注册在模块初始化时完成，不随游戏切换变化。
- */
-export function resetGameData(): void {
-  state.slug = "";
-  state.config = null;
-  state.isConfigLoaded = false;
-  state.configPromises.clear();
-  state.data = null;
-  state.isDataLoaded = false;
-  state.dataPromises.clear();
-  state.levels = null;
-  state.isLevelsLoaded = false;
-  state.levelsPromises.clear();
-  logger.info("[GameDataApi] State reset");
-}
-
 // ========== 游戏配置缓存 ==========
 
 /**
@@ -164,10 +146,6 @@ export async function loadGameConfig(gameSlug: string, force = false): Promise<v
 
   state.configPromises.set(gameSlug, promise);
   await promise;
-}
-
-export function isGameConfigLoaded(): boolean {
-  return state.isConfigLoaded;
 }
 
 export function getGameConfig(): GameConfigResponse | null {
@@ -343,10 +321,6 @@ export async function loadLevelsData(
 
   state.levelsPromises.set(gameSlug, promise);
   await promise;
-}
-
-export function isLevelsDataLoaded(): boolean {
-  return state.isLevelsLoaded;
 }
 
 export function getLevelsData(): LevelResponse | null {

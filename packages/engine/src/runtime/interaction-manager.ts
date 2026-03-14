@@ -248,9 +248,9 @@ export class InteractionManager {
     // Get NPC's world position
     const npcPixelPos = npc.pixelPosition;
 
-    // Calculate sprite region in world
-    const regionLeft = Math.floor(npcPixelPos.x) - texture.left;
-    const regionTop = Math.floor(npcPixelPos.y) - texture.bottom;
+    // Calculate sprite region in world (account for tight-bbox canvasOffset)
+    const regionLeft = Math.floor(npcPixelPos.x) - texture.left + (frame.canvasOffsetX ?? 0);
+    const regionTop = Math.floor(npcPixelPos.y) - texture.bottom + (frame.canvasOffsetY ?? 0);
     const regionRight = regionLeft + frame.width;
     const regionBottom = regionTop + frame.height;
 
@@ -293,9 +293,9 @@ export class InteractionManager {
     // Get Obj's pixel position from tile position
     const objPixelPos = obj.positionInWorld;
 
-    // Calculate sprite region in world with offsets
-    const regionLeft = Math.floor(objPixelPos.x) - obj.texture.left + obj.offX;
-    const regionTop = Math.floor(objPixelPos.y) - obj.texture.bottom + obj.offY;
+    // Calculate sprite region in world with offsets (account for tight-bbox canvasOffset)
+    const regionLeft = Math.floor(objPixelPos.x) - obj.texture.left + obj.offX + (frame.canvasOffsetX ?? 0);
+    const regionTop = Math.floor(objPixelPos.y) - obj.texture.bottom + obj.offY + (frame.canvasOffsetY ?? 0);
     const regionRight = regionLeft + frame.width;
     const regionBottom = regionTop + frame.height;
 

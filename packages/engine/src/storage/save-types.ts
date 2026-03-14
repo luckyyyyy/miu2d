@@ -57,6 +57,8 @@ export interface GameOptionData {
   mainLum?: number;
   /** 淡入淡出目标亮度 (SetFadeLum), 0-32, 默认 0 */
   fadeLum?: number;
+  /** 玩家精灵亮度 (SetPlayerLum), 0-32, 默认 32 = 全亮 */
+  playerLum?: number;
 }
 
 /**

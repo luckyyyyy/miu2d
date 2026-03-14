@@ -283,7 +283,7 @@ export class MagicRenderer {
 
     // 使用 atlas 绘制（减少纹理切换）
     const atlasInfo = getFrameAtlasInfo(cached.asf, frameIndex);
-    renderer.drawSourceEx(atlasInfo.canvas, drawX, drawY, {
+    renderer.drawSourceEx(atlasInfo.canvas, drawX + atlasInfo.canvasOffsetX, drawY + atlasInfo.canvasOffsetY, {
       srcX: atlasInfo.srcX,
       srcY: atlasInfo.srcY,
       srcWidth: atlasInfo.srcWidth,

@@ -716,7 +716,7 @@ export class Obj extends Sprite {
       const frame = this._texture.frames[frameIdx];
       if (frame && frame.width > 0 && frame.height > 0) {
         const canvas = getFrameCanvas(frame);
-        renderer.drawSource(canvas, screenX, screenY);
+        renderer.drawSource(canvas, screenX + (frame.canvasOffsetX ?? 0), screenY + (frame.canvasOffsetY ?? 0));
       }
     }
   }
