@@ -3,7 +3,7 @@
  * () pattern
  */
 
-import { type AsfData, getFrameCanvas, loadAsf } from "@miu2d/engine/resource/format/asf";
+import { type AsfData, getCompositeFrameCanvas, loadAsf } from "@miu2d/engine/resource/format/asf";
 import { useEffect, useRef, useState } from "react";
 
 export interface AsfImageData {
@@ -76,7 +76,7 @@ export function useAsfImage(path: string | null, frameIndex: number = 0): AsfIma
           // Generate data URL for the specified frame
           if (data.frames.length > 0) {
             const idx = Math.min(frameIndex, data.frames.length - 1);
-            const canvas = getFrameCanvas(data.frames[idx]);
+            const canvas = getCompositeFrameCanvas(data, idx);
             const url = canvas.toDataURL();
 
             // 缓存
@@ -140,7 +140,7 @@ export function useMultipleAsfImages(paths: (string | null)[]): Map<string, AsfI
           if (cancelled) return;
 
           if (data && data.frames.length > 0) {
-            const canvas = getFrameCanvas(data.frames[0]);
+            const canvas = getCompositeFrameCanvas(data, 0);
             newResults.set(path, {
               asf: data,
               dataUrl: canvas.toDataURL(),
@@ -184,7 +184,7 @@ export function useMultipleAsfImages(paths: (string | null)[]): Map<string, AsfI
 export function getAsfFrameDataUrl(asf: AsfData | null, frameIndex: number): string | null {
   if (!asf || asf.frames.length === 0) return null;
   const idx = Math.min(frameIndex, asf.frames.length - 1);
-  const canvas = getFrameCanvas(asf.frames[idx]);
+  const canvas = getCompositeFrameCanvas(asf, idx);
   return canvas.toDataURL();
 }
 
@@ -205,16 +205,17 @@ export function useColumnView(
       return;
     }
 
-    const frame = asf.frames[0];
-    const srcCanvas = getFrameCanvas(frame);
+    const srcCanvas = getCompositeFrameCanvas(asf, 0);
+    const cw = asf.width;
+    const ch = asf.height;
 
     // Create a new canvas for the clipped result
     if (!canvasRef.current) {
       canvasRef.current = document.createElement("canvas");
     }
     const canvas = canvasRef.current;
-    canvas.width = frame.width;
-    canvas.height = frame.height;
+    canvas.width = cw;
+    canvas.height = ch;
 
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
@@ -223,8 +224,8 @@ export function useColumnView(
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     // Calculate visible height from bottom
-    const visibleHeight = Math.floor(frame.height * Math.max(0, Math.min(1, percent)));
-    const startY = frame.height - visibleHeight;
+    const visibleHeight = Math.floor(ch * Math.max(0, Math.min(1, percent)));
+    const startY = ch - visibleHeight;
 
     // Draw nothing for the depleted (top) area — fully transparent
     // The background (column1.msf) shows through
@@ -235,11 +236,11 @@ export function useColumnView(
         srcCanvas,
         0,
         startY,
-        frame.width,
+        cw,
         visibleHeight, // source
         0,
         startY,
-        frame.width,
+        cw,
         visibleHeight // destination
       );
     }
@@ -354,9 +355,9 @@ export function useAsfAnimation(
           setFrameIndex(0);
           loadedPathRef.current = path;
 
-          // 预先生成所有帧的 dataUrl 并缓存
-          const urls = data.frames.map((frame) => {
-            const canvas = getFrameCanvas(frame);
+          // 预先生成所有帧的 dataUrl 并缓存（使用 composite 还原 canvas 尺寸）
+          const urls = data.frames.map((_, idx) => {
+            const canvas = getCompositeFrameCanvas(data, idx);
             return canvas.toDataURL();
           });
           frameDataUrlCache.set(normalizedPath, urls);

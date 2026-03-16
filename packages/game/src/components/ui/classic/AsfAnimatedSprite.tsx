@@ -7,7 +7,7 @@
  * 对于静态图片（只显示单帧），建议继续使用 useAsfImage + img，因为有缓存不会重复渲染
  */
 
-import { type AsfData, getFrameCanvas, loadAsf } from "@miu2d/engine/resource/format/asf";
+import { type AsfData, getCompositeFrameCanvas, loadAsf } from "@miu2d/engine/resource/format/asf";
 import type React from "react";
 import { memo, useEffect, useRef, useState } from "react";
 
@@ -38,7 +38,7 @@ async function loadAndCacheAsf(
   const loadPromise = (async () => {
     const data = await loadAsf(path);
     if (data && data.frames.length > 0) {
-      const frames = data.frames.map((frame) => getFrameCanvas(frame));
+      const frames = data.frames.map((_, idx) => getCompositeFrameCanvas(data, idx));
       frameCanvasCache.set(path, { asf: data, frames });
     }
   })();

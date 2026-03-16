@@ -113,6 +113,42 @@ export function getFrameCanvas(frame: AsfFrame): HTMLCanvasElement {
   return canvas;
 }
 
+/**
+ * 获取帧的 canvas 并回合到 canvas 尺寸（用于 UI 渲染）
+ * tight-bbox 帧会被复合回 asf.width × asf.height 的完整 canvas 中
+ */
+export function getCompositeFrameCanvas(asf: AsfData, frameIndex: number): HTMLCanvasElement {
+  const frame = asf.frames[frameIndex];
+  if (!frame) {
+    const c = document.createElement("canvas");
+    c.width = 1;
+    c.height = 1;
+    return c;
+  }
+
+  const tightCanvas = getFrameCanvas(frame);
+
+  // 无 tight-bbox 偏移且尺寸一致，直接返回
+  if (
+    frame.canvasOffsetX === 0 &&
+    frame.canvasOffsetY === 0 &&
+    frame.width === asf.width &&
+    frame.height === asf.height
+  ) {
+    return tightCanvas;
+  }
+
+  // 复合到 canvas 尺寸
+  const canvas = document.createElement("canvas");
+  canvas.width = asf.width;
+  canvas.height = asf.height;
+  const ctx = canvas.getContext("2d");
+  if (ctx) {
+    ctx.drawImage(tightCanvas, frame.canvasOffsetX, frame.canvasOffsetY);
+  }
+  return canvas;
+}
+
 /** 构建 ASF 帧图集：将所有帧打包到一张 canvas（网格排列） */
 function buildAsfAtlas(asf: AsfData): AsfAtlas {
   const frames = asf.frames;

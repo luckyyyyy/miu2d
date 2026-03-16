@@ -1,5 +1,5 @@
 import { logger } from "@miu2d/engine/core/logger";
-import { type AsfData, getFrameCanvas, loadAsf } from "@miu2d/engine/resource/format/asf";
+import { type AsfData, getCompositeFrameCanvas, loadAsf } from "@miu2d/engine/resource/format/asf";
 
 // UI 配置
 const MOUSE_CONFIG = {
@@ -48,8 +48,8 @@ async function loadCursorAsf(): Promise<void> {
         logger.debug(`[GameCursor] Loaded ${data.frames.length} frames`);
 
         // 直接转换每帧为 data URL（同步操作，不产生网络请求）
-        cachedFrameDataUrls = data.frames.map((frame) => {
-          const canvas = getFrameCanvas(frame);
+        cachedFrameDataUrls = data.frames.map((_, idx) => {
+          const canvas = getCompositeFrameCanvas(data, idx);
           return canvas.toDataURL("image/png");
         });
 
