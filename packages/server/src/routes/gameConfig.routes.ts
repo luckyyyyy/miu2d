@@ -95,42 +95,26 @@ gameConfigRoutes.get(":gameSlug/api/manifest", async (c) => {
 
     const startUrl = `/game/${gameSlug}/`;
 
-    // 检查游戏是否有自定义 logo（上传时已自动生成 192/512 变体）
-    let hasLogo = false;
-    try {
-      hasLogo = await s3.fileExists(logoSizedKey(game.id, 512));
-    } catch {
-      // ignore
-    }
+    // 通过 gameConfig 判断是否有自定义 logo（避免额外 S3 请求）
+    const gameConfig = await gameConfigService.getPublicBySlug(gameSlug);
+    const hasLogo = Boolean(gameConfig?.logoUrl?.startsWith("games/"));
 
     const icons: Array<{ src: string; sizes: string; type: string; purpose: "any" | "maskable" }> =
       hasLogo
-        ? [
+        ? ([512, 192] as const).flatMap((size) => [
             {
-              src: `/game/${gameSlug}/api/logo/512`,
-              sizes: "512x512",
+              src: s3.getPublicFileUrl(logoSizedKey(game.id, size)),
+              sizes: `${size}x${size}`,
               type: "image/png",
-              purpose: "any",
+              purpose: "any" as const,
             },
             {
-              src: `/game/${gameSlug}/api/logo/192`,
-              sizes: "192x192",
+              src: s3.getPublicFileUrl(logoSizedKey(game.id, size)),
+              sizes: `${size}x${size}`,
               type: "image/png",
-              purpose: "any",
+              purpose: "maskable" as const,
             },
-            {
-              src: `/game/${gameSlug}/api/logo/512`,
-              sizes: "512x512",
-              type: "image/png",
-              purpose: "maskable",
-            },
-            {
-              src: `/game/${gameSlug}/api/logo/192`,
-              sizes: "192x192",
-              type: "image/png",
-              purpose: "maskable",
-            },
-          ]
+          ])
         : [
             { src: "/icons/pwa-192x192.png", sizes: "192x192", type: "image/png", purpose: "any" },
             { src: "/icons/pwa-512x512.png", sizes: "512x512", type: "image/png", purpose: "any" },
@@ -175,44 +159,8 @@ gameConfigRoutes.get(":gameSlug/api/manifest", async (c) => {
 });
 
 /**
- * 获取游戏 Logo 图片（原图）
- */
-gameConfigRoutes.get(":gameSlug/api/logo", async (c) => {
-  try {
-    const gameSlug = c.req.param("gameSlug");
-
-    const game = await db.game.findFirst({
-      where: { slug: gameSlug },
-      select: { id: true },
-    });
-
-    if (!game) {
-      return c.json({ error: "Game not found" }, 404);
-    }
-
-    const key = logoStorageKey(game.id);
-    const { stream: fileStream, contentType, contentLength } = await s3.getFileStream(key);
-
-    c.header("Content-Type", contentType || "image/png");
-    if (contentLength) c.header("Content-Length", String(contentLength));
-    c.header("Cache-Control", "public, max-age=3600");
-
-    return stream(c, async (s) => {
-      for await (const chunk of fileStream) {
-        await s.write(chunk as Uint8Array);
-      }
-    });
-  } catch (error) {
-    if (error instanceof Error && error.name === "NoSuchKey") {
-      return c.json({ error: "Logo not found" }, 404);
-    }
-    logger.error("[getLogo] Error:", error);
-    return c.json({ error: "Logo not found" }, 404);
-  }
-});
-
-/**
  * 获取游戏 Logo 指定尺寸变体（128/192/512）
+ * 供 dashboard 等后台页面使用；游戏前端直接用 getS3Url 拼 S3 地址
  */
 gameConfigRoutes.get(":gameSlug/api/logo/:size", async (c) => {
   try {
@@ -234,7 +182,12 @@ gameConfigRoutes.get(":gameSlug/api/logo/:size", async (c) => {
     }
 
     const key = logoSizedKey(game.id, size);
-    const { stream: fileStream, contentType, contentLength } = await s3.getFileStream(key);
+    const { stream: fileStream, contentType, contentLength, notModified } = await s3.getFileStream(
+      key,
+      c.req.header("if-none-match")
+    );
+
+    if (notModified) return c.body(null, 304);
 
     c.header("Content-Type", contentType || "image/png");
     if (contentLength) c.header("Content-Length", String(contentLength));
@@ -320,7 +273,7 @@ gameConfigRoutes.post(":gameSlug/api/logo", async (c) => {
       variants.map(({ size, buf }) => s3.uploadFile(logoSizedKey(game.id, size), buf, "image/png"))
     );
 
-    const logoUrl = `/game/${gameSlug}/api/logo`;
+    const logoUrl = logoStorageKey(game.id);
     try {
       const existing = await db.gameConfig.findFirst({ where: { gameId: game.id } });
 

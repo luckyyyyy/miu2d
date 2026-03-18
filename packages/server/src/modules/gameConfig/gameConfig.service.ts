@@ -115,8 +115,8 @@ export class GameConfigService {
       if (!config.gameEnabled) {
         return { gameEnabled: false } as GameConfigData;
       }
-      // workspace name/logo override config fields
-      const overrides = { gameName: game.name, logoUrl: `/game/${game.slug}/api/logo` };
+      // workspace name override（logoUrl 使用 DB 中存储的 S3 key，不强制覆写）
+      const overrides = { gameName: game.name };
       // playerKey 未设置时，不返回 player/drop 配置（magicExp 始终返回）
       if (!config.playerKey) {
         const { player: _, drop: __, ...rest } = config;

@@ -19,7 +19,7 @@ import type { UiTheme } from "@miu2d/engine/gui/ui-settings";
 import { setUiTheme } from "@miu2d/engine/gui/ui-settings";
 import { getResourceUrl, ResourcePath, setResourcePaths } from "@miu2d/engine/resource";
 import type { SaveData } from "@miu2d/engine/storage";
-import { trpc, useMobile } from "@miu2d/shared";
+import { getS3Url, trpc, useMobile } from "@miu2d/shared";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import type { ToolbarButton } from "../components";
@@ -248,17 +248,15 @@ export default function GameScreen() {
           setGameName(config.gameName);
           document.title = config.gameName;
         }
-        if (config?.logoUrl) {
-          const logoUrl = getResourceUrl(config.logoUrl);
+        if (config?.logoUrl?.startsWith("games/")) {
+          const logoUrl = getS3Url(`${config.logoUrl}_512`);
           setGameLogoUrl(logoUrl);
-          // Remove all existing favicon links then insert a fresh one
-          // (just updating href is often ignored by browsers due to caching)
           document
             .querySelectorAll<HTMLLinkElement>("link[rel~='icon']")
             .forEach((el) => el.remove());
           const link = document.createElement("link");
           link.rel = "icon";
-          link.href = `${logoUrl}/128?_t=${Date.now()}`;
+          link.href = getS3Url(`${config.logoUrl}_128`);
           document.head.appendChild(link);
           // 注入游戏专属 PWA manifest，包含游戏名称、图标和 start_url
           const manifestEl = document.querySelector<HTMLLinkElement>("link[rel='manifest']");
@@ -476,7 +474,7 @@ export default function GameScreen() {
           >
             <GameTopBar
               gameName={gameName}
-              logoUrl={gameLogoUrl ? `${gameLogoUrl}/128` : undefined}
+              logoUrl={gameLogoUrl ?? undefined}
               toolbarButtons={
                 gamePhase === "playing"
                   ? toolbarButtons
@@ -577,7 +575,7 @@ export default function GameScreen() {
             onClose={() => setTitleMenuVisible(false)}
             activeTab={titleMenuTab}
             onTabChange={setTitleMenuTab}
-            logoUrl={gameLogoUrl ? `${gameLogoUrl}/128` : undefined}
+            logoUrl={gameLogoUrl ?? undefined}
             gameSlug={gameSlug}
             canSave={false}
             onCollectSaveData={() => null}
@@ -616,7 +614,7 @@ export default function GameScreen() {
         {/* PWA 安装提示（游戏配置加载完成后展示，7天内不重复提示） */}
         <PWAInstallPrompt
           gameName={gameName}
-          logoUrl={gameLogoUrl ? `${gameLogoUrl}/128` : undefined}
+          logoUrl={gameLogoUrl ?? undefined}
           ready={gamePhase === "title" || gamePhase === "playing"}
         />
       </div>

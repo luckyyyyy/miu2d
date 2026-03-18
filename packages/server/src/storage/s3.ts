@@ -15,6 +15,7 @@ import {
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { NodeHttpHandler } from "@smithy/node-http-handler";
+import http from "node:http";
 import { env } from "../env";
 import { Logger } from "../utils/logger.js";
 
@@ -34,6 +35,9 @@ const s3Config = {
   requestHandler: new NodeHttpHandler({
     connectionTimeout: 5000, // TCP 连接超时 5s
     requestTimeout: 10000,   // 请求超时 10s
+    // keep-alive 但空闲 30s 后主动销毁，避免 MinIO 服务端先关连接
+    // 导致客户端复用陈旧 socket 时触发 connectionTimeout
+    httpAgent: new http.Agent({ keepAlive: true, timeout: 30000 }),
   }),
 };
 
