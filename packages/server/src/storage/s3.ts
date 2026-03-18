@@ -14,6 +14,7 @@ import {
   S3Client,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { NodeHttpHandler } from "@smithy/node-http-handler";
 import { env } from "../env";
 import { Logger } from "../utils/logger.js";
 
@@ -30,6 +31,10 @@ const s3Config = {
     secretAccessKey: env.s3SecretKey,
   },
   forcePathStyle: true, // MinIO 需要
+  requestHandler: new NodeHttpHandler({
+    connectionTimeout: 5000, // TCP 连接超时 5s
+    requestTimeout: 10000,   // 请求超时 10s
+  }),
 };
 
 const bucket = env.s3Bucket;

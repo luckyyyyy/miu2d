@@ -12,7 +12,8 @@
 
     /* Path aliases */
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@miu2d/server/trpc": ["../server/src/trpc/@generated/app-router.ts"]
     },
 
     /* Bundler mode */

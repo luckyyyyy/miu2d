@@ -61,7 +61,7 @@ COPY packages/types/package.json ./packages/types/
 COPY packages/shared/package.json ./packages/shared/
 COPY packages/server/package.json ./packages/server/
 
-# 从构建阶段复制构建产物（@miu2d/* 已由 rolldown 内联，无需 types/shared dist）
+# 从构建阶段复制构建产物
 COPY --from=builder /app/packages/server/dist ./packages/server/dist
 
 # 复制 prisma schema 和迁移文件

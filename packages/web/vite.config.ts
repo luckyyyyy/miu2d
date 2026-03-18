@@ -3,7 +3,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
-import { defineConfig, type Plugin } from "vite";
+import { defineConfig, loadEnv, type Plugin } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
 
 const __dirname = path.dirname(new URL(import.meta.url).pathname);
@@ -77,7 +77,16 @@ function resources404Plugin(): Plugin {
 }
 
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), "");
+  // 代理目标：本地默认各自端口，设置环境变量后可代理到远端
+  // 用法：在 .env.local 中设置 BACKEND_URL=https://xxx 和 S3_URL=https://xxx
+  const backendUrl = env.BACKEND_URL ?? "http://localhost:4100";
+  const s3Url = env.S3_URL ?? "http://localhost:9100";
+  // 仅直连本地 MinIO 时需要去掉 /s3 前缀；远端 nginx 已处理 /s3/ 路由
+  const s3StripPrefix = !env.S3_URL;
+
+  return {
   define: {
     __COMMIT_HASH__: JSON.stringify(getGitCommit()),
     __APP_VERSION__: JSON.stringify(getAppVersion()),
@@ -214,23 +223,23 @@ export default defineConfig({
     host: "0.0.0.0",
     port: 5274,
     proxy: {
-      // tRPC API 代理到后端 4000 端口
+      // tRPC API 代理到后端
       "/trpc": {
-        target: "http://localhost:4100",
+        target: backendUrl,
         changeOrigin: true,
       },
-      // MinIO presigned URL 代理：/s3/* → MinIO 9100
-      // changeOrigin 确保 Host 头匹配 presigned URL 签名
+      // MinIO presigned URL 代理：/s3/* → MinIO
+      // 本地直连 MinIO 时去掉 /s3 前缀；远端 nginx 已处理 /s3/ 路由，不需要 rewrite
       "/s3": {
-        target: "http://localhost:9100",
+        target: s3Url,
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/s3/, ""),
+        ...(s3StripPrefix && { rewrite: (path: string) => path.replace(/^\/s3/, "") }),
       },
-      // 代理后端 API 路径到后端 4000 端口
+      // 代理后端 API 路径到后端
       // 注意：/game/:gameSlug 是前端路由，不代理
       // 只代理 /game/*/api/* 和 /game/*/resources/* 到后端
       "/game": {
-        target: "http://localhost:4100",
+        target: backendUrl,
         changeOrigin: true,
         bypass: (req) => {
           const url = req.url || "";
@@ -246,4 +255,5 @@ export default defineConfig({
       },
     },
   },
+  };
 });

@@ -35,7 +35,7 @@ dev-dist
 /canghai
 /JXQY-all-in-one
 /Sword2
-/deploy
+/deploy/*
 .env
 vfx-demo
 # Docker data

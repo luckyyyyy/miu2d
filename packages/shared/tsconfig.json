@@ -9,6 +9,9 @@
     "jsx": "react-jsx",
     "allowImportingTsExtensions": true,
     "noEmit": true,
+    "paths": {
+      "@miu2d/server/trpc": ["../server/src/trpc/@generated/app-router.ts"]
+    },
     "erasableSyntaxOnly": false
   },
   "include": ["src/**/*"],

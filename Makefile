@@ -31,7 +31,7 @@ help: ## 显示帮助信息
 	@printf "  $(YELLOW)make convert-verify$(NC) - 验证无损转换\n"
 	@printf "$(BLUE)═══════════════════════════════════════$(NC)\n"
 
-init: ## 首次初始化项目（清理+安装+迁移+种子）
+init: ## 首次初始化项目（清理+安装+生成 Prisma Client+迁移+种子）
 	@printf "$(BLUE)═══════════════════════════════════════$(NC)\n"
 	@printf "$(GREEN)  🚀 项目初始化$(NC)\n"
 	@printf "$(BLUE)═══════════════════════════════════════$(NC)\n"
@@ -39,7 +39,7 @@ init: ## 首次初始化项目（清理+安装+迁移+种子）
 	@printf "$(YELLOW)⚠️  警告：此操作将执行以下内容：$(NC)\n"
 	@printf "  • 停止并删除现有数据库容器\n"
 	@printf "  • 删除现有数据库数据（.data/）\n"
-	@printf "  • 重新安装依赖、迁移并注入种子数据\n"
+	@printf "  • 重新安装依赖、生成 Prisma Client、迁移并注入种子数据\n"
 	@printf "\n"
 	@printf "$(YELLOW)确认继续？[y/N]: $(NC)"; \
 	read confirm; \
@@ -47,33 +47,42 @@ init: ## 首次初始化项目（清理+安装+迁移+种子）
 		printf "$(GREEN)已取消初始化$(NC)\n"; \
 		exit 0; \
 	fi
-	@printf "\n$(YELLOW)📝 [1/8] 检查环境变量文件...$(NC)\n"
+	@printf "\n$(YELLOW)📝 [1/9] 检查环境变量文件...$(NC)\n"
 	@if [ ! -f .env ]; then \
 		cp .env.example .env; \
 		printf "$(GREEN)✓ 已从 .env.example 创建 .env 文件$(NC)\n"; \
 	else \
 		printf "$(GREEN)✓ .env 文件已存在$(NC)\n"; \
 	fi
-	@printf "\n$(YELLOW)🛑 [2/8] 停止现有容器...$(NC)\n"
+	@if [ ! -f packages/server/.env ]; then \
+		cp packages/server/.env.example packages/server/.env; \
+		printf "$(GREEN)✓ 已从 packages/server/.env.example 创建 packages/server/.env$(NC)\n"; \
+	else \
+		printf "$(GREEN)✓ packages/server/.env 文件已存在$(NC)\n"; \
+	fi
+	@printf "\n$(YELLOW)🛑 [2/9] 停止现有容器...$(NC)\n"
 	@docker-compose down -v 2>/dev/null || true
 	@printf "$(GREEN)✓ 容器已停止$(NC)\n"
-	@printf "\n$(YELLOW)🗑️  [3/8] 清理数据目录...$(NC)\n"
+	@printf "\n$(YELLOW)🗑️  [3/9] 清理数据目录...$(NC)\n"
 	@sudo rm -rf .data/postgres .data/minio
 	@printf "$(GREEN)✓ 数据目录已清理$(NC)\n"
-	@printf "\n$(YELLOW)📁 [4/8] 创建数据目录...$(NC)\n"
+	@printf "\n$(YELLOW)📁 [4/9] 创建数据目录...$(NC)\n"
 	@mkdir -p .data/postgres .data/minio
 	@printf "$(GREEN)✓ 数据目录已创建$(NC)\n"
-	@printf "\n$(YELLOW)📦 [5/8] 安装依赖...$(NC)\n"
+	@printf "\n$(YELLOW)📦 [5/9] 安装依赖...$(NC)\n"
 	@pnpm install
 	@printf "$(GREEN)✓ 依赖安装完成$(NC)\n"
-	@printf "\n$(YELLOW)🐳 [6/8] 启动数据库和存储容器...$(NC)\n"
+	@printf "\n$(YELLOW)🧬 [6/9] 生成 Prisma Client...$(NC)\n"
+	@pnpm --filter @miu2d/server db:generate
+	@printf "$(GREEN)✓ Prisma Client 已生成$(NC)\n"
+	@printf "\n$(YELLOW)🐳 [7/9] 启动数据库和存储容器...$(NC)\n"
 	@docker-compose up -d db minio
 	@printf "$(GREEN)✓ 容器已启动$(NC)\n"
-	@printf "\n$(YELLOW)⏳ [7/8] 等待数据库就绪...$(NC)\n"
+	@printf "\n$(YELLOW)⏳ [8/9] 等待数据库就绪...$(NC)\n"
 	@sleep 5
 	@docker-compose exec -T db pg_isready -U postgres > /dev/null 2>&1 || sleep 3
 	@printf "$(GREEN)✓ 数据库就绪$(NC)\n"
-	@printf "\n$(YELLOW)🗃️  [8/8] 执行数据库迁移...$(NC)\n"
+	@printf "\n$(YELLOW)🗃️  [9/9] 执行数据库迁移...$(NC)\n"
 	@pnpm db:migrate
 	@printf "$(GREEN)✓ 数据库迁移完成$(NC)\n"
 	@printf "\n$(BLUE)═══════════════════════════════════════$(NC)\n"

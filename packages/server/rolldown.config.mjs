@@ -3,14 +3,17 @@ import typescript from "@rollup/plugin-typescript";
 
 /** @type {import('rolldown').RolldownOptions} */
 export default {
-  input: ["src/main.ts", "src/db/migrate.ts", "src/db/rehash-passwords.ts", "src/db/patch-null-scene-data.ts"],
+  input: {
+    main: "src/main.ts",
+    "db/migrate": "src/db/migrate.ts",
+    "db/rehash-passwords": "src/db/rehash-passwords.ts",
+    "db/patch-null-scene-data": "src/db/patch-null-scene-data.ts",
+  },
   output: {
     format: "es",
     dir: "dist",
     entryFileNames: "[name].js",
-    chunkFileNames: "[name].js",
-    preserveModules: true,
-    preserveModulesRoot: "src",
+    chunkFileNames: "chunks/[name]-[hash].js",
     sourcemap: true,
   },
   // npm 包和 node: 内置标记为外部；@miu2d/* 工作区包由 rolldown 直接打包

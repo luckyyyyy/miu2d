@@ -3,10 +3,11 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "packageManager": "pnpm@10.16.1",
   "scripts": {
-    "dev": "concurrently -n web,server,studio \"pnpm --filter @miu2d/web dev\" \"pnpm --filter @miu2d/server dev\" \"pnpm --filter @miu2d/server db:studio\"",
-    "dev:web": "pnpm --filter @miu2d/web dev",
-    "dev:server": "pnpm --filter @miu2d/server dev",
+    "dev": "turbo run dev gen:trpc:watch --parallel --filter=@miu2d/web --filter=@miu2d/server --filter=@miu2d/types",
+    "dev:web": "turbo run dev --filter=@miu2d/web",
+    "dev:server": "turbo run dev gen:trpc:watch --parallel --filter=@miu2d/server --filter=@miu2d/types",
     "build": "pnpm -r build",
     "build:web": "pnpm --filter @miu2d/types build && pnpm --filter @miu2d/server db:generate && pnpm --filter @miu2d/server gen:trpc && pnpm --filter @miu2d/engine build && pnpm --filter @miu2d/web build",
     "build:wasm": "bash scripts/build-wasm.sh",
@@ -22,7 +23,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.3.13",
-    "concurrently": "^9.2.1",
+    "turbo": "^2.8.17",
     "typescript": "~5.9.3"
   },
   "overrides": {

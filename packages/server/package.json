@@ -9,7 +9,7 @@
   "scripts": {
     "gen:trpc": "tsx scripts/generate-trpc-types.ts",
     "gen:trpc:watch": "tsx scripts/generate-trpc-types.ts --watch",
-    "dev": "concurrently -n types,trpc,server \"pnpm -C ../types dev\" \"pnpm gen:trpc:watch\" \"tsx watch --tsconfig tsconfig.dev.json src/main.ts\"",
+    "dev": "pnpm db:generate && tsx watch --tsconfig tsconfig.dev.json src/main.ts",
     "prebuild": "pnpm -C ../types build && prisma generate",
     "build": "pnpm gen:trpc && rolldown -c rolldown.config.mjs",
     "start": "node dist/main.js",
@@ -23,6 +23,7 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.982.0",
     "@aws-sdk/s3-request-presigner": "^3.982.0",
+    "@smithy/node-http-handler": "^4.4.9",
     "@hono/node-server": "^1.19.9",
     "@hono/trpc-server": "^0.4.2",
     "@miu2d/shared": "workspace:*",
