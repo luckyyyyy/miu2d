@@ -801,15 +801,17 @@ export class GoodsListManager {
   }
 
   /**
-   * Move a bag item into a bottom slot (item stays in bag AND bottom slot)
+   * Move a bag item into a bottom slot.
+   * If the bottom slot already has an item, swap: the existing bottom item goes back to the bag.
    */
   moveBagToBottom(bagIndex: number, bottomSlot: number): void {
     if (!this.isInStoreRange(bagIndex) || bottomSlot < 0 || bottomSlot >= BOTTOM_ITEMS_COUNT)
       return;
     const info = this.goodsList[bagIndex];
     if (!info) return;
+    const existing = this.bottomItems[bottomSlot];
     this.bottomItems[bottomSlot] = { ...info };
-    this.goodsList[bagIndex] = null;
+    this.goodsList[bagIndex] = existing ? { ...existing } : null;
     this.onUpdateView?.();
   }
 
