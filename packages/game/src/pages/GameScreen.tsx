@@ -19,7 +19,7 @@ import type { UiTheme } from "@miu2d/engine/gui/ui-settings";
 import { setUiTheme } from "@miu2d/engine/gui/ui-settings";
 import { getResourceUrl, ResourcePath, setResourcePaths } from "@miu2d/engine/resource";
 import type { SaveData } from "@miu2d/engine/storage";
-import { getS3Url, trpc, useMobile } from "@miu2d/shared";
+import { getResourceDomain, getS3Url, trpc, useMobile } from "@miu2d/shared";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import type { ToolbarButton } from "../components";
@@ -260,12 +260,13 @@ export default function GameScreen() {
           document.head.appendChild(link);
           // 注入游戏专属 PWA manifest，包含游戏名称、图标和 start_url
           const manifestEl = document.querySelector<HTMLLinkElement>("link[rel='manifest']");
+          const manifestHref = `${getResourceDomain()}/game/${gameSlug}/api/manifest`;
           if (manifestEl) {
-            manifestEl.href = `/game/${gameSlug}/api/manifest`;
+            manifestEl.href = manifestHref;
           } else {
             const m = document.createElement("link");
             m.rel = "manifest";
-            m.href = `/game/${gameSlug}/api/manifest`;
+            m.href = manifestHref;
             document.head.appendChild(m);
           }
         }
