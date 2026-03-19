@@ -94,16 +94,16 @@ RUN COMMIT_HASH=$COMMIT_HASH \
 # 生产阶段 - 使用 nginx 静态服务
 FROM nginx:alpine AS runner
 
-# 后端/MinIO 地址（默认指向同网络的 server/minio 容器；镜像节点可通过 --build-arg 指定外部地址）
-ARG BACKEND_URL=http://server:4000
-ARG MINIO_URL=http://minio:9000
-
-# 用 envsubst 将模板变量替换为构建参数，生成最终 nginx 配置
-COPY packages/web/nginx.conf /etc/nginx/conf.d/default.conf.template
-RUN envsubst '${BACKEND_URL} ${MINIO_URL}' \
-      < /etc/nginx/conf.d/default.conf.template \
-      > /etc/nginx/conf.d/default.conf \
-    && rm /etc/nginx/conf.d/default.conf.template
+# STATIC_ONLY=true: 纯静态服务，无后端代理（镜像节点，VITE_DEMO_RESOURCES_DOMAIN 已指向外部后端）
+# STATIC_ONLY=false(默认): 包含 /trpc/ /game/ /s3/ 反向代理（完整部署）
+ARG STATIC_ONLY=false
+COPY packages/web/nginx.conf packages/web/nginx.static.conf /tmp/nginx-conf/
+RUN if [ "$STATIC_ONLY" = "true" ]; then \
+      cp /tmp/nginx-conf/nginx.static.conf /etc/nginx/conf.d/default.conf; \
+    else \
+      cp /tmp/nginx-conf/nginx.conf /etc/nginx/conf.d/default.conf; \
+    fi \
+    && rm -rf /tmp/nginx-conf
 
 # 从构建阶段复制构建产物
 COPY --from=builder /app/packages/web/dist /usr/share/nginx/html
