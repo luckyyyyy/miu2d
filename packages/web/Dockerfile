@@ -94,8 +94,16 @@ RUN COMMIT_HASH=$COMMIT_HASH \
 # 生产阶段 - 使用 nginx 静态服务
 FROM nginx:alpine AS runner
 
-# 复制 nginx 配置
-COPY packages/web/nginx.conf /etc/nginx/conf.d/default.conf
+# 后端/MinIO 地址（默认指向同网络的 server/minio 容器；镜像节点可通过 --build-arg 指定外部地址）
+ARG BACKEND_URL=http://server:4000
+ARG MINIO_URL=http://minio:9000
+
+# 用 envsubst 将模板变量替换为构建参数，生成最终 nginx 配置
+COPY packages/web/nginx.conf /etc/nginx/conf.d/default.conf.template
+RUN envsubst '${BACKEND_URL} ${MINIO_URL}' \
+      < /etc/nginx/conf.d/default.conf.template \
+      > /etc/nginx/conf.d/default.conf \
+    && rm /etc/nginx/conf.d/default.conf.template
 
 # 从构建阶段复制构建产物
 COPY --from=builder /app/packages/web/dist /usr/share/nginx/html
