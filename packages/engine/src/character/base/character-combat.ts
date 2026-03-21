@@ -339,12 +339,13 @@ export abstract class CharacterCombat extends CharacterMovement {
   /**
    * 播放受伤动画
    *
-   * C++ Reference: beginHurt()
-   * - 原版 C++ 无随机跳过：beginHurt() 在满足条件时必然触发
-   * - 概率判断由调用方（Player::hurt / NPC::hurt）通过闪避值控制
-   *   Player: getRand(100) > getEvade()
-   *   NPC:    getRand(20 + getEvade()) >= getEvade()
-   * - 终止条件：时间到达 actionLastTime（时基），而非帧计数
+   * 概率公式（以当前等级配置中最高等级的身法作为基线）：
+   *   ratio      = clamp(realEvade / maxLevelEvade, 0, 1)
+   *   hurtChance = 0.25 - 0.24 * ratio
+   *
+   * 身法为 0 时 25% 概率播放；身法达到最高等级上限时降至 1%。
+   * 命中/闪避判定已在上层 calcMagicHit() 完成，此处只控制动画触发。
+   * 终止条件：时间到达 actionLastTime（时基），而非帧计数。
    */
   hurting(): void {
     if (this.petrifiedSeconds > 0) {
@@ -355,7 +356,6 @@ export abstract class CharacterCombat extends CharacterMovement {
       return;
     }
 
-    // C++ Reference: isHurting() guard
     if (
       this._state === CharacterState.Death ||
       this._state === CharacterState.Hurt ||
@@ -365,12 +365,11 @@ export abstract class CharacterCombat extends CharacterMovement {
       return;
     }
 
-    // C++ Reference: Player::hurt — getRand(100) > getEvade()
-    //               NPC::hurt   — getRand(20 + getEvade()) >= getEvade()
-    // 用闪避值决定受伤动画触发概率，而非固定 25%
-    const evade = this.realEvade;
-    const threshold = this.isPlayer ? 100 : 20 + evade;
-    if (Math.floor(Math.random() * threshold) < evade) {
+    const maxLevel = this.levelManager.getMaxLevel();
+    const maxEvade = this.levelManager.getLevelDetail(maxLevel)?.evade ?? 0;
+    const ratio = maxEvade > 0 ? Math.min(1, this.realEvade / maxEvade) : 0;
+    const hurtChance = 0.25 - 0.24 * ratio;
+    if (Math.random() >= hurtChance) {
       return;
     }
 
