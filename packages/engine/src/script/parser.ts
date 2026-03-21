@@ -13,6 +13,37 @@ import type { ScriptCode, ScriptData } from "./types";
  * Note: uses ^@([a-zA-Z0-9]+): to match labels
  */
 const REG_LABEL = /^@([a-zA-Z0-9_]+):/;
+const FULL_WIDTH_SYNTAX_MAP: Record<string, string> = {
+  "（": "(",
+  "）": ")",
+  "，": ",",
+  "；": ";",
+  "：": ":",
+};
+
+function normalizeScriptSyntax(line: string): string {
+  let normalized = "";
+  let inQuote = false;
+
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+
+    if (char === '"' && line[i - 1] !== "\\") {
+      inQuote = !inQuote;
+      normalized += char;
+      continue;
+    }
+
+    if (!inQuote && FULL_WIDTH_SYNTAX_MAP[char]) {
+      normalized += FULL_WIDTH_SYNTAX_MAP[char];
+      continue;
+    }
+
+    normalized += char;
+  }
+
+  return normalized;
+}
 
 /**
  * Parse a single line of script into a ScriptCode object
@@ -37,9 +68,11 @@ function parseLine(line: string, lineNumber: number): ScriptCode | null {
     }
   }
 
+  const normalized = normalizeScriptSyntax(trimmed);
+
   // Check if it's a label (format: @LabelName:)
   // labels are stored with the colon, e.g., "@Begin:"
-  const labelMatch = REG_LABEL.exec(trimmed);
+  const labelMatch = REG_LABEL.exec(normalized);
   if (labelMatch) {
     return {
       name: labelMatch[0], // Store with colon, e.g., "@Begin:"
@@ -54,7 +87,7 @@ function parseLine(line: string, lineNumber: number): ScriptCode | null {
 
   // Parse conditional: If (condition) @Label; - MUST come before generic function match
   // Support formats: If($Event <> 710) @end; or If ($Event == 0) @Label; or If ($Var==1) Goto @Label;
-  const ifMatch = trimmed.match(/^If\s*\((.+)\)\s*(?:Goto\s+)?(@\w+)\s*;?\s*$/i);
+  const ifMatch = normalized.match(/^If\s*\((.+)\)\s*(?:Goto\s+)?(@\w+)\s*;?\s*$/i);
   if (ifMatch) {
     const [, condition, label] = ifMatch;
     return {
@@ -69,7 +102,7 @@ function parseLine(line: string, lineNumber: number): ScriptCode | null {
   }
 
   // Parse Goto: Goto @Label; - MUST come before generic function match
-  const gotoMatch = trimmed.match(/^Goto\s+(@\w+)\s*;?\s*$/i);
+  const gotoMatch = normalized.match(/^Goto\s+(@\w+)\s*;?\s*$/i);
   if (gotoMatch) {
     return {
       name: "Goto",
@@ -84,7 +117,7 @@ function parseLine(line: string, lineNumber: number): ScriptCode | null {
 
   // Parse function call: FunctionName(param1, param2, ...);
   // More tolerant regex: handles malformed closing like 2_; or 2_)
-  const funcMatch = trimmed.match(/^(\w+)\s*\((.*?)\s*[);_]+\s*$/);
+  const funcMatch = normalized.match(/^(\w+)\s*\((.*?)\s*[);_]+\s*$/);
   if (funcMatch) {
     const [, funcName, paramsStr] = funcMatch;
     // Clean up malformed parameter endings (like "2_" -> "2")
@@ -102,7 +135,7 @@ function parseLine(line: string, lineNumber: number): ScriptCode | null {
   }
 
   // Parse simple command without parentheses: Return;
-  const simpleMatch = trimmed.match(/^(\w+)\s*;?\s*$/);
+  const simpleMatch = normalized.match(/^(\w+)\s*;?\s*$/);
   if (simpleMatch) {
     return {
       name: simpleMatch[1],

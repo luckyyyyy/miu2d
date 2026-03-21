@@ -116,6 +116,28 @@ Return;`;
     expect(result.codes[0].parameters).toEqual(["100", "200"]);
   });
 
+  it("handles full-width parentheses in function calls", () => {
+    const result = parseScript("Assign（$FromFengChi，18);", "test.txt");
+    expect(result.codes).toHaveLength(1);
+    expect(result.codes[0].name).toBe("Assign");
+    expect(result.codes[0].parameters).toEqual(["$FromFengChi", "18"]);
+  });
+
+  it("handles full-width semicolons in function calls", () => {
+    const result = parseScript("SetPlayerPos(142,311)；", "test.txt");
+    expect(result.codes).toHaveLength(1);
+    expect(result.codes[0].name).toBe("SetPlayerPos");
+    expect(result.codes[0].parameters).toEqual(["142", "311"]);
+  });
+
+  it("handles full-width punctuation in conditionals", () => {
+    const result = parseScript("If（$Event == 0） @First；", "test.txt");
+    expect(result.codes).toHaveLength(1);
+    expect(result.codes[0].name).toBe("If");
+    expect(result.codes[0].parameters).toEqual(["$Event == 0"]);
+    expect(result.codes[0].result).toBe("@First");
+  });
+
   it("parses a complete game script", () => {
     const script = `@Begin:
 If($Event == 0) @FirstTime;
