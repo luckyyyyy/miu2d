@@ -204,19 +204,51 @@ export async function createNpcFromData(
     await npc.levelManager.setLevelFile(npc.levelIniFile);
   }
 
-  // 如果敌对 NPC 最大血量为 0，从等级配置恢复默认值
-  // level-npc.ini 中 NPC 的最大血量存储在 `life` 字段（非 `lifeMax`）
+  // 从等级配置重算属性
+  // - 敌对 NPC：仅在 lifeMax === 0 时恢复血量（兼容旧逻辑）
+  // - 伙伴 NPC：始终重算，与 Player.recalculateBaseStats() 对齐
+  //   参考 JxqyHD/Engine/Character.cs - SetPropToLevel()
   logger.debug(
-    `[NpcManager] NPC ${npc.name} check: isEnemy=${npc.isEnemy} lifeMax=${npc.lifeMax} level=${npc.level}`
+    `[NpcManager] NPC ${npc.name} check: isEnemy=${npc.isEnemy} isPartner=${npc.isPartner} lifeMax=${npc.lifeMax} level=${npc.level}`
   );
-  if (npc.isEnemy && npc.lifeMax === 0) {
+  if (npc.isPartner) {
     let levelDetail = npc.levelManager.getLevelDetail(npc.level) ?? getNpcLevelDetail(npc.level);
-    // 全局 NPC 等级配置可能尚未加载（initNpcLevelConfig 是 fire-and-forget），直接 await 加载
     if (!levelDetail) {
       const cfg = await loadLevelConfig(getDefaultNpcLevelKey());
       levelDetail = cfg?.get(npc.level) ?? null;
     }
-    // level-npc.ini 使用 `life` 字段存储 NPC 最大血量（而非 `lifeMax`）
+    if (levelDetail) {
+      const restoredLife = levelDetail.life || levelDetail.lifeMax;
+      const savedLife = npc.life;
+
+      npc.lifeMax = restoredLife;
+      npc.thewMax = levelDetail.thewMax;
+      npc.manaMax = levelDetail.manaMax;
+      npc.attack = levelDetail.attack;
+      npc.attack2 = levelDetail.attack2;
+      npc.attack3 = levelDetail.attack3;
+      npc.defend = levelDetail.defend;
+      npc.defend2 = levelDetail.defend2;
+      npc.defend3 = levelDetail.defend3;
+      npc.evade = levelDetail.evade;
+      npc.levelUpExp = levelDetail.levelUpExp;
+
+      npc.life = Math.min(savedLife, npc.lifeMax);
+      npc.thew = Math.min(npc.thew, npc.thewMax);
+      npc.mana = Math.min(npc.mana, npc.manaMax);
+
+      logger.log(
+        `[NpcManager] Partner ${npc.name} stats recalculated from level ${npc.level}: attack=${npc.attack} defend=${npc.defend} lifeMax=${npc.lifeMax} evade=${npc.evade}`
+      );
+    } else {
+      logger.warn(`[NpcManager] Partner ${npc.name} at level ${npc.level}, no level data found`);
+    }
+  } else if (npc.isEnemy && npc.lifeMax === 0) {
+    let levelDetail = npc.levelManager.getLevelDetail(npc.level) ?? getNpcLevelDetail(npc.level);
+    if (!levelDetail) {
+      const cfg = await loadLevelConfig(getDefaultNpcLevelKey());
+      levelDetail = cfg?.get(npc.level) ?? null;
+    }
     const restoredLife = levelDetail?.life ?? levelDetail?.lifeMax ?? 0;
     if (restoredLife > 0) {
       npc.setLifeMax(restoredLife);
@@ -226,7 +258,7 @@ export async function createNpcFromData(
       );
     } else {
       logger.warn(
-        `[NpcManager] NPC ${npc.name} lifeMax=0 at level ${npc.level}, no level data found (levelDetail=${levelDetail ? "found" : "null"})`
+        `[NpcManager] NPC ${npc.name} lifeMax=0 at level ${npc.level}, no level data found`
       );
     }
   }
