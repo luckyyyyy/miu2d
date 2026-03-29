@@ -16,9 +16,13 @@ export function evaluateCondition(
 
   const [, varName, operator, rightValue] = match;
   const leftVal = getVariable(varName);
-  const rightVal = rightValue.startsWith("$")
-    ? getVariable(rightValue.slice(1))
-    : Number.parseInt(rightValue, 10);
+  const rightVal = (() => {
+    if (!rightValue.startsWith("$")) return Number.parseInt(rightValue, 10);
+    const name = rightValue.slice(1);
+    // $<pure digits> → literal number (e.g. $2031 means 2031, not a variable)
+    if (/^\d+$/.test(name)) return Number.parseInt(name, 10);
+    return getVariable(name);
+  })();
 
   switch (operator) {
     case "==":
