@@ -6,6 +6,7 @@
 import type { Character } from "../character";
 import type { CharacterBase } from "../character/base";
 import { loadCharacterConfig } from "../character/character-config";
+import { getNpcLevelDetail } from "../character/level";
 import { getEngineContext } from "../core/engine-context";
 import { logger } from "../core/logger";
 import type { CharacterConfig, Vector2 } from "../core/types";
@@ -853,10 +854,32 @@ export class NpcManager {
   }
 
   /**
-   * Set NPC level
+   * Set NPC level and update stats from level config
+   * Reference: JxqyHD/Engine/Character.cs - SetLevelTo()
    */
   setNpcLevel(name: string, level: number): boolean {
-    return this.setNpcField(name, "level", level);
+    return this.withNpc(name, (npc) => {
+      npc.level = level;
+
+      const detail = npc.levelManager.getLevelDetail(level) ?? getNpcLevelDetail(level);
+      if (!detail) return;
+
+      // level-npc.ini uses 'life' field for max HP; player level configs use 'lifeMax'
+      npc.lifeMax = detail.life || detail.lifeMax;
+      npc.thewMax = detail.thewMax;
+      npc.manaMax = detail.manaMax;
+      npc.life = npc.lifeMax;
+      npc.thew = npc.thewMax;
+      npc.mana = npc.manaMax;
+      npc.attack = detail.attack;
+      npc.attack2 = detail.attack2;
+      npc.attack3 = detail.attack3;
+      npc.defend = detail.defend;
+      npc.defend2 = detail.defend2;
+      npc.defend3 = detail.defend3;
+      npc.evade = detail.evade;
+      npc.levelUpExp = detail.levelUpExp;
+    });
   }
 
   /**
