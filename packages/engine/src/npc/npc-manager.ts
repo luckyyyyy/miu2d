@@ -6,7 +6,7 @@
 import type { Character } from "../character";
 import type { CharacterBase } from "../character/base";
 import { loadCharacterConfig } from "../character/character-config";
-import { getNpcLevelDetail } from "../character/level";
+import { getLevelConfigFromCache, getNpcLevelDetail } from "../character/level";
 import { getEngineContext } from "../core/engine-context";
 import { logger } from "../core/logger";
 import type { CharacterConfig, Vector2 } from "../core/types";
@@ -99,6 +99,7 @@ export class NpcManager {
       removeAllPartner: () => this.removeAllPartner(),
       addNpcWithConfig: (c, x, y, d) => this.addNpcWithConfig(c, x, y, d),
       getCurrentMapName: () => this.engine.getCurrentMapName(),
+      getPlayerLevelIniFile: () => this._player.levelIniFile,
     };
   }
 
@@ -856,16 +857,28 @@ export class NpcManager {
   /**
    * Set NPC level and update stats from level config
    * Reference: JxqyHD/Engine/Character.cs - SetLevelTo()
+   * Partners use player's level config (same difficulty)
    */
   setNpcLevel(name: string, level: number): boolean {
     return this.withNpc(name, (npc) => {
       npc.level = level;
 
-      const detail = npc.levelManager.getLevelDetail(level) ?? getNpcLevelDetail(level);
+      let detail = npc.levelManager.getLevelDetail(level);
+
+      // 伙伴跟随主角难度配置；其他 NPC 回退到全局 NPC 等级配置
+      if (!detail && npc.isPartner) {
+        const playerFile = this._player.levelIniFile;
+        if (playerFile) {
+          const cfg = getLevelConfigFromCache(playerFile);
+          detail = cfg?.get(level) ?? null;
+        }
+      }
+      if (!detail) {
+        detail = getNpcLevelDetail(level);
+      }
       if (!detail) return;
 
-      // level-npc.ini uses 'life' field for max HP; player level configs use 'lifeMax'
-      npc.lifeMax = detail.life || detail.lifeMax;
+      npc.lifeMax = detail.lifeMax || detail.life;
       npc.thewMax = detail.thewMax;
       npc.manaMax = detail.manaMax;
       npc.life = npc.lifeMax;

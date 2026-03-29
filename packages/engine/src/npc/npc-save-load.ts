@@ -29,6 +29,8 @@ export interface NpcSaveLoadDeps {
     dir?: Direction
   ): Promise<Npc>;
   getCurrentMapName(): string;
+  /** 获取主角的等级配置文件名（伙伴跟随主角难度） */
+  getPlayerLevelIniFile(): string;
 }
 
 // ============= 快照 / Groups =============
@@ -212,16 +214,16 @@ export async function createNpcFromData(
     `[NpcManager] NPC ${npc.name} check: isEnemy=${npc.isEnemy} isPartner=${npc.isPartner} lifeMax=${npc.lifeMax} level=${npc.level}`
   );
   if (npc.isPartner) {
-    let levelDetail = npc.levelManager.getLevelDetail(npc.level) ?? getNpcLevelDetail(npc.level);
-    if (!levelDetail) {
-      const cfg = await loadLevelConfig(getDefaultNpcLevelKey());
-      levelDetail = cfg?.get(npc.level) ?? null;
+    // 伙伴使用主角的等级配置（跟随难度）
+    const playerLevelFile = deps.getPlayerLevelIniFile();
+    if (playerLevelFile) {
+      await npc.levelManager.setLevelFile(playerLevelFile);
     }
+    const levelDetail = npc.levelManager.getLevelDetail(npc.level);
     if (levelDetail) {
-      const restoredLife = levelDetail.life || levelDetail.lifeMax;
       const savedLife = npc.life;
 
-      npc.lifeMax = restoredLife;
+      npc.lifeMax = levelDetail.lifeMax || levelDetail.life;
       npc.thewMax = levelDetail.thewMax;
       npc.manaMax = levelDetail.manaMax;
       npc.attack = levelDetail.attack;
@@ -238,7 +240,7 @@ export async function createNpcFromData(
       npc.mana = Math.min(npc.mana, npc.manaMax);
 
       logger.log(
-        `[NpcManager] Partner ${npc.name} stats recalculated from level ${npc.level}: attack=${npc.attack} defend=${npc.defend} lifeMax=${npc.lifeMax} evade=${npc.evade}`
+        `[NpcManager] Partner ${npc.name} stats recalculated from level ${npc.level} (${playerLevelFile}): attack=${npc.attack} defend=${npc.defend} lifeMax=${npc.lifeMax} evade=${npc.evade}`
       );
     } else {
       logger.warn(`[NpcManager] Partner ${npc.name} at level ${npc.level}, no level data found`);
