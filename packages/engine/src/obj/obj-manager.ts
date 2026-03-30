@@ -163,8 +163,7 @@ export class ObjManager {
     this.clearAll();
     this.fileName = fileName;
 
-    // 1. 优先从 Obj 分组存储加载
-    const storedData = this.objGroups.get(fileName);
+    const storedData = this.objGroups.get(fileName.toLowerCase());
     if (storedData) {
       logger.log(`[ObjManager] Loading ${storedData.length} Objs from groups: ${fileName}`);
       for (const objData of storedData) {
@@ -788,7 +787,7 @@ export class ObjManager {
 
     // 序列化当前所有 Obj 到分组存储
     const items = this.collectSnapshot();
-    this.objGroups.set(saveFileName, items);
+    this.objGroups.set(saveFileName.toLowerCase(), items);
 
     logger.log(`[ObjManager] SaveObj: ${saveFileName} (${items.length} Objs saved to groups)`);
   }
@@ -839,7 +838,7 @@ export class ObjManager {
   setObjGroups(store: Record<string, ObjSaveItem[]>): void {
     this.objGroups.clear();
     for (const [key, value] of Object.entries(store)) {
-      this.objGroups.set(key, value);
+      this.objGroups.set(key.toLowerCase(), value);
     }
   }
 

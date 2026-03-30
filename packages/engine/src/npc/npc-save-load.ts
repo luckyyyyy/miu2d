@@ -47,7 +47,7 @@ export function saveNpc(deps: NpcSaveLoadDeps, fileName?: string): void {
   }
   deps.setFileName(saveFileName);
   const items = collectSnapshot(deps.npcs, false);
-  deps.npcGroups.set(saveFileName, items);
+  deps.npcGroups.set(saveFileName.toLowerCase(), items);
   logger.log(`[NpcManager] SaveNpc: ${saveFileName} (${items.length} NPCs saved to groups)`);
 }
 
@@ -57,7 +57,7 @@ export function savePartner(deps: NpcSaveLoadDeps, fileName: string): void {
     return;
   }
   const items = collectSnapshot(deps.npcs, true);
-  deps.npcGroups.set(fileName, items);
+  deps.npcGroups.set(fileName.toLowerCase(), items);
   logger.log(`[NpcManager] SavePartner: ${fileName} (${items.length} partners saved to groups)`);
 }
 
@@ -67,7 +67,7 @@ export function setNpcGroups(
 ): void {
   npcGroups.clear();
   for (const [key, value] of Object.entries(store)) {
-    npcGroups.set(key, value);
+    npcGroups.set(key.toLowerCase(), value);
   }
 }
 
@@ -115,8 +115,7 @@ async function loadNpcFileInternal(
     return true;
   }
 
-  // 1. 优先从 NPC 分组存储加载
-  const storedData = deps.npcGroups.get(fileName);
+  const storedData = deps.npcGroups.get(fileName.toLowerCase());
   if (storedData) {
     if (clearCurrentNpcs) {
       deps.clearAllNpcAndKeepPartner();
