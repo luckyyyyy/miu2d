@@ -4,8 +4,11 @@
 
 import type { GameVariables } from "@miu2d/engine/core/types";
 import type { MagicItemInfo } from "@miu2d/engine/magic";
+import type { PartnerInfo } from "@miu2d/engine/debug/debug-manager";
 import type { ResourceStats } from "@miu2d/engine/resource/resource-loader";
 import type { PerformanceStatsData } from "@miu2d/engine/runtime/performance-stats";
+
+export type { PartnerInfo };
 
 export interface PlayerStats {
   level: number;
@@ -58,6 +61,7 @@ export interface DebugPanelProps {
   memoryStats?: { gpuTextureBytes: number; asfAtlasCpuBytes: number; jsHeapBytes: number };
   gameVariables?: GameVariables;
   xiuLianMagic?: MagicItemInfo | null;
+  partnersData?: PartnerInfo[];
   triggeredTrapIds?: number[];
   currentScriptInfo?: ScriptInfo | null;
   scriptHistory?: ScriptHistoryItem[];
@@ -76,6 +80,8 @@ export interface DebugPanelProps {
   onAddAllMagics?: () => Promise<void>;
   onXiuLianLevelUp?: () => void;
   onXiuLianLevelDown?: () => void;
+  onPartnerLevelUp?: (name: string) => void;
+  onPartnerLevelDown?: (name: string) => void;
   onReloadMagicConfig?: () => Promise<void>;
   onReloadUILayout?: () => Promise<void>;
   onRevealFullMap?: () => void;

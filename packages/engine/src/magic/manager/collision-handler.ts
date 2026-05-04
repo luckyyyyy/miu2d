@@ -609,7 +609,7 @@ export class MagicCollisionHandler implements CollisionHandler {
         logger.log(`[CollisionHandler] Kill! Player gains ${exp} exp`);
         this.player.addExp(exp, true);
 
-        if (belongCharacter.canLevelUp > 0) {
+        if (belongCharacter.canLevelUp > 0 || belongCharacter.isPartner) {
           let shouldGiveNpcExp = isPartner;
           if (
             !shouldGiveNpcExp &&

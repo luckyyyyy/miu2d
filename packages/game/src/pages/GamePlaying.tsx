@@ -402,6 +402,7 @@ export function GamePlaying({
               memoryStats={memoryStats}
               gameVariables={debugManager?.getGameVariables()}
               xiuLianMagic={debugManager?.getXiuLianMagic() ?? undefined}
+              partnersData={debugManager?.getPartnersData() ?? undefined}
               triggeredTrapIds={debugManager?.getTriggeredTrapIds()}
               currentScriptInfo={debugManager?.getCurrentScriptInfo() ?? undefined}
               scriptHistory={debugManager?.getScriptHistory()}
@@ -433,6 +434,8 @@ export function GamePlaying({
               }}
               onXiuLianLevelUp={() => getDebugManager()?.xiuLianLevelUp()}
               onXiuLianLevelDown={() => getDebugManager()?.xiuLianLevelDown()}
+              onPartnerLevelUp={(name) => getDebugManager()?.partnerLevelUp(name)}
+              onPartnerLevelDown={(name) => getDebugManager()?.partnerLevelDown(name)}
               onReloadMagicConfig={async () => {
                 if (gameSlug) await reloadGameData(gameSlug);
               }}

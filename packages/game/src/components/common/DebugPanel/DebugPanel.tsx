@@ -10,6 +10,7 @@ import {
   CharacterSection,
   GameDebugSection,
   GameInfoSection,
+  PartnerSection,
   PerformanceSection,
   ResourceSection,
   ScriptExecuteSection,
@@ -28,6 +29,7 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({
   memoryStats,
   gameVariables,
   xiuLianMagic,
+  partnersData,
   triggeredTrapIds,
   currentScriptInfo,
   scriptHistory,
@@ -45,6 +47,8 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({
   onAddAllMagics,
   onXiuLianLevelUp,
   onXiuLianLevelDown,
+  onPartnerLevelUp,
+  onPartnerLevelDown,
   onReduceLife,
   onReloadMagicConfig,
   onReloadUILayout,
@@ -103,6 +107,15 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({
             xiuLianMagic={xiuLianMagic}
             onXiuLianLevelUp={onXiuLianLevelUp}
             onXiuLianLevelDown={onXiuLianLevelDown}
+          />
+        )}
+
+        {/* 配角 */}
+        {partnersData && partnersData.length > 0 && (
+          <PartnerSection
+            partners={partnersData}
+            onPartnerLevelUp={onPartnerLevelUp}
+            onPartnerLevelDown={onPartnerLevelDown}
           />
         )}
 

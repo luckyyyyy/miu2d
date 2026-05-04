@@ -10,3 +10,4 @@ export { ResourceSection } from "./ResourceSection";
 export { ScriptExecuteSection } from "./ScriptExecuteSection";
 export { ScriptInfoSection } from "./ScriptInfoSection";
 export { XiuLianSection } from "./XiuLianSection";
+export { PartnerSection } from "./PartnerSection";

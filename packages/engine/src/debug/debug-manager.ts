@@ -36,6 +36,25 @@ export interface DebugManagerConfig {
 export type { PlayerStatsInfo };
 
 /**
+ * 配角信息
+ */
+export interface PartnerInfo {
+  name: string;
+  level: number;
+  exp: number;
+  levelUpExp: number;
+  life: number;
+  lifeMax: number;
+  thew: number;
+  thewMax: number;
+  mana: number;
+  manaMax: number;
+  attack: number;
+  defend: number;
+  evade: number;
+}
+
+/**
  * 加载资源信息
  */
 export interface LoadedResourcesInfo {
@@ -210,6 +229,63 @@ export class DebugManager {
    */
   getXiuLianMagic(): MagicItemInfo | null {
     return this.magicInventory.getXiuLianMagic();
+  }
+
+  // ============= 配角系统 =============
+
+  /**
+   * 获取所有配角信息
+   */
+  getPartnersData(): PartnerInfo[] {
+    const partners = this.npcManager.getAllPartner();
+    return partners.map((npc) => ({
+      name: npc.name,
+      level: npc.level,
+      exp: npc.exp,
+      levelUpExp: npc.levelUpExp,
+      life: npc.life,
+      lifeMax: npc.lifeMax,
+      thew: npc.thew,
+      thewMax: npc.thewMax,
+      mana: npc.mana,
+      manaMax: npc.manaMax,
+      attack: npc.attack,
+      defend: npc.defend,
+      evade: npc.evade,
+    }));
+  }
+
+  /**
+   * 配角升级
+   */
+  partnerLevelUp(name: string): void {
+    const partners = this.npcManager.getAllPartner();
+    const partner = partners.find((n) => n.name === name);
+    if (!partner) {
+      this.showMessage(`配角 "${name}" 不存在`);
+      return;
+    }
+    const nextLevel = partner.level + 1;
+    partner.levelUpTo(nextLevel);
+    this.showMessage(`${name} 升至 ${partner.level} 级`);
+  }
+
+  /**
+   * 配角降级
+   */
+  partnerLevelDown(name: string): void {
+    const partners = this.npcManager.getAllPartner();
+    const partner = partners.find((n) => n.name === name);
+    if (!partner) {
+      this.showMessage(`配角 "${name}" 不存在`);
+      return;
+    }
+    if (partner.level <= 1) {
+      this.showMessage(`${name} 已是最低等级`);
+      return;
+    }
+    partner.levelUpTo(partner.level - 1);
+    this.showMessage(`${name} 降至 ${partner.level} 级`);
   }
 
   /**

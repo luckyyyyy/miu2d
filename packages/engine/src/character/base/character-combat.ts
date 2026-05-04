@@ -93,7 +93,7 @@ export abstract class CharacterCombat extends CharacterMovement {
    * 增加经验
    */
   addExp(amount: number): void {
-    if (this.levelUpExp <= 0 || this.canLevelUp <= 0) return;
+    if (this.levelUpExp <= 0 || (this.canLevelUp <= 0 && !this.isPartner)) return;
 
     this.exp += amount;
     if (this.exp > this.levelUpExp) {
@@ -246,6 +246,11 @@ export abstract class CharacterCombat extends CharacterMovement {
         if (player) {
           const exp = getCharacterDeathExp(this, player);
           player.addExp(exp, true);
+        }
+        // 配角也能获得经验
+        if (attacker.isPartner) {
+          const npcExp = getCharacterDeathExp(this, attacker);
+          (attacker as CharacterCombat).addExp(npcExp);
         }
       }
 
