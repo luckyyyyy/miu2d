@@ -609,6 +609,10 @@ export class GameManager {
 
     // Clear NPCs and Objs (keep partners)
     this.npcManager.clearAllNpcAndKeepPartner();
+    // 从地图名推导 NPC 文件名（clearAllNpc 会清空 fileName，这里立即恢复）
+    // 地图名格式: "map068_达摩堂" → NPC 文件: "map068.npc"
+    const baseMapName = this.currentMapName.split("_")[0];
+    this.npcManager.setFileName(`${baseMapName}.npc`);
     this.objManager.clearAll();
     // NOTE: 不要在换地图时清除脚本缓存！
     // 脚本缓存是全局的，应该在游戏运行期间保持

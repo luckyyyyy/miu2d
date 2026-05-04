@@ -48,7 +48,10 @@ export function saveNpc(deps: NpcSaveLoadDeps, fileName?: string): void {
   deps.setFileName(saveFileName);
   const items = collectSnapshot(deps.npcs, false);
   deps.npcGroups.set(saveFileName.toLowerCase(), items);
-  logger.log(`[NpcManager] SaveNpc: ${saveFileName} (${items.length} NPCs saved to groups)`);
+  const npcNames = items.map((i) => (i as unknown as Record<string, unknown>).name ?? "?").join(", ");
+  logger.log(
+    `[NpcManager] SaveNpc: ${saveFileName} (${items.length} NPCs saved to groups) [${npcNames}]`
+  );
 }
 
 export function savePartner(deps: NpcSaveLoadDeps, fileName: string): void {
@@ -115,13 +118,26 @@ async function loadNpcFileInternal(
     return true;
   }
 
-  const storedData = deps.npcGroups.get(fileName.toLowerCase());
+  const normalizedKey = fileName.toLowerCase();
+  const storedData = deps.npcGroups.get(normalizedKey);
+  logger.log(
+    `[NpcManager] LoadNpc lookup: key="${normalizedKey}" found=${!!storedData} count=${storedData?.length ?? 0} groupKeys=[${[...deps.npcGroups.keys()].join(", ")}]`
+  );
   if (storedData) {
     if (clearCurrentNpcs) {
       deps.clearAllNpcAndKeepPartner();
     }
 
-    logger.log(`[NpcManager] Loading ${storedData.length} NPCs from groups: ${fileName}`);
+    const storedNames = storedData
+      .map((i) => {
+        const d = i as unknown as Record<string, unknown>;
+        const death = d.isDeath ? "(dead)" : "";
+        return `${d.name ?? "?"}${death}`;
+      })
+      .join(", ");
+    logger.log(
+      `[NpcManager] Loading ${storedData.length} NPCs from groups: ${fileName} [${storedNames}]`
+    );
     const loadPromises: Promise<void>[] = [];
     for (const npcData of storedData) {
       if (npcData.isDeath && npcData.isDeathInvoked) continue;
@@ -184,6 +200,9 @@ export async function createNpcFromData(
   }
 
   // Create NPC with config (loads ini + sprites)
+  logger.log(
+    `[NpcManager] createNpcFromData: ${config.name} npcIni=${config.npcIni || "none"} pos=(${mapX},${mapY}) dir=${dir}`
+  );
   const npc = await deps.addNpcWithConfig(config, mapX, mapY, dir as Direction);
 
   // 字段名已统一，直接赋值
