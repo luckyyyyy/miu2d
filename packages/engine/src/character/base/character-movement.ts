@@ -201,6 +201,13 @@ export abstract class CharacterMovement extends CharacterBase {
   // =============================================
 
   /**
+   * moveAlongPath 中重新寻路失败时的钩子，子类可覆盖
+   */
+  protected _onRepathFailed(_destTile: Vector2): void {
+    // 默认不做任何事
+  }
+
+  /**
    * 沿路径移动
    * Reference: Character.MoveAlongPath(elapsedSeconds, speedFold)
    *
@@ -261,6 +268,7 @@ export abstract class CharacterMovement extends CharacterBase {
           if (newPath.length === 0) {
             this.path = [];
             this.standingImmediately();
+            this._onRepathFailed(this._destinationMoveTilePosition);
           } else {
             this.path = newPath.slice(1);
           }
@@ -478,7 +486,7 @@ export abstract class CharacterMovement extends CharacterBase {
    * 寻路成功后设置 path 和 _destinationMoveTilePosition，返回 true
    * 寻路失败时清理状态并返回 false
    */
-  private _findPathAndMove(
+  protected _findPathAndMove(
     destTile: Vector2,
     pathTypeOverride: PathType,
     skipDirectionFallback = false

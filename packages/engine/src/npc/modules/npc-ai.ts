@@ -129,7 +129,9 @@ export class NpcAI {
     } else if (npc.isNoneFighter) {
       this.findNoneFighterTarget();
     } else if (npc.isPartner) {
-      this.moveToPlayer();
+      if (!this.npcManager.isPartnerBlockingPlayer) {
+        this.moveToPlayer();
+      }
     } else if (npc.followNpcName) {
       this.followNamedNpc();
     }
@@ -179,7 +181,9 @@ export class NpcAI {
 
     // 如果没有敌人且是伙伴，跟随玩家
     if (npc.followTarget === null && npc.isPartner) {
-      this.moveToPlayer();
+      if (!this.npcManager.isPartnerBlockingPlayer) {
+        this.moveToPlayer();
+      }
     }
   }
 
@@ -294,7 +298,7 @@ export class NpcAI {
   private followTargetLost(): void {
     const npc = this._npc;
     npc.cancelAttackTarget();
-    if (npc.isPartner) {
+    if (npc.isPartner && !this.npcManager.isPartnerBlockingPlayer) {
       this.moveToPlayer();
     }
   }

@@ -327,6 +327,55 @@ export abstract class PlayerBase extends Character {
   }
 
   /**
+   * 移动中重新寻路失败时，让挡路的伙伴让开
+   */
+  protected override _onRepathFailed(destTile: Vector2): void {
+    this.partnerAvoidBlockingPlayer(destTile);
+  }
+
+  /**
+   * 寻路成功时重置伙伴挡路标记，寻路失败时让挡路的伙伴让开
+   */
+  protected override _findPathAndMove(
+    destTile: Vector2,
+    pathTypeOverride: PathType,
+    skipDirectionFallback = false
+  ): boolean {
+    const result = super._findPathAndMove(destTile, pathTypeOverride, skipDirectionFallback);
+    if (result) {
+      this.npcManager.setPartnersIsBlockingPlayer(false);
+    } else {
+      this.partnerAvoidBlockingPlayer(destTile);
+    }
+    return result;
+  }
+
+  /**
+   * 寻路失败时，让挡路的伙伴让开
+   * 将所有站定的伙伴驱赶到目标位置，并标记 isPartnerBlockingPlayer
+   * 使伙伴暂时停止跟随玩家，避免反复挡路
+   */
+  protected partnerAvoidBlockingPlayer(destTile: Vector2): void {
+    let isBlocking = false;
+    const partners = this.npcManager.getAllPartner();
+    for (const partner of partners) {
+      if (partner.isStanding()) {
+        if (partner.isRunning()) {
+          partner.runTo(destTile);
+        } else {
+          partner.walkTo(destTile);
+        }
+        if (!partner.isStanding()) {
+          isBlocking = true;
+        }
+      }
+    }
+    if (isBlocking) {
+      this.npcManager.setPartnersIsBlockingPlayer(true);
+    }
+  }
+
+  /**
    * 获取 GuiManager（通过 EngineContext）
    */
   protected get guiManager(): GuiManager {

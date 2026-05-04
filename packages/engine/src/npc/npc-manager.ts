@@ -59,6 +59,9 @@ export class NpcManager {
   // === 全局 AI 控制 ===
   private _globalAIDisabled: boolean = false;
 
+  // === 伙伴挡路控制 ===
+  private _isPartnerBlockingPlayer: boolean = false;
+
   /** 检查全局 AI 是否禁用 */
   get isGlobalAIDisabled(): boolean {
     return this._globalAIDisabled;
@@ -713,6 +716,14 @@ export class NpcManager {
         partner.partnerMoveTo(destinationTilePosition);
       }
     }
+  }
+
+  get isPartnerBlockingPlayer(): boolean {
+    return this._isPartnerBlockingPlayer;
+  }
+
+  setPartnersIsBlockingPlayer(value: boolean): void {
+    this._isPartnerBlockingPlayer = value;
   }
 
   /**
