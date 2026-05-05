@@ -231,6 +231,8 @@ export class AudioManager {
     };
 
     audio.oncanplaythrough = () => {
+      // 清除处理器，防止浏览器多次触发 canplaythrough 导致正在播放的音乐被误杀
+      audio.oncanplaythrough = null;
       if (this.pendingMusicAudio !== audio) {
         // 已不是当前 pending，中止此孤立元素
         audio.src = "";
