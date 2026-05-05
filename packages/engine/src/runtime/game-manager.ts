@@ -803,8 +803,12 @@ export class GameManager {
     return this.scriptExecutor.runScript(scriptPath);
   }
   /** Queue a script for execution (non-blocking) */
-  queueScript(scriptPath: string, onComplete?: () => void): void {
-    this.scriptExecutor.queueScript(scriptPath, undefined, onComplete);
+  queueScript(
+    scriptPath: string,
+    belongObject?: { type: "npc" | "obj" | "good"; id: string },
+    onComplete?: () => void
+  ): void {
+    this.scriptExecutor.queueScript(scriptPath, belongObject, onComplete);
   }
   getGoodsVersion(): number {
     return this.goodsVersion;

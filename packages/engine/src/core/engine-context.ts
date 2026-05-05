@@ -73,7 +73,11 @@ export interface EngineContext {
   /**
    * 将脚本加入队列（不等待）
    */
-  queueScript(scriptPath: string, onComplete?: () => void): void;
+  queueScript(
+    scriptPath: string,
+    belongObject?: { type: "npc" | "obj" | "good"; id: string },
+    onComplete?: () => void
+  ): void;
 
   /**
    * 获取当前地图名称

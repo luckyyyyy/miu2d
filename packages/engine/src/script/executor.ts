@@ -165,7 +165,7 @@ class ParallelScriptRunner {
  */
 interface ScriptQueueItem {
   scriptPath: string;
-  belongObject?: { type: "npc" | "obj"; id: string };
+  belongObject?: { type: "npc" | "obj" | "good"; id: string };
   onComplete?: () => void;
 }
 
@@ -237,7 +237,7 @@ export class ScriptExecutor {
    */
   async runScript(
     scriptPath: string,
-    belongObject?: { type: "npc" | "obj"; id: string }
+    belongObject?: { type: "npc" | "obj" | "good"; id: string }
   ): Promise<void> {
     // Set isRunning = true BEFORE any await to prevent race conditions
     this.state.isRunning = true;
@@ -300,7 +300,7 @@ export class ScriptExecutor {
    */
   queueScript(
     scriptPath: string,
-    belongObject?: { type: "npc" | "obj"; id: string },
+    belongObject?: { type: "npc" | "obj" | "good"; id: string },
     onComplete?: () => void
   ): void {
     logger.log(

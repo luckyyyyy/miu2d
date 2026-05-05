@@ -124,14 +124,18 @@ export class NpcManager {
     // 标记该 NPC，死亡动画完成同步删除时跳过，等脚本执行完再删除
     this._npcsPendingDeathScript.add(npc.id);
     logger.log(`[NpcManager] Queueing death script for ${npc.name}: ${fullPath}`);
-    engine.queueScript(fullPath, () => {
-      this._npcsPendingDeathScript.delete(npc.id);
-      // 只有当 NPC 真正死亡（isDeath）且无复活时，才删除
-      if (npc.isDeath && npc.reviveMilliseconds === 0) {
-        this.npcs.delete(npc.id);
-        logger.log(`[NpcManager] Removed dead NPC after death script: ${npc.name}`);
+    engine.queueScript(
+      fullPath,
+      { type: "npc", id: npc.id },
+      () => {
+        this._npcsPendingDeathScript.delete(npc.id);
+        // 只有当 NPC 真正死亡（isDeath）且无复活时，才删除
+        if (npc.isDeath && npc.reviveMilliseconds === 0) {
+          this.npcs.delete(npc.id);
+          logger.log(`[NpcManager] Removed dead NPC after death script: ${npc.name}`);
+        }
       }
-    });
+    );
   }
 
   /**

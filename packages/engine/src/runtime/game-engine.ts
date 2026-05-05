@@ -726,8 +726,12 @@ export class GameEngine implements EngineContext {
     );
   }
 
-  queueScript(scriptPath: string, onComplete?: () => void): void {
-    this.gameManager.scriptExecutor?.queueScript(scriptPath, undefined, onComplete);
+  queueScript(
+    scriptPath: string,
+    belongObject?: { type: "npc" | "obj" | "good"; id: string },
+    onComplete?: () => void
+  ): void {
+    this.gameManager.scriptExecutor?.queueScript(scriptPath, belongObject, onComplete);
   }
 
   getCurrentMapName(): string {
