@@ -205,8 +205,14 @@ const showNpcCommand: CommandHandler = (params, _result, helpers) => {
  * sets the ScriptFile property
  */
 const setNpcScriptCommand: CommandHandler = (params, _result, helpers) => {
-  const npcName = helpers.resolveString(params[0] || "");
+  let npcName = helpers.resolveString(params[0] || "");
   const scriptFile = helpers.resolveString(params[1] || "");
+  if (!npcName) {
+    const belongObject = helpers.state.belongObject;
+    if (belongObject && belongObject.type === "npc") {
+      npcName = belongObject.id;
+    }
+  }
   helpers.api.npc.setScript(npcName, scriptFile);
   return true;
 };
@@ -216,8 +222,14 @@ const setNpcScriptCommand: CommandHandler = (params, _result, helpers) => {
  * Sets the death script for an NPC
  */
 const setNpcDeathScriptCommand: CommandHandler = (params, _result, helpers) => {
-  const npcName = helpers.resolveString(params[0] || "");
+  let npcName = helpers.resolveString(params[0] || "");
   const scriptFile = helpers.resolveString(params[1] || "");
+  if (!npcName) {
+    const belongObject = helpers.state.belongObject;
+    if (belongObject && belongObject.type === "npc") {
+      npcName = belongObject.id;
+    }
+  }
   helpers.api.npc.setDeathScript(npcName, scriptFile);
   return true;
 };
@@ -265,8 +277,14 @@ const enableNpcAICommand: CommandHandler = (_params, _result, helpers) => {
  * SetNpcRelation(name, relation) where relation is 0=Friend, 1=Enemy, 2=None
  */
 const setNpcRelationCommand: CommandHandler = (params, _result, helpers) => {
-  const npcName = helpers.resolveString(params[0] || "");
+  let npcName = helpers.resolveString(params[0] || "");
   const relation = helpers.resolveNumber(params[1] || "0");
+  if (!npcName) {
+    const belongObject = helpers.state.belongObject;
+    if (belongObject && belongObject.type === "npc") {
+      npcName = belongObject.id;
+    }
+  }
   logger.log(`SetNpcRelation: ${npcName} -> ${relation}`);
   helpers.api.npc.setRelation(npcName, relation);
   return true;
@@ -292,8 +310,14 @@ const watchCommand: CommandHandler = (params, _result, helpers) => {
  * SetNpcKind(name, kind)
  */
 const setNpcKindCommand: CommandHandler = (params, _result, helpers) => {
-  const npcName = helpers.resolveString(params[0] || "");
+  let npcName = helpers.resolveString(params[0] || "");
   const kind = helpers.resolveNumber(params[1] || "0");
+  if (!npcName) {
+    const belongObject = helpers.state.belongObject;
+    if (belongObject && belongObject.type === "npc") {
+      npcName = belongObject.id;
+    }
+  }
   helpers.api.npc.setKind(npcName, kind);
   return true;
 };
