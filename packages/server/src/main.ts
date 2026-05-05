@@ -78,6 +78,7 @@ app.use("/trpc/*", async (c, next) => {
       if (options.httpOnly) parts.push("HttpOnly");
       if (options.secure) parts.push("Secure");
       if (options.sameSite) parts.push(`SameSite=${options.sameSite}`);
+      if (options.partitioned) parts.push("Partitioned");
       pendingCookies.push(parts.join("; "));
     },
     deleteCookie: (name: string, options: Record<string, unknown>) => {
@@ -86,6 +87,7 @@ app.use("/trpc/*", async (c, next) => {
       if (options.httpOnly) parts.push("HttpOnly");
       if (options.secure) parts.push("Secure");
       if (options.sameSite) parts.push(`SameSite=${options.sameSite}`);
+      if (options.partitioned) parts.push("Partitioned");
       pendingCookies.push(parts.join("; "));
     },
   });

@@ -113,6 +113,7 @@ export class AuthService {
       httpOnly: true,
       sameSite: "none",
       secure: true,
+      partitioned: true,
       maxAge: SESSION_COOKIE_MAX_AGE,
       path: "/",
     });
@@ -126,6 +127,7 @@ export class AuthService {
       httpOnly: true,
       sameSite: "none",
       secure: true,
+      partitioned: true,
       path: "/",
     });
   }
