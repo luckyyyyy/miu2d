@@ -11,9 +11,12 @@
  */
 export interface EffectCharacter {
   isPlayer: boolean;
+  attack: number;
   realAttack: number;
   attack2: number;
   attack3: number;
+  /** 新剑侠情缘: Effect 叠加 Attack；月影传说/剑侠情缘2: Effect 替代 Attack */
+  effectFormulaAdditive?: boolean;
   getAddMagicEffectPercent?(): number;
   getAddMagicEffectAmount?(): number;
 }
@@ -42,8 +45,15 @@ export function getEffectAmount(
 
   let baseEffect: number;
   if (effectType === "effect") {
-    // (magic.Effect == 0 || !belongCharacter.IsPlayer) ? RealAttack : magic.Effect
-    baseEffect = magic.effect === 0 || !isPlayer ? belongCharacter.realAttack : magic.effect;
+    // 新剑侠情缘 (effectFormulaAdditive): Effect + Attack（叠加制）
+    // 月影传说/剑侠情缘2: Effect 替代 Attack（替代制）
+    if (magic.effect !== 0 && isPlayer) {
+      baseEffect = belongCharacter.effectFormulaAdditive
+        ? magic.effect + belongCharacter.attack
+        : magic.effect;
+    } else {
+      baseEffect = belongCharacter.realAttack;
+    }
     // effectExt 只加在 effect 上
     baseEffect += magic.effectExt || 0;
   } else if (effectType === "effect2") {

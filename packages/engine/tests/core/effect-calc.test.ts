@@ -9,6 +9,7 @@ import {
 function makeCharacter(overrides: Partial<EffectCharacter> = {}): EffectCharacter {
   return {
     isPlayer: true,
+    attack: 80,
     realAttack: 100,
     attack2: 50,
     attack3: 30,
@@ -17,11 +18,18 @@ function makeCharacter(overrides: Partial<EffectCharacter> = {}): EffectCharacte
 }
 
 describe("getEffectAmount", () => {
-  it("uses magic.effect for player when effect > 0", () => {
+  it("uses magic.effect for player when effect > 0 (replace mode)", () => {
     const magic = { effect: 80, effect2: 0, effect3: 0, effectExt: 10 };
-    const char = makeCharacter({ realAttack: 100 });
-    // baseEffect = magic.effect + effectExt = 80 + 10 = 90
+    const char = makeCharacter({ attack: 50, realAttack: 100 });
+    // replace mode: baseEffect = magic.effect + effectExt = 80 + 10 = 90
     expect(getEffectAmount(magic, char, "effect")).toBe(90);
+  });
+
+  it("uses magic.effect + attack for player when effect > 0 (additive mode)", () => {
+    const magic = { effect: 80, effect2: 0, effect3: 0, effectExt: 10 };
+    const char = makeCharacter({ attack: 50, realAttack: 100, effectFormulaAdditive: true });
+    // additive mode: baseEffect = magic.effect + attack + effectExt = 80 + 50 + 10 = 140
+    expect(getEffectAmount(magic, char, "effect")).toBe(140);
   });
 
   it("uses realAttack when magic.effect == 0 for player", () => {
@@ -50,14 +58,26 @@ describe("getEffectAmount", () => {
     expect(getEffectAmount(magic, char, "effect3")).toBe(40);
   });
 
-  it("applies percent bonus for player", () => {
+  it("applies percent bonus for player (replace mode)", () => {
     const magic = { effect: 100, effect2: 0, effect3: 0, effectExt: 0 };
     const char = makeCharacter({
       getAddMagicEffectPercent: () => 50, // +50%
       getAddMagicEffectAmount: () => 0,
     });
-    // 100 + floor(100 * 50 / 100) = 100 + 50 = 150
+    // replace: baseEffect = 100; 100 + floor(100 * 50 / 100) = 100 + 50 = 150
     expect(getEffectAmount(magic, char, "effect")).toBe(150);
+  });
+
+  it("applies percent bonus for player (additive mode)", () => {
+    const magic = { effect: 100, effect2: 0, effect3: 0, effectExt: 0 };
+    const char = makeCharacter({
+      attack: 80,
+      effectFormulaAdditive: true,
+      getAddMagicEffectPercent: () => 50,
+      getAddMagicEffectAmount: () => 0,
+    });
+    // additive: baseEffect = 100 + 80 = 180; 180 + floor(180 * 50 / 100) = 180 + 90 = 270
+    expect(getEffectAmount(magic, char, "effect")).toBe(270);
   });
 
   it("applies flat amount bonus for player", () => {

@@ -282,6 +282,27 @@ export function BasicInfoPanel({
               />
             </button>
           </div>
+          <div className="flex items-center justify-between py-2 border-b border-panel-border mb-2">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-[#cccccc]">武功效果叠加攻击力</span>
+              <HelpTip text="新剑侠情缘: 开启后武功 Effect 值会叠加角色 Attack（Effect+Attack）。月影传说/剑侠情缘2: 关闭则 Effect 替代 Attack" />
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={config.effectFormulaAdditive}
+              onClick={() => updateConfig("effectFormulaAdditive", !config.effectFormulaAdditive)}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                config.effectFormulaAdditive ? "bg-[#0e639c]" : "bg-[#3c3c3c]"
+              }`}
+            >
+              <span
+                className={`inline-block h-4 w-4 rounded-full bg-white transition-transform ${
+                  config.effectFormulaAdditive ? "translate-x-6" : "translate-x-1"
+                }`}
+              />
+            </button>
+          </div>
           <Field label="游戏版本">
             <input
               type="text"

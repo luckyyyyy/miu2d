@@ -7,6 +7,7 @@ import type { Character } from "../character";
 import type { CharacterBase } from "../character/base";
 import { loadCharacterConfig } from "../character/character-config";
 import { getLevelConfigFromCache, getNpcLevelDetail } from "../character/level";
+import { getGameConfig } from "../data/game-data-api";
 import { getEngineContext } from "../core/engine-context";
 import { logger } from "../core/logger";
 import type { CharacterConfig, Vector2 } from "../core/types";
@@ -391,6 +392,11 @@ export class NpcManager {
     direction: Direction = 4
   ): Promise<Npc> {
     const npc = Npc.fromConfig(config, tileX, tileY, direction);
+    // 新剑侠情缘: Effect 叠加 Attack 公式
+    const gameConfig = getGameConfig();
+    if (gameConfig?.effectFormulaAdditive) {
+      npc.effectFormulaAdditive = true;
+    }
     this.npcs.set(npc.id, npc);
 
     logger.log(

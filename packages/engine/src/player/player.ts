@@ -15,6 +15,7 @@ import type { Player as PlayerType } from "@miu2d/types";
 import type { Character } from "../character";
 import { applyFlatDataToCharacter } from "../character/character-config";
 import { getEffectAmount } from "../combat/effect-calc";
+import { getGameConfig } from "../data/game-data-api";
 import { logger } from "../core/logger";
 import type { Vector2 } from "../core/types";
 import { CharacterState, RUN_SPEED_FOLD } from "../core/types";
@@ -631,6 +632,12 @@ export class Player extends PlayerCombat {
   async loadFromApiData(data: PlayerType): Promise<boolean> {
     await this.levelManager.initialize();
 
+    // 新剑侠情缘: Effect 叠加 Attack 公式
+    const gameConfig = getGameConfig();
+    if (gameConfig?.effectFormulaAdditive) {
+      this.effectFormulaAdditive = true;
+    }
+
     try {
       // API 字段名映射到 CharacterInstance 属性名
       const mapped: Record<string, unknown> = {
@@ -663,6 +670,12 @@ export class Player extends PlayerCombat {
    * 用于 JSON 存档恢复，由 Loader.loadPlayerFromJSON 调用
    */
   loadFromSaveData(data: PlayerSaveData): void {
+    // 新剑侠情缘: Effect 叠加 Attack 公式
+    const gameConfig = getGameConfig();
+    if (gameConfig?.effectFormulaAdditive) {
+      this.effectFormulaAdditive = true;
+    }
+
     // 所有字段名已统一，直接赋值（无需 rename mapping）
     applyFlatDataToCharacter(data as unknown as Record<string, unknown>, this, true);
 

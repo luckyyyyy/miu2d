@@ -82,6 +82,8 @@ export abstract class CharacterBase extends Sprite implements CharacterInstance 
   levelUpExp: number = 100;
   level: number = 1;
   canLevelUp: number = 1;
+  /** 新剑侠情缘: Effect 叠加 Attack；月影传说/剑侠情缘2: Effect 替代 Attack */
+  effectFormulaAdditive: boolean = false;
 
   // =============================================
   // === Movement ===

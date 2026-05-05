@@ -268,6 +268,8 @@ export const GameConfigDataSchema = z.object({
    * 类型为 engine 中的 UiTheme，此处用 z.unknown() 避免跨包依赖。
    */
   uiTheme: z.unknown().default(null),
+  /** 新剑侠情缘: Effect 叠加 Attack；月影传说/剑侠情缘2: Effect 替代 Attack */
+  effectFormulaAdditive: z.boolean().default(false),
   /** 游戏设置（设置 playerKey 后生效） */
   player: PlayerConfigSchema.optional(),
   /** 掉落系统配置（设置 playerKey 后生效） */
@@ -425,6 +427,7 @@ export function createDefaultGameConfig(): GameConfigData {
     newGameScript: "",
     portraitAsf: "",
     uiTheme: null,
+    effectFormulaAdditive: false,
   };
 }
 
