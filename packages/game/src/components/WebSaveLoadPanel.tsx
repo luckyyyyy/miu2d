@@ -723,6 +723,19 @@ function InlineAuthForm() {
           {mode === "login" ? "没有账号？点此注册" : "已有账号？点此登录"}
         </button>
       </p>
+
+      {/* 遇到问题反馈 */}
+      <div className="mt-4 pt-3 border-t border-white/5 text-center group">
+        <p className="text-white/30 text-xs mb-2">
+          遇到问题、剧情走不下去？微信扫码反馈
+        </p>
+        <img
+          src="https://williamchan.me/assets/qrcode.jpg"
+          alt="微信反馈二维码"
+          className="mx-auto w-20 h-20 rounded-md opacity-60 group-hover:opacity-100 transition-opacity"
+          loading="lazy"
+        />
+      </div>
     </div>
   );
 }
