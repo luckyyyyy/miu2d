@@ -732,7 +732,7 @@ function InlineAuthForm() {
         <img
           src="https://williamchan.me/assets/qrcode.jpg"
           alt="微信反馈二维码"
-          className="mx-auto w-20 h-20 rounded-md opacity-60 group-hover:opacity-100 transition-opacity"
+          className="mx-auto w-20 h-auto rounded-md opacity-60 group-hover:opacity-100 transition-opacity"
           loading="lazy"
         />
       </div>

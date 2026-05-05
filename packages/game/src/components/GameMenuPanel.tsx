@@ -173,7 +173,7 @@ export function GameMenuPanel({
             <img
               src="https://williamchan.me/assets/qrcode.jpg"
               alt="微信反馈二维码"
-              className="mx-auto w-40 h-40 rounded-lg"
+              className="mx-auto w-40 h-auto rounded-lg"
               loading="lazy"
             />
           </div>
