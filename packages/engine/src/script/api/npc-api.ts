@@ -159,6 +159,12 @@ export function createNpcAPI(ctx: ScriptCommandContext, resolver: BlockingResolv
         player.setRelation(relation);
       }
     },
+    setRelationById: (id, relation) => {
+      const npc = npcManager.getNpcById(id);
+      if (npc) {
+        npc.setRelation(relation);
+      }
+    },
     setDeathScript: (name, scriptFile) => {
       if (player.name === name) {
         player.deathScript = scriptFile;
@@ -171,8 +177,20 @@ export function createNpcAPI(ctx: ScriptCommandContext, resolver: BlockingResolv
         logger.warn(`[GameAPI.npc] setDeathScript: NPC not found: ${name}`);
       }
     },
+    setDeathScriptById: (id, scriptFile) => {
+      const npc = npcManager.getNpcById(id);
+      if (npc) {
+        npc.deathScript = scriptFile;
+      }
+    },
     setScript: (name, scriptFile) => {
       npcManager.setNpcScript(name, scriptFile);
+    },
+    setScriptById: (id, scriptFile) => {
+      const npc = npcManager.getNpcById(id);
+      if (npc) {
+        npc.scriptFile = scriptFile;
+      }
     },
     show: (name, visible) => {
       npcManager.showNpc(name, visible);
@@ -214,6 +232,12 @@ export function createNpcAPI(ctx: ScriptCommandContext, resolver: BlockingResolv
       }
       if (player.name === name) {
         player.kind = kind;
+      }
+    },
+    setKindById: (id, kind) => {
+      const npc = npcManager.getNpcById(id);
+      if (npc) {
+        npc.kind = kind;
       }
     },
     setMagicFile: async (name, magicFile) => {

@@ -111,14 +111,18 @@ export interface NpcAPI {
   setDirection(name: string, direction: number): void;
   setState(name: string, state: number): void;
   setRelation(name: string, relation: number): void;
+  setRelationById(id: string, relation: number): void;
   setDeathScript(name: string, scriptFile: string): void;
+  setDeathScriptById(id: string, scriptFile: string): void;
   setScript(name: string, scriptFile: string): void;
+  setScriptById(id: string, scriptFile: string): void;
   show(name: string, visible: boolean): void;
   merge(npcFile: string): Promise<void>;
   save(fileName?: string): Promise<void>;
   watch(char1: string, char2: string, watchType: number): void;
   setAIEnabled(enabled: boolean): void;
   setKind(name: string, kind: number): void;
+  setKindById(id: string, kind: number): void;
   setMagicFile(name: string, magicFile: string): Promise<void>;
   setResource(name: string, resFile: string): void | Promise<void>;
   setAction(name: string, action: number, x?: number, y?: number): void;
