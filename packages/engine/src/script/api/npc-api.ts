@@ -377,15 +377,11 @@ export function createNpcAPI(ctx: ScriptCommandContext, resolver: BlockingResolv
         npc.destinationMapPosY = y;
       }
     },
-    getCount: (kind1, kind2) => {
+    getCount: (kind: number, relation: number) => {
       const allNpcs = npcManager.getAllNpcs();
       let count = 0;
       for (const [, npc] of allNpcs) {
-        if (kind2 !== undefined) {
-          if (npc.kind >= kind1 && npc.kind <= kind2) count++;
-        } else {
-          if (npc.kind === kind1) count++;
-        }
+        if (npc.kind === kind && npc.relation === relation) count++;
       }
       return count;
     },

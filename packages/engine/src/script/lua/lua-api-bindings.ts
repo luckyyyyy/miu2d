@@ -166,7 +166,7 @@ export function registerLuaAPIBindings(
   setGlobal("SetNpcDestination", (name: string, x: number, y: number) =>
     api.npc.setDestination(name, x, y)
   );
-  setGlobal("GetNpcCount", (kind1: number, kind2: number) => api.npc.getCount(kind1, kind2));
+  setGlobal("GetNpcCount", (kind: number, relation: number) => api.npc.getCount(kind, relation));
   setGlobal("SetNpcKeepAttack", (name: string, x: number, y: number) =>
     api.npc.setKeepAttack(name, x, y)
   );

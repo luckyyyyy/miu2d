@@ -475,7 +475,7 @@ export const LUA_API_FUNCTIONS: LuaAPIFunction[] = [
   },
   {
     name: "GetNpcCount",
-    signature: "(kind1: number, kind2: number): number",
+    signature: "(kind: number, relation: number): number",
     description: "获取 NPC 数量",
     category: "NPC",
   },

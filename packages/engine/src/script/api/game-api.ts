@@ -140,7 +140,7 @@ export interface NpcAPI {
   changeFlyIni2(name: string, magicFile: string): void;
   addFlyInis(name: string, magicFile: string, distance: number): void;
   setDestination(name: string, x: number, y: number): void;
-  getCount(kind1: number, kind2: number): number;
+  getCount(kind: number, relation: number): number;
   setKeepAttack(name: string, x: number, y: number): void;
 }
 

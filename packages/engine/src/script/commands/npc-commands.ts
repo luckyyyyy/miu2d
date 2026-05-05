@@ -498,13 +498,13 @@ const setNpcDestinationCommand: CommandHandler = (params, _result, helpers) => {
 };
 
 /**
- * GetNpcCount - Get NPC count by kind range
- * GetNpcCount(kind1, kind2)
+ * GetNpcCount - Get NPC count by kind and relation
+ * GetNpcCount(kind, relation)
  */
 const getNpcCountCommand: CommandHandler = (params, _result, helpers) => {
-  const kind1 = helpers.resolveNumber(params[0] || "0");
-  const kind2 = helpers.resolveNumber(params[1] || "0");
-  const count = helpers.api.npc.getCount(kind1, kind2);
+  const kind = helpers.resolveNumber(params[0] || "0");
+  const relation = helpers.resolveNumber(params[1] || "0");
+  const count = helpers.api.npc.getCount(kind, relation);
   helpers.api.variables.set("NpcCount", count);
   return true;
 };
