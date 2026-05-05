@@ -669,7 +669,7 @@ export class InputHandler {
     const basePath = this.engine.getScriptBasePath();
     await scriptExecutor.runScript(resolveScriptPath(basePath, scriptFile), {
       type: "npc",
-      id: npc.name,
+      id: npc.id,
     });
   }
 

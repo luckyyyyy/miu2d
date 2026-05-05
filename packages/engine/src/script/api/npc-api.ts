@@ -160,7 +160,7 @@ export function createNpcAPI(ctx: ScriptCommandContext, resolver: BlockingResolv
       }
     },
     setRelationById: (id, relation) => {
-      const npc = npcManager.getNpc(id);
+      const npc = npcManager.getNpcById(id);
       if (npc) {
         npc.setRelation(relation);
       }
@@ -178,7 +178,7 @@ export function createNpcAPI(ctx: ScriptCommandContext, resolver: BlockingResolv
       }
     },
     setDeathScriptById: (id, scriptFile) => {
-      const npc = npcManager.getNpc(id);
+      const npc = npcManager.getNpcById(id);
       if (npc) {
         npc.deathScript = scriptFile;
       }
@@ -187,7 +187,7 @@ export function createNpcAPI(ctx: ScriptCommandContext, resolver: BlockingResolv
       npcManager.setNpcScript(name, scriptFile);
     },
     setScriptById: (id, scriptFile) => {
-      const npc = npcManager.getNpc(id);
+      const npc = npcManager.getNpcById(id);
       if (npc) {
         npc.scriptFile = scriptFile;
       }
@@ -235,7 +235,7 @@ export function createNpcAPI(ctx: ScriptCommandContext, resolver: BlockingResolv
       }
     },
     setKindById: (id, kind) => {
-      const npc = npcManager.getNpc(id);
+      const npc = npcManager.getNpcById(id);
       if (npc) {
         npc.kind = kind;
       }
