@@ -399,6 +399,8 @@ See [deploy/](deploy/) for production Docker configs.
 ## Credits
 
 - **Original Game**: Kingsoft (西山居) — *剑侠情缘外传：月影传说* (2001)
+- [JxqyHD](https://github.com/mapic91/JxqyHD) — C# reimplementation of the game engine, provided invaluable reference for game logic, magic systems, and data formats
+- [JXQY-all-in-one](https://github.com/Upwinded/JXQY-all-in-one) — Cross-platform C++ engine, provided secondary verification and calibration for game mechanics
 
 > This is a fan-made learning project. Game assets and IP belong to their original creators.
 

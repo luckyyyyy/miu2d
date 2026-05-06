@@ -400,6 +400,8 @@ make dev            # 同时启动 web + server + db studio
 ## 致谢
 
 - **原作游戏**：西山居 (Kingsoft) —《剑侠情缘外传：月影传说》(2001)
+- [JxqyHD](https://github.com/mapic91/JxqyHD) — 游戏引擎的 C# 重实现，为游戏逻辑、武功系统和数据格式提供了极好的参考
+- [JXQY-all-in-one](https://github.com/Upwinded/JXQY-all-in-one) — 跨平台 C++ 引擎，为游戏机制提供了二次核验和校准
 > 这是一个粉丝制作的学习项目。游戏素材和知识产权归原始创作者所有。
 
 ---
