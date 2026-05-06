@@ -404,6 +404,12 @@ make dev            # 同时启动 web + server + db studio
 - [JXQY-all-in-one](https://github.com/Upwinded/JXQY-all-in-one) — 跨平台 C++ 引擎，为游戏机制提供了二次核验和校准
 > 这是一个粉丝制作的学习项目。游戏素材和知识产权归原始创作者所有。
 
+## 版权声明
+
+引擎源代码基于 [MIT 许可证](LICENSE) 开源。
+
+游戏资源（图片、音频、地图、脚本等）**不在** MIT 许可范围内，版权归原始创作者（西山居 / Kingsoft）所有。
+
 ---
 
 <div align="center">
