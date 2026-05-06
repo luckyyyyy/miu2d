@@ -550,6 +550,7 @@ export class MagicSpriteManager {
       guiManager: this.guiManager,
       screenEffects: this.screenEffects,
       audioManager: this.audioManager,
+      magicInventory: this.magicInventory,
     };
   }
 
