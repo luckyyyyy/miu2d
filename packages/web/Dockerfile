@@ -82,6 +82,8 @@ ARG APP_VERSION=0.0.0
 # VITE 环境变量在构建时 bake 进静态产物，必须通过 --build-arg 传入
 ARG VITE_DEMO_RESOURCES_DOMAIN=
 ARG VITE_S3_BASE_URL=/s3/miu2d
+# CACHE_BUST: 每次部署传入不同值以跳过 RUN 层缓存（ARG 变化不自动失效缓存）
+ARG CACHE_BUST=0
 
 # 构建 web 应用
 WORKDIR /app/packages/web
@@ -89,6 +91,7 @@ RUN COMMIT_HASH=$COMMIT_HASH \
     APP_VERSION=$APP_VERSION \
     VITE_DEMO_RESOURCES_DOMAIN=$VITE_DEMO_RESOURCES_DOMAIN \
     VITE_S3_BASE_URL=$VITE_S3_BASE_URL \
+    CACHE_BUST=$CACHE_BUST \
     pnpm build
 
 # 生产阶段 - 使用 nginx 静态服务
