@@ -10,7 +10,8 @@ import { getNpcLevelDetail } from "../character/level/level-manager";
 import { logger } from "../core/logger";
 import type { CharacterConfig, Direction, Vector2 } from "../core/types";
 import { getGameSlug, loadSceneNpcEntries } from "../data/game-data-api";
-import type { NpcSaveItem } from "../storage/save-types";
+import { loadGoodsContainer, loadMagicContainer } from "../storage/loader-data-helpers";
+import type { GoodsContainerSave, MagicContainerSave, NpcSaveItem } from "../storage/save-types";
 import type { Npc } from "./npc";
 import { collectNpcSnapshot, parseNpcData } from "./npc-persistence";
 
@@ -217,6 +218,19 @@ export async function createNpcFromData(
       x: p.x,
       y: p.y,
     }));
+  }
+
+  // 伙伴武功/物品容器
+  if (npc.isPartner) {
+    npc.initPartnerContainers();
+    const magicData = (data as Record<string, unknown>).magicContainer as MagicContainerSave | undefined;
+    const goodsData = (data as Record<string, unknown>).goodsContainer as GoodsContainerSave | undefined;
+    if (magicData && npc.magicInventory) {
+      await loadMagicContainer(magicData, npc.magicInventory);
+    }
+    if (goodsData && npc.goodsManager) {
+      loadGoodsContainer(goodsData, npc.goodsManager);
+    }
   }
 
   // 等级配置（异步加载配置文件）

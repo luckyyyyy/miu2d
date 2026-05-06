@@ -5,7 +5,10 @@
 import type { Character } from "../../character/character";
 import { logger } from "../../core/logger";
 import { CharacterState } from "../../core/types";
+import { getPlayersData } from "../../data/game-data-api";
 import { getMagic, preloadMagicAsf } from "../../magic/magic-config-loader";
+import { loadGoodsFromJSON, loadMagicsFromJSON } from "../../storage/loader-data-helpers";
+import type { GoodsItemData, MagicItemData } from "../../storage/save-types";
 import { ResourcePath } from "../../resource/resource-paths";
 import { tileToPixel } from "../../utils";
 import { PathType } from "../../utils/path-finder";
@@ -225,10 +228,59 @@ export function createNpcAPI(ctx: ScriptCommandContext, resolver: BlockingResolv
       if (enabled) npcManager.enableAI();
       else npcManager.disableAI();
     },
-    setKind: (name, kind) => {
+    setKind: async (name, kind) => {
       const npcs = npcManager.getAllNpcsByName(name);
       for (const npc of npcs) {
+        const wasPartner = npc.isPartner;
+        // 离队前：保存当前伙伴数据到 registry（确保后续入队可恢复）
+        if (wasPartner && kind !== 3) {
+          const entry = npc.collectPartnerRegistry();
+          if (entry) {
+            npcManager.updatePartnerRegistryEntry(npc.name, entry);
+            logger.log(
+              `[NpcAPI] Partner ${npc.name} leaving → saved to registry ` +
+                `(magics=${entry.magicContainer?.panelMagics?.filter(Boolean).length ?? 0})`
+            );
+          }
+        }
         npc.kind = kind;
+        // 伙伴入队：初始化容器并加载数据
+        if (kind === 3 && !wasPartner) {
+          const registryEntry = npcManager.getPartnerRegistryEntry(npc.name);
+          if (registryEntry) {
+            // 从注册表恢复
+            await npc.applyPartnerRegistry(registryEntry);
+            const magicCount = registryEntry.magicContainer?.panelMagics?.filter(Boolean).length ?? 0;
+            logger.log(
+              `[NpcAPI] Partner ${npc.name} restored from registry (${magicCount} magics)`
+            );
+          } else {
+            // 首次入队：从 API 初始数据加载
+            npc.initPartnerContainers();
+            const players = getPlayersData();
+            const apiPlayer = players?.find((p) => p.name === npc.name);
+            if (apiPlayer) {
+              if (apiPlayer.initialMagics?.length > 0 && npc.magicInventory) {
+                const magicItems: MagicItemData[] = apiPlayer.initialMagics.map((m, i) => ({
+                  fileName: m.iniFile,
+                  level: m.level,
+                  exp: m.exp,
+                  index: m.index ?? i + 1,
+                }));
+                await loadMagicsFromJSON(magicItems, 0, npc.magicInventory);
+              }
+              if (apiPlayer.initialGoods?.length > 0 && npc.goodsManager) {
+                const goodsItems: GoodsItemData[] = apiPlayer.initialGoods.map((g) => ({
+                  fileName: g.iniFile,
+                  count: g.number,
+                  index: g.index,
+                }));
+                loadGoodsFromJSON(goodsItems, [], npc.goodsManager);
+              }
+            }
+            logger.log(`[NpcAPI] Partner ${npc.name} initialized from API data`);
+          }
+        }
       }
       if (player.name === name) {
         player.kind = kind;
@@ -433,17 +485,47 @@ export function createNpcAPI(ctx: ScriptCommandContext, resolver: BlockingResolv
         );
         return;
       }
-      // NPC uses magic cache
+      // NPC: partner adds to magic inventory (saves with game), others to cache only
       const npcs = npcManager.getAllNpcsByName(name);
       for (const npc of npcs) {
+        if (npc.isPartner) {
+          if (!npc.magicInventory) npc.initPartnerContainers();
+          const inv = npc.magicInventory!;
+          const [isNew, addedIndex] = await inv.addMagic(magicFile);
+          if (isNew && addedIndex > 1) {
+            inv.exchangeListItem(1, addedIndex);
+          }
+          // 打印伙伴当前完整技能列表
+          const panel = inv.getStoreMagics();
+          const bottom = inv.getBottomMagics();
+          const skills: string[] = [];
+          for (let i = 0; i < panel.length; i++) {
+            const m = panel[i];
+            if (m?.magic) skills.push(`[${i + 1}]${m.magic.name} Lv${m.level}`);
+          }
+          const bottomStr = bottom
+            .map((m, i) => (m?.magic ? `[${i + 1}]${m.magic.name} Lv${m.level}` : null))
+            .filter(Boolean)
+            .join(", ");
+          logger.log(
+            `[AddMagic] ${name} ← ${magicFile} (isNew=${isNew}, index=${addedIndex}) | ` +
+              `面板(${skills.length}): ${skills.join(", ")} | ` +
+              `快捷栏: ${bottomStr || "空"}`
+          );
+        }
         await npc.addMagicToCache(magicFile);
       }
     },
-    setMagicLevel: (name, _magicFile, level) => {
+    setMagicLevel: (name, magicFile, level) => {
       // For NPC: sets the attack level which governs which level magic data is used
       const npcs = npcManager.getAllNpcsByName(name);
       for (const npc of npcs) {
         npc.setMagicAttackLevel(level);
+        // Partner: also update the specific magic's level in inventory
+        if (npc.isPartner) {
+          if (!npc.magicInventory) npc.initPartnerContainers();
+          npc.magicInventory!.setMagicLevel(magicFile, level);
+        }
       }
       // Player's magic level is managed separately; no-op here for player
     },

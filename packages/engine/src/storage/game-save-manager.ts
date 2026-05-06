@@ -641,6 +641,15 @@ export class Loader {
       if (data.groups?.npc) npcManager.setNpcGroups(data.groups.npc);
       if (data.groups?.obj) objManager.setObjGroups(data.groups.obj);
 
+      // 恢复伙伴注册表
+      if (data.partnerRegistry) {
+        npcManager.setPartnerRegistry(data.partnerRegistry);
+        for (const [name, entry] of Object.entries(data.partnerRegistry)) {
+          const magicCount = entry.magicContainer?.panelMagics?.filter(Boolean).length ?? 0;
+          logger.log(`[Load] Registry ${name}: ${magicCount} magics`);
+        }
+      }
+
       this.finalizeLoad(timings, tEffects, () => {
         // 恢复选项设置
         if (data.option) {
@@ -874,6 +883,29 @@ export class Loader {
 
       // 多角色数据 (PlayerChange 切换过的角色)
       otherCharacters: this.characterMemoryStore.collectForSave(),
+
+      // 伙伴注册表（持久化所有曾入队伙伴的完整数据）
+      partnerRegistry: (() => {
+        // 从当前活跃伙伴更新注册表
+        for (const partner of npcManager.getAllPartner()) {
+          const entry = partner.collectPartnerRegistry();
+          if (entry) {
+            npcManager.updatePartnerRegistryEntry(partner.name, entry);
+            const magicCount = entry.magicContainer?.panelMagics?.filter(Boolean).length ?? 0;
+            logger.log(
+              `[Save] Partner ${partner.name} → registry (${magicCount} magics, kind=${partner.kind})`
+            );
+          }
+        }
+        const registry = npcManager.serializePartnerRegistry();
+        if (registry) {
+          for (const [name, entry] of Object.entries(registry)) {
+            const magicCount = entry.magicContainer?.panelMagics?.filter(Boolean).length ?? 0;
+            logger.log(`[Save] Registry ${name}: ${magicCount} magics`);
+          }
+        }
+        return registry;
+      })(),
     };
 
     return saveData;

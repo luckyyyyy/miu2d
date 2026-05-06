@@ -14,7 +14,7 @@ import type { CharacterConfig, Vector2 } from "../core/types";
 import { CharacterKind, type CharacterState, type Direction } from "../core/types";
 import { type DropCharacter, getDropObj } from "../loot/good-drop";
 import { resolveScriptPath } from "../resource/resource-paths";
-import type { NpcSaveItem } from "../storage/save-types";
+import type { NpcSaveItem, PartnerRegistryItem } from "../storage/save-types";
 import { getViewTileDistance } from "../utils";
 import { PathType } from "../utils/path-finder";
 import { Npc } from "./npc";
@@ -47,6 +47,12 @@ export class NpcManager {
    * 存档时持久化到 localStorage，读档时恢复
    */
   private npcGroups: Map<string, NpcSaveItem[]> = new Map();
+
+  /**
+   * 伙伴注册表（持久化伙伴数据，离队后保留）
+   * key = 伙伴名字
+   */
+  private _partnerRegistry: Map<string, PartnerRegistryItem> = new Map();
 
   // List of dead NPCs
   private _deadNpcs: Npc[] = [];
@@ -841,6 +847,32 @@ export class NpcManager {
 
   clearNpcGroups(): void {
     this.npcGroups.clear();
+  }
+
+  // === Partner Registry ===
+
+  getPartnerRegistry(): Map<string, PartnerRegistryItem> {
+    return this._partnerRegistry;
+  }
+
+  setPartnerRegistry(store: Record<string, PartnerRegistryItem>): void {
+    this._partnerRegistry.clear();
+    for (const [key, value] of Object.entries(store)) {
+      this._partnerRegistry.set(key, value);
+    }
+  }
+
+  getPartnerRegistryEntry(name: string): PartnerRegistryItem | undefined {
+    return this._partnerRegistry.get(name);
+  }
+
+  updatePartnerRegistryEntry(name: string, entry: PartnerRegistryItem): void {
+    this._partnerRegistry.set(name, entry);
+  }
+
+  serializePartnerRegistry(): Record<string, PartnerRegistryItem> | undefined {
+    if (this._partnerRegistry.size === 0) return undefined;
+    return Object.fromEntries(this._partnerRegistry);
   }
 
   async loadPartner(filePath: string): Promise<void> {

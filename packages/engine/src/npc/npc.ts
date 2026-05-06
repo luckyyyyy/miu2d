@@ -4,11 +4,20 @@
  */
 
 import { Character } from "../character";
-import { loadCharacterConfig } from "../character/character-config";
+import {
+  applyFlatDataToCharacter,
+  extractFlatDataFromCharacter,
+  loadCharacterConfig,
+} from "../character/character-config";
 import { logger } from "../core/logger";
 import type { CharacterConfig, Vector2 } from "../core/types";
 import { CharacterKind, CharacterState } from "../core/types";
 import type { MagicData } from "../magic/types";
+import { GoodsListManager } from "../player/goods/goods-list-manager";
+import { PlayerMagicInventory } from "../player/magic/player-magic-inventory";
+import { SaveDataCollector } from "../storage/save-data-collector";
+import { loadGoodsContainer, loadMagicContainer } from "../storage/loader-data-helpers";
+import type { PartnerRegistryItem } from "../storage/save-types";
 import type { AsfData } from "../resource/format/asf";
 import { generateId, tileToPixel } from "../utils";
 import { getPositionInDirection } from "../utils/direction";
@@ -41,6 +50,10 @@ export class Npc extends Character {
   // AI behavior - 使用 NpcAI 模块管理 AI 行为
   private _ai!: NpcAI;
 
+  // Partner containers (伙伴武功/物品)
+  private _magicInventory: PlayerMagicInventory | null = null;
+  private _goodsManager: GoodsListManager | null = null;
+
   constructor(id?: string) {
     super();
     this._id = id || generateId();
@@ -52,6 +65,63 @@ export class Npc extends Character {
   private initModules(): void {
     this._magicCache = new NpcMagicCache(this.attackLevel || 1);
     this._ai = new NpcAI(this);
+  }
+
+  // === Partner Containers ===
+
+  get magicInventory(): PlayerMagicInventory | null {
+    return this._magicInventory;
+  }
+
+  get goodsManager(): GoodsListManager | null {
+    return this._goodsManager;
+  }
+
+  /** 初始化伙伴武功/物品容器（仅伙伴 NPC） */
+  initPartnerContainers(): void {
+    if (!this.isPartner) return;
+    if (!this._magicInventory) {
+      this._magicInventory = new PlayerMagicInventory();
+    }
+    if (!this._goodsManager) {
+      this._goodsManager = new GoodsListManager();
+    }
+  }
+
+  /** 从伙伴注册表恢复角色属性 + 武功 + 物品 */
+  async applyPartnerRegistry(data: PartnerRegistryItem): Promise<void> {
+    this.initPartnerContainers();
+    applyFlatDataToCharacter(data.character as unknown as Record<string, unknown>, this, false);
+    this.applyConfigSetters();
+    if (data.magicContainer && this._magicInventory) {
+      await loadMagicContainer(data.magicContainer, this._magicInventory);
+      const count = this._magicInventory.getStoreMagics().filter((m) => m?.magic).length;
+      logger.log(`[Npc] ${this.name} applyPartnerRegistry: restored ${count} magics`);
+    }
+    if (data.goodsContainer && this._goodsManager) {
+      loadGoodsContainer(data.goodsContainer, this._goodsManager);
+    }
+  }
+
+  /** 收集当前伙伴数据到注册表条目 */
+  collectPartnerRegistry(): PartnerRegistryItem | null {
+    if (!this.isPartner) return null;
+    const character = extractFlatDataFromCharacter(this, false) as unknown as import("../storage/save-types").CharacterSaveBase;
+    character.dir = this.currentDirection;
+    const magicContainer = this._magicInventory
+      ? SaveDataCollector.collectMagicContainer(this._magicInventory)
+      : { panelMagics: [], xiuLianMagic: null, bottomMagics: [], hiddenMagics: [] };
+    const magicCount = magicContainer.panelMagics.filter(Boolean).length;
+    logger.log(
+      `[Npc] ${this.name} collectPartnerRegistry: ${magicCount} magics, kind=${this.kind}`
+    );
+    return {
+      character,
+      magicContainer,
+      goodsContainer: this._goodsManager
+        ? SaveDataCollector.collectGoodsContainer(this._goodsManager)
+        : { bagItems: [], equipItems: [], bottomItems: [] },
+    };
   }
 
   // === Manager 访问（通过 EngineContext）===
@@ -332,6 +402,7 @@ export class Npc extends Character {
     const npc = new Npc();
     npc.loadFromConfig(config);
     npc.initModules(); // 配置加载后初始化模块
+    npc.initPartnerContainers(); // 伙伴初始化武功/物品容器
     npc.setPosition(tileX, tileY);
     npc._currentDirection = direction;
     return npc;
@@ -466,6 +537,67 @@ export class Npc extends Character {
     logger.log(`[NPC] ${this.name} uses MagicToUseWhenLifeLow: ${this.magicToUseWhenLifeLow}`);
   }
 
+  // === Partner Attack Magic Selection ===
+
+  /**
+   * Override: 伙伴优先从技能栏/面板选择武功，否则走 FlyIni
+   */
+  protected override selectMagicForAttack(useDistance: number): string | null {
+    if (this.isPartner && this._magicInventory) {
+      const magic = this.pickPartnerMagic();
+      if (magic) return magic;
+    }
+    return super.selectMagicForAttack(useDistance);
+  }
+
+  /**
+   * 伙伴武功选择：快捷栏优先 → 面板前5 → null
+   */
+  private pickPartnerMagic(): string | null {
+    const inv = this._magicInventory;
+    if (!inv) return null;
+
+    // Priority 1: 快捷栏武功
+    const bottomItems = inv.getBottomSlotsItems();
+    const bottomMagics: string[] = [];
+    for (const info of bottomItems) {
+      if (info?.magic) bottomMagics.push(info.magic.fileName);
+    }
+    if (bottomMagics.length > 0) {
+      return this.weightedRandomPick(bottomMagics);
+    }
+
+    // Priority 2: 面板前5个武功
+    const panelMagics: string[] = [];
+    for (let i = 1; i <= 500 && panelMagics.length < 5; i++) {
+      const info = inv.getItemInfo(i);
+      if (info?.magic) panelMagics.push(info.magic.fileName);
+    }
+    if (panelMagics.length > 0) {
+      return this.weightedRandomPick(panelMagics);
+    }
+
+    return null;
+  }
+
+  /**
+   * 加权随机选择：第一个概率最高，依次递减
+   * 权重: [5, 4, 3, 2, 1]
+   */
+  private weightedRandomPick(items: string[]): string {
+    const weights = [5, 4, 3, 2, 1];
+    let totalWeight = 0;
+    for (let i = 0; i < items.length; i++) {
+      totalWeight += weights[i] ?? 1;
+    }
+    let random = Math.random() * totalWeight;
+    for (let i = 0; i < items.length; i++) {
+      random -= weights[i] ?? 1;
+      if (random <= 0) return items[i];
+    }
+    return items[items.length - 1];
+  }
+
   /**
    * Attacking(destinationTilePosition)
    * 始终使用 Attack/Attack1/Attack2 状态（而非 Magic 状态）。
@@ -504,10 +636,16 @@ export class Npc extends Character {
   private performAttack(targetTilePosition: Vector2, magicIni?: string): void {
     // 转换为像素位置
     const destPixel = tileToPixel(targetTilePosition.x, targetTilePosition.y);
-    // 获取缓存的武功数据用于 LifeFullToUse 等检查
-    const magicData = magicIni ? this.getCachedMagic(magicIni) : undefined;
-    // 调用基类方法，传入武功文件名和武功数据
-    this.performeAttack(destPixel, magicIni, magicData ?? undefined);
+    // 获取缓存的武功数据（FlyIni 缓存优先，伙伴从武功栏查找）
+    let magicData: MagicData | undefined;
+    if (magicIni) {
+      magicData = this.getCachedMagic(magicIni) ?? undefined;
+      if (!magicData && this.isPartner && this._magicInventory) {
+        const info = this._magicInventory.getMagicByFileName(magicIni);
+        if (info?.magic) magicData = info.magic;
+      }
+    }
+    this.performeAttack(destPixel, magicIni, magicData);
   }
 
   /**
@@ -524,8 +662,12 @@ export class Npc extends Character {
       return;
     }
 
-    // NPC 使用缓存的武功数据
-    const magic = this.getCachedMagic(this._magicToUseWhenAttack);
+    // NPC 使用缓存的武功数据（FlyIni 缓存优先，伙伴从武功栏查找）
+    let magic = this.getCachedMagic(this._magicToUseWhenAttack);
+    if (!magic && this.isPartner && this._magicInventory) {
+      const info = this._magicInventory.getMagicByFileName(this._magicToUseWhenAttack);
+      if (info?.magic) magic = info.magic;
+    }
 
     if (magic) {
       this.engine.magicSpriteManager.useMagic({

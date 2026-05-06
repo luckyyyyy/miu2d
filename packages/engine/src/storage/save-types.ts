@@ -301,6 +301,10 @@ export interface NpcSaveItem extends CharacterSaveBase {
   isHide: boolean;
   isAIDisabled: boolean;
   actionPathTilePositions?: Array<{ x: number; y: number }>;
+  /** 伙伴武功容器 */
+  magicContainer?: MagicContainerSave;
+  /** 伙伴物品容器 */
+  goodsContainer?: GoodsContainerSave;
 }
 
 /**
@@ -399,6 +403,18 @@ export interface CharacterSaveSlot {
 }
 
 /**
+ * 伙伴注册表条目（持久化伙伴数据，离队后保留）
+ */
+export interface PartnerRegistryItem {
+  /** 角色完整存档（等级/经验/属性/装备/状态等） */
+  character: CharacterSaveBase;
+  /** 武功容器 */
+  magicContainer: MagicContainerSave;
+  /** 物品容器 */
+  goodsContainer: GoodsContainerSave;
+}
+
+/**
  * 完整存档数据
  */
 export interface SaveData {
@@ -438,6 +454,8 @@ export interface SaveData {
    * 保存在 PlayerChange 切换过程中保存到内存的角色数据
    */
   otherCharacters?: Record<number, CharacterSaveSlot>;
+  /** 伙伴注册表（所有曾入队伙伴的完整数据，离队后保留） */
+  partnerRegistry?: Record<string, PartnerRegistryItem>;
 }
 
 /** 快照 - 存档瞬间各实体的当前状态 */

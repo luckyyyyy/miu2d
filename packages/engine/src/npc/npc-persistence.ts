@@ -13,6 +13,7 @@ import {
   DEFAULT_CHARACTER_CONFIG,
   RelationType as RelationTypeEnum,
 } from "../core/types";
+import { SaveDataCollector } from "../storage/save-data-collector";
 import type { NpcSaveItem } from "../storage/save-types";
 import type { Npc } from "./npc";
 
@@ -196,6 +197,16 @@ export function collectNpcSnapshot(npcs: Map<string, Npc>, partnersOnly: boolean
       npc.actionPathTilePositions?.length > 0
         ? npc.actionPathTilePositions.map((p) => ({ x: p.x, y: p.y }))
         : undefined;
+
+    // 伙伴武功/物品容器
+    if (npc.isPartner && npc.magicInventory) {
+      (base as unknown as NpcSaveItem).magicContainer =
+        SaveDataCollector.collectMagicContainer(npc.magicInventory);
+    }
+    if (npc.isPartner && npc.goodsManager) {
+      (base as unknown as NpcSaveItem).goodsContainer =
+        SaveDataCollector.collectGoodsContainer(npc.goodsManager);
+    }
 
     items.push(base as unknown as NpcSaveItem);
   }

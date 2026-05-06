@@ -555,6 +555,14 @@ export abstract class CharacterCombat extends CharacterMovement {
   // =============================================
 
   /**
+   * 选择攻击武功（可被子类覆写）
+   * 默认从 FlyIni 列表中随机选择
+   */
+  protected selectMagicForAttack(useDistance: number): string | null {
+    return this.getRandomMagicWithUseDistance(useDistance);
+  }
+
+  /**
    * 检查攻击是否OK（距离、魔法选择）
    */
   attackingIsOk(): { isOk: boolean; magicIni: string | null } {
@@ -576,7 +584,7 @@ export abstract class CharacterCombat extends CharacterMovement {
       );
 
       if (canSeeTarget) {
-        const magicIni = this.getRandomMagicWithUseDistance(attackRadius);
+        const magicIni = this.selectMagicForAttack(attackRadius);
         const hasMagic = this._flyIniInfos.length > 0;
         if (magicIni !== null || !hasMagic) {
           return { isOk: true, magicIni };
@@ -604,7 +612,7 @@ export abstract class CharacterCombat extends CharacterMovement {
       this._destinationAttackTilePosition.y
     );
     if (!this.moveAwayTarget(destPixel, retreatNeeded, this._isRunToTarget)) {
-      const magicIni = this.getRandomMagicWithUseDistance(attackRadius);
+      const magicIni = this.selectMagicForAttack(attackRadius);
       return { isOk: magicIni !== null, magicIni };
     }
 
@@ -613,7 +621,7 @@ export abstract class CharacterCombat extends CharacterMovement {
     // 容忍 +1 格的路径偏差（8方向斜走路径会略长于直线距离）。
     if (this.path.length > retreatNeeded + 1) {
       this.standingImmediately();
-      const magicIni = this.getRandomMagicWithUseDistance(attackRadius);
+      const magicIni = this.selectMagicForAttack(attackRadius);
       return { isOk: magicIni !== null, magicIni };
     }
 
